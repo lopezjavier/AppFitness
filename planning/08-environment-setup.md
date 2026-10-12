@@ -81,7 +81,9 @@ maestro test tests/e2e/
 
 ## 4. Deployment
 
-- **Backend:** automatic when changes in `supabase/**` are merged into `main` (`deploy-supabase.yml`: `supabase link` → `supabase db push` → `supabase functions deploy`). Pinned CLI version. Manual re-run: `gh workflow run deploy-supabase.yml`.
+- **Backend:** automatic when changes in `supabase/**` are merged into `main` (`.github/workflows/deploy-supabase.yml`, `production` environment, deployable only from `main`): `supabase link` → `supabase db push` → `supabase functions deploy` (only if some `supabase/functions/*/index.ts` exists). The CLI version comes from `package-lock.json` (the same one `npx supabase` uses locally); the job fails if it differs from `package.json`.
+  - Re-run manually: `gh workflow run deploy-supabase.yml` and follow it with `gh run watch` (or `gh run list --workflow deploy-supabase.yml`).
+  - Result: the run log in GitHub Actions, and the deployment history under *Environments → production* on the repo page.
 - **App:** `prodDebug` APK at the end of each epic (manual install). In US-25, release signing is added with a keystore stored outside the repo (and optionally as a base64 secret for a tag-triggered release workflow).
 - **Keep-alive:** `keepalive.yml` calls `https://<ref>.supabase.co/functions/v1/health` every 3 days (ADR-12).
 

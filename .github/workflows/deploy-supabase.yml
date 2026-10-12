@@ -1,0 +1,53 @@
+name: deploy-supabase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; never cancel a deployment that is already running.
+concurrency:
+  group: deploy-supabase
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # No `version`: setup-cli installs the version pinned in package-lock.json (same as local `npx supabase`).
+      - uses: supabase/setup-cli@v3
+
+      - name: Check CLI version matches package.json
+        run: |
+          expected=$(node -p "require('./package.json').devDependencies.supabase")
+          actual=$(supabase --version)
+          echo "Supabase CLI $actual (expected $expected)"
+          test "$actual" = "$expected"
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Apply migrations
+        run: supabase db push
+
+      - name: Deploy Edge Functions
+        run: |
+          if compgen -G "supabase/functions/*/index.ts" > /dev/null; then
+            supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
+          else
+            echo "No Edge Functions to deploy; skipped."
+          fi
