@@ -124,14 +124,14 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Description:** Push the initial commit to `https://github.com/lopezjavier/AppFitness` (public, already created and empty) and add the GitHub base files.
 
 **Acceptance criteria:**
-- [ ] `origin` (already configured) receives the initial commit with `git push -u origin main`. The remote is empty, so no rebase is needed.
-- [ ] `.github/pull_request_template.md` with sections: Summary, Story/Task, Gherkin scenarios covered, Tests run, QA notes/screenshots, Security checklist (no secrets, RLS on new tables).
-- [ ] `.github/dependabot.yml` with the `github-actions` ecosystem (weekly). Gradle is added in US-01.
-- [ ] Repo description and topics configured (`gh repo edit`).
+- [x] `origin` (already configured) receives the initial commit with `git push -u origin main`. The remote is empty, so no rebase is needed. *(2026-10-12)*
+- [x] `.github/pull_request_template.md` with sections: Summary, Story/Task, Gherkin scenarios covered, Tests run, QA notes/screenshots, Security checklist (no secrets, RLS on new tables). *(2026-10-12)*
+- [x] `.github/dependabot.yml` with the `github-actions` ecosystem (weekly). Gradle is added in US-01. *(2026-10-12)*
+- [x] Repo description and topics configured (`gh repo edit`). *(2026-10-12)*
 
 **Verification:**
-- [ ] `git log origin/main --oneline` shows the initial commit.
-- [ ] `gh repo view lopezjavier/AppFitness --json visibility` → `PUBLIC`.
+- [x] `git log origin/main --oneline` shows the initial commit. *(2026-10-12)*
+- [x] `gh repo view lopezjavier/AppFitness --json visibility` → `PUBLIC`. *(2026-10-12)*
 
 **Dependencies:** Checkpoint A
 **Files likely touched:** `.github/pull_request_template.md`, `.github/dependabot.yml`
@@ -144,16 +144,16 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Description:** Enable the protections that justify the public repo: secret scanning, a gitleaks check and a ruleset on `main`. From here on every change goes through a PR.
 
 **Acceptance criteria:**
-- [ ] Repo settings (via `gh repo edit` / `gh api`): squash merge only, automatic branch deletion on merge, auto-merge allowed, wiki and projects disabled.
-- [ ] Secret scanning + push protection and Dependabot alerts enabled.
-- [ ] `.github/workflows/security.yml`: `gitleaks` job (`gitleaks/gitleaks-action@v2`, actions pinned by version) on `pull_request` and `push` to `main`.
+- [x] Repo settings (via `gh repo edit` / `gh api`): squash merge only, automatic branch deletion on merge, auto-merge allowed, wiki and projects disabled. *(2026-10-12)*
+- [x] Secret scanning + push protection and Dependabot alerts enabled. *(2026-10-12)*
+- [x] `.github/workflows/security.yml`: `gitleaks` job (`gitleaks/gitleaks-action@v3` + `actions/checkout@v7`, pinned by major version; v2 runs on Node 20, removed from GitHub runners on 2026-09-16) on `pull_request` and `push` to `main`.
 - [ ] `main` ruleset (also stored in `.github/rulesets/main.json` for reference): PR required with 0 approvals, required `gitleaks` check, branches up to date before merging, linear history, no force-push or deletion, no bypass.
 - [ ] This change goes through a PR (first use of the PR → checks → squash flow).
 
 **Verification:**
 - [ ] `git push origin main` with a trivial commit is rejected.
 - [ ] This task's PR shows the `gitleaks` check green and is merged with `gh pr merge --squash --delete-branch`.
-- [ ] `gh api repos/lopezjavier/AppFitness --jq .security_and_analysis` shows secret scanning and push protection `enabled`.
+- [x] `gh api repos/lopezjavier/AppFitness --jq .security_and_analysis` shows secret scanning and push protection `enabled`. *(2026-10-12)*
 
 **Dependencies:** T-006
 **Files likely touched:** `.github/workflows/security.yml`, `.github/rulesets/main.json`
