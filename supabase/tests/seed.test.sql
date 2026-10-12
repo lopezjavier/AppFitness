@@ -1,4 +1,5 @@
 -- pgTAP: the local-only seeded test user from supabase/seed.sql (T-018, US-02).
+-- Probe (ADR-20): supabase-only change; this PR is closed unmerged.
 -- Coupled to seed.sql on purpose: if the seed user changes, update this file and
 -- planning/08-environment-setup.md section 3.2.
 begin;
