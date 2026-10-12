@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Default locale is Spanish (ADR-16). -->
 <resources>
-    <string name="app_name">AppFitness</string>
     <string name="nav_diary">Diario</string>
     <string name="nav_workout">Entreno</string>
     <string name="nav_progress">Progreso</string>
