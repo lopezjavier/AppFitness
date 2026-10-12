@@ -402,12 +402,12 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] Workflow: `permissions: contents: read`; `concurrency` per ref with cancel-in-progress for PRs; `changes` job (path filter) + build job with `if:`; the build reads `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID` repo secrets as env vars; APK uploaded with `actions/upload-artifact`. Actions pinned by major version.
 - [x] ADR-20 in `planning/00-decisions.md`; `planning/02-architecture.md` §8 and the US-01 technical notes updated.
 - [x] `dependabot.yml` gets the `gradle` ecosystem (weekly, prefix `chore`).
-- [ ] PM: after the first green run, the `android-ci` build job is added as a required check in the `main` ruleset (`gh api`) and in `.github/rulesets/main.json`.
+- [x] PM: after the first green run, the `android-ci` build job is added as a required check in the `main` ruleset (`gh api`) and in `.github/rulesets/main.json`.
 
 **Verification:**
-- [ ] The task PR shows `gitleaks` and `android-ci` green and the APK artifact.
-- [ ] `gh api repos/lopezjavier/AppFitness/rulesets/24923545` lists both required checks.
-- [ ] A PR touching only `supabase/**` (T-018) reports `android-ci` as skipped/passing and can merge.
+- [x] The task PR shows `gitleaks` and `android-ci` green and the APK artifact.
+- [x] `gh api repos/lopezjavier/AppFitness/rulesets/24923545` lists both required checks.
+- [ ] A PR touching only `supabase/**` (T-018) *(verified in T-018)* reports `android-ci` as skipped/passing and can merge.
 
 **Dependencies:** T-016
 **Files likely touched:** `.github/workflows/android-ci.yml`, `.github/dependabot.yml`, `.github/rulesets/main.json`, `planning/00-decisions.md`, `planning/02-architecture.md`
