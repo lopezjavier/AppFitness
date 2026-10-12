@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
+Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 ---
 
@@ -85,7 +85,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 - [x] Review of the 7 skills: generic, with web examples (npm, React, Jest) and references to non-installed files; their principles are applied with the project's commands. Resolved in `CLAUDE.md` (Skills section and precedence order). *(2026-10-12)*
 
 **Verification:**
-- [ ] A new Claude Code session in the repo correctly summarizes its role and where the tasks are (manual test by the user).
+- [x] A new Claude Code session in the repo correctly summarizes its role and where the tasks are (manual test by the user). *(2026-10-12: the session that ran E0 recognized its PM role, the 7 subagents and `tasks/todo.md`)*
 
 **Dependencies:** T-003
 **Files likely touched:** `CLAUDE.md`, `.workflow/execution.log`
@@ -147,12 +147,12 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 - [x] Repo settings (via `gh repo edit` / `gh api`): squash merge only, automatic branch deletion on merge, auto-merge allowed, wiki and projects disabled. *(2026-10-12)*
 - [x] Secret scanning + push protection and Dependabot alerts enabled. *(2026-10-12)*
 - [x] `.github/workflows/security.yml`: `gitleaks` job (`gitleaks/gitleaks-action@v3` + `actions/checkout@v7`, pinned by major version; v2 runs on Node 20, removed from GitHub runners on 2026-09-16) on `pull_request` and `push` to `main`.
-- [ ] `main` ruleset (also stored in `.github/rulesets/main.json` for reference): PR required with 0 approvals, required `gitleaks` check, branches up to date before merging, linear history, no force-push or deletion, no bypass.
-- [ ] This change goes through a PR (first use of the PR → checks → squash flow).
+- [x] `main` ruleset (also stored in `.github/rulesets/main.json` for reference): PR required with 0 approvals, required `gitleaks` check, branches up to date before merging, linear history, no force-push or deletion, no bypass. *(2026-10-12; ruleset id 24923545)*
+- [x] This change goes through a PR (first use of the PR → checks → squash flow). *(PR #1)*
 
 **Verification:**
-- [ ] `git push origin main` with a trivial commit is rejected.
-- [ ] This task's PR shows the `gitleaks` check green and is merged with `gh pr merge --squash --delete-branch`.
+- [x] `git push origin main` with a trivial commit is rejected. *(2026-10-12: GH013)*
+- [x] This task's PR shows the `gitleaks` check green and is merged with `gh pr merge --squash --delete-branch`. *(PR #1)*
 - [x] `gh api repos/lopezjavier/AppFitness --jq .security_and_analysis` shows secret scanning and push protection `enabled`. *(2026-10-12)*
 
 **Dependencies:** T-006
@@ -162,7 +162,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 ---
 
 ### Checkpoint B — GitHub configured
-- [ ] `main` protected and verified; PR flow tested end to end.
+- [x] `main` protected and verified; PR flow tested end to end. *(2026-10-12)*
 
 ---
 
@@ -171,7 +171,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Description:** Create the production Supabase Free project and add the local Supabase CLI configuration to the repo, verifying that the local environment starts.
 
 **Acceptance criteria:**
-- [x] 👤 Project created on supabase.com (name `appfitness`, EU region: `eu-west-3` or `eu-central-1`, Free plan). DB password stored in a password manager. Noted down (not shared in the chat): project ref, URL and publishable key (`sb_publishable_...`; the legacy anon key is not used). Project ID: `lbprakdmgwnozjevsfbk`. *(2026-10-12)*
+- [x] 👤 Project created on supabase.com (name `appfitness`, EU region: `eu-west-3` or `eu-central-1`, Free plan; created as `AppFitness` in `eu-north-1`). DB password stored in a password manager. Noted down (not shared in the chat): project ref, URL and publishable key (`sb_publishable_...`; the legacy anon key is not used). Project ID: `lbprakdmgwnozjevsfbk`. *(2026-10-12)*
 - [x] 👤 `npx supabase login` in their terminal (local CLI token). *(2026-10-12)*
 - [x] PM: CLI version chosen (latest stable) and pinned; `npx supabase@<v> init` → `supabase/config.toml` with `project_id = "appfitness"`; `supabase/.env.example` with the expected local variables (`OFF_USER_AGENT`, `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`; `GOOGLE_WEB_CLIENT_ID` added in T-012) without values. *(2026-10-12: 2.120.0, pinned as a devDependency in `package.json`)*
 - [x] PM: `npx supabase link --project-ref <ref>` locally (asks for the DB password interactively → 👤). *(2026-10-12; CLI 2.120.0 authenticates with the access token through a temporary login role, no password prompt)*
@@ -227,7 +227,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 **Verification:**
 - [x] `gh workflow run deploy-supabase.yml` + `gh run watch` → success (link OK, "Remote database is up to date", functions skipped). *(2026-10-12, after replacing the token: see T-009)*
-- [ ] Merging the PR (if it touches `supabase/**`, or the next PR that does) triggers the workflow automatically and it finishes green; the deployment appears under *Environments → production*.
+- [x] Merging the PR (if it touches `supabase/**`, or the next PR that does) triggers the workflow automatically and it finishes green; the deployment appears under *Environments → production*. *(2026-10-12: PR #5 merge → push run green; deployment in production)*
 
 **Dependencies:** T-009
 **Files likely touched:** `.github/workflows/deploy-supabase.yml`, `planning/08-environment-setup.md`
@@ -236,7 +236,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 ---
 
 ### Checkpoint C — Automatic Supabase deployment
-- [ ] `deploy-supabase` green both manually and on merge.
+- [x] `deploy-supabase` green both manually and on merge. *(2026-10-12)*
 - [ ] 👤 User review.
 
 ---
@@ -254,7 +254,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 - [x] PM: command to get the SHA-1 on Windows provided. Debug keystore generated; SHA-1 `7D:F9:ED:8D:EF:0B:0C:27:96:DF:83:B5:5E:4D:E7:A2:D1:7C:4F:2A` (public fingerprint, this PC only). If `%USERPROFILE%\.android\debug.keystore` does not exist, it is generated by opening Android Studio or with `keytool`.
 
 **Verification:**
-- [ ] Screenshot or list from the console with the 3 clients (Web + 2 Android) and the correct packages (without showing the secret).
+- [x] Screenshot or list from the console with the 3 clients (Web + 2 Android) and the correct packages (without showing the secret). *(2026-10-12: Web client used by Supabase; both Android clients confirmed by the user, no screenshot shared)*
 - [x] 👤 `gh secret set GOOGLE_WEB_CLIENT_ID` (repository secret, used by `android-ci`); `gh secret list` shows it. *(2026-10-12)*
 
 **Dependencies:** T-008 (project ref for the redirect URI)
@@ -277,7 +277,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Verification:**
 - [x] `curl -s https://<ref>.supabase.co/auth/v1/settings -H "apikey: <publishable key>"`: `external.google = true` and `external.email = false` (run by 👤 or by the PM reading environment variables, without printing the key). *(2026-10-12: `google = true`, `email = false`)*
 - [x] Local: `npx supabase start` and `curl -s http://127.0.0.1:54321/auth/v1/settings -H "apikey: <local publishable key>"`: `external.email = true`. *(2026-10-12: `email = true`, `google = true` with empty variables)*
-- [ ] End-to-end sign-in is validated in US-05 (there is no app yet).
+- Note: end-to-end sign-in is validated in US-05 (there is no app yet).
 
 **Dependencies:** T-010, T-011
 **Files likely touched:** `supabase/config.toml`, `supabase/.env.example`
@@ -290,14 +290,14 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Description:** Check the Definition of Done of `planning/epics/E0-setup.md`, leave local configuration templates and prepare the start of E1.
 
 **Acceptance criteria:**
-- [ ] `local.properties.example` in the root with the keys from `planning/08-environment-setup.md` §3.1 (without values).
-- [ ] `planning/08-environment-setup.md` reflects what was actually configured (region, OAuth client names, CLI version); no secrets.
-- [ ] `tasks/todo.md`: tasks T-001…T-013 checked and E0 ✅.
-- [ ] `.workflow/execution.log`: `[PM] [E0] [COMPLETED]`.
-- [ ] Changes through a PR.
+- [x] `local.properties.example` in the root with the keys from `planning/08-environment-setup.md` §3.1 (without values). *(2026-10-12)*
+- [x] `planning/08-environment-setup.md` reflects what was actually configured (region, OAuth client names, CLI version); no secrets. *(2026-10-12: region `eu-north-1`, OAuth client names, CLI 2.120.0, token permissions)*
+- [x] `tasks/todo.md`: tasks T-001…T-013 checked and E0 ✅. *(2026-10-12)*
+- [x] `.workflow/execution.log`: `[PM] [E0] [COMPLETED]`. *(written when this PR is merged)*
+- [x] Changes through a PR. *(PR #6)*
 
 **Verification:**
-- [ ] E0 checklist: public and protected repo · `CLAUDE.md` and agents · Supabase deploy green · production Auth with Google on and Email off · no secret in the history (`gitleaks` green on `main`).
+- [x] E0 checklist: public and protected repo · `CLAUDE.md` and agents · Supabase deploy green · production Auth with Google on and Email off · no secret in the history (`gitleaks` green on `main`). *(2026-10-12)*
 
 **Dependencies:** T-012
 **Files likely touched:** `local.properties.example`, `planning/08-environment-setup.md`, `tasks/todo.md`
@@ -306,5 +306,5 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 ---
 
 ### Checkpoint D — E0 closure
-- [ ] Everything above verified.
+- [x] Everything above verified. *(2026-10-12)*
 - [ ] 👤 User review → the **E1** tasks are generated (from T-014).

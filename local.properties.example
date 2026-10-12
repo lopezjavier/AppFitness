@@ -1,0 +1,8 @@
+# Copy to local.properties (git-ignored) and fill in. Never commit values.
+# See planning/08-environment-setup.md §3.1.
+sdk.dir=C\:\Users\<user>\AppData\Local\Android\Sdk
+supabase.local.url=http://10.0.2.2:54321
+supabase.local.publishableKey=<publishable key printed by `npx supabase start`>
+supabase.prod.url=https://<ref>.supabase.co
+supabase.prod.publishableKey=<production publishable key (sb_publishable_...)>
+google.webClientId=<GOOGLE_WEB_CLIENT_ID>
