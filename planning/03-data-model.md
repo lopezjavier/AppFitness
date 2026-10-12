@@ -177,7 +177,7 @@ The 1RM is computed in SQL with the same formula as the domain (see `04-business
 
 | Function | Story | Auth | Input | Behavior |
 |---|---|---|---|---|
-| `health` | US-02 | public | — | `200 {"status":"ok"}` after a `select 1` |
+| `health` | US-02 | public (`verify_jwt = false`) | — | `GET` → `200 {"status":"ok"}` after a `select 1`; other methods → `405` (`Allow: GET`); DB failure → `503` (`db_unavailable`) |
 | `food-search` | US-09 | JWT | `?q=<2..60 chars>&page=1` | 1) full-text search in `foods` (OFF + the user's own); 2) if < 10 results, query OFF (`search`, minimal fields, `lc=es`, `cc=es`), normalize and upsert by `barcode`; 3) return up to 20 normalized results |
 | `food-barcode` | US-09 | JWT | `?code=<EAN-8/EAN-13/UPC-A>` | Look up in `foods`; if missing or `fetched_at` > 30 days, query OFF `product/<code>`; `404` if OFF does not have it or kcal is missing |
 
