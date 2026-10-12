@@ -49,5 +49,5 @@ style:
 
 Compose:
   CompositionLocalAllowlist:
-    # AppColors CompositionLocal planned in 05-design-system.md §2.4.
-    allowedCompositionLocals: ['LocalAppColors']
+    # AppColors (05-design-system.md §2.4) and AppTypography (§3), read through AppTheme (T-020).
+    allowedCompositionLocals: ['LocalAppColors', 'LocalAppTypography']
