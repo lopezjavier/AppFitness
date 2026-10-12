@@ -174,12 +174,12 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 - [x] 👤 Project created on supabase.com (name `appfitness`, EU region: `eu-west-3` or `eu-central-1`, Free plan). DB password stored in a password manager. Noted down (not shared in the chat): project ref, URL and publishable key (`sb_publishable_...`; the legacy anon key is not used). Project ID: `lbprakdmgwnozjevsfbk`. *(2026-10-12)*
 - [x] 👤 `npx supabase login` in their terminal (local CLI token). *(2026-10-12)*
 - [x] PM: CLI version chosen (latest stable) and pinned; `npx supabase@<v> init` → `supabase/config.toml` with `project_id = "appfitness"`; `supabase/.env.example` with the expected local variables (`OFF_USER_AGENT`, `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`) without values. *(2026-10-12: 2.120.0, pinned as a devDependency in `package.json`)*
-- [ ] PM: `npx supabase link --project-ref <ref>` locally (asks for the DB password interactively → 👤).
+- [x] PM: `npx supabase link --project-ref <ref>` locally (asks for the DB password interactively → 👤). *(2026-10-12; CLI 2.120.0 authenticates with the access token through a temporary login role, no password prompt)*
 - [ ] Changes through a PR.
 
 **Verification:**
 - [x] `npx supabase start` brings up the local Docker stack and `npx supabase status` shows API URL `http://127.0.0.1:54321`; `npx supabase stop`. *(2026-10-12)*
-- [ ] `npx supabase db push --dry-run` against production responds without errors ("Remote database is up to date").
+- [x] `npx supabase db push --dry-run` against production responds without errors ("Remote database is up to date"). *(2026-10-12)*
 
 **Dependencies:** T-007
 **Files likely touched:** `supabase/config.toml`, `supabase/.gitignore`, `supabase/.env.example`
