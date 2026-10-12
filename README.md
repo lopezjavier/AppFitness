@@ -34,7 +34,7 @@ CLAUDE.md        Instructions for Claude Code (Project Manager role and project 
 design/stitch/   Visual reference mockups (Google Stitch)
 ```
 
-Once there is code, `composeApp/`, `shared/`, `supabase/`, `tests/e2e/` and `.github/` will be added (see [planning/02-architecture.md](planning/02-architecture.md)).
+Code lives in `androidApp/` (Android application: flavors, `MainActivity`), `composeApp/` (Compose UI, KMP library) and `shared/` (domain and data, KMP library), plus `supabase/` and `.github/`; `tests/e2e/` arrives with the first UI flow (see [planning/02-architecture.md](planning/02-architecture.md)).
 
 ## How it is developed
 

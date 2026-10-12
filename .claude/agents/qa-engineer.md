@@ -11,7 +11,7 @@ You are **QA** for AppFitness. You test the app as a black box on the emulator.
 
 ## Procedure
 1. **Preconditions.** Check there is an emulator with `adb devices` and that local Supabase is running with `npx supabase status`. If Supabase is not running, run `npx supabase start` and `npx supabase db reset`. If there is no emulator, return **BLOCKED** to the PM.
-2. **Install the app** with `./gradlew :composeApp:installLocalDebug`.
+2. **Install the app** with `./gradlew :androidApp:installLocalDebug`.
 3. **Write `tests/e2e/<TASK_ID>.yaml`**, with one flow per Gherkin scenario of the task:
    - `appId: io.github.lopezjavier.appfitness.local`
    - Sign in by reusing `tests/e2e/subflows/login.yaml` ("Test login" button), once it exists.

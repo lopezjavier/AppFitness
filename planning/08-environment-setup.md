@@ -55,6 +55,10 @@ supabase.prod.url=https://<ref>.supabase.co
 supabase.prod.publishableKey=<production publishable key (sb_publishable_...)>
 google.webClientId=<GOOGLE_WEB_CLIENT_ID>
 ```
+In a `.properties` file the backslash is an escape character: keep `sdk.dir` with escaped backslashes as above, or use forward slashes (`sdk.dir=C:/Users/<user>/AppData/Local/Android/Sdk`).
+
+How `androidApp/build.gradle.kts` resolves the `BuildConfig` fields (details in `02-architecture.md` §5): `local.properties` (non-blank) > environment variable (non-blank) > default, and a missing value never fails the build. The `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` environment variables only feed `prod` (CI exports the production secrets and also runs the `local` unit tests); `GOOGLE_WEB_CLIENT_ID` feeds both flavors. Defaults are `""`, except the `local` `SUPABASE_URL`, which defaults to `http://10.0.2.2:54321`, so the `local` build and its tests work without `local.properties` (CI, Dependabot). The resolved values are never printed.
+
 The emulator reaches the PC's Docker Supabase through `10.0.2.2`. A physical phone with the `local` flavor would need the PC's LAN IP (not planned: the phone uses `prod`).
 
 ### 3.2 Local Supabase
@@ -74,8 +78,9 @@ npx supabase stop
 
 ### 3.3 App
 ```bash
-./gradlew :composeApp:installLocalDebug     # emulator + local Supabase
-./gradlew testLocalDebugUnitTest
+./gradlew :androidApp:installLocalDebug     # emulator + local Supabase ("AppFitness Local")
+./gradlew testLocalDebugUnitTest            # unit tests of every module
+./gradlew :androidApp:assembleProdDebug     # delivery APK: androidApp/build/outputs/apk/prod/debug/
 maestro test tests/e2e/
 ```
 

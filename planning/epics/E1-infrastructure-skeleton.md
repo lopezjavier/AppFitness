@@ -24,7 +24,7 @@ Feature: Buildable KMP project validated in CI
 
   Scenario: Local build of both flavors
     Given a clean copy of the repository with local.properties configured
-    When ./gradlew :composeApp:assembleLocalDebug :composeApp:assembleProdDebug is run
+    When ./gradlew :androidApp:assembleLocalDebug :androidApp:assembleProdDebug is run
     Then both APKs are built without errors
     And each one contains its environment's Supabase URL in BuildConfig
 
@@ -42,8 +42,9 @@ Feature: Buildable KMP project validated in CI
 ```
 
 **Technical notes**
-- `composeApp` and `shared` modules per `02-architecture.md` §2; `gradle/libs.versions.toml` with pinned stable versions.
-- `local` / `prod` flavors (`env` dimension); network security config with cleartext only for `10.0.2.2` in `local`.
+- Three modules per `02-architecture.md` §2 (ADR-19): `androidApp` (Android application: flavors, `BuildConfig`, `MainActivity`), `composeApp` and `shared` (KMP libraries); `gradle/libs.versions.toml` with pinned stable versions; `minSdk` 26 (ADR-21).
+- `local` / `prod` flavors (`env` dimension) in `androidApp`; network security config with cleartext only for `10.0.2.2` in `local`.
+- `BuildConfig` values: `local.properties` > environment variable > default; a missing value builds with `""`, except the `local` `SUPABASE_URL`, which defaults to `http://10.0.2.2:54321`. The `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` environment variables feed `prod` only (`08-environment-setup.md` §3.1).
 - Koin initialized; empty `App()` showing a text; one sample unit test in `shared/commonTest`.
 - `.github/workflows/android-ci.yml` with Gradle cache and `paths-ignore: supabase/**`.
 - Add `android-ci` as a required check in the `main` ruleset and the `gradle` ecosystem to `dependabot.yml`.
