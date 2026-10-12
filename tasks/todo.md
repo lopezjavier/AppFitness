@@ -335,3 +335,376 @@ Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 ### Checkpoint D — E0 closure
 - [x] Everything above verified. *(2026-10-12)*
 - [x] 👤 User review → the **E1** tasks are generated (from T-015). *(2026-10-12: first review → corrective T-014, move Supabase to Paris; approved after T-014)*
+
+---
+
+# E1 · Infrastructure and app skeleton
+
+Stories: `planning/epics/E1-infrastructure-skeleton.md`. Each task inherits the Gherkin of its story; the **Scenarios** line says which ones it must make pass. Module names follow ADR-19 (approved 2026-10-12) (`androidApp` + `composeApp` + `shared`); if T-015 keeps the original layout, read `androidApp` as `composeApp`.
+Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **UI** = full flow with ux-reviewer and qa-engineer (ADR-04).
+
+## T-015: KMP project skeleton with `local`/`prod` flavors
+
+**Story:** US-01 · **Flow:** infra · **Scenarios:** Local build of both flavors; Secrets kept out of the repository
+
+**Description:** Create the Gradle project: wrapper, `gradle/libs.versions.toml` with the latest stable compatible versions (Kotlin, Compose Multiplatform, AGP, Koin, kotlinx-*, Navigation), `shared` and `composeApp` KMP modules and the Android application module. First confirm the AGP 9 module layout against the official docs and record ADR-19 (or drop it). The app has `local`/`prod` flavors (`env` dimension, `.local` suffix, ADR-14), `BuildConfig` fields from `local.properties` or environment variables with blank fallbacks, cleartext only for `10.0.2.2` in `local`, Koin started, and an empty `App()` showing a text.
+
+**Acceptance criteria:**
+- [ ] ADR-19 written (or explicitly dropped) with the official sources; `CLAUDE.md`, `planning/02-architecture.md` §2/§5, `planning/06-agent-workflow.md` §4 and the E1 epic use the real module and task names.
+- [ ] `./gradlew :androidApp:assembleLocalDebug :androidApp:assembleProdDebug` builds both APKs; `applicationId` is `io.github.lopezjavier.appfitness(.local)`; JDK 21 build, JVM 17 bytecode (ADR-18).
+- [ ] `BuildConfig.SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID` per flavor from `local.properties` (`supabase.local.*`, `supabase.prod.*`, `google.webClientId`) or env vars (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID`); a missing value builds with `""` instead of failing.
+- [ ] Network security config allows cleartext only to `10.0.2.2` and only in `local`.
+- [ ] Unit tests: one sample test in `shared/commonTest`; a `local` flavor test asserting `SUPABASE_URL == "http://10.0.2.2:54321"`.
+
+**Verification:**
+- [ ] `./gradlew testLocalDebugUnitTest` green.
+- [ ] Both assemble tasks green from a clean checkout with `local.properties` filled in; `git status` does not list `local.properties`.
+- [ ] Manual: `installLocalDebug` on the emulator shows the placeholder text.
+
+**Dependencies:** E0
+**Files likely touched:** `settings.gradle.kts`, `build.gradle.kts`, `gradle/libs.versions.toml`, `gradle/wrapper/*`, `gradlew*`, `androidApp/build.gradle.kts` + `src/{main,local}/…`, `composeApp/…/App.kt`, `shared/…`, docs listed above
+**Estimated scope:** L (scaffolding; most files are generated boilerplate. Do not add features beyond this list.)
+
+---
+
+## T-016: ktlint and detekt
+
+**Story:** US-01 · **Flow:** infra · **Scenarios:** (prepares "Quality and tests on a Pull Request")
+
+**Description:** Add the ktlint Gradle plugin and detekt to every module with a shared config that accepts Compose conventions (PascalCase `@Composable` functions, `Modifier` parameter rules), and leave the code base clean.
+
+**Acceptance criteria:**
+- [ ] `./gradlew ktlintCheck detekt` runs on `androidApp`, `composeApp` and `shared` (all source sets).
+- [ ] `.editorconfig` and `config/detekt/detekt.yml` set the Compose exceptions; no baseline file (the code base starts clean).
+- [ ] A deliberate violation makes the command fail (checked locally, not committed).
+
+**Verification:**
+- [ ] `./gradlew ktlintCheck detekt testLocalDebugUnitTest` green.
+
+**Dependencies:** T-015
+**Files likely touched:** `gradle/libs.versions.toml`, `build.gradle.kts`, `.editorconfig`, `config/detekt/detekt.yml`
+**Estimated scope:** S
+
+---
+
+## T-017: `android-ci` workflow as a required check
+
+**Story:** US-01 · **Flow:** infra · **Scenarios:** Quality and tests on a Pull Request
+
+**Description:** Create `.github/workflows/android-ci.yml` (JDK 21 Temurin + Gradle cache → `ktlintCheck detekt` → `testLocalDebugUnitTest` → `:androidApp:assembleProdDebug` → APK artifact) that runs on every PR and push to `main`, skipping the build job when only `supabase/**` changed (ADR-20). Make it a required check and add Gradle to Dependabot.
+
+**Acceptance criteria:**
+- [ ] Workflow: `permissions: contents: read`; `concurrency` per ref with cancel-in-progress for PRs; `changes` job (path filter) + build job with `if:`; the build reads `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID` repo secrets as env vars; APK uploaded with `actions/upload-artifact`. Actions pinned by major version.
+- [ ] ADR-20 in `planning/00-decisions.md`; `planning/02-architecture.md` §8 and the US-01 technical notes updated.
+- [ ] `dependabot.yml` gets the `gradle` ecosystem (weekly, prefix `chore`).
+- [ ] PM: after the first green run, the `android-ci` build job is added as a required check in the `main` ruleset (`gh api`) and in `.github/rulesets/main.json`.
+
+**Verification:**
+- [ ] The task PR shows `gitleaks` and `android-ci` green and the APK artifact.
+- [ ] `gh api repos/lopezjavier/AppFitness/rulesets/24923545` lists both required checks.
+- [ ] A PR touching only `supabase/**` (T-018) reports `android-ci` as skipped/passing and can merge.
+
+**Dependencies:** T-016
+**Files likely touched:** `.github/workflows/android-ci.yml`, `.github/dependabot.yml`, `.github/rulesets/main.json`, `planning/00-decisions.md`, `planning/02-architecture.md`
+**Estimated scope:** S
+
+---
+
+### Checkpoint E1-A — CI gate
+- [ ] `main` requires `gitleaks` + `android-ci`; both flavors build locally and in CI.
+- [ ] 👤 Quick user review of the module layout (ADR-19) and CI before the backend and UI work.
+
+---
+
+## T-018: `profiles` migration, RLS, pgTAP, seed user and `supabase-ci`
+
+**Story:** US-02 · **Flow:** backend · **Scenarios:** Local migrations and seed; Profile isolation with RLS; Database tests on the PR; First deployment with content (migration part)
+
+**Description:** First migration: `unaccent` extension, the `sex` and `activity_level` enums, `profiles` per `03-data-model.md` §2, a reusable `set_updated_at()` trigger function, the `on_auth_user_created` trigger (security definer, fixed `search_path`) and RLS (select/update for the owner, no client insert/delete). `seed.sql` creates `test@appfitness.local` locally. `supabase-ci.yml` runs start → db reset → db lint → test db, always reporting (ADR-20), and becomes a required check.
+
+**Acceptance criteria:**
+- [ ] `supabase/migrations/<ts>_profiles.sql`: RLS enabled **and forced**; policies use `(select auth.uid())`; `height_cm` check 100–250; `updated_at` maintained by the trigger.
+- [ ] `supabase/tests/profiles.test.sql` (pgTAP): RLS on; the trigger creates the row with name/avatar from metadata; A sees only their row; A updating B's row affects 0 rows; A cannot delete.
+- [ ] `supabase/seed.sql` creates the test user (password documented in `planning/08-environment-setup.md` §3.2; it is a local-only, non-secret value) with its `profiles` row through the trigger.
+- [ ] `.github/workflows/supabase-ci.yml` with the pinned CLI (`supabase/setup-cli@v3`, version from `package-lock.json`); added to the ruleset and `main.json` as required after its first green run.
+- [ ] Merging deploys the migration to production via `deploy-supabase` (no seed).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green locally.
+- [ ] PR checks: `gitleaks`, `android-ci` (skipped), `supabase-ci` green.
+- [ ] After merge: `deploy-supabase` run green; `npx supabase migration list` shows the migration remote; production has no `test@appfitness.local` user.
+
+**Dependencies:** T-017
+**Files likely touched:** `supabase/migrations/<ts>_profiles.sql`, `supabase/tests/profiles.test.sql`, `supabase/seed.sql`, `.github/workflows/supabase-ci.yml`, `.github/rulesets/main.json`, `planning/08-environment-setup.md`
+**Estimated scope:** M
+
+---
+
+## T-019: `health` Edge Function and `keepalive` workflow
+
+**Story:** US-02 · **Flow:** backend · **Scenarios:** Health check; First deployment with content (function part); Project kept active on the free plan
+
+**Description:** `supabase/functions/health/index.ts` (Deno) answers `GET` with `200 {"status":"ok"}` and `verify_jwt = false` in `config.toml`; tested with `deno test`. `supabase-ci` gains the `deno test` step. `keepalive.yml` (cron `0 6 */3 * *` + `workflow_dispatch`) calls the production function with the publishable key as `apikey` (ADR-17) and fails on a non-200 response.
+
+**Acceptance criteria:**
+- [ ] Function + `health/index.test.ts`: `GET` → 200 + JSON body + `content-type: application/json`; other methods → 405.
+- [ ] `[functions.health] verify_jwt = false` in `supabase/config.toml`.
+- [ ] `supabase-ci.yml` runs `deno test --allow-all supabase/functions`.
+- [ ] `.github/workflows/keepalive.yml` uses the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` repo secrets, never prints them, `curl --fail` with a timeout and retry.
+- [ ] Dependabot: no new ecosystem needed (Deno std imports pinned by version in the import URL/specifier).
+
+**Verification:**
+- [ ] `deno test --allow-all supabase/functions` green; `npx supabase functions serve` + `curl http://127.0.0.1:54321/functions/v1/health` → 200.
+- [ ] After merge: `deploy-supabase` deploys `health`; `gh workflow run keepalive.yml` + `gh run watch` green.
+
+**Dependencies:** T-018
+**Files likely touched:** `supabase/functions/health/index.ts`, `supabase/functions/health/index.test.ts`, `supabase/config.toml`, `.github/workflows/supabase-ci.yml`, `.github/workflows/keepalive.yml`
+**Estimated scope:** S
+
+---
+
+### Checkpoint E1-B — Backend live
+- [ ] Production has `profiles` + `health`; `deploy-supabase` and `keepalive` green at least once; `supabase-ci` required.
+
+---
+
+## T-020: Kinetic Dark theme foundation
+
+**Story:** US-03 · **Flow:** UI · **Scenarios:** Tokens applied globally (background and font; cards are checked in T-023)
+
+**Description:** `designsystem/` in `composeApp/commonMain`: `AppColors` (all §2 tokens) exposed via `AppTheme.colors`, the M3 `darkColorScheme` mapping of §2.4, Plus Jakarta Sans (400/600/700/800) bundled as Compose resources with `OFL.txt`, the §3 typography (with `tnum, lnum` on numeric styles and phone/tablet sizes for `displayHero`/`headlineMetric`), `Spacing` and `Shapes` (§4). `App()` uses `AppTheme`; the placeholder screen has a `surfaceBase` background. Spanish string resources set up.
+
+**Acceptance criteria:**
+- [ ] Every token in `05-design-system.md` §2–§4 exists with the exact value; no hardcoded color/dp/sp outside `designsystem/`.
+- [ ] Unit tests: color scheme mapping (`primary == neonLime`, `background == surfaceBase`…); numeric text styles include `tnum`.
+- [ ] Strings come from `composeResources` (Spanish).
+
+**Verification:**
+- [ ] `./gradlew ktlintCheck detekt testLocalDebugUnitTest` green.
+- [ ] QA: `tests/e2e/T-020.yaml` launches the app and finds the placeholder; screenshot shows the dark background and the Jakarta font.
+
+**Dependencies:** T-017
+**Files likely touched:** `composeApp/src/commonMain/kotlin/<pkg>/designsystem/{AppColors,AppTheme,Typography,Spacing,Shapes}.kt`, `composeApp/src/commonMain/composeResources/font/*`, `…/values/strings.xml`, `App.kt`, tests
+**Estimated scope:** M
+
+---
+
+## T-021: 4-tab navigation shell with WIP screens
+
+**Story:** US-04 · **Flow:** UI · **Scenarios:** Launch (tabs and initial tab); Navigating between tabs
+
+**Description:** Type-safe `@Serializable` routes for Diario, Entreno, Progreso, Perfil with one back stack per tab (ADR-10), the `AppNavigation` bottom bar (active indicator in `neonLime`), and one WIP screen per tab built with `WipPlaceholder` + `SkeletonBox` (shimmer) in a scrollable list. Switching tabs keeps each tab's state and scroll position.
+
+**Acceptance criteria:**
+- [ ] Start tab Diario; the 4 labels in Spanish; `testTag`s `nav_tab_diary`, `nav_tab_workout`, `nav_tab_progress`, `nav_tab_profile` (final names set by the ux-reviewer).
+- [ ] Re-selecting a tab restores its back stack and scroll position (`rememberSaveable`/saved state).
+- [ ] `SkeletonBox`, `WipPlaceholder`, `AppNavigation` (bottom bar variant) live in `designsystem/` with previews.
+- [ ] Unit test for the tab/route model (start destination, tab ↔ route mapping).
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: `tests/e2e/T-021.yaml` covers "Navigating between tabs" (incl. scroll preservation).
+
+**Dependencies:** T-020
+**Files likely touched:** `composeApp/…/app/{AppRoutes,AppNavHost,AppScaffold}.kt`, `…/designsystem/{AppNavigation,SkeletonBox,WipPlaceholder}.kt`, `…/feature/{diary,workout,progress,profile}/…Screen.kt`, strings, test, `tests/e2e/T-021.yaml`
+**Estimated scope:** M
+
+---
+
+## T-022: Top App Bar with section title and avatar
+
+**Story:** US-04 · **Flow:** UI · **Scenarios:** Launch (Top App Bar); The avatar opens Profile
+
+**Description:** `AppTopBar` with the active section title and a circular avatar (placeholder initials/icon until E2 provides the Google photo) that switches to the Perfil tab. Content description in Spanish.
+
+**Acceptance criteria:**
+- [ ] The title follows the active tab; the avatar target is ≥ 48 dp with a `contentDescription` and a `testTag` (e.g. `topbar_avatar`).
+- [ ] Tapping the avatar from any tab activates Perfil using the same tab-switch logic as the bottom bar (state preserved).
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: `tests/e2e/T-022.yaml` (Launch + avatar scenario); `tests/e2e/` regression green.
+
+**Dependencies:** T-021
+**Files likely touched:** `…/designsystem/AppTopBar.kt`, `…/app/AppScaffold.kt`, strings, `tests/e2e/T-022.yaml`
+**Estimated scope:** S
+
+---
+
+### Checkpoint E1-C — First installable APK
+- [ ] Lint, unit tests, Maestro regression and CI green.
+- [ ] 👤 The user installs the APK, moves between the tabs and gives early feedback on style (cheap to adjust now).
+
+---
+
+## T-023: Debug-only component catalog + buttons, card, chips and segmented selector
+
+**Story:** US-03 · **Flow:** UI · **Scenarios:** Component catalog in debug (first components); Tokens applied globally (cards)
+
+**Description:** A "Catálogo de componentes" screen reachable from Perfil **only in the `local` flavor**, listing components by section with their states. Adds `AppCard`, `PrimaryButton`/`SecondaryButton`/`GhostButton` (enabled, disabled, pressed), `AppChip`/`FilterChipRow` (active cyan) and `SegmentedSelector` (Déficit/Mantenimiento/Superávit).
+
+**Acceptance criteria:**
+- [ ] The entry point is contributed by the `local` flavor; a `prod` unit test (`testProdDebugUnitTest`) asserts the catalog is not available.
+- [ ] `AppCard`: `surfaceRaised`, 1 dp `borderSubtle`, radius 16, padding 16. Buttons 52/48 dp min height; chips 32 dp visual / 48 dp target.
+- [ ] Each component: `Modifier` first optional param, propagatable `testTag`, preview, catalog entry.
+- [ ] Unit test for `SegmentedSelector`/`FilterChipRow` selection state logic if extracted.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` + `testProdDebugUnitTest` green.
+- [ ] QA: `tests/e2e/T-023.yaml` opens the catalog from Perfil and asserts the components by `testTag`.
+
+**Dependencies:** T-022
+**Files likely touched:** `…/designsystem/{AppCard,Buttons,AppChip,SegmentedSelector}.kt`, `…/feature/catalog/ComponentCatalogScreen.kt`, `androidApp/src/{local,prod}/…`, `…/feature/profile/ProfileScreen.kt`, `tests/e2e/T-023.yaml`
+**Estimated scope:** M
+
+---
+
+## T-024: Data visualization components
+
+**Story:** US-03 · **Flow:** UI · **Scenarios:** Component catalog in debug (data components)
+
+**Description:** `ProgressRing` (kcal ring, normal and over-target amber state), `MacroProgressBar` ("142 g / 180 g · 79 %"), `MacroSlider` (macro color, % and grams/kcal), `MetricTile` and `TrendPill` (green/red/amber), all added to the catalog with their states.
+
+**Acceptance criteria:**
+- [ ] Pure functions with unit tests: ring sweep angle (0, partial, 100 %, > 100 % capped) and over-target flag; macro bar percent text and rounding; trend pill color for positive/negative/neutral.
+- [ ] Ring and bars expose their value through `stateDescription`; numbers use tabular figures.
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: `tests/e2e/T-024.yaml` asserts the new catalog entries; regression green.
+
+**Dependencies:** T-023
+**Files likely touched:** `…/designsystem/{ProgressRing,MacroProgressBar,MacroSlider,MetricTile,TrendPill}.kt`, their tests, catalog screen, `tests/e2e/T-024.yaml`
+**Estimated scope:** M
+
+---
+
+## T-025: Workout input components
+
+**Story:** US-03 · **Flow:** UI · **Scenarios:** Component catalog in debug (input components)
+
+**Description:** `NumberInput` (centered tabular numerals, 1.5 dp focus border, ghost placeholder), `SetCompletionCheckbox` (38 dp visual / 48 dp target, lime fill + dark check, haptic via `LocalHapticFeedback`), `SetRow` (index · previous · KG · REPS · checkbox) and `RestTimerBar` (cyan countdown, progress line, "+30s", "Omitir"), all in the catalog.
+
+**Acceptance criteria:**
+- [ ] Unit tests: decimal input parsing/filtering for `NumberInput` (comma and dot, max decimals); rest timer `mm:ss` formatting and progress fraction; "+30s" extension.
+- [ ] Checkbox exposes checked state for accessibility and the catalog shows both states.
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: `tests/e2e/T-025.yaml` types into `NumberInput` and toggles the checkbox in the catalog; regression green.
+
+**Dependencies:** T-024
+**Files likely touched:** `…/designsystem/{NumberInput,SetCompletionCheckbox,SetRow,RestTimerBar}.kt`, their tests, catalog screen, `tests/e2e/T-025.yaml`
+**Estimated scope:** M
+
+---
+
+## T-026: Empty/error states and accessibility sweep of the catalog
+
+**Story:** US-03 · **Flow:** UI · **Scenarios:** Accessibility of interactive components; Component catalog in debug (complete)
+
+**Description:** `EmptyState` and `ErrorState` (icon + message + action) in the catalog, plus an accessibility pass on every catalog component: touch targets ≥ 48 × 48 dp and a `contentDescription` on every actionable icon. Decide and document how touch targets are tested (Compose UI test on the JVM if it works with the pinned versions; otherwise Maestro bounds checks + UX review).
+
+**Acceptance criteria:**
+- [ ] Every component from `05-design-system.md` §6 is in the catalog except `UniversalFab`, `AppBottomSheet` (T-027) and `OfflineBanner` (T-029), which are added there.
+- [ ] Automated touch target / content description checks for the interactive catalog components, or a logged decision with the fallback.
+
+**Verification:**
+- [ ] Lint + unit tests (and UI tests if adopted) green.
+- [ ] QA: `tests/e2e/T-026.yaml`; full regression green.
+
+**Dependencies:** T-025
+**Files likely touched:** `…/designsystem/{EmptyState,ErrorState}.kt`, catalog screen, a11y tests, `tests/e2e/T-026.yaml`
+**Estimated scope:** S
+
+---
+
+### Checkpoint E1-D — Design system complete
+- [ ] US-03 scenarios green; catalog absent in `prodDebug`.
+
+---
+
+## T-027: Contextual FAB with WIP bottom sheets
+
+**Story:** US-04 · **Flow:** UI · **Scenarios:** Contextual FAB (outline); FAB hidden on Profile
+
+**Description:** `UniversalFab` (lime pill "+ Registro", 52 dp, 0.97 scale on press) and `AppBottomSheet` (top radius 24, 36×4 handle, 65 % scrim). The active route defines the FAB action (ADR-10): Diario → "Añadir alimento", Entreno → "Empezar entreno", Progreso → "Registrar peso", Perfil → hidden. Each action opens a WIP sheet with that title. Both components are added to the catalog.
+
+**Acceptance criteria:**
+- [ ] Route → FAB action mapping in one place, with unit tests for the 4 tabs.
+- [ ] Sheet title per tab; dismiss by scrim, back and drag; `testTag`s for FAB and sheet.
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
+
+**Dependencies:** T-026
+**Files likely touched:** `…/designsystem/{UniversalFab,AppBottomSheet}.kt`, `…/app/{FabAction,AppScaffold}.kt`, test, strings, catalog, `tests/e2e/T-027.yaml`
+**Estimated scope:** M
+
+---
+
+## T-028: Adaptive layout with NavigationRail on tablets
+
+**Story:** US-04 · **Flow:** UI · **Scenarios:** Tablet layout
+
+**Description:** Using the window size class, compact widths keep the bottom bar + FAB; ≥ 600 dp show a `NavigationRail` (lime indicator) with the FAB at its top. Same tabs, routes and state. `displayHero`/`headlineMetric` use the tablet sizes on wide screens.
+
+**Acceptance criteria:**
+- [ ] Width → navigation type decided by a pure function with unit tests (599 → bar, 600 → rail).
+- [ ] Rotating or resizing keeps the active tab and state.
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: phone regression green; tablet checked on a tablet emulator (create a `Pixel Tablet` AVD if missing) with screenshots, or manually if no AVD (logged).
+
+**Dependencies:** T-027
+**Files likely touched:** `…/designsystem/AppNavigation.kt`, `…/app/AppScaffold.kt`, `…/designsystem/Typography.kt`, test
+**Estimated scope:** S
+
+---
+
+## T-029: Connectivity observer and "Sin conexión" banner
+
+**Story:** US-04 · **Flow:** UI · **Scenarios:** Offline
+
+**Description:** `ConnectivityObserver` interface (`Flow<Boolean>`) in `shared` (`domain/port`), Android implementation with `ConnectivityManager.NetworkCallback` in `androidMain`, injected with Koin. The shell shows `OfflineBanner` below the Top App Bar while offline and hides it when the connection returns (ADR-01). Banner added to the catalog.
+
+**Acceptance criteria:**
+- [ ] Shell state driven by the observer and covered by a ViewModel test with a fake observer (online → offline → online) using Turbine.
+- [ ] Android implementation emits the current state on collection and is unregistered on cancellation; `ACCESS_NETWORK_STATE` permission declared.
+
+**Verification:**
+- [ ] Lint + unit tests green.
+- [ ] QA: `tests/e2e/T-029.yaml` with Maestro airplane mode (if unreliable on the emulator, manual check logged); full regression green.
+
+**Dependencies:** T-028
+**Files likely touched:** `shared/…/domain/port/ConnectivityObserver.kt`, `composeApp/src/androidMain/…/platform/AndroidConnectivityObserver.kt`, `…/app/AppViewModel.kt`, `…/designsystem/OfflineBanner.kt`, DI module, test, `tests/e2e/T-029.yaml`
+**Estimated scope:** M
+
+---
+
+## T-030: E1 closure
+
+**Story:** E1 Definition of Done · **Flow:** PM
+
+**Description:** Check the epic DoD, deliver the APK and handle feedback.
+
+**Acceptance criteria:**
+- [ ] US-01…US-04 merged with green CI; `deploy-supabase` and `keepalive` green at least once (T-018/T-019).
+- [ ] `maestro test tests/e2e/` green on the emulator against local Supabase.
+- [ ] `CLAUDE.md` "Current status" updated (E1 done, next E2); `tasks/todo.md` E1 ✅ (through a PR).
+- [ ] `./gradlew :androidApp:assembleProdDebug` → APK path given to the user; `[PM] [E1] [COMPLETED]` logged.
+- [ ] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then break down E2.
+
+**Verification:**
+- [ ] `gh run list` shows green `deploy-supabase` and `keepalive` runs; `git tag` lists `v0.1.0` after approval.
+
+**Dependencies:** T-019, T-026, T-029
+**Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
+**Estimated scope:** S
+
+---
+
+### Checkpoint E1-E — E1 closure
+- [ ] Everything above verified; 👤 user approval → `v0.1.0`.
