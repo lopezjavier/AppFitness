@@ -1,0 +1,101 @@
+# T-021 4-tab navigation shell (US-04 "Launch" and "Navigating between tabs"). QA owns the final version.
+# Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD (no local Supabase needed).
+# Run with emulator animations off so the infinite skeleton shimmer does not slow the taps:
+#   adb shell settings put global animator_duration_scale 0
+#   adb shell settings put global window_animation_scale 0
+#   adb shell settings put global transition_animation_scale 0
+# Manual check on the screenshots: the active tab icon/label is neonLime (#A3E635) on a lime 15% pill.
+appId: io.github.lopezjavier.appfitness.local
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "nav_bar"
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
+- assertVisible:
+    id: "nav_tab_workout"
+- assertVisible:
+    id: "nav_tab_progress"
+- assertVisible:
+    id: "nav_tab_profile"
+- assertVisible:
+    id: "diary_screen"
+- assertVisible:
+    id: "diary_wip_title"
+# Rendered tab labels are uppercase (UX Q2).
+- assertVisible: "DIARIO"
+- assertVisible: "ENTRENO"
+- assertVisible: "PROGRESO"
+- assertVisible: "PERFIL"
+- takeScreenshot: tests/e2e/screenshots/T-021_launch
+# Scroll position is kept per tab.
+- scrollUntilVisible:
+    element:
+      id: "diary_wip_footer"
+    direction: DOWN
+- assertNotVisible:
+    id: "diary_wip_title"
+- tapOn:
+    id: "nav_tab_workout"
+- assertVisible:
+    id: "workout_screen"
+- assertVisible:
+    id: "nav_tab_workout"
+    selected: true
+- assertVisible:
+    id: "workout_wip_title"
+- takeScreenshot: tests/e2e/screenshots/T-021_workout
+- tapOn:
+    id: "nav_tab_progress"
+- assertVisible:
+    id: "progress_screen"
+- assertVisible:
+    id: "nav_tab_progress"
+    selected: true
+- assertVisible:
+    id: "progress_wip_title"
+- takeScreenshot: tests/e2e/screenshots/T-021_progress
+- tapOn:
+    id: "nav_tab_profile"
+- assertVisible:
+    id: "profile_screen"
+- assertVisible:
+    id: "nav_tab_profile"
+    selected: true
+- assertVisible:
+    id: "profile_wip_title"
+- takeScreenshot: tests/e2e/screenshots/T-021_profile
+- tapOn:
+    id: "nav_tab_diary"
+- assertVisible:
+    id: "diary_screen"
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
+- assertVisible:
+    id: "diary_wip_footer"
+- assertNotVisible:
+    id: "diary_wip_title"
+- takeScreenshot: tests/e2e/screenshots/T-021_diary
+# A second tab keeps its scroll too.
+- tapOn:
+    id: "nav_tab_progress"
+- scrollUntilVisible:
+    element:
+      id: "progress_wip_footer"
+    direction: DOWN
+- tapOn:
+    id: "nav_tab_diary"
+- tapOn:
+    id: "nav_tab_progress"
+- assertVisible:
+    id: "progress_wip_footer"
+# System back from a non-start tab returns to Diario.
+- back
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
+- assertVisible:
+    id: "diary_screen"
