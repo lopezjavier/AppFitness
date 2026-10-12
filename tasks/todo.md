@@ -407,7 +407,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Verification:**
 - [x] The task PR shows `gitleaks` and `android-ci` green and the APK artifact.
 - [x] `gh api repos/lopezjavier/AppFitness/rulesets/24923545` lists both required checks.
-- [ ] A PR touching only `supabase/**` (T-018) *(verified in T-018)* reports `android-ci` as skipped/passing and can merge.
+- [x] A PR touching only `supabase/**` (T-018) reports `android-ci` as skipped/passing and can merge (probe PR #14: `android-ci` skipped, merge state CLEAN; closed unmerged).
 
 **Dependencies:** T-016
 **Files likely touched:** `.github/workflows/android-ci.yml`, `.github/dependabot.yml`, `.github/rulesets/main.json`, `planning/00-decisions.md`, `planning/02-architecture.md`
@@ -416,7 +416,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 ---
 
 ### Checkpoint E1-A — CI gate
-- [ ] `main` requires `gitleaks` + `android-ci`; both flavors build locally and in CI.
+- [x] `main` requires `gitleaks` + `android-ci`; both flavors build locally and in CI.
 - [ ] 👤 Quick user review of the module layout (ADR-19) and CI before the backend and UI work.
 
 ---
@@ -433,12 +433,12 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] `supabase/seed.sql` creates the test user (password documented in `planning/08-environment-setup.md` §3.2; it is a local-only, non-secret value) with its `profiles` row through the trigger.
 - [x] `.github/workflows/supabase-ci.yml` with the pinned CLI (`supabase/setup-cli@v3`, version from `package-lock.json`); added to the ruleset and `main.json` as required after its first green run.
 - [x] `supabase-ci` follows ADR-20 (`changes` job with the `supabase/**` filter, explicit `predicate-quantifier`, fail-open build job); the `supabase-ci` row in `planning/02-architecture.md` §8 is updated to match (PR #10 review).
-- [ ] Merging deploys the migration to production via `deploy-supabase` (no seed).
+- [x] Merging deploys the migration to production via `deploy-supabase` (no seed).
 
 **Verification:**
 - [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green locally.
 - [x] PR checks: `gitleaks`, `android-ci` (builds: the PR also touches `.github/`, `planning/` and `tasks/`), `supabase-ci` green. The supabase-only skip from T-017 is proven with a throwaway probe PR after the merge (closed unmerged; ticked on the T-019 branch).
-- [ ] After merge: `deploy-supabase` run green; `npx supabase migration list` shows the migration remote; production has no `test@appfitness.local` user.
+- [x] After merge: `deploy-supabase` run green; `npx supabase migration list` shows the migration remote; production has no `test@appfitness.local` user.
 
 **Dependencies:** T-017
 **Files likely touched:** `supabase/migrations/<ts>_profiles.sql`, `supabase/tests/profiles.test.sql`, `supabase/seed.sql`, `.github/workflows/supabase-ci.yml`, `.github/rulesets/main.json`, `planning/08-environment-setup.md`
@@ -453,18 +453,18 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Description:** `supabase/functions/health/index.ts` (Deno) answers `GET` with `200 {"status":"ok"}` and `verify_jwt = false` in `config.toml`; tested with `deno test`. `supabase-ci` gains the `deno test` step. `keepalive.yml` (cron `0 6 */3 * *` + `workflow_dispatch`) calls the production function with the publishable key as `apikey` (ADR-17) and fails on a non-200 response.
 
 **Acceptance criteria:**
-- [ ] Function + `health/index.test.ts`: `GET` → 200 + JSON body + `content-type: application/json`; other methods → 405.
-- [ ] `[functions.health] verify_jwt = false` in `supabase/config.toml`.
-- [ ] `supabase-ci.yml` runs `deno test --allow-all supabase/functions`.
-- [ ] `.github/workflows/keepalive.yml` uses the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` repo secrets, never prints them, `curl --fail` with a timeout and retry.
-- [ ] Dependabot: no new ecosystem needed (Deno std imports pinned by version in the import URL/specifier).
+- [x] Function (`health/index.ts` entrypoint + pure `health/handler.ts`) + `health/handler.test.ts`: `GET` → 200 + JSON body + `content-type: application/json`; other methods → 405.
+- [x] `[functions.health] verify_jwt = false` in `supabase/config.toml`.
+- [x] `supabase-ci.yml` runs `deno test --allow-all supabase/functions`.
+- [x] `.github/workflows/keepalive.yml` uses the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` repo secrets, never prints them, `curl --fail` with a timeout and retry.
+- [x] Dependabot: no new ecosystem needed (Deno std imports pinned by version in the import URL/specifier).
 
 **Verification:**
-- [ ] `deno test --allow-all supabase/functions` green; `npx supabase functions serve` + `curl http://127.0.0.1:54321/functions/v1/health` → 200.
+- [x] `deno test --allow-all supabase/functions` green; `npx supabase functions serve` + `curl http://127.0.0.1:54321/functions/v1/health` → 200.
 - [ ] After merge: `deploy-supabase` deploys `health`; `gh workflow run keepalive.yml` + `gh run watch` green.
 
 **Dependencies:** T-018
-**Files likely touched:** `supabase/functions/health/index.ts`, `supabase/functions/health/index.test.ts`, `supabase/config.toml`, `.github/workflows/supabase-ci.yml`, `.github/workflows/keepalive.yml`
+**Files likely touched:** `supabase/functions/health/index.ts`, `supabase/functions/health/handler.ts`, `supabase/functions/health/handler.test.ts`, `deno.json`, `supabase/config.toml`, `.github/workflows/supabase-ci.yml`, `.github/workflows/keepalive.yml`
 **Estimated scope:** S
 
 ---

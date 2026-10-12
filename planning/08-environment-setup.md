@@ -10,7 +10,7 @@ Supersedes the original local development notes (kept outside the repository). S
 | Android Studio + SDK + an emulator (API 34+, with Google Play) | Build and emulate; Health Connect and Code Scanner need Google Play Services | `adb devices` |
 | Docker Desktop | Local Supabase | `docker info` |
 | Node.js LTS | `npx supabase` | `npx supabase --version` |
-| Deno | Edge Function tests | `deno --version` |
+| Deno 2.9.7 (same as `supabase-ci`) | Edge Function tests | `deno --version` |
 | Git + authenticated GitHub CLI | Version control and PRs | `gh auth status` |
 | Maestro CLI | E2E tests | `maestro --version` |
 
@@ -70,9 +70,13 @@ npx supabase db reset                 # applies migrations + seed.sql locally
 npx supabase db lint --level warning --fail-on warning   # same gate as supabase-ci
 npx supabase test db                  # pgTAP
 npx supabase functions serve --env-file supabase/.env
+deno fmt --check supabase/functions && deno lint supabase/functions   # same gates as supabase-ci
+deno check supabase/functions/health/index.ts                          # type-check each entrypoint
+deno test --allow-all supabase/functions                               # Edge Function unit tests
 npx supabase stop
 ```
 - `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...`.
+- The root `deno.json` only configures Deno tooling for `supabase/functions/` (fmt/lint/test scope, no lockfile, no `node_modules` resolution: the root `package.json` only pins the Supabase CLI). Functions import external code with exact inline specifiers (`npm:postgres@3.4.9`, `jsr:@std/assert@1.0.19`), bumped manually.
 - Locally the Email provider is enabled and `supabase/seed.sql` creates the test user used by the `local` flavor's "Test login" button and by Maestro:
   - email `test@appfitness.local`, password `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`;
   - its `profiles` row comes from the `on_auth_user_created` trigger (display name "Usuario de prueba"); `supabase/tests/seed.test.sql` checks all of this.
@@ -93,7 +97,9 @@ maestro test tests/e2e/
   - Re-run manually: `gh workflow run deploy-supabase.yml` and follow it with `gh run watch` (or `gh run list --workflow deploy-supabase.yml`).
   - Result: the run log in GitHub Actions, and the deployment history under *Environments → production* on the repo page.
 - **App:** `prodDebug` APK at the end of each epic (manual install). In US-25, release signing is added with a keystore stored outside the repo (and optionally as a base64 secret for a tag-triggered release workflow).
-- **Keep-alive:** `keepalive.yml` calls `https://<ref>.supabase.co/functions/v1/health` every 3 days (ADR-12).
+- **Keep-alive:** `keepalive.yml` calls `https://<ref>.supabase.co/functions/v1/health` (GET, publishable key as `apikey`; the function runs a `select 1`) every 3 days at 06:00 UTC (cron `0 6 */3 * *`, ADR-12). The log only prints `health OK`, never the URL or key.
+  - Run manually: `gh workflow run keepalive.yml` and follow it with `gh run watch` (or `gh run list --workflow keepalive.yml`).
+  - GitHub disables scheduled workflows after 60 days without repository activity: re-enable with `gh workflow enable keepalive.yml`.
 
 ## 5. Free-tier limits to watch
 
