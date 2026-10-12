@@ -237,7 +237,7 @@ Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 ### Checkpoint C — Automatic Supabase deployment
 - [x] `deploy-supabase` green both manually and on merge. *(2026-10-12)*
-- [ ] 👤 User review.
+- [x] 👤 User review. *(2026-10-12)*
 
 ---
 
@@ -307,4 +307,4 @@ Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 ### Checkpoint D — E0 closure
 - [x] Everything above verified. *(2026-10-12)*
-- [ ] 👤 User review → the **E1** tasks are generated (from T-014).
+- [x] 👤 User review → the **E1** tasks are generated (from T-014). *(2026-10-12: approved; Supabase region `eu-north-1` kept)*
