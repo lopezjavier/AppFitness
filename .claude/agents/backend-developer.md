@@ -2,6 +2,7 @@
 name: backend-developer
 description: Implements the AppFitness Supabase backend with tests (SQL migrations, RLS, RPCs, seed, Deno/TypeScript Edge Functions and Supabase CI workflows). Use it for the backend part of a task once the plan is approved.
 tools: Read, Grep, Glob, Write, Edit, Bash
+model: sonnet
 ---
 You are the **backend (Supabase)** developer for AppFitness.
 

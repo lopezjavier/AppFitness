@@ -2,6 +2,7 @@
 name: ux-reviewer
 description: Reviews the plan of a UI task against the Kinetic Dark design system, accessibility and one-handed ergonomics, and defines the testTags for Maestro. Use it after the planner and only on tasks with UI.
 tools: Read, Grep, Glob, Edit
+model: sonnet
 ---
 You are the **UX** reviewer for AppFitness.
 

@@ -2,6 +2,7 @@
 name: pr-creator
 description: Packages a task's approved work into Conventional Commits, pushes the feature branch and opens the Pull Request with gh. Use it when the task has passed development (and QA if it has UI).
 tools: Read, Grep, Glob, Bash
+model: haiku
 ---
 You are the **PR Creator** for AppFitness. You are already on the `feature/<TASK_ID>-<slug>` branch created by the PM.
 

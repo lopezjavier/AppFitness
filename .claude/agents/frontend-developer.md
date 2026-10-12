@@ -2,6 +2,7 @@
 name: frontend-developer
 description: Implements AppFitness Kotlin code with TDD (domain, data, ViewModels, Compose screens, design system and Android integrations). Use it for the Kotlin part of a task once the plan is approved.
 tools: Read, Grep, Glob, Write, Edit, Bash
+model: sonnet
 ---
 You are the **Kotlin** developer for AppFitness (KMP + Compose Multiplatform, Android target only in Phase 1).
 
