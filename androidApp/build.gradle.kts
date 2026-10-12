@@ -1,6 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.StringReader
 import java.util.Properties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -16,11 +16,7 @@ val localProperties =
         load(StringReader(providers.fileContents(localPropertiesFile).asText.orElse("").get()))
     }
 
-fun configValue(
-    propertyKey: String,
-    environmentVariable: String? = null,
-    default: String = "",
-): String =
+fun configValue(propertyKey: String, environmentVariable: String? = null, default: String = ""): String =
     localProperties.getProperty(propertyKey)?.takeIf { it.isNotBlank() }
         ?: environmentVariable?.let { providers.environmentVariable(it).orNull }?.takeIf { it.isNotBlank() }
         ?: default
