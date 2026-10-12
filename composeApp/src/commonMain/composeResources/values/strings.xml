@@ -7,4 +7,5 @@
     <string name="nav_profile">Perfil</string>
     <string name="wip_message">Sección en construcción. Pronto verás aquí tus datos.</string>
     <string name="wip_footer">Más funciones próximamente</string>
+    <string name="topbar_avatar_cd">Abrir perfil</string>
 </resources>

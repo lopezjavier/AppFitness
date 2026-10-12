@@ -3,7 +3,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,14 +10,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -31,15 +27,12 @@ object WipPlaceholderDefaults {
     val SkeletonHeight: Dp = 96.dp
 }
 
-private val SkeletonIndices = List(WipPlaceholderDefaults.SkeletonCount) { it }
-
 /**
- * "Work in progress" screen body: title, message, shimmering skeleton cards and a footer, in a
- * scrollable list. Test tags: `<prefix>_wip_list`, `<prefix>_wip_title`, `<prefix>_wip_footer`.
+ * "Work in progress" screen body: message, shimmering skeleton cards and a footer, in a
+ * scrollable list. Test tags: `<prefix>_wip_list`, `<prefix>_wip_message`, `<prefix>_wip_footer`.
  */
 @Composable
 fun WipPlaceholder(
-    title: String,
     message: String,
     footer: String,
     testTagPrefix: String,
@@ -51,28 +44,23 @@ fun WipPlaceholder(
     LazyColumn(
         modifier = modifier.fillMaxSize().testTag("${testTagPrefix}_wip_list"),
         state = state,
-        contentPadding = PaddingValues(start = Spacing.screenMargin, end = Spacing.screenMargin, bottom = Spacing.lg),
+        contentPadding = PaddingValues(
+            start = Spacing.screenMargin,
+            end = Spacing.screenMargin,
+            top = Spacing.lg,
+            bottom = Spacing.lg,
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         item {
-            Column(
-                modifier = Modifier.padding(bottom = extraBlockGap),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Text(
-                    text = title,
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.testTag("${testTagPrefix}_wip_title").semantics { heading() },
-                )
-                Text(
-                    text = message,
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
-            }
+            Text(
+                text = message,
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.padding(bottom = extraBlockGap).testTag("${testTagPrefix}_wip_message"),
+            )
         }
-        items(SkeletonIndices) {
+        items(WipPlaceholderDefaults.SkeletonCount) {
             SkeletonBox(Modifier.fillMaxWidth().height(WipPlaceholderDefaults.SkeletonHeight), AppShapes.lg)
         }
         item {
@@ -90,6 +78,6 @@ fun WipPlaceholder(
 @Composable
 private fun WipPlaceholderPreview() {
     AppTheme {
-        WipPlaceholder("Diario", "Sección en construcción.", "Más funciones próximamente", "diary")
+        WipPlaceholder("Sección en construcción.", "Más funciones próximamente", "diary")
     }
 }
