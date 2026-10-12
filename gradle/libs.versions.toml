@@ -1,7 +1,9 @@
 [versions]
-# Build toolchain. Kotlin 2.4.21 fully supports Gradle 7.6.3-9.7.0 and AGP 8.5.2-9.3.1
-# (kotlinlang.org/docs/gradle-configure-project.html); AGP 9.3 needs Gradle >= 9.5.0
-# and supports up to API 37 (developer.android.com/build/releases/agp-9-3-0-release-notes).
+# Build toolchain. The KGP 2.4.21 compatibility table lists Gradle 7.6.3-9.7.0 and
+# AGP 8.5.2-9.3.1 as tested (kotlinlang.org/docs/gradle-configure-project.html).
+# Gradle 9.7.1 and AGP 9.3.3 are patch releases above those upper bounds and build with
+# no compatibility warning (checked in T-015). AGP 9.3 needs Gradle >= 9.5.0 and supports
+# up to API 37 (developer.android.com/build/releases/agp-9-3-0-release-notes).
 agp = "9.3.3"
 kotlin = "2.4.21"
 compose-multiplatform = "1.12.1"
