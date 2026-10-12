@@ -2,7 +2,10 @@
 
 gradlew text eol=lf
 *.sh text eol=lf
-*.bat text eol=crlf
+# Stored byte-for-byte (CRLF) as Gradle's wrapper task writes it: Dependabot commits the
+# generated file through the API, bypassing git's EOL conversion, so `text eol=crlf` left
+# CRLF in the index and every clone showed gradlew.bat as modified (PR #12 -> #16).
+*.bat -text
 
 *.png binary
 *.jpg binary

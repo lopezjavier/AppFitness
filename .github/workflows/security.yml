@@ -23,6 +23,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # Fails when a committed file's line endings don't match .gitattributes (e.g. a bot
+      # committing CRLF through the API). Lives here because this job runs on every PR.
+      # Fix locally with: git add --renormalize . && git commit
+      - name: Line endings match .gitattributes
+        run: |
+          git add --renormalize .
+          if ! git diff --cached --quiet; then
+            echo "::error::Files not normalized per .gitattributes:"
+            git diff --cached --name-only
+            exit 1
+          fi
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

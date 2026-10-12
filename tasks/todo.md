@@ -461,7 +461,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 **Verification:**
 - [x] `deno test --allow-all supabase/functions` green; `npx supabase functions serve` + `curl http://127.0.0.1:54321/functions/v1/health` → 200.
-- [ ] After merge: `deploy-supabase` deploys `health`; `gh workflow run keepalive.yml` + `gh run watch` green.
+- [x] After merge: `deploy-supabase` deploys `health`; `gh workflow run keepalive.yml` + `gh run watch` green.
 
 **Dependencies:** T-018
 **Files likely touched:** `supabase/functions/health/index.ts`, `supabase/functions/health/handler.ts`, `supabase/functions/health/handler.test.ts`, `deno.json`, `supabase/config.toml`, `.github/workflows/supabase-ci.yml`, `.github/workflows/keepalive.yml`
@@ -470,7 +470,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 ---
 
 ### Checkpoint E1-B — Backend live
-- [ ] Production has `profiles` + `health`; `deploy-supabase` and `keepalive` green at least once; `supabase-ci` required.
+- [x] Production has `profiles` + `health`; `deploy-supabase` and `keepalive` green at least once; `supabase-ci` required.
 
 ---
 
