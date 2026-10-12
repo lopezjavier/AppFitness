@@ -91,13 +91,25 @@ Format: context → decision → consequences. A decision is only changed by add
   - Version compatibility: AGP 9.3 notes (Gradle ≥ 9.5.0, API ≤ 37): https://developer.android.com/build/releases/agp-9-3-0-release-notes · KGP ↔ Gradle/AGP table: https://kotlinlang.org/docs/gradle-configure-project.html · Compose Multiplatform compatibility: https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html
 - **Approval:** 2026-10-12, user (conditional on this verification; confirmed in T-015).
 
+### ADR-20 · Path-filtered required CI checks always report
+- **Context:** `android-ci` must not spend a build on supabase-only changes, but it is a required check in the `main` ruleset. A workflow filtered out by workflow-level `paths`/`paths-ignore` never creates its check run, so the required check stays "Expected — waiting for status to be reported" and the PR cannot merge.
+- **Decision:** required workflows trigger on every PR and push to `main` with no workflow-level path filter. A `changes` job (`dorny/paths-filter`, pinned by major) computes one output per area; the work job, whose `name` is the required check context, depends on it and runs with `if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.<area> != 'false') }}`.
+  - A job skipped by its `if:` conditional reports its check as passing, so a genuine supabase-only diff (`android=false`) satisfies `android-ci` without building.
+  - Fail-open: a job whose `needs` fails is also skipped (and would pass). Comparing with `!= 'false'` means an empty output from a failed `changes` job makes the work job *run*, so the check only passes through a real green build or a genuine skip. `!cancelled()` (not `always()`) keeps runs superseded by `concurrency` from starting the build.
+  - `workflow_dispatch` bypasses the filter and always builds.
+  - `android-ci` skips only when every changed file is under `supabase/**`; docs-only changes still build. The same pattern applies to `supabase-ci` (T-018) with the inverse filter (`supabase/**`).
+  - The required check context is the job `name` (`android-ci`), unique across workflows, with `integration_id: 15368` (GitHub Actions), as for `gitleaks`.
+- **Consequences:** the job name is a contract with the ruleset (`.github/rulesets/main.json`): renaming it requires a ruleset update. Supabase-only PRs show `android-ci` as skipped and can merge. The `changes` job costs a few seconds per run and needs `pull-requests: read` (granted on that job only). If GitHub ever reported a skipped required check as pending, the fallback is to keep the job always running and gate its steps with `if:` (same check name, ruleset unchanged).
+- **Sources (checked 2026-10-12):**
+  - GitHub Docs, "Troubleshooting required status checks", section "Handling skipped but required checks" (a job skipped by a conditional reports "Success"; a workflow skipped by path filtering stays "Pending" and blocks merging; a job depending on a failed job is skipped and may not block merging): https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks
+  - `dorny/paths-filter` README (v4: `pull_request` uses the API file list; `push` to the default branch compares with the commit before the push; `predicate-quantifier`): https://github.com/dorny/paths-filter
+- **Approval:** Approved by the user 2026-10-12 (E1 breakdown); the fail-open `changes` job was added by the PM in T-017.
+
 ### ADR-21 · `minSdk` 26
 - **Context:** `planning/` did not fix a minimum Android version. Health Connect (`androidx.health.connect:connect-client`, US-09 in E4) requires API 26.
 - **Decision:** `minSdk = 26` (Android 8.0) in all modules; `compileSdk`/`targetSdk` = the highest stable API supported by the pinned AGP (37 with AGP 9.3).
 - **Consequences:** no runtime checks are needed for Health Connect availability by API level below 26. Raising `minSdk` later is cheap.
 - **Approval:** 2026-10-12, user.
-
-(ADR-20 is reserved for the `android-ci` path filter, T-017.)
 
 ---
 

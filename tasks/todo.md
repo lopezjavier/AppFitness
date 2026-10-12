@@ -399,15 +399,15 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Description:** Create `.github/workflows/android-ci.yml` (JDK 21 Temurin + Gradle cache → `ktlintCheck detekt` → `testLocalDebugUnitTest` → `:androidApp:assembleProdDebug` → APK artifact) that runs on every PR and push to `main`, skipping the build job when only `supabase/**` changed (ADR-20). Make it a required check and add Gradle to Dependabot.
 
 **Acceptance criteria:**
-- [ ] Workflow: `permissions: contents: read`; `concurrency` per ref with cancel-in-progress for PRs; `changes` job (path filter) + build job with `if:`; the build reads `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID` repo secrets as env vars; APK uploaded with `actions/upload-artifact`. Actions pinned by major version.
-- [ ] ADR-20 in `planning/00-decisions.md`; `planning/02-architecture.md` §8 and the US-01 technical notes updated.
-- [ ] `dependabot.yml` gets the `gradle` ecosystem (weekly, prefix `chore`).
-- [ ] PM: after the first green run, the `android-ci` build job is added as a required check in the `main` ruleset (`gh api`) and in `.github/rulesets/main.json`.
+- [x] Workflow: `permissions: contents: read`; `concurrency` per ref with cancel-in-progress for PRs; `changes` job (path filter) + build job with `if:`; the build reads `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID` repo secrets as env vars; APK uploaded with `actions/upload-artifact`. Actions pinned by major version.
+- [x] ADR-20 in `planning/00-decisions.md`; `planning/02-architecture.md` §8 and the US-01 technical notes updated.
+- [x] `dependabot.yml` gets the `gradle` ecosystem (weekly, prefix `chore`).
+- [x] PM: after the first green run, the `android-ci` build job is added as a required check in the `main` ruleset (`gh api`) and in `.github/rulesets/main.json`.
 
 **Verification:**
-- [ ] The task PR shows `gitleaks` and `android-ci` green and the APK artifact.
-- [ ] `gh api repos/lopezjavier/AppFitness/rulesets/24923545` lists both required checks.
-- [ ] A PR touching only `supabase/**` (T-018) reports `android-ci` as skipped/passing and can merge.
+- [x] The task PR shows `gitleaks` and `android-ci` green and the APK artifact.
+- [x] `gh api repos/lopezjavier/AppFitness/rulesets/24923545` lists both required checks.
+- [ ] A PR touching only `supabase/**` (T-018) *(verified in T-018)* reports `android-ci` as skipped/passing and can merge.
 
 **Dependencies:** T-016
 **Files likely touched:** `.github/workflows/android-ci.yml`, `.github/dependabot.yml`, `.github/rulesets/main.json`, `planning/00-decisions.md`, `planning/02-architecture.md`
@@ -432,6 +432,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] `supabase/tests/profiles.test.sql` (pgTAP): RLS on; the trigger creates the row with name/avatar from metadata; A sees only their row; A updating B's row affects 0 rows; A cannot delete.
 - [ ] `supabase/seed.sql` creates the test user (password documented in `planning/08-environment-setup.md` §3.2; it is a local-only, non-secret value) with its `profiles` row through the trigger.
 - [ ] `.github/workflows/supabase-ci.yml` with the pinned CLI (`supabase/setup-cli@v3`, version from `package-lock.json`); added to the ruleset and `main.json` as required after its first green run.
+- [ ] `supabase-ci` follows ADR-20 (`changes` job with the `supabase/**` filter, explicit `predicate-quantifier`, fail-open build job); the `supabase-ci` row in `planning/02-architecture.md` §8 is updated to match (PR #10 review).
 - [ ] Merging deploys the migration to production via `deploy-supabase` (no seed).
 
 **Verification:**

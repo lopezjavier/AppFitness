@@ -46,7 +46,7 @@ Feature: Buildable KMP project validated in CI
 - `local` / `prod` flavors (`env` dimension) in `androidApp`; network security config with cleartext only for `10.0.2.2` in `local`.
 - `BuildConfig` values: `local.properties` > environment variable > default; a missing value builds with `""`, except the `local` `SUPABASE_URL`, which defaults to `http://10.0.2.2:54321`. The `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` environment variables feed `prod` only (`08-environment-setup.md` §3.1).
 - Koin initialized; empty `App()` showing a text; one sample unit test in `shared/commonTest`.
-- `.github/workflows/android-ci.yml` with Gradle cache and `paths-ignore: supabase/**`.
+- `.github/workflows/android-ci.yml` with Gradle cache; it triggers on every PR and push to `main` (no workflow-level `paths-ignore`, which would leave the required check pending) and a `changes` job skips the `android-ci` build job when only `supabase/**` changed (ADR-20).
 - Add `android-ci` as a required check in the `main` ruleset and the `gradle` ecosystem to `dependabot.yml`.
 
 ---

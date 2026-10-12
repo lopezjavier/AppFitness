@@ -149,8 +149,8 @@
 | Workflow | Trigger | Steps | Required to merge |
 |---|---|---|---|
 | `security.yml` | PR and push to `main` | gitleaks | Yes (from E0) |
-| `android-ci.yml` | PR and push to `main` (changes outside `supabase/**`) | JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
-| `supabase-ci.yml` | PR with changes in `supabase/**` | setup-cli (pinned) → `supabase start` → `supabase db reset` → `supabase db lint` → `supabase test db` → `deno test` for functions | Yes, when applicable (from US-02) |
+| `android-ci.yml` | PR and push to `main` (build job skipped when only `supabase/**` changed; the check always reports, ADR-20) | JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:testProdDebugUnitTest` → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
+| `supabase-ci.yml` | PR with changes in `supabase/**` (always reports, ADR-20) | setup-cli (pinned) → `supabase start` → `supabase db reset` → `supabase db lint` → `supabase test db` → `deno test` for functions | Yes, when applicable (from US-02) |
 | `deploy-supabase.yml` | push to `main` with changes in `supabase/**` + manual | `production` environment → `supabase link` → `supabase db push` → `supabase functions deploy` | — (from E0) |
 | `keepalive.yml` | cron every 3 days + manual | `curl` to the project's `health` function (ADR-12) | — (from US-02) |
 
