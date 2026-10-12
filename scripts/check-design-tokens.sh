@@ -12,11 +12,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 pattern='[0-9]+(\.[0-9]+)?f?\)?\.(dp|sp|em)\b'
-pattern+='|Color\(0x|Color\([0-9]|Color\((red|alpha) *='
+# Color(0x...), Color(255, ...) and every named-argument form: Color(color = 0x...), Color(red = ...).
+pattern+='|\bColor\( *(0x|[0-9]|[A-Za-z]+ *=)'
+pattern+='|\bColor\.(hsl|hsv)\('
 pattern+='|\bColor\.(White|Black|Red|Green|Blue|Gray|DarkGray|LightGray|Yellow|Cyan|Magenta)\b'
 pattern+='|\bDp\(|TextUnit\('
 pattern+='|\bFontFamily\.(Default|SansSerif|Serif|Monospace|Cursive)\b'
-pattern+='|\bFontWeight\.'
+# FontWeight.Bold and FontWeight(700).
+pattern+='|\bFontWeight(\.|\()'
 pattern+='|\bRoundedCornerShape\('
 
 files=()
@@ -35,7 +38,14 @@ if [ "${#files[@]}" -eq 0 ]; then
   exit 0
 fi
 
-if violations=$(grep -nE "$pattern" "${files[@]}"); then
+# grep exit codes: 0 = match (violation), 1 = no match (pass), >= 2 = error (never a pass).
+rc=0
+violations=$(grep -nE "$pattern" "${files[@]}") || rc=$?
+if [ "$rc" -ge 2 ]; then
+  echo "Design tokens guard ERROR: grep failed with exit code $rc." >&2
+  exit "$rc"
+fi
+if [ "$rc" -eq 0 ]; then
   echo "Design tokens guard FAILED: hardcoded design values outside designsystem/." >&2
   echo "Use the AppTheme, Spacing, AppRadius or AppShapes tokens instead:" >&2
   echo "$violations" >&2

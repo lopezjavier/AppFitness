@@ -6,6 +6,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 
+// Built once: the theme is static (dark only), so nothing is allocated on recomposition.
+private val KineticDarkColorScheme = kineticDarkColorScheme()
+private val KineticMaterialShapes = kineticMaterialShapes()
+
 /**
  * Kinetic Dark theme (dark only, planning/05-design-system.md). Provides [AppTheme.colors] and
  * [AppTheme.typography], and a consistent [MaterialTheme] so stock M3 components match.
@@ -22,9 +26,9 @@ fun AppTheme(typeScale: TypeScale = TypeScale.Phone, content: @Composable () -> 
         LocalAppTypography provides typography,
     ) {
         MaterialTheme(
-            colorScheme = kineticDarkColorScheme(),
+            colorScheme = KineticDarkColorScheme,
             typography = materialTypography,
-            shapes = kineticMaterialShapes(),
+            shapes = KineticMaterialShapes,
             content = content,
         )
     }

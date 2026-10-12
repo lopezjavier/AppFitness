@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -25,9 +26,11 @@ import org.jetbrains.compose.resources.Font
  * - plus_jakarta_sans_extrabold.ttf 37f9ae473fd96337e942de37ae34042016853ec2c6fdf2d87e1d93e737041d49
  */
 @Composable
-internal fun plusJakartaSans(): FontFamily = FontFamily(
-    Font(Res.font.plus_jakarta_sans_regular, FontWeight.Normal),
-    Font(Res.font.plus_jakarta_sans_semibold, FontWeight.SemiBold),
-    Font(Res.font.plus_jakarta_sans_bold, FontWeight.Bold),
-    Font(Res.font.plus_jakarta_sans_extrabold, FontWeight.ExtraBold),
-)
+internal fun plusJakartaSans(): FontFamily {
+    val regular = Font(Res.font.plus_jakarta_sans_regular, FontWeight.Normal)
+    val semiBold = Font(Res.font.plus_jakarta_sans_semibold, FontWeight.SemiBold)
+    val bold = Font(Res.font.plus_jakarta_sans_bold, FontWeight.Bold)
+    val extraBold = Font(Res.font.plus_jakarta_sans_extrabold, FontWeight.ExtraBold)
+    // Same FontFamily instance across recompositions, so AppTheme's remember(fontFamily) holds.
+    return remember(regular, semiBold, bold, extraBold) { FontFamily(regular, semiBold, bold, extraBold) }
+}

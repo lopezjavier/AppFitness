@@ -56,6 +56,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false # Gradle runs third-party plugin code; the build needs no token
+      # Plain bash + grep: runs before the JDK/Gradle setup so token violations fail fast.
+      - name: Design tokens guard
+        run: bash scripts/check-design-tokens.sh
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -65,8 +68,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Lint (ktlint + detekt)
         run: ./gradlew ktlintCheck detekt
-      - name: Design tokens guard
-        run: bash scripts/check-design-tokens.sh
       - name: Unit tests (local flavor, all modules)
         run: ./gradlew testLocalDebugUnitTest
       - name: Unit tests (prod flavor)
