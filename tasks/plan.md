@@ -74,4 +74,4 @@ T-011 (Google Cloud) can run in parallel with T-008–T-010, but it needs the Su
 | Production Auth configured by hand (drift from the docs) | Low | T-012 documents the `curl` verification so it can be repeated |
 
 ## Open Questions
-- None blocking. Supabase region: proposed `eu-west-3` (Paris) or `eu-central-1` (Frankfurt); the project was created in `eu-north-1` (Stockholm), also EU.
+- None blocking. Supabase region: proposed `eu-west-3` (Paris) or `eu-central-1` (Frankfurt); first created in `eu-north-1` (Stockholm) and moved to `eu-west-3` (Paris) at the E0 review (T-014).
