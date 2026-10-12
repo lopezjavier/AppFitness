@@ -20,8 +20,8 @@ Original source: `../design/stitch/kinetic-dark-performance/DESIGN.md`. This doc
 | `surfaceBase` | `#0B0F14` | Screen background, Top Bar, Bottom Bar |
 | `surfaceRaised` | `#121820` | Cards (tier 1) |
 | `surfaceOverlay` | `#1A222D` | Bottom sheets, inputs, chips, active rows, rest bar (tier 2) |
-| `borderSubtle` | `#FFFFFF` @ 8% | 1 px border of tier 1 cards |
-| `borderStrong` | `#FFFFFF` @ 12% | 1 px border of tier 2 elements |
+| `borderSubtle` | `#FFFFFF` @ 8% | 1 dp border of tier 1 cards |
+| `borderStrong` | `#FFFFFF` @ 12% | 1 dp border of tier 2 elements |
 | `divider` | `#FFFFFF` @ 4% | Row separators inside cards |
 | `textPrimary` | `#E0E2EA` | Primary text |
 | `textSecondary` | `#C2CAB0` | Secondary text |
@@ -36,7 +36,8 @@ Original source: `../design/stitch/kinetic-dark-performance/DESIGN.md`. This doc
 | `athleticCyan` | `#38BDF8` | Training: timer, 1RM, volume, active filters, weight chart |
 | `energyAmber` | `#F97316` | Warnings, thresholds, calorie excess |
 | `electricGreen` | `#22C55E` | Favorable trend (weekly rate), "active/synced" states |
-| `error` | `#FFB4AB` (text) / `#93000A` (container) | Errors and destructive actions |
+| `error` / `onError` | `#FFB4AB` / `#690005` | Errors and destructive actions (text, icons) |
+| `errorContainer` / `onErrorContainer` | `#93000A` / `#FFDAD6` | Error containers |
 
 ### 2.3 Macros (fixed across the app)
 | Macro | Token | Value |
@@ -48,11 +49,15 @@ Original source: `../design/stitch/kinetic-dark-performance/DESIGN.md`. This doc
 > `macro-purple` and the green-for-protein assignment of the original `DESIGN.md` are discarded: the Diary and Profile mockups consistently use lime/cyan/amber.
 
 ### 2.4 Mapping to Material 3 `darkColorScheme`
-`primary = neonLime`, `onPrimary = onNeonLime`, `secondary = athleticCyan`, `tertiary = energyAmber`, `background = surface = surfaceBase`, `surfaceContainerLow = surfaceRaised`, `surfaceContainer/High = surfaceOverlay`, `onSurface = textPrimary`, `onSurfaceVariant = textSecondary`, `outline = borderStrong`, `outlineVariant = borderSubtle`, `error = #FFB4AB`, `errorContainer = #93000A`. Tokens M3 does not cover (macros, ghostData, electricGreen…) are exposed through an `AppColors` `CompositionLocal` accessible via `AppTheme.colors`.
+`primary = neonLime`, `onPrimary = onNeonLime`, `secondary = athleticCyan`, `tertiary = energyAmber`, `background = surface = surfaceBase`, `surfaceContainerLow = surfaceRaised`, `surfaceContainer/High = surfaceOverlay`, `onSurface = textPrimary`, `onSurfaceVariant = textSecondary`, `outline = borderStrong`, `outlineVariant = borderSubtle`, `error`/`onError`/`errorContainer`/`onErrorContainer` = the 2.2 tokens (set explicitly, not left to M3 defaults).
+
+Roles not listed above are derived so no M3 baseline color leaks (T-020): `onSecondary`/`onTertiary` = `onNeonLime`; `onBackground` = `textPrimary`; `primaryContainer`/`onPrimaryContainer` = `neonLime`/`onNeonLime`; `secondaryContainer`, `tertiaryContainer`, `surfaceVariant` = `surfaceOverlay` (their `on*` = `textPrimary`); `surfaceContainerLowest`, `surfaceDim` = `surfaceBase`; `surfaceContainerHighest`, `surfaceBright` = `surfaceOverlay`; `surfaceTint` = transparent; `scrim` = `scrim`; `inverseSurface`/`inverseOnSurface`/`inversePrimary` = `surfaceOverlay`/`textPrimary`/`neonLime` (dark snackbar); `*Fixed`/`*FixedDim` = lime/cyan/amber with `on*Fixed*` = `onNeonLime`. Known exception: `outline` is about 1.3:1 on `surfaceBase`, so stock M3 outlined components are not used with default colors.
+
+Tokens M3 does not cover (macros, ghostData, electricGreen…) are exposed through an `AppColors` `CompositionLocal` accessible via `AppTheme.colors`.
 
 ## 3. Typography
 
-Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (weights 400, 600, 700, 800). Every number uses `fontFeatureSettings = "tnum, lnum"`.
+Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (weights 400, 600, 700, 800). Every number uses `fontFeatureSettings = "tnum, lnum"`, so it is set on every style (numbers also appear in body text). `labelTechnical` UPPERCASE is not a `TextStyle` property: callers pass `text.uppercase()` and keep the original casing in `contentDescription`.
 
 | Style | Size / line height | Weight | Tracking | Use |
 |---|---|---|---|---|
@@ -69,9 +74,9 @@ Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (w
 ## 4. Spacing, shape and elevation
 
 - 8 dp grid with a 4 dp sub-grid. Tokens: `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 24`.
-- 16 dp screen side margin; 12 dp between cards in a group; 24 dp between functional blocks; 16 dp card inner padding.
+- 16 dp screen side margin (`screenMargin`); 12 dp between cards in a group (`cardGap`); 24 dp between functional blocks (`blockGap`); 16 dp card inner padding (`cardPadding`).
 - Radii: `sm 4`, `base 8` (inputs, rows), `md 12`, `lg 16` (cards), `xl 24` (bottom sheet top corners), `full` (chips, pills, round checkbox, FAB).
-- Elevation through layers (2.1). Shadows only on bottom sheets (`0 12 32 −4`, black 70%) and the active element "glow" (lime 15%, blur 16).
+- Elevation through layers (2.1). Shadows only on bottom sheets (`0 12 32 −4`, black 70%) and the active element "glow" (lime 15%, blur 16). The notation is x/offsetY/blur/spread in dp: tokens `AppElevation.sheetShadowOffsetY 12`, `sheetShadowBlur 32`, `sheetShadowSpread −4`, `glowBlur 16`, with colors `shadowSheet` (black 70%) and `glowLime` (lime 15%) in `AppColors`.
 
 ## 5. Adaptive layout
 
