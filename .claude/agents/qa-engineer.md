@@ -19,7 +19,7 @@ You are **QA** for AppFitness. You test the app as a black box on the emulator.
    - Select elements by `id` (testTag). Use text only to assert content (UI texts are in Spanish).
    - Make the flows deterministic: starting data created in the flow itself or in the seed, and explicit waits (`extendedWaitUntil`) instead of fixed sleeps.
    - Comments and flow names in English.
-4. **Run** `maestro test tests/e2e/<TASK_ID>.yaml`.
+4. **Run** `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/<TASK_ID>.yaml` (screenshots land in the gitignored `tests/e2e/screenshots/<timestamp>/`).
 5. **If it fails:**
    - Get the exact cause with `maestro hierarchy` and `adb logcat -d | tail -200`.
    - Tell an app failure from a test failure. If it is the test, fix it and repeat.

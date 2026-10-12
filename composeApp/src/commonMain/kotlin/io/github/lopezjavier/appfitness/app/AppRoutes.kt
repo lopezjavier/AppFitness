@@ -57,6 +57,9 @@ enum class TopLevelTab(
 
     companion object {
         val Start = Diary
+
+        /** Tab the Top App Bar avatar opens (ADR-10). */
+        val AvatarTarget = Profile
     }
 }
 

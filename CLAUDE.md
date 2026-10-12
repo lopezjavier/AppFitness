@@ -26,6 +26,16 @@ On conflict: this file > `planning/` > skills in `.agents/skills/`.
 - **One active task at a time.** Each `T-###` task comes from `tasks/todo.md` and inherits the Gherkin criteria of its `US-##` story.
 - If information is missing or a product decision is not covered by `planning/`, log `BLOCKED` and ask the user.
 
+### Autonomy: when to ask the user
+Work autonomously within a task. After each merge, stop and wait for the user's go-ahead before starting the next task (it lets them compact the conversation between tasks). When you would recommend one option, take it, and record the decision in the PR body (and in `planning/` if it is durable). **Only ask the user for:**
+- Product decisions not covered by `planning/`: scope, user-visible behaviour, a new or changed ADR.
+- Anything costing money, needing their accounts or consoles, or involving secrets.
+- Irreversible or outward-facing actions beyond the normal flow: force pushes, deleting remote data, changing production data outside migrations, changing repo or branch protection settings.
+- Two or more options that are equally reasonable and have a real trade-off that the user would care about.
+- The 👤 checkpoints in `tasks/todo.md` and epic closure.
+
+Do not ask about process and documentation fixes, keeping docs and agent instructions consistent with a decision already taken, dependency versions that follow the stable-only rule, or choices the subagents (planner, ux-reviewer) already resolved within `planning/`.
+
 ### Adaptive flow (ADR-04)
 1. **[PM]** `git checkout main && git pull && git checkout -b feature/T-###-<slug>`. Never work on `main`.
 2. **planner** → plan in `.workflow/current_task.md`.
@@ -66,7 +76,7 @@ On conflict: this file > `planning/` > skills in `.agents/skills/`.
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
-| E2E | `maestro test tests/e2e/T-###.yaml` · regression: `maestro test tests/e2e/` |
+| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · regression: same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI and merge | `gh pr checks --watch` · `gh pr merge --squash --delete-branch` |
 

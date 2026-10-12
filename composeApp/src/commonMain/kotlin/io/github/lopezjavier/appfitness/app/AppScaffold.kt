@@ -7,11 +7,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.topbar_avatar_cd
 import io.github.lopezjavier.appfitness.designsystem.AppNavigation
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationItem
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTopBar
+import org.jetbrains.compose.resources.stringResource
 
-/** App shell: bottom navigation plus the tab NavHost. T-022 adds the topBar, T-027 the FAB. */
+/** App shell: top app bar, bottom navigation and the tab NavHost. T-027 adds the FAB. */
 @Composable
 internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()) {
     val items =
@@ -22,6 +26,13 @@ internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostCo
     Scaffold(
         modifier = modifier,
         containerColor = AppTheme.colors.surfaceBase,
+        topBar = {
+            AppTopBar(
+                title = stringResource(currentTab.label),
+                onAvatarClick = { navController.navigateToTab(TopLevelTab.AvatarTarget) },
+                avatarContentDescription = stringResource(Res.string.topbar_avatar_cd),
+            )
+        },
         bottomBar = {
             AppNavigation(
                 items = items,

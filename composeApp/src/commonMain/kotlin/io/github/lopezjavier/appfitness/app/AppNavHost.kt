@@ -20,16 +20,24 @@ import io.github.lopezjavier.appfitness.feature.workout.WorkoutScreen
 @Composable
 internal fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
-        navigation<DiaryGraph>(startDestination = DiaryHome) { composable<DiaryHome> { DiaryScreen() } }
-        navigation<WorkoutGraph>(startDestination = WorkoutHome) { composable<WorkoutHome> { WorkoutScreen() } }
-        navigation<ProgressGraph>(startDestination = ProgressHome) { composable<ProgressHome> { ProgressScreen() } }
-        navigation<ProfileGraph>(startDestination = ProfileHome) { composable<ProfileHome> { ProfileScreen() } }
+        navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
+            composable<DiaryHome> { DiaryScreen() }
+        }
+        navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
+            composable<WorkoutHome> { WorkoutScreen() }
+        }
+        navigation<ProgressGraph>(startDestination = TopLevelTab.Progress.startRoute) {
+            composable<ProgressHome> { ProgressScreen() }
+        }
+        navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
+            composable<ProfileHome> { ProfileScreen() }
+        }
     }
 }
 
 /**
  * The tab-switch function: keeps each tab's back stack, state and scroll position. Re-tapping
- * the active tab is a no-op. Any other entry point to a tab (e.g. the avatar in T-022) uses it.
+ * the active tab is a no-op. Any other entry point to a tab (the avatar, T-022) uses it.
  */
 internal fun NavController.navigateToTab(tab: TopLevelTab) {
     navigate(tab.graph) {

@@ -527,12 +527,12 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 *Carry-over from T-021:* reuse `navigateToTab` for the avatar. Each WIP screen shows its own section title (`<screen>_wip_title`), which duplicates the top bar title; if T-022 drops it, update the scroll assertions in `tests/e2e/T-021.yaml` that use it as a reference. Maestro `takeScreenshot` with a relative `tests/e2e/screenshots/...` path writes no file; fix with `--test-output-dir` or an absolute path.
 
 **Acceptance criteria:**
-- [ ] The title follows the active tab; the avatar target is ≥ 48 dp with a `contentDescription` and a `testTag` (e.g. `topbar_avatar`).
-- [ ] Tapping the avatar from any tab activates Perfil using the same tab-switch logic as the bottom bar (state preserved).
+- [x] The title follows the active tab; the avatar target is ≥ 48 dp with a `contentDescription` and a `testTag` (e.g. `topbar_avatar`).
+- [x] Tapping the avatar from any tab activates Perfil using the same tab-switch logic as the bottom bar (state preserved).
 
 **Verification:**
-- [ ] Lint + unit tests green.
-- [ ] QA: `tests/e2e/T-022.yaml` (Launch + avatar scenario); `tests/e2e/` regression green.
+- [x] Lint + unit tests green.
+- [x] QA: `tests/e2e/T-022.yaml` (Launch + avatar scenario); `tests/e2e/` regression green.
 
 **Dependencies:** T-021
 **Files likely touched:** `…/designsystem/AppTopBar.kt`, `…/app/AppScaffold.kt`, strings, `tests/e2e/T-022.yaml`
