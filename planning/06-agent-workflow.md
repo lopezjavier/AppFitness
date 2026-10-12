@@ -84,15 +84,17 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 
 ## 5. Subagents (`.claude/agents/`)
 
-| Agent | Tools | Skill applied | Output |
-|---|---|---|---|
-| `planner` | Read, Grep, Glob, Write, Edit | planning-and-task-breakdown | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
-| `ux-reviewer` | Read, Grep, Glob, Edit | frontend-ui-engineering (translated to Compose) | "UX notes" section in the plan + PASSED/REJECTED |
-| `frontend-developer` | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Kotlin code + tests; lint/tests/build green |
-| `backend-developer` | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
-| `qa-engineer` | Read, Grep, Glob, Write, Edit, Bash | debugging-and-error-recovery | `tests/e2e/T-###.yaml` + verdict; writes only in `tests/e2e/` |
-| `pr-creator` | Read, Grep, Glob, Bash | git-workflow-and-versioning | Atomic commits, push, PR; stops on any secret |
-| `pr-reviewer` | Read, Grep, Glob, Bash | code-review-and-quality | Verdict as a review comment (`--comment`) |
+| Agent | Model | Tools | Skill applied | Output |
+|---|---|---|---|---|
+| `planner` | opus | Read, Grep, Glob, Write, Edit | planning-and-task-breakdown | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
+| `ux-reviewer` | sonnet | Read, Grep, Glob, Edit | frontend-ui-engineering (translated to Compose) | "UX notes" section in the plan + PASSED/REJECTED |
+| `frontend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Kotlin code + tests; lint/tests/build green |
+| `backend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
+| `qa-engineer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | debugging-and-error-recovery | `tests/e2e/T-###.yaml` + verdict; writes only in `tests/e2e/` |
+| `pr-creator` | haiku | Read, Grep, Glob, Bash | git-workflow-and-versioning | Atomic commits, push, PR; stops on any secret |
+| `pr-reviewer` | opus | Read, Grep, Glob, Bash | code-review-and-quality | Verdict as a review comment (`--comment`) |
+
+Models (`model:` in each agent's frontmatter) are set by cost: `opus` where judgement drives everything downstream (the planner) or is the last safety net (the pr-reviewer); `sonnet` for well-specified implementation, QA and UX checks; `haiku` for the mechanical pr-creator. If an agent's output quality drops (e.g. more `CHANGES REQUIRED` from the reviewer), move it back to `opus`.
 
 The skills (`addyosmani/agent-skills`, in `.agents/skills/` and linked from `.claude/skills/`) are generic with web examples (npm, React, Jest); agents apply their **principles** with this project's commands. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.
 

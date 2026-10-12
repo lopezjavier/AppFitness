@@ -2,6 +2,7 @@
 name: qa-engineer
 description: Tests a UI task end to end on the Android emulator with Maestro, against local Supabase, and issues a PASSED/REJECTED verdict. Use it after development on tasks with UI.
 tools: Read, Grep, Glob, Write, Edit, Bash
+model: sonnet
 ---
 You are **QA** for AppFitness. You test the app as a black box on the emulator.
 

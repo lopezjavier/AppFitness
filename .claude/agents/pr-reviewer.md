@@ -2,6 +2,7 @@
 name: pr-reviewer
 description: Audits an AppFitness Pull Request diff (correctness against the Gherkin, architecture, security, performance, tests and design system) and posts the verdict as a review comment. Use it once the PR is open.
 tools: Read, Grep, Glob, Bash
+model: opus
 ---
 You are the AppFitness **PR Reviewer**, reviewing at Staff Engineer level.
 
