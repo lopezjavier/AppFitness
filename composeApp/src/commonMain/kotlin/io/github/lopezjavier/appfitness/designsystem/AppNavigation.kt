@@ -1,6 +1,11 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -13,22 +18,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
-import io.github.lopezjavier.appfitness.composeapp.resources.nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import org.jetbrains.compose.resources.DrawableResource
@@ -38,14 +46,52 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_LABEL_FONT_SCALE = 1.3f
 
-/** One destination of [AppNavigation]. [testTag] goes on the selectable item. */
+/**
+ * One destination of [AppNavigation]. [testTag] goes on the selectable item. [selectedIcon] is the
+ * filled glyph shown while active; it defaults to [icon] for glyphs with no filled variant.
+ */
 @Immutable
-data class AppNavigationItem(val label: StringResource, val icon: DrawableResource, val testTag: String)
+data class AppNavigationItem(
+    val label: StringResource,
+    val icon: DrawableResource,
+    val testTag: String,
+    val selectedIcon: DrawableResource = icon,
+) {
+    fun iconFor(selected: Boolean): DrawableResource = if (selected) selectedIcon else icon
+}
+
+/** Colours of [AppNavigation]; the [indicator] is transparent because the active tab has no pill (ADR-22). */
+@Immutable
+data class AppNavigationColors(val selected: Color, val unselected: Color, val indicator: Color)
+
+/** Sizes, colours and label style of [AppNavigation]. */
+object AppNavigationDefaults {
+    /** Icon glyph size (mockup: 22). */
+    val IconSize: Dp = 22.dp
+
+    /** Bar height above the system navigation inset (mockup: 64). */
+    val ContentHeight: Dp = 64.dp
+
+    /** Total bar height: [ContentHeight] plus the system navigation inset. */
+    @Composable
+    fun barHeight(): Dp = ContentHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+    fun colors(appColors: AppColors): AppNavigationColors = AppNavigationColors(
+        selected = appColors.neonLime,
+        unselected = appColors.textSecondary,
+        indicator = Color.Transparent,
+    )
+
+    /** Active label is extra-bold (W800), the rest keep the base weight: the non-colour cue of the active tab. */
+    fun labelStyle(base: TextStyle, selected: Boolean): TextStyle =
+        if (selected) base.copy(fontWeight = FontWeight.W800) else base
+}
 
 /**
- * Bottom navigation bar (phone). The selected item uses `neonLime` over a `glowLime` pill; the
- * rest use `textSecondary`. Labels are uppercase and their font scale is clamped to 130% so the
- * longest one never clips; each item keeps the original casing as its content description.
+ * Bottom navigation bar (phone). The selected item uses `neonLime`, an extra-bold label and its
+ * filled icon when it has one, with no pill (ADR-22); the rest use `textSecondary`. Labels are
+ * uppercase and their font scale is clamped to 130% so the longest one never clips; each item
+ * keeps the original casing as its content description.
  * T-028 adds the NavigationRail variant behind this same API.
  *
  * @param items destinations in display order.
@@ -60,9 +106,11 @@ fun AppNavigation(
     modifier: Modifier = Modifier,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
+    val barHeight = AppNavigationDefaults.barHeight()
     NavigationBar(
         modifier =
         modifier
+            .height(barHeight)
             .testTag("nav_bar")
             .drawWithContent {
                 drawContent()
@@ -80,20 +128,27 @@ fun AppNavigation(
 
 @Composable
 private fun RowScope.AppNavigationBarItem(item: AppNavigationItem, selected: Boolean, onClick: () -> Unit) {
-    val colors = AppTheme.colors
+    val colors = AppNavigationDefaults.colors(AppTheme.colors)
     val description = stringResource(item.label)
     val density = LocalDensity.current
     val labelDensity =
         remember(density) { Density(density.density, density.fontScale.coerceAtMost(MAX_LABEL_FONT_SCALE)) }
+    val labelStyle = AppNavigationDefaults.labelStyle(AppTheme.typography.labelTechnical, selected)
     NavigationBarItem(
         selected = selected,
         onClick = onClick,
-        icon = { Icon(painterResource(item.icon), contentDescription = null) },
+        icon = {
+            Icon(
+                painterResource(item.iconFor(selected)),
+                contentDescription = null,
+                modifier = Modifier.size(AppNavigationDefaults.IconSize),
+            )
+        },
         label = {
             CompositionLocalProvider(LocalDensity provides labelDensity) {
                 Text(
                     text = description.uppercase(),
-                    style = AppTheme.typography.labelTechnical,
+                    style = labelStyle,
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Visible,
@@ -105,11 +160,11 @@ private fun RowScope.AppNavigationBarItem(item: AppNavigationItem, selected: Boo
         alwaysShowLabel = true,
         colors =
         NavigationBarItemDefaults.colors(
-            selectedIconColor = colors.neonLime,
-            selectedTextColor = colors.neonLime,
-            indicatorColor = colors.glowLime,
-            unselectedIconColor = colors.textSecondary,
-            unselectedTextColor = colors.textSecondary,
+            selectedIconColor = colors.selected,
+            selectedTextColor = colors.selected,
+            indicatorColor = colors.indicator,
+            unselectedIconColor = colors.unselected,
+            unselectedTextColor = colors.unselected,
         ),
     )
 }
@@ -119,10 +174,14 @@ private fun RowScope.AppNavigationBarItem(item: AppNavigationItem, selected: Boo
 private fun AppNavigationPreview() {
     val items =
         listOf(
-            AppNavigationItem(Res.string.nav_diary, Res.drawable.ic_nav_diary, "nav_tab_diary"),
+            AppNavigationItem(
+                Res.string.nav_diary,
+                Res.drawable.ic_nav_diary,
+                "nav_tab_diary",
+                Res.drawable.ic_nav_diary_filled,
+            ),
             AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "nav_tab_workout"),
             AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "nav_tab_progress"),
-            AppNavigationItem(Res.string.nav_profile, Res.drawable.ic_nav_profile, "nav_tab_profile"),
         )
     AppTheme { AppNavigation(items, selectedIndex = 0, onItemSelect = {}) }
 }

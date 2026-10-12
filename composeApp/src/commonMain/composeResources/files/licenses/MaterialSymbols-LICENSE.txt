@@ -1,4 +1,4 @@
-Icons ic_nav_*.xml: Material Symbols Outlined (weight 400, 24px) local_fire_department, fitness_center, monitoring, person.
+Icons ic_nav_*.xml, ic_avatar_person.xml, ic_arrow_back.xml: Material Symbols Outlined (weight 400, 24px) local_fire_department (also FILL 1: local_fire_department_fill1_24px.svg), fitness_center, monitoring, person, arrow_back (arrow_back_24px.svg).
 Source: https://github.com/google/material-design-icons (symbols/web/<name>/materialsymbolsoutlined/<name>_24px.svg). Licensed under Apache-2.0:
 
                                  Apache License
