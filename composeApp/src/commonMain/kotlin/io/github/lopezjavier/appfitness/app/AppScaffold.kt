@@ -25,7 +25,11 @@ import org.jetbrains.compose.resources.stringResource
 
 /** App shell: top app bar, bottom navigation (tabs only) and the NavHost. T-027 adds the FAB. */
 @Composable
-internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()) {
+internal fun AppScaffold(
+    modifier: Modifier = Modifier,
+    features: AppFeatures = AppFeatures(),
+    navController: NavHostController = rememberNavController(),
+) {
     val items =
         remember {
             TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
@@ -77,6 +81,6 @@ internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostCo
                 end = innerPadding.calculateEndPadding(layoutDirection),
                 bottom = AppNavigationDefaults.barHeight(),
             )
-        AppNavHost(navController, tabPadding = tabPadding, fullScreenPadding = innerPadding)
+        AppNavHost(navController, tabPadding = tabPadding, fullScreenPadding = innerPadding, features = features)
     }
 }

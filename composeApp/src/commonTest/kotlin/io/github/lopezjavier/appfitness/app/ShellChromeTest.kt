@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,13 +30,19 @@ class ShellChromeTest {
     }
 
     @Test
+    fun catalogRoute_chrome_isFullScreenWithCatalogTitle() {
+        assertEquals(ShellChrome.FullScreen(Res.string.catalog_title), CatalogRoute.chrome)
+    }
+
+    @Test
     fun tabRoutes_chrome_isTabsWithTheirTab() {
         tabRoutes.forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
     }
 
     @Test
-    fun fullScreenRoutes_containsProfile_andNoTabRoute() {
+    fun fullScreenRoutes_containsProfileAndCatalog_andNoTabRoute() {
         assertTrue(ProfileRoute in AppDestinations.fullScreenRoutes)
+        assertTrue(CatalogRoute in AppDestinations.fullScreenRoutes)
         assertTrue(AppDestinations.fullScreenRoutes.none { it is TabRoute })
     }
 

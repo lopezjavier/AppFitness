@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.app
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -14,6 +15,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.profile.ProfileScreen
 import io.github.lopezjavier.appfitness.feature.progress.ProgressScreen
@@ -29,8 +31,11 @@ internal fun AppNavHost(
     navController: NavHostController,
     tabPadding: PaddingValues,
     fullScreenPadding: PaddingValues,
+    features: AppFeatures,
     modifier: Modifier = Modifier,
 ) {
+    val catalogAvailable = features.isAvailable(CatalogRoute)
+    val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
@@ -41,7 +46,15 @@ internal fun AppNavHost(
         navigation<ProgressGraph>(startDestination = TopLevelTab.Progress.startRoute) {
             composable<ProgressHome> { ProgressScreen(Modifier.padding(tabPadding)) }
         }
-        composable<ProfileRoute> { ProfileScreen(Modifier.padding(fullScreenPadding)) }
+        composable<ProfileRoute> {
+            ProfileScreen(
+                Modifier.padding(fullScreenPadding),
+                onOpenCatalog = if (catalogAvailable) openCatalog else null,
+            )
+        }
+        if (catalogAvailable) {
+            composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
+        }
     }
 }
 
