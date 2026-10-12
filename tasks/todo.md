@@ -379,8 +379,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] A deliberate violation makes the command fail (checked locally, not committed).
 - [x] PR #8 review follow-ups *(user decision 2026-10-12)*:
   - `gradle/libs.versions.toml`: reword the Kotlin compatibility comment (Gradle 9.7.1 / AGP 9.3.3 are patch releases above the KGP table's tested 9.7.0 / 9.3.1; no warning).
-  - `androidApp/build.gradle.kts` `toJavaStringLiteral()`: also escape `
-` and ``, with a test.
+  - `androidApp/build.gradle.kts` `toJavaStringLiteral()`: also escape `\n` and `\r`, with a test.
   - `LocalBuildConfigTest` and `AppModuleTest`: KDoc noting they assume the default `supabase.local.url`.
   - `planning/02-architecture.md` §2: mark `androidApp/src/prod/` as "(created when needed)".
 
