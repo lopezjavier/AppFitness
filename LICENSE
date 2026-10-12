@@ -1,0 +1,13 @@
+Copyright (c) 2026 lopezjavier (https://github.com/lopezjavier). All rights reserved.
+
+This repository is published for personal use and reference only. No license is
+granted to use, copy, modify, merge, publish, distribute, sublicense or sell any
+part of this software, its documentation or its design assets, in whole or in
+part, without the prior written permission of the copyright holder.
+
+The visibility of this repository on GitHub does not grant any rights beyond
+those required by the GitHub Terms of Service (viewing and forking within GitHub).
+
+Third-party components (for example the skills in .agents/skills/ from
+addyosmani/agent-skills, or fonts and libraries added later) remain under their
+own licenses.

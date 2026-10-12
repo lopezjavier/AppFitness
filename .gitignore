@@ -1,0 +1,30 @@
+# Secrets and local configuration (never commit)
+local.properties
+.env
+.env.*
+!*.example
+supabase/.env*
+!supabase/*.example
+*.jks
+*.keystore
+
+# Build and tooling
+.gradle/
+build/
+.kotlin/
+.cxx/
+captures/
+.idea/
+*.iml
+.DS_Store
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# PM local working files (main is protected)
+.workflow/
+
+# Claude Code: skill junctions (recreate from .agents/skills/) and local settings
+.claude/skills/
+.claude/settings.local.json
