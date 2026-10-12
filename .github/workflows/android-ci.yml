@@ -65,6 +65,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Lint (ktlint + detekt)
         run: ./gradlew ktlintCheck detekt
+      - name: Design tokens guard
+        run: bash scripts/check-design-tokens.sh
       - name: Unit tests (local flavor, all modules)
         run: ./gradlew testLocalDebugUnitTest
       - name: Unit tests (prod flavor)
