@@ -28,3 +28,6 @@ supabase/.branches/
 # Claude Code: skill junctions (recreate from .agents/skills/) and local settings
 .claude/skills/
 .claude/settings.local.json
+
+# Node tooling (Supabase CLI pin)
+node_modules/
