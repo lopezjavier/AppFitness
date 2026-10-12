@@ -374,15 +374,20 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Description:** Add the ktlint Gradle plugin and detekt to every module with a shared config that accepts Compose conventions (PascalCase `@Composable` functions, `Modifier` parameter rules), and leave the code base clean.
 
 **Acceptance criteria:**
-- [ ] `./gradlew ktlintCheck detekt` runs on `androidApp`, `composeApp` and `shared` (all source sets).
-- [ ] `.editorconfig` and `config/detekt/detekt.yml` set the Compose exceptions; no baseline file (the code base starts clean).
-- [ ] A deliberate violation makes the command fail (checked locally, not committed).
+- [x] `./gradlew ktlintCheck detekt` runs on `androidApp`, `composeApp` and `shared` (all source sets).
+- [x] `.editorconfig` and `config/detekt/detekt.yml` set the Compose exceptions; no baseline file (the code base starts clean).
+- [x] A deliberate violation makes the command fail (checked locally, not committed).
+- [x] PR #8 review follow-ups *(user decision 2026-10-12)*:
+  - `gradle/libs.versions.toml`: reword the Kotlin compatibility comment (Gradle 9.7.1 / AGP 9.3.3 are patch releases above the KGP table's tested 9.7.0 / 9.3.1; no warning).
+  - `androidApp/build.gradle.kts` `toJavaStringLiteral()`: also escape `\n` and `\r`, with a test.
+  - `LocalBuildConfigTest` and `AppModuleTest`: KDoc noting they assume the default `supabase.local.url`.
+  - `planning/02-architecture.md` §2: mark `androidApp/src/prod/` as "(created when needed)".
 
 **Verification:**
-- [ ] `./gradlew ktlintCheck detekt testLocalDebugUnitTest` green.
+- [x] `./gradlew ktlintCheck detekt testLocalDebugUnitTest` green.
 
 **Dependencies:** T-015
-**Files likely touched:** `gradle/libs.versions.toml`, `build.gradle.kts`, `.editorconfig`, `config/detekt/detekt.yml`
+**Files likely touched:** `gradle/libs.versions.toml`, `build.gradle.kts`, `.editorconfig`, `config/detekt/detekt.yml`, `androidApp/build.gradle.kts`, `androidApp/src/testLocal/…`, `planning/02-architecture.md`
 **Estimated scope:** S
 
 ---
@@ -478,6 +483,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] Every token in `05-design-system.md` §2–§4 exists with the exact value; no hardcoded color/dp/sp outside `designsystem/`.
 - [ ] Unit tests: color scheme mapping (`primary == neonLime`, `background == surfaceBase`…); numeric text styles include `tnum`.
 - [ ] Strings come from `composeResources` (Spanish).
+- [ ] Material3 version checked against the Compose Multiplatform version in the catalog (PR #8 review: 1.9.0 stable vs. the 1.12.0-alpha pairing); keep or bump, noted in the catalog comment.
 
 **Verification:**
 - [ ] `./gradlew ktlintCheck detekt testLocalDebugUnitTest` green.

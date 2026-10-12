@@ -1,7 +1,9 @@
 [versions]
-# Build toolchain. Kotlin 2.4.21 fully supports Gradle 7.6.3-9.7.0 and AGP 8.5.2-9.3.1
-# (kotlinlang.org/docs/gradle-configure-project.html); AGP 9.3 needs Gradle >= 9.5.0
-# and supports up to API 37 (developer.android.com/build/releases/agp-9-3-0-release-notes).
+# Build toolchain. The KGP 2.4.21 compatibility table lists Gradle 7.6.3-9.7.0 and
+# AGP 8.5.2-9.3.1 as tested (kotlinlang.org/docs/gradle-configure-project.html).
+# Gradle 9.7.1 and AGP 9.3.3 are patch releases above those upper bounds and build with
+# no compatibility warning (checked in T-015). AGP 9.3 needs Gradle >= 9.5.0 and supports
+# up to API 37 (developer.android.com/build/releases/agp-9-3-0-release-notes).
 agp = "9.3.3"
 kotlin = "2.4.21"
 compose-multiplatform = "1.12.1"
@@ -22,6 +24,15 @@ kotlinx-serialization = "1.11.0"
 kotlinx-datetime = "0.8.0"
 navigation-compose = "2.9.2"
 junit = "4.13.2"
+
+# Lint (T-016). Stable releases only.
+ktlint-gradle = "14.2.0"
+ktlint = "1.8.0"
+# detekt 2.x is still alpha (2.0.0-alpha.6), so the stable line is 1.23.8 (compiled with Kotlin 2.0.21).
+detekt = "1.23.8"
+detekt-kotlin = "2.0.21"
+# Last compose-rules release built for detekt 1.23.x (0.5+ targets detekt 2.0 alphas).
+compose-rules = "0.4.28"
 
 [libraries]
 # Compose Multiplatform (explicit coordinates; the compose.* accessors are deprecated)
@@ -49,6 +60,8 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
+compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref = "compose-rules" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
@@ -56,3 +69,5 @@ kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref 
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

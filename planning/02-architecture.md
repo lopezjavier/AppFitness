@@ -34,7 +34,7 @@
     di/             ← appModule: AppConfig built from BuildConfig
   src/main/         ← AndroidManifest.xml, res/ (app_name)
   src/local/        ← local flavor: network security config (cleartext to 10.0.2.2 only), app_name
-  src/prod/         ← prod flavor overrides (none yet)
+  src/prod/         ← prod flavor overrides (created when needed)
   src/testLocal/    ← local flavor unit tests (BuildConfig, Koin graph)
   src/testProd/     ← prod flavor unit tests
 /composeApp         ← KMP library (com.android.kotlin.multiplatform.library + Compose Multiplatform)
@@ -105,7 +105,7 @@
 | Health | `androidx.health.connect:connect-client` |
 | Local preferences | DataStore (multiplatform) |
 | Tests | kotlin-test, kotlinx-coroutines-test, Turbine, MockK (Android host tests only: `androidHostTest` in the KMP modules, `src/test*` in `androidApp`; ADR-19), Maestro (E2E) |
-| Quality | ktlint (Gradle plugin), detekt |
+| Quality | ktlint (Gradle plugin), detekt + Compose rules (io.nlopez.compose.rules); shared config in .editorconfig and config/detekt/detekt.yml, no baseline |
 
 ## 5. Per-environment configuration (flavors)
 

@@ -1,0 +1,53 @@
+# detekt 1.23.8 overrides (T-016). Everything else uses the default config
+# (buildUponDefaultConfig = true) plus the compose-rules defaults. No baseline.
+# Overriding `excludes` replaces the default list, so the defaults are copied and extended.
+
+config:
+  validation: true
+
+complexity:
+  LongParameterList:
+    # Design-system components take many explicit optional parameters (05-design-system.md §6).
+    ignoreDefaultParameters: true
+
+naming:
+  FunctionNaming:
+    # Composables are PascalCase; tests use subject_condition_expectation names in flavor and
+    # host test source sets that the default excludes do not cover.
+    ignoreAnnotated: ['Composable', 'Test']
+
+style:
+  MagicNumber:
+    # Design tokens such as 16.dp and 0xFF0B0F14 are declared as properties. Composables
+    # outside designsystem/ must use tokens instead of hardcoded values.
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    # The default (true) also skips receivers of extension properties such as 13.dp.
+    ignoreExtensionFunctions: false
+    # Flag named dp/sp values such as padding(all = 15.dp) in Compose (user decision 2026-10-12).
+    ignoreNamedArgument: false
+    ignoreAnnotated: ['Preview']
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+      - '**/androidUnitTest/**'
+      - '**/androidInstrumentedTest/**'
+      - '**/jsTest/**'
+      - '**/iosTest/**'
+      - '**/*.kts'
+      - '**/testLocal/**'
+      - '**/testProd/**'
+      - '**/androidHostTest/**'
+      - '**/designsystem/**'
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedPrivateMember:
+    # Previews are private (compose-rules PreviewPublic) and only used by the IDE.
+    ignoreAnnotated: ['Preview']
+
+Compose:
+  CompositionLocalAllowlist:
+    # AppColors CompositionLocal planned in 05-design-system.md §2.4.
+    allowedCompositionLocals: ['LocalAppColors']
