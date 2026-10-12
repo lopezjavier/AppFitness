@@ -14,4 +14,9 @@ class LocalBuildConfigTest {
         assertEquals("io.github.lopezjavier.appfitness.local", BuildConfig.APPLICATION_ID)
         assertEquals("local", BuildConfig.FLAVOR)
     }
+
+    @Test
+    fun buildConfigEscapeProbe_withQuotesBackslashAndLineBreaks_roundTripsExactly() {
+        assertEquals("a\"b\\c\nd\re", BuildConfig.BUILD_CONFIG_ESCAPE_PROBE)
+    }
 }
