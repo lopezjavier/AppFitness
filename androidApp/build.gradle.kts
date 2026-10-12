@@ -106,6 +106,7 @@ dependencies {
     implementation(projects.composeApp)
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.compose.ui) // testTagsAsResourceId in MainActivity
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)
 

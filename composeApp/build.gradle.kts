@@ -16,6 +16,10 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_17)
         }
         withHostTest {}
+        // Package Compose resources (fonts, strings, files) with the Android-KMP library plugin.
+        androidResources {
+            enable = true
+        }
     }
 
     sourceSets {
@@ -25,11 +29,17 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
             implementation(libs.compose.material3)
+            implementation(libs.compose.components.resources)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "io.github.lopezjavier.appfitness.composeapp.resources"
+    publicResClass = false
 }
 
 // Single-variant module (ADR-19): keep `./gradlew testLocalDebugUnitTest` running these tests too.
