@@ -58,13 +58,14 @@ google.webClientId=<GOOGLE_WEB_CLIENT_ID>
 The emulator reaches the PC's Docker Supabase through `10.0.2.2`. A physical phone with the `local` flavor would need the PC's LAN IP (not planned: the phone uses `prod`).
 
 ### 3.2 Local Supabase
+The Supabase CLI is pinned in `package.json` (`supabase` 2.120.0); run `npm install` once after cloning so `npx supabase` uses that version. Local variables go in `supabase/.env` (git-ignored; template in `supabase/.env.example`).
 ```bash
 npx supabase start                    # starts Postgres, Auth, PostgREST, Studio, Functions
 npx supabase migration new <name>     # creates supabase/migrations/<timestamp>_<name>.sql
 npx supabase db reset                 # applies migrations + seed.sql locally
 npx supabase db lint
 npx supabase test db                  # pgTAP
-npx supabase functions serve --env-file supabase/.env.local
+npx supabase functions serve --env-file supabase/.env
 npx supabase stop
 ```
 - `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...`.

@@ -1,0 +1,8 @@
+{
+  "name": "appfitness-tooling",
+  "private": true,
+  "description": "Pins the Supabase CLI so `npx supabase` uses the same version locally and in CI.",
+  "devDependencies": {
+    "supabase": "2.120.0"
+  }
+}
