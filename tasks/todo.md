@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
+Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 ---
 
@@ -292,7 +292,7 @@ Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Acceptance criteria:**
 - [x] `local.properties.example` in the root with the keys from `planning/08-environment-setup.md` §3.1 (without values). *(2026-10-12)*
 - [x] `planning/08-environment-setup.md` reflects what was actually configured (region, OAuth client names, CLI version); no secrets. *(2026-10-12: region `eu-north-1`, OAuth client names, CLI 2.120.0, token permissions)*
-- [x] `tasks/todo.md`: tasks T-001…T-013 checked and E0 ✅. *(2026-10-12)*
+- [x] `tasks/todo.md`: tasks T-001…T-013 checked and E0 ✅. *(T-014 added as a corrective task at the review)* *(2026-10-12)*
 - [x] `.workflow/execution.log`: `[PM] [E0] [COMPLETED]`. *(written when this PR is merged)*
 - [x] Changes through a PR. *(PR #6)*
 
@@ -305,6 +305,33 @@ Epic status: E0 ✅ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 ---
 
+## T-014: Move the Supabase project to Paris (`eu-west-3`) — corrective
+
+**Description:** At the E0 review the user chose Paris (`eu-west-3`, lower latency from Spain) over the existing `eu-north-1` project. Supabase cannot change a project's region, so a new empty project is created and everything that depends on the project ref is repointed. Done now because the project has no data or migrations yet.
+
+**Acceptance criteria:**
+- [ ] 👤 New project `AppFitness` in `eu-west-3`, Free plan; new DB password in the password manager.
+- [ ] 👤 New project Auth → Providers: Google on (Web client ID/secret, nonce checks on, users without email not allowed), Email off.
+- [ ] 👤 Google Cloud `appfitness-web`: redirect URI `https://<new-ref>.supabase.co/auth/v1/callback` added (the old one is removed at the end).
+- [ ] 👤 New deploy token scoped to the new project with the T-009 permissions (incl. API Key Secrets read) → `gh secret set SUPABASE_ACCESS_TOKEN --env production`.
+- [ ] 👤 Secrets updated: `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD` (env `production`); `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (repository); `OFF_USER_AGENT` in the new project's Edge Function secrets.
+- [ ] PM: local `supabase link` to the new ref; docs and tasks updated with the new ref and region.
+- [ ] 👤 After everything is green: old project deleted, old deploy token revoked, old redirect URI removed.
+- [ ] Changes through a PR.
+
+**Verification:**
+- [ ] `npx supabase db push --dry-run` → "Remote database is up to date".
+- [ ] `gh workflow run deploy-supabase.yml` green against the new project.
+- [ ] `GET https://<new-ref>.supabase.co/auth/v1/settings`: `google = true`, `email = false`.
+- [ ] `npx supabase secrets list --project-ref <new-ref>` includes `OFF_USER_AGENT`.
+- [ ] `npx supabase projects list` shows only the Paris project.
+
+**Dependencies:** T-013
+**Files likely touched:** `tasks/todo.md`, `planning/08-environment-setup.md`, `tasks/plan.md`
+**Estimated scope:** S
+
+---
+
 ### Checkpoint D — E0 closure
 - [x] Everything above verified. *(2026-10-12)*
-- [x] 👤 User review → the **E1** tasks are generated (from T-014). *(2026-10-12: approved; Supabase region `eu-north-1` kept)*
+- [ ] 👤 User review → the **E1** tasks are generated (from T-015). *(2026-10-12: first review → corrective T-014, move Supabase to Paris)*
