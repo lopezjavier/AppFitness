@@ -6,7 +6,7 @@ Supersedes the original local development notes (kept outside the repository). S
 
 | Tool | Purpose | Check |
 |---|---|---|
-| JDK 17 | Gradle / Android | `java -version` |
+| JDK 21 (Temurin; JVM 17 bytecode, ADR-18) | Gradle / Android | `java -version` |
 | Android Studio + SDK + an emulator (API 34+, with Google Play) | Build and emulate; Health Connect and Code Scanner need Google Play Services | `adb devices` |
 | Docker Desktop | Local Supabase | `docker info` |
 | Node.js LTS | `npx supabase` | `npx supabase --version` |

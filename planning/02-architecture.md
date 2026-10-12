@@ -80,7 +80,7 @@
 
 | Area | Library |
 |---|---|
-| Language / build | Kotlin 2.x, Compose Multiplatform, Android Gradle Plugin, JDK 17 |
+| Language / build | Kotlin 2.x, Compose Multiplatform, Android Gradle Plugin, JDK 21 running the build, JVM 17 bytecode (ADR-18) |
 | Backend client | supabase-kt (`auth-kt`, `postgrest-kt`, `functions-kt`) + Ktor (OkHttp engine on Android) |
 | Serialization / dates | kotlinx-serialization, kotlinx-datetime, kotlinx-coroutines |
 | DI | Koin (core + compose + viewmodel) |
@@ -127,7 +127,7 @@
 | Workflow | Trigger | Steps | Required to merge |
 |---|---|---|---|
 | `security.yml` | PR and push to `main` | gitleaks | Yes (from E0) |
-| `android-ci.yml` | PR and push to `main` (changes outside `supabase/**`) | JDK 17 + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :composeApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
+| `android-ci.yml` | PR and push to `main` (changes outside `supabase/**`) | JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :composeApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
 | `supabase-ci.yml` | PR with changes in `supabase/**` | setup-cli (pinned) → `supabase start` → `supabase db reset` → `supabase db lint` → `supabase test db` → `deno test` for functions | Yes, when applicable (from US-02) |
 | `deploy-supabase.yml` | push to `main` with changes in `supabase/**` + manual | `production` environment → `supabase link` → `supabase db push` → `supabase functions deploy` | — (from E0) |
 | `keepalive.yml` | cron every 3 days + manual | `curl` to the project's `health` function (ADR-12) | — (from US-02) |
