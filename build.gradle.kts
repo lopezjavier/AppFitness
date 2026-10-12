@@ -12,9 +12,9 @@ plugins {
 
 // Shared lint setup (T-016): ktlint rules live in .editorconfig, detekt overrides in
 // config/detekt/detekt.yml (no baseline).
-// Trade-off: allprojects {} / subprojects {} is cross-project configuration. It works with the configuration
-// cache but not with Isolated Projects; move it to a build-logic convention plugin if that
-// is ever enabled.
+// Trade-off: allprojects {} / subprojects {} is cross-project configuration. It works with
+// the configuration cache but not with Isolated Projects; move it to a build-logic
+// convention plugin if that is ever enabled.
 val ktlintPluginId = libs.plugins.ktlint.get().pluginId
 val detektPluginId = libs.plugins.detekt.get().pluginId
 val ktlintVersion = libs.versions.ktlint.asProvider().get()
