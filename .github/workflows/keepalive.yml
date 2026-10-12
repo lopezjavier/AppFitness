@@ -28,12 +28,18 @@ jobs:
           set -euo pipefail
           test -n "${SUPABASE_URL}" || { echo "::error::Repo secret SUPABASE_URL is empty or missing"; exit 1; }
           test -n "${SUPABASE_PUBLISHABLE_KEY}" || { echo "::error::Repo secret SUPABASE_PUBLISHABLE_KEY is empty or missing"; exit 1; }
-          body=$(curl --silent --show-error --fail --max-time 20 \
+          # No --show-error and no raw body in the log: both could expose the project host (public repo).
+          rc=0
+          body=$(curl --silent --fail --max-time 20 \
             --retry 3 --retry-delay 10 --retry-all-errors \
             -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
-            "${SUPABASE_URL%/}/functions/v1/health")
+            "${SUPABASE_URL%/}/functions/v1/health") || rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::health call failed (curl exit code $rc)"
+            exit 1
+          fi
           if [ "$body" != '{"status":"ok"}' ]; then
-            echo "::error::Unexpected body: $body"
+            echo "::error::Unexpected health body (${#body} bytes)"
             exit 1
           fi
           echo "health OK"
