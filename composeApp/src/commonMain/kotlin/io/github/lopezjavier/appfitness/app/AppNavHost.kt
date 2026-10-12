@@ -4,14 +4,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navigation
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.profile.ProfileScreen
@@ -64,10 +65,26 @@ internal fun NavController.navigateToFullScreen(route: AppRoute) {
     navigate(route) { launchSingleTop = true }
 }
 
-/** Chrome of the current destination ([TopLevelTab.Start] tabs before the first entry exists). */
-@Composable
-internal fun NavController.currentChrome(): ShellChrome {
-    val destination = currentBackStackEntryAsState().value?.destination
+/** True when this destination is one of [AppDestinations.fullScreenRoutes]. */
+internal fun NavDestination?.isFullScreen(): Boolean =
+    AppDestinations.fullScreenRoutes.any { this?.hasRoute(it::class) == true }
+
+/**
+ * Back guard: only pop when the top entry is still the full-screen entry the top bar was drawn
+ * for, so a stale tap can never pop the tab underneath.
+ */
+internal fun shouldPopFullScreen(topEntryId: String?, drawnEntryId: String?, topIsFullScreen: Boolean): Boolean =
+    topEntryId != null && topEntryId == drawnEntryId && topIsFullScreen
+
+/** Pops the full-screen destination that [drawnEntry] belongs to, if it is still on top. */
+internal fun NavController.popFullScreen(drawnEntry: NavBackStackEntry?) {
+    val top = currentBackStackEntry
+    if (shouldPopFullScreen(top?.id, drawnEntry?.id, top?.destination.isFullScreen())) popBackStack()
+}
+
+/** Chrome of an entry's destination ([TopLevelTab.Start] tabs before the first entry exists). */
+internal fun NavBackStackEntry?.chrome(): ShellChrome {
+    val destination = this?.destination
     val fullScreen = AppDestinations.fullScreenRoutes.firstOrNull { destination?.hasRoute(it::class) == true }
     if (fullScreen != null) return fullScreen.chrome
     val tab =
