@@ -67,13 +67,16 @@ The Supabase CLI is pinned in `package.json` (`supabase` 2.120.0); run `npm inst
 npx supabase start                    # starts Postgres, Auth, PostgREST, Studio, Functions
 npx supabase migration new <name>     # creates supabase/migrations/<timestamp>_<name>.sql
 npx supabase db reset                 # applies migrations + seed.sql locally
-npx supabase db lint
+npx supabase db lint --level warning --fail-on warning   # same gate as supabase-ci
 npx supabase test db                  # pgTAP
 npx supabase functions serve --env-file supabase/.env
 npx supabase stop
 ```
 - `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...`.
-- Locally the Email provider is enabled and `seed.sql` creates `test@appfitness.local` / a test password, used by the `local` flavor's "Test login" button and by Maestro.
+- Locally the Email provider is enabled and `supabase/seed.sql` creates the test user used by the `local` flavor's "Test login" button and by Maestro:
+  - email `test@appfitness.local`, password `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`;
+  - its `profiles` row comes from the `on_auth_user_created` trigger (display name "Usuario de prueba"); `supabase/tests/seed.test.sql` checks all of this.
+  - `seed.sql` is never applied in production: `deploy-supabase` runs `supabase db push` without `--include-seed`.
 - Google Sign-In locally: configure `[auth.external.google]` in `supabase/config.toml` with `env(...)` for manual testing; Maestro always uses "Test login".
 
 ### 3.3 App
