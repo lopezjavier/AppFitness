@@ -173,13 +173,13 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Acceptance criteria:**
 - [x] 👤 Project created on supabase.com (name `appfitness`, EU region: `eu-west-3` or `eu-central-1`, Free plan). DB password stored in a password manager. Noted down (not shared in the chat): project ref, URL and publishable key (`sb_publishable_...`; the legacy anon key is not used). Project ID: `lbprakdmgwnozjevsfbk`. *(2026-10-12)*
 - [x] 👤 `npx supabase login` in their terminal (local CLI token). *(2026-10-12)*
-- [x] PM: CLI version chosen (latest stable) and pinned; `npx supabase@<v> init` → `supabase/config.toml` with `project_id = "appfitness"`; `supabase/.env.example` with the expected local variables (`OFF_USER_AGENT`, `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`) without values. *(2026-10-12: 2.120.0, pinned as a devDependency in `package.json`)*
-- [x] PM: `npx supabase link --project-ref <ref>` locally (asks for the DB password interactively → 👤). *(2026-10-12; CLI 2.120.0 authenticates with the access token through a temporary login role, no password prompt)*
+- [x] PM: CLI version chosen (latest stable) and pinned; `npx supabase@<v> init` → `supabase/config.toml` with `project_id = "appfitness"`; `supabase/.env.example` with the expected local variables (`OFF_USER_AGENT`, `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`) without values. *(2026-10-12: 2.120.0, pinned as a devDependency in `package.json`)*
+- [x] PM: `npx supabase link --project-ref <ref>` locally (asks for the DB password interactively → 👤). *(2026-10-12; CLI 2.120.0 authenticates with the access token through a temporary login role, no password prompt)*
 - [x] Changes through a PR. *(PR #2)*
 
 **Verification:**
-- [x] `npx supabase start` brings up the local Docker stack and `npx supabase status` shows API URL `http://127.0.0.1:54321`; `npx supabase stop`. *(2026-10-12)*
-- [x] `npx supabase db push --dry-run` against production responds without errors ("Remote database is up to date"). *(2026-10-12)*
+- [x] `npx supabase start` brings up the local Docker stack and `npx supabase status` shows API URL `http://127.0.0.1:54321`; `npx supabase stop`. *(2026-10-12)*
+- [x] `npx supabase db push --dry-run` against production responds without errors ("Remote database is up to date"). *(2026-10-12)*
 
 **Dependencies:** T-007
 **Files likely touched:** `supabase/config.toml`, `supabase/.gitignore`, `supabase/.env.example`
@@ -193,7 +193,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 **Acceptance criteria:**
 - [x] 👤 `production` environment created. *(2026-10-12)*
-- [ ] PM: deployment branch policy allowing only `main` on the `production` environment.
+- [x] PM: deployment branch policy allowing only `main` on the `production` environment. *(2026-10-12)*
 - [x] 👤 Supabase personal access token created (Account → Access Tokens, name `github-actions-appfitness`, 1-year expiry, granular permissions: Project Settings read, Migrations read-write, Connection Pooling read, Edge Functions read-write, API Keys read; everything else None — widen only if T-010 fails with 401/403). *(2026-10-12)*
 - [x] 👤 In their terminal, **environment** `production` secrets:
   `gh secret set SUPABASE_ACCESS_TOKEN --env production`, `gh secret set SUPABASE_DB_PASSWORD --env production`, `gh secret set SUPABASE_PROJECT_ID --env production`.
@@ -202,7 +202,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 **Verification:**
 - [x] `gh secret list --env production` shows the 3 names; `gh secret list` shows the repo ones (+ `GOOGLE_WEB_CLIENT_ID`). *(2026-10-12)*
-- [ ] `gh api repos/lopezjavier/AppFitness/environments/production --jq .deployment_branch_policy` is not null.
+- [x] `gh api repos/lopezjavier/AppFitness/environments/production --jq .deployment_branch_policy` is not null. *(2026-10-12)*
 - [x] `npx supabase secrets list` includes `OFF_USER_AGENT`. *(2026-10-12)*
 
 **Dependencies:** T-008
@@ -216,14 +216,14 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Description:** GitHub Actions pipeline that applies migrations and deploys Edge Functions to the production project every time a change in `supabase/**` is merged into `main`, and on demand.
 
 **Acceptance criteria:**
-- [ ] `.github/workflows/deploy-supabase.yml`:
+- [x] `.github/workflows/deploy-supabase.yml`:
   - triggers: `push` to `main` with `paths: supabase/**` and `workflow_dispatch`;
   - `environment: production`, `concurrency: deploy-supabase` (without cancelling running deployments), `permissions: contents: read`;
-  - `supabase/setup-cli` with the **same pinned version** as in T-008;
+  - `supabase/setup-cli@v3` with the **same pinned version** as in T-008 (read from `package-lock.json`, checked against `package.json`);
   - steps: `supabase link --project-ref $SUPABASE_PROJECT_ID` → `supabase db push` → `supabase functions deploy` **only if** some `supabase/functions/*/index.ts` exists;
   - `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` variables from the environment secrets.
-- [ ] Documented in `planning/08-environment-setup.md` §4 (how to re-run it manually and how to see the result).
-- [ ] Changes through a PR.
+- [x] Documented in `planning/08-environment-setup.md` §4 (how to re-run it manually and how to see the result). *(2026-10-12)*
+- [x] Changes through a PR. *(PR #3)*
 
 **Verification:**
 - [ ] `gh workflow run deploy-supabase.yml` + `gh run watch` → success (link OK, "Remote database is up to date", functions skipped).
