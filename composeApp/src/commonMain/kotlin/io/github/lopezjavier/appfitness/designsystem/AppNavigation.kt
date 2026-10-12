@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -63,7 +64,9 @@ fun AppNavigation(
         modifier =
         modifier
             .testTag("nav_bar")
-            .drawBehind { drawLine(borderColor, Offset.Zero, Offset(size.width, 0f), strokeWidth = 1.dp.toPx()) },
+            .drawBehind {
+                drawLine(borderColor, Offset.Zero, Offset(size.width, 0f), strokeWidth = AppBorder.thin.toPx())
+            },
         containerColor = AppTheme.colors.surfaceBase,
         tonalElevation = 0.dp,
     ) {
@@ -78,7 +81,8 @@ private fun RowScope.AppNavigationBarItem(item: AppNavigationItem, selected: Boo
     val colors = AppTheme.colors
     val description = stringResource(item.label)
     val density = LocalDensity.current
-    val labelDensity = Density(density.density, density.fontScale.coerceAtMost(MAX_LABEL_FONT_SCALE))
+    val labelDensity =
+        remember(density) { Density(density.density, density.fontScale.coerceAtMost(MAX_LABEL_FONT_SCALE)) }
     NavigationBarItem(
         selected = selected,
         onClick = onClick,
