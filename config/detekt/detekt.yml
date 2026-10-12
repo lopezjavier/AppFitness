@@ -9,7 +9,6 @@ complexity:
   LongParameterList:
     # Design-system components take many explicit optional parameters (05-design-system.md §6).
     ignoreDefaultParameters: true
-    ignoreAnnotated: ['Composable']
 
 naming:
   FunctionNaming:
@@ -19,10 +18,15 @@ naming:
 
 style:
   MagicNumber:
-    # Design tokens such as 16.dp and 0xFF0B0F14 are declared as properties.
+    # Design tokens such as 16.dp and 0xFF0B0F14 are declared as properties. Composables
+    # outside designsystem/ must use tokens instead of hardcoded values.
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
-    ignoreAnnotated: ['Composable', 'Preview']
+    # The default (true) also skips receivers of extension properties such as 13.dp.
+    ignoreExtensionFunctions: false
+    # Flag named dp/sp values such as padding(all = 15.dp) in Compose (user decision 2026-10-12).
+    ignoreNamedArgument: false
+    ignoreAnnotated: ['Preview']
     excludes:
       - '**/test/**'
       - '**/androidTest/**'
@@ -36,6 +40,7 @@ style:
       - '**/testLocal/**'
       - '**/testProd/**'
       - '**/androidHostTest/**'
+      - '**/designsystem/**'
   MaxLineLength:
     maxLineLength: 120
   UnusedPrivateMember:
