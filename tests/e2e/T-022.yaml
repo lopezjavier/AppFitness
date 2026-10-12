@@ -5,8 +5,8 @@
 #   adb shell settings put global window_animation_scale 0
 #   adb shell settings put global transition_animation_scale 0
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-022.yaml
-# Manual check on the launch screenshot: title in Jakarta 20 sp, avatar circle on the right, hairline
-# under the bar, nothing under the status bar.
+# Manual check: launch screenshot has the title in Jakarta 20 sp, avatar circle on the right, hairline
+# under the bar, nothing under the status bar; T-022_profile has a back arrow, no avatar and no bottom bar.
 appId: io.github.lopezjavier.appfitness.local
 ---
 - launchApp:
@@ -27,7 +27,7 @@ appId: io.github.lopezjavier.appfitness.local
     id: "nav_tab_workout"
 - assertVisible:
     id: "nav_tab_progress"
-- assertVisible:
+- assertNotVisible:
     id: "nav_tab_profile"
 - assertVisible:
     id: "diary_screen"
@@ -48,21 +48,31 @@ appId: io.github.lopezjavier.appfitness.local
     element:
       id: "progress_wip_footer"
     direction: DOWN
-# The avatar opens Profile.
+# The avatar opens Profile as a full screen with a back arrow and no bottom bar.
 - tapOn:
     id: "topbar_avatar"
-- assertVisible:
-    id: "nav_tab_profile"
-    selected: true
 - assertVisible:
     id: "profile_screen"
 - assertVisible:
     id: "topbar_title"
     text: "Perfil"
-- takeScreenshot: T-022_avatar_profile
-# Same tab-switch logic: Progreso keeps its scroll position.
+- assertVisible:
+    id: "topbar_back"
+- assertVisible: "Volver"
+- assertNotVisible:
+    id: "nav_bar"
+- assertNotVisible:
+    id: "topbar_avatar"
+- takeScreenshot: T-022_profile
+# The back arrow returns to Progreso with its scroll position.
 - tapOn:
+    id: "topbar_back"
+- assertVisible:
     id: "nav_tab_progress"
+    selected: true
+- assertVisible:
+    id: "topbar_title"
+    text: "Progreso"
 - assertVisible:
     id: "progress_wip_footer"
 - assertNotVisible:
@@ -77,13 +87,11 @@ appId: io.github.lopezjavier.appfitness.local
 - tapOn:
     id: "topbar_avatar"
 - assertVisible:
-    id: "nav_tab_profile"
-    selected: true
+    id: "profile_screen"
 - back
 - assertVisible:
     id: "nav_tab_diary"
     selected: true
-# Diario keeps its scroll position after the avatar round trip.
 - assertVisible:
     id: "diary_wip_footer"
 - assertNotVisible:
@@ -91,16 +99,24 @@ appId: io.github.lopezjavier.appfitness.local
 - assertVisible:
     id: "topbar_title"
     text: "Diario"
-# The avatar while on Perfil is a no-op.
+# Back stack sanity: Profile leaves no extra entry.
 - tapOn:
-    id: "nav_tab_profile"
+    id: "nav_tab_workout"
 - tapOn:
     id: "topbar_avatar"
 - assertVisible:
-    id: "nav_tab_profile"
-    selected: true
-- assertVisible:
     id: "profile_screen"
-- takeScreenshot: T-022_profile_noop
+- back
+- assertVisible:
+    id: "nav_tab_workout"
+    selected: true
+- back
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
 # Accessibility label of the avatar.
 - assertVisible: "Abrir perfil"
+# Back on the start tab leaves the app (Profile left no entry behind).
+- back
+- assertNotVisible:
+    id: "nav_bar"
