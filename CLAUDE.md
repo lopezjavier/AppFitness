@@ -82,7 +82,7 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 
 ## Current status
 
-E0 (setup) in progress: see `tasks/todo.md`. In E0 the PM runs the tasks directly, without subagents; the subagent flow starts in E1.
+E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`): see `tasks/todo.md`. Next: break down **E1** (`planning/epics/E1-infrastructure-skeleton.md`) into `tasks/` with the `planning-and-task-breakdown` skill, starting at T-015. The subagent flow starts in E1.
 
 ## Skills
 

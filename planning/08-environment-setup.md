@@ -25,7 +25,7 @@ Supersedes the original local development notes (kept outside the repository). S
 
 | Secret | Scope | Source | Used by |
 |---|---|---|---|
-| `SUPABASE_ACCESS_TOKEN` | env `production` | Supabase → Account → Access Tokens | `deploy-supabase` |
+| `SUPABASE_ACCESS_TOKEN` | env `production` | Supabase → Account → Access Tokens: `github-actions-appfitness`, 1 year, scoped to the project; Read: Project Settings, Connection Pooling, API Keys, **API Key Secrets** (needed by `supabase link`); Read-write: Migrations, Edge Functions; everything else None. Tokens cannot be edited: to change permissions, create a new one and revoke the old one | `deploy-supabase` |
 | `SUPABASE_PROJECT_ID` | env `production` | Project ref (Project Settings) | `deploy-supabase` |
 | `SUPABASE_DB_PASSWORD` | env `production` | DB password chosen when creating the project | `deploy-supabase` |
 | `SUPABASE_URL` | repository | Project Settings → API | `android-ci`, `keepalive` |
@@ -33,15 +33,15 @@ Supersedes the original local development notes (kept outside the repository). S
 | `GOOGLE_WEB_CLIENT_ID` | repository | Google Cloud (2.3) | `android-ci` |
 
 ### 2.2 Supabase (Free plan)
-1. Create the `appfitness` project (EU region: `eu-west-3` or `eu-central-1`).
+1. Create the project (Free plan, EU region). ✅ Created as `AppFitness` in `eu-west-3` (Paris; T-014 replaced a first project in `eu-north-1`); the local CLI `project_id` is `appfitness`.
 2. Auth → Providers: enable **Google** (Client ID and Secret of the web client from 2.3). **Disable Email** (ADR-02).
 3. Edge Functions → Secrets: `OFF_USER_AGENT` (e.g. `AppFitness/1.0 (<contact email>)`).
 
 ### 2.3 Google Cloud Console
 No billing account or free trial is needed: OAuth and Sign in with Google are free. Do not activate the free trial.
 1. Create the project and the OAuth consent screen ("External", *Testing* mode, adding the accounts that will use the app as test users).
-2. Create a **Web OAuth client ID** → its Client ID is `GOOGLE_WEB_CLIENT_ID` (used as `serverClientId` in Credential Manager and in Supabase). Add the Supabase callback as a redirect URI.
-3. Create two **Android OAuth client IDs** (ADR-14): `io.github.lopezjavier.appfitness` and `io.github.lopezjavier.appfitness.local`, both with the debug keystore SHA-1 (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). In US-25 the release keystore SHA-1 is added to the `io.github.lopezjavier.appfitness` client.
+2. Create a **Web OAuth client ID** (`appfitness-web`) → its Client ID is `GOOGLE_WEB_CLIENT_ID` (used as `serverClientId` in Credential Manager and in Supabase). Add the Supabase callback as a redirect URI.
+3. Create two **Android OAuth client IDs** (ADR-14): `appfitness-android` (`io.github.lopezjavier.appfitness`) and `appfitness-android-local` (`io.github.lopezjavier.appfitness.local`), both with the debug keystore SHA-1 (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). In US-25 the release keystore SHA-1 is added to the `io.github.lopezjavier.appfitness` client.
 
 ## 3. Local development
 
