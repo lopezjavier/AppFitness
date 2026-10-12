@@ -1,5 +1,6 @@
 # T-020 Kinetic Dark theme foundation (US-03 "Tokens applied globally").
 # Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD Medium_Phone_API_37.0 (no local Supabase needed).
+# T-021 replaced the placeholder with the navigation shell: the flow now asserts the shell.
 # Manual checks on the screenshot (recorded in the QA verdict): background #0B0F14, Plus Jakarta
 # Sans text (compare "t", "e", "s" with Roboto), light status bar icons; no clipping at font scale 200%.
 appId: io.github.lopezjavier.appfitness.local
@@ -7,6 +8,7 @@ appId: io.github.lopezjavier.appfitness.local
 - launchApp:
     clearState: true
 - assertVisible:
-    id: "app_placeholder"
-- assertVisible: "AppFitness"
-- takeScreenshot: tests/e2e/screenshots/T-020_placeholder
+    id: "diary_screen"
+- assertVisible:
+    id: "nav_bar"
+- takeScreenshot: tests/e2e/screenshots/T-020_theme
