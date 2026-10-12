@@ -15,7 +15,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import org.jetbrains.compose.resources.stringResource
 
-/** App shell: top app bar, bottom navigation plus the tab NavHost. top app bar, T-027 adds the FAB. */
+/** App shell: top app bar, bottom navigation and the tab NavHost. T-027 adds the FAB. */
 @Composable
 internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()) {
     val items =

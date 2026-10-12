@@ -11,7 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -64,8 +64,10 @@ fun AppNavigation(
         modifier =
         modifier
             .testTag("nav_bar")
-            .drawBehind {
-                drawLine(borderColor, Offset.Zero, Offset(size.width, 0f), strokeWidth = AppBorder.thin.toPx())
+            .drawWithContent {
+                drawContent()
+                val y = AppBorder.thin.toPx() / 2
+                drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
             },
         containerColor = AppTheme.colors.surfaceBase,
         tonalElevation = 0.dp,

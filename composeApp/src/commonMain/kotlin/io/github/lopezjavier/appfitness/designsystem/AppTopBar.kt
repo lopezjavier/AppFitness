@@ -1,4 +1,5 @@
-@file:Suppress("MatchingDeclarationName") // The file holds the AppTopBar composable and its Defaults object.
+@file:Suppress("MatchingDeclarationName", "ktlint:standard:property-naming")
+// MatchingDeclarationName: the file holds AppTopBar and its Defaults object. property-naming: PascalCase consts.
 
 package io.github.lopezjavier.appfitness.designsystem
 
@@ -50,13 +51,10 @@ object AppTopBarDefaults {
     /** Optical offset: the visual avatar circle sits on the screen margin while the touch target stays 48 dp. */
     val EndPadding: Dp = Spacing.screenMargin - (AvatarTouchTarget - AvatarSize) / 2
 
-    @Suppress("ktlint:standard:property-naming") // PascalCase kept to match the other defaults.
     const val TestTag = "topbar"
 
-    @Suppress("ktlint:standard:property-naming")
     const val TitleTestTag = "topbar_title"
 
-    @Suppress("ktlint:standard:property-naming")
     const val AvatarTestTag = "topbar_avatar"
 }
 
@@ -82,10 +80,11 @@ fun AppTopBar(
         modifier
             .fillMaxWidth()
             .testTag(AppTopBarDefaults.TestTag)
+            .background(colors.surfaceBase)
             .drawBehind {
                 val y = size.height - AppBorder.thin.toPx() / 2
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
-            }.background(colors.surfaceBase)
+            }
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .heightIn(min = AppTopBarDefaults.Height)
             .padding(start = Spacing.screenMargin, end = AppTopBarDefaults.EndPadding),
