@@ -57,6 +57,20 @@ jobs:
           actual=$(supabase --version)
           echo "Supabase CLI $actual (expected $expected)"
           test "$actual" = "$expected"
+      # Edge Functions first: fast, no containers. Same Deno version as local (planning/08).
+      # The root deno.json scopes fmt/lint/test to supabase/functions/, disables the lockfile
+      # and node_modules resolution (the root package.json only pins the Supabase CLI).
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.7
+      - name: Deno fmt
+        run: deno fmt --check supabase/functions
+      - name: Deno lint
+        run: deno lint supabase/functions
+      - name: Deno type-check entrypoints
+        run: deno check supabase/functions/health/index.ts
+      - name: Deno tests (Edge Functions)
+        run: deno test --allow-all supabase/functions
       - name: Start local Supabase
         # Services not needed for migrations/pgTAP are excluded to save time (names verified with
         # `supabase start --help` for CLI 2.120.0). Drop `-x` if `db reset` misbehaves.
@@ -68,4 +82,3 @@ jobs:
         run: supabase db lint --level warning --fail-on warning
       - name: pgTAP tests
         run: supabase test db
-      # T-019 adds: deno test --allow-all supabase/functions

@@ -1,0 +1,39 @@
+name: keepalive
+
+# Keeps the Supabase Free project active (ADR-12): every 3 days the production `health`
+# function runs a `select 1`. The publishable key goes as `apikey` (ADR-17); never printed.
+# GitHub disables scheduled workflows after 60 days without repo activity: re-enable with
+# `gh workflow enable keepalive.yml` (planning/08 §4).
+on:
+  schedule:
+    - cron: "0 6 */3 * *"
+  workflow_dispatch:
+
+permissions: {} # no checkout, no token use
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call production health
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_URL}" || { echo "::error::Repo secret SUPABASE_URL is empty or missing"; exit 1; }
+          test -n "${SUPABASE_PUBLISHABLE_KEY}" || { echo "::error::Repo secret SUPABASE_PUBLISHABLE_KEY is empty or missing"; exit 1; }
+          body=$(curl --silent --show-error --fail --max-time 20 \
+            --retry 3 --retry-delay 10 --retry-all-errors \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            "${SUPABASE_URL%/}/functions/v1/health")
+          if [ "$body" != '{"status":"ok"}' ]; then
+            echo "::error::Unexpected body: $body"
+            exit 1
+          fi
+          echo "health OK"
