@@ -1,0 +1,85 @@
+name: android-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+# NO workflow-level `paths` / `paths-ignore` (ADR-20): a workflow skipped that way never
+# creates its check run, so a required check would stay "Expected - waiting" forever.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }} # never cancel main builds
+
+jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # paths-filter lists PR files through the API
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v7 # needed for push events (git-based diff)
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          # Default predicate-quantifier 'some': true when at least one changed file is outside supabase/.
+          filters: |
+            android:
+              - '!supabase/**'
+
+  build:
+    name: android-ci # <- the required check context; never rename without updating the ruleset
+    needs: changes
+    # Fail-open: if `changes` fails, its output is empty (!= 'false'), so the build still runs
+    # instead of being skipped (a skipped job reports as passing and would let the PR merge).
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.android != 'false') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Read by androidApp/build.gradle.kts (local.properties > env > ""). Blank on fork and
+      # Dependabot PRs: the build still passes by design. Never echo them (public logs).
+      # Job-level (not per step) so every Gradle invocation sees the same configuration-cache inputs.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21' # ADR-18
+      # Defaults are what we want: cache written only on main, read-only on PR branches;
+      # wrapper checksum validation is built in (no separate wrapper-validation action).
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Lint (ktlint + detekt)
+        run: ./gradlew ktlintCheck detekt
+      - name: Unit tests (local flavor, all modules)
+        run: ./gradlew testLocalDebugUnitTest
+      - name: Unit tests (prod flavor)
+        run: ./gradlew :androidApp:testProdDebugUnitTest
+      - name: Assemble prodDebug APK
+        run: ./gradlew :androidApp:assembleProdDebug
+      - uses: actions/upload-artifact@v7
+        with:
+          name: androidApp-prod-debug-apk
+          path: androidApp/build/outputs/apk/prod/debug/androidApp-prod-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            **/build/reports/
+            **/build/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
