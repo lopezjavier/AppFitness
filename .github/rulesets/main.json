@@ -33,7 +33,8 @@
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           { "context": "gitleaks", "integration_id": 15368 },
-          { "context": "android-ci", "integration_id": 15368 }
+          { "context": "android-ci", "integration_id": 15368 },
+          { "context": "supabase-ci", "integration_id": 15368 }
         ]
       }
     }

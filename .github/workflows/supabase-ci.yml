@@ -1,0 +1,71 @@
+name: supabase-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+# NO workflow-level `paths` / `paths-ignore` (ADR-20): a workflow skipped that way never
+# creates its check run, so a required check would stay "Expected - waiting" forever.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }} # never cancel main runs
+
+jobs:
+  changes:
+    name: changes # same name as android-ci's job: fine, only `supabase-ci` / `android-ci` are required contexts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # paths-filter lists PR files through the API
+    outputs:
+      supabase: ${{ steps.filter.outputs.supabase }}
+    steps:
+      - uses: actions/checkout@v7 # needed for push events (git-based diff)
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          # 'some': true when at least one changed file is under supabase/. Set explicitly (same as
+          # android-ci) so a future default change cannot silently alter the result.
+          predicate-quantifier: 'some'
+          filters: |
+            supabase:
+              - 'supabase/**'
+
+  test:
+    name: supabase-ci # <- the required check context; never rename without updating the ruleset
+    needs: changes
+    # Fail-open: if `changes` fails, its output is empty (!= 'false'), so the tests still run
+    # instead of being skipped (a skipped job reports as passing and would let the PR merge).
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.supabase != 'false') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false # the CLI and its containers need no token
+      # No `version`: setup-cli installs the version pinned in package-lock.json (same as local `npx supabase`).
+      - uses: supabase/setup-cli@v3
+      - name: Check CLI version matches package.json
+        run: |
+          expected=$(node -p "require('./package.json').devDependencies.supabase")
+          actual=$(supabase --version)
+          echo "Supabase CLI $actual (expected $expected)"
+          test "$actual" = "$expected"
+      - name: Start local Supabase
+        # Services not needed for migrations/pgTAP are excluded to save time (names verified with
+        # `supabase start --help` for CLI 2.120.0). Drop `-x` if `db reset` misbehaves.
+        run: supabase start -x studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,mailpit
+      - name: Reset database (migrations + seed)
+        run: supabase db reset
+      # `db lint` defaults to --fail-on none; the explicit flag makes it a gate.
+      - name: Lint database (plpgsql_check)
+        run: supabase db lint --level warning --fail-on warning
+      - name: pgTAP tests
+        run: supabase test db
+      # T-019 adds: deno test --allow-all supabase/functions

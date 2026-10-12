@@ -31,15 +31,19 @@ create type session_status as enum ('in_progress', 'completed', 'discarded');
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | = `auth.users.id` (on delete cascade) |
-| display_name | text | From Google when the user is created |
-| avatar_url | text null | From Google |
+| display_name | text | From Google when the user is created; 1–100 characters, not blank (check) |
+| avatar_url | text null | From Google; `https://` only, at most 2048 characters (check) |
 | birth_date | date null | Age is derived |
 | sex | sex null | |
 | height_cm | numeric(5,1) null | 100–250 (check) |
 | activity_level | activity_level null | |
 | onboarding_completed | boolean | default false |
 
-- `on_auth_user_created` trigger (security definer) that inserts the row with name and avatar from `raw_user_meta_data`.
+- `on_auth_user_created` trigger (security definer) that inserts the row with name and avatar from `raw_user_meta_data`. The metadata is user-controlled, so the trigger sanitizes it and sign-up never fails on a constraint:
+  - keys are read only from a JSON object and only when the value is a JSON string;
+  - `display_name`: `full_name`, then `name`, then the email local part, then `Usuario`; each candidate is trimmed and capped at 100 characters, blank ones are skipped;
+  - `avatar_url`: `avatar_url`, then `picture`; kept only if it starts with `https://` and has at most 2048 characters, otherwise null.
+- Client privileges: `SELECT` and column-level `UPDATE` on the user-editable columns only (`display_name`, `avatar_url`, `birth_date`, `sex`, `height_cm`, `activity_level`, `onboarding_completed`); `id`, `created_at` and `updated_at` are not client-writable (`updated_at` is set by the `set_updated_at()` trigger).
 - RLS: owner by `id = (select auth.uid())`. No delete from the client.
 - Current weight is **not** stored here: it is the latest row of `body_measurements` (onboarding inserts one).
 
