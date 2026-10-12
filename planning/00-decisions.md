@@ -74,6 +74,31 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Decision:** JDK **21** runs Gradle locally and in CI (`actions/setup-java` with `temurin` 21). Kotlin `jvmTarget` and Java `sourceCompatibility`/`targetCompatibility` stay at **17**, so the bytecode works on every supported Android version and the language level does not depend on the build JDK.
 - **Consequences:** `JAVA_HOME` points to JDK 21 (or Android Studio uses its bundled JBR 21). No JDK 17 install is needed. Raising the bytecode target is a separate decision.
 
+### ADR-19 · Android application module separate from the KMP modules
+- **Context:** the original layout made `composeApp` both the Kotlin Multiplatform module and the Android application. Since AGP 9.0, the `org.jetbrains.kotlin.multiplatform` plugin can no longer be applied in the same Gradle module as `com.android.application` or `com.android.library`. KMP modules must use the Android-KMP library plugin (`com.android.kotlin.multiplatform.library`), which has a **single variant** (no build types or product flavors). Checked in T-015 with the pinned set (AGP 9.3.3, Kotlin 2.4.21, Compose Multiplatform 1.12.1, Gradle 9.7.1): applying both plugins to one module fails at configuration time with:
+  `The 'com.android.library' (or 'com.android.application') plugin is not compatible with the 'org.jetbrains.kotlin.multiplatform' plugin since AGP 9.0.` (the only bypass, `android.builtInKotlin=false` + `android.newDsl=false`, relies on legacy APIs that AGP 10 removes).
+- **Decision:** three modules.
+  - `androidApp` (`com.android.application` + `org.jetbrains.kotlin.plugin.compose`, AGP built-in Kotlin, no `org.jetbrains.kotlin.android`): `MainActivity`, `AppFitnessApplication` (starts Koin), the `local`/`prod` flavors, `BuildConfig`, the network security config and any flavor-only code.
+  - `composeApp` (KMP library, `com.android.kotlin.multiplatform.library` + Compose Multiplatform): Compose UI in `commonMain`, platform implementations of the domain ports in `androidMain`.
+  - `shared` (KMP library, `com.android.kotlin.multiplatform.library`): domain and data.
+  - Flavor values reach `composeApp`/`shared` only through `AppConfig` (`shared`), built from `BuildConfig` in `androidApp` and injected with Koin.
+- **Consequences:** application tasks are `:androidApp:*` (`:androidApp:assembleLocalDebug`, `:androidApp:assembleProdDebug`, `:androidApp:installLocalDebug`; APKs in `androidApp/build/outputs/apk/<flavor>/debug/`). The library modules have one variant; their host (JVM) unit tests are enabled with `withHostTest {}` and run with `testAndroidHostTest`, which also runs `commonTest`; the Android-only host test source set is `androidHostTest` (ADR-05's `androidUnitTest` under the new plugin). Each library module registers a `testLocalDebugUnitTest` lifecycle task that depends on `testAndroidHostTest`, so `./gradlew testLocalDebugUnitTest` keeps running every module's unit tests. Android resources in the library modules (needed for Compose resources in T-020) are opt-in with `androidResources { enable = true }`.
+- **Sources (checked 2026-10-12):**
+  - AGP 9.0 release notes, "Switch KMP projects to the Android Gradle Library Plugin for KMP": https://developer.android.com/build/releases/agp-9-0-0-release-notes
+  - Set up the Android Gradle Library Plugin for KMP (single variant, `android {}` block, `withHostTest {}`, `androidResources`): https://developer.android.com/kotlin/multiplatform/plugin
+  - Migrate to built-in Kotlin ("using `org.jetbrains.kotlin.multiplatform` together with `com.android.library` or `com.android.application` is no longer allowed"): https://developer.android.com/build/migrate-to-built-in-kotlin
+  - Updating multiplatform projects with Android apps to use AGP 9 (extract `androidApp`): https://kotlinlang.org/docs/multiplatform/multiplatform-project-agp-9-migration.html
+  - Version compatibility: AGP 9.3 notes (Gradle ≥ 9.5.0, API ≤ 37): https://developer.android.com/build/releases/agp-9-3-0-release-notes · KGP ↔ Gradle/AGP table: https://kotlinlang.org/docs/gradle-configure-project.html · Compose Multiplatform compatibility: https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html
+- **Approval:** 2026-10-12, user (conditional on this verification; confirmed in T-015).
+
+### ADR-21 · `minSdk` 26
+- **Context:** `planning/` did not fix a minimum Android version. Health Connect (`androidx.health.connect:connect-client`, US-09 in E4) requires API 26.
+- **Decision:** `minSdk = 26` (Android 8.0) in all modules; `compileSdk`/`targetSdk` = the highest stable API supported by the pinned AGP (37 with AGP 9.3).
+- **Consequences:** no runtime checks are needed for Health Connect availability by API level below 26. Raising `minSdk` later is cheap.
+- **Approval:** 2026-10-12, user.
+
+(ADR-20 is reserved for the `android-ci` path filter, T-017.)
+
 ---
 
 ## 2. Findings from the review of the original documents

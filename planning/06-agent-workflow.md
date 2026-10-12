@@ -65,9 +65,10 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | Action | Command |
 |---|---|
 | Lint | `./gradlew ktlintCheck detekt` |
-| Unit tests (all modules) | `./gradlew testLocalDebugUnitTest` |
-| Build and install on the emulator | `./gradlew :composeApp:installLocalDebug` |
-| Delivery APK | `./gradlew :composeApp:assembleProdDebug` → `composeApp/build/outputs/apk/prod/debug/` |
+| Unit tests (all modules) | `./gradlew testLocalDebugUnitTest` (in `composeApp`/`shared` it runs `testAndroidHostTest`, which includes `commonTest`; ADR-19) |
+| `prod` flavor unit tests | `./gradlew :androidApp:testProdDebugUnitTest` |
+| Build and install on the emulator | `./gradlew :androidApp:installLocalDebug` |
+| Delivery APK | `./gradlew :androidApp:assembleProdDebug` → `androidApp/build/outputs/apk/prod/debug/` |
 | Local Supabase | `npx supabase start` / `npx supabase db reset` |
 | DB tests (RLS) | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |

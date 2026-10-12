@@ -4,11 +4,14 @@
 
 ```
 ┌──────────────────────────── Android app (KMP) ────────────────────────────┐
-│ composeApp                                                                 │
+│ androidApp (Android application, ADR-19)                                   │
+│   MainActivity, Application (Koin), local/prod flavors, BuildConfig,       │
+│   network security config (local)                                         │
+│ composeApp (KMP library)                                                   │
 │   commonMain: Compose UI (screens, ViewModels, navigation, designsystem)   │
-│   androidMain: MainActivity, Credential Manager, Health Connect,           │
+│   androidMain: Credential Manager, Health Connect,                         │
 │                Code Scanner, haptics, keepScreenOn                         │
-│ shared                                                                     │
+│ shared (KMP library)                                                       │
 │   commonMain: domain (models, use cases, business rules)                   │
 │               data (repositories on top of supabase-kt)                    │
 └───────────────┬────────────────────────────────────────────────────────────┘
@@ -25,7 +28,16 @@
 ## 2. Repository layout
 
 ```
-/composeApp
+/androidApp         ← Android application module (ADR-19); depends on composeApp and shared
+  src/main/kotlin/<pkg>/
+    MainActivity.kt, AppFitnessApplication.kt (starts Koin)
+    di/             ← appModule: AppConfig built from BuildConfig
+  src/main/         ← AndroidManifest.xml, res/ (app_name)
+  src/local/        ← local flavor: network security config (cleartext to 10.0.2.2 only), app_name
+  src/prod/         ← prod flavor overrides (none yet)
+  src/testLocal/    ← local flavor unit tests (BuildConfig, Koin graph)
+  src/testProd/     ← prod flavor unit tests
+/composeApp         ← KMP library (com.android.kotlin.multiplatform.library + Compose Multiplatform)
   src/commonMain/kotlin/<pkg>/
     app/            ← App(), root navigation, adaptive scaffold, contextual FAB
     designsystem/   ← tokens, theme, typography, reusable components
@@ -35,12 +47,12 @@
         (each feature: <Feature>Screen.kt, <Feature>ViewModel.kt, <Feature>UiState.kt)
     di/             ← UI Koin modules
   src/androidMain/kotlin/<pkg>/
-    MainActivity.kt
     platform/       ← GoogleAuthCredentialProvider, HealthConnectDataSource,
                       MlKitBarcodeScanner, AndroidHaptics
   src/commonTest/   ← ViewModel tests with fakes + Turbine
-/shared
+/shared             ← KMP library (com.android.kotlin.multiplatform.library)
   src/commonMain/kotlin/<pkg>/
+    config/         ← AppConfig (per-environment values, provided by androidApp via Koin)
     domain/
       model/        ← Profile, NutritionGoals, Food, FoodLogEntry, MealType, BodyMeasurement,
                       Exercise, Routine, WorkoutSession, WorkoutSet…
@@ -80,7 +92,7 @@
 
 | Area | Library |
 |---|---|
-| Language / build | Kotlin 2.x, Compose Multiplatform, Android Gradle Plugin, JDK 21 running the build, JVM 17 bytecode (ADR-18) |
+| Language / build | Kotlin 2.x, Compose Multiplatform, Android Gradle Plugin 9 (built-in Kotlin; Android-KMP library plugin, ADR-19), JDK 21 running the build, JVM 17 bytecode (ADR-18), `minSdk` 26 (ADR-21) |
 | Backend client | supabase-kt (`auth-kt`, `postgrest-kt`, `functions-kt`) + Ktor (OkHttp engine on Android) |
 | Serialization / dates | kotlinx-serialization, kotlinx-datetime, kotlinx-coroutines |
 | DI | Koin (core + compose + viewmodel) |
@@ -92,7 +104,7 @@
 | Scanner | `com.google.android.gms:play-services-code-scanner` |
 | Health | `androidx.health.connect:connect-client` |
 | Local preferences | DataStore (multiplatform) |
-| Tests | kotlin-test, kotlinx-coroutines-test, Turbine, MockK (`androidUnitTest` only), Maestro (E2E) |
+| Tests | kotlin-test, kotlinx-coroutines-test, Turbine, MockK (Android host tests only: `androidHostTest` in the KMP modules, `src/test*` in `androidApp`; ADR-19), Maestro (E2E) |
 | Quality | ktlint (Gradle plugin), detekt |
 
 ## 5. Per-environment configuration (flavors)
@@ -102,8 +114,18 @@
 | `local` | `http://10.0.2.2:54321` (Docker Supabase as seen from the emulator) | Google + "Test login" button (email/password, seeded user) | Development and Maestro |
 | `prod` | Cloud Supabase project | Google only | APK delivered to the user |
 
-- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `GOOGLE_WEB_CLIENT_ID` are injected as `BuildConfig` fields from `local.properties` (local) or environment variables / secrets (CI). `local.properties` is never committed.
-- `android:usesCleartextTraffic` is only allowed in the `local` flavor (network security config restricted to `10.0.2.2`).
+- Flavors and `BuildConfig` live only in `androidApp` (ADR-19): the KMP library modules have a single variant. `minSdk` 26 (ADR-21); `compileSdk`/`targetSdk` 37.
+- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `GOOGLE_WEB_CLIENT_ID` are `BuildConfig` fields resolved at build time with this precedence: `local.properties` (non-blank) > environment variable / CI secret (non-blank) > default. A missing value never fails the build:
+
+  | Field | `local` | `prod` |
+  |---|---|---|
+  | `SUPABASE_URL` | `supabase.local.url` → `http://10.0.2.2:54321` | `supabase.prod.url` → env `SUPABASE_URL` → `""` |
+  | `SUPABASE_PUBLISHABLE_KEY` | `supabase.local.publishableKey` → `""` | `supabase.prod.publishableKey` → env `SUPABASE_PUBLISHABLE_KEY` → `""` |
+  | `GOOGLE_WEB_CLIENT_ID` | `google.webClientId` → env `GOOGLE_WEB_CLIENT_ID` → `""` | same |
+
+  The `SUPABASE_*` environment variables feed `prod` only: CI exports the production secrets and also runs the `local` unit tests. `local.properties` is never committed.
+- `androidApp` builds an `AppConfig` (`shared`) from `BuildConfig` and provides it with Koin; `composeApp` and `shared` never read `BuildConfig`.
+- Cleartext HTTP is only allowed in the `local` flavor, through a network security config restricted to `10.0.2.2` (no `android:usesCleartextTraffic`). `prod` uses the platform default (cleartext blocked).
 
 ## 6. Backend (Supabase)
 
@@ -127,7 +149,7 @@
 | Workflow | Trigger | Steps | Required to merge |
 |---|---|---|---|
 | `security.yml` | PR and push to `main` | gitleaks | Yes (from E0) |
-| `android-ci.yml` | PR and push to `main` (changes outside `supabase/**`) | JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :composeApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
+| `android-ci.yml` | PR and push to `main` (changes outside `supabase/**`) | JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
 | `supabase-ci.yml` | PR with changes in `supabase/**` | setup-cli (pinned) → `supabase start` → `supabase db reset` → `supabase db lint` → `supabase test db` → `deno test` for functions | Yes, when applicable (from US-02) |
 | `deploy-supabase.yml` | push to `main` with changes in `supabase/**` + manual | `production` environment → `supabase link` → `supabase db push` → `supabase functions deploy` | — (from E0) |
 | `keepalive.yml` | cron every 3 days + manual | `curl` to the project's `health` function (ADR-12) | — (from US-02) |

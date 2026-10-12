@@ -61,8 +61,8 @@ On conflict: this file > `planning/` > skills in `.agents/skills/`.
 |---|---|
 | Lint | `./gradlew ktlintCheck detekt` |
 | Unit tests | `./gradlew testLocalDebugUnitTest` |
-| Install on the emulator (local Supabase) | `./gradlew :composeApp:installLocalDebug` |
-| Delivery APK | `./gradlew :composeApp:assembleProdDebug` |
+| Install on the emulator (local Supabase) | `./gradlew :androidApp:installLocalDebug` |
+| Delivery APK | `./gradlew :androidApp:assembleProdDebug` |
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
@@ -75,7 +75,7 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 ## Epic closure
 
 1. All tasks merged and the full Maestro regression green.
-2. `./gradlew :composeApp:assembleProdDebug` → give the APK path to the user.
+2. `./gradlew :androidApp:assembleProdDebug` → give the APK path to the user.
 3. Log `[PM] [E#] [COMPLETED]` and wait for their feedback:
    - with changes → corrective tasks within the same epic;
    - approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`, and break down the next epic in `tasks/` with the `planning-and-task-breakdown` skill.
