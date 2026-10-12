@@ -19,11 +19,11 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Acceptance criteria:**
 - [x] 👤 `gh auth login -h github.com` completed (scopes `repo`, `workflow`, `read:org`); `gh auth status` OK for `lopezjavier`. *(2026-10-12)*
 - [x] PM: report with the version of each tool (JDK 21 (ADR-18), Android SDK/`adb`, Docker, Node/`npx supabase`, Deno, git, gh, Maestro) and the list of what is missing. *(2026-10-12: JDK 21.0.8 (Temurin; accepted in ADR-18), Android SDK + adb 1.0.41 installed but not on PATH, Docker 29.8.2, Node 22.17.1, Supabase CLI 2.120.0, git 2.50.1, gh 2.76.1. Missing: Deno, Maestro, `ANDROID_HOME`/`JAVA_HOME`.)*
-- [ ] 👤 Missing tools installed (Docker/Supabase CLI block T-008; the rest can wait until E1).
+- [x] 👤 Missing tools installed (Docker/Supabase CLI block T-008; the rest can wait until E1). *(2026-10-12: Deno 2.9.7, Maestro 2.11.0, `JAVA_HOME`/`ANDROID_HOME`/PATH set; AVD `Medium_Phone_API_37.0` with Google Play)*
 
 **Verification:**
 - [x] `gh auth status` and `gh repo view lopezjavier/AppFitness` respond without errors. *(2026-10-12)*
-- [ ] `java -version`, `docker info`, `npx supabase --version`, `deno --version`, `maestro --version`, `adb version` run.
+- [x] `java -version`, `docker info`, `npx supabase --version`, `deno --version`, `maestro --version`, `adb version` run. *(2026-10-12)*
 
 **Dependencies:** None
 **Files likely touched:** none
@@ -173,7 +173,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Acceptance criteria:**
 - [x] 👤 Project created on supabase.com (name `appfitness`, EU region: `eu-west-3` or `eu-central-1`, Free plan). DB password stored in a password manager. Noted down (not shared in the chat): project ref, URL and publishable key (`sb_publishable_...`; the legacy anon key is not used). Project ID: `lbprakdmgwnozjevsfbk`. *(2026-10-12)*
 - [x] 👤 `npx supabase login` in their terminal (local CLI token). *(2026-10-12)*
-- [x] PM: CLI version chosen (latest stable) and pinned; `npx supabase@<v> init` → `supabase/config.toml` with `project_id = "appfitness"`; `supabase/.env.example` with the expected local variables (`OFF_USER_AGENT`, `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`) without values. *(2026-10-12: 2.120.0, pinned as a devDependency in `package.json`)*
+- [x] PM: CLI version chosen (latest stable) and pinned; `npx supabase@<v> init` → `supabase/config.toml` with `project_id = "appfitness"`; `supabase/.env.example` with the expected local variables (`OFF_USER_AGENT`, `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`; `GOOGLE_WEB_CLIENT_ID` added in T-012) without values. *(2026-10-12: 2.120.0, pinned as a devDependency in `package.json`)*
 - [x] PM: `npx supabase link --project-ref <ref>` locally (asks for the DB password interactively → 👤). *(2026-10-12; CLI 2.120.0 authenticates with the access token through a temporary login role, no password prompt)*
 - [x] Changes through a PR. *(PR #2)*
 
@@ -194,7 +194,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Acceptance criteria:**
 - [x] 👤 `production` environment created. *(2026-10-12)*
 - [x] PM: deployment branch policy allowing only `main` on the `production` environment. *(2026-10-12)*
-- [x] 👤 Supabase personal access token created (Account → Access Tokens, name `github-actions-appfitness`, 1-year expiry, granular permissions: Project Settings read, Migrations read-write, Connection Pooling read, Edge Functions read-write, API Keys read; everything else None — widen only if T-010 fails with 401/403). *(2026-10-12)*
+- [x] 👤 Supabase personal access token created (Account → Access Tokens, name `github-actions-appfitness`, 1-year expiry, granular permissions: Project Settings read, Migrations read-write, Connection Pooling read, Edge Functions read-write, API Keys read, **API Key Secrets read** (required by `supabase link`); everything else None). *Replaced on 2026-10-12 by `github-actions-appfitness-v2`: the first token lacked API Key Secrets and T-010 failed with 403; tokens cannot be edited, so a new one is created.*. *(2026-10-12)*
 - [x] 👤 In their terminal, **environment** `production` secrets:
   `gh secret set SUPABASE_ACCESS_TOKEN --env production`, `gh secret set SUPABASE_DB_PASSWORD --env production`, `gh secret set SUPABASE_PROJECT_ID --env production`.
 - [x] 👤 **Repository** secrets (used by `android-ci` and `keepalive` in E1): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`. *(2026-10-12)*
@@ -226,7 +226,7 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 - [x] Changes through a PR. *(PR #3)*
 
 **Verification:**
-- [ ] `gh workflow run deploy-supabase.yml` + `gh run watch` → success (link OK, "Remote database is up to date", functions skipped).
+- [x] `gh workflow run deploy-supabase.yml` + `gh run watch` → success (link OK, "Remote database is up to date", functions skipped). *(2026-10-12, after replacing the token: see T-009)*
 - [ ] Merging the PR (if it touches `supabase/**`, or the next PR that does) triggers the workflow automatically and it finishes green; the deployment appears under *Environments → production*.
 
 **Dependencies:** T-009
@@ -268,15 +268,15 @@ Epic status: E0 ⏳ · E1 ☐ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 **Description:** Enable Google and disable Email in production; locally, keep Email enabled (for "Test login" and Maestro) and Google optional through environment variables.
 
 **Acceptance criteria:**
-- [x] 👤 Production dashboard → Authentication → Providers (Google enabled with the Web client ID/secret, nonce checks on, users without email not allowed). *(2026-10-12)* — Email disabled pending confirmation by the curl check below:
+- [x] 👤 Production dashboard → Authentication → Providers (Google enabled with the Web client ID/secret, nonce checks on, users without email not allowed). *(2026-10-12)* — Email still **enabled** in production on 2026-10-12 (curl check below); pending 👤:
   - Google enabled, with *Client ID* = the Web client ID and *Client Secret* = the Web client's secret. If the panel has an "authorized client IDs" field for native flows, include the Web client ID.
   - Email **disabled** (no email sign-up or login).
-- [ ] PM: local `supabase/config.toml`: `[auth.email] enable_signup = true`; `[auth.external.google] enabled = true`, `client_id = "env(GOOGLE_WEB_CLIENT_ID)"`, `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"`; `.env.example` updated. With empty variables the local stack still starts.
+- [x] PM: local `supabase/config.toml`: `[auth.email] enable_signup = true`; `[auth.external.google] enabled = true`, `client_id = "env(GOOGLE_WEB_CLIENT_ID)"`, `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"`; `.env.example` updated. With empty variables the local stack still starts. *(2026-10-12)*
 - [ ] Changes through a PR (triggers `deploy-supabase`, which must stay green: `config.toml` does not overwrite production auth).
 
 **Verification:**
 - [ ] `curl -s https://<ref>.supabase.co/auth/v1/settings -H "apikey: <publishable key>"`: `external.google = true` and `external.email = false` (run by 👤 or by the PM reading environment variables, without printing the key).
-- [ ] Local: `npx supabase start` and `curl -s http://127.0.0.1:54321/auth/v1/settings -H "apikey: <local publishable key>"`: `external.email = true`.
+- [x] Local: `npx supabase start` and `curl -s http://127.0.0.1:54321/auth/v1/settings -H "apikey: <local publishable key>"`: `external.email = true`. *(2026-10-12: `email = true`, `google = true` with empty variables)*
 - [ ] End-to-end sign-in is validated in US-05 (there is no app yet).
 
 **Dependencies:** T-010, T-011
