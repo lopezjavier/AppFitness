@@ -29,9 +29,31 @@ class AppTopBarDefaultsTest {
     }
 
     @Test
+    fun navigationTouchTarget_meetsMinimum() {
+        assertTrue(AppTopBarDefaults.NavigationTouchTarget >= 48.dp)
+    }
+
+    @Test
+    fun navigationIcon_nestsInsideTheTouchTarget() {
+        assertTrue(AppTopBarDefaults.NavigationIconSize <= AppTopBarDefaults.NavigationTouchTarget)
+    }
+
+    @Test
+    fun startPaddingWithNavigation_alignsTheGlyphBoxWithTheScreenMargin() {
+        val slack = (AppTopBarDefaults.NavigationTouchTarget - AppTopBarDefaults.NavigationIconSize) / 2
+        assertEquals(Spacing.screenMargin, AppTopBarDefaults.StartPaddingWithNavigation + slack)
+    }
+
+    @Test
     fun testTags_matchTheContract() {
-        val tags = listOf(AppTopBarDefaults.TestTag, AppTopBarDefaults.TitleTestTag, AppTopBarDefaults.AvatarTestTag)
-        assertEquals(listOf("topbar", "topbar_title", "topbar_avatar"), tags)
+        val tags =
+            listOf(
+                AppTopBarDefaults.TestTag,
+                AppTopBarDefaults.TitleTestTag,
+                AppTopBarDefaults.AvatarTestTag,
+                AppTopBarDefaults.BackTestTag,
+            )
+        assertEquals(listOf("topbar", "topbar_title", "topbar_avatar", "topbar_back"), tags)
         val pattern = Regex("^[a-z]+(_[a-z0-9]+)*$")
         tags.forEach { assertTrue(pattern.matches(it), it) }
     }

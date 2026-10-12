@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.app
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
@@ -16,28 +18,35 @@ import io.github.lopezjavier.appfitness.feature.profile.ProfileScreen
 import io.github.lopezjavier.appfitness.feature.progress.ProgressScreen
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutScreen
 
-/** Single type-safe NavHost with one nested graph (own back stack) per tab (ADR-10). */
+/**
+ * Single type-safe NavHost with one nested graph (own back stack) per tab (ADR-10) and the
+ * full-screen destinations at the root, above the tabs (ADR-22). Tabs and full-screen
+ * destinations get their own padding so hiding the bottom bar never resizes a tab's viewport.
+ */
 @Composable
-internal fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
+internal fun AppNavHost(
+    navController: NavHostController,
+    tabPadding: PaddingValues,
+    fullScreenPadding: PaddingValues,
+    modifier: Modifier = Modifier,
+) {
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
-            composable<DiaryHome> { DiaryScreen() }
+            composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
-            composable<WorkoutHome> { WorkoutScreen() }
+            composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding)) }
         }
         navigation<ProgressGraph>(startDestination = TopLevelTab.Progress.startRoute) {
-            composable<ProgressHome> { ProgressScreen() }
+            composable<ProgressHome> { ProgressScreen(Modifier.padding(tabPadding)) }
         }
-        navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
-            composable<ProfileHome> { ProfileScreen() }
-        }
+        composable<ProfileRoute> { ProfileScreen(Modifier.padding(fullScreenPadding)) }
     }
 }
 
 /**
  * The tab-switch function: keeps each tab's back stack, state and scroll position. Re-tapping
- * the active tab is a no-op. Any other entry point to a tab (the avatar, T-022) uses it.
+ * the active tab is a no-op. It also pops any full-screen destination above the tabs.
  */
 internal fun NavController.navigateToTab(tab: TopLevelTab) {
     navigate(tab.graph) {
@@ -47,11 +56,23 @@ internal fun NavController.navigateToTab(tab: TopLevelTab) {
     }
 }
 
-/** Tab that owns the current destination ([TopLevelTab.Start] before the first entry exists). */
+/**
+ * Pushes a full-screen destination on top of the current tab. No `popUpTo`: the tab entries stay
+ * on the back stack, so their state and scroll survive until back.
+ */
+internal fun NavController.navigateToFullScreen(route: AppRoute) {
+    navigate(route) { launchSingleTop = true }
+}
+
+/** Chrome of the current destination ([TopLevelTab.Start] tabs before the first entry exists). */
 @Composable
-internal fun NavController.currentTopLevelTab(): TopLevelTab {
+internal fun NavController.currentChrome(): ShellChrome {
     val destination = currentBackStackEntryAsState().value?.destination
-    return TopLevelTab.entries.firstOrNull { tab ->
-        destination?.hierarchy?.any { it.hasRoute(tab.graph::class) } == true
-    } ?: TopLevelTab.Start
+    val fullScreen = AppDestinations.fullScreenRoutes.firstOrNull { destination?.hasRoute(it::class) == true }
+    if (fullScreen != null) return fullScreen.chrome
+    val tab =
+        TopLevelTab.entries.firstOrNull { tab ->
+            destination?.hierarchy?.any { it.hasRoute(tab.graph::class) } == true
+        } ?: TopLevelTab.Start
+    return ShellChrome.Tabs(tab)
 }

@@ -541,8 +541,29 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 ---
 
 ### Checkpoint E1-C — First installable APK
-- [ ] Lint, unit tests, Maestro regression and CI green.
-- [ ] 👤 The user installs the APK, moves between the tabs and gives early feedback on style (cheap to adjust now).
+- [x] Lint, unit tests, Maestro regression and CI green.
+- [x] 👤 The user installs the APK, moves between the tabs and gives early feedback on style (cheap to adjust now). *2026-10-12 on a Pixel 9: good overall; Perfil tab redundant with the avatar and the active-tab pill not in the mockups → ADR-22, corrective task T-031.*
+
+---
+
+## T-031: 3 tabs, Profile as a full screen from the avatar, filled-icon active tab (ADR-22)
+
+**Story:** US-04 · **Flow:** UI · **Scenarios:** Launch; Navigating between tabs; The avatar opens Profile (updated by ADR-22)
+
+**Description:** Corrective task from the Checkpoint E1-C feedback. Remove Perfil from the bottom bar (3 tabs: Diario, Entreno, Progreso). Perfil becomes a full-screen destination above the tab graphs, opened only from the avatar: Top App Bar with a back arrow and the "Perfil" title, no bottom bar; back returns to the originating tab with its state and scroll. The active tab drops the `glowLime` pill and shows `neonLime` icon and an extra-bold `neonLime` label, plus the filled icon where the glyph has a distinct one (only Diario today; official Material Symbols `*_fill1_24px` SVG, same Apache-2.0 license file).
+
+**Acceptance criteria:**
+- [x] Tab model has 3 tabs; Profile is a separate route; unit tests updated (start tab, tab ↔ route, avatar target = Profile screen).
+- [x] Profile screen: back arrow (≥ 48 dp, Spanish `contentDescription`, `testTag`), no bottom bar; system back and the arrow return to the previous tab with state preserved; the avatar is hidden or inert on Profile.
+- [x] Active tab: no indicator pill; lime icon (filled for Diario) + extra-bold lime label; inactive tabs outlined grey with the regular label.
+
+**Verification:**
+- [x] Lint + unit tests green.
+- [x] QA: `tests/e2e/T-021.yaml` and `T-022.yaml` updated to the 3-tab model and the new avatar/back scenario; full regression green; screenshot of the active tab.
+
+**Dependencies:** T-022
+**Files likely touched:** `…/app/{AppRoutes,AppNavHost,AppScaffold}.kt`, `…/designsystem/{AppNavigation,AppTopBar}.kt`, `drawable/ic_nav_diary_filled.xml`, `drawable/ic_arrow_back.xml`, `…/feature/profile/ProfileScreen.kt`, strings, tests, `tests/e2e/T-021.yaml`, `tests/e2e/T-022.yaml`
+**Estimated scope:** S–M
 
 ---
 
@@ -641,19 +662,19 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 **Story:** US-04 · **Flow:** UI · **Scenarios:** Contextual FAB (outline); FAB hidden on Profile
 
-**Description:** `UniversalFab` (lime pill "+ Registro", 52 dp, 0.97 scale on press) and `AppBottomSheet` (top radius 24, 36×4 handle, 65 % scrim). The active route defines the FAB action (ADR-10): Diario → "Añadir alimento", Entreno → "Empezar entreno", Progreso → "Registrar peso", Perfil → hidden. Each action opens a WIP sheet with that title. Both components are added to the catalog.
+**Description:** `UniversalFab` (lime pill "+ Registro", 52 dp, 0.97 scale on press) and `AppBottomSheet` (top radius 24, 36×4 handle, 65 % scrim). The active route defines the FAB action (ADR-10): Diario → "Añadir alimento", Entreno → "Empezar entreno", Progreso → "Registrar peso", Perfil screen → hidden (ADR-22). Each action opens a WIP sheet with that title. Both components are added to the catalog.
 
 *Carry-over from T-020 (UX):* M3 `ModalBottomSheet` defaults to `scrim.copy(alpha = 0.32f)`; `AppBottomSheet` must pass `scrimColor = AppTheme.colors.scrim` explicitly.
 
 **Acceptance criteria:**
-- [ ] Route → FAB action mapping in one place, with unit tests for the 4 tabs.
+- [ ] Route → FAB action mapping in one place, with unit tests for the 3 tabs and the Profile screen.
 - [ ] Sheet title per tab; dismiss by scrim, back and drag; `testTag`s for FAB and sheet.
 
 **Verification:**
 - [ ] Lint + unit tests green.
 - [ ] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
 
-**Dependencies:** T-026
+**Dependencies:** T-026, T-031
 **Files likely touched:** `…/designsystem/{UniversalFab,AppBottomSheet}.kt`, `…/app/{FabAction,AppScaffold}.kt`, test, strings, catalog, `tests/e2e/T-027.yaml`
 **Estimated scope:** M
 
@@ -663,7 +684,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 **Story:** US-04 · **Flow:** UI · **Scenarios:** Tablet layout
 
-**Description:** Using the window size class, compact widths keep the bottom bar + FAB; ≥ 600 dp show a `NavigationRail` (lime indicator) with the FAB at its top. Same tabs, routes and state. `displayHero`/`headlineMetric` use the tablet sizes on wide screens.
+**Description:** Using the window size class, compact widths keep the bottom bar + FAB; ≥ 600 dp show a `NavigationRail` (3 tabs, same lime + filled-icon indicator, ADR-22) with the FAB at its top. Same tabs, routes and state. `displayHero`/`headlineMetric` use the tablet sizes on wide screens.
 
 **Acceptance criteria:**
 - [ ] Width → navigation type decided by a pure function with unit tests (599 → bar, 600 → rail).

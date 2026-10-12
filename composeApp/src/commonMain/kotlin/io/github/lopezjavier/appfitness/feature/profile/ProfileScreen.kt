@@ -9,7 +9,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
 import io.github.lopezjavier.appfitness.designsystem.WipPlaceholder
 import org.jetbrains.compose.resources.stringResource
 
-/** Work-in-progress profile tab until its epic replaces it. */
+/** Work-in-progress full-screen profile destination (ADR-22) until its epic replaces it. */
 @Composable
 fun ProfileScreen(modifier: Modifier = Modifier) {
     WipPlaceholder(

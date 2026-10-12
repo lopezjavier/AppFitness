@@ -1,10 +1,11 @@
-# T-021 4-tab navigation shell (US-04 "Launch" and "Navigating between tabs"). QA owns the final version.
+# T-021 3-tab navigation shell (ADR-22) (US-04 "Launch" and "Navigating between tabs"). QA owns the final version.
 # Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD (no local Supabase needed).
 # Run with emulator animations off so the infinite skeleton shimmer does not slow the taps:
 #   adb shell settings put global animator_duration_scale 0
 #   adb shell settings put global window_animation_scale 0
 #   adb shell settings put global transition_animation_scale 0
-# Manual check on the screenshots: the active tab icon/label is neonLime (#A3E635) on a lime 15% pill.
+# Manual check on the screenshots (T-021_workout, T-021_progress, T-021_diary): Diario shows a filled lime flame;
+# Entreno/Progreso show the same glyph in lime; the active label is visibly bolder than the inactive ones; no pill.
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-021.yaml
 appId: io.github.lopezjavier.appfitness.local
 ---
@@ -19,7 +20,7 @@ appId: io.github.lopezjavier.appfitness.local
     id: "nav_tab_workout"
 - assertVisible:
     id: "nav_tab_progress"
-- assertVisible:
+- assertNotVisible:
     id: "nav_tab_profile"
 - assertVisible:
     id: "diary_screen"
@@ -30,7 +31,7 @@ appId: io.github.lopezjavier.appfitness.local
 - assertVisible: "DIARIO"
 - assertVisible: "ENTRENO"
 - assertVisible: "PROGRESO"
-- assertVisible: "PERFIL"
+- assertNotVisible: "PERFIL"
 - takeScreenshot: T-021_launch
 # Scroll position is kept per tab.
 - scrollUntilVisible:
@@ -63,17 +64,6 @@ appId: io.github.lopezjavier.appfitness.local
     id: "topbar_title"
     text: "Progreso"
 - takeScreenshot: T-021_progress
-- tapOn:
-    id: "nav_tab_profile"
-- assertVisible:
-    id: "profile_screen"
-- assertVisible:
-    id: "nav_tab_profile"
-    selected: true
-- assertVisible:
-    id: "topbar_title"
-    text: "Perfil"
-- takeScreenshot: T-021_profile
 - tapOn:
     id: "nav_tab_diary"
 - assertVisible:

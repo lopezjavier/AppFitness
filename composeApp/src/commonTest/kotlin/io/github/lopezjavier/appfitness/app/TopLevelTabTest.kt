@@ -1,8 +1,11 @@
 package io.github.lopezjavier.appfitness.app
 
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import kotlinx.serialization.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -15,16 +18,8 @@ class TopLevelTabTest {
     }
 
     @Test
-    fun avatarTarget_isProfile() {
-        assertEquals(TopLevelTab.Profile, TopLevelTab.AvatarTarget)
-    }
-
-    @Test
     fun entries_followTheBarOrder() {
-        assertEquals(
-            listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Progress, TopLevelTab.Profile),
-            TopLevelTab.entries,
-        )
+        assertEquals(listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Progress), TopLevelTab.entries)
     }
 
     @Test
@@ -45,11 +40,10 @@ class TopLevelTabTest {
 
     @Test
     fun testTags_matchTheContract() {
-        assertEquals(
-            listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile"),
-            TopLevelTab.entries.map { it.testTag },
-        )
-        TopLevelTab.entries.forEach { assertTrue(tags.matches(it.testTag), it.testTag) }
+        val actual = TopLevelTab.entries.map { it.testTag }
+        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress"), actual)
+        assertFalse("nav_tab_profile" in actual)
+        actual.forEach { assertTrue(tags.matches(it), it) }
     }
 
     @Test
@@ -60,21 +54,25 @@ class TopLevelTabTest {
     }
 
     @Test
+    fun selectedIcon_onlyDiaryHasAFilledVariant() {
+        assertEquals(Res.drawable.ic_nav_diary_filled, TopLevelTab.Diary.selectedIcon)
+        assertNotEquals(TopLevelTab.Diary.icon, TopLevelTab.Diary.selectedIcon)
+        assertEquals(TopLevelTab.Workout.icon, TopLevelTab.Workout.selectedIcon)
+        assertEquals(TopLevelTab.Progress.icon, TopLevelTab.Progress.selectedIcon)
+    }
+
+    @Test
     fun everyRoute_hasAUniqueSerializer() {
-        val routes = TopLevelTab.entries.flatMap { listOf(it.graph, it.startRoute) }
         val names =
-            routes.map { route ->
-                when (route) {
-                    is DiaryGraph -> serializer<DiaryGraph>().descriptor.serialName
-                    is WorkoutGraph -> serializer<WorkoutGraph>().descriptor.serialName
-                    is ProgressGraph -> serializer<ProgressGraph>().descriptor.serialName
-                    is ProfileGraph -> serializer<ProfileGraph>().descriptor.serialName
-                    is DiaryHome -> serializer<DiaryHome>().descriptor.serialName
-                    is WorkoutHome -> serializer<WorkoutHome>().descriptor.serialName
-                    is ProgressHome -> serializer<ProgressHome>().descriptor.serialName
-                    is ProfileHome -> serializer<ProfileHome>().descriptor.serialName
-                }
-            }
-        assertEquals(routes.size, names.toSet().size)
+            listOf(
+                serializer<DiaryGraph>(),
+                serializer<WorkoutGraph>(),
+                serializer<ProgressGraph>(),
+                serializer<DiaryHome>(),
+                serializer<WorkoutHome>(),
+                serializer<ProgressHome>(),
+                serializer<ProfileRoute>(),
+            ).map { it.descriptor.serialName }
+        assertEquals(7, names.toSet().size)
     }
 }

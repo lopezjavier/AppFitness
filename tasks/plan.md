@@ -18,27 +18,28 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 ## Task List
 
 ### Phase 1: Buildable project and Android CI (US-01) — backend/infra flow
-- [ ] T-015: KMP project skeleton with `local`/`prod` flavors
-- [ ] T-016: ktlint and detekt
-- [ ] T-017: `android-ci` workflow as a required check
+- [x] T-015: KMP project skeleton with `local`/`prod` flavors
+- [x] T-016: ktlint and detekt
+- [x] T-017: `android-ci` workflow as a required check
 
 ### Checkpoint E1-A: CI gate
-- [ ] A PR shows `gitleaks` and `android-ci` green and cannot merge if either fails; both flavors build locally.
+- [x] A PR shows `gitleaks` and `android-ci` green and cannot merge if either fails; both flavors build locally.
 
 ### Phase 2: Supabase baseline (US-02) — backend flow
-- [ ] T-018: `profiles` migration, RLS, pgTAP, seed user and `supabase-ci`
-- [ ] T-019: `health` Edge Function and `keepalive` workflow
+- [x] T-018: `profiles` migration, RLS, pgTAP, seed user and `supabase-ci`
+- [x] T-019: `health` Edge Function and `keepalive` workflow
 
 ### Checkpoint E1-B: Backend live
-- [ ] `deploy-supabase` applied the migration and `health` in production; `keepalive` green by hand; `supabase-ci` required.
+- [x] `deploy-supabase` applied the migration and `health` in production; `keepalive` green by hand; `supabase-ci` required.
 
 ### Phase 3: Theme and navigable shell (US-03, US-04) — UI flow
-- [ ] T-020: Kinetic Dark theme foundation (tokens, font, typography, shapes)
-- [ ] T-021: 4-tab navigation shell with WIP screens
-- [ ] T-022: Top App Bar with section title and avatar
+- [x] T-020: Kinetic Dark theme foundation (tokens, font, typography, shapes)
+- [x] T-021: 4-tab navigation shell with WIP screens
+- [x] T-022: Top App Bar with section title and avatar
 
 ### Checkpoint E1-C: First installable APK
-- [ ] 👤 The user installs `localDebug` or `prodDebug`, moves between the 4 tabs and checks the style on the phone.
+- [x] 👤 The user installs `localDebug` or `prodDebug`, moves between the 4 tabs and checks the style on the phone.
+- [x] T-031 (corrective, ADR-22): 3 tabs, Profile as a full screen from the avatar, no pill on the active tab
 
 ### Phase 4: Component library (US-03) — UI flow
 - [ ] T-023: Debug-only component catalog + buttons, card, chips and segmented selector
