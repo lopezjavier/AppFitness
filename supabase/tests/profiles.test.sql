@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(46);
+select plan(65);
 
 -- Test users (inserted as postgres; the on_auth_user_created trigger creates their profiles).
 --   A: Google-style metadata with full_name/avatar_url
@@ -17,6 +17,31 @@ insert into auth.users (id, email, raw_user_meta_data) values
    '{"name":"Bea","picture":"https://example.com/b.png"}'),
   ('33333333-3333-4333-8333-333333333333', 'carl@example.com', '{}'),
   ('44444444-4444-4444-8444-444444444444', 'dan@example.com', '{"full_name":"Dan"}');
+
+-- Metadata sanitization users (hostile or malformed raw_user_meta_data must never break sign-up).
+insert into auth.users (id, email, raw_user_meta_data) values
+  -- E: oversized name with surrounding whitespace
+  ('a0000000-0000-4000-8000-00000000000e', 'eve@example.com',
+   jsonb_build_object('full_name', '  ' || repeat('e', 100000) || '  ')),
+  -- F: whitespace-only names
+  ('a0000000-0000-4000-8000-00000000000f', 'fay@example.com',
+   jsonb_build_object('full_name', E' \t ', 'name', '   ')),
+  -- G: non-string values everywhere
+  ('a0000000-0000-4000-8000-000000000001', 'gus@example.com',
+   '{"full_name":123,"name":{"x":1},"avatar_url":true,"picture":["https://example.com/g.png"]}'),
+  -- H: null metadata
+  ('a0000000-0000-4000-8000-000000000002', 'hal@example.com', null),
+  -- I: array metadata
+  ('a0000000-0000-4000-8000-000000000003', 'ivy@example.com', '["full_name","Ivy"]'),
+  -- J: javascript: avatar
+  ('a0000000-0000-4000-8000-000000000004', 'jo@example.com',
+   '{"full_name":"Jo","avatar_url":"javascript:alert(1)"}'),
+  -- K: oversized https avatar, then an http fallback: both dropped
+  ('a0000000-0000-4000-8000-000000000005', 'kim@example.com',
+   jsonb_build_object('avatar_url', 'https://example.com/' || repeat('k', 2100),
+                      'picture', 'http://example.com/k.png')),
+  -- L: no email and no metadata (e.g. a phone sign-up)
+  ('a0000000-0000-4000-8000-000000000006', null, null);
 
 -- ---------------------------------------------------------------------------
 -- Schema
@@ -52,8 +77,17 @@ select policy_roles_are('public', 'profiles', 'profiles_select_own', array['auth
 select policy_roles_are('public', 'profiles', 'profiles_update_own', array['authenticated'],
   'update policy applies to authenticated only');
 select table_privs_are('public', 'profiles', 'anon', array[]::text[], 'anon has no privileges on profiles');
-select table_privs_are('public', 'profiles', 'authenticated', array['SELECT', 'UPDATE'],
-  'authenticated can only select and update profiles');
+select table_privs_are('public', 'profiles', 'authenticated', array['SELECT'],
+  'authenticated only has table-level SELECT on profiles (UPDATE is column-level)');
+select is(
+  (select array_agg(a.attname::text order by a.attname::text)
+   from pg_attribute a
+   where a.attrelid = 'public.profiles'::regclass and a.attnum > 0 and not a.attisdropped
+     and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')),
+  array['activity_level', 'avatar_url', 'birth_date', 'display_name',
+        'height_cm', 'onboarding_completed', 'sex'],
+  'authenticated can only update the user-editable columns'
+);
 select has_trigger('auth', 'users', 'on_auth_user_created', 'sign-up trigger exists on auth.users');
 select has_trigger('public', 'profiles', 'profiles_set_updated_at', 'updated_at trigger exists on profiles');
 select is_definer('public', 'handle_new_user', array[]::name[], 'handle_new_user is security definer');
@@ -70,6 +104,10 @@ select function_privs_are('public', 'handle_new_user', array[]::name[], 'anon', 
   'anon cannot execute handle_new_user');
 select function_privs_are('public', 'handle_new_user', array[]::name[], 'authenticated', array[]::text[],
   'authenticated cannot execute handle_new_user');
+select function_privs_are('public', 'set_updated_at', array[]::name[], 'anon', array[]::text[],
+  'anon cannot execute set_updated_at');
+select function_privs_are('public', 'set_updated_at', array[]::name[], 'authenticated', array[]::text[],
+  'authenticated cannot execute set_updated_at');
 
 -- ---------------------------------------------------------------------------
 -- Sign-up trigger behavior (also proves FORCE RLS does not block the definer trigger)
@@ -89,6 +127,47 @@ select results_eq(
   $$select display_name, avatar_url from public.profiles where id = '33333333-3333-4333-8333-333333333333'$$,
   $$values ('carl'::text, null::text)$$,
   'trigger falls back to the email local part and a null avatar'
+);
+select results_eq(
+  $$select char_length(display_name), left(display_name, 1) from public.profiles
+    where id = 'a0000000-0000-4000-8000-00000000000e'$$,
+  $$values (100, 'e')$$,
+  'an oversized name is trimmed and truncated to 100 characters'
+);
+select is(
+  (select display_name from public.profiles where id = 'a0000000-0000-4000-8000-00000000000f'),
+  'fay',
+  'a whitespace-only name falls back to the email local part'
+);
+select results_eq(
+  $$select display_name, avatar_url from public.profiles where id = 'a0000000-0000-4000-8000-000000000001'$$,
+  $$values ('gus'::text, null::text)$$,
+  'non-string metadata values are ignored'
+);
+select is(
+  (select display_name from public.profiles where id = 'a0000000-0000-4000-8000-000000000002'),
+  'hal',
+  'null metadata still creates the profile'
+);
+select is(
+  (select display_name from public.profiles where id = 'a0000000-0000-4000-8000-000000000003'),
+  'ivy',
+  'array metadata still creates the profile (keys are only read from objects)'
+);
+select results_eq(
+  $$select display_name, avatar_url from public.profiles where id = 'a0000000-0000-4000-8000-000000000004'$$,
+  $$values ('Jo'::text, null::text)$$,
+  'a javascript: avatar is dropped'
+);
+select is(
+  (select avatar_url from public.profiles where id = 'a0000000-0000-4000-8000-000000000005'),
+  null,
+  'avatars over 2048 characters or not https are dropped'
+);
+select is(
+  (select display_name from public.profiles where id = 'a0000000-0000-4000-8000-000000000006'),
+  'Usuario',
+  'no email and no metadata falls back to a generic name'
 );
 delete from auth.users where id = '33333333-3333-4333-8333-333333333333';
 select is(
@@ -162,7 +241,35 @@ select results_eq(
 select throws_ok(
   $$update public.profiles set id = '55555555-5555-4555-8555-555555555555'
     where id = '11111111-1111-4111-8111-111111111111'$$,
-  '42501', null, 'A cannot change their profile id to another user (WITH CHECK)'
+  '42501', null, 'A cannot change their profile id (no column privilege)'
+);
+select throws_ok(
+  $$update public.profiles set created_at = '2000-01-01' where id = '11111111-1111-4111-8111-111111111111'$$,
+  '42501', null, 'A cannot update created_at (no column privilege)'
+);
+select throws_ok(
+  $$update public.profiles set display_name = repeat('x', 101) where id = '11111111-1111-4111-8111-111111111111'$$,
+  '23514', null, 'A cannot set a display_name over 100 characters'
+);
+select throws_ok(
+  $$update public.profiles set display_name = '   ' where id = '11111111-1111-4111-8111-111111111111'$$,
+  '23514', null, 'A cannot set a blank display_name'
+);
+select throws_ok(
+  $$update public.profiles set avatar_url = 'javascript:alert(1)' where id = '11111111-1111-4111-8111-111111111111'$$,
+  '23514', null, 'A cannot set a javascript: avatar_url'
+);
+select throws_ok(
+  $$update public.profiles set avatar_url = 'http://example.com/a.png' where id = '11111111-1111-4111-8111-111111111111'$$,
+  '23514', null, 'A cannot set a non-https avatar_url'
+);
+select throws_ok(
+  $$update public.profiles set avatar_url = 'https://example.com/' || repeat('a', 2029) where id = '11111111-1111-4111-8111-111111111111'$$,
+  '23514', null, 'A cannot set an avatar_url over 2048 characters'
+);
+select lives_ok(
+  $$update public.profiles set avatar_url = null where id = '11111111-1111-4111-8111-111111111111'$$,
+  'A can clear their avatar_url (nullable)'
 );
 select throws_ok(
   $$insert into public.profiles (id) values ('66666666-6666-4666-8666-666666666666')$$,
@@ -175,6 +282,14 @@ select throws_ok(
 select throws_ok(
   'truncate public.profiles',
   '42501', null, 'A cannot truncate profiles'
+);
+
+-- authenticated without JWT claims: auth.uid() is null, so no row matches.
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select count(*)::int from public.profiles),
+  0,
+  'authenticated with no JWT claims sees no profiles'
 );
 
 reset role;
