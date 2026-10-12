@@ -51,4 +51,9 @@ class SpacingShapesElevationTest {
         assertEquals((-4).dp, AppElevation.sheetShadowSpread)
         assertEquals(16.dp, AppElevation.glowBlur)
     }
+
+    @Test
+    fun borderThin_isOneDp() {
+        assertEquals(1.dp, AppBorder.thin)
+    }
 }

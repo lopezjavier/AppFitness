@@ -15,6 +15,11 @@ class TopLevelTabTest {
     }
 
     @Test
+    fun avatarTarget_isProfile() {
+        assertEquals(TopLevelTab.Profile, TopLevelTab.AvatarTarget)
+    }
+
+    @Test
     fun entries_followTheBarOrder() {
         assertEquals(
             listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Progress, TopLevelTab.Profile),

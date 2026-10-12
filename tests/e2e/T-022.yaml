@@ -1,0 +1,106 @@
+# T-022 Top App Bar with section title and avatar (US-04 "Launch" and "The avatar opens Profile"). QA owns the final version.
+# Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD (no local Supabase needed).
+# Run with emulator animations off so the infinite skeleton shimmer does not slow the taps:
+#   adb shell settings put global animator_duration_scale 0
+#   adb shell settings put global window_animation_scale 0
+#   adb shell settings put global transition_animation_scale 0
+# Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-022.yaml
+# Manual check on the launch screenshot: title in Jakarta 20 sp, avatar circle on the right, hairline
+# under the bar, nothing under the status bar.
+appId: io.github.lopezjavier.appfitness.local
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "topbar"
+- assertVisible:
+    id: "topbar_title"
+    text: "Diario"
+- assertVisible:
+    id: "topbar_avatar"
+- assertVisible:
+    id: "nav_bar"
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
+- assertVisible:
+    id: "nav_tab_workout"
+- assertVisible:
+    id: "nav_tab_progress"
+- assertVisible:
+    id: "nav_tab_profile"
+- assertVisible:
+    id: "diary_screen"
+- takeScreenshot: T-022_launch
+# The title follows the tab.
+- tapOn:
+    id: "nav_tab_workout"
+- assertVisible:
+    id: "topbar_title"
+    text: "Entreno"
+- tapOn:
+    id: "nav_tab_progress"
+- assertVisible:
+    id: "topbar_title"
+    text: "Progreso"
+# State to preserve: scroll Progreso down.
+- scrollUntilVisible:
+    element:
+      id: "progress_wip_footer"
+    direction: DOWN
+# The avatar opens Profile.
+- tapOn:
+    id: "topbar_avatar"
+- assertVisible:
+    id: "nav_tab_profile"
+    selected: true
+- assertVisible:
+    id: "profile_screen"
+- assertVisible:
+    id: "topbar_title"
+    text: "Perfil"
+- takeScreenshot: T-022_avatar_profile
+# Same tab-switch logic: Progreso keeps its scroll position.
+- tapOn:
+    id: "nav_tab_progress"
+- assertVisible:
+    id: "progress_wip_footer"
+- assertNotVisible:
+    id: "progress_wip_message"
+# Avatar from the start tab, then system back returns to Diario.
+- tapOn:
+    id: "nav_tab_diary"
+- scrollUntilVisible:
+    element:
+      id: "diary_wip_footer"
+    direction: DOWN
+- tapOn:
+    id: "topbar_avatar"
+- assertVisible:
+    id: "nav_tab_profile"
+    selected: true
+- back
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
+# Diario keeps its scroll position after the avatar round trip.
+- assertVisible:
+    id: "diary_wip_footer"
+- assertNotVisible:
+    id: "diary_wip_message"
+- assertVisible:
+    id: "topbar_title"
+    text: "Diario"
+# The avatar while on Perfil is a no-op.
+- tapOn:
+    id: "nav_tab_profile"
+- tapOn:
+    id: "topbar_avatar"
+- assertVisible:
+    id: "nav_tab_profile"
+    selected: true
+- assertVisible:
+    id: "profile_screen"
+- takeScreenshot: T-022_profile_noop
+# Accessibility label of the avatar.
+- assertVisible: "Abrir perfil"
