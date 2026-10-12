@@ -3,6 +3,12 @@ package io.github.lopezjavier.appfitness
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/**
+ * Checks the `BuildConfig` generated for the `local` flavor.
+ *
+ * These tests assume `supabase.local.url` is absent or blank in `local.properties`, so the
+ * default `http://10.0.2.2:54321` applies. A custom value makes them fail.
+ */
 class LocalBuildConfigTest {
     @Test
     fun supabaseUrl_inLocalFlavor_isTheEmulatorHostAddress() {
