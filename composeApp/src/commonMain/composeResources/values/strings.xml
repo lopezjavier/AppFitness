@@ -2,4 +2,10 @@
 <!-- Default locale is Spanish (ADR-16). -->
 <resources>
     <string name="app_name">AppFitness</string>
+    <string name="nav_diary">Diario</string>
+    <string name="nav_workout">Entreno</string>
+    <string name="nav_progress">Progreso</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="wip_message">Sección en construcción. Pronto verás aquí tus datos.</string>
+    <string name="wip_footer">Más funciones próximamente</string>
 </resources>
