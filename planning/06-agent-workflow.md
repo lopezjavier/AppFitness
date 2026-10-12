@@ -73,8 +73,8 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | DB tests (RLS) | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
 | Serve functions locally | `npx supabase functions serve --env-file supabase/.env.local` |
-| E2E for a task | `maestro test tests/e2e/T-###.yaml` |
-| Full E2E regression | `maestro test tests/e2e/` |
+| E2E for a task | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` (screenshots land in the gitignored `tests/e2e/screenshots/<timestamp>/`) |
+| Full E2E regression | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/` |
 | View hierarchy | `maestro hierarchy` |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI status | `gh pr checks --watch` |

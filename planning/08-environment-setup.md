@@ -88,7 +88,7 @@ npx supabase stop
 ./gradlew :androidApp:installLocalDebug     # emulator + local Supabase ("AppFitness Local")
 ./gradlew testLocalDebugUnitTest            # unit tests of every module
 ./gradlew :androidApp:assembleProdDebug     # delivery APK: androidApp/build/outputs/apk/prod/debug/
-maestro test tests/e2e/
+maestro test --test-output-dir tests/e2e/screenshots tests/e2e/   # E2E regression; screenshots in tests/e2e/screenshots/ (gitignored)
 ```
 
 ## 4. Deployment
