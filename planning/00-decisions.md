@@ -38,7 +38,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### ADR-09 · Deterministic 1RM
 - **Decision:** in Phase 1 the 1RM is estimated with the Epley formula. The AI training assistant is Phase 2.
 
-### ADR-10 · 4-tab navigation
+### ADR-10 · 4-tab navigation (amended by ADR-22: 3 tabs + Profile from the avatar)
 - **Decision:** Bottom Navigation with Diario (Diary), Entreno (Workout), Progreso (Progress) and Perfil (Profile); Diary is the start tab. The Top App Bar avatar also opens Profile. On tablets (width ≥ medium) a NavigationRail is used.
 - **Contextual universal FAB:** Diary → search/scan food; Workout → start workout or create routine; Progress → log weight; Profile → hidden (Profile has its own "Guardar" (save) button). Also hidden during a live workout session.
 
@@ -111,6 +111,15 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** no runtime checks are needed for Health Connect availability by API level below 26. Raising `minSdk` later is cheap.
 - **Approval:** 2026-10-12, user.
 
+### ADR-22 · 3 tabs; Profile opens from the avatar
+- **Context:** at Checkpoint E1-C the user tested the first APK. The Perfil tab and the Top App Bar avatar led to the same screen (redundant), and the `glowLime` pill on the active tab was not in the mockups.
+- **Decision:**
+  - The bottom navigation (and the tablet NavigationRail) has 3 tabs: Diario, Entreno, Progreso. Diario stays the start tab.
+  - Perfil is no longer a tab. It is a full-screen destination opened only from the avatar, over the current tab: Top App Bar with a back arrow, no bottom bar and no FAB. Back returns to the tab it was opened from, with its state and scroll preserved.
+  - Active tab indicator: `neonLime` icon and label, the label in extra-bold (W800 instead of W600), and the **filled** icon where the glyph has a distinct filled variant (today only Diario's `local_fire_department`; `fitness_center` and `monitoring` look the same filled); no pill. It keeps the mockup icons while giving every tab a non-colour cue (WCAG 1.4.1).
+- **Consequences:** resolves finding #1 (§2) in favour of "3 tabs + profile via avatar". US-04's Gherkin, `01` FR-5.1, `05` §5–6 and tasks T-027/T-028 are updated; the T-021/T-022 code is adjusted in T-031.
+- **Approval:** 2026-10-12, user (Checkpoint E1-C feedback).
+
 ---
 
 ## 2. Findings from the review of the original documents
@@ -118,7 +127,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### Product and stories (original user stories and frontend features)
 | # | Issue | Resolution |
 |---|---|---|
-| 1 | 3 tabs + profile via avatar (features) vs 4 tabs (stories, mockups) | ADR-10 |
+| 1 | 3 tabs + profile via avatar (features) vs 4 tabs (stories, mockups) | ADR-10, revised by ADR-22 (3 tabs) |
 | 2 | US-05 used `navigator.wakeLock.request('screen')`, a web API | `Modifier.keepScreenOn()` / `FLAG_KEEP_SCREEN_ON` while the live session is visible (US-20) |
 | 3 | Health Connect: manual button (requirements) vs automatic background sync (US-09) | ADR-08 |
 | 4 | Google Code Scanner cannot be shown inside a Bottom Sheet | ADR-07 |

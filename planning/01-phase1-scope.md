@@ -56,7 +56,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-4.7 Progress charts per exercise (estimated 1RM, volume) and per muscle group (weekly volume).
 
 ### FR-5 · Cross-cutting (E1)
-- FR-5.1 4-tab navigation with a contextual FAB (ADR-10).
+- FR-5.1 3-tab navigation with a contextual FAB; Profile opens from the Top App Bar avatar (ADR-10, ADR-22).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
 

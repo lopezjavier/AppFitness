@@ -135,7 +135,7 @@ Feature: Available and verifiable design system
 
 ---
 
-## US-04 · Navigable shell with 4 tabs, contextual FAB and adaptive layout
+## US-04 · Navigable shell with 3 tabs + Profile, contextual FAB and adaptive layout
 **As** a user
 **I want** to install the APK and move between all sections of the app
 **So that** I can validate navigation and style on my phone and tablet before the features exist.
@@ -149,19 +149,21 @@ Feature: Navigable shell with WIP sections
   Scenario: Launch
     Then the app starts without errors
     And it shows the Top App Bar with the section title and the avatar
-    And it shows the navigation with the tabs "Diario", "Entreno", "Progreso" and "Perfil"
+    And it shows the navigation with the tabs "Diario", "Entreno" and "Progreso"
     And the initial active tab is "Diario"
 
   Scenario: Navigating between tabs
-    When the user taps "Entreno", "Progreso", "Perfil" and "Diario" in sequence
+    When the user taps "Entreno", "Progreso" and "Diario" in sequence
     Then each screen is shown with its title and a WIP container with skeletons
-    And the active tab indicator is highlighted in neonLime
+    And the active tab is shown in neonLime with an extra-bold label
     And returning to a tab preserves its scroll position
 
   Scenario: The avatar opens Profile
-    Given the user is on "Progreso"
+    Given the user is on "Progreso" and has scrolled its content
     When they tap the Top App Bar avatar
-    Then the "Perfil" tab becomes active
+    Then the "Perfil" screen opens full screen with a back arrow and without the navigation bar
+    When they go back
+    Then "Progreso" is the active tab again and keeps its scroll position
 
   Scenario Outline: Contextual FAB
     Given the user is on the "<tab>" tab
@@ -175,7 +177,7 @@ Feature: Navigable shell with WIP sections
       | Progreso | Registrar peso     |
 
   Scenario: FAB hidden on Profile
-    When the user is on the "Perfil" tab
+    When the user is on the "Perfil" screen
     Then the "+ Registro" button is not shown
 
   Scenario: Tablet layout
@@ -189,7 +191,7 @@ Feature: Navigable shell with WIP sections
 ```
 
 **Technical notes**
-- Type-safe navigation with one back stack per tab; the FAB and its action are defined by the active route (ADR-10).
+- Type-safe navigation with one back stack per tab; Profile is a full-screen destination above the tabs (ADR-22); the FAB and its action are defined by the active route (ADR-10).
 - `ConnectivityObserver` (interface in `shared`, implementation in `androidMain`).
 - Maestro: navigation, avatar and FAB scenarios. The tablet scenario is verified manually and with a tablet emulator if available.
 

@@ -31,7 +31,7 @@ E0 ──► E1 ──► E2 ──┬──► E3
 | US-01 | E1 | Base KMP project with flavors, quality tooling and Android CI | Backend/infra |
 | US-02 | E1 | Supabase baseline: profiles, RLS, health check, CI and keep-alive | Backend/infra |
 | US-03 | E1 | Kinetic Dark design system in Compose | UI |
-| US-04 | E1 | Navigable shell with 4 tabs, contextual FAB and adaptive layout | UI |
+| US-04 | E1 | Navigable shell with 3 tabs + Profile, contextual FAB and adaptive layout | UI |
 | US-05 | E2 | Sign in with Google | UI + backend |
 | US-06 | E2 | Biometric onboarding | UI + backend |
 | US-07 | E2 | Energy strategy and calorie target | UI + backend |

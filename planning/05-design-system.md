@@ -82,7 +82,7 @@ Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (w
 
 | Width (WindowSizeClass) | Navigation | Content |
 |---|---|---|
-| Compact (< 600 dp) | Bottom Navigation (4 tabs) + FAB | Single column |
+| Compact (< 600 dp) | Bottom Navigation (3 tabs) + FAB | Single column |
 | Medium / Expanded (≥ 600 dp) | NavigationRail with the FAB on top | Two asymmetric columns (summary/telemetry on the left, list/table on the right) |
 
 ## 6. Components to build (US-03)
@@ -92,8 +92,8 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | Component | Description / reference |
 |---|---|
 | `AppTheme` | Colors, typography, shapes, `AppColors` |
-| `AppTopBar` | Section title + avatar (opens Profile) |
-| `AppNavigation` | Adaptive bottom bar / rail; active indicator in lime |
+| `AppTopBar` | Section title + avatar (opens Profile); full-screen variant with a back arrow and no avatar (Profile, ADR-22) |
+| `AppNavigation` | Adaptive bottom bar / rail; active tab = lime icon and extra-bold lime label + filled icon where the glyph has one, no pill (ADR-22) |
 | `UniversalFab` | Lime pill "+ Registro", 52 dp tall, 0.97 scale on press |
 | `AppCard` | `surfaceRaised`, radius 16, subtle border, padding 16 |
 | `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary) / 48 dp |
