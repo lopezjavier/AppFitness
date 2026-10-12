@@ -72,9 +72,13 @@ object AppNavigationDefaults {
     /** Bar height above the system navigation inset (mockup: 64). */
     val ContentHeight: Dp = 64.dp
 
+    /** Insets the bar pads for; the single source of both its height and its padding. */
+    val windowInsets: WindowInsets
+        @Composable get() = WindowInsets.navigationBars
+
     /** Total bar height: [ContentHeight] plus the system navigation inset. */
     @Composable
-    fun barHeight(): Dp = ContentHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    fun barHeight(): Dp = ContentHeight + windowInsets.asPaddingValues().calculateBottomPadding()
 
     fun colors(appColors: AppColors): AppNavigationColors = AppNavigationColors(
         selected = appColors.neonLime,
@@ -119,6 +123,7 @@ fun AppNavigation(
             },
         containerColor = AppTheme.colors.surfaceBase,
         tonalElevation = 0.dp,
+        windowInsets = AppNavigationDefaults.windowInsets,
     ) {
         items.forEachIndexed { index, item ->
             AppNavigationBarItem(item, selected = index == selectedIndex, onClick = { onItemSelect(index) })

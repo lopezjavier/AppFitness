@@ -7,8 +7,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 
 /** Root composable: theme plus the navigation shell. [modifier] reaches the root layout. */
 @Composable
-fun App(modifier: Modifier = Modifier) {
+fun App(modifier: Modifier = Modifier, features: AppFeatures = AppFeatures()) {
     AppTheme {
-        AppScaffold(modifier.fillMaxSize())
+        AppScaffold(modifier.fillMaxSize(), features = features)
     }
 }

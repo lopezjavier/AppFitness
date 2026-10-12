@@ -9,8 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import io.github.lopezjavier.appfitness.app.App
+import io.github.lopezjavier.appfitness.app.AppFeatures
+import io.github.lopezjavier.appfitness.config.AppConfig
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+    private val appConfig: AppConfig by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // The app is always dark: keep light system bar icons even when the device is in light mode.
         enableEdgeToEdge(
@@ -20,7 +25,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             // Exposes Compose testTags as resource ids for Maestro's `id:` selector.
-            App(modifier = Modifier.semantics { testTagsAsResourceId = true })
+            App(
+                modifier = Modifier.semantics { testTagsAsResourceId = true },
+                features = AppFeatures.from(appConfig),
+            )
         }
     }
 }

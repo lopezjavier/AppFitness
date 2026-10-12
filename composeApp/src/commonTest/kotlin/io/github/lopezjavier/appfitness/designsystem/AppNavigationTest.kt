@@ -12,7 +12,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class AppNavigationTest {
     private val withFilled =
@@ -60,10 +59,5 @@ class AppNavigationTest {
     fun contentHeight_andIconSize_matchTheMockup() {
         assertEquals(64.dp, AppNavigationDefaults.ContentHeight)
         assertEquals(22.dp, AppNavigationDefaults.IconSize)
-    }
-
-    @Test
-    fun contentHeight_keepsTheItemAboveTheMinimumTouchTarget() {
-        assertTrue(AppNavigationDefaults.ContentHeight >= 48.dp)
     }
 }

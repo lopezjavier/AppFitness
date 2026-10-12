@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
@@ -42,6 +43,10 @@ data object ProgressHome : TabRoute
 /** Full-screen profile, opened only from the Top App Bar avatar, above the tabs (ADR-22). */
 @Serializable
 data object ProfileRoute : AppRoute
+
+/** Debug component catalog: local flavor only (see [AppFeatures]), opened from Profile. */
+@Serializable
+data object CatalogRoute : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -110,6 +115,7 @@ val AppRoute.chrome: ShellChrome
         when (this) {
             is TabRoute -> ShellChrome.Tabs(tab)
             ProfileRoute -> ShellChrome.FullScreen(Res.string.profile_title)
+            CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
         }
 
 /** Navigation entry points shared by the shell. */
@@ -117,6 +123,9 @@ object AppDestinations {
     /** Destination the Top App Bar avatar opens (ADR-22). */
     val AvatarTarget: AppRoute = ProfileRoute
 
-    /** Destinations drawn without the bottom bar. T-023 adds its catalog route here. */
-    val fullScreenRoutes: List<AppRoute> = listOf(ProfileRoute)
+    /**
+     * Destinations drawn without the bottom bar. Used for chrome lookup only: whether a route is
+     * reachable is decided by [AppFeatures].
+     */
+    val fullScreenRoutes: List<AppRoute> = listOf(ProfileRoute, CatalogRoute)
 }

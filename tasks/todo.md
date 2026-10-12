@@ -573,17 +573,19 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 **Description:** A "Catálogo de componentes" screen reachable from Perfil **only in the `local` flavor**, listing components by section with their states. Adds `AppCard`, `PrimaryButton`/`SecondaryButton`/`GhostButton` (enabled, disabled, pressed), `AppChip`/`FilterChipRow` (active cyan) and `SegmentedSelector` (Déficit/Mantenimiento/Superávit).
 
+*Carry-over from T-031 (PR #22 review, small fixes inside this task):* (1) `AppScaffold.kt`: `dropUnlessResumed` on the Profile back action is a no-op (the scaffold sits outside the NavHost, so it checks the always-resumed Activity lifecycle); guard `popBackStack()` by checking the current route is Profile, and avoid a new lambda per composition. (2) `AppNavigation.kt`: `barHeight()` uses `WindowInsets.navigationBars` while `NavigationBar` uses its default insets; pass the same insets to `NavigationBar` so height and padding share one source. Optional nits: `android:autoMirrored="true"` on `ic_arrow_back.xml`; drop the touch-target test in `AppNavigationTest` that duplicates the 64 dp height test.
+
 *Carry-over from T-020 (UX):* M3 `outline` (borderStrong, about 1.3:1) fails 3:1, so do not use stock `Switch`/`OutlinedButton`/`OutlinedTextField` with default colors; components set their own colors and states never rely on the border alone.
 
 **Acceptance criteria:**
-- [ ] The entry point is contributed by the `local` flavor; a `prod` unit test (`testProdDebugUnitTest`) asserts the catalog is not available.
-- [ ] `AppCard`: `surfaceRaised`, 1 dp `borderSubtle`, radius 16, padding 16. Buttons 52/48 dp min height; chips 32 dp visual / 48 dp target.
-- [ ] Each component: `Modifier` first optional param, propagatable `testTag`, preview, catalog entry.
-- [ ] Unit test for `SegmentedSelector`/`FilterChipRow` selection state logic if extracted.
+- [x] The entry point is contributed by the `local` flavor; a `prod` unit test (`testProdDebugUnitTest`) asserts the catalog is not available.
+- [x] `AppCard`: `surfaceRaised`, 1 dp `borderSubtle`, radius 16, padding 16. Buttons 52/48 dp min height; chips 32 dp visual / 48 dp target.
+- [x] Each component: `Modifier` first optional param, propagatable `testTag`, preview, catalog entry.
+- [x] Unit test for `SegmentedSelector`/`FilterChipRow` selection state logic if extracted.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` + `testProdDebugUnitTest` green.
-- [ ] QA: `tests/e2e/T-023.yaml` opens the catalog from Perfil and asserts the components by `testTag`.
+- [x] Lint + `testLocalDebugUnitTest` + `testProdDebugUnitTest` green.
+- [x] QA: `tests/e2e/T-023.yaml` opens the catalog from Perfil and asserts the components by `testTag`.
 
 **Dependencies:** T-022
 **Files likely touched:** `…/designsystem/{AppCard,Buttons,AppChip,SegmentedSelector}.kt`, `…/feature/catalog/ComponentCatalogScreen.kt`, `androidApp/src/{local,prod}/…`, `…/feature/profile/ProfileScreen.kt`, `tests/e2e/T-023.yaml`
@@ -683,6 +685,8 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 ## T-028: Adaptive layout with NavigationRail on tablets
 
 **Story:** US-04 · **Flow:** UI · **Scenarios:** Tablet layout
+
+*Carry-over from T-031 (PR #22 review):* `AppScaffold.kt` always adds the bottom-bar height to the tab content's bottom padding (so scroll survives opening Profile). With the rail there is no bottom bar, so this must become conditional, otherwise a 64 dp empty gap appears at the bottom.
 
 **Description:** Using the window size class, compact widths keep the bottom bar + FAB; ≥ 600 dp show a `NavigationRail` (3 tabs, same lime + filled-icon indicator, ADR-22) with the FAB at its top. Same tabs, routes and state. `displayHero`/`headlineMetric` use the tablet sizes on wide screens.
 

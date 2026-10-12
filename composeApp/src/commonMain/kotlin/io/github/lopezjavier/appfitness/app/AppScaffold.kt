@@ -5,11 +5,12 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_avatar_cd
@@ -24,15 +25,22 @@ import org.jetbrains.compose.resources.stringResource
 
 /** App shell: top app bar, bottom navigation (tabs only) and the NavHost. T-027 adds the FAB. */
 @Composable
-internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController()) {
+internal fun AppScaffold(
+    modifier: Modifier = Modifier,
+    features: AppFeatures = AppFeatures(),
+    navController: NavHostController = rememberNavController(),
+) {
     val items =
         remember {
             TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
         }
-    val chrome = navController.currentChrome()
-    // dropUnlessResumed: a double tap cannot push two Profiles or pop the tab under Profile.
-    val openAvatarTarget = dropUnlessResumed { navController.navigateToFullScreen(AppDestinations.AvatarTarget) }
-    val goBack = dropUnlessResumed { navController.popBackStack() }
+    val entry by navController.currentBackStackEntryAsState()
+    val chrome = entry.chrome()
+    // launchSingleTop stops a double tap from pushing two Profiles.
+    val openAvatarTarget =
+        remember(navController) { { navController.navigateToFullScreen(AppDestinations.AvatarTarget) } }
+    // Pops only the full-screen entry the top bar was drawn for: a stale tap cannot pop the tab underneath.
+    val goBack = remember(navController, entry) { { navController.popFullScreen(entry) } }
     val avatarDescription = stringResource(Res.string.topbar_avatar_cd)
     val backDescription = stringResource(Res.string.topbar_back_cd)
     Scaffold(
@@ -73,6 +81,6 @@ internal fun AppScaffold(modifier: Modifier = Modifier, navController: NavHostCo
                 end = innerPadding.calculateEndPadding(layoutDirection),
                 bottom = AppNavigationDefaults.barHeight(),
             )
-        AppNavHost(navController, tabPadding = tabPadding, fullScreenPadding = innerPadding)
+        AppNavHost(navController, tabPadding = tabPadding, fullScreenPadding = innerPadding, features = features)
     }
 }
