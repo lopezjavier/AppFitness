@@ -103,7 +103,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Sources (checked 2026-10-12):**
   - GitHub Docs, "Troubleshooting required status checks", section "Handling skipped but required checks" (a job skipped by a conditional reports "Success"; a workflow skipped by path filtering stays "Pending" and blocks merging; a job depending on a failed job is skipped and may not block merging): https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks
   - `dorny/paths-filter` README (v4: `pull_request` uses the API file list; `push` to the default branch compares with the commit before the push; `predicate-quantifier`): https://github.com/dorny/paths-filter
-- **Approval:** Approved by PM 2026-10-12 (path filter reserved at the E1 breakdown; fail-open detail is technical).
+- **Approval:** Approved by the user 2026-10-12 (E1 breakdown); the fail-open `changes` job was added by the PM in T-017.
 
 ### ADR-21 · `minSdk` 26
 - **Context:** `planning/` did not fix a minimum Android version. Health Connect (`androidx.health.connect:connect-client`, US-09 in E4) requires API 26.

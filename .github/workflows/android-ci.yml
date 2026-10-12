@@ -30,7 +30,9 @@ jobs:
       - uses: dorny/paths-filter@v4
         id: filter
         with:
-          # Default predicate-quantifier 'some': true when at least one changed file is outside supabase/.
+          # 'some': true when at least one changed file is outside supabase/. Set explicitly: an
+          # exclusion-only filter never matches under 'some-with-excludes', which would skip every build.
+          predicate-quantifier: 'some'
           filters: |
             android:
               - '!supabase/**'
@@ -52,6 +54,8 @@ jobs:
       GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false # Gradle runs third-party plugin code; the build needs no token
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
