@@ -16,13 +16,15 @@ All these rules are implemented as pure functions in `shared/domain/usecase/` wi
 ### 1.3 Total daily energy expenditure (TDEE)
 `TDEE = round(BMR × factor)`
 
-| Level | UI label (Spanish) | Factor |
-|---|---|---|
-| sedentary | Sedentario (poco o ningún ejercicio) | 1.2 |
-| light | Ligero (1–3 días/sem) | 1.375 |
-| moderate | Moderado (3–5 días/sem) | 1.55 |
-| high | Alto (6–7 días/sem) | 1.725 |
-| very_high | Muy alto (2 sesiones/día o trabajo físico) | 1.9 |
+| Level | UI title (Spanish) | UI description (Spanish) | Factor |
+|---|---|---|---|
+| sedentary | Sedentario | Trabajo sentado y poco o ningún ejercicio | 1.2 |
+| light | Ligero | Ejercicio 1–3 días por semana, o trabajo sentado pero caminas a diario | 1.375 |
+| moderate | Moderado | Ejercicio 3–5 días por semana | 1.55 |
+| high | Alto | Ejercicio intenso 6–7 días por semana | 1.725 |
+| very_high | Muy alto | Entrenas dos veces al día o tienes un trabajo físico exigente | 1.9 |
+
+Each level is a selectable card showing the title and the description, so the user can tell the levels apart without guessing what counts. Below the cards, a hint: "Si dudas entre dos niveles, elige el más bajo" (people tend to overestimate their activity, and a lower factor errs on the side of the goal; user request 2026-10-14).
 
 Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 130 + 5 = 1729.5 → TDEE = round(2680.7) = **2681 kcal**.
 
@@ -32,7 +34,7 @@ Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 13
 - The user can change the adjustment in 50 kcal steps within the strategy range: Deficit [−1000, −50], Maintenance [−100, +100], Surplus [+50, +750].
 - Safety floor: `target_kcal ≥ 1200`; if the calculation gives less, it is set to 1200 and a warning is shown.
 - Adjustment label: |adjustment| ≤ 300 → "ligero" (light); ≤ 600 → "moderado" (moderate); > 600 → "agresivo" (aggressive) (e.g. "−400 kcal · Déficit moderado").
-- The target is **only recalculated when the user saves in Profile** (using the latest weight). Logging a new weight does not change the target automatically (that will be Phase 2's adaptive adjustment).
+- The target is **only recalculated when the user saves in Profile** (the screen's single "Guardar" button, ADR-24), using the latest weight, and the new value is stored in `nutrition_goals`. Logging a new weight does not change the target automatically (that will be Phase 2's adaptive adjustment).
 
 ### 1.5 Macro split (auto-balance)
 - Integer percentages, each in [5, 90], always adding up to 100. Default: P 30 / C 45 / F 25.

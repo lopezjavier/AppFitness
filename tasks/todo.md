@@ -811,8 +811,162 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 ---
 
+# E2 · Authentication and profile
+
+Stories: `planning/epics/E2-auth-profile.md` (US-05…US-08). One task per story as a vertical slice (migration + RLS + pgTAP, repository, use case, ViewModel, screen, host tests); US-06's last scenario ("Editing data after onboarding") moves to T-037 because it needs US-07's TDEE. Plan: [tasks/plan.md](plan.md).
+Flow: every E2 task has UI (planner → ux-reviewer → developers → PR → review → merge; Maestro in the background after the merge, ADR-23). New e2e area tags: `auth`, `onboarding`, `profile`.
+Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR-24): onboarding resumes prefilled and re-saving updates the weight row; onboarding saves the default macros; Profile has one "Guardar"; "Peso actual" is read-only until E4.
+
+## T-034: Sign in with Google, session routing and sign out
+
+**Story:** US-05 · **Flow:** UI (frontend; no migration, `profiles` and its trigger exist since T-018) · **Scenarios:** First sign-in; Persistent session; Account picker cancelled; Network error when signing in; Sign out; Test login (local flavor only)
+
+**Description:** Add supabase-kt (auth + postgrest; check `sb_publishable_` key support when pinning, ADR-17), androidx.credentials + `googleid` and Coil 3 to the catalog. `shared`: Supabase client built from `AppConfig`, `AuthCredentialProvider` port, `AuthRepository` (sign in with ID token, sign in with email/password for the local test user, sign out, `sessionStatus` as a `Flow`) and a minimal `ProfileRepository` (read own row: name, avatar, `onboarding_completed`). `composeApp/androidMain`: `GoogleAuthCredentialProvider` (Credential Manager, `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce). Root routing from session + `onboarding_completed`: Welcome (no session) / Onboarding (stub destination until T-035) / Main (tabs, Diario). Welcome screen with "Continuar con Google"; the "Test login" button is contributed only by the `local` flavor (same mechanism as the catalog, `AppFeatures`). Profile gets "Cerrar sesión" with a confirmation dialog. The Top App Bar avatar shows the Google photo (Coil) with the E1 placeholder as fallback.
+
+**Acceptance criteria:**
+- [ ] Root route is a pure function of (session status, onboarding flag) with unit tests: no session → Welcome; session + `false` → Onboarding; session + `true` → Main (Diario); session loading → splash/skeleton, never a flash of Welcome.
+- [ ] Credential result mapped to a sealed outcome (success / cancelled / no network / other error): cancelled → stays on Welcome with no message; no network → "Sin conexión. Inténtalo de nuevo" with a retry action; Welcome actions disabled while a sign-in is in flight.
+- [ ] Sign out asks for confirmation, clears the persisted session and returns to Welcome with the tab back stacks reset.
+- [ ] "Test login" signs in as `test@appfitness.local` (password from `planning/08-environment-setup.md` §3.2) and exists only in `local`: a `testProdDebugUnitTest` asserts it is absent in `prod`.
+- [ ] Avatar: Google photo when `avatar_url` is set, placeholder otherwise; ≥ 48 dp target and Spanish `contentDescription` unchanged.
+- [ ] E2E data state decided and documented in the plan (see `tasks/plan.md` risk "E2E user state"): the login subflow lands on Diario for every existing flow.
+
+**Host tests (per scenario):** `RootRouteTest` (First sign-in → Onboarding, Persistent session → Main); `WelcomeViewModelTest` with a fake `AuthCredentialProvider`/`AuthRepository` + Turbine (First sign-in, Account picker cancelled, Network error + retry, Test login); `WelcomeScreenTest` (Robolectric: button, error message and retry visible, Test login visible only when the feature flag is on); `ProfileScreenTest` (Sign out: confirm dialog → sign-out event; cancel keeps the session); `testProdDebugUnitTest` for the Test login gating.
+
+**E2E scope:** `auth` (new `tests/e2e/T-034.yaml`: Test login → Diario; relaunch → Diario without login; sign out → Welcome) + new `tests/e2e/subflows/login.yaml`. Every existing flow (`shell`, `catalog`) gains the login subflow; QA updates them, runs `auth,shell`, and the `catalog` flows at Checkpoint E2-A. Account picker and real Google sign-in are not automatable (checked at the checkpoint).
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` + `:androidApp:testProdDebugUnitTest` green.
+- [ ] Manual (developer, emulator, local flavor): Test login → Diario; relaunch keeps the session; sign out → Welcome.
+
+**Dependencies:** E1 (`v0.1.0`)
+**Files likely touched:** `gradle/libs.versions.toml`, `shared/build.gradle.kts`, `composeApp/build.gradle.kts`, `shared/…/data/remote/SupabaseClientFactory.kt`, `shared/…/domain/port/AuthCredentialProvider.kt`, `shared/…/domain/repository/{AuthRepository,ProfileRepository}.kt`, `shared/…/data/repository/*`, `shared/…/di/*`, `composeApp/src/androidMain/…/platform/GoogleAuthCredentialProvider.kt`, `composeApp/…/feature/auth/{WelcomeScreen,WelcomeViewModel,WelcomeUiState}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot,AppViewModel,AppFeatures}.kt`, `composeApp/…/feature/profile/ProfileScreen.kt`, `composeApp/…/designsystem/AppTopBar.kt`, `androidApp/src/{local,testProd}/…`, strings, tests, possibly `supabase/seed.sql`
+**Estimated scope:** L (about 20 files, many of them small wiring edits; kept as one PR because sign-in, routing and sign-out are one reviewable auth slice)
+
+---
+
+## T-035: Biometric onboarding (sex, birth date, height, weight, activity)
+
+**Story:** US-06 · **Flow:** UI + backend · **Scenarios:** Completing onboarding (up to "taken to their goal setup"); Progress indicator and going back; Range validation (Edad, Altura, Peso); Resuming an interrupted onboarding; Finishing the biometric steps again after an interruption. *("Editing data after onboarding" and "Current weight is read-only on Profile" → T-037.)*
+
+**Description:** Backend: one migration with the `measurement_source` enum and `body_measurements` per `03-data-model.md` §4 (weight 20–400, body fat 2–75, `unique (user_id, external_id)`, index `(user_id, measured_at desc)`, `set_updated_at()` trigger, RLS enabled and forced with the owner policy on `(select auth.uid())`) + pgTAP. App: `BodyMeasurementRepository` (insert, latest weight), `ProfileRepository` gains the biometric update, and a 5-step onboarding flow replacing the T-034 stub: sex (`SegmentedSelector`-style), date of birth, height in cm and weight with 1 decimal (a new `WheelPicker` design-system component, built here and added to the catalog), activity level (selectable cards with the `04-business-rules.md` §1.3 labels). "N / 5" indicator, "Atrás" keeps the chosen values, "Continuar" on step 5 saves the profile fields and the first `body_measurements` row (`source = 'manual'`) and moves to the goal step (stub until T-036).
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/body_measurements.test.sql`: RLS on and forced; A sees only their rows; A cannot insert with B's `user_id`, update or delete B's rows; range checks reject 19.9 / 400.1 kg.
+- [ ] Picker bounds come from one domain place: age 14–100 (birth date range relative to today), height 100–250 cm, weight 20.0–400.0 kg; unit tests on the bounds and the age calculation (full years).
+- [ ] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3.
+- [ ] On save errors (offline, network) the values are kept and a retry is offered (02 §9); "Continuar" disabled while saving.
+- [ ] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
+- [ ] Activity step: each card shows the level title and its description from `04-business-rules.md` §1.3, plus the "Si dudas entre dos niveles, elige el más bajo" hint (user request 2026-10-14).
+- [ ] `WheelPicker`: tabular numerals, ≥ 48 dp targets, `contentDescription`/`stateDescription` with the selected value, catalog entry, `testTag`s.
+
+**Host tests (per scenario):** `OnboardingViewModelTest` (Completing onboarding → profile update + measurement insert with `manual`, navigation effect to goals; going back keeps the value; resume starts at step 1 prefilled; re-save updates the weight row instead of inserting; save failure keeps values); `OnboardingBoundsTest` (Range validation outline: 12 → age clamp to 14, 260 → 250, 15 → 20); `OnboardingScreenTest` (Robolectric: "3 / 5", "Atrás", picker semantics); `WheelPickerTest`.
+
+**E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-035.yaml`: Test login with a not-onboarded user → 5 steps, back, indicator → goal step).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green and the migration listed as remote.
+
+**Dependencies:** T-034
+**Files likely touched:** `supabase/migrations/<ts>_body_measurements.sql`, `supabase/tests/body_measurements.test.sql`, `shared/…/domain/model/{BodyMeasurement,Profile}.kt`, `shared/…/domain/repository/BodyMeasurementRepository.kt`, `shared/…/data/repository/*`, `shared/…/domain/usecase/OnboardingBounds.kt`, `composeApp/…/feature/onboarding/{OnboardingScreen,OnboardingViewModel,OnboardingUiState}.kt`, `composeApp/…/designsystem/WheelPicker.kt`, catalog section, strings, tests
+**Estimated scope:** L
+
+---
+
+## T-036: Energy strategy and calorie target; onboarding completes
+
+**Story:** US-07 · **Flow:** UI + backend · **Scenarios:** TDEE calculation; Changing the strategy; Fine-tuning the target; Safety floor; Saving the goals in onboarding (all in the onboarding goal step; "Saving the goals on Profile" → T-037, which reuses the section)
+
+**Description:** Backend: one migration with the `goal_strategy` enum and `nutrition_goals` per `03-data-model.md` §2 (one row per user, `strategy` default `maintenance`, `calorie_adjustment`, `target_kcal`, `protein_pct`/`carbs_pct`/`fat_pct` with defaults 30/45/25, each 5–90 and sum = 100 checks, owner RLS on `(select auth.uid())`) + pgTAP. Domain (pure, 100 % unit tested with the `04-business-rules.md` §1 examples): `CalculateTdee` (Mifflin-St Jeor + activity factor, age in full years, latest weight) and `CalculateCalorieTarget` (default adjustment per strategy −400 / 0 / +250, 50 kcal steps within the strategy range, 1200 floor with a flag, "ligero/moderado/agresivo" label). App: `NutritionGoalsRepository` (upsert, read) and an "Estrategia energética" section (TDEE line, `SegmentedSelector` Déficit/Mantenimiento/Superávit, adjustment stepper, "Meta diaria: N kcal/día", adjustment pill, floor warning) used as the last onboarding step. No macro sliders in onboarding (ADR-24). "Guardar objetivos" upserts the goals with the default split 30/45/25, sets `onboarding_completed = true`, confirms with haptics and lands on Diario.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/nutrition_goals.test.sql`: RLS on and forced; cross-user isolation (select/insert/update/delete); percentage checks reject 4 / 91 and a sum ≠ 100.
+- [ ] Use case tests include: male 26 y, 178 cm, 74.2 kg, moderate → 2681; TDEE 2800 + Déficit → 2400 and "−400 kcal · Déficit moderado"; two steps down → −500 / 2300; TDEE 1500 − 400 → 1200 + floor flag; range ends (−1000, −50, ±100, +50, +750) are not crossed; label thresholds 300 / 600.
+- [ ] Numbers formatted with `AppNumberFormat` ("TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día").
+- [ ] Goals and `onboarding_completed = true` are written so that a failure never leaves `onboarding_completed = true` without a goals row (order or RPC chosen by the planner); save errors keep the values and offer a retry.
+- [ ] After saving, relaunching the app goes straight to Diario (closes the US-05 "Persistent session" journey for a new user).
+
+**Host tests (per scenario):** `CalculateTdeeTest`, `CalculateCalorieTargetTest` (TDEE calculation, Changing the strategy, Fine-tuning, Safety floor); `EnergyStrategyViewModelTest` (strategy switch resets the adjustment to the default, stepper, floor warning, Saving the goals → upsert + onboarding flag + haptic/confirmation effect); `EnergyStrategySectionTest` (Robolectric: texts "TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día", pill, warning).
+
+**E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-036.yaml`: full onboarding → strategy → "Guardar objetivos" → Diario; relaunch → Diario).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-035
+**Files likely touched:** `supabase/migrations/<ts>_nutrition_goals.sql`, `supabase/tests/nutrition_goals.test.sql`, `shared/…/domain/model/{NutritionGoals,GoalStrategy}.kt`, `shared/…/domain/usecase/{CalculateTdee,CalculateCalorieTarget}.kt` + tests, `shared/…/domain/repository/NutritionGoalsRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/goals/{EnergyStrategySection,EnergyStrategyViewModel,EnergyStrategyUiState}.kt`, `composeApp/…/feature/onboarding/*`, strings, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E2-A — New user journey on the phone 👤
+- [ ] Every background QA run finished, no open `qa` issue, full Maestro regression green (all tags, catalog flows included); `deploy-supabase` applied both migrations in production.
+- [ ] 👤 The user installs the `prodDebug` APK (`! bash scripts/deliver-apk.sh`) and tries, with their real Google account:
+  - "Continuar con Google" → pick the account → the 5 onboarding steps (try "Atrás" and the picker limits) → choose a strategy, move the adjustment, "Guardar objetivos" → lands on Diario with their Google photo in the top bar.
+  - Close the app and reopen it → straight to Diario. Open the Google picker and dismiss it → no error. Airplane mode + "Continuar con Google" → "Sin conexión. Inténtalo de nuevo".
+  - Profile → "Cerrar sesión" → Welcome. Kill the app halfway through onboarding (second account, if available) → restarts at step 1 with the saved values prefilled.
+  - Feedback on the onboarding pickers and the strategy step (cheap to change before the Profile task).
+
+---
+
+## T-037: Profile: edit personal data, energy strategy and macro split
+
+**Story:** US-08 + US-06 "Editing data after onboarding" / "Current weight is read-only on Profile" + US-07 on Profile · **Flow:** UI (no new table; the only possible migration is an optional `security invoker` RPC for an atomic save) · **Scenarios:** US-08 Initial display; Auto-balance when moving a slider; Per-macro minimum; Persistence (Diary half verified in E3) · US-06 Editing data after onboarding; Current weight is read-only on Profile · US-07 Saving the goals on Profile (other US-07 scenarios re-run on the Profile card)
+
+**Description:** Profile becomes the real screen (sections from `design/stitch/profile-goals/screen.png`, only personal data, "Estrategia Energética" and "Distribución de Macros"; the sign-out from T-034 and the local-only catalog entry stay). Personal data card (Edad, Altura, Actividad and sex editable with the T-035 pickers; "Peso actual" read-only, latest weight, ADR-24); the T-036 strategy section reused as a card; a "Distribución de Macros" card with three `MacroSlider`s (P lime, C cyan, F amber), a stacked bar with the three macro colours and the "TOTAL: 100 %" badge. Domain: `BalanceMacros` (largest remainder, [5, 90], sum 100) with property tests, and grams = `round(target × pct / 100 / kcal_per_gram)`. One "Guardar" button for the whole screen (ADR-24) saves the profile fields, strategy, adjustment and macros, and stores the daily target recalculated from the new data and the latest weight (`04-business-rules.md` §1.4). Grams targets exposed from the domain so the E3 Diary can consume them.
+
+**Acceptance criteria:**
+- [ ] `BalanceMacros` unit + property tests: sum is always 100 and every value in [5, 90] for random moves; 30/45/25 + P→35 → 35/42/23; 90/5/5 cannot raise P; one other at 5 → the rest of Δ goes to the other.
+- [ ] Grams/kcal text matches the Gherkin ("30 % · 180 g · 720 kcal", "45 % · 270 g · 1.080 kcal", "25 % · 67 g · 600 kcal"; after P→35: 210 g / 252 g / 61 g).
+- [ ] Editing height to 180 cm and tapping "Guardar" updates the profile, the displayed TDEE and the stored `target_kcal`; profile and goals are written so a failure never leaves them inconsistent (order or RPC chosen by the planner).
+- [ ] "Peso actual" shows the latest `body_measurements` weight and has no edit affordance.
+- [ ] Profile loads with a skeleton, shows `ErrorState` with "Reintentar" on a read failure, and keeps edits on a save failure (02 §9); save disabled offline.
+- [ ] Haptic confirmation on save; no FAB on Profile (ADR-22); `MacroStackedBar` (or equivalent) in the design system with a catalog entry and `stateDescription`.
+- [ ] *Carry-over check:* `MacroSlider` callers pass percentages within range (E1 PR #24 note: it `require`s or coerces; confirm which).
+
+**Host tests (per scenario):** `BalanceMacrosTest` (Auto-balance, Per-macro minimum, properties); `MacroTargetsTest` (Initial display grams); `ProfileViewModelTest` with fakes (Initial display, slider move → balanced state, Persistence → upsert with the percentages, Editing data → profile update + TDEE and stored target recalculated, read-only weight, US-07 strategy changes saved by the single "Guardar"); `ProfileScreenTest` (Robolectric: badge "TOTAL: 100 %", texts per macro, sliders' `stateDescription`, save button states).
+
+**E2E scope:** `profile`, `shell` (new `tests/e2e/T-037.yaml`: open Profile from the avatar → change height → "Guardar" → TDEE changes; raise Proteínas → balanced values; save, relaunch, values persisted).
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
+
+**Dependencies:** T-036
+**Files likely touched:** `shared/…/domain/usecase/{BalanceMacros,CalculateMacroTargets}.kt` + tests, `shared/…/domain/repository/*` (goals with macros, profile update), `composeApp/…/feature/profile/{ProfileScreen,ProfileViewModel,ProfileUiState,PersonalDataCard,MacroSplitCard}.kt`, `composeApp/…/designsystem/MacroStackedBar.kt`, catalog section, strings, tests
+**Estimated scope:** L
+
+---
+
+## T-038: E2 closure
+
+**Story:** E2 Definition of Done · **Flow:** PM
+
+**Acceptance criteria:**
+- [ ] T-034…T-037 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
+- [ ] Every background QA run finished, no open `qa` issue, full Maestro regression green (Test login).
+- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
+
+**Verification:**
+- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.2.0` after approval.
+
+**Dependencies:** T-037
+**Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
+**Estimated scope:** S
+
+### Checkpoint E2-B — E2 closure 👤
+- [ ] 👤 The user installs the `prodDebug` APK (`! bash scripts/deliver-apk.sh`) and tries on Profile (opened from the avatar):
+  - Change their height (and the other personal data) and tap the single "Guardar" → the TDEE and the daily target change; "Peso actual" shows the latest weight and is not editable.
+  - Switch Déficit / Mantenimiento / Superávit and move the adjustment; push it to the 1200 kcal floor.
+  - Move each macro slider → the other two rebalance and the badge stays "TOTAL: 100 %"; try to push one past 90 %.
+  - Save, close the app and reopen it → everything persisted. Approval → `git tag -a v0.2.0 -m "Epic E2"` + retrospective (compare the per-story sizing with E1).
+
+---
+
 ## Notes for later epics
 
+- **E3 (food diary), from E2 (T-037):** US-08's "And the Diary uses the new gram targets" is only verified on the Profile side in E2; the E3 Diary must read the macro gram targets from the domain use case added in T-037 (not recompute them).
 - **E3 / E4 / E5, from the E1 review (user, 2026-10-13):** question the shared "+ Registro" FAB (ADR-10). Food, training and weight log in very different ways, so each epic decides its own entry point: a per-screen action with its own label (e.g. "Añadir alimento" per meal, "Empezar entreno"), a per-tab FAB label, or no FAB. A shared FAB may still fit weight (E4). Update ADR-10 when the first of these epics decides.
 - **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved.
 - **E2 (food diary), from the PR #24 review:** `MacroProgressBar` and `ProgressRing` take `Int`, but snapshots are stored to 0.1 g (04 §2), so a caller that rounds first can be off by 1 % (100.9/200 → 50 %, 101/200 → 51 %). Add `Double` overloads or have the domain pass in the percent.

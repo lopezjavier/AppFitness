@@ -130,6 +130,16 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** a bug can live on `main` for a task or two before its fix; UI scenarios must have host tests in the task itself. `CLAUDE.md`, `06-agent-workflow.md` and the qa-engineer, planner and pr-creator instructions are updated.
 - **Approval:** 2026-10-13, user (E1 retrospective; the user proposed the design).
 
+### ADR-24 · Onboarding resume and a single save on Profile (E2)
+- **Context:** the E2 breakdown found four product gaps in US-06…US-08: what an interrupted onboarding shows on restart, whether onboarding includes the macro sliders, how Profile saves (the Gherkin had "Guardar" and "Guardar objetivos", the mockup one button), and whether the current weight is editable on Profile before weight logging exists (E4).
+- **Decision:**
+  - Resuming onboarding restarts at the first step with every step **prefilled** from the saved values. Finishing the last biometric step again **updates** the onboarding weight entry in `body_measurements`; it never adds a second row.
+  - Onboarding has **no macro sliders**: the goal step saves the default split 30/45/25 (`04-business-rules.md` §1.5), adjusted later on Profile.
+  - Profile has **one "Guardar" button** for the whole screen (personal data, strategy and macros). Saving recalculates the TDEE with the latest weight and **stores** the new daily target in `nutrition_goals` (`04-business-rules.md` §1.4).
+  - "Peso actual" is **read-only** on Profile in E2 (latest `body_measurements` row); weight editing arrives with US-15 (E4).
+- **Consequences:** the E2 epic Gherkin is updated (resume prefill, re-save without duplicates, onboarding saving with the default split, "Guardar" on Profile, read-only weight). The onboarding weight entry must be identifiable to update it (chosen in the T-035 plan, e.g. the user's earliest `manual` row). Profile's save writes `profiles` and `nutrition_goals` together, so the planner picks an order or an RPC that never leaves them inconsistent.
+- **Approval:** 2026-10-14, user (answers to the E2 breakdown questions Q1–Q4).
+
 ---
 
 ## 2. Findings from the review of the original documents

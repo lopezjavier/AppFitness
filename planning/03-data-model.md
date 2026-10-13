@@ -113,6 +113,8 @@ RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.u
 
 Index: `(user_id, measured_at desc)`.
 
+Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24).
+
 ### `health_sync_state` (US-16)
 `user_id` PK, `last_synced_at timestamptz`. (Per user, not per device: enough for Phase 1.)
 
