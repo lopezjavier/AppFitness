@@ -3,9 +3,12 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SegmentedSelectorTest {
@@ -45,4 +48,33 @@ class SegmentedSelectorTest {
         assertEquals(AppShapes.base, SegmentedSelectorDefaults.SegmentShape)
         assertEquals(Spacing.xs, SegmentedSelectorDefaults.TrackPadding)
     }
+
+    @Test
+    fun minLabelFontSize_isSmallestTypeToken() {
+        val t = appTypography(FontFamily.Default)
+        assertEquals(t.labelTechnical.fontSize, SegmentedSelectorDefaults.MinLabelFontSize)
+        assertEquals(11.sp, SegmentedSelectorDefaults.MinLabelFontSize)
+    }
+
+    private fun shared(fitsAtMost: TextUnit?) = SegmentedSelectorDefaults.sharedLabelSize(
+        maxSize = 14.sp,
+        minSize = SegmentedSelectorDefaults.MinLabelFontSize,
+        step = SegmentedSelectorDefaults.LabelSizeStep,
+        fits = { size -> fitsAtMost != null && size.value <= fitsAtMost.value },
+    )
+
+    @Test
+    fun sharedLabelSize_maxFits_returnsMax() = assertEquals(14.sp, shared(20.sp))
+
+    @Test
+    fun sharedLabelSize_shrinksToLargestFittingStep() = assertEquals(13.sp, shared(13.2.sp))
+
+    @Test
+    fun sharedLabelSize_minBoundary_returnsMin() = assertEquals(11.sp, shared(11.sp))
+
+    @Test
+    fun sharedLabelSize_noneFits_returnsNull() = assertNull(shared(10.sp))
+
+    @Test
+    fun sharedLabelSize_stepsInHalfSp() = assertEquals(12.5.sp, shared(12.7.sp))
 }
