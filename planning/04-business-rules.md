@@ -16,13 +16,15 @@ All these rules are implemented as pure functions in `shared/domain/usecase/` wi
 ### 1.3 Total daily energy expenditure (TDEE)
 `TDEE = round(BMR × factor)`
 
-| Level | UI label (Spanish) | Factor |
-|---|---|---|
-| sedentary | Sedentario (poco o ningún ejercicio) | 1.2 |
-| light | Ligero (1–3 días/sem) | 1.375 |
-| moderate | Moderado (3–5 días/sem) | 1.55 |
-| high | Alto (6–7 días/sem) | 1.725 |
-| very_high | Muy alto (2 sesiones/día o trabajo físico) | 1.9 |
+| Level | UI title (Spanish) | UI description (Spanish) | Factor |
+|---|---|---|---|
+| sedentary | Sedentario | Trabajo sentado y poco o ningún ejercicio | 1.2 |
+| light | Ligero | Ejercicio 1–3 días por semana, o trabajo sentado pero caminas a diario | 1.375 |
+| moderate | Moderado | Ejercicio 3–5 días por semana | 1.55 |
+| high | Alto | Ejercicio intenso 6–7 días por semana | 1.725 |
+| very_high | Muy alto | Entrenas dos veces al día o tienes un trabajo físico exigente | 1.9 |
+
+Each level is a selectable card showing the title and the description, so the user can tell the levels apart without guessing what counts. Below the cards, a hint: "Si dudas entre dos niveles, elige el más bajo" (people tend to overestimate their activity, and a lower factor errs on the side of the goal; user request 2026-10-14).
 
 Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 130 + 5 = 1729.5 → TDEE = round(2680.7) = **2681 kcal**.
 

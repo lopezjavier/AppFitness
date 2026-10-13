@@ -857,6 +857,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 - [ ] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3.
 - [ ] On save errors (offline, network) the values are kept and a retry is offered (02 §9); "Continuar" disabled while saving.
 - [ ] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
+- [ ] Activity step: each card shows the level title and its description from `04-business-rules.md` §1.3, plus the "Si dudas entre dos niveles, elige el más bajo" hint (user request 2026-10-14).
 - [ ] `WheelPicker`: tabular numerals, ≥ 48 dp targets, `contentDescription`/`stateDescription` with the selected value, catalog entry, `testTag`s.
 
 **Host tests (per scenario):** `OnboardingViewModelTest` (Completing onboarding → profile update + measurement insert with `manual`, navigation effect to goals; going back keeps the value; resume starts at step 1 prefilled; re-save updates the weight row instead of inserting; save failure keeps values); `OnboardingBoundsTest` (Range validation outline: 12 → age clamp to 14, 260 → 250, 15 → 20); `OnboardingScreenTest` (Robolectric: "3 / 5", "Atrás", picker semantics); `WheelPickerTest`.
