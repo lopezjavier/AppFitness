@@ -82,6 +82,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         item { ChipsSection() }
         item { SegmentedSection() }
         dataVizItems()
+        workoutInputItems()
     }
 }
 
