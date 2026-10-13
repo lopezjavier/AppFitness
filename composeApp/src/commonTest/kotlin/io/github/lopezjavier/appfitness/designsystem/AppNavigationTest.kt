@@ -60,4 +60,9 @@ class AppNavigationTest {
         assertEquals(64.dp, AppNavigationDefaults.ContentHeight)
         assertEquals(22.dp, AppNavigationDefaults.IconSize)
     }
+
+    @Test
+    fun railMinWidth_isTheM3ContainerWidth() {
+        assertEquals(80.dp, AppNavigationDefaults.RailMinWidth)
+    }
 }
