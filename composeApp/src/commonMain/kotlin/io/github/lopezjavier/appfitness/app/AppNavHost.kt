@@ -78,9 +78,12 @@ internal fun NavController.navigateToFullScreen(route: AppRoute) {
     navigate(route) { launchSingleTop = true }
 }
 
+/** The [AppDestinations.fullScreenRoutes] entry this destination is, or null for a tab destination. */
+internal fun NavDestination?.fullScreenRoute(): AppRoute? =
+    AppDestinations.fullScreenRoutes.firstOrNull { this?.hasRoute(it::class) == true }
+
 /** True when this destination is one of [AppDestinations.fullScreenRoutes]. */
-internal fun NavDestination?.isFullScreen(): Boolean =
-    AppDestinations.fullScreenRoutes.any { this?.hasRoute(it::class) == true }
+internal fun NavDestination?.isFullScreen(): Boolean = fullScreenRoute() != null
 
 /**
  * Back guard: only pop when the top entry is still the full-screen entry the top bar was drawn
@@ -98,7 +101,7 @@ internal fun NavController.popFullScreen(drawnEntry: NavBackStackEntry?) {
 /** Chrome of an entry's destination ([TopLevelTab.Start] tabs before the first entry exists). */
 internal fun NavBackStackEntry?.chrome(): ShellChrome {
     val destination = this?.destination
-    val fullScreen = AppDestinations.fullScreenRoutes.firstOrNull { destination?.hasRoute(it::class) == true }
+    val fullScreen = destination.fullScreenRoute()
     if (fullScreen != null) return fullScreen.chrome
     val tab =
         TopLevelTab.entries.firstOrNull { tab ->
