@@ -67,7 +67,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 
 ## Working rules (from the epic retrospectives in `retrospectives/`)
 
-- **Stay in your role.** The PM never edits or runs tests and never diagnoses CI logs: give the failed run ID to the developer; e2e flows go to qa-engineer; every commit and push (fix-ups too) goes through pr-creator. Agent `model:` lines are the user's decision; never change them.
+- **Stay in your role.** The PM runs only light commands: `git` status/log/branch/pull, `gh pr checks`/`merge`/`list`, and log appends (watch CI quietly: `gh pr checks <n> --watch >/dev/null; gh pr checks <n>`). Gradle (builds, tests, the delivery APK), Maestro, `npx supabase` and any long or verbose command go to a subagent, which returns a short result: in E1 the main session ran Gradle 29 times and Maestro 16 times, filling its context. The PM never edits tests and never diagnoses CI logs: give the failed run ID to the developer; e2e flows go to qa-engineer; every commit and push (fix-ups too) goes through pr-creator. Agent `model:` lines are the user's decision; never change them.
 - **Bounded QA.** Every QA brief names the exact flows, allows at most 2 attempts per flow and then a report (no open-ended stabilisation), and never two Maestro runs on the device at once. Per task: the task's flow + its area tags; catalog flows only at checkpoints (catalog UI is covered by host tests per task).
 - **Text files are UTF-8 with LF.** Scripted edits pass the encoding explicitly (e.g. Python `encoding="utf-8", newline=""`); nobody transcodes or "normalises" a file to commit it. CI guards: `scripts/check-text-encoding.sh`, `scripts/check-e2e-tags.sh`.
 - **A finding that repeats becomes a check.** When pr-reviewer reports the same kind of defect a second time, add a script or CI guard for it within the epic (like `check-design-tokens.sh`), instead of another prose rule.
@@ -97,7 +97,7 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 ## Epic closure
 
 1. All tasks merged, background QA finished, no open `qa` issues, and the full Maestro regression green.
-2. `./gradlew :androidApp:assembleProdDebug` → give the APK path and install commands to the user.
+2. A developer runs `./gradlew :androidApp:assembleProdDebug` and returns the APK path; the PM gives it to the user with the install commands.
 3. Log `[PM] [E#] [COMPLETED]` and wait for their feedback:
    - with changes → corrective tasks within the same epic;
    - approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`, then the retrospective with the user: write `retrospectives/E#.md` and turn durable lessons into rules here or in the agent files.
