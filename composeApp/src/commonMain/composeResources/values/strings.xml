@@ -125,4 +125,6 @@
     <string name="catalog_sheet_open">Abrir hoja</string>
     <string name="catalog_sheet_title">Hoja de ejemplo</string>
     <string name="catalog_sheet_close">Cerrar</string>
+    <string name="offline_banner_message">Sin conexión</string>
+    <string name="catalog_section_offline_banner">Banner sin conexión</string>
 </resources>
