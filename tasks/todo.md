@@ -647,15 +647,17 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 *Carry-over from T-025 (QA):* (14) Not verifiable on the emulator, so include in the a11y-check decision (or a logged TalkBack check on the phone): a `SetRow` field reads "Kilos, serie N" + value and never the ghost placeholder; the checkbox reads "Completar serie N" + checked state; the rest timer reads "Descanso: 1 min 12 s" and the seconds-only branch "Descanso: 30 s"; `Confirm`/`ToggleOff` haptics on a physical device; a completed (read-only) row opens no keyboard (Maestro cannot check it: `hideKeyboard` without a keyboard sends BACK).
 
+*Carry-over from T-025 (PR #25 re-review, non-blocking):* (15) `NumberInput.kt`: the internal state is written during composition right after it is read (extra recomposition); derive the shown value and assign state only in `onValueChange`. (16) `NumberInput` KDoc: `value` must be updated synchronously in `onValueChange` (a `StateFlow` + `collectAsState` caller gets a one-frame revert and the cursor jumps to the end on mid-text edits; matters for E3/E5). (17) `NumberInputTest.applyEdit_separatorThenDigit_givesZeroCommaDigit`: build the second input from the first result (type "5" at the cursor) instead of a hand-written value. (18) `NumberInput.kt`: put `clearAndSetSemantics {}` back on one line.
+
 **Description:** `EmptyState` and `ErrorState` (icon + message + action) in the catalog, plus an accessibility pass on every catalog component: touch targets ≥ 48 × 48 dp and a `contentDescription` on every actionable icon. Decide and document how touch targets are tested (Compose UI test on the JVM if it works with the pinned versions; otherwise Maestro bounds checks + UX review).
 
 **Acceptance criteria:**
-- [ ] Every component from `05-design-system.md` §6 is in the catalog except `UniversalFab`, `AppBottomSheet` (T-027) and `OfflineBanner` (T-029), which are added there.
-- [ ] Automated touch target / content description checks for the interactive catalog components, or a logged decision with the fallback.
+- [x] Every component from `05-design-system.md` §6 is in the catalog except `UniversalFab`, `AppBottomSheet` (T-027) and `OfflineBanner` (T-029), which are added there.
+- [x] Automated touch target / content description checks for the interactive catalog components, or a logged decision with the fallback.
 
 **Verification:**
-- [ ] Lint + unit tests (and UI tests if adopted) green.
-- [ ] QA: `tests/e2e/T-026.yaml`; full regression green.
+- [x] Lint + unit tests (and UI tests if adopted) green.
+- [x] QA: `tests/e2e/T-026.yaml`; full regression green.
 
 **Dependencies:** T-025
 **Files likely touched:** `…/designsystem/{EmptyState,ErrorState}.kt`, catalog screen, a11y tests, `tests/e2e/T-026.yaml`
@@ -665,6 +667,28 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 ### Checkpoint E1-D — Design system complete
 - [ ] US-03 scenarios green; catalog absent in `prodDebug`.
+- [ ] 👤 Manual check on the phone (`localDebug` catalog), things the emulator cannot verify: haptics when checking/unchecking a set; a short TalkBack pass (macro slider, kcal ring, set row field and checkbox, rest timer, "Reintentar"); a completed set row opens no keyboard.
+
+---
+
+## T-032: Maestro regression in GitHub Actions
+
+**Story:** E1 process (added 2026-10-13 at the user's request) · **Flow:** PM + backend-developer (CI) · **Order:** first task after Checkpoint E1-D, before T-027
+
+**Description:** A new GitHub Actions workflow runs the full Maestro regression on PRs that touch app code or `tests/e2e/`: an Android emulator on `ubuntu-latest` (KVM, `reactivecircus/android-emulator-runner`), local Supabase (`npx supabase start`), `:androidApp:installLocalDebug`, then `maestro test tests/e2e/` with screenshots and the Maestro debug output uploaded as artifacts. It is free on public-repo runners; no Maestro Cloud. QA's role shrinks to writing and updating flows, reviewing the screenshot artifacts (visual and font-scale checks) and debugging failures locally.
+
+**Acceptance criteria:**
+- [ ] New ADR (approved by the user) for e2e in CI; `planning/06-agent-workflow.md` (QA step), `CLAUDE.md` (flow step 5 and commands) and the qa-engineer agent instructions updated to match.
+- [ ] Workflow with path filters, caching (Gradle, AVD snapshot), a timeout, and the emulator API level documented (API 37 if the image is available on the runner, otherwise the closest available level and why).
+- [ ] The full regression (T-020…T-026) passes in CI 3 times in a row; any CI-only flakiness is fixed in the flows, not hidden by retries.
+- [ ] Decide with the user whether the job becomes a required check on `main` (a branch protection change).
+
+**Verification:**
+- [ ] `gh run list` shows 3 consecutive green e2e runs; artifacts contain the screenshots.
+
+**Dependencies:** T-026
+**Files likely touched:** `.github/workflows/e2e.yml`, `planning/00-decisions.md`, `planning/06-agent-workflow.md`, `CLAUDE.md`, `.claude/agents/qa-engineer.md`, `tests/e2e/*.yaml`
+**Estimated scope:** M
 
 ---
 
@@ -684,7 +708,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] Lint + unit tests green.
 - [ ] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
 
-**Dependencies:** T-026, T-031
+**Dependencies:** T-026, T-031, T-032
 **Files likely touched:** `…/designsystem/{UniversalFab,AppBottomSheet}.kt`, `…/app/{FabAction,AppScaffold}.kt`, test, strings, catalog, `tests/e2e/T-027.yaml`
 **Estimated scope:** M
 

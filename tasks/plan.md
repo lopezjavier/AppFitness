@@ -45,7 +45,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [x] T-023: Debug-only component catalog + buttons, card, chips and segmented selector
 - [x] T-024: Data visualization components (ring, macro bar/slider, metric tile, trend pill)
 - [x] T-025: Workout input components (number input, set checkbox, set row, rest timer)
-- [ ] T-026: Empty/error states and accessibility sweep of the catalog
+- [x] T-026: Empty/error states and accessibility sweep of the catalog
 
 ### Checkpoint E1-D: Design system complete
 - [ ] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro.
@@ -54,6 +54,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [ ] T-027: Contextual FAB with WIP bottom sheets
 - [ ] T-028: Adaptive layout with NavigationRail on tablets
 - [ ] T-029: Connectivity observer and "Sin conexión" banner
+- [ ] T-032: Maestro regression in GitHub Actions (added 2026-10-13 at the user's request; runs right after Checkpoint E1-D so the T-030 regression runs in CI)
 
 ### Checkpoint E1-E: Epic complete
 - [ ] T-030: E1 closure (regression, APK delivery, user feedback, tag `v0.1.0`)
@@ -77,7 +78,7 @@ T-015 ─► T-016 ─► T-017 ─┬─► T-018 ─► T-019 ─────�
 | Required check never reports on PRs that skip its paths → PR blocked | High | Always-run workflows with a `changes` job and job-level `if:` (ADR-20) |
 | Dependabot PRs fail `android-ci` because they have no secrets | Medium | Blank `BuildConfig` fallbacks; no step needs a secret to pass |
 | Library versions incompatible (Kotlin, Compose MP, AGP, Navigation, Koin, supabase-kt) | Medium | Pin the latest stable set in T-015 and check the Compose MP / Kotlin compatibility table; supabase-kt is only added when it is needed (E2), but its support for `sb_publishable_` keys is checked when it is pinned (ADR-17) |
-| Compose UI tests (touch targets) need Robolectric or an emulator | Medium | T-026 decides the mechanism in its plan (`runComposeUiTest` on the JVM if it works with the pinned versions; otherwise Maestro + UX review), and logs the choice |
+| Compose UI tests (touch targets) need Robolectric or an emulator | Medium | T-026 decides the mechanism in its plan (`runComposeUiTest` on the JVM if it works with the pinned versions; otherwise Maestro + UX review), and logs the choice. **Resolved in T-026:** spike adopted, Robolectric + Compose UI tests on the JVM (`androidHostTest`), run by `testLocalDebugUnitTest` |
 | Seed `auth.users` insert breaks with a CLI upgrade | Low | Seed covered by a pgTAP test in T-018; CLI pinned (`package.json`) |
 | `supabase test db` fails with no tests on an empty branch | Low | T-018 adds the CI together with the first pgTAP tests |
 | Maestro cannot toggle connectivity on the emulator | Low | Use Maestro's airplane mode commands; if unreliable, cover the banner state with a ViewModel test and check it by hand (logged in T-029) |
