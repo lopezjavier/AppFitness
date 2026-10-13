@@ -666,8 +666,8 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 ---
 
 ### Checkpoint E1-D — Design system complete
-- [ ] US-03 scenarios green; catalog absent in `prodDebug`.
-- [ ] 👤 Manual check on the phone (`localDebug` catalog), things the emulator cannot verify: haptics when checking/unchecking a set; a short TalkBack pass (macro slider, kcal ring, set row field and checkbox, rest timer, "Reintentar"); a completed set row opens no keyboard.
+- [x] US-03 scenarios green; catalog absent in `prodDebug`. (approved by the user 2026-10-13)
+- [x] 👤 Manual check on the phone (`localDebug` catalog), things the emulator cannot verify: haptics when checking/unchecking a set; a short TalkBack pass (macro slider, kcal ring, set row field and checkbox, rest timer, "Reintentar"); a completed set row opens no keyboard. (approved by the user 2026-10-13)
 
 ---
 

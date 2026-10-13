@@ -48,7 +48,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [x] T-026: Empty/error states and accessibility sweep of the catalog
 
 ### Checkpoint E1-D: Design system complete
-- [ ] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro.
+- [x] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro. (approved by the user 2026-10-13)
 
 ### Phase 5: Shell completion (US-04) — UI flow
 - [ ] T-027: Contextual FAB with WIP bottom sheets
