@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -64,6 +65,7 @@ internal fun AppScaffold(
         bottomBar = {
             if (chrome is ShellChrome.Tabs) {
                 AppNavigation(
+                    modifier = Modifier.testTag("nav_bar"),
                     items = items,
                     selectedIndex = chrome.tab.ordinal,
                     onItemSelect = { navController.navigateToTab(TopLevelTab.entries[it]) },
