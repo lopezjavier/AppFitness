@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.catalog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_nav_rail_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_navigation
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_skeleton
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_top_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_wip
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
+import io.github.lopezjavier.appfitness.composeapp.resources.fab_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
@@ -38,16 +41,19 @@ import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNavigation
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationItem
+import io.github.lopezjavier.appfitness.designsystem.AppNavigationType
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.UniversalFab
 import io.github.lopezjavier.appfitness.designsystem.WipPlaceholder
 import org.jetbrains.compose.resources.stringResource
 
 private val WipSampleHeight: Dp = Spacing.lg * 20
+private val RailSampleHeight: Dp = Spacing.xl * 15
 private val SkeletonSampleHeight: Dp = Spacing.xl * 4
 private const val NAV_DEFAULT_INDEX = 0
 
@@ -96,6 +102,7 @@ private fun TopBarSection() {
 private fun NavigationSection() {
     var selected by rememberSaveable { mutableIntStateOf(NAV_DEFAULT_INDEX) }
     val items = remember { NavigationSampleItems }
+    val railItems = remember { RailSampleItems }
     CatalogSection(stringResource(Res.string.catalog_section_navigation), "catalog_section_navigation") {
         AppNavigation(
             items = items,
@@ -104,6 +111,29 @@ private fun NavigationSection() {
             modifier = Modifier.testTag("catalog_nav_bar"),
             windowInsets = WindowInsets(0),
         )
+        Text(
+            text = stringResource(Res.string.catalog_nav_rail_caption),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textSecondary,
+        )
+        // Fixed height: the rail fills the height it is given, and it wraps its width.
+        Row {
+            AppNavigation(
+                items = railItems,
+                selectedIndex = selected,
+                onItemSelect = { selected = it },
+                modifier = Modifier.testTag("catalog_nav_rail").height(RailSampleHeight),
+                type = AppNavigationType.Rail,
+                windowInsets = WindowInsets(0),
+                header = {
+                    UniversalFab(
+                        text = stringResource(Res.string.fab_label),
+                        onClick = {},
+                        modifier = Modifier.testTag("catalog_rail_fab"),
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -117,6 +147,18 @@ private val NavigationSampleItems =
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_nav_tab_workout"),
         AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "catalog_nav_tab_progress"),
+    )
+
+private val RailSampleItems =
+    listOf(
+        AppNavigationItem(
+            Res.string.nav_diary,
+            Res.drawable.ic_nav_diary,
+            "catalog_rail_tab_diary",
+            Res.drawable.ic_nav_diary_filled,
+        ),
+        AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_rail_tab_workout"),
+        AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "catalog_rail_tab_progress"),
     )
 
 @Composable
