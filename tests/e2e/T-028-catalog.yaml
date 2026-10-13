@@ -1,0 +1,40 @@
+# T-028 Catalog: NavigationRail sample in the navigation section (US-03).
+# Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD, animations off.
+# Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-028-catalog.yaml
+appId: io.github.lopezjavier.appfitness.local
+tags:
+  - catalog
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "topbar_avatar"
+- tapOn:
+    id: "profile_catalog_button"
+- assertVisible:
+    id: "catalog_screen"
+- scrollUntilVisible:
+    element:
+      id: "catalog_nav_rail"
+    direction: DOWN
+    speed: 60
+    visibilityPercentage: 100
+    timeout: 120000
+- assertVisible:
+    id: "catalog_rail_fab"
+# The rail sample is tall: bring its last item fully on screen.
+- scrollUntilVisible:
+    element:
+      id: "catalog_rail_tab_progress"
+    direction: DOWN
+    speed: 30
+- tapOn:
+    id: "catalog_rail_tab_progress"
+- assertVisible:
+    id: "catalog_rail_tab_progress"
+    selected: true
+# The bar sample shares the selection.
+- assertVisible:
+    id: "catalog_nav_tab_progress"
+    selected: true
+- takeScreenshot: T-028_catalog_rail
