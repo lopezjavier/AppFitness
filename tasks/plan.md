@@ -55,6 +55,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [ ] T-028: Adaptive layout with NavigationRail on tablets
 - [ ] T-029: Connectivity observer and "Sin conexión" banner
 - [ ] T-032: Maestro regression in GitHub Actions (added 2026-10-13 at the user's request; runs right after Checkpoint E1-D so the T-030 regression runs in CI)
+- [ ] T-033: Catalog deep links for shorter e2e flows (added 2026-10-13 at the user's request; after T-032)
 
 ### Checkpoint E1-E: Epic complete
 - [ ] T-030: E1 closure (regression, APK delivery, user feedback, tag `v0.1.0`)

@@ -682,6 +682,8 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] Workflow with path filters, caching (Gradle, AVD snapshot), a timeout, and the emulator API level documented (API 37 if the image is available on the runner, otherwise the closest available level and why).
 - [ ] The full regression (T-020…T-026) passes in CI 3 times in a row; any CI-only flakiness is fixed in the flows, not hidden by retries.
 - [ ] Decide with the user whether the job becomes a required check on `main` (a branch protection change).
+- [ ] Fast by design (user request, 2026-10-13): no Supabase in the job until E2 brings login flows (E1 flows don't use the backend); flows sharded across 2–3 parallel matrix jobs, each with its own emulator (target wall time ≈ 6–8 min); AVD snapshot + Gradle caching; path filters skip PRs that only touch docs or `tasks/`.
+- [ ] QA's role shrinks: run the task's own flow and review the screenshot artifacts; CI owns the full regression, running in parallel with pr-reviewer.
 
 **Verification:**
 - [ ] `gh run list` shows 3 consecutive green e2e runs; artifacts contain the screenshots.
@@ -689,6 +691,25 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Dependencies:** T-026
 **Files likely touched:** `.github/workflows/e2e.yml`, `planning/00-decisions.md`, `planning/06-agent-workflow.md`, `CLAUDE.md`, `.claude/agents/qa-engineer.md`, `tests/e2e/*.yaml`
 **Estimated scope:** M
+
+---
+
+## T-033: Catalog deep links for shorter e2e flows
+
+**Story:** US-03 (debug catalog) · **Flow:** UI · **Order:** right after T-032 (user request, 2026-10-13)
+
+**Description:** A debug-only way to open the component catalog at one section (a route argument / deep link, or one screen per category), so e2e flows no longer scroll the whole catalog. Then shorten the T-023…T-026 flows, which are the slowest (2–3 min each) and the flakiest because of long scrolls.
+
+**Acceptance criteria:**
+- [ ] The section entry point exists only in `localDebug` (ADR-19 gating unchanged; `CatalogAvailabilityTest` still green) and has unit tests.
+- [ ] T-023…T-026 flows open their sections directly; same assertions as before, no coverage lost.
+
+**Verification:**
+- [ ] Lint + unit tests green; the full regression is green and faster than before (timings in the PR).
+
+**Dependencies:** T-032
+**Files likely touched:** `…/app/{AppRoutes,AppNavHost}.kt`, `…/feature/catalog/*`, `androidApp` (deep link, if used), `tests/e2e/T-023…T-026.yaml`
+**Estimated scope:** S
 
 ---
 
@@ -708,7 +729,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] Lint + unit tests green.
 - [ ] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
 
-**Dependencies:** T-026, T-031, T-032
+**Dependencies:** T-026, T-031, T-032, T-033
 **Files likely touched:** `…/designsystem/{UniversalFab,AppBottomSheet}.kt`, `…/app/{FabAction,AppScaffold}.kt`, test, strings, catalog, `tests/e2e/T-027.yaml`
 **Estimated scope:** M
 
