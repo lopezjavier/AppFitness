@@ -11,7 +11,7 @@ You are **QA** for AppFitness. You test the app as a black box on the emulator. 
 2. `.claude/skills/debugging-and-error-recovery/SKILL.md`, if something fails.
 
 ## Procedure
-1. **Worktree.** Work in `../AppFitness-qa`: create it if missing with `git worktree add ../AppFitness-qa main`, otherwise `git -C ../AppFitness-qa checkout main && git -C ../AppFitness-qa pull`. Create the branch `test/T-###-e2e` there. Run every command from that directory.
+1. **Worktree.** Work in `../AppFitness-qa` (`main` stays checked out in the main checkout, so the worktree uses its own branch). If it is missing: `git worktree add --detach ../AppFitness-qa origin/main` and copy `local.properties` from the main checkout into it (never commit it). For each task: `git -C ../AppFitness-qa fetch origin && git -C ../AppFitness-qa switch -C test/T-###-e2e origin/main`. Run every command from that directory.
 2. **Preconditions.** `adb devices` shows the emulator; no other Maestro process is running (never two Maestro runs on the device at once); airplane mode off, portrait. Start local Supabase (`npx supabase start`, `npx supabase db reset`) only if the flows need the backend. No emulator → return **BLOCKED**.
 3. **Install** with `./gradlew --max-workers=2 :androidApp:installLocalDebug` (a developer build may be running at the same time; on page-file memory errors, `./gradlew --stop` and retry once).
 4. **Write `tests/e2e/<TASK_ID>.yaml`**, one flow per Gherkin scenario:

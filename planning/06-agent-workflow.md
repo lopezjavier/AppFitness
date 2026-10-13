@@ -36,6 +36,8 @@ Supersedes the original orchestrator and workflow documents (kept outside the re
 ```
 Checkpoints and epic closure wait for every background QA run, no open `qa` issue (unless the user defers it) and a green full regression.
 
+pr-reviewer is skipped for PRs that only touch docs or task files; it always runs when code, tests, CI or scripts change.
+
 ### 2.2 Infrastructure / backend task without UI
 ```
 [PM] start (same) → planner → backend-developer (pgTAP / deno test / local CI)
@@ -53,8 +55,8 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 ```
 [YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message / artifact>
 ```
-- `AGENT`: PM, PLANNER, UX, DEV_FE, DEV_BE, QA, PR_CREATOR, PR_REVIEWER.
-- `STATUS`: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED.
+- `AGENT`: PM, EPIC_PLANNER, PLANNER, UX, DEV_FE, DEV_BE, QA, PR_CREATOR, PR_REVIEWER.
+- `STATUS`: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED. QA's `ISSUES` reply is logged as `REJECTED` with the issue numbers.
 - Example:
 ```
 [2026-10-20 10:02:10] [PM] [T-014] [STARTED] Branch feature/T-014-kmp-project created from main

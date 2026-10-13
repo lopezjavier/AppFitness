@@ -43,7 +43,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 4. **frontend-developer** and/or **backend-developer** → TDD until green (in parallel if decoupled). UI scenarios get host (Robolectric) tests.
 5. **[PM]** marks the task as done in `tasks/todo.md` **on the branch** (`main` is protected: nothing can be committed to it after the merge).
 6. **pr-creator** → commits + push + `gh pr create`.
-7. **pr-reviewer** → `gh pr review --comment` with a verdict (it cannot approve your own PR). On `CHANGES REQUIRED`, go back to step 4.
+7. **pr-reviewer** → `gh pr review --comment` with a verdict (it cannot approve your own PR). On `CHANGES REQUIRED`, go back to step 4. Skipped for PRs that only touch docs or task files; always run when code, tests, CI or scripts change.
 8. **[PM]** `gh pr checks --watch` green → `gh pr merge --squash --delete-branch` → `git checkout main && git pull` → `COMPLETED`.
 9. **qa-engineer** (UI tasks only), **in the background** while the next task starts: in the worktree `../AppFitness-qa` on the merged `main`, it writes and runs `tests/e2e/T-###.yaml` + the scoped regression. App bugs → a GitHub issue labelled `qa` (never a change to the open PR). The flow lands through pr-creator in a `test(T-###)` PR from that worktree (text-only: CI skips the build).
 
