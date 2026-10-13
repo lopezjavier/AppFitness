@@ -31,7 +31,7 @@ onFlowComplete:
     visible:
       id: "offline_banner"
     timeout: 10000
-- assertVisible: "Sin conexiÃ³n"
+- assertVisible: "Sin conexión"
 - takeScreenshot: T-029_offline_diary
 # Still shown on Perfil.
 - tapOn:
