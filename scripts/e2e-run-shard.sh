@@ -14,6 +14,20 @@ fi
 apk=$1
 shift
 
+# CI only. Android 16+ system images (API 36 and 37, any GPU mode) abort surfaceflinger in
+# mapper.ranchu.so ("Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma") on the
+# RegionSamplingThread, which the gesture navigation bar triggers. Every abort restarts
+# system_server mid-run ("Can't find service: package", run 38410778915). The 3-button navigation
+# bar does not register that listener, so switch to it. Local AVDs are left untouched.
+if [ -n "${CI:-}" ]; then
+  for _ in $(seq 1 30); do
+    adb shell cmd overlay enable com.android.internal.systemui.navbar.threebutton >/dev/null 2>&1 &&
+      adb shell cmd overlay disable com.android.internal.systemui.navbar.gestural >/dev/null 2>&1 && break
+    sleep 2
+  done
+  sleep 10 # let a framework restart that was already in flight settle
+fi
+
 adb install -r "$apk" || { echo "ERROR: adb install failed" >&2; exit 1; }
 
 # Flows require animations off (also done by emulator-runner in CI; this keeps local runs self-sufficient).
