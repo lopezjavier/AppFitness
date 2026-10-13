@@ -102,6 +102,10 @@ object SegmentedSelectorDefaults {
  * [SegmentedSelectorDefaults.MinLabelFontSize] labels wrap to two lines (hyphenated on API 33+) and the segments
  * grow together; a label is never clipped. [selectedIndex] must be valid for [options]; tapping the active
  * segment does not call [onSelect].
+ *
+ * Restriction: the control is built on `BoxWithConstraints` (it needs the available width to pick the label
+ * size), which does not support intrinsic measurements. Do not place it inside a parent that queries
+ * intrinsic sizes (for example `IntrinsicSize.Min/Max` containers); give it a bounded width instead.
  */
 @Composable
 fun SegmentedSelector(
