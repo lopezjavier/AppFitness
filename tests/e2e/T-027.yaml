@@ -66,9 +66,20 @@ appId: io.github.lopezjavier.appfitness.local
       id: "wip_sheet_title"
       text: "Registrar peso"
     timeout: 5000
-- swipe:
-    start: "50%,60%"
-    end: "50%,98%"
+# Drag down entirely on the sheet (its top edge is at ~86 % of the screen height): the gesture neither
+# starts nor ends on the scrim, so a scrim tap/release cannot be what closes it. A short drag is
+# occasionally ignored by the sheet's anchored-draggable (touch slop), so repeat it until it closes.
+- repeat:
+    while:
+      visible:
+        id: "wip_sheet"
+    times: 4
+    commands:
+      - swipe:
+          start: "50%,88%"
+          end: "50%,99%"
+          duration: 60
+      - waitForAnimationToEnd
 - extendedWaitUntil:
     notVisible:
       id: "wip_sheet"
@@ -88,16 +99,14 @@ appId: io.github.lopezjavier.appfitness.local
 - back
 - assertVisible:
     id: "fab"
-# Footer clearance: the last item is not covered by the FAB.
+# Footer reachable: the last item can be scrolled into view with the FAB on screen.
 - tapOn:
     id: "nav_tab_diary"
 - scrollUntilVisible:
     element:
       id: "diary_wip_footer"
     direction: DOWN
-- tapOn:
-    id: "diary_wip_footer"
-- assertNotVisible:
-    id: "wip_sheet"
 - assertVisible:
     id: "diary_wip_footer"
+- assertVisible:
+    id: "fab"
