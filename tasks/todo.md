@@ -697,7 +697,9 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 ---
 
-## T-033: Catalog deep links for shorter e2e flows
+## T-033: Catalog deep links for shorter e2e flows — DROPPED (2026-10-13)
+
+> **Dropped at the user's request.** With T-032 dropped, the main reason (CI wall time) is gone, and a debug-only deep-link route adds app code without user value. Instead, the four catalog flows (T-023…T-026) carry the Maestro tag `catalog` and are left out of the per-task regression unless the task touches the design system or the catalog. They still run in the full regression at epic closure.
 
 **Story:** US-03 (debug catalog) · **Flow:** UI · **Order:** next (user request, 2026-10-13; it was planned after T-032, which was dropped, and still shortens the local regression)
 
@@ -732,7 +734,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] Lint + unit tests green.
 - [ ] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
 
-**Dependencies:** T-026, T-031, T-033
+**Dependencies:** T-026, T-031
 **Files likely touched:** `…/designsystem/{UniversalFab,AppBottomSheet}.kt`, `…/app/{FabAction,AppScaffold}.kt`, test, strings, catalog, `tests/e2e/T-027.yaml`
 **Estimated scope:** M
 

@@ -76,7 +76,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
-| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · regression: same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
+| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · per-task regression: same with `--exclude-tags=catalog tests/e2e/` (drop the flag when the task touches `designsystem/` or the catalog) · full regression (epic closure): same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI and merge | `gh pr checks --watch` · `gh pr merge --squash --delete-branch` |
 
