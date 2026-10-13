@@ -74,8 +74,8 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | Edge Function tests | `deno test --allow-all supabase/functions` |
 | Serve functions locally | `npx supabase functions serve --env-file supabase/.env.local` |
 | E2E for a task | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` (screenshots land in the gitignored `tests/e2e/screenshots/<timestamp>/`) |
-| Per-task E2E regression | `maestro test --exclude-tags=catalog --test-output-dir tests/e2e/screenshots tests/e2e/` — the component-catalog flows (T-023…T-026, tag `catalog`, about 7 of the ~9.5 min) are skipped unless the task touches `designsystem/` or the catalog |
-| Full E2E regression (epic closure, design-system tasks) | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/` |
+| Scoped E2E regression (per task) | `maestro test --include-tags=<areas> --test-output-dir tests/e2e/screenshots tests/e2e/` — `<areas>` (comma-separated) comes from the plan's **E2E scope**: the area tags of the flows the task can affect. Every flow carries at least one area tag in its header: `shell` (navigation, top bar, FAB, sheets), `catalog` (debug component catalog); new features add their own (`diary`, `workout`, `progress`, …) |
+| Full E2E regression (every 👤 checkpoint and epic closure) | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/` |
 | View hierarchy | `maestro hierarchy` |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI status | `gh pr checks --watch` |

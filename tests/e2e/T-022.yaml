@@ -8,6 +8,8 @@
 # Manual check: launch screenshot has the title in Jakarta 20 sp, avatar circle on the right, hairline
 # under the bar, nothing under the status bar; T-022_profile has a back arrow, no avatar and no bottom bar.
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - shell
 ---
 - launchApp:
     clearState: true
