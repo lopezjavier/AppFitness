@@ -39,10 +39,8 @@ class AndroidConnectivityObserver(context: Context) : ConnectivityObserver {
                 try {
                     manager.registerDefaultNetworkCallback(callback)
                     true
-                } catch (_: SecurityException) {
-                    false
                 } catch (_: RuntimeException) {
-                    // Documented: too many registered callbacks.
+                    // Includes SecurityException and the documented "too many registered callbacks" failure.
                     false
                 }
             if (registered) {
