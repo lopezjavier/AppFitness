@@ -142,7 +142,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ env.API_LEVEL }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}-v1
+          key: avd-${{ env.API_LEVEL }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}-6g-v2
       # Cache miss only. Shards race on a miss: the first save wins, the others log a harmless
       # "cache already exists".
       - name: Generate AVD snapshot
@@ -153,6 +153,8 @@ jobs:
           target: ${{ env.AVD_TARGET }}
           arch: ${{ env.AVD_ARCH }}
           profile: ${{ env.AVD_PROFILE }}
+          # Default data partition is too small: `adb install` failed with "not enough space".
+          disk-size: 6000M
           force-avd-creation: false
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -165,6 +167,7 @@ jobs:
           arch: ${{ env.AVD_ARCH }}
           profile: ${{ env.AVD_PROFILE }}
           cores: 4
+          disk-size: 6000M # only applies when the AVD is created; kept in sync with the snapshot step
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
