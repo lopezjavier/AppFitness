@@ -29,6 +29,11 @@ kotlinx-datetime = "0.8.0"
 # FAILED) and the shell runs on the emulator.
 navigation-compose = "2.9.2"
 junit = "4.13.2"
+# Compose UI semantics/touch-target tests on the JVM (T-026 spike). ui-test-junit4/manifest follow the
+# androidx compose ui version that androidRuntimeClasspath resolves (1.12.1). Robolectric tests pin an
+# SDK level via robolectric.properties when the latest stable does not support compileSdk yet.
+robolectric = "4.17"
+androidx-compose-ui-test = "1.12.1"
 
 # Lint (T-016). Stable releases only.
 ktlint-gradle = "14.2.0"
@@ -67,6 +72,11 @@ navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-co
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
+
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-compose-ui-test = { module = "androidx.compose.ui:ui-test", version.ref = "androidx-compose-ui-test" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-compose-ui-test" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-compose-ui-test" }
 
 compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref = "compose-rules" }
 
