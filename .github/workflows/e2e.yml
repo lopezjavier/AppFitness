@@ -26,10 +26,12 @@ env:
   #   1. 37 google_apis x86_64 (matches compileSdk/targetSdk 37, ADR-21)
   #   2. 37 default x86_64 (no Google services; no E1 flow needs them)
   #   3. 36 google_apis x86_64 (newest image with a long CI track record; the app runs on it)
-  # The package id may carry a minor version (system-images;android-37.0;google_apis;x86_64):
-  # use whichever api-level string the pinned emulator-runner accepts.
+  # Recent SDK packages carry a minor version: `37` fails ("Failed to find package
+  # 'platforms;android-37'"). Verified in the Google SDK repository XML (2026-10-13):
+  # platforms;android-37.0 and system-images;android-37.0;google_apis;x86_64 exist, and
+  # emulator-runner builds both ids as android-${api-level}, so api-level is `37.0`.
   # AVD_PROFILE falls back to pixel_6 if `avdmanager list device` on the runner lacks medium_phone.
-  API_LEVEL: '37'
+  API_LEVEL: '37.0'
   AVD_TARGET: google_apis
   AVD_ARCH: x86_64
   AVD_PROFILE: medium_phone
