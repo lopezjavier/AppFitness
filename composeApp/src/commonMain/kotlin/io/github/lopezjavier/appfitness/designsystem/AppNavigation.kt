@@ -78,7 +78,8 @@ object AppNavigationDefaults {
 
     /** Total bar height: [ContentHeight] plus the system navigation inset. */
     @Composable
-    fun barHeight(): Dp = ContentHeight + windowInsets.asPaddingValues().calculateBottomPadding()
+    fun barHeight(insets: WindowInsets = windowInsets): Dp =
+        ContentHeight + insets.asPaddingValues().calculateBottomPadding()
 
     fun colors(appColors: AppColors): AppNavigationColors = AppNavigationColors(
         selected = appColors.neonLime,
@@ -101,6 +102,8 @@ object AppNavigationDefaults {
  * @param items destinations in display order.
  * @param selectedIndex index into [items] of the active destination.
  * @param onItemSelect called with the index of the tapped destination.
+ * @param windowInsets insets the bar pads for; pass `WindowInsets(0)` when it is embedded mid-screen.
+ *   The caller tags the bar itself through [modifier] (the shell uses `nav_bar`).
  */
 @Composable
 fun AppNavigation(
@@ -108,14 +111,14 @@ fun AppNavigation(
     selectedIndex: Int,
     onItemSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    windowInsets: WindowInsets = AppNavigationDefaults.windowInsets,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
-    val barHeight = AppNavigationDefaults.barHeight()
+    val barHeight = AppNavigationDefaults.barHeight(windowInsets)
     NavigationBar(
         modifier =
         modifier
             .height(barHeight)
-            .testTag("nav_bar")
             .drawWithContent {
                 drawContent()
                 val y = AppBorder.thin.toPx() / 2
@@ -123,7 +126,7 @@ fun AppNavigation(
             },
         containerColor = AppTheme.colors.surfaceBase,
         tonalElevation = 0.dp,
-        windowInsets = AppNavigationDefaults.windowInsets,
+        windowInsets = windowInsets,
     ) {
         items.forEachIndexed { index, item ->
             AppNavigationBarItem(item, selected = index == selectedIndex, onClick = { onItemSelect(index) })

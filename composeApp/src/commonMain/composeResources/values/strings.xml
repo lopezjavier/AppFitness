@@ -98,4 +98,21 @@
     <string name="catalog_rest_start">Iniciar descanso</string>
     <string name="catalog_set_previous_1">80 kg × 10</string>
     <string name="catalog_set_previous_2">85 kg × 8</string>
+    <string name="state_retry">Reintentar</string>
+    <string name="catalog_section_state_messages">Estados vacío y error</string>
+    <string name="catalog_empty_title">Sin alimentos hoy</string>
+    <string name="catalog_empty_message">Añade tu primer alimento para empezar a contar calorías.</string>
+    <string name="catalog_empty_action">Añadir alimento</string>
+    <string name="catalog_empty_plain_message">Todavía no hay datos para este periodo.</string>
+    <string name="catalog_error_title">No se pudo cargar</string>
+    <string name="catalog_error_message">Comprueba tu conexión e inténtalo de nuevo.</string>
+    <string name="catalog_state_action_count">Acciones pulsadas: %1$s</string>
+    <string name="catalog_section_top_bar">Barra superior</string>
+    <string name="catalog_section_navigation">Navegación</string>
+    <string name="catalog_section_skeleton">Esqueleto de carga</string>
+    <string name="catalog_section_wip">Pantalla en construcción</string>
+    <string name="catalog_section_theme">Tema</string>
+    <string name="catalog_theme_colors">Colores</string>
+    <string name="catalog_theme_typography">Tipografía</string>
+    <string name="catalog_topbar_count">Pulsaciones: %1$s</string>
 </resources>

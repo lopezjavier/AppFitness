@@ -74,15 +74,16 @@ internal fun LazyListScope.dataVizItems() {
     item { TrendPillsSection() }
 }
 
+private val RingStates =
+    listOf(
+        Triple(Res.string.catalog_ring_empty, 0, "catalog_ring_empty"),
+        Triple(Res.string.catalog_ring_normal, RING_NORMAL_KCAL, "catalog_ring_normal"),
+        Triple(Res.string.catalog_ring_full, DEMO_TARGET_KCAL, "catalog_ring_full"),
+        Triple(Res.string.catalog_ring_over, RING_OVER_KCAL, "catalog_ring_over"),
+    )
+
 @Composable
 private fun RingSection() {
-    val states =
-        listOf(
-            Triple(Res.string.catalog_ring_empty, 0, "catalog_ring_empty"),
-            Triple(Res.string.catalog_ring_normal, RING_NORMAL_KCAL, "catalog_ring_normal"),
-            Triple(Res.string.catalog_ring_full, DEMO_TARGET_KCAL, "catalog_ring_full"),
-            Triple(Res.string.catalog_ring_over, RING_OVER_KCAL, "catalog_ring_over"),
-        )
     CatalogSection(stringResource(Res.string.catalog_section_ring), "catalog_section_ring") {
         AppCard(Modifier.fillMaxWidth()) {
             Column(
@@ -90,7 +91,7 @@ private fun RingSection() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                states.forEach { (caption, consumed, tag) ->
+                RingStates.forEach { (caption, consumed, tag) ->
                     VariantCaption(stringResource(caption))
                     ProgressRing(consumed, DEMO_TARGET_KCAL, Modifier.testTag(tag))
                 }

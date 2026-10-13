@@ -47,7 +47,7 @@ data class MacroBarText(val consumed: String, val target: String, val percent: S
 /** Geometry and pure logic of [MacroProgressBar] (04 §2). */
 object MacroProgressBarDefaults {
     val BarHeight: Dp = 8.dp
-    val DotSize: Dp = 10.dp
+    val DotSize: Dp = Spacing.sm
     val Shape = AppShapes.full
     private const val PERCENT = 100L
 
@@ -65,8 +65,9 @@ object MacroProgressBarDefaults {
         return (consumedGrams.toFloat() / targetGrams).coerceIn(0f, 1f)
     }
 
+    /** A negative consumed value is shown as 0 (like the percent and the fill). */
     fun text(consumedGrams: Int, targetGrams: Int): MacroBarText = MacroBarText(
-        consumed = "${AppNumberFormat.integer(consumedGrams)} g",
+        consumed = "${AppNumberFormat.integer(consumedGrams.coerceAtLeast(0))} g",
         target = "${AppNumberFormat.integer(targetGrams)} g",
         percent = "${AppNumberFormat.integer(percent(consumedGrams, targetGrams))} %",
     )
@@ -98,7 +99,7 @@ fun MacroProgressBar(
     val stateText =
         stringResource(
             Res.string.macro_bar_state,
-            AppNumberFormat.integer(consumedGrams),
+            AppNumberFormat.integer(consumedGrams.coerceAtLeast(0)),
             AppNumberFormat.integer(targetGrams),
             AppNumberFormat.integer(MacroProgressBarDefaults.percent(consumedGrams, targetGrams)),
         )

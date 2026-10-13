@@ -124,9 +124,16 @@ class NumberInputTest {
     @Test
     fun applyEdit_separatorThenDigit_givesZeroCommaDigit() {
         val afterSeparator = edit(",", 1)!!
-        // The user types "5" at the cursor, which sits after "0,".
-        val typed = TextFieldValue("0,5", TextRange(3))
         assertEquals(2, afterSeparator.selection.end)
+        // The user types "5" at the cursor, which sits after "0,".
+        val at = afterSeparator.selection.end
+        val typed =
+            TextFieldValue(
+                afterSeparator.text.substring(0, at) + "5" + afterSeparator.text.substring(at),
+                TextRange(at + 1),
+            )
+        assertEquals("0,5", typed.text)
+        assertEquals(3, typed.selection.end)
         assertEquals(typed, NumberInputDefaults.applyEdit(typed, 2, 4))
     }
 

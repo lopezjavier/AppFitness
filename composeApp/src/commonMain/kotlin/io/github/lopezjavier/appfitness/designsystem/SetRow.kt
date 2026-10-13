@@ -78,7 +78,7 @@ object SetRowDefaults {
     fun previousText(previous: String?): String = if (previous.isNullOrBlank()) NO_PREVIOUS else previous
 
     /** "catalog_set_row_2" and "weight" give "catalog_set_row_2_weight"; no prefix gives no tag. */
-    fun childTag(prefix: String?, part: String): String? = prefix?.let { "${it}_$part" }
+    fun childTag(prefix: String?, part: String): String? = childTestTag(prefix, part)
 
     /** Container and content colour of the index badge. */
     fun indexColors(appColors: AppColors): Pair<Color, Color> = appColors.surfaceOverlay to appColors.textSecondary

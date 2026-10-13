@@ -83,6 +83,9 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         item { SegmentedSection() }
         dataVizItems()
         workoutInputItems()
+        stateMessageItems()
+        shellItems()
+        themeItems()
     }
 }
 
@@ -169,29 +172,24 @@ internal fun VariantCaption(text: String) {
 @Composable
 private fun ChipsSection() {
     var selected by rememberSaveable { mutableIntStateOf(DEFAULT_TIMEFRAME_INDEX) }
+    val labels = listOf(
+        stringResource(Res.string.timeframe_1w),
+        stringResource(Res.string.timeframe_1m),
+        stringResource(Res.string.timeframe_3m),
+        stringResource(Res.string.timeframe_1y),
+    )
+    val descriptions = listOf(
+        stringResource(Res.string.timeframe_1w_desc),
+        stringResource(Res.string.timeframe_1m_desc),
+        stringResource(Res.string.timeframe_3m_desc),
+        stringResource(Res.string.timeframe_1y_desc),
+    )
     val options =
-        listOf(
-            AppOption(
-                stringResource(Res.string.timeframe_1w),
-                "catalog_chip_1w",
-                stringResource(Res.string.timeframe_1w_desc),
-            ),
-            AppOption(
-                stringResource(Res.string.timeframe_1m),
-                "catalog_chip_1m",
-                stringResource(Res.string.timeframe_1m_desc),
-            ),
-            AppOption(
-                stringResource(Res.string.timeframe_3m),
-                "catalog_chip_3m",
-                stringResource(Res.string.timeframe_3m_desc),
-            ),
-            AppOption(
-                stringResource(Res.string.timeframe_1y),
-                "catalog_chip_1y",
-                stringResource(Res.string.timeframe_1y_desc),
-            ),
-        )
+        remember(labels, descriptions) {
+            listOf("1w", "1m", "3m", "1y").mapIndexed { index, key ->
+                AppOption(labels[index], "catalog_chip_$key", descriptions[index])
+            }
+        }
     CatalogSection(stringResource(Res.string.catalog_section_chips), "catalog_section_chips") {
         FilterChipRow(
             options = options,
@@ -205,12 +203,17 @@ private fun ChipsSection() {
 @Composable
 private fun SegmentedSection() {
     var selected by rememberSaveable { mutableIntStateOf(DEFAULT_STRATEGY_INDEX) }
+    val deficit = stringResource(Res.string.goal_strategy_deficit)
+    val maintenance = stringResource(Res.string.goal_strategy_maintenance)
+    val surplus = stringResource(Res.string.goal_strategy_surplus)
     val options =
-        listOf(
-            AppOption(stringResource(Res.string.goal_strategy_deficit), "catalog_segment_deficit"),
-            AppOption(stringResource(Res.string.goal_strategy_maintenance), "catalog_segment_maintenance"),
-            AppOption(stringResource(Res.string.goal_strategy_surplus), "catalog_segment_surplus"),
-        )
+        remember(deficit, maintenance, surplus) {
+            listOf(
+                AppOption(deficit, "catalog_segment_deficit"),
+                AppOption(maintenance, "catalog_segment_maintenance"),
+                AppOption(surplus, "catalog_segment_surplus"),
+            )
+        }
     CatalogSection(stringResource(Res.string.catalog_section_segmented), "catalog_section_segmented") {
         SegmentedSelector(
             options = options,

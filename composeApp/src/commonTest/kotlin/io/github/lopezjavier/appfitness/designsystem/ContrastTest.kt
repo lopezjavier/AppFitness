@@ -167,4 +167,18 @@ class ContrastTest {
         assertAa(c.textPrimary, c.surfaceRaised, "textPrimary/surfaceRaised")
         assertAa(c.textSecondary, c.surfaceRaised, "textSecondary/surfaceRaised")
     }
+
+    @Test
+    fun errorState_errorIconOnBaseAndRaised_isAa() {
+        assertAa(c.error, c.surfaceBase, "error/surfaceBase")
+        assertAa(c.error, c.surfaceRaised, "error/surfaceRaised")
+    }
+
+    @Test
+    fun stateMessage_textColoursOnBaseAndRaised_isAa() {
+        listOf(c.surfaceBase, c.surfaceRaised).forEach { bg ->
+            assertAa(c.textPrimary, bg, "textPrimary")
+            assertAa(c.textSecondary, bg, "textSecondary")
+        }
+    }
 }

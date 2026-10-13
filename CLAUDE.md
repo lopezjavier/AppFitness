@@ -69,7 +69,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 
 | Action | Command |
 |---|---|
-| Lint | `./gradlew ktlintCheck detekt` |
+| Lint | `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` (the tokens guard is the first step of `android-ci`) |
 | Unit tests | `./gradlew testLocalDebugUnitTest` |
 | Install on the emulator (local Supabase) | `./gradlew :androidApp:installLocalDebug` |
 | Delivery APK | `./gradlew :androidApp:assembleProdDebug` |

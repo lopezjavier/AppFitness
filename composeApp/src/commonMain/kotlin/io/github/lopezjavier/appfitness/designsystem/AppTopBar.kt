@@ -63,11 +63,22 @@ object AppTopBarDefaults {
 
     const val TestTag = "topbar"
 
-    const val TitleTestTag = "topbar_title"
+    const val TitleTestTag = "${TestTag}_title"
 
-    const val AvatarTestTag = "topbar_avatar"
+    const val AvatarTestTag = "${TestTag}_avatar"
 
-    const val BackTestTag = "topbar_back"
+    const val BackTestTag = "${TestTag}_back"
+
+    /** Child tags of a bar with a custom [prefix] (the catalog embeds bars that must not reuse `topbar_*`). */
+    fun titleTag(prefix: String): String = "${prefix}_title"
+
+    fun avatarTag(prefix: String): String = "${prefix}_avatar"
+
+    fun backTag(prefix: String): String = "${prefix}_back"
+
+    /** Insets the bar pads for: top and horizontal system insets. */
+    val windowInsets: WindowInsets
+        @Composable get() = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
 }
 
 /** An icon button of [AppTopBar]: its accessibility label and click handler. */
@@ -82,6 +93,8 @@ data class AppTopBarButton(val contentDescription: String, val onClick: () -> Un
  * @param title section title, announced as a heading.
  * @param navigationButton leading back arrow (full-screen destinations), or null.
  * @param avatarButton trailing avatar button (tab destinations), or null.
+ * @param windowInsets insets the bar pads for; pass `WindowInsets(0)` when it is embedded mid-screen.
+ * @param testTagPrefix root tag; children are `<prefix>_title`, `<prefix>_back` and `<prefix>_avatar`.
  */
 @Composable
 fun AppTopBar(
@@ -89,6 +102,8 @@ fun AppTopBar(
     modifier: Modifier = Modifier,
     navigationButton: AppTopBarButton? = null,
     avatarButton: AppTopBarButton? = null,
+    windowInsets: WindowInsets = AppTopBarDefaults.windowInsets,
+    testTagPrefix: String = AppTopBarDefaults.TestTag,
 ) {
     val colors = AppTheme.colors
     val borderColor = colors.borderSubtle
@@ -99,19 +114,19 @@ fun AppTopBar(
         modifier =
         modifier
             .fillMaxWidth()
-            .testTag(AppTopBarDefaults.TestTag)
+            .testTag(testTagPrefix)
             .background(colors.surfaceBase)
             .drawBehind {
                 val y = size.height - AppBorder.thin.toPx() / 2
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
             }
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .windowInsetsPadding(windowInsets)
             .heightIn(min = AppTopBarDefaults.Height)
             .padding(start = startPadding, end = endPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (navigationButton != null) {
-            BackButton(navigationButton)
+            BackButton(navigationButton, AppTopBarDefaults.backTag(testTagPrefix))
             Spacer(Modifier.width(Spacing.xs))
         }
         Text(
@@ -120,14 +135,14 @@ fun AppTopBar(
             color = colors.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).testTag(AppTopBarDefaults.TitleTestTag).semantics { heading() },
+            modifier = Modifier.weight(1f).testTag(AppTopBarDefaults.titleTag(testTagPrefix)).semantics { heading() },
         )
-        if (avatarButton != null) AvatarButton(avatarButton)
+        if (avatarButton != null) AvatarButton(avatarButton, AppTopBarDefaults.avatarTag(testTagPrefix))
     }
 }
 
 @Composable
-private fun BackButton(button: AppTopBarButton) {
+private fun BackButton(button: AppTopBarButton, tag: String) {
     Box(
         modifier =
         Modifier
@@ -135,7 +150,7 @@ private fun BackButton(button: AppTopBarButton) {
             .clip(AppShapes.full)
             .clickable(role = Role.Button, onClick = button.onClick)
             .semantics { contentDescription = button.contentDescription }
-            .testTag(AppTopBarDefaults.BackTestTag),
+            .testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -148,7 +163,7 @@ private fun BackButton(button: AppTopBarButton) {
 }
 
 @Composable
-private fun AvatarButton(button: AppTopBarButton) {
+private fun AvatarButton(button: AppTopBarButton, tag: String) {
     val colors = AppTheme.colors
     Box(
         modifier =
@@ -157,7 +172,7 @@ private fun AvatarButton(button: AppTopBarButton) {
             .clip(AppShapes.full)
             .clickable(role = Role.Button, onClick = button.onClick)
             .semantics { contentDescription = button.contentDescription }
-            .testTag(AppTopBarDefaults.AvatarTestTag),
+            .testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
         Box(

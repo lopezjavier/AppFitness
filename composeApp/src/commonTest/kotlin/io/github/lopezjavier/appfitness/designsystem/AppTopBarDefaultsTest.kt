@@ -57,4 +57,12 @@ class AppTopBarDefaultsTest {
         val pattern = Regex("^[a-z]+(_[a-z0-9]+)*$")
         tags.forEach { assertTrue(pattern.matches(it), it) }
     }
+
+    @Test
+    fun defaultPrefix_keepsLegacyTags() {
+        assertEquals("topbar_title", AppTopBarDefaults.titleTag(AppTopBarDefaults.TestTag))
+        assertEquals("topbar_avatar", AppTopBarDefaults.avatarTag(AppTopBarDefaults.TestTag))
+        assertEquals("topbar_back", AppTopBarDefaults.backTag(AppTopBarDefaults.TestTag))
+        assertEquals("catalog_topbar_tabs_avatar", AppTopBarDefaults.avatarTag("catalog_topbar_tabs"))
+    }
 }

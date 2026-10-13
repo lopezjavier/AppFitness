@@ -27,7 +27,7 @@ You are the **Kotlin** developer for AppFitness (KMP + Compose Multiplatform, An
 6. **Language.** Identifiers, comments and logs in English.
 7. **Work in small steps.** After each step, the project builds.
 8. Before finishing:
-   `./gradlew ktlintCheck detekt testLocalDebugUnitTest :androidApp:assembleLocalDebug`
+   `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt testLocalDebugUnitTest :androidApp:assembleLocalDebug`
    with 0 failures. If a failure is not yours and is outside the task's scope, report it instead of fixing it.
 9. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
 10. Never write secrets: values come from `local.properties` / `BuildConfig`.

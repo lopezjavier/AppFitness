@@ -188,16 +188,7 @@ private fun RingBody(sweep: Float, colors: ProgressRingColors, consumedText: Str
 
 @Composable
 private fun StatusPill(text: String, color: Color) {
-    Box(
-        modifier =
-        Modifier
-            .clearAndSetSemantics {}
-            .heightIn(min = TrendPillDefaults.MinHeight)
-            .clip(AppShapes.full)
-            .background(AppTheme.colors.surfaceOverlay)
-            .padding(horizontal = Spacing.md, vertical = Spacing.xs),
-        contentAlignment = Alignment.Center,
-    ) {
+    PillContainer(modifier = Modifier.clearAndSetSemantics {}) {
         Text(
             text = text,
             style = ProgressRingDefaults.statusStyle(AppTheme.typography),

@@ -24,6 +24,7 @@ appId: io.github.lopezjavier.appfitness.local
       id: "catalog_section_number_input"
     direction: DOWN
     visibilityPercentage: 20
+    timeout: 60000
 - scrollUntilVisible:
     element:
       id: "catalog_number_input_weight"
@@ -122,8 +123,6 @@ appId: io.github.lopezjavier.appfitness.local
     element:
       id: "catalog_set_row_3_check"
     direction: DOWN
-# partially visible counts as found: bring it fully into view
-- scroll
 - assertVisible:
     id: "catalog_set_row_1_check"
     checked: true
@@ -196,16 +195,12 @@ appId: io.github.lopezjavier.appfitness.local
     element:
       id: "catalog_rest_timer_start"
     direction: DOWN
-# partially visible counts as found: bring it fully into view
-- scroll
 - tapOn:
     id: "catalog_rest_timer_start"
 - scrollUntilVisible:
     element:
       id: "catalog_rest_timer_live"
     direction: DOWN
-# partially visible counts as found: bring it fully into view
-- scroll
 - assertVisible:
     id: "catalog_rest_timer_live"
 # The live countdown really ticks: it leaves 02:00 within a few seconds

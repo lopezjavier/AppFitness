@@ -16,7 +16,9 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
-        withHostTest {}
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
         // Package Compose resources (fonts, strings, files) with the Android-KMP library plugin.
         androidResources {
             enable = true
@@ -38,6 +40,13 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.junit)
+            implementation(libs.robolectric)
+            implementation(libs.androidx.compose.ui.test)
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.androidx.compose.ui.test.manifest)
+        }
     }
 }
 
@@ -51,4 +60,17 @@ tasks.register("testLocalDebugUnitTest") {
     group = "verification"
     description = "Runs the host (JVM) unit tests of this module, including commonTest."
     dependsOn("testAndroidHostTest")
+}
+
+// Robolectric on JDK 17+ needs these modules opened (FileDescriptor / reflection interceptors).
+tasks.withType<Test>().configureEach {
+    jvmArgs(
+        "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+        "--add-opens=java.base/java.net=ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+    )
 }

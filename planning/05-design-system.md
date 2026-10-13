@@ -98,7 +98,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `AppCard` | `surfaceRaised`, radius 16, subtle border, padding 16 |
 | `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary) / 48 dp |
 | `AppChip` / `FilterChipRow` | 32 dp visual height (48 dp target); active: cyan border and text |
-| `SegmentedSelector` | Déficit / Mantenimiento / Superávit (active in lime) |
+| `SegmentedSelector` | Déficit / Mantenimiento / Superávit (active in lime). All labels share one size (largest up to `bodyMedium` where the widest label, measured bold, fits on one line); never below 11 sp (`labelTechnical`); past that they wrap to 2 lines (hyphenated on API 33+) and all segments grow together |
 | `AppBottomSheet` | Top radius 24, 36×4 handle, 65% scrim |
 | `ProgressRing` | kcal ring with normal / over-target (amber) states |
 | `MacroProgressBar` | Linear bar in the macro color, "142 g / 180 g · 79 %" |
@@ -110,7 +110,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `MetricTile` | Technical label + `headlineMetric` value + unit |
 | `TrendPill` | Weekly rate pill (green/red/amber) |
 | `SkeletonBox` | Animated placeholder (shimmer) |
-| `EmptyState` / `ErrorState` | Icon + message + action |
+| `EmptyState` / `ErrorState` | 48 dp decorative icon (`inbox` / `error`, Material Symbols, tinted `textSecondary` / `error`) + optional title + message + primary action (`Reintentar` is required on `ErrorState`); max width 360 dp, centred; `ErrorState` text is a polite live region |
 | `OfflineBanner` | Banner below the Top Bar |
 | `WipPlaceholder` | Work-in-progress screen container (E1 only) |
 
@@ -122,3 +122,5 @@ Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vec
 - Targets ≥ 48×48 dp.
 - `contentDescription` on actionable icons; bars and rings expose their value as `stateDescription`.
 - Font scaling up to 130% supported without clipping key numbers.
+- Auto-sized labels never go below 11 sp; past that they wrap to 2 lines.
+- How it is verified: Robolectric + Compose UI tests (`androidHostTest`, run by `testLocalDebugUnitTest`) assert touch targets of every interactive node of the catalog (>= 48 dp), accessible labels, and the exact `stateDescription`/`contentDescription` strings; token and geometry values stay as unit tests in `commonTest`. Only haptics and listening with TalkBack remain manual (checkpoint E1-D).
