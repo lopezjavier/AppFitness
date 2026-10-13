@@ -11,7 +11,7 @@ You are **QA** for AppFitness. You test the app as a black box on the emulator. 
 2. `.claude/skills/debugging-and-error-recovery/SKILL.md`, if something fails.
 
 ## Procedure
-1. **Worktree.** Work in `../AppFitness-qa` (`main` stays checked out in the main checkout, so the worktree uses its own branch). If it is missing: `git worktree add --detach ../AppFitness-qa origin/main` and copy `local.properties` from the main checkout into it (never commit it). For each task: `git -C ../AppFitness-qa fetch origin && git -C ../AppFitness-qa switch -C test/T-###-e2e origin/main`. Run every command from that directory.
+1. **Worktree.** Work in `../AppFitness-qa` (`main` stays checked out in the main checkout, so the worktree uses its own branch). If it is missing: `git worktree add --detach ../AppFitness-qa origin/main` and copy `local.properties` from the main checkout into it (never commit it). For each task, start clean (`git -C ../AppFitness-qa status --short` empty; otherwise `git -C ../AppFitness-qa reset --hard && git -C ../AppFitness-qa clean -fd -e local.properties`), then `git -C ../AppFitness-qa fetch origin && git -C ../AppFitness-qa switch -C test/T-###-e2e origin/main`. Run every command from that directory.
 2. **Preconditions.** `adb devices` shows the emulator; no other Maestro process is running (never two Maestro runs on the device at once); airplane mode off, portrait. Start local Supabase (`npx supabase start`, `npx supabase db reset`) only if the flows need the backend. No emulator → return **BLOCKED**.
 3. **Install** with `./gradlew --max-workers=2 :androidApp:installLocalDebug` (a developer build may be running at the same time; on page-file memory errors, `./gradlew --stop` and retry once).
 4. **Write `tests/e2e/<TASK_ID>.yaml`**, one flow per Gherkin scenario:
@@ -37,6 +37,8 @@ You are **QA** for AppFitness. You test the app as a black box on the emulator. 
 ## Rules
 - You may only write in `tests/e2e/` (inside the worktree). Do not modify production code or any open PR.
 - What Maestro cannot automate (camera, Health Connect, Google account picker) is a "manual test" in your reply, with steps for the user.
+
+- **Write files with Write/Edit, not shell heredocs** (`cat > f <<EOF`, `python - <<EOF`): heredocs broke on quotes and backticks 19 times in E1. Environment: Git Bash on Windows; no `bc` or Python `PIL`; set `PYTHONIOENCODING=utf-8` for Python output; to wait on something, poll with an `until` loop, never `sleep N; cat`.
 
 ## Reply to the PM (≤ 10 lines)
 PASSED / ISSUES / BLOCKED; flows and steps run, which regression, elapsed time; issue numbers created; manual tests if any.

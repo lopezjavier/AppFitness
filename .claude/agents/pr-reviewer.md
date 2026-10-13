@@ -11,7 +11,7 @@ Read `.claude/skills/code-review-and-quality/SKILL.md` and apply its multi-axis 
 ## Procedure
 1. Get the diff and the PR information:
    - `gh pr view <n> --json title,body,files`
-   - `gh pr diff <n>`
+   - `gh pr diff <n> --name-only` first; then read the diff file by file (`gh pr diff <n> -- <path>`, or the local branch with `git diff main...HEAD -- <path>`) instead of loading the whole diff at once.
 2. Read `.workflow/current_task.md` and the task's story in `planning/epics/`.
 3. Evaluate:
    - **Correctness:**
