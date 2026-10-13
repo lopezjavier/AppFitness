@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
@@ -214,7 +214,10 @@ private fun RestTimerAction(
     Box(
         modifier =
         modifier
-            .minimumInteractiveComponentSize()
+            .sizeIn(
+                minWidth = RestTimerBarDefaults.ActionMinTouch,
+                minHeight = RestTimerBarDefaults.ActionMinTouch,
+            )
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
