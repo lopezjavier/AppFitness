@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_theme
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_theme_colors
@@ -32,10 +31,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppTypography
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
 
-private val SwatchSize: Dp = 24.dp
+private val SwatchSize: Dp = Spacing.xl
 
 /** Token names are code identifiers, not translatable copy. */
-private val ColorTokens: List<Pair<String, (AppColors) -> Color>> =
+internal val ColorTokens: List<Pair<String, (AppColors) -> Color>> =
     listOf(
         "surfaceBase" to { it.surfaceBase },
         "surfaceRaised" to { it.surfaceRaised },

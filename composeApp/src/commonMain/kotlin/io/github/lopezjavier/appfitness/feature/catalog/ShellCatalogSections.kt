@@ -17,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_navigation
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_skeleton
@@ -48,8 +47,8 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WipPlaceholder
 import org.jetbrains.compose.resources.stringResource
 
-private val WipSampleHeight: Dp = 320.dp
-private val SkeletonSampleHeight: Dp = 96.dp
+private val WipSampleHeight: Dp = Spacing.lg * 20
+private val SkeletonSampleHeight: Dp = Spacing.xl * 4
 private const val NAV_DEFAULT_INDEX = 0
 
 /** Catalog sections of the shell components and the loading placeholders (T-026). */
