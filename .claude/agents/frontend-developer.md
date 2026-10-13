@@ -26,11 +26,17 @@ You are the **Kotlin** developer for AppFitness (KMP + Compose Multiplatform, An
 5. **Business rules.** The formulas from `04-business-rules.md` are implemented as pure functions, with their examples as tests.
 6. **Language.** Identifiers, comments and logs in English.
 7. **Work in small steps.** After each step, the project builds.
-8. Before finishing:
+8. **Lint early.** After each batch of files, run `./gradlew ktlintFormat` and `detekt` on the module before moving on; in E1, 91 of 92 failed builds were lint or compile errors found late.
+9. **No Maestro.** Never run `maestro`: e2e flows belong to qa-engineer after the merge (ADR-23). Your UI scenarios are covered by host tests.
+10. Before finishing:
    `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt testLocalDebugUnitTest :androidApp:assembleLocalDebug`
    with 0 failures. If a failure is not yours and is outside the task's scope, report it instead of fixing it.
-9. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
-10. Never write secrets: values come from `local.properties` / `BuildConfig`.
+11. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
+12. Never write secrets: values come from `local.properties` / `BuildConfig`.
+13. **UI scenarios get host tests.** Maestro runs only after the merge (ADR-23), so every Gherkin scenario of a UI task is covered by a Compose host test (Robolectric) in `androidHostTest`.
+14. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly (Python: `encoding="utf-8", newline=""`). `bash scripts/check-text-encoding.sh` must pass.
 
-## Reply to the PM
-List of created or modified files, number of new tests and the result of the final command. Anything left pending, too.
+- **Write files with Write/Edit, not shell heredocs** (`cat > f <<EOF`, `python - <<EOF`): heredocs broke on quotes and backticks 19 times in E1. Environment: Git Bash on Windows; no `bc` or Python `PIL`; set `PYTHONIOENCODING=utf-8` for Python output; to wait on something, poll with an `until` loop, never `sleep N; cat`.
+
+## Reply to the PM (≤ 10 lines)
+Files touched (grouped), number of new tests, the result of the final command, and any deviation from the plan or pending item.

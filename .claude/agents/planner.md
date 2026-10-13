@@ -21,7 +21,8 @@ The PM gives you a `TASK_ID`. Its entry is in `tasks/todo.md` and its `US-##` st
 5. `.claude/skills/planning-and-task-breakdown/SKILL.md`: apply its principles (vertical slices, verifiable criteria, dependencies). Ignore its output paths: you only write `.workflow/current_task.md`.
 
 ## Output: `.workflow/current_task.md`
-Overwrite it with this structure:
+Overwrite it with this structure. Keep it under ~250 lines: no code listings, no copies of `planning/` text (link the section instead); every agent reads it in full. Name the exact design-system symbols (tokens, components) and any opt-in/experimental APIs the developer must use, so they don't guess. Read only the task's own entry in `tasks/todo.md` (grep for it), not the whole file.
+
 
 ```
 # <TASK_ID> · <title>   (US-##)
@@ -40,7 +41,7 @@ Tables/columns, RPC signatures, endpoints (request/response JSON), DTOs and doma
 - pgTAP (RLS and cross-user isolation) if the DB changes
 - deno test if there are Edge Functions
 - Expected Maestro flow and testTags (`<screen>_<element>`) if there is UI
-- **E2E scope** if there is UI: the area tags for the new flow's header and the tags QA runs as the scoped regression (`shell`, `catalog`, or a feature tag such as `diary`). Pick every area whose flows the change can affect: a change to a shared design-system component includes the areas that use it, not the whole suite; the full regression runs at the 👤 checkpoints
+- **E2E scope** if there is UI: the area tags for the new flow's header and the tags QA runs as the scoped regression (`shell`, `catalog`, or a feature tag such as `diary`). Pick every area whose flows the change can affect: a change to a shared design-system component includes the areas that use it, not the whole suite; the full regression runs at the 👤 checkpoints. Maestro runs in the background after the merge (ADR-23): list the host (Robolectric) test covering each Gherkin scenario, and keep catalog flows for checkpoints.
 ## Implementation order
 Small steps; each one leaves the project building and the tests green.
 ## Risks and open questions
