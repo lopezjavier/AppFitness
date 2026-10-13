@@ -35,21 +35,39 @@ for scale in animator_duration_scale window_animation_scale transition_animation
   adb shell settings put global "$scale" 0
 done
 
-# Wait until the package manager answers (the emulator can report boot_completed slightly early).
-for _ in $(seq 1 30); do
-  adb shell cmd package list packages >/dev/null 2>&1 && break
-  sleep 2
-done
+wait_for_system() {
+  # Waits until boot completed and the package manager answers (up to ~2 min).
+  for _ in $(seq 1 60); do
+    [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] &&
+      adb shell cmd package list packages >/dev/null 2>&1 && return 0
+    sleep 2
+  done
+  return 1
+}
+wait_for_system
 
 rows=()
 failed=0
 for flow in "$@"; do
   start=$(date +%s)
+  pid_before=$(adb shell pidof system_server 2>/dev/null | tr -d '\r')
   if maestro test --test-output-dir tests/e2e/screenshots "$flow"; then
     result=PASS
   else
     result=FAIL
-    failed=1
+    # Emulator infrastructure bug (run 38411875620): on the Android 17 image system_server aborts
+    # in TaskSnapshotPersister ("Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma")
+    # when the app is torn down between flows, which kills the flow under test. Re-run the flow
+    # once, and only when system_server restarted, so real flow failures are never retried.
+    pid_after=$(adb shell pidof system_server 2>/dev/null | tr -d '\r')
+    if [ "$pid_before" != "$pid_after" ]; then
+      echo "system_server restarted during $flow (pid $pid_before -> $pid_after): re-running it once"
+      wait_for_system
+      if maestro test --test-output-dir tests/e2e/screenshots "$flow"; then
+        result="PASS (re-run after system_server restart)"
+      fi
+    fi
+    [ "$result" = FAIL ] && failed=1
   fi
   rows+=("$flow|$result|$(($(date +%s) - start))")
 done
