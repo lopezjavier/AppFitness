@@ -683,6 +683,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [ ] The full regression (T-020…T-026) passes in CI 3 times in a row; any CI-only flakiness is fixed in the flows, not hidden by retries.
 - [ ] Decide with the user whether the job becomes a required check on `main` (a branch protection change).
 - [ ] Fast by design (user request, 2026-10-13): no Supabase in the job until E2 brings login flows (E1 flows don't use the backend); flows sharded across 2–3 parallel matrix jobs, each with its own emulator (target wall time ≈ 6–8 min); AVD snapshot + Gradle caching; path filters skip PRs that only touch docs or `tasks/`.
+- [ ] From the PR #26 review: `android-ci` shows per-test counts on green runs too (Gradle test logging in `composeApp/build.gradle.kts`, or always upload `**/build/test-results/**`), so it is visible that the Robolectric host tests ran.
 - [ ] QA's role shrinks: run the task's own flow and review the screenshot artifacts; CI owns the full regression, running in parallel with pr-reviewer.
 
 **Verification:**
