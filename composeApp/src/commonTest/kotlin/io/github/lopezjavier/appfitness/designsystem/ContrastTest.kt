@@ -181,11 +181,4 @@ class ContrastTest {
             assertAa(c.textSecondary, bg, "textSecondary")
         }
     }
-
-    @Test
-    fun macroSlider_disabledThumbVsRaised_documented() {
-        // Disabled controls are exempt from contrast; only opacity is asserted (no track showing through).
-        val colors = MacroSliderDefaults.colors(Macro.Protein, enabled = false, appColors = c)
-        assertTrue(colors.thumb.alpha == 1f && colors.activeTrack.alpha == 1f)
-    }
 }

@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
@@ -24,6 +25,15 @@ import kotlin.test.assertTrue
 
 private const val MIN_TOUCH_DP = 48f
 private const val TOLERANCE_DP = 0.5f
+
+private val ExpectedTags =
+    listOf(
+        "catalog_button_primary_enabled", "catalog_chip_1w", "catalog_segment_deficit",
+        "catalog_macro_slider_protein", "catalog_number_input_weight", "catalog_set_checkbox_unchecked",
+        "catalog_set_row_3_check", "catalog_rest_timer_start", "catalog_empty_state_action",
+        "catalog_error_state_action", "catalog_topbar_tabs_avatar", "catalog_topbar_full_back",
+        "catalog_nav_tab_diary", "catalog_nav_tab_progress",
+    )
 
 private val ExpectedSections =
     listOf(
@@ -59,7 +69,7 @@ class CatalogAccessibilityTest {
         val density = rule.density.density
         val found = linkedMapOf<String, Probe>()
         val list = rule.onNodeWithTag("catalog_screen")
-        repeat(CATALOG_ITEM_COUNT) { index ->
+        repeat(catalogItemCount(list)) { index ->
             list.performScrollToIndex(index)
             rule.mainClock.advanceTimeByFrame()
             rule.onAllNodes(interactive).fetchSemanticsNodes().forEach { node ->
@@ -77,15 +87,7 @@ class CatalogAccessibilityTest {
     fun everyInteractiveNode_touchTargetAtLeast48dp() {
         val probes = collectInteractiveNodes()
         // Guards against a vacuous pass: representative nodes of every kind must have been measured.
-        val expectedTags =
-            listOf(
-                "catalog_button_primary_enabled", "catalog_chip_1w", "catalog_segment_deficit",
-                "catalog_macro_slider_protein", "catalog_number_input_weight", "catalog_set_checkbox_unchecked",
-                "catalog_set_row_3_check", "catalog_rest_timer_start", "catalog_empty_state_action",
-                "catalog_error_state_action", "catalog_topbar_tabs_avatar", "catalog_topbar_full_back",
-                "catalog_nav_tab_diary", "catalog_nav_tab_progress",
-            )
-        assertTrue(probes.keys.containsAll(expectedTags), "not measured: ${expectedTags - probes.keys}")
+        assertContainsExpectedTags(probes)
         val tooSmall =
             probes.values
                 .filter { it.widthDp < MIN_TOUCH_DP - TOLERANCE_DP || it.heightDp < MIN_TOUCH_DP - TOLERANCE_DP }
@@ -95,7 +97,9 @@ class CatalogAccessibilityTest {
 
     @Test
     fun everyInteractiveNode_hasAccessibleLabel() {
-        val unlabelled = collectInteractiveNodes().values.filter { !it.labelled }.map { it.key }
+        val probes = collectInteractiveNodes()
+        assertContainsExpectedTags(probes)
+        val unlabelled = probes.values.filter { !it.labelled }.map { it.key }
         assertTrue(unlabelled.isEmpty(), "interactive nodes without an accessible label: $unlabelled")
     }
 
@@ -105,7 +109,7 @@ class CatalogAccessibilityTest {
         rule.setContent { AppTheme { ComponentCatalogScreen(Modifier.fillMaxSize()) } }
         val list = rule.onNodeWithTag("catalog_screen")
         val seen = linkedSetOf<String>()
-        repeat(CATALOG_ITEM_COUNT) { index ->
+        repeat(catalogItemCount(list)) { index ->
             list.performScrollToIndex(index)
             rule.mainClock.advanceTimeByFrame()
             rule.onAllNodes(
@@ -119,6 +123,10 @@ class CatalogAccessibilityTest {
         assertEquals(ExpectedSections.toSet(), seen)
     }
 
+    private fun assertContainsExpectedTags(probes: Map<String, Probe>) {
+        assertTrue(probes.keys.containsAll(ExpectedTags), "not measured: ${ExpectedTags - probes.keys}")
+    }
+
     private fun SemanticsNode.hasLabel(): Boolean {
         val description = config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
         val text = config.getOrNull(SemanticsProperties.Text).orEmpty()
@@ -126,8 +134,10 @@ class CatalogAccessibilityTest {
         return description.any { it.isNotBlank() } || text.any { it.text.isNotBlank() } || editable.isNotBlank()
     }
 
-    private companion object {
-        /** One lazy item per section: 4 basics + 5 data-viz + 4 workout inputs + 1 + 4 shell + 1 theme. */
-        const val CATALOG_ITEM_COUNT = 19
+    /** Item count reported by the lazy list itself, so sections added later are swept automatically. */
+    private fun catalogItemCount(list: SemanticsNodeInteraction): Int {
+        val count = list.fetchSemanticsNode().config[SemanticsProperties.CollectionInfo].rowCount
+        assertTrue(count >= ExpectedSections.size, "catalog reports only $count items")
+        return count
     }
 }
