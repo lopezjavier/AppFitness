@@ -105,7 +105,7 @@ fun OfflineBanner(
 @Preview
 @Composable
 private fun OfflineBannerPreview() {
-    AppTheme { OfflineBanner(Modifier.fillMaxWidth(), message = "Sin conexión") }
+    AppTheme { OfflineBanner(Modifier.fillMaxWidth()) }
 }
 
 @Preview
@@ -113,6 +113,6 @@ private fun OfflineBannerPreview() {
 private fun OfflineBannerLargeFontPreview() {
     val density = LocalDensity.current
     CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
-        AppTheme { OfflineBanner(Modifier.fillMaxWidth(), message = "Sin conexión") }
+        AppTheme { OfflineBanner(Modifier.fillMaxWidth()) }
     }
 }

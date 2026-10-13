@@ -35,7 +35,16 @@ class AndroidConnectivityObserver(context: Context) : ConnectivityObserver {
                         trySend(false)
                     }
                 }
-            val registered = runCatching { manager.registerDefaultNetworkCallback(callback) }.isSuccess
+            val registered =
+                try {
+                    manager.registerDefaultNetworkCallback(callback)
+                    true
+                } catch (_: SecurityException) {
+                    false
+                } catch (_: RuntimeException) {
+                    // Documented: too many registered callbacks.
+                    false
+                }
             if (registered) {
                 awaitClose { manager.unregisterNetworkCallback(callback) }
             } else {

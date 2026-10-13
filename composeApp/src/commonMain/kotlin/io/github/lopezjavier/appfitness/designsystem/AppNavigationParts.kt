@@ -23,6 +23,7 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_LABEL_FONT_SCALE = 1.3f
 
+/** Density with the font scale capped at 130%, shared by the tab labels and the rail header. */
 @Composable
 internal fun clampedLabelDensity(): Density {
     val density = LocalDensity.current
