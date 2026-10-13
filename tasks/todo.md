@@ -791,9 +791,9 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Acceptance criteria:**
 - [x] US-01…US-04 merged with green CI; `deploy-supabase` and `keepalive` green at least once (T-018/T-019).
 - [x] Stabilise the flaky catalog flows seen in T-028 QA (T-026 `catalog_section_state_messages` not found; T-027-catalog sheet title not visible). *(Longer `scrollUntilVisible` timeouts; the 20 s default was too short for the grown catalog.)*
-- [x] `maestro test tests/e2e/` green on the emulator against local Supabase. *(2026-10-13: 12/12 flows in 21m 18s.)*
+- [x] `maestro test tests/e2e/` green on the emulator against local Supabase. *(2026-10-13: 12/12 flows in 21m 18s; T-029 re-run green after fixing a packaging encoding slip in its assertion.)*
 - [x] `CLAUDE.md` "Current status" updated (E1 done, next E2); `tasks/todo.md` E1 ✅ (through a PR).
-- [x] `./gradlew :androidApp:assembleProdDebug` → APK path given to the user; `[PM] [E1] [COMPLETED]` logged.
+- [x] `./gradlew :androidApp:assembleProdDebug` → APK path given to the user; `[PM] [E1] [COMPLETED]` logged. *(Built on the branch; path given and log written after the merge.)*
 - [ ] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then break down E2.
 
 **Verification:**
