@@ -21,6 +21,12 @@ for scale in animator_duration_scale window_animation_scale transition_animation
   adb shell settings put global "$scale" 0
 done
 
+# Wait until the package manager answers (the emulator can report boot_completed slightly early).
+for _ in $(seq 1 30); do
+  adb shell cmd package list packages >/dev/null 2>&1 && break
+  sleep 2
+done
+
 rows=()
 failed=0
 for flow in "$@"; do
@@ -33,6 +39,16 @@ for flow in "$@"; do
   fi
   rows+=("$flow|$result|$(($(date +%s) - start))")
 done
+
+# CI-only diagnostics: when something failed, keep the device logs next to Maestro's output.
+if [ "$failed" -eq 1 ]; then
+  diag=tests/e2e/screenshots/diagnostics
+  mkdir -p "$diag"
+  adb logcat -d -b all >"$diag/logcat-all.txt" 2>&1
+  adb shell dumpsys meminfo >"$diag/meminfo.txt" 2>&1
+  adb shell df >"$diag/df.txt" 2>&1
+  adb shell getprop >"$diag/getprop.txt" 2>&1
+fi
 
 echo
 echo "| flow | result | seconds |"
