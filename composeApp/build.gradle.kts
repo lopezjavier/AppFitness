@@ -35,10 +35,17 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.navigation.compose)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.lifecycle.runtime.compose)
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.turbine)
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.junit)

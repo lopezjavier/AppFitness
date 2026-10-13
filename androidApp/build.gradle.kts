@@ -112,4 +112,6 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.junit)
+    testImplementation(project.dependencies.platform(libs.koin.bom))
+    testImplementation(libs.koin.test)
 }
