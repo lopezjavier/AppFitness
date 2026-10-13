@@ -3,8 +3,9 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
@@ -117,6 +119,21 @@ private fun SheetHandle(color: Color, testTag: String?) {
 @Composable
 private fun AppBottomSheetPreview() {
     AppTheme {
-        Row { Text("Hoja inferior (se abre como ventana modal)") }
+        // The real sheet opens in its own window, so the preview shows its static surface.
+        val colors = AppBottomSheetDefaults.colors(AppTheme.colors)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(colors.container, AppBottomSheetDefaults.Shape)
+                .border(AppBorder.thin, colors.border, AppBottomSheetDefaults.Shape),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            SheetHandle(colors.handle, null)
+            Text(
+                "Título de ejemplo",
+                color = colors.content,
+                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+            )
+        }
     }
 }
