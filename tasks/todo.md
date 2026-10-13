@@ -794,10 +794,10 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] `maestro test tests/e2e/` green on the emulator against local Supabase. *(2026-10-13: 12/12 flows in 21m 18s; T-029 re-run green after fixing a packaging encoding slip in its assertion.)*
 - [x] `CLAUDE.md` "Current status" updated (E1 done, next E2); `tasks/todo.md` E1 ✅ (through a PR).
 - [x] `./gradlew :androidApp:assembleProdDebug` → APK path given to the user; `[PM] [E1] [COMPLETED]` logged. *(Built on the branch; path given and log written after the merge.)*
-- [ ] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then break down E2.
+- [x] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then break down E2. *(2026-10-13: phone approved; tablet works (rail, rotation, offline banner) but the FAB in the rail feels awkward → refined in a later epic, non-blocking. Tagged `v0.1.0`.)*
 
 **Verification:**
-- [ ] `gh run list` shows green `deploy-supabase` and `keepalive` runs; `git tag` lists `v0.1.0` after approval.
+- [x] `gh run list` shows green `deploy-supabase` and `keepalive` runs; `git tag` lists `v0.1.0` after approval.
 
 **Dependencies:** T-019, T-026, T-029
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
@@ -807,11 +807,13 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 ### Checkpoint E1-E — E1 closure
 - [x] Full Maestro regression green (all tags).
-- [ ] Everything above verified; 👤 user approval → `v0.1.0`.
+- [x] Everything above verified; 👤 user approval → `v0.1.0`. *(approved by the user 2026-10-13)*
 
 ---
 
 ## Notes for later epics
 
+- **E3 / E4 / E5, from the E1 review (user, 2026-10-13):** question the shared "+ Registro" FAB (ADR-10). Food, training and weight log in very different ways, so each epic decides its own entry point: a per-screen action with its own label (e.g. "Añadir alimento" per meal, "Empezar entreno"), a per-tab FAB label, or no FAB. A shared FAB may still fit weight (E4). Update ADR-10 when the first of these epics decides.
+- **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved.
 - **E2 (food diary), from the PR #24 review:** `MacroProgressBar` and `ProgressRing` take `Int`, but snapshots are stored to 0.1 g (04 §2), so a caller that rounds first can be off by 1 % (100.9/200 → 50 %, 101/200 → 51 %). Add `Double` overloads or have the domain pass in the percent.
 - **E4 (weight and progress), from the PR #24 review:** `MetricTile` and `TrendPill` are both `surfaceOverlay`, so the pill's outline disappears inside a tile; add a container-colour parameter.

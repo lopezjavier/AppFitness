@@ -58,7 +58,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [ ] ~~T-033: Catalog deep links for shorter e2e flows~~ — dropped 2026-10-13 at the user's request (replaced by the `catalog` Maestro tag; see todo.md)
 
 ### Checkpoint E1-E: Epic complete
-- [ ] T-030: E1 closure (regression, APK delivery, user feedback, tag `v0.1.0`)
+- [x] T-030: E1 closure (regression, APK delivery, user feedback, tag `v0.1.0`)
 
 ## Dependencies
 
