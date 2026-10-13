@@ -154,6 +154,7 @@ fun RestTimerBar(
             RestTimerAction(
                 text = stringResource(Res.string.rest_timer_add),
                 contentDescription = stringResource(Res.string.rest_timer_add_cd),
+                containerColor = colors.actionContainer,
                 contentColor = colors.addContent,
                 onClick = onAddTime,
                 modifier = tag("add"),
@@ -161,6 +162,7 @@ fun RestTimerBar(
             RestTimerAction(
                 text = stringResource(Res.string.rest_timer_skip),
                 contentDescription = stringResource(Res.string.rest_timer_skip_cd),
+                containerColor = colors.actionContainer,
                 contentColor = colors.skipContent,
                 onClick = onSkip,
                 modifier = tag("skip"),
@@ -204,11 +206,11 @@ private fun ProgressLine(progress: Float, colors: RestTimerBarColors, modifier: 
 private fun RestTimerAction(
     text: String,
     contentDescription: String,
+    containerColor: Color,
     contentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = RestTimerBarDefaults.colors(AppTheme.colors)
     Box(
         modifier =
         modifier
@@ -222,7 +224,7 @@ private fun RestTimerAction(
             Modifier
                 .heightIn(min = RestTimerBarDefaults.ActionVisualHeight)
                 .clip(RestTimerBarDefaults.ActionShape)
-                .background(colors.actionContainer)
+                .background(containerColor)
                 .padding(horizontal = RestTimerBarDefaults.ActionHorizontalPadding),
             contentAlignment = Alignment.Center,
         ) {

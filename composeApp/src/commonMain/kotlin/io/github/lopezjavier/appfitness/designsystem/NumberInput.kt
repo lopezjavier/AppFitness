@@ -94,18 +94,11 @@ object NumberInputDefaults {
         return if (hasSeparator) "$integer$DECIMAL_SEPARATOR$decimals" else integer
     }
 
-    /** "87,5" becomes 87.5 and "87," becomes 87.0; "", "," and non-numeric text give null. */
+    /** "87,5" becomes 87.5, "87," becomes 87.0 and ",5" becomes 0.5; "", "," and non-numeric text give null. */
     fun parse(text: String): Double? {
-        val hasIntegerPart = text.firstOrNull()?.let { it != DECIMAL_SEPARATOR && it != ALTERNATE_SEPARATOR } == true
+        if (text.none { it in ZERO..'9' }) return null
         val sanitized = sanitize(text, maxDecimals = Int.MAX_VALUE, maxIntegerDigits = Int.MAX_VALUE)
-        return if (hasIntegerPart) {
-            sanitized?.replace(
-                DECIMAL_SEPARATOR,
-                ALTERNATE_SEPARATOR,
-            )?.toDoubleOrNull()
-        } else {
-            null
-        }
+        return sanitized?.replace(DECIMAL_SEPARATOR, ALTERNATE_SEPARATOR)?.toDoubleOrNull()
     }
 
     /**

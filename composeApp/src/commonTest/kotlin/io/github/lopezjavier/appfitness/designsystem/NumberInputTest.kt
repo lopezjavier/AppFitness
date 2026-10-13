@@ -104,6 +104,7 @@ class NumberInputTest {
         assertEquals(87.0, NumberInputDefaults.parse("87,"))
         assertEquals(0.5, NumberInputDefaults.parse("0,5"))
         assertEquals(87.5, NumberInputDefaults.parse("87.5"))
+        assertEquals(0.5, NumberInputDefaults.parse(",5"))
     }
 
     @Test

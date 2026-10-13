@@ -117,7 +117,7 @@ fun SetRow(
             text = previousText,
             contentDescription = stringResource(Res.string.set_row_use_previous_cd, previousText),
             onClick = onUsePrevious.takeIf { clickable },
-            modifier = tagged(testTagPrefix, "previous"),
+            modifier = Modifier.weight(SetRowDefaults.PREVIOUS_WEIGHT).tag(testTagPrefix, "previous"),
         )
         NumberInput(
             value = values.weight,
@@ -154,9 +154,6 @@ fun SetRow(
 
 private fun Modifier.tag(prefix: String?, part: String): Modifier =
     SetRowDefaults.childTag(prefix, part)?.let { testTag(it) } ?: this
-
-private fun RowScope.tagged(prefix: String?, part: String): Modifier =
-    Modifier.weight(SetRowDefaults.PREVIOUS_WEIGHT).tag(prefix, part)
 
 @Composable
 private fun IndexBadge(number: String) {
