@@ -45,12 +45,10 @@ enum class TrendTone { Favorable, Unfavorable, Caution, Neutral }
 enum class TrendDirection { Up, Down, Flat, None }
 
 object TrendPillDefaults {
-    val Shape = AppShapes.full
+    val Shape = PillDefaults.Shape
     val IconSize: Dp = 16.dp
-    val HorizontalPadding: Dp = Spacing.md
-    val VerticalPadding: Dp = Spacing.xs
-    val MinHeight: Dp = 32.dp
-    val ItemSpacing: Dp = Spacing.xs
+    val MinHeight: Dp = PillDefaults.MinHeight
+    val ItemSpacing: Dp = PillDefaults.ItemSpacing
 
     fun contentColor(tone: TrendTone, appColors: AppColors): Color = when (tone) {
         TrendTone.Favorable -> appColors.electricGreen
@@ -59,7 +57,7 @@ object TrendPillDefaults {
         TrendTone.Neutral -> appColors.textSecondary
     }
 
-    fun containerColor(appColors: AppColors): Color = appColors.surfaceOverlay
+    fun containerColor(appColors: AppColors): Color = PillDefaults.containerColor(appColors)
 
     /** Sign of the signed rate: > 0 Up, < 0 Down, 0 Flat, null (not enough data) None. */
     fun direction(rate: Double?): TrendDirection = when {
@@ -106,19 +104,8 @@ fun TrendPill(
             TrendTone.Caution -> stringResource(Res.string.trend_tone_caution)
             TrendTone.Neutral -> null
         }
-    Row(
-        modifier =
-        modifier
-            .semantics(mergeDescendants = true) { toneDescription?.let { stateDescription = it } }
-            .heightIn(min = TrendPillDefaults.MinHeight)
-            .clip(TrendPillDefaults.Shape)
-            .background(TrendPillDefaults.containerColor(AppTheme.colors))
-            .padding(
-                horizontal = TrendPillDefaults.HorizontalPadding,
-                vertical = TrendPillDefaults.VerticalPadding,
-            ),
-        horizontalArrangement = Arrangement.spacedBy(TrendPillDefaults.ItemSpacing),
-        verticalAlignment = Alignment.CenterVertically,
+    PillContainer(
+        modifier = modifier.semantics(mergeDescendants = true) { toneDescription?.let { stateDescription = it } },
     ) {
         TrendPillDefaults.toneIcon(tone)?.let { PillIcon(it, color) }
         TrendPillDefaults.directionIcon(direction)?.let { PillIcon(it, color) }
