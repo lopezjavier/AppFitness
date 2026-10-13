@@ -167,4 +167,25 @@ class ContrastTest {
         assertAa(c.textPrimary, c.surfaceRaised, "textPrimary/surfaceRaised")
         assertAa(c.textSecondary, c.surfaceRaised, "textSecondary/surfaceRaised")
     }
+
+    @Test
+    fun errorState_errorIconOnBaseAndRaised_isAa() {
+        assertAa(c.error, c.surfaceBase, "error/surfaceBase")
+        assertAa(c.error, c.surfaceRaised, "error/surfaceRaised")
+    }
+
+    @Test
+    fun stateMessage_textColoursOnBaseAndRaised_isAa() {
+        listOf(c.surfaceBase, c.surfaceRaised).forEach { bg ->
+            assertAa(c.textPrimary, bg, "textPrimary")
+            assertAa(c.textSecondary, bg, "textSecondary")
+        }
+    }
+
+    @Test
+    fun macroSlider_disabledThumbVsRaised_documented() {
+        // Disabled controls are exempt from contrast; only opacity is asserted (no track showing through).
+        val colors = MacroSliderDefaults.colors(Macro.Protein, enabled = false, appColors = c)
+        assertTrue(colors.thumb.alpha == 1f && colors.activeTrack.alpha == 1f)
+    }
 }
