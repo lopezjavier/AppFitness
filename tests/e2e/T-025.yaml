@@ -34,6 +34,15 @@ appId: io.github.lopezjavier.appfitness.local
     id: "catalog_number_input_weight"
 - tapOn:
     id: "catalog_number_input_weight"
+# A leading separator gets its zero and the cursor follows: ".5" must be 0,5 (not 5,)
+- inputText: ".5"
+- extendedWaitUntil:
+    visible:
+      id: "catalog_number_input_weight"
+      text: "0,5"
+    timeout: 5000
+# The cursor is at the end after typing, so erasing clears the field
+- eraseText: 10
 - inputText: "87.5"
 # Typing is asynchronous: wait for the filtered text instead of asserting immediately
 - extendedWaitUntil:

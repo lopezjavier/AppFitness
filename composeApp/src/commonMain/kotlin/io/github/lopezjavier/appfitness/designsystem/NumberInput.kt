@@ -18,7 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,9 +29,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -104,13 +108,22 @@ object NumberInputDefaults {
         }
     }
 
-    fun keyboardType(maxDecimals: Int): KeyboardType = if (maxDecimals >
-        0
-    ) {
-        KeyboardType.Decimal
-    } else {
-        KeyboardType.Number
-    }
+    /**
+     * Sanitizes an edit coming from the text field and keeps the cursor coherent: when normalization changes
+     * the length (",": "0,"), the cursor moves by the length delta. Returns null to reject the edit.
+     */
+    fun applyEdit(raw: TextFieldValue, maxDecimals: Int, maxIntegerDigits: Int): TextFieldValue? =
+        sanitize(raw.text, maxDecimals, maxIntegerDigits)?.let { sanitized ->
+            if (sanitized == raw.text) {
+                raw
+            } else {
+                val cursor = (raw.selection.end + sanitized.length - raw.text.length).coerceIn(0, sanitized.length)
+                TextFieldValue(sanitized, TextRange(cursor))
+            }
+        }
+
+    fun keyboardType(maxDecimals: Int): KeyboardType =
+        if (maxDecimals > 0) KeyboardType.Decimal else KeyboardType.Number
 
     /** Read-only fields never show the focus border. */
     fun colors(focused: Boolean, readOnly: Boolean, appColors: AppColors): NumberInputColors = NumberInputColors(
@@ -122,13 +135,8 @@ object NumberInputDefaults {
         cursor = appColors.neonLime,
     )
 
-    fun borderWidth(focused: Boolean, readOnly: Boolean): Dp = if (focused &&
-        !readOnly
-    ) {
-        FocusBorderWidth
-    } else {
-        BorderWidth
-    }
+    fun borderWidth(focused: Boolean, readOnly: Boolean): Dp =
+        if (focused && !readOnly) FocusBorderWidth else BorderWidth
 
     fun textStyle(typography: AppTypography): TextStyle = typography.labelNumeric.copy(textAlign = TextAlign.Center)
 
@@ -159,10 +167,17 @@ fun NumberInput(
     val colors = NumberInputDefaults.colors(focused, readOnly, AppTheme.colors)
     val textStyle = NumberInputDefaults.textStyle(AppTheme.typography).copy(color = colors.text)
     val fieldModifier = if (showLabel) modifier else modifier.semantics { contentDescription = label }
+    // The cursor lives in a TextFieldValue so normalization ("," -> "0,") can move it; an external change of
+    // [value] (e.g. fill from previous) resets it to the end.
+    var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    if (fieldValue.text != value) fieldValue = TextFieldValue(value, TextRange(value.length))
     BasicTextField(
-        value = value,
+        value = fieldValue,
         onValueChange = { raw ->
-            NumberInputDefaults.sanitize(raw, maxDecimals, maxIntegerDigits)?.let(onValueChange)
+            NumberInputDefaults.applyEdit(raw, maxDecimals, maxIntegerDigits)?.let { edited ->
+                fieldValue = edited
+                if (edited.text != value) onValueChange(edited.text)
+            }
         },
         modifier = fieldModifier,
         readOnly = readOnly,
@@ -196,19 +211,23 @@ fun NumberInput(
                         .padding(horizontal = NumberInputDefaults.HorizontalPadding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (value.isEmpty() && placeholder != null) {
-                        // Ghost text: never spoken as if it were a typed value.
-                        Text(
-                            text = placeholder,
-                            style = textStyle,
-                            color = colors.placeholder,
-                            maxLines = 1,
-                            modifier = Modifier.clearAndSetSemantics {},
-                        )
-                    }
+                    if (value.isEmpty() && placeholder != null) NumberInputPlaceholder(placeholder, textStyle, colors)
                     innerTextField()
                 }
             }
+        },
+    )
+}
+
+/** Ghost text: never spoken as if it were a typed value. */
+@Composable
+private fun NumberInputPlaceholder(text: String, style: TextStyle, colors: NumberInputColors) {
+    Text(
+        text = text,
+        style = style,
+        color = colors.placeholder,
+        maxLines = 1,
+        modifier = Modifier.clearAndSetSemantics {
         },
     )
 }

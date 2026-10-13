@@ -1,7 +1,9 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
@@ -108,6 +110,39 @@ class NumberInputTest {
     fun parse_invalid_isNull() {
         listOf("", ",", "abc", "1,2,3").forEach { assertNull(NumberInputDefaults.parse(it), it) }
     }
+
+    private fun edit(text: String, cursor: Int, decimals: Int = 2) =
+        NumberInputDefaults.applyEdit(TextFieldValue(text, TextRange(cursor)), decimals, 4)
+
+    @Test
+    fun applyEdit_separatorFirst_prefixedAndCursorAfterIt() {
+        assertEquals(TextFieldValue("0,", TextRange(2)), edit(",", 1))
+        assertEquals(TextFieldValue("0,", TextRange(2)), edit(".", 1))
+    }
+
+    @Test
+    fun applyEdit_separatorThenDigit_givesZeroCommaDigit() {
+        val afterSeparator = edit(",", 1)!!
+        // The user types "5" at the cursor, which sits after "0,".
+        val typed = TextFieldValue("0,5", TextRange(3))
+        assertEquals(2, afterSeparator.selection.end)
+        assertEquals(typed, NumberInputDefaults.applyEdit(typed, 2, 4))
+    }
+
+    @Test
+    fun applyEdit_zeroThenDigit_collapsesLeadingZero() =
+        assertEquals(TextFieldValue("7", TextRange(1)), edit("07", 2, decimals = 0))
+
+    @Test
+    fun applyEdit_midTextEdit_cursorStaysWhereTyped() {
+        // "1,5" with "0" inserted at the start: "01,5" -> "1,5", cursor 1 -> 0 + 1 delta -1.
+        assertEquals(TextFieldValue("1,5", TextRange(0)), edit("01,5", 1))
+        // Unchanged text keeps the raw value and its cursor.
+        assertEquals(TextFieldValue("12,5", TextRange(1)), edit("12,5", 1))
+    }
+
+    @Test
+    fun applyEdit_invalid_isNull() = assertNull(edit("1a", 2))
 
     @Test
     fun keyboardType_byDecimals() {
