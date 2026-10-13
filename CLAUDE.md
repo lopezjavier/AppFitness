@@ -73,7 +73,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 - **A finding that repeats becomes a check.** When pr-reviewer reports the same kind of defect a second time, add a script or CI guard for it within the epic (like `check-design-tokens.sh`), instead of another prose rule.
 - **Report facts.** Call something done only when verified; no "nearly done" estimates for running work.
 - **Lean context.** Subagent replies ≤ 10 lines plus findings; the PM quotes no file dumps or long command output, and user updates are a few lines per transition.
-- **Delivering an APK:** give the ready-to-paste `adb -s <serial> install -r "<absolute path>"` per device (serials in the PM's memory).
+- **Delivering an APK:** point the user to `! bash scripts/deliver-apk.sh` (builds and installs on their connected devices).
 - **Git identity:** repo-local `user.email` is the GitHub noreply address (GH007 blocks the private one); plain `gh pr merge --squash --delete-branch`.
 
 ## Commands
@@ -84,7 +84,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Text guards | `bash scripts/check-text-encoding.sh && bash scripts/check-e2e-tags.sh` (run in the always-on `gitleaks` job) |
 | Unit tests | `./gradlew testLocalDebugUnitTest` |
 | Install on the emulator (local Supabase) | `./gradlew :androidApp:installLocalDebug` |
-| Delivery APK | `./gradlew :androidApp:assembleProdDebug` |
+| Delivery APK | `bash scripts/deliver-apk.sh` (builds `prodDebug` and installs it on every connected phone/tablet; `--no-build`, `--serial <id>`, `--include-emulator`) |
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
@@ -97,7 +97,7 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 ## Epic closure
 
 1. All tasks merged, background QA finished, no open `qa` issues, and the full Maestro regression green.
-2. A developer runs `./gradlew :androidApp:assembleProdDebug` and returns the APK path; the PM gives it to the user with the install commands.
+2. The user runs `! bash scripts/deliver-apk.sh` with their devices connected (it builds the APK and installs it); the PM only points them to it.
 3. Log `[PM] [E#] [COMPLETED]` and wait for their feedback:
    - with changes → corrective tasks within the same epic;
    - approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`, then the retrospective with the user: write `retrospectives/E#.md` and turn durable lessons into rules here or in the agent files.
