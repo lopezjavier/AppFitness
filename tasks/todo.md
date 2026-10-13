@@ -622,12 +622,12 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 *Carry-over from T-020 (UX):* `ghostData` is about 3.3:1, so `NumberInput` keeps a visible label and the ghost placeholder is never the only cue.
 
 **Acceptance criteria:**
-- [ ] Unit tests: decimal input parsing/filtering for `NumberInput` (comma and dot, max decimals); rest timer `mm:ss` formatting and progress fraction; "+30s" extension.
-- [ ] Checkbox exposes checked state for accessibility and the catalog shows both states.
+- [x] Unit tests: decimal input parsing/filtering for `NumberInput` (comma and dot, max decimals); rest timer `mm:ss` formatting and progress fraction; "+30s" extension.
+- [x] Checkbox exposes checked state for accessibility and the catalog shows both states.
 
 **Verification:**
-- [ ] Lint + unit tests green.
-- [ ] QA: `tests/e2e/T-025.yaml` types into `NumberInput` and toggles the checkbox in the catalog; regression green.
+- [x] Lint + unit tests green.
+- [x] QA: `tests/e2e/T-025.yaml` types into `NumberInput` and toggles the checkbox in the catalog; regression green.
 
 **Dependencies:** T-024
 **Files likely touched:** `…/designsystem/{NumberInput,SetCompletionCheckbox,SetRow,RestTimerBar}.kt`, their tests, catalog screen, `tests/e2e/T-025.yaml`
@@ -642,6 +642,10 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 *Carry-over from T-023 (PR #23 review, non-blocking):* (1) `SegmentedSelector.kt`: the private `MinLabelFontSize = 8.sp` sits below the smallest type token; move it to `SegmentedSelectorDefaults` with KDoc + test and record the rule in `05-design-system.md` §6–7. (2) Auto-size is per segment, so "Mantenimiento" may shrink while siblings stay 14 sp, and it clips again above ~160 % font scale; try `Hyphens.Auto` + `maxLines = 2` (hyphenated Spanish wrap) or one shared label size for all segments, and pick by screenshot. (3) `AppChip.kt`: `AppChipDefaults.MinTouchTarget` is unused in production (the target comes from `minimumInteractiveComponentSize()`), so its test checks a constant; apply it or delete both. (4) `AppNavHost.kt`: `chrome()` duplicates the full-screen lookup in `isFullScreen()`; share one helper. (5) `ComponentCatalogScreen.kt`: `remember` the chip/segment option lists.
 
 *Carry-over from T-024 (QA):* (6) `stateDescription` of `MacroSlider`, `ProgressRing` and `TrendPill` is set in code but could not be verified on the API 37 emulator (uiautomator/Maestro do not expose it); cover it in this task's a11y-check decision (Compose semantics test, or a logged TalkBack check). Expected: slider "Proteínas, 30 por ciento, 180 gramos, 720 kilocalorías" (not the raw range %), ring "Calorías, 1.840 de 2.400 kcal, 560 kcal restantes", pill text + tone wording. (7) `MacroSlider.kt`: the disabled thumb is semi-transparent, so a lighter rectangle of the track shows through; use an opaque disabled thumb colour or draw the thumb above the track.
+
+*Carry-over from T-024 (PR #24 review, non-blocking):* (8) `MacroProgressBar.kt`: a negative consumed value shows as "−5 g" while the percent and fill treat it as 0; coerce it to 0 in the text too. (9) `MacroSlider.kt`: the header (label, "30 %", detail) adds three TalkBack stops that repeat the slider's spoken state; merge or hide it for TalkBack without breaking Maestro `assertVisible`. (10) `MacroSlider.kt`: `require(percent in valueRange)` crashes a release screen on an out-of-range value; use `coerceIn` or document it as a caller contract. (11) `ProgressRing.kt`: the status pill reuses `TrendPillDefaults.MinHeight`; give it its own constant or a shared internal container. (12) `DataVizCatalogSections.kt`: `remember` the `states` list. (13) `MacroProgressBar.kt`: `DotSize = 10.dp` is off the 4/8 dp grid.
+
+*Carry-over from T-025 (QA):* (14) Not verifiable on the emulator, so include in the a11y-check decision (or a logged TalkBack check on the phone): a `SetRow` field reads "Kilos, serie N" + value and never the ghost placeholder; the checkbox reads "Completar serie N" + checked state; the rest timer reads "Descanso: 1 min 12 s" and the seconds-only branch "Descanso: 30 s"; `Confirm`/`ToggleOff` haptics on a physical device; a completed (read-only) row opens no keyboard (Maestro cannot check it: `hideKeyboard` without a keyboard sends BACK).
 
 **Description:** `EmptyState` and `ErrorState` (icon + message + action) in the catalog, plus an accessibility pass on every catalog component: touch targets ≥ 48 × 48 dp and a `contentDescription` on every actionable icon. Decide and document how touch targets are tested (Compose UI test on the JVM if it works with the pinned versions; otherwise Maestro bounds checks + UX review).
 
@@ -752,3 +756,10 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 ### Checkpoint E1-E — E1 closure
 - [ ] Everything above verified; 👤 user approval → `v0.1.0`.
+
+---
+
+## Notes for later epics
+
+- **E2 (food diary), from the PR #24 review:** `MacroProgressBar` and `ProgressRing` take `Int`, but snapshots are stored to 0.1 g (04 §2), so a caller that rounds first can be off by 1 % (100.9/200 → 50 %, 101/200 → 51 %). Add `Double` overloads or have the domain pass in the percent.
+- **E4 (weight and progress), from the PR #24 review:** `MetricTile` and `TrendPill` are both `surfaceOverlay`, so the pill's outline disappears inside a tile; add a container-colour parameter.

@@ -104,4 +104,67 @@ class ContrastTest {
             assertTrue(ratio >= NON_TEXT, "thumb $thumb vs raised: $ratio < $NON_TEXT")
         }
     }
+
+    @Test
+    fun numberInput_valueTextOnOverlay_isAa() {
+        assertAa(c.textPrimary, c.surfaceOverlay, "textPrimary/surfaceOverlay")
+    }
+
+    @Test
+    fun numberInput_focusBorderLimeVsOverlayAndRaised_atLeast3to1() {
+        listOf(c.surfaceOverlay, c.surfaceRaised).forEach { bg ->
+            val ratio = contrastRatio(c.neonLime, bg)
+            assertTrue(ratio >= NON_TEXT, "lime vs $bg: $ratio < $NON_TEXT")
+        }
+    }
+
+    @Test
+    fun ghostData_onOverlayAndRaised_isSupportingOnly() {
+        // Documents the carry-over: ghostData is above 3:1 but below AA, so it is never the only cue.
+        listOf(c.surfaceOverlay, c.surfaceRaised).forEach { bg ->
+            val ratio = contrastRatio(c.ghostData, bg)
+            assertTrue(ratio >= NON_TEXT, "ghostData vs $bg: $ratio < $NON_TEXT")
+            assertTrue(ratio < AA, "ghostData vs $bg: $ratio >= $AA, revisit the supporting-only rule")
+        }
+    }
+
+    @Test
+    fun setCheckbox_checkedLimeVsRaised_atLeast3to1() {
+        val ratio = contrastRatio(c.neonLime, c.surfaceRaised)
+        assertTrue(ratio >= NON_TEXT, "lime vs raised: $ratio < $NON_TEXT")
+    }
+
+    @Test
+    fun setCheckbox_checkGlyphOnLime_isAa() {
+        assertAa(c.onNeonLime, c.neonLime, "onNeonLime/neonLime")
+    }
+
+    @Test
+    fun setCheckbox_uncheckedGhostGlyphOnOverlay_atLeast3to1() {
+        val ratio = contrastRatio(c.ghostData, c.surfaceOverlay)
+        assertTrue(ratio >= NON_TEXT, "ghost glyph vs overlay: $ratio < $NON_TEXT")
+    }
+
+    @Test
+    fun setHeaderAndIndex_textSecondaryOnRaisedAndOverlay_isAa() {
+        assertAa(c.textSecondary, c.surfaceRaised, "textSecondary/surfaceRaised")
+        assertAa(c.textSecondary, c.surfaceOverlay, "textSecondary/surfaceOverlay")
+    }
+
+    @Test
+    fun restTimer_cyanCountdownOnOverlay_isAa() {
+        assertAa(c.athleticCyan, c.surfaceOverlay, "cyan/surfaceOverlay")
+    }
+
+    @Test
+    fun restTimer_cyanLineVsBaseTrack_atLeast3to1() {
+        val ratio = contrastRatio(c.athleticCyan, c.surfaceBase)
+        assertTrue(ratio >= NON_TEXT, "cyan vs base track: $ratio < $NON_TEXT")
+    }
+
+    @Test
+    fun restTimer_actionTextsOnRaised_isAa() {
+        assertAa(c.textPrimary, c.surfaceRaised, "textPrimary/surfaceRaised")
+        assertAa(c.textSecondary, c.surfaceRaised, "textSecondary/surfaceRaised")
+    }
 }

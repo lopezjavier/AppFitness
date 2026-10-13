@@ -56,4 +56,9 @@ class SpacingShapesElevationTest {
     fun borderThin_isOneDp() {
         assertEquals(1.dp, AppBorder.thin)
     }
+
+    @Test
+    fun appBorder_focus_is1_5dp() {
+        assertEquals(1.5.dp, AppBorder.focus)
+    }
 }
