@@ -8,6 +8,8 @@
 # Entreno/Progreso show the same glyph in lime; the active label is visibly bolder than the inactive ones; no pill.
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-021.yaml
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - shell
 ---
 - launchApp:
     clearState: true

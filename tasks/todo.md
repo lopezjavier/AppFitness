@@ -754,7 +754,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 **Verification:**
 - [ ] Lint + unit tests green.
-- [ ] QA: phone regression green; tablet checked on a tablet emulator (create a `Pixel Tablet` AVD if missing) with screenshots, or manually if no AVD (logged).
+- [ ] QA: phone scoped regression green; tablet checked on a tablet emulator (create a `Pixel Tablet` AVD if missing) with screenshots, or manually if no AVD (logged).
 
 **Dependencies:** T-027
 **Files likely touched:** `…/designsystem/AppNavigation.kt`, `…/app/AppScaffold.kt`, `…/designsystem/Typography.kt`, test
@@ -774,7 +774,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 **Verification:**
 - [ ] Lint + unit tests green.
-- [ ] QA: `tests/e2e/T-029.yaml` with Maestro airplane mode (if unreliable on the emulator, manual check logged); full regression green.
+- [ ] QA: `tests/e2e/T-029.yaml` with Maestro airplane mode (if unreliable on the emulator, manual check logged); scoped regression green.
 
 **Dependencies:** T-028
 **Files likely touched:** `shared/…/domain/port/ConnectivityObserver.kt`, `composeApp/src/androidMain/…/platform/AndroidConnectivityObserver.kt`, `…/app/AppViewModel.kt`, `…/designsystem/OfflineBanner.kt`, DI module, test, `tests/e2e/T-029.yaml`
@@ -805,6 +805,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 ---
 
 ### Checkpoint E1-E — E1 closure
+- [ ] Full Maestro regression green (all tags).
 - [ ] Everything above verified; 👤 user approval → `v0.1.0`.
 
 ---

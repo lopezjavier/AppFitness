@@ -88,7 +88,7 @@ npx supabase stop
 ./gradlew :androidApp:installLocalDebug     # emulator + local Supabase ("AppFitness Local")
 ./gradlew testLocalDebugUnitTest            # unit tests of every module
 ./gradlew :androidApp:assembleProdDebug     # delivery APK: androidApp/build/outputs/apk/prod/debug/
-maestro test --test-output-dir tests/e2e/screenshots tests/e2e/   # full E2E regression; screenshots in tests/e2e/screenshots/ (gitignored); add --exclude-tags=catalog to skip the component-catalog flows
+maestro test --test-output-dir tests/e2e/screenshots tests/e2e/   # full E2E regression (checkpoints, epic closure); screenshots in tests/e2e/screenshots/ (gitignored); per task add --include-tags=<areas> (e.g. shell,catalog)
 ```
 
 ## 4. Deployment

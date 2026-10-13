@@ -32,7 +32,7 @@ Work autonomously within a task. After each merge, stop and wait for the user's 
 - Anything costing money, needing their accounts or consoles, or involving secrets.
 - Irreversible or outward-facing actions beyond the normal flow: force pushes, deleting remote data, changing production data outside migrations, changing repo or branch protection settings.
 - Two or more options that are equally reasonable and have a real trade-off that the user would care about.
-- The 👤 checkpoints in `tasks/todo.md` and epic closure.
+- The 👤 checkpoints in `tasks/todo.md` and epic closure. Before presenting a checkpoint, have qa-engineer run the full Maestro regression (all tags).
 
 Do not ask about process and documentation fixes, keeping docs and agent instructions consistent with a decision already taken, dependency versions that follow the stable-only rule, or choices the subagents (planner, ux-reviewer) already resolved within `planning/`.
 
@@ -76,7 +76,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
-| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · per-task regression: same with `--exclude-tags=catalog tests/e2e/` (drop the flag when the task touches `designsystem/` or the catalog) · full regression (epic closure): same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
+| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · scoped regression (per task): same with `--include-tags=<areas> tests/e2e/`, areas from the plan's E2E scope · full regression (every 👤 checkpoint and epic closure): same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI and merge | `gh pr checks --watch` · `gh pr merge --squash --delete-branch` |
 

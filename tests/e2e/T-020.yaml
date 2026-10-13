@@ -5,6 +5,8 @@
 # Sans text (compare "t", "e", "s" with Roboto), light status bar icons; no clipping at font scale 200%.
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-020.yaml
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - shell
 ---
 - launchApp:
     clearState: true
