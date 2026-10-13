@@ -2,6 +2,9 @@ package io.github.lopezjavier.appfitness.di
 
 import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.platform.AndroidConnectivityObserver
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val appModule =
@@ -14,4 +17,5 @@ val appModule =
                 isLocal = BuildConfig.FLAVOR == "local",
             )
         }
+        single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
     }

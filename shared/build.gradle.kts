@@ -17,6 +17,10 @@ kotlin {
     }
 
     sourceSets {
+        commonMain.dependencies {
+            // The ConnectivityObserver port exposes Flow in its public API.
+            api(libs.kotlinx.coroutines.core)
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
