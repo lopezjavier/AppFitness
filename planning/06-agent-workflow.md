@@ -22,11 +22,13 @@ Supersedes the original orchestrator and workflow documents (kept outside the re
   → ux-reviewer        validates the plan vs 05-design-system.md; defines testTags
   → frontend-developer and/or backend-developer (in parallel if decoupled)
                        TDD until green
-  → qa-engineer        Maestro on the emulator (local flavor)
+  → qa-engineer        the task's own flow on the emulator (local flavor) + screenshot review
         └─ REJECTED → back to the developer (max 3 iterations; then BLOCKED)
 [PM] marks the task done in tasks/todo.md on the branch
   → pr-creator         commit(s), push, gh pr create
   → pr-reviewer        gh pr diff → verdict (gh pr review --comment)
+  → e2e (CI)           full Maestro regression, in parallel with pr-reviewer (ADR-23);
+                       red → PM sends QA the run ID; QA triages from the artifacts
         └─ CHANGES REQUIRED → developer (+ QA if UI is affected)
 [PM] waits for green CI → gh pr merge --squash --delete-branch → COMPLETED
 ```
@@ -36,6 +38,7 @@ Supersedes the original orchestrator and workflow documents (kept outside the re
 [PM] start (same) → planner → backend-developer (pgTAP / deno test / local CI)
   → [PM] mark task → pr-creator → pr-reviewer → [PM] green CI → merge
 ```
+Note: an infrastructure task that touches app paths (`androidApp/`, `composeApp/`, `shared/`, `tests/e2e/`, Gradle files, the e2e workflow or its scripts) still triggers `e2e` in CI.
 
 ### 2.3 Minor corrective task (epic feedback, < ~50 lines)
 Planner optional (short plan in the PR itself); the rest follows the applicable flow.
@@ -73,8 +76,9 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | DB tests (RLS) | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
 | Serve functions locally | `npx supabase functions serve --env-file supabase/.env.local` |
-| E2E for a task | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` (screenshots land in the gitignored `tests/e2e/screenshots/<timestamp>/`) |
-| Full E2E regression | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/` |
+| E2E for a task (own flow) | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` (screenshots land in the gitignored `tests/e2e/screenshots/<timestamp>/`) |
+| One shard / several flows | `bash scripts/e2e-run-shard.sh <apk> <flows…>` |
+| Full E2E regression | CI `e2e` workflow (artifacts: `gh run download <run-id>`) |
 | View hierarchy | `maestro hierarchy` |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI status | `gh pr checks --watch` |
@@ -90,7 +94,7 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | `ux-reviewer` | sonnet | Read, Grep, Glob, Edit | frontend-ui-engineering (translated to Compose) | "UX notes" section in the plan + PASSED/REJECTED |
 | `frontend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Kotlin code + tests; lint/tests/build green |
 | `backend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
-| `qa-engineer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | debugging-and-error-recovery | `tests/e2e/T-###.yaml` + verdict; writes only in `tests/e2e/` |
+| `qa-engineer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | debugging-and-error-recovery | `tests/e2e/T-###.yaml` + verdict on the task's own flow, and CI failure triage; writes only in `tests/e2e/`, plus the shard list in `.github/workflows/e2e.yml` when it adds a flow |
 | `pr-creator` | haiku | Read, Grep, Glob, Bash | git-workflow-and-versioning | Atomic commits, push, PR; stops on any secret |
 | `pr-reviewer` | opus | Read, Grep, Glob, Bash | code-review-and-quality | Verdict as a review comment (`--comment`) |
 
@@ -101,7 +105,7 @@ The skills (`addyosmani/agent-skills`, in `.agents/skills/` and linked from `.cl
 ## 6. Epic closure and delivery
 
 1. All the epic's tasks are in `main` with green CI.
-2. Full E2E regression is green.
+2. Full E2E regression is green (CI `e2e` on `main`).
 3. `prodDebug` APK (pointing to production Supabase) → the user installs it on their phone/tablet.
 4. Feedback:
    - With changes → the PM creates corrective tasks within the epic.

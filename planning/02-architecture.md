@@ -72,7 +72,7 @@
   functions/        ← food-search, food-barcode, health, _shared/
   seed.sql          ← test user (local only) + exercise catalog
 /tests/e2e          ← Maestro flows <task-id>.yaml + shared subflows (login.yaml)
-/.github/workflows  ← android-ci, supabase-ci, deploy-supabase, keepalive, security
+/.github/workflows  ← android-ci, e2e, supabase-ci, deploy-supabase, keepalive, security
 /design/stitch      ← Stitch mockups (visual reference)
 /gradle/libs.versions.toml
 ```
@@ -149,7 +149,8 @@
 | Workflow | Trigger | Steps | Required to merge |
 |---|---|---|---|
 | `security.yml` | PR and push to `main` | gitleaks | Yes (from E0) |
-| `android-ci.yml` | PR and push to `main` (build job skipped when only `supabase/**` changed; the check always reports, ADR-20) | Design tokens guard (`scripts/check-design-tokens.sh`) → JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:testProdDebugUnitTest` → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
+| `android-ci.yml` | PR and push to `main` (build job skipped when only `supabase/**` changed; the check always reports, ADR-20) | Design tokens guard (`scripts/check-design-tokens.sh`) → JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:testProdDebugUnitTest` → test summary (`scripts/test-summary.sh`: per-module counts in the step summary; fails if no test ran; `test-results` artifact) → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
+| `e2e.yml` | PR and push to `main` (jobs skipped when nothing under `androidApp/`, `composeApp/`, `shared/`, `tests/e2e/`, Gradle files or the e2e workflow/scripts changed; the `e2e` check always reports, ADR-20) | Shard guard (`scripts/check-e2e-shards.sh`) → `./gradlew :androidApp:assembleLocalDebug` (APK artifact) → 3 matrix shards, each on its own KVM emulator (cached AVD snapshot) running its Maestro flows via `scripts/e2e-run-shard.sh` → aggregator `e2e`; screenshots and Maestro output uploaded per shard; no Supabase while no flow needs it (ADR-23) | Per user decision: required after 3 green runs (ADR-23) |
 | `supabase-ci.yml` | PR and push to `main` (test job skipped when nothing under `supabase/**` changed; the check always reports, ADR-20) | setup-cli (pinned via `package-lock.json`) → `supabase start` → `supabase db reset` → `supabase db lint --level warning --fail-on warning` → `supabase test db`, preceded by Deno fmt/lint/check/test for functions | Yes (from US-02) |
 | `deploy-supabase.yml` | push to `main` with changes in `supabase/**` + manual | `production` environment → `supabase link` → `supabase db push` → `supabase functions deploy` | — (from E0) |
 | `keepalive.yml` | cron `0 6 */3 * *` + manual | `curl` GET to `health` with the publishable key as `apikey` (ADR-12, ADR-17); fails on non-200 | — (from US-02) |

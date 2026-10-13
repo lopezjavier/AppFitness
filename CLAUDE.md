@@ -41,11 +41,11 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 2. **planner** → plan in `.workflow/current_task.md`.
 3. **ux-reviewer** → only if the task has UI.
 4. **frontend-developer** and/or **backend-developer** → TDD until green (in parallel if decoupled).
-5. **qa-engineer** → Maestro on the emulator, only if there is UI. On failure, back to the developer; after 3 rejections, `BLOCKED`.
+5. **qa-engineer** → only if there is UI: writes/updates the task's flow, runs **only that flow** on the emulator and checks its screenshots. On failure, back to the developer; after 3 rejections, `BLOCKED`. The full regression runs in CI (`e2e`), in parallel with step 8 (ADR-23).
 6. **[PM]** marks the task as done in `tasks/todo.md` **on the branch** (`main` is protected: nothing can be committed to it after the merge).
 7. **pr-creator** → commits + push + `gh pr create`.
 8. **pr-reviewer** → `gh pr review --comment` with a verdict (it cannot approve your own PR). On `CHANGES REQUIRED`, go back to step 4.
-9. **[PM]** `gh pr checks --watch` green → `gh pr merge --squash --delete-branch` → `git checkout main && git pull` → `COMPLETED`.
+9. **[PM]** `gh pr checks --watch` green (including `e2e` when it ran; if `e2e` fails, send QA the run ID to tell a flow failure from an app failure) → `gh pr merge --squash --delete-branch` → `git checkout main && git pull` → `COMPLETED`.
 
 ### Working files (`.workflow/`, not versioned)
 - `current_task.md`: plan of the active task (written by the planner; read by the other agents).
@@ -76,7 +76,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
-| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · regression: same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
+| E2E | own flow: `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · one shard / several flows: `bash scripts/e2e-run-shard.sh <apk> <flows…>` · full regression: CI `e2e` (artifacts: `gh run download <run-id>`) |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI and merge | `gh pr checks --watch` · `gh pr merge --squash --delete-branch` |
 
@@ -84,7 +84,7 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 
 ## Epic closure
 
-1. All tasks merged and the full Maestro regression green.
+1. All tasks merged and the full Maestro regression green (the `e2e` run on the last merge to `main`).
 2. `./gradlew :androidApp:assembleProdDebug` → give the APK path to the user.
 3. Log `[PM] [E#] [COMPLETED]` and wait for their feedback:
    - with changes → corrective tasks within the same epic;

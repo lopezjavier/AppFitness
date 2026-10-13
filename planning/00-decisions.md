@@ -120,6 +120,21 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** resolves finding #1 (§2) in favour of "3 tabs + profile via avatar". US-04's Gherkin, `01` FR-5.1, `05` §5–6 and tasks T-027/T-028 are updated; the T-021/T-022 code is adjusted in T-031.
 - **Approval:** 2026-10-12, user (Checkpoint E1-C feedback).
 
+### ADR-23 · Full Maestro regression in CI; QA runs the task's own flow
+- **Context:** QA ran the whole Maestro regression on the local emulator for every UI task. With T-020…T-026 that is ~7 min locally (T-023…T-026 are long catalog scrolls), and it grows with every task. GitHub-hosted Linux runners have KVM, and Actions minutes are free for public repositories, so an emulator in CI costs nothing.
+- **Decision:**
+  - A new `e2e.yml` workflow runs on every PR and push to `main` (no workflow-level path filter, ADR-20). A `changes` job (`dorny/paths-filter`, inclusion filter: `androidApp/`, `composeApp/`, `shared/`, `tests/e2e/`, Gradle files, the workflow and its scripts) skips docs-, `tasks/`-, `planning/`- and `supabase/`-only changes.
+  - One job builds `:androidApp:assembleLocalDebug` and uploads the APK. Three matrix shards, each on its own emulator (`reactivecircus/android-emulator-runner`, KVM, `google_apis` x86_64, API 37 (fallback order in the `e2e.yml` comment: 37 `default` -> 36 `google_apis`; the final level is confirmed by the first CI run), `medium_phone` profile, animations off, cached AVD snapshot), install it with `adb` and run their flows with a pinned Maestro CLI (2.11.0) through `scripts/e2e-run-shard.sh`. Shards are balanced by measured flow time; `scripts/check-e2e-shards.sh` fails the build if a flow is in no shard or in two.
+  - Screenshots, `commands.json`, `maestro.log` and logcat are uploaded per shard on every run.
+  - No local Supabase in the job while no flow uses the backend; it is added (`npx supabase start` before the emulator) when E2 brings the login subflow.
+  - An aggregator job named `e2e` is the single check context: it passes only when the build and every shard passed, or when the filter skipped the run.
+  - No automatic retries: a flaky flow is fixed in the flow (explicit waits, scroll targets, timeouts).
+  - QA runs only the task's own flow locally (plus visual and font-scale checks on its screenshots) and debugs CI failures from the artifacts (`gh run download`). QA also adds a new flow to the lightest shard in `e2e.yml`, its only allowed edit outside `tests/e2e/`; the guard script catches a missed one. The full regression runs in CI in parallel with the pr-reviewer; the PM merges only with `e2e` green.
+  - `e2e` becomes a **required check** on `main` after 3 consecutive green runs on the T-032 PR. The PM applies the ruleset change (`.github/rulesets/main.json`) after the merge.
+- **Consequences:** shorter QA iterations; regressions are caught on every app PR, not only when QA runs everything. App PRs wait ~10-11 min of extra CI wall time (build ~3-4 min, shard ~6 min), accepted for now; T-033 reduces it. CI emulators are slower than the dev PC, so timeouts tuned locally may need headroom. Rebalancing shards is a manual edit when flows are added. The Maestro CLI version is bumped by hand (Dependabot does not track it).
+- **Sources (checked 2026-10-13):** reactivecircus/android-emulator-runner README (KVM udev rule, AVD snapshot caching): https://github.com/ReactiveCircus/android-emulator-runner · Maestro CLI install and `MAESTRO_VERSION`: https://docs.maestro.dev/getting-started/installing-maestro · GitHub-hosted runners (4 vCPU Linux for public repos, KVM): https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners · GitHub Actions billing (free for public repos): https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions · Cache access across branches: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#restrictions-for-accessing-a-cache
+- **Approval:** 2026-10-13, user.
+
 ---
 
 ## 2. Findings from the review of the original documents
