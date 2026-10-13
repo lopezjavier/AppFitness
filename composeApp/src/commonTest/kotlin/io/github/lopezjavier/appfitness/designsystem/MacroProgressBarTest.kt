@@ -77,4 +77,16 @@ class MacroProgressBarTest {
         assertEquals(NUMERIC_FONT_FEATURES, MacroProgressBarDefaults.valueStyle(t).fontFeatureSettings)
         assertEquals(NUMERIC_FONT_FEATURES, MacroProgressBarDefaults.labelStyle(t).fontFeatureSettings)
     }
+
+    @Test
+    fun text_negativeConsumed_showsZero() {
+        val text = MacroProgressBarDefaults.text(-5, 180)
+        assertEquals("0 g / 180 g · 0 %", text.full)
+    }
+
+    @Test
+    fun dotSize_onSubGrid() {
+        assertEquals(Spacing.sm, MacroProgressBarDefaults.DotSize)
+        assertEquals(0f, MacroProgressBarDefaults.DotSize.value % 4f)
+    }
 }

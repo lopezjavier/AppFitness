@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
@@ -59,13 +60,31 @@ class MacroSliderTest {
     }
 
     @Test
-    fun colors_disabled_ghost() {
+    fun colors_disabled_allOpaque() {
         val colors = MacroSliderDefaults.colors(Macro.Protein, enabled = false, appColors = c)
-        assertEquals(c.ghostData, colors.thumb)
-        assertEquals(c.ghostData, colors.activeTrack)
-        assertEquals(c.ghostData, colors.value)
+        listOf(colors.thumb, colors.activeTrack, colors.inactiveTrack, colors.value).forEach {
+            assertEquals(1f, it.alpha)
+        }
+    }
+
+    @Test
+    fun colors_disabled_isGhostOverRaised() {
+        val colors = MacroSliderDefaults.colors(Macro.Protein, enabled = false, appColors = c)
+        val expected = c.ghostData.compositeOver(c.surfaceRaised)
+        assertEquals(expected, colors.thumb)
+        assertEquals(expected, colors.activeTrack)
+        assertEquals(expected, colors.value)
         assertEquals(c.surfaceOverlay, colors.inactiveTrack)
     }
+
+    @Test
+    fun coercePercent_belowRange_isFirst() = assertEquals(5, MacroSliderDefaults.coercePercent(2, 5..90))
+
+    @Test
+    fun coercePercent_aboveRange_isLast() = assertEquals(90, MacroSliderDefaults.coercePercent(95, 5..90))
+
+    @Test
+    fun coercePercent_inRange_unchanged() = assertEquals(30, MacroSliderDefaults.coercePercent(30, 5..90))
 
     @Test
     fun valueRange_matchesRules() = assertEquals(5..90, MacroSliderDefaults.ValueRange)

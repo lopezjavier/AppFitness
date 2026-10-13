@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -60,9 +61,20 @@ object MacroSliderDefaults {
     fun detailText(grams: Int, kcal: Int): String =
         "${AppNumberFormat.integer(grams)} g · ${AppNumberFormat.integer(kcal)} kcal"
 
-    /** Disabled controls are exempt from WCAG contrast (ghostData). */
+    /** Out-of-range values are clamped into [range] (no crash on a release screen). */
+    fun coercePercent(percent: Int, range: IntRange): Int = percent.coerceIn(range.first, range.last)
+
+    /**
+     * Disabled controls are exempt from WCAG contrast (ghostData). The disabled accent is precomposed
+     * over `surfaceRaised` (the card the slider sits on), so it stays opaque and the track never shows through.
+     */
     fun colors(macro: Macro, enabled: Boolean, appColors: AppColors): MacroSliderColors {
-        val accent = if (enabled) MacroDefaults.color(macro, appColors) else appColors.ghostData
+        val accent =
+            if (enabled) {
+                MacroDefaults.color(macro, appColors)
+            } else {
+                appColors.ghostData.compositeOver(appColors.surfaceRaised)
+            }
         return MacroSliderColors(
             thumb = accent,
             activeTrack = accent,
@@ -98,22 +110,22 @@ fun MacroSlider(
     enabled: Boolean = true,
     valueRange: IntRange = MacroSliderDefaults.ValueRange,
 ) {
-    require(percent in valueRange) { "percent $percent is outside $valueRange" }
+    val shownPercent = MacroSliderDefaults.coercePercent(percent, valueRange)
     val colors = MacroSliderDefaults.colors(macro, enabled, AppTheme.colors)
     val spoken =
         stringResource(
             Res.string.macro_slider_state,
-            AppNumberFormat.integer(percent),
+            AppNumberFormat.integer(shownPercent),
             AppNumberFormat.integer(grams),
             AppNumberFormat.integer(kcal),
         )
     Column {
-        MacroSliderHeader(label, percent, grams, kcal, colors.value)
+        MacroSliderHeader(label, shownPercent, grams, kcal, colors.value)
         Slider(
-            value = percent.toFloat(),
+            value = shownPercent.toFloat(),
             onValueChange = { raw ->
                 val snapped = MacroSliderDefaults.snap(raw, valueRange)
-                if (snapped != percent) onPercentChange(snapped)
+                if (snapped != shownPercent) onPercentChange(snapped)
             },
             modifier =
             modifier
@@ -137,8 +149,10 @@ fun MacroSlider(
 
 @Composable
 private fun MacroSliderHeader(label: String, percent: Int, grams: Int, kcal: Int, valueColor: Color) {
+    // One screen-reader stop instead of three. Not hidden: hideFromAccessibility() also removes the texts from the
+    // uiautomator tree that the T-024 Maestro flow reads.
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -163,7 +177,14 @@ private fun MacroSliderHeader(label: String, percent: Int, grams: Int, kcal: Int
 
 @Composable
 private fun SliderThumb(color: Color) {
-    Box(Modifier.size(MacroSliderDefaults.ThumbSize).clip(CircleShape).background(color))
+    // The thumb slot is as tall as the touch target, so the Slider's own semantics and drag area are 48 dp
+    // tall (a 24 dp thumb alone would shrink them to 24 dp); the visible circle is centred in it.
+    Box(
+        modifier = Modifier.size(MacroSliderDefaults.ThumbSize, MacroSliderDefaults.MinTouchHeight),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(MacroSliderDefaults.ThumbSize).clip(CircleShape).background(color))
+    }
 }
 
 @Composable
