@@ -24,7 +24,7 @@ All these rules are implemented as pure functions in `shared/domain/usecase/` wi
 | high | Alto | Ejercicio intenso 6–7 días por semana | 1.725 |
 | very_high | Muy alto | Entrenas dos veces al día o tienes un trabajo físico exigente | 1.9 |
 
-Each level is a selectable card showing the title and the description, so the user can tell the levels apart without guessing what counts. Below the cards, a hint: "Si dudas entre dos niveles, elige el más bajo" (people tend to overestimate their activity, and a lower factor errs on the side of the goal; user request 2026-10-14).
+Each level is a selectable card showing the title and the description, so the user can tell the levels apart without guessing what counts.
 
 Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 130 + 5 = 1729.5 → TDEE = round(2680.7) = **2681 kcal**.
 
@@ -32,7 +32,7 @@ Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 13
 - `target_kcal = TDEE + calorie_adjustment`.
 - Default adjustment when switching strategy: Deficit **−400**, Maintenance **0**, Surplus **+250**.
 - The user can change the adjustment in 50 kcal steps within the strategy range: Deficit [−1000, −50], Maintenance [−100, +100], Surplus [+50, +750].
-- Safety floor: `target_kcal ≥ 1200`; if the calculation gives less, it is set to 1200 and a warning is shown.
+- Safety floor by sex (ADR-25): `target_kcal ≥ 1200` for women and `≥ 1500` for men; if the calculation gives less, it is set to the floor and a warning is shown.
 - Adjustment label: |adjustment| ≤ 300 → "ligero" (light); ≤ 600 → "moderado" (moderate); > 600 → "agresivo" (aggressive) (e.g. "−400 kcal · Déficit moderado").
 - The target is **only recalculated when the user saves in Profile** (the screen's single "Guardar" button, ADR-24), using the latest weight, and the new value is stored in `nutrition_goals`. Logging a new weight does not change the target automatically (that will be Phase 2's adaptive adjustment).
 

@@ -163,11 +163,16 @@ Feature: Energy strategy and calorie target
     When the user lowers the adjustment by two steps
     Then the adjustment becomes −500 kcal and the target 2,300 kcal/day
 
-  Scenario: Safety floor
-    Given a TDEE of 1,500 kcal and strategy "Déficit"
+  Scenario Outline: Safety floor by sex (ADR-25)
+    Given a <sex> user with a TDEE of <tdee> kcal and strategy "Déficit"
     When the user sets a −400 adjustment
-    Then the daily target is set to 1,200 kcal/day
+    Then the daily target is set to <floor> kcal/day
     And a safety minimum warning is shown
+
+    Examples:
+      | sex    | tdee  | floor |
+      | female | 1,500 | 1,200 |
+      | male   | 1,800 | 1,500 |
 
   Scenario: Saving the goals in onboarding
     Given the user is on the last onboarding step

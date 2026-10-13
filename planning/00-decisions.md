@@ -140,6 +140,12 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** the E2 epic Gherkin is updated (resume prefill, re-save without duplicates, onboarding saving with the default split, "Guardar" on Profile, read-only weight). The onboarding weight entry must be identifiable to update it (chosen in the T-035 plan, e.g. the user's earliest `manual` row). Profile's save writes `profiles` and `nutrition_goals` together, so the planner picks an order or an RPC that never leaves them inconsistent.
 - **Approval:** 2026-10-14, user (answers to the E2 breakdown questions Q1–Q4).
 
+### ADR-25 · Calorie safety floor by sex (E2)
+- **Context:** the calorie target had one safety floor of 1200 kcal/day for everyone. Common nutrition guidelines put the minimum at about 1200 kcal/day for women and 1500 kcal/day for men.
+- **Decision:** the floor depends on the profile's sex: **1200 kcal/day for women, 1500 kcal/day for men**. When the calculation gives less, the target is set to the floor and the same safety warning is shown.
+- **Consequences:** `04-business-rules.md` §1.4, the US-07 "Safety floor" scenario and T-036 use the per-sex floor; recalculating on Profile (sex is editable there) applies the floor for the new sex.
+- **Approval:** 2026-10-14, user.
+
 ---
 
 ## 2. Findings from the review of the original documents
