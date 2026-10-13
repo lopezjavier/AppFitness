@@ -3,9 +3,9 @@
 #   adb shell settings put global animator_duration_scale 0
 #   adb shell settings put global window_animation_scale 0
 #   adb shell settings put global transition_animation_scale 0
-# Airplane mode: Maestro has no "enable" command, only setAirplaneMode: disabled
-# and toggleAirplaneMode (flips the state). Starting from a known "disabled"
-# state, toggleAirplaneMode therefore means "on"; setAirplaneMode: disabled turns it off.
+# Airplane mode: setAirplaneMode: enabled completes on our AVD (Medium_Phone_API_37.0,
+# Maestro 2.11.0) without actually taking the device offline, so from a known "disabled"
+# state we use toggleAirplaneMode to go offline and setAirplaneMode: disabled (works) to go back online.
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-029.yaml
 appId: io.github.lopezjavier.appfitness.local
 tags:
