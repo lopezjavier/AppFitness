@@ -209,7 +209,10 @@ private fun StateMessage(
                 PrimaryButton(
                     text = action.label,
                     onClick = action.onClick,
-                    modifier = tagged(testTagPrefix, "action").padding(top = StateMessageMetrics.ActionTopSpacing),
+                    modifier =
+                    Modifier
+                        .padding(top = StateMessageMetrics.ActionTopSpacing)
+                        .then(tagged(testTagPrefix, "action")),
                 )
             }
         }
