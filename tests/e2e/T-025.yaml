@@ -1,0 +1,225 @@
+# T-025 Workout input components in the debug catalog: NumberInput, set checkbox, SetRow, RestTimerBar (US-03).
+# Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD, animations off:
+#   adb shell settings put global animator_duration_scale 0
+#   adb shell settings put global window_animation_scale 0
+#   adb shell settings put global transition_animation_scale 0
+# Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-025.yaml
+# Checkboxes use Role.Checkbox, which Android exposes as checkable/checked, so `checked:` works.
+# The ghost placeholder is cleared from semantics, so empty fields are asserted by id only.
+appId: io.github.lopezjavier.appfitness.local
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "topbar_avatar"
+- assertVisible:
+    id: "profile_screen"
+- tapOn:
+    id: "profile_catalog_button"
+- assertVisible:
+    id: "catalog_screen"
+# NumberInput
+- scrollUntilVisible:
+    element:
+      id: "catalog_section_number_input"
+    direction: DOWN
+    visibilityPercentage: 20
+- scrollUntilVisible:
+    element:
+      id: "catalog_number_input_weight"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view before tapping
+- scroll
+- assertVisible:
+    id: "catalog_number_input_weight"
+- tapOn:
+    id: "catalog_number_input_weight"
+- inputText: "87.5"
+# Typing is asynchronous: wait for the filtered text instead of asserting immediately
+- extendedWaitUntil:
+    visible:
+      id: "catalog_number_input_weight"
+      text: "87,5"
+    timeout: 5000
+- hideKeyboard
+# 0 decimals: the separator is rejected, so "1.2" ends up as "12" (if the whole string is rejected, use "12")
+- scrollUntilVisible:
+    element:
+      id: "catalog_number_input_reps"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view before tapping
+- scroll
+- tapOn:
+    id: "catalog_number_input_reps"
+- inputText: "1.2"
+- assertVisible:
+    id: "catalog_number_input_reps"
+    text: "12"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "catalog_number_input_grams"
+    direction: DOWN
+- assertVisible:
+    id: "catalog_number_input_grams"
+    text: "150"
+- takeScreenshot: T-025_number_input
+# Checkbox
+- scrollUntilVisible:
+    element:
+      id: "catalog_section_set_checkbox"
+    direction: DOWN
+    visibilityPercentage: 20
+- scrollUntilVisible:
+    element:
+      id: "catalog_set_checkbox_unchecked"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view
+- scroll
+- assertVisible:
+    id: "catalog_set_checkbox_unchecked"
+    checked: false
+- assertVisible:
+    id: "catalog_set_checkbox_checked"
+    checked: true
+- takeScreenshot: T-025_checkbox_states
+- tapOn:
+    id: "catalog_set_checkbox_unchecked"
+- assertVisible:
+    id: "catalog_set_checkbox_unchecked"
+    checked: true
+- tapOn:
+    id: "catalog_set_checkbox_unchecked"
+- assertVisible:
+    id: "catalog_set_checkbox_unchecked"
+    checked: false
+# Set rows
+- scrollUntilVisible:
+    element:
+      id: "catalog_section_set_rows"
+    direction: DOWN
+    visibilityPercentage: 20
+- scrollUntilVisible:
+    element:
+      id: "catalog_set_header"
+    direction: DOWN
+- assertVisible:
+    id: "catalog_set_header"
+- assertVisible: "Nº"
+- assertVisible: "ANTERIOR"
+- assertVisible: "REPS"
+- assertVisible: "LISTO"
+- scrollUntilVisible:
+    element:
+      id: "catalog_set_row_3_check"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view
+- scroll
+- assertVisible:
+    id: "catalog_set_row_1_check"
+    checked: true
+- assertVisible:
+    id: "catalog_set_row_2_check"
+    checked: false
+- assertVisible: "80 kg × 10"
+- assertVisible: "85 kg × 8"
+- scrollUntilVisible:
+    element:
+      id: "catalog_set_row_3_previous"
+    direction: DOWN
+- assertVisible:
+    id: "catalog_set_row_3_previous"
+    text: "—"
+# Using the previous performance fills the fields of the pending row
+- tapOn:
+    id: "catalog_set_row_2_previous"
+- assertVisible:
+    id: "catalog_set_row_2_weight"
+    text: "85"
+- assertVisible:
+    id: "catalog_set_row_2_reps"
+    text: "8"
+- tapOn:
+    id: "catalog_set_row_2_check"
+- assertVisible:
+    id: "catalog_set_row_2_check"
+    checked: true
+- tapOn:
+    id: "catalog_set_row_3_weight"
+- inputText: "60,25"
+- assertVisible:
+    id: "catalog_set_row_3_weight"
+    text: "60,25"
+- hideKeyboard
+- takeScreenshot: T-025_set_rows
+# Rest timer
+- scrollUntilVisible:
+    element:
+      id: "catalog_section_rest_timer"
+    direction: DOWN
+    visibilityPercentage: 20
+- scrollUntilVisible:
+    element:
+      id: "catalog_rest_timer"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view
+- scroll
+- assertVisible:
+    id: "catalog_rest_timer"
+- assertVisible: "01:12"
+- tapOn:
+    id: "catalog_rest_timer_add"
+- assertVisible: "01:42"
+# Second extension goes beyond the original total
+- tapOn:
+    id: "catalog_rest_timer_add"
+- assertVisible: "02:12"
+- takeScreenshot: T-025_rest_timer
+- tapOn:
+    id: "catalog_rest_timer_skip"
+- assertNotVisible:
+    id: "catalog_rest_timer"
+- tapOn:
+    id: "catalog_rest_timer_reset"
+- assertVisible: "01:12"
+# Live countdown: only the format is asserted, the value changes every second
+- scrollUntilVisible:
+    element:
+      id: "catalog_rest_timer_start"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view
+- scroll
+- tapOn:
+    id: "catalog_rest_timer_start"
+- scrollUntilVisible:
+    element:
+      id: "catalog_rest_timer_live"
+    direction: DOWN
+# partially visible counts as found: bring it fully into view
+- scroll
+- assertVisible:
+    id: "catalog_rest_timer_live"
+# The live countdown really ticks: it leaves 02:00 within a few seconds
+- extendedWaitUntil:
+    visible:
+      id: "catalog_rest_timer_live_countdown"
+      text: "01:[0-5][0-9]"
+    timeout: 6000
+- scroll
+- tapOn:
+    id: "catalog_rest_timer_live_skip"
+- assertNotVisible:
+    id: "catalog_rest_timer_live"
+# Back
+- scrollUntilVisible:
+    element:
+      id: "topbar_back"
+    direction: UP
+- tapOn:
+    id: "topbar_back"
+- assertVisible:
+    id: "profile_screen"
+- back
+- assertVisible:
+    id: "nav_tab_diary"
+    selected: true
