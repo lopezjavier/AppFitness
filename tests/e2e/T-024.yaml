@@ -6,6 +6,8 @@
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-024.yaml
 # Ring, bar and pill children are cleared/merged for accessibility, so they are asserted by id only.
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - catalog
 ---
 - launchApp:
     clearState: true

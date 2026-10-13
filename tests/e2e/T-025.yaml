@@ -7,6 +7,8 @@
 # Checkboxes use Role.Checkbox, which Android exposes as checkable/checked, so `checked:` works.
 # The ghost placeholder is cleared from semantics, so empty fields are asserted by id only.
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - catalog
 ---
 - launchApp:
     clearState: true

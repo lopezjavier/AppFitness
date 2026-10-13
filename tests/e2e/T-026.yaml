@@ -5,6 +5,8 @@
 #   adb shell settings put global transition_animation_scale 0
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-026.yaml
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - catalog
 ---
 - launchApp:
     clearState: true
