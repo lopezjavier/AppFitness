@@ -141,6 +141,10 @@ object NumberInputDefaults {
  * that passed [NumberInputDefaults.sanitize] (an invalid edit is rejected as a whole). [label] is always
  * spoken; it is drawn above the field when [showLabel] is true. The [placeholder] is ghost data shown while
  * the field is empty and is not spoken. The caller's [modifier] lands on the text field node.
+ *
+ * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`/`TextFieldState`-style
+ * state). A `StateFlow` + `collectAsState` round-trip reverts for one frame and moves the cursor to the end on
+ * mid-text edits (relevant to the E3/E5 ViewModels).
  */
 @Composable
 fun NumberInput(
@@ -161,11 +165,11 @@ fun NumberInput(
     val textStyle = NumberInputDefaults.textStyle(AppTheme.typography).copy(color = colors.text)
     val fieldModifier = if (showLabel) modifier else modifier.semantics { contentDescription = label }
     // The cursor lives in a TextFieldValue so normalization ("," -> "0,") can move it; an external change of
-    // [value] (e.g. fill from previous) resets it to the end.
+    // [value] (e.g. fill from previous) resets it to the end. State is only written in onValueChange.
     var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
-    if (fieldValue.text != value) fieldValue = TextFieldValue(value, TextRange(value.length))
+    val shown = if (fieldValue.text == value) fieldValue else TextFieldValue(value, TextRange(value.length))
     BasicTextField(
-        value = fieldValue,
+        value = shown,
         onValueChange = { raw ->
             NumberInputDefaults.applyEdit(raw, maxDecimals, maxIntegerDigits)?.let { edited ->
                 fieldValue = edited
@@ -220,8 +224,7 @@ private fun NumberInputPlaceholder(text: String, style: TextStyle, colors: Numbe
         style = style,
         color = colors.placeholder,
         maxLines = 1,
-        modifier = Modifier.clearAndSetSemantics {
-        },
+        modifier = Modifier.clearAndSetSemantics {},
     )
 }
 
