@@ -51,7 +51,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [x] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro. (approved by the user 2026-10-13)
 
 ### Phase 5: Shell completion (US-04) — UI flow
-- [ ] T-027: Contextual FAB with WIP bottom sheets
+- [x] T-027: Contextual FAB with WIP bottom sheets
 - [ ] T-028: Adaptive layout with NavigationRail on tablets
 - [ ] T-029: Connectivity observer and "Sin conexión" banner
 - [ ] ~~T-032: Maestro regression in GitHub Actions~~ — dropped 2026-10-13 at the user's request (API 37 emulator image bug makes CI e2e flaky; see todo.md)
