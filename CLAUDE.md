@@ -84,7 +84,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Text guards | `bash scripts/check-text-encoding.sh && bash scripts/check-e2e-tags.sh` (run in the always-on `gitleaks` job) |
 | Unit tests | `./gradlew testLocalDebugUnitTest` |
 | Install on the emulator (local Supabase) | `./gradlew :androidApp:installLocalDebug` |
-| Delivery APK | `bash scripts/deliver-apk.sh` (builds `prodDebug` and installs it on every connected phone/tablet; `--no-build`, `--serial <id>`) |
+| Delivery APK | `bash scripts/deliver-apk.sh` (builds `prodDebug` and installs it on every connected phone/tablet; `--no-build`, `--serial <id>`, `--include-emulator`) |
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
