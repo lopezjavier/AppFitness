@@ -1,12 +1,17 @@
 package io.github.lopezjavier.appfitness.app
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -36,6 +41,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppNavigationType
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
+import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
+import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.UniversalFab
 import org.jetbrains.compose.resources.stringResource
 
@@ -44,7 +51,9 @@ import org.jetbrains.compose.resources.stringResource
  * its WIP sheet, and the NavHost. On [AppNavigationType.Bar] (compact widths) the navigation is the
  * bottom bar and the FAB sits in the Scaffold slot; on [AppNavigationType.Rail] (>= 600 dp) a side rail
  * carries the FAB at its top. The NavHost is the same composition in both, so switching keeps the
- * active tab, scroll and the open sheet.
+ * active tab, scroll and the open sheet. While [isOffline], the "Sin conexión" [OfflineBanner] sits right
+ * below the top bar on every destination and layout and pushes the content (and, on the rail layout,
+ * the rail) down; on the rail layout it spans the full width above the rail.
  */
 @Composable
 internal fun AppScaffold(
@@ -52,11 +61,9 @@ internal fun AppScaffold(
     features: AppFeatures = AppFeatures(),
     navController: NavHostController = rememberNavController(),
     navigationType: AppNavigationType = AppNavigationType.Bar,
+    isOffline: Boolean = false,
 ) {
-    val items =
-        remember {
-            TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
-        }
+    val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
     val chrome = entry.chrome()
     val fabAction = chrome.fabAction()
@@ -86,31 +93,62 @@ internal fun AppScaffold(
             }
         },
     ) { innerPadding ->
-        // Single place below the top bar: T-029 inserts the OfflineBanner above this Box.
-        ShellContent(
-            navController = navController,
-            features = features,
-            navigationType = navigationType,
-            innerPadding = innerPadding,
-            rail = {
-                if (chrome is ShellChrome.Tabs) {
-                    ShellRail(
-                        items = items,
-                        selectedIndex = chrome.tab.ordinal,
-                        onTabSelect = onTabSelect,
-                        header = {
-                            // Same tag as the phone FAB; the tab's contextual action decides whether it shows.
-                            fabAction?.let { action ->
-                                UniversalFab(fabLabel, onClick = { openSheet = action }, Modifier.testTag("fab"))
-                            }
-                        },
-                        modifier = it,
-                    )
-                }
-            },
-        )
+        BelowTopBar(isOffline, innerPadding) { contentPadding, contentModifier ->
+            ShellContent(
+                navController = navController,
+                features = features,
+                navigationType = navigationType,
+                innerPadding = contentPadding,
+                rail = {
+                    if (chrome is ShellChrome.Tabs) {
+                        ShellRail(
+                            items = items,
+                            selectedIndex = chrome.tab.ordinal,
+                            onTabSelect = onTabSelect,
+                            header = {
+                                // Same tag as the phone FAB; the tab's contextual action decides whether it shows.
+                                fabAction?.let { action ->
+                                    UniversalFab(fabLabel, onClick = { openSheet = action }, Modifier.testTag("fab"))
+                                }
+                            },
+                            modifier = it,
+                        )
+                    }
+                },
+                modifier = contentModifier,
+            )
+        }
     }
     openSheet?.let { WipActionSheet(action = it, onDismiss = { openSheet = null }) }
+}
+
+/**
+ * The area below the top bar: the offline banner (when [isOffline]) above [content]. The column consumes the
+ * top inset once, so [content] receives the Scaffold padding with a zero top and a modifier that fills the rest.
+ */
+@Composable
+private fun BelowTopBar(
+    isOffline: Boolean,
+    innerPadding: PaddingValues,
+    content: @Composable (PaddingValues, Modifier) -> Unit,
+) {
+    val layoutDirection = LocalLayoutDirection.current
+    val start = innerPadding.calculateStartPadding(layoutDirection)
+    val end = innerPadding.calculateEndPadding(layoutDirection)
+    val belowTopBar =
+        PaddingValues(start = start, top = Spacing.none, end = end, bottom = innerPadding.calculateBottomPadding())
+    Column(Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
+        // The live region lives on the banner root, inside the visibility block: announced on appearance only.
+        AnimatedVisibility(isOffline, enter = expandVertically(), exit = shrinkVertically()) {
+            OfflineBanner(Modifier.fillMaxWidth().padding(start = start, end = end), testTagPrefix = "offline_banner")
+        }
+        content(belowTopBar, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun rememberNavigationItems(): List<AppNavigationItem> = remember {
+    TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
 }
 
 @Composable
@@ -162,6 +200,7 @@ private fun ShellContent(
     navigationType: AppNavigationType,
     innerPadding: PaddingValues,
     rail: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -181,7 +220,7 @@ private fun ShellContent(
             end = innerPadding.calculateEndPadding(layoutDirection),
             bottom = insets.bottom,
         )
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
         AppNavHost(
             navController,
             tabPadding = tabPadding,

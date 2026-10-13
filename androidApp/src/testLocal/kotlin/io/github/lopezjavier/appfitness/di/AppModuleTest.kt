@@ -1,7 +1,11 @@
 package io.github.lopezjavier.appfitness.di
 
+import android.content.Context
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
+import org.koin.test.verify.verify
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -24,5 +28,12 @@ class AppModuleTest {
         } finally {
             app.close()
         }
+    }
+
+    @OptIn(KoinExperimentalAPI::class)
+    @Test
+    fun koinGraph_resolvesConnectivityObserverAndAppViewModel() {
+        appModule.verify(extraTypes = listOf(Context::class, String::class, Boolean::class))
+        uiModule.verify(extraTypes = listOf(ConnectivityObserver::class))
     }
 }

@@ -112,7 +112,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `TrendPill` | Weekly rate pill (green/red/amber) |
 | `SkeletonBox` | Animated placeholder (shimmer) |
 | `EmptyState` / `ErrorState` | 48 dp decorative icon (`inbox` / `error`, Material Symbols, tinted `textSecondary` / `error`) + optional title + message + primary action (`Reintentar` is required on `ErrorState`); max width 360 dp, centred; `ErrorState` text is a polite live region |
-| `OfflineBanner` | Banner below the Top Bar |
+| `OfflineBanner` | Full-width `surfaceRaised` strip below the Top Bar, 1 dp `borderSubtle` bottom line, 20 dp decorative `cloud_off` icon in `energyAmber` + "Sin conexión" `bodyMedium`; wraps at large font scale; polite live region; shown on every destination and layout (on the rail layout it spans the full width above the rail) |
 | `WipPlaceholder` | Work-in-progress screen container (E1 only) |
 
 Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vectors, with a `contentDescription` on every actionable icon.

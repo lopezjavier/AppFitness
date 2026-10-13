@@ -28,6 +28,11 @@ kotlinx-datetime = "0.8.0"
 # resolves it with lifecycle 2.9.6; compose ui/foundation are only raised to 1.12.1 (no downgrade, no
 # FAILED) and the shell runs on the emulator.
 navigation-compose = "2.9.2"
+# JetBrains lifecycle 2.9.6 (latest stable 2.9.x) is the version navigation-compose 2.9.2 already resolves
+# (T-021), so viewmodel-compose and runtime-compose add no upgrade or downgrade (checked in T-029).
+jetbrains-lifecycle = "2.9.6"
+# Latest stable (1.2.1, T-029); Flow assertions in commonTest.
+turbine = "1.2.1"
 junit = "4.13.2"
 # Compose UI semantics/touch-target tests on the JVM (T-026 spike). ui-test-junit4/manifest follow the
 # androidx compose ui version that androidRuntimeClasspath resolves (1.12.1). Robolectric tests pin an
@@ -68,6 +73,9 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "jetbrains-lifecycle" }
+lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "jetbrains-lifecycle" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }

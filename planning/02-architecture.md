@@ -59,7 +59,7 @@
       usecase/      ← CalculateTdee, BalanceMacros, MovingAverage, WeeklyRate,
                       EstimateOneRepMax, CalculateVolume…
       port/         ← interfaces: AuthCredentialProvider, HealthDataSource, BarcodeScanner,
-                      Haptics, Clock
+                      Haptics, Clock, ConnectivityObserver
     data/
       remote/       ← @Serializable DTOs + Supabase client
       repository/   ← implementations of the domain repositories

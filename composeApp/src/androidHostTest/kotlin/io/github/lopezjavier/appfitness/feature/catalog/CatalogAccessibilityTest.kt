@@ -2,13 +2,17 @@ package io.github.lopezjavier.appfitness.feature.catalog
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -38,7 +42,8 @@ private val ExpectedTags =
 private val ExpectedSections =
     listOf(
         "cards", "buttons", "chips", "segmented", "ring", "macro_bars", "macro_sliders", "metric_tiles",
-        "trend_pills", "number_input", "set_checkbox", "set_rows", "rest_timer", "state_messages", "top_bar",
+        "trend_pills", "number_input", "set_checkbox", "set_rows", "rest_timer", "state_messages", "offline_banner",
+        "top_bar",
         "navigation", "fab", "bottom_sheet", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }
 
@@ -121,6 +126,26 @@ class CatalogAccessibilityTest {
             }
         }
         assertEquals(ExpectedSections.toSet(), seen)
+    }
+
+    @Test
+    fun catalog_offlineBannerSample_showsMessage() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent { AppTheme { ComponentCatalogScreen(Modifier.fillMaxSize()) } }
+        val list = rule.onNodeWithTag("catalog_screen")
+        val message = rule.onAllNodes(hasTestTag("catalog_offline_banner_message"), useUnmergedTree = true)
+        var found = false
+        repeat(catalogItemCount(list)) { index ->
+            if (found) return@repeat
+            list.performScrollToIndex(index)
+            rule.mainClock.advanceTimeByFrame()
+            found = message.fetchSemanticsNodes().any { !it.boundsInRoot.isEmpty }
+        }
+        assertTrue(found, "offline banner sample not found in the catalog")
+        rule.onNodeWithTag("catalog_offline_banner_message", useUnmergedTree = true).assertTextEquals("Sin conexión")
+        rule.onNodeWithTag("catalog_offline_banner").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
+        )
     }
 
     private fun assertContainsExpectedTags(probes: Map<String, Probe>) {

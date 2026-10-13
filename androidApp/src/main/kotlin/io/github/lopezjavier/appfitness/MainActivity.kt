@@ -8,8 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import io.github.lopezjavier.appfitness.app.App
 import io.github.lopezjavier.appfitness.app.AppFeatures
+import io.github.lopezjavier.appfitness.app.AppRoot
 import io.github.lopezjavier.appfitness.config.AppConfig
 import org.koin.android.ext.android.inject
 
@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             // Exposes Compose testTags as resource ids for Maestro's `id:` selector.
-            App(
+            AppRoot(
                 modifier = Modifier.semantics { testTagsAsResourceId = true },
                 features = AppFeatures.from(appConfig),
             )

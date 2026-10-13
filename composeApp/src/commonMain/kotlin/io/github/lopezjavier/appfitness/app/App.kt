@@ -9,14 +9,22 @@ import io.github.lopezjavier.appfitness.designsystem.navigationType
 import io.github.lopezjavier.appfitness.designsystem.typeScale
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 
-/** Root composable: theme plus the navigation shell. [modifier] reaches the root layout. */
+/**
+ * Root composable: theme plus the navigation shell. [modifier] reaches the root layout; [isOffline]
+ * shows the "Sin conexión" banner.
+ */
 @Composable
-fun App(modifier: Modifier = Modifier, features: AppFeatures = AppFeatures()) {
+fun App(modifier: Modifier = Modifier, features: AppFeatures = AppFeatures(), isOffline: Boolean = false) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val widthClass = windowWidthClassFor(maxWidth)
         // No branch around AppScaffold: its NavHost and saved state must survive a live resize.
         AppTheme(typeScale = widthClass.typeScale) {
-            AppScaffold(Modifier.fillMaxSize(), features = features, navigationType = widthClass.navigationType)
+            AppScaffold(
+                Modifier.fillMaxSize(),
+                features = features,
+                navigationType = widthClass.navigationType,
+                isOffline = isOffline,
+            )
         }
     }
 }

@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_empty_plain
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_error_title
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_offline_banner
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_state_messages
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_action_count
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
@@ -28,12 +29,24 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
 
-/** Catalog section of the empty and error state blocks (T-026). */
+/** Catalog sections of the empty and error state blocks (T-026) and the offline banner (T-029). */
 internal fun LazyListScope.stateMessageItems() {
     item { StateMessagesSection() }
+    item { OfflineBannerSection() }
+}
+
+@Composable
+private fun OfflineBannerSection() {
+    CatalogSection(
+        stringResource(Res.string.catalog_section_offline_banner),
+        "catalog_section_offline_banner",
+    ) {
+        OfflineBanner(Modifier.fillMaxWidth(), testTagPrefix = "catalog_offline_banner")
+    }
 }
 
 @Composable
