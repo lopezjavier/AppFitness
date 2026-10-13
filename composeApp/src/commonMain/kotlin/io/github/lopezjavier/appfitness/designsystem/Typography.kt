@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
-/** Type scale: [Tablet] (width >= 600 dp, selected in T-028) only enlarges the hero and metric styles. */
+/** Type scale: [Tablet] (>= 600 dp, see [windowWidthClassFor]) only enlarges the hero and metric styles. */
 enum class TypeScale { Phone, Tablet }
 
 /** Tabular, lining figures on every style, so numbers never jump (05 §1.7 and §3). */
