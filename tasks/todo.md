@@ -769,12 +769,12 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 **Description:** `ConnectivityObserver` interface (`Flow<Boolean>`) in `shared` (`domain/port`), Android implementation with `ConnectivityManager.NetworkCallback` in `androidMain`, injected with Koin. The shell shows `OfflineBanner` below the Top App Bar while offline and hides it when the connection returns (ADR-01). Banner added to the catalog.
 
 **Acceptance criteria:**
-- [ ] Shell state driven by the observer and covered by a ViewModel test with a fake observer (online → offline → online) using Turbine.
-- [ ] Android implementation emits the current state on collection and is unregistered on cancellation; `ACCESS_NETWORK_STATE` permission declared.
+- [x] Shell state driven by the observer and covered by a ViewModel test with a fake observer (online → offline → online) using Turbine.
+- [x] Android implementation emits the current state on collection and is unregistered on cancellation; `ACCESS_NETWORK_STATE` permission declared.
 
 **Verification:**
-- [ ] Lint + unit tests green.
-- [ ] QA: `tests/e2e/T-029.yaml` with Maestro airplane mode (if unreliable on the emulator, manual check logged); scoped regression green.
+- [x] Lint + unit tests green.
+- [x] QA: `tests/e2e/T-029.yaml` with Maestro airplane mode (if unreliable on the emulator, manual check logged); scoped regression green. *(Maestro `toggleAirplaneMode`; `setAirplaneMode: enabled` did not take effect on the emulator. Scoped `shell` regression 6/6 green; rail in landscape offline checked.)*
 
 **Dependencies:** T-028
 **Files likely touched:** `shared/…/domain/port/ConnectivityObserver.kt`, `composeApp/src/androidMain/…/platform/AndroidConnectivityObserver.kt`, `…/app/AppViewModel.kt`, `…/designsystem/OfflineBanner.kt`, DI module, test, `tests/e2e/T-029.yaml`
