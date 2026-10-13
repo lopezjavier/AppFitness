@@ -109,6 +109,7 @@
     <string name="catalog_state_action_count">Acciones pulsadas: %1$s</string>
     <string name="catalog_section_top_bar">Barra superior</string>
     <string name="catalog_section_navigation">Navegación</string>
+    <string name="catalog_nav_rail_caption">Barra lateral (tablet)</string>
     <string name="catalog_section_skeleton">Esqueleto de carga</string>
     <string name="catalog_section_wip">Pantalla en construcción</string>
     <string name="catalog_section_theme">Tema</string>

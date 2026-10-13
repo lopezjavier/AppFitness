@@ -14,7 +14,7 @@ private val KineticMaterialShapes = kineticMaterialShapes()
  * Kinetic Dark theme (dark only, planning/05-design-system.md). Provides [AppTheme.colors] and
  * [AppTheme.typography], and a consistent [MaterialTheme] so stock M3 components match.
  *
- * @param typeScale [TypeScale.Tablet] for widths >= 600 dp (wired in T-028).
+ * @param typeScale [TypeScale.Tablet] for wide windows; pick it with [windowWidthClassFor] (`.typeScale`).
  */
 @Composable
 fun AppTheme(typeScale: TypeScale = TypeScale.Phone, content: @Composable () -> Unit) {

@@ -97,7 +97,7 @@
 | Serialization / dates | kotlinx-serialization, kotlinx-datetime, kotlinx-coroutines |
 | DI | Koin (core + compose + viewmodel) |
 | Navigation | Multiplatform Navigation Compose (type-safe routes with `@Serializable`) |
-| Adaptive | Material3 adaptive / navigation-suite (WindowSizeClass, NavigationRail) |
+| Adaptive | In-app `WindowWidthClass` (600 dp = the M3 WindowSizeClass Medium breakpoint) picks bottom bar vs. `NavigationRail` (material3); no `material3-adaptive` / `navigation-suite` dependency |
 | Charts | Vico (multiplatform) |
 | Images | Coil 3 (Google avatar) |
 | Android auth | androidx.credentials + `googleid` |
