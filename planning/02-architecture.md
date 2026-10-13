@@ -149,7 +149,7 @@
 | Workflow | Trigger | Steps | Required to merge |
 |---|---|---|---|
 | `security.yml` | PR and push to `main` | gitleaks | Yes (from E0) |
-| `android-ci.yml` | PR and push to `main` (build job skipped when only `supabase/**` changed; the check always reports, ADR-20) | Design tokens guard (`scripts/check-design-tokens.sh`) → JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:testProdDebugUnitTest` → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
+| `android-ci.yml` | PR and push to `main` (build job skipped when only `supabase/**` or text-only paths changed; the check always reports, ADR-20) | Design tokens guard (`scripts/check-design-tokens.sh`) → JDK 21 (Temurin) + Gradle cache → `./gradlew ktlintCheck detekt` → `./gradlew testLocalDebugUnitTest` → `./gradlew :androidApp:testProdDebugUnitTest` → `./gradlew :androidApp:assembleProdDebug` (APK artifact) | Yes (from US-01) |
 | `supabase-ci.yml` | PR and push to `main` (test job skipped when nothing under `supabase/**` changed; the check always reports, ADR-20) | setup-cli (pinned via `package-lock.json`) → `supabase start` → `supabase db reset` → `supabase db lint --level warning --fail-on warning` → `supabase test db`, preceded by Deno fmt/lint/check/test for functions | Yes (from US-02) |
 | `deploy-supabase.yml` | push to `main` with changes in `supabase/**` + manual | `production` environment → `supabase link` → `supabase db push` → `supabase functions deploy` | — (from E0) |
 | `keepalive.yml` | cron `0 6 */3 * *` + manual | `curl` GET to `health` with the publishable key as `apikey` (ADR-12, ADR-17); fails on non-200 | — (from US-02) |

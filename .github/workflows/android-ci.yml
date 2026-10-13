@@ -43,7 +43,7 @@ jobs:
               - '!planning/**'
               - '!tasks/**'
               - '!design/**'
-              - '!tests/e2e/**'
+              - '!tests/e2e/**' # safe only while Maestro does not run in CI (T-032 dropped)
               - '!.claude/**'
               - '!.agents/**'
 
