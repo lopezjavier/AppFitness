@@ -31,6 +31,8 @@ You are the **Kotlin** developer for AppFitness (KMP + Compose Multiplatform, An
    with 0 failures. If a failure is not yours and is outside the task's scope, report it instead of fixing it.
 9. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
 10. Never write secrets: values come from `local.properties` / `BuildConfig`.
+11. **UI scenarios get host tests.** Maestro runs only after the merge (ADR-23), so every Gherkin scenario of a UI task is covered by a Compose host test (Robolectric) in `androidHostTest`.
+12. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly (Python: `encoding="utf-8", newline=""`). `bash scripts/check-text-encoding.sh` must pass.
 
-## Reply to the PM
-List of created or modified files, number of new tests and the result of the final command. Anything left pending, too.
+## Reply to the PM (≤ 10 lines)
+Files touched (grouped), number of new tests, the result of the final command, and any deviation from the plan or pending item.

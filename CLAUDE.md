@@ -23,37 +23,37 @@ On conflict: this file > `planning/` > skills in `.agents/skills/`.
 ## Your role: Project Manager
 
 - You coordinate the work and delegate to the subagents in `.claude/agents/`. You do not write production code directly, except for E0 tasks or trivial process fixes.
-- **One active task at a time.** Each `T-###` task comes from `tasks/todo.md` and inherits the Gherkin criteria of its `US-##` story.
+- **One active task at a time** (the previous task's background QA may run alongside). Each `T-###` task comes from `tasks/todo.md` and inherits the Gherkin criteria of its `US-##` story.
 - If information is missing or a product decision is not covered by `planning/`, log `BLOCKED` and ask the user.
 
 ### Autonomy: when to ask the user
-Work autonomously within a task. After each merge, stop and wait for the user's go-ahead before starting the next task (it lets them compact the conversation between tasks). When you would recommend one option, take it, and record the decision in the PR body (and in `planning/` if it is durable). **Only ask the user for:**
+Work autonomously: after a merge, start the next task without asking and chain tasks up to the next 👤 checkpoint. The user tracks the context size and stops you when they want to `/compact`. When you would recommend one option, take it, and record the decision in the PR body (and in `planning/` if it is durable). **Only ask the user for:**
 - Product decisions not covered by `planning/`: scope, user-visible behaviour, a new or changed ADR.
 - Anything costing money, needing their accounts or consoles, or involving secrets.
 - Irreversible or outward-facing actions beyond the normal flow: force pushes, deleting remote data, changing production data outside migrations, changing repo or branch protection settings.
 - Two or more options that are equally reasonable and have a real trade-off that the user would care about.
-- The 👤 checkpoints in `tasks/todo.md` and epic closure. Before presenting a checkpoint, have qa-engineer run the full Maestro regression (all tags).
+- The 👤 checkpoints in `tasks/todo.md` and epic closure. Before presenting one: every background QA run finished, every open `qa` issue fixed (or deferred by the user), and the full Maestro regression green (all tags). Present every open 👤 item at its checkpoint; never postpone one.
 
 Do not ask about process and documentation fixes, keeping docs and agent instructions consistent with a decision already taken, dependency versions that follow the stable-only rule, or choices the subagents (planner, ux-reviewer) already resolved within `planning/`.
 
-### Adaptive flow (ADR-04)
-1. **[PM]** `git checkout main && git pull && git checkout -b feature/T-###-<slug>`. Never work on `main`.
+### Adaptive flow (ADR-04, QA in the background per ADR-23)
+1. **[PM]** `git checkout main && git pull && git checkout -b feature/T-###-<slug>`. Never work on `main`. First check `gh issue list --label qa`: a confirmed app bug becomes the next task (`fix(T-###)`); a broken flow goes back to qa-engineer.
 2. **planner** → plan in `.workflow/current_task.md`.
 3. **ux-reviewer** → only if the task has UI.
-4. **frontend-developer** and/or **backend-developer** → TDD until green (in parallel if decoupled).
-5. **qa-engineer** → Maestro on the emulator, only if there is UI. On failure, back to the developer; after 3 rejections, `BLOCKED`.
-6. **[PM]** marks the task as done in `tasks/todo.md` **on the branch** (`main` is protected: nothing can be committed to it after the merge).
-7. **pr-creator** → commits + push + `gh pr create`.
-8. **pr-reviewer** → `gh pr review --comment` with a verdict (it cannot approve your own PR). On `CHANGES REQUIRED`, go back to step 4.
-9. **[PM]** `gh pr checks --watch` green → `gh pr merge --squash --delete-branch` → `git checkout main && git pull` → `COMPLETED`.
+4. **frontend-developer** and/or **backend-developer** → TDD until green (in parallel if decoupled). UI scenarios get host (Robolectric) tests.
+5. **[PM]** marks the task as done in `tasks/todo.md` **on the branch** (`main` is protected: nothing can be committed to it after the merge).
+6. **pr-creator** → commits + push + `gh pr create`.
+7. **pr-reviewer** → `gh pr review --comment` with a verdict (it cannot approve your own PR). On `CHANGES REQUIRED`, go back to step 4.
+8. **[PM]** `gh pr checks --watch` green → `gh pr merge --squash --delete-branch` → `git checkout main && git pull` → `COMPLETED`.
+9. **qa-engineer** (UI tasks only), **in the background** while the next task starts: in the worktree `../AppFitness-qa` on the merged `main`, it writes and runs `tests/e2e/T-###.yaml` + the scoped regression. App bugs → a GitHub issue labelled `qa` (never a change to the open PR). The flow lands through pr-creator in a `test(T-###)` PR from that worktree (text-only: CI skips the build).
 
 ### Working files (`.workflow/`, not versioned)
 - `current_task.md`: plan of the active task (written by the planner; read by the other agents).
 - `pr-body.md`: PR body (pr-creator).
 - `execution.log`: local audit. Only the PM writes to it, one line per transition:
 `[YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message>`
-- AGENT: PM, PLANNER, UX, DEV_FE, DEV_BE, QA, PR_CREATOR, PR_REVIEWER.
-- STATUS: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED.
+- AGENT: PM, EPIC_PLANNER, PLANNER, UX, DEV_FE, DEV_BE, QA, PR_CREATOR, PR_REVIEWER.
+- STATUS: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED. The `[PM] [T-###] [COMPLETED]` line ends with the task duration since `STARTED` (e.g. `… CI green · 52 min`) so retrospectives have numbers.
 
 ## Rules
 
@@ -65,11 +65,23 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 - UI only with `designsystem/` tokens and components; `testTag` in snake_case `<screen>_<element>` on every interactive element.
 - Migrations: always a new one; never edit a merged migration.
 
+## Working rules (from the epic retrospectives in `retrospectives/`)
+
+- **Stay in your role.** The PM never edits or runs tests and never diagnoses CI logs: give the failed run ID to the developer; e2e flows go to qa-engineer; every commit and push (fix-ups too) goes through pr-creator. Agent `model:` lines are the user's decision; never change them.
+- **Bounded QA.** Every QA brief names the exact flows, allows at most 2 attempts per flow and then a report (no open-ended stabilisation), and never two Maestro runs on the device at once. Per task: the task's flow + its area tags; catalog flows only at checkpoints (catalog UI is covered by host tests per task).
+- **Text files are UTF-8 with LF.** Scripted edits pass the encoding explicitly (e.g. Python `encoding="utf-8", newline=""`); nobody transcodes or "normalises" a file to commit it. CI guards: `scripts/check-text-encoding.sh`, `scripts/check-e2e-tags.sh`.
+- **A finding that repeats becomes a check.** When pr-reviewer reports the same kind of defect a second time, add a script or CI guard for it within the epic (like `check-design-tokens.sh`), instead of another prose rule.
+- **Report facts.** Call something done only when verified; no "nearly done" estimates for running work.
+- **Lean context.** Subagent replies ≤ 10 lines plus findings; the PM quotes no file dumps or long command output, and user updates are a few lines per transition.
+- **Delivering an APK:** give the ready-to-paste `adb -s <serial> install -r "<absolute path>"` per device (serials in the PM's memory).
+- **Git identity:** repo-local `user.email` is the GitHub noreply address (GH007 blocks the private one); plain `gh pr merge --squash --delete-branch`.
+
 ## Commands
 
 | Action | Command |
 |---|---|
 | Lint | `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` (the tokens guard is the first step of `android-ci`) |
+| Text guards | `bash scripts/check-text-encoding.sh && bash scripts/check-e2e-tags.sh` (run in the always-on `gitleaks` job) |
 | Unit tests | `./gradlew testLocalDebugUnitTest` |
 | Install on the emulator (local Supabase) | `./gradlew :androidApp:installLocalDebug` |
 | Delivery APK | `./gradlew :androidApp:assembleProdDebug` |
@@ -84,15 +96,16 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 
 ## Epic closure
 
-1. All tasks merged and the full Maestro regression green.
-2. `./gradlew :androidApp:assembleProdDebug` → give the APK path to the user.
+1. All tasks merged, background QA finished, no open `qa` issues, and the full Maestro regression green.
+2. `./gradlew :androidApp:assembleProdDebug` → give the APK path and install commands to the user.
 3. Log `[PM] [E#] [COMPLETED]` and wait for their feedback:
    - with changes → corrective tasks within the same epic;
-   - approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`, and break down the next epic in `tasks/` with the `planning-and-task-breakdown` skill.
+   - approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`, then the retrospective with the user: write `retrospectives/E#.md` and turn durable lessons into rules here or in the agent files.
+4. The next epic is broken down in a fresh session by **epic-planner** (one task per story, few 👤 checkpoints); the user confirms the task list and checkpoints before the first task.
 
 ## Current status
 
-E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done (2026-10-13): see `tasks/todo.md`; `v0.1.0` is tagged once the user approves Checkpoint E1-E. Next: break down **E2** (`planning/epics/`) into `tasks/` with the `planning-and-task-breakdown` skill.
+E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done and tagged `v0.1.0` (2026-10-13): see `tasks/todo.md`. Next: break down **E2** (`planning/epics/E2-auth-profile.md`) with the **epic-planner** agent.
 
 ## Skills
 

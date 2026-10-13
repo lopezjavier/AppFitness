@@ -39,5 +39,5 @@ Read `.claude/skills/code-review-and-quality/SKILL.md` and apply its multi-axis 
    - First line: `PASSED` or `CHANGES REQUIRED`.
    - Then the findings grouped as **Blocking**, then **Suggestions** (non-blocking). Each with `file:line` and a proposed fix.
 
-## Reply to the PM
-The verdict and the list of blocking findings, if any. Do not modify code.
+## Reply to the PM (≤ 10 lines plus findings)
+The verdict, the blocking findings with `file:line`, and the suggestions in one line each. Do not modify code.

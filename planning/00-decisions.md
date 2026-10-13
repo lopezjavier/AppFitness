@@ -16,7 +16,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### ADR-03 · Scope: original requirements only
 - **Decision:** the Stitch mockups are used as a **style** reference. Features that appear in the mockups but not in the original requirements are out of Phase 1 (see `01-phase1-scope.md`).
 
-### ADR-04 · Adaptive workflow
+### ADR-04 · Adaptive workflow (QA step amended by ADR-23)
 - **Decision:** tasks with UI follow the full flow (Planner → UX → Dev → QA Maestro → PR Creator → PR Reviewer). Infrastructure/backend tasks without UI skip UX and Maestro and are validated with pgTAP, Edge Function tests and CI.
 - **Consequences:** merging into `main` is gated by required CI checks (branch protection), not by the PR Reviewer's approval (GitHub does not allow approving your own PR). Details in `06-agent-workflow.md`.
 
@@ -119,6 +119,16 @@ Format: context → decision → consequences. A decision is only changed by add
   - Active tab indicator: `neonLime` icon and label, the label in extra-bold (W800 instead of W600), and the **filled** icon where the glyph has a distinct filled variant (today only Diario's `local_fire_department`; `fitness_center` and `monitoring` look the same filled); no pill. It keeps the mockup icons while giving every tab a non-colour cue (WCAG 1.4.1).
 - **Consequences:** resolves finding #1 (§2) in favour of "3 tabs + profile via avatar". US-04's Gherkin, `01` FR-5.1, `05` §5–6 and tasks T-027/T-028 are updated; the T-021/T-022 code is adjusted in T-031.
 - **Approval:** 2026-10-12, user (Checkpoint E1-C feedback).
+
+### ADR-23 · Maestro QA in the background, findings as GitHub issues
+- **Context:** in E1, QA was the largest share of each task (30–100 min in T-027/T-028) and blocked the merge, yet it found no app bug: the 7 defects caught came from pr-reviewer. Host (Robolectric) tests already cover most UI scenarios.
+- **Decision:**
+  - A UI task no longer waits for Maestro. After its merge, qa-engineer runs in the background in a separate worktree (`../AppFitness-qa`, on the merged `main`) while the next task starts: it writes `tests/e2e/T-###.yaml` and runs it plus the scoped regression, with a bounded brief (exact flows, at most 2 attempts per flow, never two Maestro runs at once).
+  - App bugs become GitHub issues labelled `qa` (scenario, failing step, expected vs actual, log lines); QA never changes an open PR. The flow lands through pr-creator in a `test(T-###)` PR (text-only, so `android-ci` skips its build).
+  - The PM checks open `qa` issues before starting each task: a confirmed bug becomes a `fix(T-###)` task; a broken flow goes back to qa-engineer.
+  - A 👤 checkpoint or epic closure requires every QA run finished, no open `qa` issue (or one the user explicitly defers) and the full regression green. Catalog flows run only at checkpoints.
+- **Consequences:** a bug can live on `main` for a task or two before its fix; UI scenarios must have host tests in the task itself. `CLAUDE.md`, `06-agent-workflow.md` and the qa-engineer, planner and pr-creator instructions are updated.
+- **Approval:** 2026-10-13, user (E1 retrospective; the user proposed the design).
 
 ---
 

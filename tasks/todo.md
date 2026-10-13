@@ -417,7 +417,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 
 ### Checkpoint E1-A — CI gate
 - [x] `main` requires `gitleaks` + `android-ci`; both flavors build locally and in CI.
-- [ ] 👤 Quick user review of the module layout (ADR-19) and CI before the backend and UI work.
+- [x] 👤 Quick user review of the module layout (ADR-19) and CI before the backend and UI work. *(Never presented at the time; marked approved at the E1 retrospective, 2026-10-13, as E1 was approved on top of both.)*
 
 ---
 
@@ -794,7 +794,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] `maestro test tests/e2e/` green on the emulator against local Supabase. *(2026-10-13: 12/12 flows in 21m 18s; T-029 re-run green after fixing a packaging encoding slip in its assertion.)*
 - [x] `CLAUDE.md` "Current status" updated (E1 done, next E2); `tasks/todo.md` E1 ✅ (through a PR).
 - [x] `./gradlew :androidApp:assembleProdDebug` → APK path given to the user; `[PM] [E1] [COMPLETED]` logged. *(Built on the branch; path given and log written after the merge.)*
-- [x] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then break down E2. *(2026-10-13: phone approved; tablet works (rail, rotation, offline banner) but the FAB in the rail feels awkward → refined in a later epic, non-blocking. Tagged `v0.1.0`.)*
+- [x] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then the retrospective (E2 is broken down in a fresh session). *(2026-10-13: phone approved; tablet works (rail, rotation, offline banner) but the FAB in the rail feels awkward → refined in a later epic, non-blocking. Tagged `v0.1.0`.)*
 
 **Verification:**
 - [x] `gh run list` shows green `deploy-supabase` and `keepalive` runs; `git tag` lists `v0.1.0` after approval.
