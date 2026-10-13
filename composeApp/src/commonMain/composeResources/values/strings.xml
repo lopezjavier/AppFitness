@@ -49,4 +49,19 @@
     <string name="macro_carbs">Carbohidratos</string>
     <string name="macro_fat">Grasas</string>
     <string name="weekly_rate_no_data">Sin datos suficientes</string>
+    <string name="catalog_section_ring">Anillo de calorías</string>
+    <string name="catalog_section_macro_bars">Barras de macros</string>
+    <string name="catalog_section_macro_sliders">Sliders de macros</string>
+    <string name="catalog_section_metric_tiles">Métricas</string>
+    <string name="catalog_section_trend_pills">Tendencia semanal</string>
+    <string name="catalog_ring_empty">Vacío</string>
+    <string name="catalog_ring_normal">Normal</string>
+    <string name="catalog_ring_full">Objetivo alcanzado</string>
+    <string name="catalog_ring_over">Exceso</string>
+    <string name="catalog_metric_fat">Grasa estimada</string>
+    <string name="catalog_metric_goal">Meta objetivo</string>
+    <string name="catalog_metric_fat_trend">−0,3 % vs último mes</string>
+    <string name="catalog_trend_favorable">−0,45 kg esta semana</string>
+    <string name="catalog_trend_unfavorable">+0,30 kg esta semana</string>
+    <string name="catalog_trend_caution">+0,35 kg esta semana</string>
 </resources>

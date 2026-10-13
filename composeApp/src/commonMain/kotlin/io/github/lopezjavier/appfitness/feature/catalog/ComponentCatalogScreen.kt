@@ -81,11 +81,12 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         item { ButtonsSection() }
         item { ChipsSection() }
         item { SegmentedSection() }
+        dataVizItems()
     }
 }
 
 @Composable
-private fun CatalogSection(title: String, testTag: String, content: @Composable ColumnScope.() -> Unit) {
+internal fun CatalogSection(title: String, testTag: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         Text(
             text = title,
@@ -160,7 +161,7 @@ private fun ButtonsSection() {
 private const val BUTTON_VARIANTS = 3
 
 @Composable
-private fun VariantCaption(text: String) {
+internal fun VariantCaption(text: String) {
     Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
 }
 
