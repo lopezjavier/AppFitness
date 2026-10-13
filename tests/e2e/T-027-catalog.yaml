@@ -26,10 +26,12 @@ tags:
       id: "catalog_section_fab"
     direction: DOWN
     visibilityPercentage: 20
+    timeout: 60000
 - scrollUntilVisible:
     element:
       id: "catalog_fab"
     direction: DOWN
+    timeout: 60000
 - tapOn:
     id: "catalog_fab"
 - extendedWaitUntil:
@@ -42,6 +44,8 @@ tags:
     element:
       id: "catalog_sheet_open"
     direction: DOWN
+    centerElement: true
+    timeout: 60000
 - tapOn:
     id: "catalog_sheet_open"
 - extendedWaitUntil:

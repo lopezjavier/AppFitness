@@ -24,6 +24,8 @@ tags:
       id: "catalog_section_cards"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_cards"
 - scrollUntilVisible:
@@ -31,6 +33,8 @@ tags:
       id: "catalog_section_buttons"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_buttons"
 - scrollUntilVisible:
@@ -38,6 +42,8 @@ tags:
       id: "catalog_section_chips"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_chips"
 - scrollUntilVisible:
@@ -45,6 +51,8 @@ tags:
       id: "catalog_section_segmented"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_segmented"
 - scrollUntilVisible:
@@ -52,6 +60,8 @@ tags:
       id: "catalog_section_ring"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_ring"
 - scrollUntilVisible:
@@ -59,6 +69,8 @@ tags:
       id: "catalog_section_macro_bars"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_macro_bars"
 - scrollUntilVisible:
@@ -66,6 +78,8 @@ tags:
       id: "catalog_section_macro_sliders"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_macro_sliders"
 - scrollUntilVisible:
@@ -73,6 +87,8 @@ tags:
       id: "catalog_section_metric_tiles"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_metric_tiles"
 - scrollUntilVisible:
@@ -80,6 +96,8 @@ tags:
       id: "catalog_section_trend_pills"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_trend_pills"
 - scrollUntilVisible:
@@ -87,6 +105,8 @@ tags:
       id: "catalog_section_number_input"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_number_input"
 - scrollUntilVisible:
@@ -94,6 +114,8 @@ tags:
       id: "catalog_section_set_checkbox"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_set_checkbox"
 - scrollUntilVisible:
@@ -101,6 +123,8 @@ tags:
       id: "catalog_section_set_rows"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_set_rows"
 - scrollUntilVisible:
@@ -108,6 +132,8 @@ tags:
       id: "catalog_section_rest_timer"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_rest_timer"
 - scrollUntilVisible:
@@ -115,6 +141,8 @@ tags:
       id: "catalog_section_state_messages"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_state_messages"
 - scrollUntilVisible:
@@ -122,6 +150,8 @@ tags:
       id: "catalog_section_top_bar"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_top_bar"
 - scrollUntilVisible:
@@ -129,6 +159,8 @@ tags:
       id: "catalog_section_navigation"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_navigation"
 - scrollUntilVisible:
@@ -136,6 +168,8 @@ tags:
       id: "catalog_section_skeleton"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_skeleton"
 - scrollUntilVisible:
@@ -143,6 +177,8 @@ tags:
       id: "catalog_section_wip"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_wip"
 - scrollUntilVisible:
@@ -150,6 +186,8 @@ tags:
       id: "catalog_section_theme"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_section_theme"
 # Back up to the state messages
@@ -158,11 +196,15 @@ tags:
       id: "catalog_section_state_messages"
     direction: UP
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - scrollUntilVisible:
     element:
       id: "catalog_empty_state_action"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - assertVisible:
     id: "catalog_empty_state_title"
 - assertVisible:
@@ -176,6 +218,8 @@ tags:
       id: "catalog_error_state_action"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - scroll
 - assertVisible:
     id: "catalog_error_state_title"
@@ -195,6 +239,8 @@ tags:
       id: "catalog_topbar_tabs_avatar"
     direction: DOWN
     centerElement: true
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - tapOn:
     id: "catalog_topbar_tabs_avatar"
 # assert after each tap: a second tap sent during recomposition was occasionally dropped
@@ -217,6 +263,8 @@ tags:
       id: "catalog_nav_tab_workout"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - tapOn:
     id: "catalog_nav_tab_workout"
 - assertVisible:
@@ -231,6 +279,8 @@ tags:
       id: "catalog_section_skeleton"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - scroll
 - assertVisible:
     id: "catalog_skeleton"
@@ -240,15 +290,21 @@ tags:
     direction: DOWN
     visibilityPercentage: 20
 # the section can be only partly on screen; scroll on to the message itself
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - scrollUntilVisible:
     element:
       id: "catalog_wip_message"
     direction: DOWN
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - scrollUntilVisible:
     element:
       id: "catalog_section_theme"
     direction: DOWN
     visibilityPercentage: 20
+    # long catalog: the 20 s default is not enough
+    timeout: 60000
 - scroll
 - assertVisible:
     id: "catalog_theme_colors"

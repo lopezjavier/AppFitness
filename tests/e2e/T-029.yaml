@@ -1,4 +1,11 @@
-# T-029 Offline banner (US-04 "Offline"): "Sin conexion" banner appears offline, hides when back online.
+# T-029 Offline banner (US-04 "Offline"): "Sin conexión" banner appears offline, hides when back online.
+# Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD, animations off:
+#   adb shell settings put global animator_duration_scale 0
+#   adb shell settings put global window_animation_scale 0
+#   adb shell settings put global transition_animation_scale 0
+# Airplane mode: Maestro has no "enable" command, only setAirplaneMode: disabled
+# and toggleAirplaneMode (flips the state). Starting from a known "disabled"
+# state, toggleAirplaneMode therefore means "on"; setAirplaneMode: disabled turns it off.
 # Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-029.yaml
 appId: io.github.lopezjavier.appfitness.local
 tags:
@@ -24,7 +31,7 @@ onFlowComplete:
     visible:
       id: "offline_banner"
     timeout: 10000
-- assertVisible: "Sin conexión"
+- assertVisible: "Sin conexiÃ³n"
 - takeScreenshot: T-029_offline_diary
 # Still shown on Perfil.
 - tapOn:
