@@ -24,6 +24,8 @@ class AppColors(
     /** Supporting data only (about 3.3:1): never the only cue (05 §7). */
     val ghostData: Color,
     val scrim: Color,
+    /** Bottom sheet drag handle (decorative). */
+    val sheetHandle: Color,
     // §2.2 Accents
     val neonLime: Color,
     val onNeonLime: Color,
@@ -59,6 +61,7 @@ internal val KineticDarkColors =
         textSecondary = Color(0xFFC2CAB0),
         ghostData = Color.White.copy(alpha = 0.36f),
         scrim = Color.Black.copy(alpha = 0.65f),
+        sheetHandle = Color.White.copy(alpha = 0.20f),
         neonLime = NeonLime,
         onNeonLime = Color(0xFF0B0F14),
         athleticCyan = AthleticCyan,

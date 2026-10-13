@@ -100,7 +100,7 @@ val TabRoute.tab: TopLevelTab
             ProgressGraph, ProgressHome -> TopLevelTab.Progress
         }
 
-/** What the shell draws around a destination. T-027 maps the FAB from this (hidden on [FullScreen]). */
+/** What the shell draws around a destination. [fabAction] derives the FAB from it (hidden on [FullScreen]). */
 sealed interface ShellChrome {
     /** Top bar with avatar plus the bottom bar. */
     data class Tabs(val tab: TopLevelTab) : ShellChrome

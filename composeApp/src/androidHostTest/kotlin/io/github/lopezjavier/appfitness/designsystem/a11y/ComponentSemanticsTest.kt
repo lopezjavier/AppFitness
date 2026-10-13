@@ -1,14 +1,21 @@
 package io.github.lopezjavier.appfitness.designsystem.a11y
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -18,9 +25,11 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.AnnotatedString
+import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
@@ -35,10 +44,12 @@ import io.github.lopezjavier.appfitness.designsystem.SetRow
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
+import io.github.lopezjavier.appfitness.designsystem.UniversalFab
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -218,5 +229,40 @@ class ComponentSemanticsTest {
         rule.setContent { AppTheme { EmptyState("Todavía no hay datos para este periodo.") } }
         rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription), useUnmergedTree = true)
             .assertCountEquals(0)
+    }
+
+    @Test
+    fun universalFab_isButtonWithClickAndText() {
+        rule.setContent { AppTheme { UniversalFab("+ Registro", onClick = {}) } }
+        rule.onNodeWithText("+ Registro")
+            .assertHasClickAction()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun bottomSheet_handleIsDecorative() {
+        rule.setContent {
+            AppTheme { AppBottomSheet(onDismissRequest = {}, testTagPrefix = "sheet") { Text("contenido") } }
+        }
+        rule.waitForIdle()
+        val handle = rule.onNodeWithTag("sheet_handle", useUnmergedTree = true).fetchSemanticsNode()
+        val cds = handle.children.mapNotNull { it.config.getOrNull(SemanticsProperties.ContentDescription) }
+        assertTrue(cds.isEmpty())
+        assertTrue(handle.children.none { it.config.getOrNull(SemanticsActions.OnClick) != null })
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun bottomSheet_showsContent_withHeadingTitle() {
+        rule.setContent {
+            AppTheme {
+                AppBottomSheet(onDismissRequest = {}, testTagPrefix = "sheet") {
+                    Text("Título", Modifier.semantics { heading() }.testTag("sheet_title"))
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("sheet_title").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 }

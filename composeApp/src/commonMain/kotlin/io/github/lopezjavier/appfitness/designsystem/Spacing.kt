@@ -4,6 +4,9 @@ import androidx.compose.ui.unit.dp
 
 /** Spacing tokens: 8 dp grid with a 4 dp sub-grid (planning/05-design-system.md §4). */
 object Spacing {
+    /** No space: the default of optional extra padding parameters. */
+    val none = 0.dp
+
     val xs = 4.dp
     val sm = 8.dp
     val md = 12.dp

@@ -46,6 +46,7 @@ internal val ColorTokens: List<Pair<String, (AppColors) -> Color>> =
         "textSecondary" to { it.textSecondary },
         "ghostData" to { it.ghostData },
         "scrim" to { it.scrim },
+        "sheetHandle" to { it.sheetHandle },
         "neonLime" to { it.neonLime },
         "onNeonLime" to { it.onNeonLime },
         "athleticCyan" to { it.athleticCyan },

@@ -55,6 +55,7 @@ private const val NAV_DEFAULT_INDEX = 0
 internal fun LazyListScope.shellItems() {
     item { TopBarSection() }
     item { NavigationSection() }
+    overlayItems()
     item { SkeletonSection() }
     item { WipSection() }
 }

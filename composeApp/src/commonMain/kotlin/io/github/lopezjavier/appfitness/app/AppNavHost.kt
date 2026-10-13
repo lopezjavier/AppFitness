@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -15,6 +16,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.profile.ProfileScreen
@@ -33,18 +35,19 @@ internal fun AppNavHost(
     fullScreenPadding: PaddingValues,
     features: AppFeatures,
     modifier: Modifier = Modifier,
+    tabContentBottomClearance: Dp = Spacing.none,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
-            composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
+            composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding), tabContentBottomClearance) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
-            composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding)) }
+            composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding), tabContentBottomClearance) }
         }
         navigation<ProgressGraph>(startDestination = TopLevelTab.Progress.startRoute) {
-            composable<ProgressHome> { ProgressScreen(Modifier.padding(tabPadding)) }
+            composable<ProgressHome> { ProgressScreen(Modifier.padding(tabPadding), tabContentBottomClearance) }
         }
         composable<ProfileRoute> {
             ProfileScreen(

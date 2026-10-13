@@ -18,6 +18,7 @@ class AppColorsTest {
         assertColor(0xC2CAB0, colors.textSecondary, name = "textSecondary")
         assertColor(0xFFFFFF, colors.ghostData, alpha = 0.36f, name = "ghostData")
         assertColor(0x000000, colors.scrim, alpha = 0.65f, name = "scrim")
+        assertColor(0xFFFFFF, colors.sheetHandle, alpha = 0.20f, name = "sheetHandle")
     }
 
     @Test

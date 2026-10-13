@@ -727,12 +727,12 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 *Carry-over from T-020 (UX):* M3 `ModalBottomSheet` defaults to `scrim.copy(alpha = 0.32f)`; `AppBottomSheet` must pass `scrimColor = AppTheme.colors.scrim` explicitly.
 
 **Acceptance criteria:**
-- [ ] Route → FAB action mapping in one place, with unit tests for the 3 tabs and the Profile screen.
-- [ ] Sheet title per tab; dismiss by scrim, back and drag; `testTag`s for FAB and sheet.
+- [x] Route → FAB action mapping in one place, with unit tests for the 3 tabs and the Profile screen.
+- [x] Sheet title per tab; dismiss by scrim, back and drag; `testTag`s for FAB and sheet.
 
 **Verification:**
-- [ ] Lint + unit tests green.
-- [ ] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
+- [x] Lint + unit tests green.
+- [x] QA: `tests/e2e/T-027.yaml` runs the 3 outline rows and the Profile case; regression green.
 
 **Dependencies:** T-026, T-031
 **Files likely touched:** `…/designsystem/{UniversalFab,AppBottomSheet}.kt`, `…/app/{FabAction,AppScaffold}.kt`, test, strings, catalog, `tests/e2e/T-027.yaml`

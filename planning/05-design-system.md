@@ -27,6 +27,7 @@ Original source: `../design/stitch/kinetic-dark-performance/DESIGN.md`. This doc
 | `textSecondary` | `#C2CAB0` | Secondary text |
 | `ghostData` | `#FFFFFF` @ 36% | Previous performance, placeholders |
 | `scrim` | `#000000` @ 65% | Backdrop behind bottom sheets |
+| `sheetHandle` | `#FFFFFF` @ 20% | Bottom sheet drag handle |
 
 ### 2.2 Accents
 | Token | Value | Meaning |
@@ -73,7 +74,7 @@ Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (w
 
 ## 4. Spacing, shape and elevation
 
-- 8 dp grid with a 4 dp sub-grid. Tokens: `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 24`.
+- 8 dp grid with a 4 dp sub-grid. Tokens: `none 0` (no space; default for optional extra padding), `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 24`.
 - 16 dp screen side margin (`screenMargin`); 12 dp between cards in a group (`cardGap`); 24 dp between functional blocks (`blockGap`); 16 dp card inner padding (`cardPadding`).
 - Radii: `sm 4`, `base 8` (inputs, rows), `md 12`, `lg 16` (cards), `xl 24` (bottom sheet top corners), `full` (chips, pills, round checkbox, FAB).
 - Elevation through layers (2.1). Shadows only on bottom sheets (`0 12 32 −4`, black 70%) and the active element "glow" (lime 15%, blur 16). The notation is x/offsetY/blur/spread in dp: tokens `AppElevation.sheetShadowOffsetY 12`, `sheetShadowBlur 32`, `sheetShadowSpread −4`, `glowBlur 16`, with colors `shadowSheet` (black 70%) and `glowLime` (lime 15%) in `AppColors`.

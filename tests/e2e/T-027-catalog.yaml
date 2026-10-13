@@ -1,0 +1,79 @@
+# T-027 Catalog sections for UniversalFab and AppBottomSheet (US-03).
+# Pre-req: ./gradlew :androidApp:installLocalDebug on the AVD, animations off.
+# Run: maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-027-catalog.yaml
+# Manual check: T-027_catalog_sheet shows top radius 24, a 36x4 handle and a 65 % scrim.
+appId: io.github.lopezjavier.appfitness.local
+tags:
+  - catalog
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "topbar_avatar"
+- tapOn:
+    id: "profile_catalog_button"
+- assertVisible:
+    id: "catalog_screen"
+- scrollUntilVisible:
+    element:
+      id: "catalog_section_navigation"
+    direction: DOWN
+    speed: 60
+    visibilityPercentage: 20
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: "catalog_section_fab"
+    direction: DOWN
+    visibilityPercentage: 20
+- scrollUntilVisible:
+    element:
+      id: "catalog_fab"
+    direction: DOWN
+- tapOn:
+    id: "catalog_fab"
+- extendedWaitUntil:
+    visible: "Pulsaciones: 1"
+    timeout: 5000
+- assertVisible:
+    id: "catalog_fab_pressed"
+- takeScreenshot: T-027_catalog_fab
+- scrollUntilVisible:
+    element:
+      id: "catalog_sheet_open"
+    direction: DOWN
+- tapOn:
+    id: "catalog_sheet_open"
+- extendedWaitUntil:
+    visible:
+      id: "catalog_sheet_title"
+      text: "Hoja de ejemplo"
+    timeout: 5000
+- assertVisible:
+    id: "catalog_sheet"
+- assertVisible:
+    id: "catalog_sheet_handle"
+- takeScreenshot: T-027_catalog_sheet
+- tapOn:
+    id: "catalog_sheet_close"
+- extendedWaitUntil:
+    notVisible:
+      id: "catalog_sheet"
+    timeout: 5000
+- assertVisible:
+    id: "catalog_screen"
+# Back closes the sheet, not the catalog.
+- tapOn:
+    id: "catalog_sheet_open"
+- extendedWaitUntil:
+    visible:
+      id: "catalog_sheet_title"
+      text: "Hoja de ejemplo"
+    timeout: 5000
+- back
+- extendedWaitUntil:
+    notVisible:
+      id: "catalog_sheet"
+    timeout: 5000
+- assertVisible:
+    id: "catalog_screen"

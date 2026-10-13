@@ -115,4 +115,13 @@
     <string name="catalog_theme_colors">Colores</string>
     <string name="catalog_theme_typography">Tipografía</string>
     <string name="catalog_topbar_count">Pulsaciones: %1$s</string>
+    <string name="fab_label">+ Registro</string>
+    <string name="fab_action_add_food">Añadir alimento</string>
+    <string name="fab_action_start_workout">Empezar entreno</string>
+    <string name="fab_action_log_weight">Registrar peso</string>
+    <string name="catalog_section_fab">Botón de registro</string>
+    <string name="catalog_section_bottom_sheet">Hoja inferior</string>
+    <string name="catalog_sheet_open">Abrir hoja</string>
+    <string name="catalog_sheet_title">Hoja de ejemplo</string>
+    <string name="catalog_sheet_close">Cerrar</string>
 </resources>
