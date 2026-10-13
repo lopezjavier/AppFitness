@@ -64,7 +64,7 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 
 | Action | Command |
 |---|---|
-| Lint | `./gradlew ktlintCheck detekt` |
+| Lint | `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` |
 | Unit tests (all modules) | `./gradlew testLocalDebugUnitTest` (in `composeApp`/`shared` it runs `testAndroidHostTest`, which includes `commonTest`; ADR-19) |
 | `prod` flavor unit tests | `./gradlew :androidApp:testProdDebugUnitTest` |
 | Build and install on the emulator | `./gradlew :androidApp:installLocalDebug` |
