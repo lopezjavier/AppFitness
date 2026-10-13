@@ -7,6 +7,8 @@
 # Chips and segments use Role.RadioButton, so Android exposes selection as "checked".
 # Manual: prod flavor has no catalog entry (covered by CatalogAvailabilityTest in testProd).
 appId: io.github.lopezjavier.appfitness.local
+tags:
+  - catalog
 ---
 - launchApp:
     clearState: true
