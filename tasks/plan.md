@@ -44,7 +44,7 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 ### Phase 4: Component library (US-03) — UI flow
 - [x] T-023: Debug-only component catalog + buttons, card, chips and segmented selector
 - [x] T-024: Data visualization components (ring, macro bar/slider, metric tile, trend pill)
-- [ ] T-025: Workout input components (number input, set checkbox, set row, rest timer)
+- [x] T-025: Workout input components (number input, set checkbox, set row, rest timer)
 - [ ] T-026: Empty/error states and accessibility sweep of the catalog
 
 ### Checkpoint E1-D: Design system complete
