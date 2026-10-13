@@ -33,4 +33,20 @@
     <string name="goal_strategy_deficit">Déficit</string>
     <string name="goal_strategy_maintenance">Mantenimiento</string>
     <string name="goal_strategy_surplus">Superávit</string>
+    <string name="progress_ring_cd">Calorías</string>
+    <string name="progress_ring_of_target">de %1$s kcal</string>
+    <string name="progress_ring_remaining">%1$s restantes</string>
+    <string name="progress_ring_excess">+%1$s kcal en exceso</string>
+    <string name="progress_ring_remaining_spoken">%1$s kcal restantes</string>
+    <string name="progress_ring_excess_spoken">%1$s kcal por encima del objetivo</string>
+    <string name="progress_ring_state">%1$s de %2$s kcal, %3$s</string>
+    <string name="macro_bar_state">%1$s de %2$s gramos, %3$s por ciento</string>
+    <string name="macro_slider_state">%1$s por ciento, %2$s gramos, %3$s kilocalorías</string>
+    <string name="trend_tone_favorable">A favor de tu objetivo</string>
+    <string name="trend_tone_unfavorable">En contra de tu objetivo</string>
+    <string name="trend_tone_caution">Fuera del rango de mantenimiento</string>
+    <string name="macro_protein">Proteínas</string>
+    <string name="macro_carbs">Carbohidratos</string>
+    <string name="macro_fat">Grasas</string>
+    <string name="weekly_rate_no_data">Sin datos suficientes</string>
 </resources>
