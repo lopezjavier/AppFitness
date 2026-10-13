@@ -108,18 +108,34 @@ Feature: Biometric data onboarding
     Given a user who closed the app without finishing onboarding
     When they open it again
     Then onboarding is shown from the first step
+    And each step is prefilled with the value already saved, if any
+
+  Scenario: Finishing the biometric steps again after an interruption
+    Given a user who passed the last biometric step and closed the app on the goal step
+    When they reopen the app and tap "Continuar" on the last biometric step again
+    Then their onboarding weight entry is updated with the new value
+    And no second body_measurements entry is created
 
   Scenario: Editing data after onboarding
     Given a user who completed onboarding
     When on Profile they change their height to 180 cm and tap "Guardar"
     Then their profile is updated
     And the displayed TDEE is recalculated with the new height
+    And the daily calorie target is recalculated and saved in nutrition_goals
+
+  Scenario: Current weight is read-only on Profile
+    Given a user who completed onboarding
+    When they open Profile
+    Then "Peso actual" shows their latest weight
+    And it cannot be edited there (weight logging arrives with US-15 in E4)
 ```
 
 **Technical notes**
 - Controls: segmented selector (sex), wheel pickers (date, height in cm, weight with 1 decimal), list of selectable cards (activity with the labels from `04-business-rules.md` §1.3).
-- Migration: `profiles` columns, `body_measurements` table with RLS + pgTAP.
+- Migration: `body_measurements` table with RLS + pgTAP (the `profiles` columns already exist since US-02).
 - `onboarding_completed = true` only after the goals are also created (US-07).
+- Resume and re-save behaviour per ADR-24: steps prefilled from the saved profile and the onboarding weight entry; redoing the last step updates that entry instead of inserting a new one.
+- Profile has a single "Guardar" button for the whole screen (personal data, strategy and macros; ADR-24). "Peso actual" is read-only in E2.
 
 ---
 
@@ -153,8 +169,17 @@ Feature: Energy strategy and calorie target
     Then the daily target is set to 1,200 kcal/day
     And a safety minimum warning is shown
 
-  Scenario: Saving the goals
+  Scenario: Saving the goals in onboarding
+    Given the user is on the last onboarding step
     When the user taps "Guardar objetivos"
+    Then strategy, adjustment and calorie target are saved in nutrition_goals
+    And the macro split is saved with the default Protein 30%, Carbs 45% and Fat 25%
+    And onboarding is marked as completed
+    And a confirmation with haptic feedback is shown
+
+  Scenario: Saving the goals on Profile
+    Given the user is on Profile
+    When they change the strategy or the adjustment and tap "Guardar"
     Then strategy, adjustment and calorie target are saved in nutrition_goals
     And a confirmation with haptic feedback is shown
 ```
@@ -162,7 +187,7 @@ Feature: Energy strategy and calorie target
 **Technical notes**
 - `CalculateTdee` and `CalculateCalorieTarget` use cases (100% tested with the examples from `04-business-rules.md` §1).
 - `nutrition_goals` migration + RLS + pgTAP (including the sum-equals-100 constraint).
-- In onboarding this step comes after weight; on Profile it is an editable card.
+- In onboarding this step comes after weight and has no macro sliders (default split 30/45/25, adjusted later on Profile; ADR-24). On Profile it is an editable card saved by the screen's single "Guardar" button.
 
 ---
 
@@ -196,7 +221,7 @@ Feature: Auto-balanced macro split
     Then the Protein slider does not go above 90%
 
   Scenario: Persistence
-    When the user taps "Guardar objetivos"
+    When the user taps "Guardar" on Profile
     Then the percentages are saved in nutrition_goals
     And the Diary uses the new gram targets
 ```
@@ -204,6 +229,7 @@ Feature: Auto-balanced macro split
 **Technical notes**
 - `BalanceMacros` use case (largest-remainder algorithm, `04-business-rules.md` §1.5) with property tests: the sum is always 100 and all values are within [5, 90].
 - `MacroSlider` design system component; stacked bar with the three macro colors.
+- The sliders live only on Profile; onboarding saves the default split (ADR-24).
 
 ---
 

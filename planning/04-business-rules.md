@@ -32,7 +32,7 @@ Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 13
 - The user can change the adjustment in 50 kcal steps within the strategy range: Deficit [−1000, −50], Maintenance [−100, +100], Surplus [+50, +750].
 - Safety floor: `target_kcal ≥ 1200`; if the calculation gives less, it is set to 1200 and a warning is shown.
 - Adjustment label: |adjustment| ≤ 300 → "ligero" (light); ≤ 600 → "moderado" (moderate); > 600 → "agresivo" (aggressive) (e.g. "−400 kcal · Déficit moderado").
-- The target is **only recalculated when the user saves in Profile** (using the latest weight). Logging a new weight does not change the target automatically (that will be Phase 2's adaptive adjustment).
+- The target is **only recalculated when the user saves in Profile** (the screen's single "Guardar" button, ADR-24), using the latest weight, and the new value is stored in `nutrition_goals`. Logging a new weight does not change the target automatically (that will be Phase 2's adaptive adjustment).
 
 ### 1.5 Macro split (auto-balance)
 - Integer percentages, each in [5, 90], always adding up to 100. Default: P 30 / C 45 / F 25.

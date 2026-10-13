@@ -1,169 +1,67 @@
-# Implementation Plan: E1 · Infrastructure and app skeleton → `v0.1.0`
+# Implementation Plan: E2 · Authentication and profile → `v0.2.0`
 
 ## Overview
-Turn the E0 repository into a buildable Kotlin Multiplatform Android app with a deployed Supabase baseline. E1 is done when: both flavors build locally and in CI behind required checks (`android-ci`, `supabase-ci`); `profiles` with RLS, the `health` function and the seed user are deployed and tested; the Kinetic Dark design system is implemented with a debug-only catalog; and the installable `prodDebug` APK has the full 4-tab navigation in a WIP state (contextual FAB, adaptive rail, offline banner). No login and no business features (E2+).
+Each person signs in with Google, completes a 5-step biometric onboarding, picks an energy strategy with a calorie target, and later edits their data, strategy and macro split on Profile. E2 is done when a new user can sign in, complete onboarding, set goals, close the app and get straight back in; `profiles`, `body_measurements` and `nutrition_goals` have pgTAP isolation tests; the Maestro regression is green through "Test login"; and the user validates the `prodDebug` APK with their real Google account.
 
-Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 with Gherkin), `planning/02-architecture.md`, `planning/03-data-model.md`, `planning/05-design-system.md`. Task list: `tasks/todo.md` (T-015…T-030).
+Sources: `planning/epics/E2-auth-profile.md` (US-05…US-08), `planning/03-data-model.md` §2 and §4, `planning/04-business-rules.md` §1 and §5, `planning/02-architecture.md`, `planning/05-design-system.md`, mockup `design/stitch/profile-goals/screen.png` (personal data, "Estrategia Energética" and "Distribución de Macros" only). Tasks: `tasks/todo.md` (T-034…T-038). Earlier plans (E0, E1) are in the git history.
+
+Sizing (E1 retrospective): one task per story, as a vertical slice, so each task pays the 6–7 agent hand-offs once. 4 implementation tasks + closure, 2 👤 checkpoints.
 
 ## Architecture Decisions
-- **Android app module separate from the KMP UI module (ADR-19, approved by the user on 2026-10-12; T-015 checks the official docs and writes it).** AGP 9 no longer supports `org.jetbrains.kotlin.multiplatform` together with `com.android.application` in the same module. Proposed layout: `androidApp` (`com.android.application`: `MainActivity`, `local`/`prod` flavors, `BuildConfig`, network security config, flavor-only code such as the component catalog entry and, in E2, "Test login") + `composeApp` (KMP library: Compose UI in `commonMain`) + `shared` (KMP library: domain/data). Flavor values reach `composeApp` through an `AppConfig` data class provided by `androidApp` (Koin). Consequences: `:composeApp:assembleProdDebug` / `installLocalDebug` become `:androidApp:…`; T-015 updates `CLAUDE.md`, `planning/02-architecture.md` §2/§5, `planning/06-agent-workflow.md` §4 and the E1 epic. If T-015 finds that the pinned AGP still supports the original layout without deprecation, it keeps `composeApp` as the application module and does not write the ADR.
-- **Required checks that always report (ADR-20, approved by the user on 2026-10-12; written in T-017).** A required check whose workflow is skipped by `paths`/`paths-ignore` stays "Expected" forever and blocks the PR. So `android-ci` and `supabase-ci` run on every PR; a first `changes` job (path filter) decides, and the heavy job is skipped through `if:`. A skipped job counts as passing. This replaces the `paths-ignore: supabase/**` from the US-01 technical notes and "required when applicable" in `02-architecture.md` §8.
-- **CI builds without secrets.** Dependabot PRs do not get repository secrets. The Gradle build falls back to blank `BuildConfig` values when the properties or environment variables are missing, so `android-ci` stays green on Dependabot PRs. Only the delivery APK (built by the PM at epic closure, with `local.properties`) needs real values. A unit test checks the local URL; the prod URL check only runs when the value is present.
-- **Seed user is local only.** `supabase db push` does not run `seed.sql`, so `test@appfitness.local` never reaches production. The `deploy-supabase.yml` from E0 must not add `--include-seed`.
-- **Design system before the shell, shell before most components.** T-020 builds the theme. T-021/T-022 build the navigable shell (with the components it needs). The component catalog then hangs off Profile from the start (T-023), so the US-03 catalog scenario is testable from its first task and no temporary entry point is needed.
-- **Catalog only in `local`.** The catalog entry is contributed by the `local` flavor of `androidApp` (for example a flavor-provided `AppConfig.showComponentCatalog` or flavor source set registration). A `testProdDebugUnitTest` test asserts it is off in `prod`.
-- **Haptics in components** use Compose `LocalHapticFeedback` (multiplatform). The domain `Haptics` port from `02-architecture.md` is introduced when a feature needs it (E5).
-- **One active task at a time** (CLAUDE.md). Backend tasks (T-018/T-019) do not depend on Android tasks, so they could also run between T-016 and T-017 if CI is blocked.
+- **ADR-24 (user, 2026-10-14) settles the product gaps found in the breakdown:** onboarding resumes prefilled and re-saving updates the onboarding weight row; onboarding saves the default macros 30/45/25 (no sliders); Profile has one "Guardar" that stores profile, strategy, macros and the recalculated target; "Peso actual" is read-only on Profile until E4. The E2 Gherkin, `03` §4 and `04` §1.4 were updated to match.
+- **Otherwise existing ADRs cover E2.** ADR-02 (Credential Manager → ID token → `signInWith(IDToken)`), ADR-17 (publishable key), ADR-19 (`androidApp` + `composeApp` + `shared`, flavor values via `AppConfig`), ADR-22 (Profile as a full screen from the avatar, no FAB) and ADR-23 (QA in the background) cover E2.
+- **Root routing is a pure function** of (session status, `onboarding_completed`): Welcome / Onboarding / Main. Welcome and Onboarding are full-screen destinations above the tab graphs (no bottom bar, no FAB, no avatar), like Profile. A loading state avoids flashing Welcome on cold start with a persisted session.
+- **`profiles` already has the biometric columns** (T-018 created the full §2 table and column grants), so US-06 needs no `profiles` migration; its migration is `body_measurements` only. "At most one migration per story" (02 §6): T-035 `body_measurements`, T-036 `nutrition_goals` (macro columns included, defaults 30/45/25). T-037 needs no migration; if the planner wants an atomic Profile save (profile + goals), a `security invoker` RPC would be T-037's only migration.
+- **`onboarding_completed = true` only with goals saved** (US-06 note). T-036 writes the goals first and the flag second (or one RPC, planner's choice), so a failure never leaves a "completed" user without goals.
+- **"Test login" uses the existing `AppFeatures` flavor mechanism** (as the catalog entry); a `prod` unit test asserts it is absent.
+- **Supabase client and auth live in `shared`** (data layer, behind `AuthRepository`); the Google credential provider is an `androidMain` platform implementation of the `AuthCredentialProvider` port. UI never touches supabase-kt types.
+- **New design-system pieces are built inside the first story that needs them** (no component tasks): `WheelPicker` in T-035, `MacroStackedBar` in T-037; both get catalog entries and host tests.
+- **Formulas live in `shared/domain/usecase/`** with the `04-business-rules.md` examples as tests: `CalculateTdee`, `CalculateCalorieTarget` (T-036), `BalanceMacros` + gram targets (T-037, property tests). Numbers use `AppNumberFormat` ("2.681").
+- **US-06 "Editing data after onboarding" moves to T-037**: it asserts the TDEE, which only exists after US-07.
+- **US-08 "And the Diary uses the new gram targets"** is verified on the Profile/domain side in E2; the Diary half lands in E3 (note added to "Notes for later epics").
+- **Notes for later epics:** none targets E2. The "E2 (food diary)" note from the PR #24 review concerns `MacroProgressBar`/`ProgressRing` in the Diary, i.e. E3; left in place.
 
 ## Task List
 
-### Phase 1: Buildable project and Android CI (US-01) — backend/infra flow
-- [x] T-015: KMP project skeleton with `local`/`prod` flavors
-- [x] T-016: ktlint and detekt
-- [x] T-017: `android-ci` workflow as a required check
+### Phase 1: New user journey (US-05, US-06, US-07)
+- [ ] T-034: Sign in with Google, session routing and sign out (US-05) — UI, frontend
+- [ ] T-035: Biometric onboarding (US-06) — UI + backend (`body_measurements`)
+- [ ] T-036: Energy strategy and calorie target; onboarding completes (US-07) — UI + backend (`nutrition_goals`)
 
-### Checkpoint E1-A: CI gate
-- [x] A PR shows `gitleaks` and `android-ci` green and cannot merge if either fails; both flavors build locally.
+### Checkpoint E2-A 👤: New user journey on the phone
+- [ ] Real Google sign-in on `prodDebug`, onboarding, strategy, save → Diario; reopen → straight in; cancelled picker; offline message; sign out. Placed here because Google sign-in against production is the riskiest part of the epic and the onboarding/strategy UX is the decision most worth early feedback.
 
-### Phase 2: Supabase baseline (US-02) — backend flow
-- [x] T-018: `profiles` migration, RLS, pgTAP, seed user and `supabase-ci`
-- [x] T-019: `health` Edge Function and `keepalive` workflow
+### Phase 2: Profile (US-08 + US-06/US-07 on Profile)
+- [ ] T-037: Profile: edit personal data, energy strategy and macro split, one "Guardar" — UI (backend only for an optional atomic-save RPC)
 
-### Checkpoint E1-B: Backend live
-- [x] `deploy-supabase` applied the migration and `health` in production; `keepalive` green by hand; `supabase-ci` required.
+### Checkpoint E2-B 👤: Epic closure
+- [ ] T-038: E2 closure — edit data and goals on Profile, auto-balanced macros, persistence across restarts; tag `v0.2.0` and retrospective.
 
-### Phase 3: Theme and navigable shell (US-03, US-04) — UI flow
-- [x] T-020: Kinetic Dark theme foundation (tokens, font, typography, shapes)
-- [x] T-021: 4-tab navigation shell with WIP screens
-- [x] T-022: Top App Bar with section title and avatar
-
-### Checkpoint E1-C: First installable APK
-- [x] 👤 The user installs `localDebug` or `prodDebug`, moves between the 4 tabs and checks the style on the phone.
-- [x] T-031 (corrective, ADR-22): 3 tabs, Profile as a full screen from the avatar, no pill on the active tab
-
-### Phase 4: Component library (US-03) — UI flow
-- [x] T-023: Debug-only component catalog + buttons, card, chips and segmented selector
-- [x] T-024: Data visualization components (ring, macro bar/slider, metric tile, trend pill)
-- [x] T-025: Workout input components (number input, set checkbox, set row, rest timer)
-- [x] T-026: Empty/error states and accessibility sweep of the catalog
-
-### Checkpoint E1-D: Design system complete
-- [x] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro. (approved by the user 2026-10-13)
-
-### Phase 5: Shell completion (US-04) — UI flow
-- [x] T-027: Contextual FAB with WIP bottom sheets
-- [x] T-028: Adaptive layout with NavigationRail on tablets
-- [ ] T-029: Connectivity observer and "Sin conexión" banner
-- [ ] ~~T-032: Maestro regression in GitHub Actions~~ — dropped 2026-10-13 at the user's request (API 37 emulator image bug makes CI e2e flaky; see todo.md)
-- [ ] ~~T-033: Catalog deep links for shorter e2e flows~~ — dropped 2026-10-13 at the user's request (replaced by the `catalog` Maestro tag; see todo.md)
-
-### Checkpoint E1-E: Epic complete
-- [x] T-030: E1 closure (regression, APK delivery, user feedback, tag `v0.1.0`)
+Internal milestones (not 👤): `deploy-supabase` green after T-035 and T-036; pgTAP isolation for the three tables green in `supabase-ci`.
 
 ## Dependencies
 
 ```
-T-015 ─► T-016 ─► T-017 ─┬─► T-018 ─► T-019 ───────────────────────────────────────────┐
-                         └─► T-020 ─► T-021 ─► T-022 ─► T-023 ─► T-024 ─► T-025 ─► T-026 │
-                                                                                   │     │
-                                                  T-027 ◄──────────────────────────┘     │
-                                                    └─► T-028 ─► T-029 ─► T-030 ◄────────┘
+E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-037 ─► T-038 [E2-B 👤]
 ```
-- T-018/T-019 only need T-017 (so `android-ci` already reports on their PRs and skips itself for `supabase/**`); they can be interleaved with the UI tasks.
-- T-027…T-029 technically only need T-022; they come after T-026 so the FAB, sheet and banner are reviewed against a complete catalog.
+- Strictly sequential: each task builds on the previous one's routing, repositories and screens.
+- The backend half of T-035/T-036 (migration + pgTAP) and the domain use cases are decoupled from the UI, so backend-developer and frontend-developer can work in parallel inside each task once the planner fixes the repository contract.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| AGP 9 / KMP module layout differs from the plan (application + multiplatform in one module) | High | T-015 goes first and verifies against the official AGP and Kotlin docs; ADR-19 (`androidApp` + `composeApp` + `shared`); commands and docs updated in the same PR |
-| Required check never reports on PRs that skip its paths → PR blocked | High | Always-run workflows with a `changes` job and job-level `if:` (ADR-20) |
-| Dependabot PRs fail `android-ci` because they have no secrets | Medium | Blank `BuildConfig` fallbacks; no step needs a secret to pass |
-| Library versions incompatible (Kotlin, Compose MP, AGP, Navigation, Koin, supabase-kt) | Medium | Pin the latest stable set in T-015 and check the Compose MP / Kotlin compatibility table; supabase-kt is only added when it is needed (E2), but its support for `sb_publishable_` keys is checked when it is pinned (ADR-17) |
-| Compose UI tests (touch targets) need Robolectric or an emulator | Medium | T-026 decides the mechanism in its plan (`runComposeUiTest` on the JVM if it works with the pinned versions; otherwise Maestro + UX review), and logs the choice. **Resolved in T-026:** spike adopted, Robolectric + Compose UI tests on the JVM (`androidHostTest`), run by `testLocalDebugUnitTest` |
-| Seed `auth.users` insert breaks with a CLI upgrade | Low | Seed covered by a pgTAP test in T-018; CLI pinned (`package.json`) |
-| `supabase test db` fails with no tests on an empty branch | Low | T-018 adds the CI together with the first pgTAP tests |
-| Maestro cannot toggle connectivity on the emulator | Low | Use Maestro's airplane mode commands; if unreliable, cover the banner state with a ViewModel test and check it by hand (logged in T-029) |
-| Plus Jakarta Sans files committed without a license | Low | Bundle the OFL `.ttf` files from the official source together with `OFL.txt` |
+| Google sign-in fails on the real device (SHA-1, client IDs, nonce, `serverClientId`) | High | Configuration from T-011/T-012 is already verified; T-034 maps every Credential Manager error to an explicit outcome and logs the cause. Checkpoint E2-A comes right after the onboarding journey, the first point where the user can test it; if the developer cannot sign in with Google on the emulator (local flavor with `GOOGLE_WEB_CLIENT_ID` set), the PM may ask the user for a quick `prodDebug` sign-in check after T-034 instead of waiting. |
+| **E2E user state:** after T-034 every flow starts at Welcome; the seeded `test@appfitness.local` is not onboarded, so the shell/catalog flows would land on onboarding, while the onboarding flows need a not-onboarded user | High | T-034's planner decides and documents one approach before the QA run, e.g. a login subflow that completes onboarding when shown, or a local-only reset script QA runs before the `onboarding` flows, or seeding the test user as onboarded plus a reset for onboarding flows. No change to the Gherkin ("Test login" signs in as the seeded user). T-034's QA brief updates every existing flow to start with `subflows/login.yaml`. |
+| supabase-kt version vs `sb_publishable_` keys, Ktor engine, Kotlin 2.4 | Medium | Pin the latest stable in T-034 and check the release notes (ADR-17); a host test builds the client from `AppConfig`. |
+| Wheel pickers in Compose Multiplatform (no stock component) | Medium | `WheelPicker` built on `LazyColumn` + snap fling in T-035 with host tests for bounds and semantics; ux-reviewer checks it against `05-design-system.md`. |
+| Large slices (T-034, T-035, T-036 are L) | Medium | Each is one story; backend and UI halves can run in parallel inside the task. If a plan exceeds ~15 non-trivial files, the planner may split it into a backend task followed by a UI task (never per component). |
+| Partial writes (profile saved, measurement or goals not; on Profile, profile saved but goals not) | Medium | Write order chosen so the onboarding flag is set last; Profile's single save writes profile then goals (or one RPC); save errors keep the typed values with retry (02 §9). |
+| Re-saving onboarding must update, not duplicate, the weight row (ADR-24) | Low | T-035's plan fixes how the onboarding row is identified (e.g. the earliest `manual` row of the user) and covers the update with a repository test. |
+| Haptics and the account picker cannot be checked in Maestro | Low | Host tests for the effects; manual check at Checkpoint E2-A. |
 
 ## Open Questions
-- None blocking. ADR-19 (separate `androidApp` module) and ADR-20 (always-run required checks) approved by the user on 2026-10-12.
-
----
-
-# Archive: E0 · Project setup (completed 2026-10-12)
-
-### Overview
-Get the repository, GitHub, Supabase and Google OAuth ready so Claude Code can implement Phase 1 with the `planning/06-agent-workflow.md` flow. When E0 is done there will be: a local repo linked to `https://github.com/lopezjavier/AppFitness` (public), `main` protected by required checks, Claude Code configuration (`CLAUDE.md`, subagents, log), a production Supabase project with a GitHub Actions pipeline that automatically deploys `supabase/**` when merged into `main`, and Google authentication configured in Google Cloud and Supabase (ready for US-05).
-
-Source of truth: `planning/` (especially `epics/E0-setup.md`, `02-architecture.md`, `08-environment-setup.md`). Task list: `tasks/todo.md`.
-
-### Architecture Decisions
-- **Original documents outside the repo**: their content is absorbed into `planning/` and `CLAUDE.md`; they are not versioned.
-- **Public repo** (ADR-13): rulesets, environments, secret scanning + push protection and unlimited Actions on the Free plan. The repo never contains secrets. All rights reserved (`LICENSE`).
-- **English repository, Spanish UI** (ADR-16).
-- **applicationId** `io.github.lopezjavier.appfitness`; `local` flavor with the `.local` suffix (ADR-14). Two Android OAuth clients are registered in Google Cloud.
-- **Supabase deployment in E0** (previously planned in US-02): `deploy-supabase.yml` is created and validated now with an empty project; US-02 only adds migrations, tests and `supabase-ci`/`keepalive`.
-- **Secrets are entered by the user** in their terminal (`gh secret set …`) or in the web consoles; they never go through the chat or versioned files. Claude only verifies names (`gh secret list`).
-- **Squash merge only**, automatic branch deletion; required approvals = 0 (authors cannot approve themselves), checks are the gate.
-- **Production Auth configured in the Supabase dashboard** (Google on, Email off). `supabase/config.toml` only describes the local environment (Email on for "Test login" + optional Google via `env()`).
-- **Tasks in `tasks/todo.md`** (`planning-and-task-breakdown` skill convention); `.workflow/` (plan of the active task, PR body, audit log) is local and not versioned.
-- In E0 the PM runs the tasks directly (no Planner/UX/QA). From **T-008** on, every change goes through a PR because `main` is already protected.
-
-### Task List
-
-#### Phase A: Local repo and Claude Code
-- [x] T-001: Verify local environment and re-authenticate `gh`
-- [x] T-002: Repo content and git base files
-- [x] T-003: Documentation ready for a public repo
-- [x] T-004: CLAUDE.md, execution log and skills review
-- [x] T-005: Claude Code subagents
-
-#### Checkpoint A
-- [x] Clean `git status` after the initial commit; a new Claude Code session lists the 7 project subagents; user review.
-
-#### Phase B: GitHub
-- [x] T-006: Connect to the GitHub repo and first push
-- [x] T-007: Security and `main` protection
-
-#### Checkpoint B
-- [x] Direct push to `main` rejected; a test PR shows the `gitleaks` check; secret scanning enabled.
-
-#### Phase C: Supabase and deployment with GitHub Actions
-- [x] T-008: Production Supabase project and `supabase/` initialization
-- [x] T-009: `production` environment and deployment secrets
-- [x] T-010: `deploy-supabase.yml` workflow
-
-#### Checkpoint C
-- [x] Manual and merge-triggered `deploy-supabase` runs green against the real project.
-
-#### Phase D: Google OAuth
-- [x] T-011: OAuth clients in Google Cloud
-- [x] T-012: Auth providers in Supabase (prod and local)
-- [x] T-013: E0 wrap-up
-
-#### Checkpoint D (E0 closure)
-- [x] Production `GET /auth/v1/settings`: `google: true`, `email: false`; DoD of `planning/epics/E0-setup.md` met.
-
-### Dependencies
-
-```
-T-001 ─► T-002 ─► T-003 ─► T-004 ─► T-005 ─► T-006 ─► T-007 ─┬─► T-008 ─► T-009 ─► T-010 ─┐
-                                                             └─► T-011 ───────────► T-012 ◄┘ (T-012 also needs T-008)
-                                                                                     │
-                                                                                   T-013
-```
-T-011 (Google Cloud) can run in parallel with T-008–T-010, but it needs the Supabase project ref (T-008) for the redirect URI.
-
-### Risks and Mitigations
-| Risk | Impact | Mitigation |
-|---|---|---|
-| A secret gets committed to a public repo | High | `.gitignore` from T-002, push protection + gitleaks (T-007), secrets only via terminal/consoles; if it happens: rotate the secret immediately, deleting the commit is not enough |
-| `.claude/skills` junctions cannot be versioned by git | Medium | Version `.agents/skills` + `skills-lock.json`, ignore `.claude/skills/`; the README explains how to recreate the junctions |
-| `supabase functions deploy` fails when there are no functions | Medium | The workflow only deploys functions if `supabase/functions/*/index.ts` exists |
-| Supabase CLI behavior changes between versions | Medium | Same pinned version locally (`npx supabase@<v>`) and in GHA; Dependabot proposes upgrades |
-| Lost DB password or Supabase token | Medium | Store them in a password manager in T-008/T-009 |
-| Different debug SHA-1 on another PC | Low | Documented in `08-environment-setup.md`; add another Android client or reuse the keystore |
-| Production Auth configured by hand (drift from the docs) | Low | T-012 documents the `curl` verification so it can be repeated |
-
-### Open Questions
-- None blocking. Supabase region: proposed `eu-west-3` (Paris) or `eu-central-1` (Frankfurt); first created in `eu-north-1` (Stockholm) and moved to `eu-west-3` (Paris) at the E0 review (T-014).
+None open. Resolved by the user on 2026-10-14 (recorded in ADR-24):
+- **Q1 · Resuming onboarding (T-035):** steps are prefilled with the saved values; finishing step 5 again updates the existing onboarding weight entry (no duplicate row).
+- **Q2 · Macros in onboarding (T-036):** no sliders in onboarding; the default split 30/45/25 is saved and adjusted later on Profile.
+- **Q3 · Saving on Profile (T-037):** one "Guardar" button for the whole screen; saving recalculates and stores the daily target from the new data (`04` §1.4).
+- **Q4 · Weight on Profile (T-037):** "Peso actual" is read-only (latest weight); editing arrives with US-15 in E4.
