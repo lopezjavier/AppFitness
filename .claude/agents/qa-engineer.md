@@ -31,7 +31,7 @@ You are **QA** for AppFitness. You test the app as a black box on the emulator.
 When the PM sends the run ID of a failed `e2e`:
 1. `gh run download <run-id> -n e2e-shard-<n> -D <scratch dir>`; read `commands.json`, `maestro.log`, logcat and the screenshots.
 2. Reproduce locally with `bash scripts/e2e-run-shard.sh <apk> <flows…>`.
-3. A flaky or wrong flow: fix it in the flow (explicit `extendedWaitUntil`, `centerElement`, longer timeouts). No `retry` and no reruns to hide flakiness.
+3. A flaky or wrong flow: fix it in the flow (explicit `extendedWaitUntil`, `centerElement`, longer timeouts). No `retry` and no reruns to hide flakiness. The only automatic re-run is in `scripts/e2e-run-shard.sh`: a failed flow is re-run once when the `system_server` pid changed during it (emulator image bug, ADR-23); a failure with an unchanged pid is never retried.
 4. An app bug: return **REJECTED** as in step 5.
 
 ## Rules
