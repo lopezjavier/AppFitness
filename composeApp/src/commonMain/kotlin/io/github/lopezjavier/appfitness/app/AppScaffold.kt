@@ -192,6 +192,7 @@ private fun ShellRail(
  * same area and tab content reserves the (remembered) rail width as start padding, so showing or
  * hiding the rail (Profile) never resizes a tab's viewport: a viewport change at full scroll
  * corrupts the restored list position. The bar layout keeps the same trick with its constant bar height.
+ * The top of `innerPadding` is expected to be zero because `BelowTopBar` consumes the top inset.
  */
 @Composable
 private fun ShellContent(
@@ -216,7 +217,7 @@ private fun ShellContent(
     val tabPadding =
         PaddingValues(
             start = insets.start,
-            top = innerPadding.calculateTopPadding(),
+            // The top inset is consumed by BelowTopBar, so the top padding is always zero here.
             end = innerPadding.calculateEndPadding(layoutDirection),
             bottom = insets.bottom,
         )
@@ -234,7 +235,6 @@ private fun ShellContent(
                 Modifier
                     .align(Alignment.TopStart)
                     .testTag("nav_rail")
-                    .padding(top = innerPadding.calculateTopPadding())
                     .fillMaxHeight()
                     .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
             )

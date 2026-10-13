@@ -92,7 +92,7 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 
 ## Current status
 
-E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`): see `tasks/todo.md`. Next: break down **E1** (`planning/epics/E1-infrastructure-skeleton.md`) into `tasks/` with the `planning-and-task-breakdown` skill, starting at T-015. The subagent flow starts in E1.
+E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done (2026-10-13): see `tasks/todo.md`; `v0.1.0` is tagged once the user approves Checkpoint E1-E. Next: break down **E2** (`planning/epics/`) into `tasks/` with the `planning-and-task-breakdown` skill.
 
 ## Skills
 

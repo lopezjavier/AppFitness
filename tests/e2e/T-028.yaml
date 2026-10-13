@@ -6,6 +6,8 @@
 appId: io.github.lopezjavier.appfitness.local
 tags:
   - shell
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 # Start upright even if a previous aborted run left the device rotated.
 - setOrientation: PORTRAIT
