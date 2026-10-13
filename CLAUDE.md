@@ -32,7 +32,7 @@ Work autonomously within a task. After each merge, stop and wait for the user's 
 - Anything costing money, needing their accounts or consoles, or involving secrets.
 - Irreversible or outward-facing actions beyond the normal flow: force pushes, deleting remote data, changing production data outside migrations, changing repo or branch protection settings.
 - Two or more options that are equally reasonable and have a real trade-off that the user would care about.
-- The 👤 checkpoints in `tasks/todo.md` and epic closure.
+- The 👤 checkpoints in `tasks/todo.md` and epic closure. Before presenting a checkpoint, have qa-engineer run the full Maestro regression (all tags).
 
 Do not ask about process and documentation fixes, keeping docs and agent instructions consistent with a decision already taken, dependency versions that follow the stable-only rule, or choices the subagents (planner, ux-reviewer) already resolved within `planning/`.
 
