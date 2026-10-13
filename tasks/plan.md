@@ -48,14 +48,14 @@ Source of truth: `planning/epics/E1-infrastructure-skeleton.md` (US-01…US-04 w
 - [x] T-026: Empty/error states and accessibility sweep of the catalog
 
 ### Checkpoint E1-D: Design system complete
-- [ ] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro.
+- [x] Every component from `05-design-system.md` §6 is in the catalog; US-03 Gherkin green in Maestro. (approved by the user 2026-10-13)
 
 ### Phase 5: Shell completion (US-04) — UI flow
 - [ ] T-027: Contextual FAB with WIP bottom sheets
 - [ ] T-028: Adaptive layout with NavigationRail on tablets
 - [ ] T-029: Connectivity observer and "Sin conexión" banner
-- [ ] T-032: Maestro regression in GitHub Actions (added 2026-10-13 at the user's request; runs right after Checkpoint E1-D so the T-030 regression runs in CI)
-- [ ] T-033: Catalog deep links for shorter e2e flows (added 2026-10-13 at the user's request; after T-032)
+- [ ] ~~T-032: Maestro regression in GitHub Actions~~ — dropped 2026-10-13 at the user's request (API 37 emulator image bug makes CI e2e flaky; see todo.md)
+- [ ] T-033: Catalog deep links for shorter e2e flows (added 2026-10-13 at the user's request; shortens the local regression)
 
 ### Checkpoint E1-E: Epic complete
 - [ ] T-030: E1 closure (regression, APK delivery, user feedback, tag `v0.1.0`)
