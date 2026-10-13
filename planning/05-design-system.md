@@ -27,6 +27,7 @@ Original source: `../design/stitch/kinetic-dark-performance/DESIGN.md`. This doc
 | `textSecondary` | `#C2CAB0` | Secondary text |
 | `ghostData` | `#FFFFFF` @ 36% | Previous performance, placeholders |
 | `scrim` | `#000000` @ 65% | Backdrop behind bottom sheets |
+| `sheetHandle` | `#FFFFFF` @ 20% | Bottom sheet drag handle |
 
 ### 2.2 Accents
 | Token | Value | Meaning |
