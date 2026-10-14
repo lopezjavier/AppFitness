@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppLogoDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -151,6 +152,7 @@ class WelcomeScreenTest {
     fun logo_isLargerOnWideWindows_andActionZoneIsCapped() {
         show(showTestLogin = true)
         rule.onNodeWithTag("welcome_logo", useUnmergedTree = true).assertWidthIsEqualTo(AppLogoDefaults.SizeLarge)
+        assertEquals(200.dp, AppLogoDefaults.SizeLarge)
         val width = rule.onNodeWithTag("welcome_google_button").getUnclippedBoundsInRoot()
         assertTrue("action zone capped at 360 dp", (width.right - width.left) <= 360.dp + 0.5.dp)
     }

@@ -71,6 +71,19 @@ class SelectableCardTest {
     }
 
     @Test
+    fun description_usesBodyMediumInThePrimaryTextColour() {
+        rule.setContent {
+            AppTheme {
+                assertEquals(
+                    AppTheme.typography.bodyMedium,
+                    SelectableCardDefaults.descriptionStyle(AppTheme.typography),
+                )
+            }
+        }
+        assertEquals(KineticDarkColors.textPrimary, SelectableCardDefaults.descriptionColor(KineticDarkColors))
+    }
+
+    @Test
     fun selectedBorder_isThickerAndLime_thanTheUnselectedOne() {
         val selected = SelectableCardDefaults.colors(true, KineticDarkColors)
         val unselected = SelectableCardDefaults.colors(false, KineticDarkColors)

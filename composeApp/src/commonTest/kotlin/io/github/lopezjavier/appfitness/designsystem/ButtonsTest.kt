@@ -14,9 +14,9 @@ class ButtonsTest {
         AppButtonDefaults.colors(variant, enabled, c)
 
     @Test
-    fun minHeight_primary52_secondaryAndGhost48() {
+    fun minHeight_primaryAndSecondary52_ghost48() {
         assertEquals(52.dp, AppButtonDefaults.minHeight(AppButtonVariant.Primary))
-        assertEquals(48.dp, AppButtonDefaults.minHeight(AppButtonVariant.Secondary))
+        assertEquals(52.dp, AppButtonDefaults.minHeight(AppButtonVariant.Secondary))
         assertEquals(48.dp, AppButtonDefaults.minHeight(AppButtonVariant.Ghost))
     }
 
@@ -30,7 +30,7 @@ class ButtonsTest {
         colors(AppButtonVariant.Secondary).let {
             assertEquals(c.surfaceOverlay, it.container)
             assertEquals(c.textPrimary, it.content)
-            assertEquals(c.borderStrong, it.border)
+            assertNull(it.border)
         }
         colors(AppButtonVariant.Ghost).let {
             assertEquals(Color.Transparent, it.container)
@@ -48,7 +48,8 @@ class ButtonsTest {
         }
         assertEquals(c.surfaceOverlay, colors(AppButtonVariant.Primary, false).container)
         assertNull(colors(AppButtonVariant.Primary, false).border)
-        assertEquals(c.borderSubtle, colors(AppButtonVariant.Secondary, false).border)
+        assertEquals(c.surfaceOverlay, colors(AppButtonVariant.Secondary, false).container)
+        assertNull(colors(AppButtonVariant.Secondary, false).border)
         assertEquals(Color.Transparent, colors(AppButtonVariant.Ghost, false).container)
         assertEquals(c.borderSubtle, colors(AppButtonVariant.Ghost, false).border)
     }
@@ -63,6 +64,13 @@ class ButtonsTest {
     fun shapeAndPadding_matchTokens() {
         assertEquals(AppShapes.md, AppButtonDefaults.Shape)
         assertEquals(Spacing.xl, AppButtonDefaults.HorizontalPadding)
+    }
+
+    @Test
+    fun secondary_isFilledAndNeverOutlined_sameShapeAsPrimary() {
+        assertNull(colors(AppButtonVariant.Secondary).border)
+        assertNotEquals(Color.Transparent, colors(AppButtonVariant.Secondary).container)
+        assertEquals(AppButtonDefaults.PrimaryMinHeight, AppButtonDefaults.minHeight(AppButtonVariant.Secondary))
     }
 
     @Test

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,11 @@ object SelectableCardDefaults {
     )
 
     fun borderWidth(selected: Boolean): Dp = if (selected) SelectedBorderWidth else UnselectedBorderWidth
+
+    /** The description reads as body text: size and weight (not a dimmer colour) separate it from the title. */
+    fun descriptionStyle(typography: AppTypography): TextStyle = typography.bodyMedium
+
+    fun descriptionColor(appColors: AppColors): Color = appColors.textPrimary
 }
 
 /**
@@ -76,7 +82,11 @@ fun SelectableCard(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(text = title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-            Text(text = description, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            Text(
+                text = description,
+                style = SelectableCardDefaults.descriptionStyle(AppTheme.typography),
+                color = SelectableCardDefaults.descriptionColor(AppTheme.colors),
+            )
         }
         if (selected) {
             // Decorative: the selected state is conveyed by the selectable semantics.
