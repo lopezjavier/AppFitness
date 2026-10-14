@@ -59,6 +59,53 @@ def select_serials(devices, include_emulator):
     return serials, warnings
 
 
+REQUIRED_PROD_CONFIG = (
+    ("supabase.prod.url", "SUPABASE_URL"),
+    ("supabase.prod.publishableKey", "SUPABASE_PUBLISHABLE_KEY"),
+    ("google.webClientId", "GOOGLE_WEB_CLIENT_ID"),
+)
+
+
+def read_local_properties(path):
+    """Parse a minimal java .properties file (key=value or key:value); missing file -> {}."""
+    props = {}
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line[0] in "#!":
+                    continue
+                idx = [i for i in (line.find("="), line.find(":")) if i >= 0]
+                if not idx:
+                    continue
+                i = min(idx)
+                props[line[:i].strip()] = line[i + 1:].strip()
+    except OSError:
+        pass
+    return props
+
+
+def missing_prod_config(props, env):
+    """Return the (property key, env var) pairs that resolve blank, like androidApp/build.gradle.kts."""
+    missing = []
+    for key, var in REQUIRED_PROD_CONFIG:
+        if not (props.get(key) or "").strip() and not (env.get(var) or "").strip():
+            missing.append((key, var))
+    return missing
+
+
+def check_prod_config():
+    missing = missing_prod_config(read_local_properties(os.path.join(ROOT, "local.properties")), os.environ)
+    if not missing:
+        return True
+    print("error: the prod build needs these values and they are missing:", file=sys.stderr)
+    for key, var in missing:
+        print(f"  - {key} (local.properties) or {var} (environment)", file=sys.stderr)
+    print("Add them to local.properties (see planning/08-environment-setup.md) or export the variables.",
+          file=sys.stderr)
+    return False
+
+
 def build():
     gradlew = os.path.join(ROOT, "gradlew.bat" if IS_WINDOWS else "gradlew")
     cmd = [gradlew, "-q", ":androidApp:assembleProdDebug"]
@@ -98,7 +145,7 @@ def main(argv=None):
               "(platform-tools).", file=sys.stderr)
         return 1
 
-    if not args.no_build and not build():
+    if not args.no_build and not (check_prod_config() and build()):
         return 1
 
     apks = sorted(glob.glob(os.path.join(ROOT, APK_DIR, "*.apk")), key=os.path.getmtime, reverse=True)
