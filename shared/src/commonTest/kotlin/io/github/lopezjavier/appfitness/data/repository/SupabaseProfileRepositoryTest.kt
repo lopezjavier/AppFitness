@@ -88,6 +88,7 @@ class SupabaseProfileRepositoryTest {
         assertEquals(AppError.Network, repo.getOwnProfile().appErrorOrNull())
     }
 
+    @Test
     fun getBiometrics_decodesNullsAndRoundsTheNumericHeight() = runTest {
         val full =
             signedInRepository {
@@ -108,6 +109,7 @@ class SupabaseProfileRepositoryTest {
         assertEquals(SavedBiometrics(), empty.getBiometrics().getOrThrow())
     }
 
+    @Test
     fun updateBiometrics_patchesTheOwnRowWithTheFourFieldsOnly() = runTest {
         val repo = signedInRepository { "[]" }
 
@@ -125,6 +127,19 @@ class SupabaseProfileRepositoryTest {
         assertFalse(body.contains("onboarding_completed"))
     }
 
+    @Test
+    fun markOnboardingCompleted_patchesOnlyTheFlag() = runTest {
+        val repo = signedInRepository { "[]" }
+
+        assertTrue(repo.markOnboardingCompleted().isSuccess)
+
+        val patch = requests.last()
+        assertEquals(HttpMethod.Patch, patch.method)
+        assertTrue(patch.url.toString().contains("id=eq.user-1"), patch.url.toString())
+        assertEquals("""{"onboarding_completed":true}""", (patch.body as TextContent).text)
+    }
+
+    @Test
     fun biometrics_networkError_isAppErrorNetwork() = runTest {
         var fail = false
         val repo =
