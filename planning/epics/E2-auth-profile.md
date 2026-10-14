@@ -48,7 +48,7 @@ Feature: Google authentication
   Scenario: Network error when signing in
     Given the device has no connection
     When they tap "Continuar con Google"
-    Then the message "Sin conexión. Inténtalo de nuevo" is shown with a retry option
+    Then the message "Sin conexión. Inténtalo de nuevo" is shown, and tapping "Continuar con Google" again retries
 
   Scenario: Sign out
     Given a signed-in user on Profile

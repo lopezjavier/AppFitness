@@ -825,13 +825,13 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 **Acceptance criteria:**
 - [x] Root route is a pure function of (session status, onboarding flag) with unit tests: no session → Welcome; session + `false` → Onboarding; session + `true` → Main (Diario); session loading → splash/skeleton, never a flash of Welcome.
-- [x] Credential result mapped to a sealed outcome (success / cancelled / no network / other error): cancelled → stays on Welcome with no message; no network → "Sin conexión. Inténtalo de nuevo" with a retry action; Welcome actions disabled while a sign-in is in flight.
+- [x] Credential result mapped to a sealed outcome (success / cancelled / no network / other error): cancelled → stays on Welcome with no message; no network → "Sin conexión. Inténtalo de nuevo" as a message only (the user taps "Continuar con Google" again; checkpoint feedback 2026-10-14); Welcome actions disabled while a sign-in is in flight.
 - [x] Sign out asks for confirmation, clears the persisted session and returns to Welcome with the tab back stacks reset.
 - [x] "Test login" signs in as `test@appfitness.local` (password from `planning/08-environment-setup.md` §3.2) and exists only in `local`: a `testProdDebugUnitTest` asserts it is absent in `prod`.
 - [x] Avatar: Google photo when `avatar_url` is set, placeholder otherwise; ≥ 48 dp target and Spanish `contentDescription` unchanged.
 - [x] E2E data state decided and documented in the plan (see `tasks/plan.md` risk "E2E user state"): the login subflow lands on Diario for every existing flow.
 
-**Host tests (per scenario):** `RootRouteTest` (First sign-in → Onboarding, Persistent session → Main); `WelcomeViewModelTest` with a fake `AuthCredentialProvider`/`AuthRepository` + Turbine (First sign-in, Account picker cancelled, Network error + retry, Test login); `WelcomeScreenTest` (Robolectric: button, error message and retry visible, Test login visible only when the feature flag is on); `ProfileScreenTest` (Sign out: confirm dialog → sign-out event; cancel keeps the session); `testProdDebugUnitTest` for the Test login gating.
+**Host tests (per scenario):** `RootRouteTest` (First sign-in → Onboarding, Persistent session → Main); `WelcomeViewModelTest` with a fake `AuthCredentialProvider`/`AuthRepository` + Turbine (First sign-in, Account picker cancelled, Network error + tapping Google again, Test login); `WelcomeScreenTest` (Robolectric: button, error message visible without a retry action, Test login visible only when the feature flag is on); `ProfileScreenTest` (Sign out: confirm dialog → sign-out event; cancel keeps the session); `testProdDebugUnitTest` for the Test login gating.
 
 **E2E scope:** `auth` (new `tests/e2e/T-034.yaml`: Test login → Diario; relaunch → Diario without login; sign out → Welcome) + new `tests/e2e/subflows/login.yaml`. Every existing flow (`shell`, `catalog`) gains the login subflow; QA updates them, runs `auth,shell`, and the `catalog` flows at Checkpoint E2-A. Account picker and real Google sign-in are not automatable (checked at the checkpoint).
 
@@ -857,7 +857,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 - [x] Migration + `supabase/tests/body_measurements.test.sql`: RLS on and forced; A sees only their rows; A cannot insert with B's `user_id`, update or delete B's rows; range checks reject 19.9 / 400.1 kg.
 - [x] Picker bounds come from one domain place: age 14–100 (birth date range relative to today), height 100–250 cm, weight 20.0–400.0 kg; unit tests on the bounds and the age calculation (full years).
 - [x] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3.
-- [x] On save errors (offline, network) the values are kept and a retry is offered (02 §9); "Continuar" disabled while saving.
+- [x] On save errors (offline, network) the values are kept and a message-only snackbar is shown; the user taps "Continuar" again (02 §9); "Continuar" disabled while saving.
 - [x] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
 - [x] Activity step: each card shows the level title and its description from `04-business-rules.md` §1.3 (user request 2026-10-14; no extra hint).
 - [x] `WheelPicker`: tabular numerals, ≥ 48 dp targets, `contentDescription`/`stateDescription` with the selected value, catalog entry, `testTag`s.
@@ -886,7 +886,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 - [x] Migration + `supabase/tests/nutrition_goals.test.sql`: RLS on and forced; cross-user isolation (select/insert/update/delete); percentage checks reject 4 / 91 and a sum ≠ 100.
 - [x] Use case tests include: male 26 y, 178 cm, 74.2 kg, moderate → 2681; TDEE 2800 + Déficit → 2400 and "−400 kcal · Déficit moderado"; two steps down → −500 / 2300; female TDEE 1500 − 400 → 1200 + floor flag; male TDEE 1800 − 400 → 1500 + floor flag; range ends (−1000, −50, ±100, +50, +750) are not crossed; label thresholds 300 / 600.
 - [x] Numbers formatted with `AppNumberFormat` ("TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día").
-- [x] Goals and `onboarding_completed = true` are written so that a failure never leaves `onboarding_completed = true` without a goals row (order or RPC chosen by the planner); save errors keep the values and offer a retry.
+- [x] Goals and `onboarding_completed = true` are written so that a failure never leaves `onboarding_completed = true` without a goals row (order or RPC chosen by the planner); save errors keep the values and show a message-only snackbar; the user taps the save button again.
 - [x] After saving, relaunching the app goes straight to Diario (closes the US-05 "Persistent session" journey for a new user).
 
 **Host tests (per scenario):** `CalculateTdeeTest`, `CalculateCalorieTargetTest` (TDEE calculation, Changing the strategy, Fine-tuning, Safety floor); `EnergyStrategyViewModelTest` (strategy switch resets the adjustment to the default, stepper, floor warning, Saving the goals → upsert + onboarding flag + haptic/confirmation effect); `EnergyStrategySectionTest` (Robolectric: texts "TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día", pill, warning).
@@ -910,6 +910,10 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
   - Close the app and reopen it → straight to Diario. Open the Google picker and dismiss it → no error. Airplane mode + "Continuar con Google" → "Sin conexión. Inténtalo de nuevo".
   - Profile → "Cerrar sesión" → Welcome. Kill the app halfway through onboarding (second account, if available) → restarts at step 1 with the saved values prefilled.
   - Feedback on the onboarding pickers and the strategy step (cheap to change before the Profile task).
+- Checkpoint E2-A feedback (2026-10-14), applied on `fix/E2-A-checkpoint-feedback`:
+  1. Welcome logo bigger: 160 dp on phones, 200 dp from 600 dp up (the brand zone still scrolls on short windows; the buttons stay pinned to the bottom).
+  2. "Reintentar" removed where it duplicated the primary button (Welcome sign-in errors, onboarding and goals save errors): they show the message only and the user taps the primary button again. Full-screen errors keep "Reintentar" (ProfileError, onboarding load error).
+  3. `scripts/deliver-apk.py` checks the prod config (`supabase.prod.url`, `supabase.prod.publishableKey`, `google.webClientId` or the env equivalents) before building and names the missing keys.
 
 ---
 
