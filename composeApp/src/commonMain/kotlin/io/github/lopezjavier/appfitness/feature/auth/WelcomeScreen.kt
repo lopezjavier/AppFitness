@@ -33,7 +33,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.auth_error_generic
 import io.github.lopezjavier.appfitness.composeapp.resources.auth_error_no_network
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_google_button
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_logo_description
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_signing_in
@@ -42,7 +41,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.welcome_title
 import io.github.lopezjavier.appfitness.designsystem.AppLogo
 import io.github.lopezjavier.appfitness.designsystem.AppLogoDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -67,7 +65,8 @@ fun WelcomeRoute(
 
 /**
  * Welcome: the brand (logo + name) over the sign-in actions pinned to the bottom. "Test login" shows only
- * when [showTestLogin]. A failed attempt shows [WelcomeUiState.error] above the buttons, with "Reintentar".
+ * when [showTestLogin]. A failed attempt shows [WelcomeUiState.error] above the buttons, message only: the
+ * user taps "Continuar con Google" again.
  */
 @Composable
 fun WelcomeScreen(
@@ -133,7 +132,7 @@ private fun ActionZone(state: WelcomeUiState, showTestLogin: Boolean, onEvent: (
         ).fillMaxWidth().padding(bottom = Spacing.blockGap),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
-        state.error?.let { error -> ErrorBlock(error) { onEvent(WelcomeEvent.Retry) } }
+        state.error?.let { error -> ErrorBlock(error) }
         PrimaryButton(
             text = stringResource(Res.string.welcome_google_button),
             onClick = { onEvent(WelcomeEvent.ContinueWithGoogle) },
@@ -157,25 +156,20 @@ private fun ActionZone(state: WelcomeUiState, showTestLogin: Boolean, onEvent: (
 }
 
 @Composable
-private fun ErrorBlock(error: WelcomeError, onRetry: () -> Unit) {
+private fun ErrorBlock(error: WelcomeError) {
     val message =
         when (error) {
             WelcomeError.NoNetwork -> stringResource(Res.string.auth_error_no_network)
             WelcomeError.Generic -> stringResource(Res.string.auth_error_generic)
         }
-    Column(
+    Text(
+        text = message,
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.error,
         modifier = Modifier.fillMaxWidth().semantics {
             liveRegion = LiveRegionMode.Polite
         }.testTag("welcome_error_message"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Text(text = message, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.error)
-        GhostButton(
-            text = stringResource(Res.string.state_retry),
-            onClick = onRetry,
-            modifier = Modifier.testTag("welcome_retry_button"),
-        )
-    }
+    )
 }
 
 @Preview

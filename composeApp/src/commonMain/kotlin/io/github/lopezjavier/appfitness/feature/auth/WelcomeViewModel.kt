@@ -22,9 +22,6 @@ sealed interface WelcomeEvent {
     data object ContinueWithGoogle : WelcomeEvent
 
     data object TestLogin : WelcomeEvent
-
-    /** Repeats the last method that was tried. */
-    data object Retry : WelcomeEvent
 }
 
 private enum class SignInMethod { Google, Test }
@@ -41,19 +38,15 @@ class WelcomeViewModel(
     private val _uiState = MutableStateFlow(WelcomeUiState())
     val uiState: StateFlow<WelcomeUiState> = _uiState.asStateFlow()
 
-    private var lastMethod: SignInMethod? = null
-
     fun onEvent(event: WelcomeEvent) {
         when (event) {
             WelcomeEvent.ContinueWithGoogle -> start(SignInMethod.Google)
             WelcomeEvent.TestLogin -> start(SignInMethod.Test)
-            WelcomeEvent.Retry -> lastMethod?.let(::start)
         }
     }
 
     private fun start(method: SignInMethod) {
         if (_uiState.value.inFlight) return
-        lastMethod = method
         _uiState.value = WelcomeUiState(inFlight = true)
         viewModelScope.launch {
             val outcome =

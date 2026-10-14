@@ -37,5 +37,42 @@ class DeliverApkTest(unittest.TestCase):
         self.assertEqual(serials, ["R58M123ABC", "emulator-5554"])
 
 
+class ProdConfigTest(unittest.TestCase):
+    FULL = {
+        "supabase.prod.url": "u",
+        "supabase.prod.publishableKey": "k",
+        "google.webClientId": "g",
+    }
+
+    def test_complete_local_properties(self):
+        self.assertEqual(deliver.missing_prod_config(self.FULL, {}), [])
+
+    def test_env_fallback(self):
+        env = {"SUPABASE_URL": "u", "SUPABASE_PUBLISHABLE_KEY": "k", "GOOGLE_WEB_CLIENT_ID": "g"}
+        self.assertEqual(deliver.missing_prod_config({}, env), [])
+
+    def test_blank_values_are_missing(self):
+        props = dict(self.FULL, **{"google.webClientId": "  "})
+        self.assertEqual(
+            deliver.missing_prod_config(props, {"GOOGLE_WEB_CLIENT_ID": ""}),
+            [("google.webClientId", "GOOGLE_WEB_CLIENT_ID")],
+        )
+
+    def test_reports_all_missing(self):
+        self.assertEqual(len(deliver.missing_prod_config({}, {})), 3)
+
+    def test_read_local_properties(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "local.properties")
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                f.write("# c\nsupabase.prod.url=https://x\ngoogle.webClientId = abc\n")
+            props = deliver.read_local_properties(path)
+        self.assertEqual(props["supabase.prod.url"], "https://x")
+        self.assertEqual(props["google.webClientId"], "abc")
+        self.assertEqual(deliver.read_local_properties(os.path.join(d, "nope")), {})
+
+
 if __name__ == "__main__":
     unittest.main()

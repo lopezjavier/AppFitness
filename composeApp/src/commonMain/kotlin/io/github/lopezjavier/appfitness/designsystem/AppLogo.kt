@@ -17,10 +17,10 @@ import org.jetbrains.compose.resources.painterResource
 /** Sizes of the [AppLogo] (square mark). */
 object AppLogoDefaults {
     /** Compact widths. */
-    val Size: Dp = 96.dp
+    val Size: Dp = 160.dp
 
     /** Widths from 600 dp up. */
-    val SizeLarge: Dp = 128.dp
+    val SizeLarge: Dp = 200.dp
 
     fun size(widthClass: WindowWidthClass): Dp = if (widthClass == WindowWidthClass.Compact) Size else SizeLarge
 }

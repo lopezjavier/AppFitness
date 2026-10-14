@@ -160,4 +160,4 @@ Optional in E6: a release workflow that, when a `v*` tag is created, builds the 
 
 - Connectivity monitor (`ConnectivityManager` in androidMain, exposed as `Flow<Boolean>`).
 - Offline: persistent banner below the Top Bar; write buttons disabled; reads show the last in-memory state if available.
-- Network errors on a write: snackbar with "Reintentar" (retry); what the user typed is never lost (state kept in the ViewModel / `SavedStateHandle`).
+- Transient errors (a failed write or sign-in) show a message only, with no action, when a primary action on screen already retries (the user taps it again); what the user typed is never lost (state kept in the ViewModel / `SavedStateHandle`). Full-screen error states (a failed load) keep "Reintentar" as their action.

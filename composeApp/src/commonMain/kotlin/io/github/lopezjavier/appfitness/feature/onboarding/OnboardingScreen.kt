@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,7 +57,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_bir
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_height
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_sex
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
@@ -96,7 +93,8 @@ object OnboardingDefaults {
  * The biometric onboarding: header (progress and step title), the controls of the step, and a footer with
  * "Atrás" and "Continuar" pinned to the bottom. The goals step shows the energy strategy section with
  * "Guardar objetivos"; once saved it confirms in place and calls [onComplete] after
- * [OnboardingDefaults.ConfirmationDuration]. A failed save shows a persistent snackbar with "Reintentar".
+ * [OnboardingDefaults.ConfirmationDuration]. A failed save shows a message-only snackbar; the user taps
+ * "Continuar" / "Guardar objetivos" again and the values are kept.
  */
 @Composable
 fun OnboardingScreen(
@@ -106,7 +104,7 @@ fun OnboardingScreen(
     onComplete: () -> Unit = {},
 ) {
     val snackbarHost = remember { SnackbarHostState() }
-    SaveErrorSnackbar(state.saveError, snackbarHost) { onEvent(OnboardingEvent.RetrySave) }
+    SaveErrorSnackbar(state.saveError, snackbarHost)
     NavigationBackHandler(
         state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
         isBackEnabled = state.canGoBack,
@@ -157,19 +155,15 @@ private fun ConfirmationEffect(onComplete: () -> Unit) {
 }
 
 @Composable
-private fun SaveErrorSnackbar(error: OnboardingSaveError?, host: SnackbarHostState, onRetry: () -> Unit) {
+private fun SaveErrorSnackbar(error: OnboardingSaveError?, host: SnackbarHostState) {
     val message =
         when (error) {
             OnboardingSaveError.Network -> stringResource(Res.string.onboarding_save_error_offline)
             OnboardingSaveError.Other -> stringResource(Res.string.onboarding_save_error)
             null -> null
         }
-    val retry = stringResource(Res.string.state_retry)
-    val currentOnRetry by rememberUpdatedState(onRetry)
     LaunchedEffect(error) {
-        if (message == null) return@LaunchedEffect
-        val result = host.showSnackbar(message, retry, duration = SnackbarDuration.Indefinite)
-        if (result == SnackbarResult.ActionPerformed) currentOnRetry()
+        if (message != null) host.showSnackbar(message)
     }
 }
 
@@ -209,17 +203,7 @@ private fun ColumnScope.StepForm(
             }
         }
     }
-    SnackbarHost(snackbarHost) { data ->
-        Snackbar(
-            action = {
-                GhostButton(
-                    text = data.visuals.actionLabel.orEmpty(),
-                    onClick = { data.performAction() },
-                    modifier = Modifier.testTag("onboarding_save_retry"),
-                )
-            },
-        ) { Text(data.visuals.message) }
-    }
+    SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
     if (state.showOfflineHint) {
         Text(
             text = stringResource(Res.string.onboarding_offline_hint),

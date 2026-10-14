@@ -211,7 +211,7 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun saveFailure_keepsValuesAndStep_thenRetrySucceeds() = runTest {
+    fun saveFailure_keepsValuesAndStep_thenContinueAgainSucceeds() = runTest {
         val vm = started()
         vm.fillToActivity()
         profile.updateResult = Result.failure(AppException(AppError.Network))
@@ -228,7 +228,7 @@ class OnboardingViewModelTest {
         assertTrue(weights.inserts.isEmpty())
 
         profile.updateResult = Result.success(Unit)
-        vm.onEvent(OnboardingEvent.RetrySave)
+        vm.onEvent(OnboardingEvent.Continue)
         advanceUntilIdle()
 
         assertEquals(OnboardingStep.Goals, vm.state.step)
@@ -237,7 +237,7 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun weightSaveFailure_isOther_andTheRetryRepeatsBothIdempotentWrites() = runTest {
+    fun weightSaveFailure_isOther_andContinuingAgainRepeatsBothIdempotentWrites() = runTest {
         val vm = started()
         vm.fillToActivity()
         weights.saveFailure = AppException(AppError.Unknown)
@@ -247,7 +247,7 @@ class OnboardingViewModelTest {
         assertEquals(OnboardingSaveError.Other, vm.state.saveError)
 
         weights.saveFailure = null
-        vm.onEvent(OnboardingEvent.RetrySave)
+        vm.onEvent(OnboardingEvent.Continue)
         advanceUntilIdle()
 
         assertEquals(2, profile.biometricsUpdates.size)

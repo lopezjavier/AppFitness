@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -18,7 +19,9 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
@@ -343,26 +346,27 @@ class OnboardingScreenTest {
     }
 
     @Test
-    fun goalsSaveError_showsReintentar_andRetryCompletes() {
+    fun goalsSaveError_showsMessageOnly_andTheSaveButtonCompletes() {
         goToGoalsStep()
         goals.upsertResult = Result.failure(AppException(AppError.Network))
 
         tap("onboarding_goals_save")
 
-        rule.onNodeWithTag("onboarding_save_retry").assertTextEquals("Reintentar")
+        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertExists()
+        rule.onAllNodesWithText("Reintentar").assertCountEquals(0)
         rule.onNodeWithTag("onboarding_goals_save").assertExists()
         assertEquals(0, completions)
 
         goals.upsertResult = Result.success(Unit)
         rule.mainClock.autoAdvance = false
-        rule.onNodeWithTag("onboarding_save_retry").performClick()
+        rule.onNodeWithTag("onboarding_goals_save").performClick()
         rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
 
         rule.onNodeWithTag("onboarding_goals_saved").assertExists()
     }
 
     @Test
-    fun saveError_showsASnackbarWithReintentar_andRetryFinishesTheFlow() {
+    fun saveError_showsAMessageOnlySnackbar_andContinueFinishesTheFlow() {
         show()
         goToStep(5)
         tap("onboarding_activity_moderate")
@@ -370,15 +374,15 @@ class OnboardingScreenTest {
 
         next()
 
-        rule.onNodeWithTag("onboarding_save_retry").assertTextEquals("Reintentar").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertExists()
+        rule.onAllNodesWithText("Reintentar").assertCountEquals(0)
         rule.onNodeWithTag("onboarding_activity_moderate").assertIsSelected()
         rule.onNodeWithTag("onboarding_goals_save").assertDoesNotExist()
 
         profile.updateResult = Result.success(Unit)
-        tap("onboarding_save_retry")
+        next()
 
         rule.onNodeWithTag("onboarding_goals_save").assertExists()
-        rule.onNodeWithTag("onboarding_save_retry").assertDoesNotExist()
     }
 
     @Test
