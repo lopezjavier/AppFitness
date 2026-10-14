@@ -69,8 +69,12 @@ class SupabaseAuthRepository(private val auth: Auth) : AuthRepository {
 
 internal fun SessionStatus.toAuthState(currentUserId: () -> String?): AuthState = when (this) {
     is SessionStatus.Initializing -> AuthState.Loading
-    is SessionStatus.Authenticated -> session.user?.id?.let(AuthState::SignedIn) ?: AuthState.SignedOut
+
+    is SessionStatus.Authenticated -> (session.user?.id ?: currentUserId())?.let(AuthState::SignedIn)
+        ?: AuthState.SignedOut
+
     is SessionStatus.RefreshFailure -> currentUserId()?.let(AuthState::SignedIn) ?: AuthState.SignedOut
+
     is SessionStatus.NotAuthenticated -> AuthState.SignedOut
 }
 
