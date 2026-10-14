@@ -139,6 +139,8 @@
     <string name="onboarding_step_birth_date">Fecha de nacimiento</string>
     <string name="onboarding_step_height">Altura</string>
     <string name="onboarding_step_weight">Peso actual</string>
+    <string name="onboarding_step_about_you">Sobre ti</string>
+    <string name="onboarding_step_measures">Medidas</string>
     <string name="onboarding_step_activity">Nivel de actividad</string>
     <string name="onboarding_indicator">%1$d / %2$d</string>
     <string name="onboarding_indicator_cd">Paso %1$d de %2$d</string>

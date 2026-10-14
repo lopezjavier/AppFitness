@@ -9,17 +9,15 @@ import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyUiState
 import io.github.lopezjavier.appfitness.feature.goals.energyStrategyUiState
 import kotlinx.datetime.LocalDate
 
-/** Steps of the onboarding flow: five biometric steps and the [Goals] step (energy strategy). */
+/** Steps of the onboarding flow: three biometric steps and the [Goals] step (energy strategy). */
 enum class OnboardingStep {
-    Sex,
-    BirthDate,
-    Height,
-    Weight,
+    AboutYou,
+    Measures,
     Activity,
     Goals,
     ;
 
-    /** 1-based number shown as "N / 5". The goals step has none. */
+    /** 1-based number shown as "N / 4". */
     val number: Int get() = ordinal + 1
 
     fun previous(): OnboardingStep? = entries.getOrNull(ordinal - 1)
@@ -27,7 +25,15 @@ enum class OnboardingStep {
     fun next(): OnboardingStep? = entries.getOrNull(ordinal + 1)
 
     companion object {
-        const val BIOMETRIC_STEPS = 5
+        const val TOTAL_STEPS = 4
+
+        /** Step for a saved name, mapping the names of the former five-step flow; unknown names start over. */
+        fun fromSavedName(name: String?): OnboardingStep = when (name) {
+            null -> AboutYou
+            "Sex", "BirthDate" -> AboutYou
+            "Height", "Weight" -> Measures
+            else -> entries.firstOrNull { it.name == name } ?: AboutYou
+        }
     }
 }
 
@@ -45,7 +51,7 @@ enum class OnboardingSaveError { Network, Other }
  * until the user changes them), except [sex] and [activity], which start unselected.
  */
 data class OnboardingUiState(
-    val step: OnboardingStep = OnboardingStep.Sex,
+    val step: OnboardingStep = OnboardingStep.AboutYou,
     val sex: Sex? = null,
     val birthDate: LocalDate,
     val heightCm: Int = BiometricBounds.DEFAULT_HEIGHT_CM,
@@ -62,7 +68,7 @@ data class OnboardingUiState(
     val canContinue: Boolean
         get() = phase == OnboardingPhase.Content &&
             when (step) {
-                OnboardingStep.Sex -> sex != null
+                OnboardingStep.AboutYou -> sex != null
                 OnboardingStep.Activity -> activity != null && !isOffline
                 OnboardingStep.Goals -> !isOffline
                 else -> true
@@ -75,7 +81,7 @@ data class OnboardingUiState(
             phase == OnboardingPhase.Content
 
     val canGoBack: Boolean
-        get() = step != OnboardingStep.Sex && phase != OnboardingPhase.Saving && phase != OnboardingPhase.Completed
+        get() = step != OnboardingStep.AboutYou && phase != OnboardingPhase.Saving && phase != OnboardingPhase.Completed
 
     /** The energy strategy section of the Goals step, once sex and activity are known; its controls follow [phase]. */
     val energy: EnergyStrategyUiState?

@@ -51,7 +51,7 @@ private class Loaded(
 )
 
 /**
- * Drives the five biometric steps and the goals step. Every user value and the step live in [savedState], so they
+ * Drives the three biometric steps and the goals step. Every user value and the step live in [savedState], so they
  * survive rotation and process death; a new instance built from a handle that holds them skips the load.
  * Saving the biometrics writes the profile and the onboarding weight row, both idempotent, then moves to the goals
  * step; saving the goals upserts them and sets `onboarding_completed`, then the phase becomes Completed.
@@ -266,7 +266,7 @@ class OnboardingViewModel(
         val base = OnboardingUiState(birthDate = BiometricBounds.defaultBirthDate(today), today = today)
         if (savedState.get<Boolean>(KEY_READY) != true) return base
         return base.copy(
-            step = savedState.get<String>(KEY_STEP)?.let(OnboardingStep::valueOf) ?: base.step,
+            step = OnboardingStep.fromSavedName(savedState.get<String>(KEY_STEP)),
             sex = savedState.get<String>(KEY_SEX)?.let(Sex::valueOf),
             birthDate = savedState.get<String>(KEY_BIRTH_DATE)?.let(LocalDate::parse) ?: base.birthDate,
             heightCm = savedState.get<Int>(KEY_HEIGHT) ?: base.heightCm,

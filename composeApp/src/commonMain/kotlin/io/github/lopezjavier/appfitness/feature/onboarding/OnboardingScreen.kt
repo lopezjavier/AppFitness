@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -52,14 +53,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_indicato
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_offline_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_about_you
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_activity
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_birth_date
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_height
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_sex
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_measures
+import io.github.lopezjavier.appfitness.designsystem.AppButtonDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
@@ -163,7 +163,7 @@ private fun SaveErrorSnackbar(error: OnboardingSaveError?, host: SnackbarHostSta
             null -> null
         }
     LaunchedEffect(error) {
-        if (message != null) host.showSnackbar(message)
+        if (message != null) host.showSnackbar(message, duration = SnackbarDuration.Long)
     }
 }
 
@@ -176,21 +176,25 @@ private fun ColumnScope.StepForm(
     val focusTitle = remember { FocusRequester() }
     LaunchedEffect(state.step) { focusTitle.requestFocus() }
     Header(state.step, focusTitle)
-    val isGoals = state.step == OnboardingStep.Goals
     Column(
         Modifier.weight(1f).fillMaxWidth().padding(vertical = Spacing.blockGap)
             .verticalScroll(rememberScrollState()),
-        horizontalAlignment = if (isGoals) Alignment.Start else Alignment.CenterHorizontally,
-        verticalArrangement = if (isGoals) Arrangement.Top else Arrangement.Center,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Top,
     ) {
         when (state.step) {
-            OnboardingStep.Sex -> SexStep(state.sex) { onEvent(OnboardingEvent.SelectSex(it)) }
+            OnboardingStep.AboutYou -> AboutYouStep(
+                state = state,
+                onSelectSex = { onEvent(OnboardingEvent.SelectSex(it)) },
+                onBirthDate = { onEvent(OnboardingEvent.SetBirthDate(it)) },
+            )
 
-            OnboardingStep.BirthDate -> BirthDateStep(state) { onEvent(OnboardingEvent.SetBirthDate(it)) }
-
-            OnboardingStep.Height -> HeightStep(state.heightCm) { onEvent(OnboardingEvent.SetHeight(it)) }
-
-            OnboardingStep.Weight -> WeightStep(state.weightTenths) { onEvent(OnboardingEvent.SetWeight(it)) }
+            OnboardingStep.Measures -> MeasuresStep(
+                heightCm = state.heightCm,
+                weightTenths = state.weightTenths,
+                onHeight = { onEvent(OnboardingEvent.SetHeight(it)) },
+                onWeight = { onEvent(OnboardingEvent.SetWeight(it)) },
+            )
 
             OnboardingStep.Activity -> ActivityStep(state.activity) { onEvent(OnboardingEvent.SelectActivity(it)) }
 
@@ -219,7 +223,7 @@ private fun ColumnScope.StepForm(
 @Composable
 private fun Header(step: OnboardingStep, focusTitle: FocusRequester) {
     Column(Modifier.padding(top = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (step != OnboardingStep.Goals) StepIndicator(step)
+        StepIndicator(step)
         Text(
             text = stringResource(stepTitle(step)),
             style = AppTheme.typography.titleLarge,
@@ -232,9 +236,9 @@ private fun Header(step: OnboardingStep, focusTitle: FocusRequester) {
 
 @Composable
 private fun StepIndicator(step: OnboardingStep) {
-    val indicator = stringResource(Res.string.onboarding_indicator, step.number, OnboardingStep.BIOMETRIC_STEPS)
+    val indicator = stringResource(Res.string.onboarding_indicator, step.number, OnboardingStep.TOTAL_STEPS)
     val indicatorDescription =
-        stringResource(Res.string.onboarding_indicator_cd, step.number, OnboardingStep.BIOMETRIC_STEPS)
+        stringResource(Res.string.onboarding_indicator_cd, step.number, OnboardingStep.TOTAL_STEPS)
     Text(
         text = indicator,
         style = AppTheme.typography.labelTechnical,
@@ -245,10 +249,8 @@ private fun StepIndicator(step: OnboardingStep) {
 }
 
 private fun stepTitle(step: OnboardingStep): StringResource = when (step) {
-    OnboardingStep.Sex -> Res.string.onboarding_step_sex
-    OnboardingStep.BirthDate -> Res.string.onboarding_step_birth_date
-    OnboardingStep.Height -> Res.string.onboarding_step_height
-    OnboardingStep.Weight -> Res.string.onboarding_step_weight
+    OnboardingStep.AboutYou -> Res.string.onboarding_step_about_you
+    OnboardingStep.Measures -> Res.string.onboarding_step_measures
     OnboardingStep.Activity -> Res.string.onboarding_step_activity
     OnboardingStep.Goals -> Res.string.onboarding_goals_title
 }
@@ -257,14 +259,14 @@ private fun stepTitle(step: OnboardingStep): StringResource = when (step) {
 private fun Footer(state: OnboardingUiState, onEvent: (OnboardingEvent) -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(bottom = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (state.step != OnboardingStep.Sex) {
-            GhostButton(
+        if (state.step != OnboardingStep.AboutYou) {
+            SecondaryButton(
                 text = stringResource(Res.string.onboarding_back),
                 onClick = { onEvent(OnboardingEvent.Back) },
-                modifier = Modifier.testTag("onboarding_back"),
+                modifier = Modifier.widthIn(min = AppButtonDefaults.CompactMinWidth).testTag("onboarding_back"),
                 enabled = state.canGoBack,
             )
         }
@@ -286,7 +288,7 @@ private fun OnboardingScreenPreview() {
     AppTheme {
         OnboardingScreen(
             state = OnboardingUiState(
-                step = OnboardingStep.Height,
+                step = OnboardingStep.Measures,
                 birthDate = BiometricBounds.defaultBirthDate(today),
                 phase = OnboardingPhase.Content,
                 today = today,

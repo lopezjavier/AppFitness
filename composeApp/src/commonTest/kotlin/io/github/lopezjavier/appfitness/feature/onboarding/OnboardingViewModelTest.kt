@@ -75,15 +75,13 @@ class OnboardingViewModelTest {
 
     private val OnboardingViewModel.state get() = uiState.value
 
-    /** Walks a fresh flow to step 5 with the Gherkin values: male, 15/06/1999, 178 cm, 74.2 kg, moderate. */
+    /** Walks a fresh flow to step 3 with the Gherkin values: male, 15/06/1999, 178 cm, 74.2 kg, moderate. */
     private fun OnboardingViewModel.fillToActivity() {
         send(
             OnboardingEvent.SelectSex(Sex.Male),
-            OnboardingEvent.Continue,
             OnboardingEvent.SetBirthDate(BIRTH_DATE),
             OnboardingEvent.Continue,
             OnboardingEvent.SetHeight(178),
-            OnboardingEvent.Continue,
             OnboardingEvent.SetWeight(742),
             OnboardingEvent.Continue,
             OnboardingEvent.SelectActivity(ActivityLevel.Moderate),
@@ -95,7 +93,7 @@ class OnboardingViewModelTest {
         val vm = started()
 
         assertEquals(OnboardingPhase.Content, vm.state.phase)
-        assertEquals(OnboardingStep.Sex, vm.state.step)
+        assertEquals(OnboardingStep.AboutYou, vm.state.step)
         assertNull(vm.state.sex)
         assertNull(vm.state.activity)
         assertEquals(LocalDate(1996, 10, 14), vm.state.birthDate)
@@ -121,21 +119,55 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun indicatorValues_followTheSteps_andBackKeepsTheDate() = runTest {
+    fun indicatorValues_followTheSteps_andBackKeepsTheValues() = runTest {
         val vm = started()
         val seen = mutableListOf(vm.state.step.number)
-        vm.send(OnboardingEvent.SelectSex(Sex.Female), OnboardingEvent.Continue)
+        vm.send(
+            OnboardingEvent.SelectSex(Sex.Female),
+            OnboardingEvent.SetBirthDate(BIRTH_DATE),
+            OnboardingEvent.Continue,
+        )
         seen += vm.state.step.number
-        vm.send(OnboardingEvent.SetBirthDate(BIRTH_DATE), OnboardingEvent.Continue)
+        assertEquals(OnboardingStep.Measures, vm.state.step)
+        vm.send(OnboardingEvent.SetHeight(178), OnboardingEvent.SetWeight(705), OnboardingEvent.Continue)
         seen += vm.state.step.number
-        assertEquals(OnboardingStep.Height, vm.state.step)
+        assertEquals(OnboardingStep.Activity, vm.state.step)
 
         vm.onEvent(OnboardingEvent.Back)
 
         assertEquals(listOf(1, 2, 3), seen)
-        assertEquals(OnboardingStep.BirthDate, vm.state.step)
+        assertEquals(OnboardingStep.Measures, vm.state.step)
+        assertEquals(178, vm.state.heightCm)
+        assertEquals(705, vm.state.weightTenths)
+
+        vm.onEvent(OnboardingEvent.Back)
+
+        assertEquals(OnboardingStep.AboutYou, vm.state.step)
         assertEquals(BIRTH_DATE, vm.state.birthDate)
         assertEquals(Sex.Female, vm.state.sex)
+    }
+
+    @Test
+    fun totalSteps_isFour_withActivityThirdAndGoalsFourth() {
+        assertEquals(4, OnboardingStep.TOTAL_STEPS)
+        assertEquals(OnboardingStep.TOTAL_STEPS, OnboardingStep.entries.size)
+        assertEquals(3, OnboardingStep.Activity.number)
+        assertEquals(4, OnboardingStep.Goals.number)
+    }
+
+    @Test
+    fun savedStateWithAFormerStepName_mapsToTheNewGroupWithoutCrashing() = runTest {
+        suspend fun restoredStep(name: String): OnboardingStep {
+            val saved = SavedStateHandle(mapOf("onboarding_ready" to true, "onboarding_step" to name))
+            return started(saved).state.step
+        }
+
+        assertEquals(OnboardingStep.AboutYou, restoredStep("Sex"))
+        assertEquals(OnboardingStep.AboutYou, restoredStep("BirthDate"))
+        assertEquals(OnboardingStep.Measures, restoredStep("Height"))
+        assertEquals(OnboardingStep.Measures, restoredStep("Weight"))
+        assertEquals(OnboardingStep.Activity, restoredStep("Activity"))
+        assertEquals(OnboardingStep.AboutYou, restoredStep("Unknown"))
     }
 
     @Test
@@ -143,7 +175,7 @@ class OnboardingViewModelTest {
         val vm = started()
         assertFalse(vm.state.canGoBack)
         vm.onEvent(OnboardingEvent.Back)
-        assertEquals(OnboardingStep.Sex, vm.state.step)
+        assertEquals(OnboardingStep.AboutYou, vm.state.step)
 
         vm.fillToActivity()
         vm.onEvent(OnboardingEvent.Continue)
@@ -181,7 +213,7 @@ class OnboardingViewModelTest {
 
         val vm = started()
 
-        assertEquals(OnboardingStep.Sex, vm.state.step)
+        assertEquals(OnboardingStep.AboutYou, vm.state.step)
         assertEquals(Sex.Male, vm.state.sex)
         assertEquals(BIRTH_DATE, vm.state.birthDate)
         assertEquals(178, vm.state.heightCm)
@@ -196,8 +228,6 @@ class OnboardingViewModelTest {
         weights.row = BodyMeasurement("row-1", SAVED_AT, 74.2, MeasurementSource.Manual)
         val vm = started()
         vm.send(
-            OnboardingEvent.Continue,
-            OnboardingEvent.Continue,
             OnboardingEvent.Continue,
             OnboardingEvent.SetWeight(750),
             OnboardingEvent.Continue,
@@ -259,10 +289,10 @@ class OnboardingViewModelTest {
         val vm = started()
         assertFalse(vm.state.canContinue)
         vm.onEvent(OnboardingEvent.Continue)
-        assertEquals(OnboardingStep.Sex, vm.state.step)
+        assertEquals(OnboardingStep.AboutYou, vm.state.step)
 
         vm.onEvent(OnboardingEvent.SelectSex(Sex.Male))
-        vm.send(OnboardingEvent.Continue, OnboardingEvent.Continue, OnboardingEvent.Continue, OnboardingEvent.Continue)
+        vm.send(OnboardingEvent.Continue, OnboardingEvent.Continue)
         assertEquals(OnboardingStep.Activity, vm.state.step)
         assertFalse(vm.state.canContinue)
 
@@ -286,12 +316,12 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun stepsOneToFour_stayEnabledOffline() = runTest {
+    fun stepsOneAndTwo_stayEnabledOffline() = runTest {
         connectivity.state.value = false
         val vm = started()
         vm.onEvent(OnboardingEvent.SelectSex(Sex.Female))
 
-        listOf(OnboardingStep.BirthDate, OnboardingStep.Height, OnboardingStep.Weight, OnboardingStep.Activity)
+        listOf(OnboardingStep.Measures, OnboardingStep.Activity)
             .forEach { expected ->
                 assertTrue(vm.state.canContinue)
                 vm.onEvent(OnboardingEvent.Continue)
