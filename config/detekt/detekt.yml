@@ -17,6 +17,8 @@ naming:
     ignoreAnnotated: ['Composable', 'Test']
 
 style:
+  UnusedImports:
+    active: true
   MagicNumber:
     # Design tokens such as 16.dp and 0xFF0B0F14 are declared as properties. Composables
     # outside designsystem/ must use tokens instead of hardcoded values.
