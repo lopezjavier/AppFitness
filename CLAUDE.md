@@ -88,7 +88,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
-| E2E | `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · scoped regression (per task): same with `--include-tags=<areas> tests/e2e/`, areas from the plan's E2E scope · full regression (every 👤 checkpoint and epic closure): same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`) |
+| E2E | `maestro test -e SUPABASE_LOCAL_PUBLISHABLE_KEY=<key> --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml` · scoped regression (per task): same with `--include-tags=<areas> tests/e2e/`, areas from the plan's E2E scope · full regression (every 👤 checkpoint and epic closure): same with `tests/e2e/` (screenshots → gitignored `tests/e2e/screenshots/`). `-e SUPABASE_LOCAL_PUBLISHABLE_KEY=<key>` is required by flows that reset the test user (T-035+); the key is `PUBLISHABLE_KEY` from `npx supabase status`, never committed |
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI and merge | `gh pr checks --watch` · `gh pr merge --squash --delete-branch` |
 

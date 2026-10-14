@@ -88,7 +88,7 @@ npx supabase stop
 ./gradlew :androidApp:installLocalDebug     # emulator + local Supabase ("AppFitness Local")
 ./gradlew testLocalDebugUnitTest            # unit tests of every module
 ./gradlew :androidApp:assembleProdDebug     # delivery APK: androidApp/build/outputs/apk/prod/debug/
-maestro test --test-output-dir tests/e2e/screenshots tests/e2e/   # full E2E regression (checkpoints, epic closure); screenshots in tests/e2e/screenshots/ (gitignored); per task add --include-tags=<areas> (e.g. shell,catalog)
+maestro test -e SUPABASE_LOCAL_PUBLISHABLE_KEY=<PUBLISHABLE_KEY from `npx supabase status`> --test-output-dir tests/e2e/screenshots tests/e2e/   # full E2E regression (checkpoints, epic closure); screenshots in tests/e2e/screenshots/ (gitignored); per task add --include-tags=<areas> (e.g. shell,catalog)
 ```
 
 **Android 17 (API 37) and the local flavor:** apps targeting API 37 need the runtime permission `ACCESS_LOCAL_NETWORK` to reach private addresses such as the emulator's `10.0.2.2`. The `local` manifest declares it, but it must be granted after every install of the local build, otherwise requests to the local Supabase time out without reaching it: `adb shell pm grant io.github.lopezjavier.appfitness.local android.permission.ACCESS_LOCAL_NETWORK` (or install with `adb install -g`). `./gradlew :androidApp:installLocalDebug` does not grant it (AGP's install task has no grant-all option), so Maestro flows and manual checks run the `pm grant` line first.
