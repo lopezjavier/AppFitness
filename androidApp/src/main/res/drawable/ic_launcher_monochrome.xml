@@ -1,20 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    PLACEHOLDER themed-icon layer (Android 13+): the logo as a single-colour silhouette. The real logo's
-    silhouette replaces this file.
+    GENERATED from design/logo (see design/logo/appfitness-launcher.svg); edit the SVG source, not this file.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group
-        android:scaleX="0.72"
-        android:scaleY="0.72"
-        android:translateX="19.44"
-        android:translateY="19.44">
+    <group android:scaleX="0.065" android:scaleY="0.065" android:translateX="20.943" android:translateY="21.556">
         <path
-            android:fillColor="#FF000000"
-            android:pathData="M30,44H66V52H30Z M24,24H30V72H24Z M66,24H72V72H66Z M14,32H20V64H14Z M76,32H82V64H76Z" />
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M232,325H792A12,12,0,0,1,804,337V337A12,12,0,0,1,792,349H232A12,12,0,0,1,220,337V337A12,12,0,0,1,232,325Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M104,345H108A9,9,0,0,1,117,354V432A9,9,0,0,1,108,441H104A9,9,0,0,1,95,432V354A9,9,0,0,1,104,345Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M138,305H144A11,11,0,0,1,155,316V470A11,11,0,0,1,144,481H138A11,11,0,0,1,127,470V316A11,11,0,0,1,138,305Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M178,260H186A13,13,0,0,1,199,273V513A13,13,0,0,1,186,526H178A13,13,0,0,1,165,513V273A13,13,0,0,1,178,260Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M224,225H232A15,15,0,0,1,247,240V546A15,15,0,0,1,232,561H224A15,15,0,0,1,209,546V240A15,15,0,0,1,224,225Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M792,225H800A15,15,0,0,1,815,240V546A15,15,0,0,1,800,561H792A15,15,0,0,1,777,546V240A15,15,0,0,1,792,225Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M838,260H846A13,13,0,0,1,859,273V513A13,13,0,0,1,846,526H838A13,13,0,0,1,825,513V273A13,13,0,0,1,838,260Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M880,305H886A11,11,0,0,1,897,316V470A11,11,0,0,1,886,481H880A11,11,0,0,1,869,470V316A11,11,0,0,1,880,305Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M916,345H920A9,9,0,0,1,929,354V432A9,9,0,0,1,920,441H916A9,9,0,0,1,907,432V354A9,9,0,0,1,916,345Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M287,310H311A15,15,0,0,1,326,325V349A15,15,0,0,1,311,364H287A15,15,0,0,1,272,349V325A15,15,0,0,1,287,310Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M713,310H737A15,15,0,0,1,752,325V349A15,15,0,0,1,737,364H713A15,15,0,0,1,698,349V325A15,15,0,0,1,713,310Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M448,242A64,76,0,1,0,576,242A64,76,0,1,0,448,242Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 460 300 C 460 320, 442 348, 404 364 L 620 364 C 582 348, 564 320, 564 300 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 404 364 C 336 368, 276 404, 258 464 C 246 496, 258 536, 290 552 C 322 568, 360 552, 372 516 C 380 488, 394 466, 418 472 C 424 516, 426 564, 430 612 C 450 614, 480 618, 512 618 C 544 618, 574 614, 594 612 C 598 564, 600 516, 606 472 C 630 466, 644 488, 652 516 C 664 552, 702 568, 734 552 C 766 536, 778 496, 766 464 C 748 404, 688 368, 620 364 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 264 470 C 244 422, 244 370, 258 334 L 292 344 C 284 378, 284 418, 300 462 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 760 470 C 780 422, 780 370, 766 334 L 732 344 C 740 378, 740 418, 724 462 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 430 612 C 400 640, 360 670, 340 730 C 330 760, 345 780, 375 780 C 405 780, 425 750, 440 710 C 455 670, 470 640, 485 616 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 594 612 C 624 640, 664 670, 684 730 C 694 760, 679 780, 649 780 C 619 780, 599 750, 584 710 C 569 670, 554 640, 539 616 Z" />
     </group>
 </vector>
