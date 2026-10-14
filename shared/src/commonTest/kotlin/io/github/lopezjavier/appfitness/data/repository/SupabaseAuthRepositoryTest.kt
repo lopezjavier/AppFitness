@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
 import io.ktor.http.HttpHeaders
@@ -19,6 +20,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -66,7 +70,13 @@ class SupabaseAuthRepositoryTest {
         val outcome = repo.signInWithGoogle("id-token", "raw-nonce")
 
         assertEquals(SignInOutcome.Success, outcome)
-        assertTrue(requests.last().url.toString().contains("grant_type=id_token"))
+        val request = requests.last()
+        assertTrue(request.url.toString().contains("grant_type=id_token"))
+        val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
+        assertEquals("google", body["provider"]?.jsonPrimitive?.content)
+        assertEquals("id-token", body["id_token"]?.jsonPrimitive?.content)
+        // Supabase verifies the raw nonce against the hash Google embedded in the token.
+        assertEquals("raw-nonce", body["nonce"]?.jsonPrimitive?.content)
         client.close()
     }
 
