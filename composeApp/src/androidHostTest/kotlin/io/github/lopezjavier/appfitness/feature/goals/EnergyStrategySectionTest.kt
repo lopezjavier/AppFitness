@@ -195,6 +195,14 @@ class EnergyStrategySectionTest {
     }
 
     @Test
+    fun whileSaving_theStrategySelectorIsDisabledToo() {
+        show(state(strategy = GoalStrategy.Deficit, adjustment = -400, enabled = false))
+
+        rule.onNodeWithTag("${TAG}_strategy_surplus").assertIsNotEnabled().performClick()
+        assertEquals(emptyList<EnergyStrategyEvent>(), events)
+    }
+
+    @Test
     fun whileSaving_bothStepperButtonsAreDisabled() {
         show(state(strategy = GoalStrategy.Deficit, adjustment = -400, enabled = false))
 

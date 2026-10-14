@@ -22,8 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -141,8 +144,13 @@ fun OnboardingScreen(
 private fun ConfirmationEffect(onComplete: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val currentOnCompleted by rememberUpdatedState(onComplete)
+    // Survives rotation: the haptic fires once even if the composition is recreated during the delay.
+    var buzzed by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+        if (!buzzed) {
+            buzzed = true
+            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
         delay(OnboardingDefaults.ConfirmationDuration)
         currentOnCompleted()
     }

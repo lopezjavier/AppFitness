@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -299,6 +300,35 @@ class OnboardingScreenTest {
 
         assertEquals(1, completions)
         assertEquals(listOf(HapticFeedbackType.Confirm), haptics)
+    }
+
+    @Test
+    fun rotationDuringTheConfirmation_doesNotRepeatTheHaptic() {
+        val restoration = StateRestorationTester(rule)
+        val today = LocalDate(2026, 10, 14)
+        restoration.setContent {
+            CompositionLocalProvider(LocalHapticFeedback provides recordingHaptics) {
+                AppTheme {
+                    OnboardingScreen(
+                        state = OnboardingUiState(
+                            step = OnboardingStep.Goals,
+                            birthDate = BiometricBounds.defaultBirthDate(today),
+                            phase = OnboardingPhase.Completed,
+                            today = today,
+                        ),
+                        onEvent = {},
+                        onComplete = { completions++ },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
+        assertEquals(1, haptics.size)
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
+
+        assertEquals(1, haptics.size)
     }
 
     @Test

@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -85,7 +86,9 @@ fun EnergyStrategySection(
             Modifier.padding(top = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            StrategySelector(state.strategy, testTagPrefix) { onEvent(EnergyStrategyEvent.SelectStrategy(it)) }
+            StrategySelector(state.strategy, state.enabled, testTagPrefix) {
+                onEvent(EnergyStrategyEvent.SelectStrategy(it))
+            }
             AdjustmentRow(state, onEvent, testTagPrefix)
             TargetText(state.targetKcal, Modifier.testTag("${testTagPrefix}_target"))
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -97,14 +100,19 @@ fun EnergyStrategySection(
 }
 
 @Composable
-private fun StrategySelector(selected: GoalStrategy, prefix: String, onSelect: (GoalStrategy) -> Unit) {
+private fun StrategySelector(
+    selected: GoalStrategy,
+    enabled: Boolean,
+    prefix: String,
+    onSelect: (GoalStrategy) -> Unit,
+) {
     val options =
         listOf(
             AppOption(stringResource(Res.string.energy_strategy_deficit), "${prefix}_strategy_deficit"),
             AppOption(stringResource(Res.string.energy_strategy_maintenance), "${prefix}_strategy_maintenance"),
             AppOption(stringResource(Res.string.energy_strategy_surplus), "${prefix}_strategy_surplus"),
         )
-    SegmentedSelector(options, selected.ordinal, onSelect = { onSelect(GoalStrategy.entries[it]) })
+    SegmentedSelector(options, selected.ordinal, onSelect = { onSelect(GoalStrategy.entries[it]) }, enabled = enabled)
 }
 
 @Composable
@@ -131,6 +139,13 @@ private fun AdjustmentRow(state: EnergyStrategyUiState, onEvent: (EnergyStrategy
     }
 }
 
+/** The text before and after the first [number] in [full] (middle = the number), or null when it is absent. */
+internal fun splitAroundNumber(full: String, number: String): Triple<String, String, String>? {
+    val start = full.indexOf(number)
+    if (start < 0) return null
+    return Triple(full.substring(0, start), number, full.substring(start + number.length))
+}
+
 /** One text node: the label and unit in `bodyMedium`, the number in `headlineMetric` lime. */
 @Composable
 private fun TargetText(targetKcal: Int, modifier: Modifier = Modifier) {
@@ -138,12 +153,16 @@ private fun TargetText(targetKcal: Int, modifier: Modifier = Modifier) {
     val full = stringResource(Res.string.energy_target, number)
     val secondary = SpanStyle(color = AppTheme.colors.textSecondary)
     val metric = AppTheme.typography.headlineMetric.toSpanStyle().copy(color = AppTheme.colors.neonLime)
-    val start = full.indexOf(number)
+    val parts = splitAroundNumber(full, number)
     val text =
-        buildAnnotatedString {
-            withStyle(secondary) { append(full.substring(0, start)) }
-            withStyle(metric) { append(number) }
-            withStyle(secondary) { append(full.substring(start + number.length)) }
+        if (parts == null) {
+            AnnotatedString(full)
+        } else {
+            buildAnnotatedString {
+                withStyle(secondary) { append(parts.first) }
+                withStyle(metric) { append(number) }
+                withStyle(secondary) { append(parts.third) }
+            }
         }
     Text(text = text, style = AppTheme.typography.bodyMedium, modifier = modifier)
 }
