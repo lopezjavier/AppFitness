@@ -77,4 +77,20 @@ class ButtonsTest {
             assertNotEquals(colors(it).content, colors(it, enabled = false).content)
         }
     }
+
+    @Test
+    fun ghostTones_mapToTheirColours() {
+        fun ghost(tone: GhostTone) = AppButtonDefaults.colors(AppButtonVariant.Ghost, true, c, tone)
+        assertEquals(c.athleticCyan, ghost(GhostTone.Action).content)
+        assertEquals(c.textPrimary, ghost(GhostTone.Neutral).content)
+        assertEquals(c.error, ghost(GhostTone.Destructive).content)
+        assertEquals(c.error, ghost(GhostTone.Destructive).border)
+    }
+
+    @Test
+    fun ghostTones_disabledIgnoresTheTone() {
+        GhostTone.entries.forEach {
+            assertEquals(c.ghostData, AppButtonDefaults.colors(AppButtonVariant.Ghost, false, c, it).content)
+        }
+    }
 }

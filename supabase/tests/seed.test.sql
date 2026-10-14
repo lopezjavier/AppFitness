@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(4);
+select plan(5);
 
 select ok(
   exists (
@@ -34,6 +34,13 @@ select ok(
   (select encrypted_password = extensions.crypt('appfitness-local-test', encrypted_password)
    from auth.users where id = '00000000-0000-4000-8000-000000000001'),
   'the documented local password matches the seed user'
+);
+
+select results_eq(
+  $$ select onboarding_completed, sex::text, birth_date, height_cm::text, activity_level::text
+     from public.profiles where id = '00000000-0000-4000-8000-000000000001' $$,
+  $$ values (true, 'male', date '1999-06-15', '178.0', 'moderate') $$,
+  'the seed user profile is already onboarded'
 );
 
 select * from finish();

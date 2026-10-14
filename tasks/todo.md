@@ -824,20 +824,22 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Description:** Add supabase-kt (auth + postgrest; check `sb_publishable_` key support when pinning, ADR-17), androidx.credentials + `googleid` and Coil 3 to the catalog. `shared`: Supabase client built from `AppConfig`, `AuthCredentialProvider` port, `AuthRepository` (sign in with ID token, sign in with email/password for the local test user, sign out, `sessionStatus` as a `Flow`) and a minimal `ProfileRepository` (read own row: name, avatar, `onboarding_completed`). `composeApp/androidMain`: `GoogleAuthCredentialProvider` (Credential Manager, `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce). Root routing from session + `onboarding_completed`: Welcome (no session) / Onboarding (stub destination until T-035) / Main (tabs, Diario). Welcome screen with "Continuar con Google"; the "Test login" button is contributed only by the `local` flavor (same mechanism as the catalog, `AppFeatures`). Profile gets "Cerrar sesión" with a confirmation dialog. The Top App Bar avatar shows the Google photo (Coil) with the E1 placeholder as fallback.
 
 **Acceptance criteria:**
-- [ ] Root route is a pure function of (session status, onboarding flag) with unit tests: no session → Welcome; session + `false` → Onboarding; session + `true` → Main (Diario); session loading → splash/skeleton, never a flash of Welcome.
-- [ ] Credential result mapped to a sealed outcome (success / cancelled / no network / other error): cancelled → stays on Welcome with no message; no network → "Sin conexión. Inténtalo de nuevo" with a retry action; Welcome actions disabled while a sign-in is in flight.
-- [ ] Sign out asks for confirmation, clears the persisted session and returns to Welcome with the tab back stacks reset.
-- [ ] "Test login" signs in as `test@appfitness.local` (password from `planning/08-environment-setup.md` §3.2) and exists only in `local`: a `testProdDebugUnitTest` asserts it is absent in `prod`.
-- [ ] Avatar: Google photo when `avatar_url` is set, placeholder otherwise; ≥ 48 dp target and Spanish `contentDescription` unchanged.
-- [ ] E2E data state decided and documented in the plan (see `tasks/plan.md` risk "E2E user state"): the login subflow lands on Diario for every existing flow.
+- [x] Root route is a pure function of (session status, onboarding flag) with unit tests: no session → Welcome; session + `false` → Onboarding; session + `true` → Main (Diario); session loading → splash/skeleton, never a flash of Welcome.
+- [x] Credential result mapped to a sealed outcome (success / cancelled / no network / other error): cancelled → stays on Welcome with no message; no network → "Sin conexión. Inténtalo de nuevo" with a retry action; Welcome actions disabled while a sign-in is in flight.
+- [x] Sign out asks for confirmation, clears the persisted session and returns to Welcome with the tab back stacks reset.
+- [x] "Test login" signs in as `test@appfitness.local` (password from `planning/08-environment-setup.md` §3.2) and exists only in `local`: a `testProdDebugUnitTest` asserts it is absent in `prod`.
+- [x] Avatar: Google photo when `avatar_url` is set, placeholder otherwise; ≥ 48 dp target and Spanish `contentDescription` unchanged.
+- [x] E2E data state decided and documented in the plan (see `tasks/plan.md` risk "E2E user state"): the login subflow lands on Diario for every existing flow.
 
 **Host tests (per scenario):** `RootRouteTest` (First sign-in → Onboarding, Persistent session → Main); `WelcomeViewModelTest` with a fake `AuthCredentialProvider`/`AuthRepository` + Turbine (First sign-in, Account picker cancelled, Network error + retry, Test login); `WelcomeScreenTest` (Robolectric: button, error message and retry visible, Test login visible only when the feature flag is on); `ProfileScreenTest` (Sign out: confirm dialog → sign-out event; cancel keeps the session); `testProdDebugUnitTest` for the Test login gating.
 
 **E2E scope:** `auth` (new `tests/e2e/T-034.yaml`: Test login → Diario; relaunch → Diario without login; sign out → Welcome) + new `tests/e2e/subflows/login.yaml`. Every existing flow (`shell`, `catalog`) gains the login subflow; QA updates them, runs `auth,shell`, and the `catalog` flows at Checkpoint E2-A. Account picker and real Google sign-in are not automatable (checked at the checkpoint).
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` + `:androidApp:testProdDebugUnitTest` green.
-- [ ] Manual (developer, emulator, local flavor): Test login → Diario; relaunch keeps the session; sign out → Welcome.
+- [x] Lint + `testLocalDebugUnitTest` + `:androidApp:testProdDebugUnitTest` green.
+- [x] Manual (developer, emulator, local flavor): Test login → Diario; relaunch keeps the session; sign out → Welcome.
+
+**Scope added (user, 2026-10-14):** Welcome shows the app logo + "AppFitness" (no tagline); the launcher icon (adaptive, monochrome layer) uses the user-supplied logo.
 
 **Dependencies:** E1 (`v0.1.0`)
 **Files likely touched:** `gradle/libs.versions.toml`, `shared/build.gradle.kts`, `composeApp/build.gradle.kts`, `shared/…/data/remote/SupabaseClientFactory.kt`, `shared/…/domain/port/AuthCredentialProvider.kt`, `shared/…/domain/repository/{AuthRepository,ProfileRepository}.kt`, `shared/…/data/repository/*`, `shared/…/di/*`, `composeApp/src/androidMain/…/platform/GoogleAuthCredentialProvider.kt`, `composeApp/…/feature/auth/{WelcomeScreen,WelcomeViewModel,WelcomeUiState}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot,AppViewModel,AppFeatures}.kt`, `composeApp/…/feature/profile/ProfileScreen.kt`, `composeApp/…/designsystem/AppTopBar.kt`, `androidApp/src/{local,testProd}/…`, strings, tests, possibly `supabase/seed.sql`

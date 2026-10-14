@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Gradiente Verde Lima (Calorías) -->
+    <linearGradient id="wLime" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d9f99d" />
+      <stop offset="50%" stop-color="#a3e635" />
+      <stop offset="100%" stop-color="#4d7c0f" />
+    </linearGradient>
+    <!-- Gradiente Cian (Báscula/Peso) -->
+    <linearGradient id="wCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5f3fc" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <!-- Gradiente Ámbar (Mancuerna/Gimnasio) -->
+    <linearGradient id="wAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+  </defs>
+
+  <g id="welcome-logo-composition" transform="translate(512, 512) scale(1.02) translate(-512, -500)">
+    <!-- ATLETA SUPERIOR -->
+    <g id="athlete-top">
+      <rect x="220" y="190" width="584" height="22" rx="11" fill="#ffffff" />
+      <rect x="95" y="210" width="22" height="92" rx="9" fill="#ffffff" />
+      <rect x="127" y="172" width="28" height="168" rx="11" fill="#ffffff" />
+      <rect x="165" y="130" width="34" height="252" rx="13" fill="#ffffff" />
+      <rect x="209" y="98" width="38" height="316" rx="15" fill="#ffffff" />
+      <rect x="777" y="98" width="38" height="316" rx="15" fill="#ffffff" />
+      <rect x="825" y="130" width="34" height="252" rx="13" fill="#ffffff" />
+      <rect x="869" y="172" width="28" height="168" rx="11" fill="#ffffff" />
+      <rect x="907" y="210" width="22" height="92" rx="9" fill="#ffffff" />
+      <rect x="272" y="176" width="54" height="50" rx="15" fill="#ffffff" />
+      <rect x="698" y="176" width="54" height="50" rx="15" fill="#ffffff" />
+      <ellipse cx="512" cy="115" rx="64" ry="74" fill="#ffffff" />
+      <path d="M 460 170 C 460 190, 442 218, 404 234 L 620 234 C 582 218, 564 190, 564 170 Z" fill="#ffffff" />
+      <path d="M 404 234 C 336 238, 276 274, 258 334 C 246 366, 258 406, 290 422 C 322 438, 360 422, 372 386 C 380 358, 394 336, 418 342 C 424 386, 426 434, 430 482 C 450 484, 480 488, 512 488 C 544 488, 574 484, 594 482 C 598 434, 600 386, 606 342 C 630 336, 644 358, 652 386 C 664 422, 702 438, 734 422 C 766 406, 778 366, 766 334 C 748 274, 688 238, 620 234 Z" fill="#ffffff" />
+      <path d="M 264 340 C 244 292, 244 240, 258 204 L 292 214 C 284 248, 284 288, 300 332 Z" fill="#ffffff" />
+      <path d="M 760 340 C 780 292, 780 240, 766 204 L 732 214 C 740 248, 740 288, 724 332 Z" fill="#ffffff" />
+      <path d="M 430 482 C 400 510, 360 540, 340 600 C 330 630, 345 650, 375 650 C 405 650, 425 620, 440 580 C 455 540, 470 510, 485 486 Z" fill="#ffffff" />
+      <path d="M 594 482 C 624 510, 664 540, 684 600 C 694 630, 679 650, 649 650 C 619 650, 599 620, 584 580 C 569 540, 554 510, 539 486 Z" fill="#ffffff" />
+    </g>
+
+    <!-- LOS 3 CÍRCULOS TEMÁTICOS -->
+    <g id="three-badges" transform="translate(0, 750)">
+      <!-- 1. LLAMA (LIMA) -->
+      <g transform="translate(230, 0)">
+        <circle cx="0" cy="0" r="115" fill="#14181f" stroke="#252d3a" stroke-width="6" />
+        <circle cx="0" cy="0" r="115" fill="none" stroke="url(#wLime)" stroke-width="14" />
+        <path d="M 0 -64 C 12 -44, 28 -22, 28 2 C 28 26, 15 42, 0 50 C 24 40, 38 18, 29 -6 C 25 -24, 42 -34, 54 -4 C 66 24, 52 64, 22 76 C -17 90, -60 64, -58 16 C -56 -26, -28 -52, 0 -64 Z" fill="url(#wLime)" />
+        <path d="M -4 4 C -2 -15, 12 -24, 15 -38 C 24 -20, 24 -3, 15 14 C 10 29, -2 41, -15 39 C -10 27, -7 15, -4 4 Z" fill="#ffffff" opacity="0.95" />
+      </g>
+      <!-- 2. BÁSCULA (CIAN) -->
+      <g transform="translate(512, 0)">
+        <circle cx="0" cy="0" r="115" fill="#14181f" stroke="#252d3a" stroke-width="6" />
+        <circle cx="0" cy="0" r="115" fill="none" stroke="url(#wCyan)" stroke-width="14" />
+        <rect x="-52" y="-58" width="104" height="116" rx="26" fill="url(#wCyan)" />
+        <path d="M -24 -44 L 24 -44 C 26 -44, 27 -42, 26 -39 C 24 -22, 15 -12, 0 -12 C -15 -12, -24 -22, -26 -39 C -27 -42, -26 -44, -24 -44 Z" fill="#09141f" />
+        <line x1="0" y1="-28" x2="0" y2="-40" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+        <circle cx="-32" cy="38" r="6" fill="#09141f" opacity="0.6" />
+        <circle cx="32" cy="38" r="6" fill="#09141f" opacity="0.6" />
+      </g>
+      <!-- 3. MANCUERNA (ÁMBAR) -->
+      <g transform="translate(794, 0)">
+        <circle cx="0" cy="0" r="115" fill="#14181f" stroke="#252d3a" stroke-width="6" />
+        <circle cx="0" cy="0" r="115" fill="none" stroke="url(#wAmber)" stroke-width="14" />
+        <rect x="-38" y="-8" width="76" height="16" rx="5" fill="url(#wAmber)" />
+        <rect x="-48" y="-38" width="12" height="76" rx="6" fill="url(#wAmber)" />
+        <rect x="-64" y="-28" width="12" height="56" rx="6" fill="url(#wAmber)" />
+        <rect x="36" y="-38" width="12" height="76" rx="6" fill="url(#wAmber)" />
+        <rect x="52" y="-28" width="12" height="56" rx="6" fill="url(#wAmber)" />
+        <line x1="-14" y1="0" x2="14" y2="0" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity="0.85" />
+      </g>
+    </g>
+  </g>
+</svg>

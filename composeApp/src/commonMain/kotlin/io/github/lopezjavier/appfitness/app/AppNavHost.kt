@@ -36,6 +36,7 @@ internal fun AppNavHost(
     features: AppFeatures,
     modifier: Modifier = Modifier,
     tabContentBottomClearance: Dp = Spacing.none,
+    onSignOut: () -> Unit = {},
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -53,6 +54,7 @@ internal fun AppNavHost(
             ProfileScreen(
                 Modifier.padding(fullScreenPadding),
                 onOpenCatalog = if (catalogAvailable) openCatalog else null,
+                onSignOut = onSignOut,
             )
         }
         if (catalogAvailable) {

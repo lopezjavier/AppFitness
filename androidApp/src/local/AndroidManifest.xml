@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- local flavor only: allow cleartext HTTP to the emulator host (local Supabase). -->
+<!-- local flavor only: allow cleartext HTTP to the emulator host (local Supabase) and, from Android 17 on,
+     the local network access that reaching 10.0.2.2 needs (a runtime permission when targeting API 37). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <application android:networkSecurityConfig="@xml/network_security_config" />
 

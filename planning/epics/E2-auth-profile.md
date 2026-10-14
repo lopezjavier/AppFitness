@@ -67,7 +67,7 @@ Feature: Google authentication
 - `AuthCredentialProvider` interface (domain) + `GoogleAuthCredentialProvider` (androidMain, Credential Manager with `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce).
 - `supabase.auth.signInWith(IDToken)`; session persisted by supabase-kt; `sessionStatus` as a `Flow` to decide the root route (Welcome / Onboarding / Main).
 - Maestro subflow `tests/e2e/subflows/login.yaml`, reused by the rest of the stories.
-- The "Test login" button is compiled only in the `local` flavor source set.
+- The "Test login" button is shared UI, shown only when the build provides test credentials: the `local` flavor provides them (`FlavorTestLogin` source set) and `prod` provides none, so prod never shows the button nor contains the credentials.
 
 ---
 
