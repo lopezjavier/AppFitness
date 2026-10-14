@@ -9,7 +9,7 @@ sealed interface RootRoute {
 
     data object Welcome : RootRoute
 
-    /** Signed in but onboarding is not completed (a stub destination until the onboarding epic). */
+    /** Signed in but onboarding is not completed: the biometric and goals steps. */
     data object Onboarding : RootRoute
 
     /** Signed in and onboarded: the tabbed shell starting on Diario. */

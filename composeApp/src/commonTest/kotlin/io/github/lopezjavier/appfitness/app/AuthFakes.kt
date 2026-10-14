@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
@@ -13,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.GoogleCredentialResult
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -74,6 +76,29 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
     override suspend fun updateBiometrics(biometrics: Biometrics): Result<Unit> {
         biometricsUpdates += biometrics
         return updateResult
+    }
+
+    /** Result of every [markOnboardingCompleted], which also counts the calls. */
+    var completedResult: Result<Unit> = Result.success(Unit)
+    var completedCalls = 0
+
+    override suspend fun markOnboardingCompleted(): Result<Unit> {
+        completedCalls++
+        return completedResult
+    }
+}
+
+/** Test double of [NutritionGoalsRepository]: [row] is what [getOwn] returns; [upsertResult] answers every upsert. */
+internal class FakeNutritionGoalsRepository(var row: NutritionGoals? = null) : NutritionGoalsRepository {
+    var readResult: Result<NutritionGoals?>? = null
+    var upsertResult: Result<Unit> = Result.success(Unit)
+    val upserts = mutableListOf<NutritionGoals>()
+
+    override suspend fun getOwn(): Result<NutritionGoals?> = readResult ?: Result.success(row)
+
+    override suspend fun upsert(goals: NutritionGoals): Result<Unit> {
+        upserts += goals
+        return upsertResult
     }
 }
 

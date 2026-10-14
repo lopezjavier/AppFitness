@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -14,6 +15,7 @@ import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,6 +43,7 @@ private val SAVED_AT = Instant.parse("2026-10-13T08:00:00Z")
 class OnboardingViewModelTest {
     private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, false)))
     private val weights = FakeBodyMeasurementRepository()
+    private val goals = FakeNutritionGoalsRepository()
     private val connectivity = FakeConnectivityObserver(initial = true)
     private val clock = FakeClock()
     private val handle = SavedStateHandle()
@@ -55,8 +58,15 @@ class OnboardingViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(savedState: SavedStateHandle = handle) =
-        OnboardingViewModel(savedState, profile, weights, connectivity, clock)
+    private fun viewModel(savedState: SavedStateHandle = handle) = OnboardingViewModel(
+        savedState,
+        profile,
+        weights,
+        goals,
+        CompleteOnboarding(goals, profile),
+        connectivity,
+        clock,
+    )
 
     private suspend fun TestScope.started(savedState: SavedStateHandle = handle): OnboardingViewModel =
         viewModel(savedState).also { advanceUntilIdle() }

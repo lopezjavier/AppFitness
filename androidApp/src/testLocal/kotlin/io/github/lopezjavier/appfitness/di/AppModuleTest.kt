@@ -9,7 +9,9 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
@@ -54,6 +56,8 @@ class AppModuleTest {
                 AuthRepository::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,
+                NutritionGoalsRepository::class,
+                CompleteOnboarding::class,
                 Clock::class,
                 SavedStateHandle::class,
                 SignInWithGoogle::class,

@@ -8,12 +8,19 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyStrategyRules
+import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -32,18 +39,30 @@ private const val KEY_BIRTH_DATE = "onboarding_birth_date"
 private const val KEY_HEIGHT = "onboarding_height_cm"
 private const val KEY_WEIGHT = "onboarding_weight_tenths"
 private const val KEY_ACTIVITY = "onboarding_activity"
+private const val KEY_STRATEGY = "onboarding_strategy"
+private const val KEY_ADJUSTMENT = "onboarding_adjustment"
 private const val TENTHS_PER_KG = 10.0
 
+/** What [OnboardingViewModel.load] reads in parallel. */
+private class Loaded(
+    val biometrics: Result<SavedBiometrics>,
+    val weightTenths: Result<Int?>,
+    val goals: Result<NutritionGoals?>,
+)
+
 /**
- * Drives the five biometric steps. Every user value and the step live in [savedState], so they survive
- * rotation and process death; a new instance built from a handle that holds them skips the load.
- * Saving writes the profile biometrics and the onboarding weight row, both idempotent, then moves to the goals step.
+ * Drives the five biometric steps and the goals step. Every user value and the step live in [savedState], so they
+ * survive rotation and process death; a new instance built from a handle that holds them skips the load.
+ * Saving the biometrics writes the profile and the onboarding weight row, both idempotent, then moves to the goals
+ * step; saving the goals upserts them and sets `onboarding_completed`, then the phase becomes Completed.
  */
-@Suppress("TooManyFunctions") // One small private function per event and step of the flow.
+@Suppress("TooManyFunctions", "LongParameterList") // One small private function per event; one dependency per port.
 class OnboardingViewModel(
     private val savedState: SavedStateHandle,
     private val profileRepository: ProfileRepository,
     private val bodyMeasurementRepository: BodyMeasurementRepository,
+    private val goalsRepository: NutritionGoalsRepository,
+    private val completeOnboarding: CompleteOnboarding,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
 ) : ViewModel() {
@@ -61,18 +80,15 @@ class OnboardingViewModel(
 
     fun onEvent(event: OnboardingEvent) {
         when (event) {
-            is OnboardingEvent.SelectSex -> edit { it.copy(sex = event.sex) }
+            is OnboardingEvent.SelectSex,
+            is OnboardingEvent.SetBirthDate,
+            is OnboardingEvent.SetHeight,
+            is OnboardingEvent.SetWeight,
+            is OnboardingEvent.SelectActivity,
+            is OnboardingEvent.Energy,
+            -> edit { applyValueEvent(it, event) }
 
-            is OnboardingEvent.SetBirthDate -> edit {
-                it.copy(birthDate = BiometricBounds.clampBirthDate(event.date, it.today))
-            }
-
-            is OnboardingEvent.SetHeight -> edit { it.copy(heightCm = BiometricBounds.clampHeight(event.heightCm)) }
-
-            is OnboardingEvent.SetWeight ->
-                edit { it.copy(weightTenths = BiometricBounds.clampWeightTenths(event.tenths)) }
-
-            is OnboardingEvent.SelectActivity -> edit { it.copy(activity = event.level) }
+            OnboardingEvent.SaveGoals -> saveGoals()
 
             OnboardingEvent.Continue -> onContinue()
 
@@ -80,14 +96,69 @@ class OnboardingViewModel(
 
             OnboardingEvent.RetryLoad -> if (_uiState.value.phase == OnboardingPhase.LoadError) load()
 
-            OnboardingEvent.RetrySave -> if (_uiState.value.step == OnboardingStep.Activity) save()
+            OnboardingEvent.RetrySave -> when (_uiState.value.step) {
+                OnboardingStep.Activity -> save()
+                OnboardingStep.Goals -> saveGoals()
+                else -> Unit
+            }
+        }
+    }
+
+    /** The new state after an event that edits a user value; other events leave it as it is. */
+    private fun applyValueEvent(state: OnboardingUiState, event: OnboardingEvent): OnboardingUiState = when (event) {
+        is OnboardingEvent.SelectSex -> state.copy(sex = event.sex)
+
+        is OnboardingEvent.SetBirthDate ->
+            state.copy(birthDate = BiometricBounds.clampBirthDate(event.date, state.today))
+
+        is OnboardingEvent.SetHeight -> state.copy(heightCm = BiometricBounds.clampHeight(event.heightCm))
+
+        is OnboardingEvent.SetWeight -> state.copy(weightTenths = BiometricBounds.clampWeightTenths(event.tenths))
+
+        is OnboardingEvent.SelectActivity -> state.copy(activity = event.level)
+
+        is OnboardingEvent.Energy -> applyEnergy(state, event.event)
+
+        else -> state
+    }
+
+    private fun applyEnergy(state: OnboardingUiState, event: EnergyStrategyEvent): OnboardingUiState {
+        val energy = state.energy ?: return state
+        return when (event) {
+            is EnergyStrategyEvent.SelectStrategy ->
+                if (event.strategy == state.strategy) {
+                    state
+                } else {
+                    state.copy(
+                        strategy = event.strategy,
+                        adjustment = EnergyStrategyRules.defaultAdjustment(event.strategy),
+                    )
+                }
+
+            EnergyStrategyEvent.StepDown ->
+                if (energy.canStepDown) {
+                    state.copy(adjustment = EnergyStrategyRules.stepDown(state.strategy, state.adjustment))
+                } else {
+                    state
+                }
+
+            EnergyStrategyEvent.StepUp ->
+                if (energy.canStepUp) {
+                    state.copy(adjustment = EnergyStrategyRules.stepUp(state.strategy, state.adjustment))
+                } else {
+                    state
+                }
         }
     }
 
     private fun onContinue() {
         val state = _uiState.value
         if (!state.canContinue) return
-        if (state.step == OnboardingStep.Activity) save() else goTo(state.step.next())
+        when (state.step) {
+            OnboardingStep.Activity -> save()
+            OnboardingStep.Goals -> Unit
+            else -> goTo(state.step.next())
+        }
     }
 
     private fun onBack() {
@@ -117,27 +188,42 @@ class OnboardingViewModel(
             val loaded = coroutineScope {
                 val profile = async { profileRepository.getBiometrics() }
                 val weight = async { bodyMeasurementRepository.getOnboardingWeight() }
-                profile.await() to weight.await()
+                val goals = async { goalsRepository.getOwn() }
+                Loaded(
+                    biometrics = profile.await(),
+                    weightTenths = weight.await().map { row ->
+                        row?.let { (it.weightKg * TENTHS_PER_KG).roundToInt() }
+                    },
+                    goals = goals.await(),
+                )
             }
-            val saved = loaded.first.getOrNull()
-            val weightRow = loaded.second.getOrNull()
-            if (loaded.first.isFailure || loaded.second.isFailure || saved == null) {
+            val saved = loaded.biometrics.getOrNull()
+            if (saved == null || loaded.weightTenths.isFailure || loaded.goals.isFailure) {
                 _uiState.update { it.copy(phase = OnboardingPhase.LoadError) }
             } else {
-                val tenths = weightRow?.let { (it.weightKg * TENTHS_PER_KG).roundToInt() }
-                change { prefilled(it, saved, tenths).copy(phase = OnboardingPhase.Content) }
+                change {
+                    prefilled(it, saved, loaded.weightTenths.getOrNull(), loaded.goals.getOrNull())
+                        .copy(phase = OnboardingPhase.Content)
+                }
             }
         }
     }
 
-    private fun prefilled(state: OnboardingUiState, saved: SavedBiometrics, weightTenths: Int?): OnboardingUiState =
-        state.copy(
-            sex = saved.sex,
-            birthDate = saved.birthDate?.let { BiometricBounds.clampBirthDate(it, state.today) } ?: state.birthDate,
-            heightCm = saved.heightCm?.let(BiometricBounds::clampHeight) ?: state.heightCm,
-            weightTenths = weightTenths?.let(BiometricBounds::clampWeightTenths) ?: state.weightTenths,
-            activity = saved.activityLevel,
-        )
+    private fun prefilled(
+        state: OnboardingUiState,
+        saved: SavedBiometrics,
+        weightTenths: Int?,
+        goals: NutritionGoals?,
+    ): OnboardingUiState = state.copy(
+        sex = saved.sex,
+        birthDate = saved.birthDate?.let { BiometricBounds.clampBirthDate(it, state.today) } ?: state.birthDate,
+        heightCm = saved.heightCm?.let(BiometricBounds::clampHeight) ?: state.heightCm,
+        weightTenths = weightTenths?.let(BiometricBounds::clampWeightTenths) ?: state.weightTenths,
+        activity = saved.activityLevel,
+        strategy = goals?.strategy ?: state.strategy,
+        adjustment = goals?.let { EnergyStrategyRules.clampAdjustment(it.strategy, it.calorieAdjustment) }
+            ?: state.adjustment,
+    )
 
     private fun save() {
         val state = _uiState.value
@@ -157,12 +243,29 @@ class OnboardingViewModel(
             if (result.isSuccess) {
                 change { it.copy(step = OnboardingStep.Goals, phase = OnboardingPhase.Content) }
             } else {
-                val isNetwork = result.appErrorOrNull() == AppError.Network
-                val error = if (isNetwork) OnboardingSaveError.Network else OnboardingSaveError.Other
-                _uiState.update { it.copy(phase = OnboardingPhase.Content, saveError = error) }
+                _uiState.update { it.copy(phase = OnboardingPhase.Content, saveError = saveErrorOf(result)) }
             }
         }
     }
+
+    private fun saveGoals() {
+        val state = _uiState.value
+        val energy = state.energy
+        if (!state.canContinue || state.step != OnboardingStep.Goals || energy == null) return
+        _uiState.update { it.copy(phase = OnboardingPhase.Saving, saveError = null) }
+        work = viewModelScope.launch {
+            val goals = NutritionGoals(state.strategy, state.adjustment, energy.targetKcal, MacroSplit.DEFAULT)
+            val result = completeOnboarding(goals)
+            if (result.isSuccess) {
+                change { it.copy(phase = OnboardingPhase.Completed) }
+            } else {
+                _uiState.update { it.copy(phase = OnboardingPhase.Content, saveError = saveErrorOf(result)) }
+            }
+        }
+    }
+
+    private fun saveErrorOf(result: Result<Unit>): OnboardingSaveError =
+        if (result.appErrorOrNull() == AppError.Network) OnboardingSaveError.Network else OnboardingSaveError.Other
 
     private fun restoreOrDefault(): OnboardingUiState {
         val today = clock.today()
@@ -175,6 +278,8 @@ class OnboardingViewModel(
             heightCm = savedState.get<Int>(KEY_HEIGHT) ?: base.heightCm,
             weightTenths = savedState.get<Int>(KEY_WEIGHT) ?: base.weightTenths,
             activity = savedState.get<String>(KEY_ACTIVITY)?.let(ActivityLevel::valueOf),
+            strategy = savedState.get<String>(KEY_STRATEGY)?.let(GoalStrategy::valueOf) ?: base.strategy,
+            adjustment = savedState.get<Int>(KEY_ADJUSTMENT) ?: base.adjustment,
             phase = OnboardingPhase.Content,
         )
     }
@@ -188,5 +293,7 @@ class OnboardingViewModel(
         savedState[KEY_HEIGHT] = state.heightCm
         savedState[KEY_WEIGHT] = state.weightTenths
         savedState[KEY_ACTIVITY] = state.activity?.name
+        savedState[KEY_STRATEGY] = state.strategy.name
+        savedState[KEY_ADJUSTMENT] = state.adjustment
     }
 }

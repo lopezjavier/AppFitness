@@ -2,10 +2,14 @@ package io.github.lopezjavier.appfitness.feature.onboarding
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
+import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyUiState
+import io.github.lopezjavier.appfitness.feature.goals.energyStrategyUiState
 import kotlinx.datetime.LocalDate
 
-/** Steps of the onboarding flow. [Goals] is a stub until the goals task replaces it. */
+/** Steps of the onboarding flow: five biometric steps and the [Goals] step (energy strategy). */
 enum class OnboardingStep {
     Sex,
     BirthDate,
@@ -15,7 +19,7 @@ enum class OnboardingStep {
     Goals,
     ;
 
-    /** 1-based number shown as "N / 5". The goals stub has none. */
+    /** 1-based number shown as "N / 5". The goals step has none. */
     val number: Int get() = ordinal + 1
 
     fun previous(): OnboardingStep? = entries.getOrNull(ordinal - 1)
@@ -27,8 +31,11 @@ enum class OnboardingStep {
     }
 }
 
-/** What the screen is doing besides showing the current step. */
-enum class OnboardingPhase { Loading, Content, LoadError, Saving }
+/**
+ * What the screen is doing besides showing the current step. [Completed]: the goals are saved and the confirmation
+ * shows before the root leaves onboarding.
+ */
+enum class OnboardingPhase { Loading, Content, LoadError, Saving, Completed }
 
 /** Why the last save failed: no connection, or anything else. */
 enum class OnboardingSaveError { Network, Other }
@@ -44,27 +51,53 @@ data class OnboardingUiState(
     val heightCm: Int = BiometricBounds.DEFAULT_HEIGHT_CM,
     val weightTenths: Int = BiometricBounds.DEFAULT_WEIGHT_TENTHS,
     val activity: ActivityLevel? = null,
+    val strategy: GoalStrategy = GoalStrategy.Maintenance,
+    val adjustment: Int = 0,
     val phase: OnboardingPhase = OnboardingPhase.Loading,
     val saveError: OnboardingSaveError? = null,
     val isOffline: Boolean = false,
     val today: LocalDate,
 ) {
-    /** Whether "Continuar" is enabled. Only the save step needs the network. */
+    /** Whether the primary button ("Continuar" or "Guardar objetivos") is enabled. The save steps need the network. */
     val canContinue: Boolean
         get() = phase == OnboardingPhase.Content &&
             when (step) {
                 OnboardingStep.Sex -> sex != null
                 OnboardingStep.Activity -> activity != null && !isOffline
-                OnboardingStep.Goals -> false
+                OnboardingStep.Goals -> !isOffline
                 else -> true
             }
 
     /** Whether the offline hint explaining the disabled save is shown. */
     val showOfflineHint: Boolean
-        get() = step == OnboardingStep.Activity && isOffline && phase == OnboardingPhase.Content
+        get() = (step == OnboardingStep.Activity || step == OnboardingStep.Goals) &&
+            isOffline &&
+            phase == OnboardingPhase.Content
 
-    val canGoBack: Boolean get() = step != OnboardingStep.Sex && phase != OnboardingPhase.Saving
+    val canGoBack: Boolean
+        get() = step != OnboardingStep.Sex && phase != OnboardingPhase.Saving && phase != OnboardingPhase.Completed
+
+    /** The energy strategy section of the Goals step, once sex and activity are known; its controls follow [phase]. */
+    val energy: EnergyStrategyUiState?
+        get() {
+            val sex = sex ?: return null
+            val activity = activity ?: return null
+            if (step != OnboardingStep.Goals) return null
+            return energyStrategyUiState(
+                sex = sex,
+                birthDate = birthDate,
+                heightCm = heightCm,
+                weightKg = weightTenths / TENTHS_PER_KG,
+                activityLevel = activity,
+                today = today,
+                strategy = strategy,
+                adjustment = adjustment,
+                enabled = phase == OnboardingPhase.Content,
+            )
+        }
 }
+
+private const val TENTHS_PER_KG = 10.0
 
 /** Events of the onboarding screen. */
 sealed interface OnboardingEvent {
@@ -77,6 +110,11 @@ sealed interface OnboardingEvent {
     data class SetWeight(val tenths: Int) : OnboardingEvent
 
     data class SelectActivity(val level: ActivityLevel) : OnboardingEvent
+
+    /** An event of the energy strategy section. */
+    data class Energy(val event: EnergyStrategyEvent) : OnboardingEvent
+
+    data object SaveGoals : OnboardingEvent
 
     data object Continue : OnboardingEvent
 
