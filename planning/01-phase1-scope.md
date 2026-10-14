@@ -56,9 +56,12 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-4.7 Progress charts per exercise (estimated 1RM, volume) and per muscle group (weekly volume).
 
 ### FR-5 · Cross-cutting (E1)
-- FR-5.1 3-tab navigation with a contextual FAB; Profile opens from the Top App Bar avatar (ADR-10, ADR-22).
+- FR-5.1 4-tab navigation (Diario, Entreno, Progreso, Perfil) with a contextual FAB; the Perfil tab icon is the user's Google photo (ADR-10, ADR-22, ADR-26).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
+
+### FR-6 · UI refinement (E7, placeholder)
+A last refinement pass over the screens built in E2…E6, fed by the feedback collected at the 👤 checkpoints. It changes presentation only (layout, spacing, typography, component styling), never features. Items collected so far are listed in `07-roadmap.md` §1.1; later epics add theirs there.
 
 ## 4. Out of Phase 1 scope
 

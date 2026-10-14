@@ -44,6 +44,9 @@ object AppButtonDefaults {
     val Shape = AppShapes.md
     val HorizontalPadding: Dp = Spacing.xl
 
+    /** Minimum width of a short secondary action placed beside a full-width primary (e.g. "Atrás"). */
+    val CompactMinWidth: Dp = 104.dp
+
     /** In-button progress indicator of a loading [PrimaryButton]. */
     val LoadingIndicatorSize: Dp = 20.dp
     val LoadingIndicatorStroke: Dp = 2.dp
@@ -51,8 +54,9 @@ object AppButtonDefaults {
     @Suppress("ktlint:standard:property-naming") // PascalCase kept to match the other defaults.
     const val PressedScale = 0.97f
 
+    /** The secondary matches the primary so the two line up side by side. */
     fun minHeight(variant: AppButtonVariant): Dp =
-        if (variant == AppButtonVariant.Primary) PrimaryMinHeight else MinHeight
+        if (variant == AppButtonVariant.Ghost) MinHeight else PrimaryMinHeight
 
     /**
      * The meaning is carried by fill and text colour, never by the border alone. Cyan on the ghost
@@ -75,7 +79,7 @@ object AppButtonDefaults {
             AppButtonColors(
                 container = appColors.surfaceOverlay,
                 content = if (enabled) appColors.textPrimary else appColors.ghostData,
-                border = if (enabled) appColors.borderStrong else appColors.borderSubtle,
+                border = null,
             )
 
         AppButtonVariant.Ghost -> {
@@ -110,7 +114,7 @@ fun PrimaryButton(
     loading: Boolean = false,
 ) = AppButton(AppButtonVariant.Primary, text, onClick, modifier, enabled, interactionSource, loading = loading)
 
-/** Raised secondary action with a strong border. */
+/** Filled secondary action (raised surface, no border), as tall as [PrimaryButton] so the two can sit side by side. */
 @Composable
 fun SecondaryButton(
     text: String,

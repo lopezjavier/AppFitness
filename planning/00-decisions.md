@@ -38,7 +38,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### ADR-09 · Deterministic 1RM
 - **Decision:** in Phase 1 the 1RM is estimated with the Epley formula. The AI training assistant is Phase 2.
 
-### ADR-10 · 4-tab navigation (amended by ADR-22: 3 tabs + Profile from the avatar)
+### ADR-10 · 4-tab navigation (amended by ADR-22: 3 tabs + Profile from the avatar; back to 4 tabs by ADR-26)
 - **Decision:** Bottom Navigation with Diario (Diary), Entreno (Workout), Progreso (Progress) and Perfil (Profile); Diary is the start tab. The Top App Bar avatar also opens Profile. On tablets (width ≥ medium) a NavigationRail is used.
 - **Contextual universal FAB:** Diary → search/scan food; Workout → start workout or create routine; Progress → log weight; Profile → hidden (Profile has its own "Guardar" (save) button). Also hidden during a live workout session.
 
@@ -111,7 +111,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** no runtime checks are needed for Health Connect availability by API level below 26. Raising `minSdk` later is cheap.
 - **Approval:** 2026-10-12, user.
 
-### ADR-22 · 3 tabs; Profile opens from the avatar
+### ADR-22 · 3 tabs; Profile opens from the avatar (navigation part superseded by ADR-26)
 - **Context:** at Checkpoint E1-C the user tested the first APK. The Perfil tab and the Top App Bar avatar led to the same screen (redundant), and the `glowLime` pill on the active tab was not in the mockups.
 - **Decision:**
   - The bottom navigation (and the tablet NavigationRail) has 3 tabs: Diario, Entreno, Progreso. Diario stays the start tab.
@@ -145,6 +145,15 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Decision:** the floor depends on the profile's sex: **1200 kcal/day for women, 1500 kcal/day for men**. When the calculation gives less, the target is set to the floor and the same safety warning is shown.
 - **Consequences:** `04-business-rules.md` §1.4, the US-07 "Safety floor" scenario and T-036 use the per-sex floor; recalculating on Profile (sex is editable there) applies the floor for the new sex.
 - **Approval:** 2026-10-14, user.
+
+### ADR-26 · Perfil is the 4th tab, its icon is the Google photo (E2)
+- **Context:** at Checkpoint E2-A (2026-10-14) the user tested the real journey on the phone. With Profile becoming the real screen in T-037 (personal data, strategy, macros, sign-out), reaching it only from the top-bar avatar hides it, and the avatar in every top bar costs space.
+- **Decision:**
+  - The bottom navigation (and the tablet NavigationRail) has **4 tabs: Diario, Entreno, Progreso, Perfil**. Diario stays the start tab. This supersedes the part of ADR-22 that removed the Perfil tab and made Profile a full-screen destination opened from the avatar; ADR-22's active-tab indicator (lime icon and extra-bold lime label, filled glyph where one exists, no pill) stays.
+  - The Perfil tab icon is the **user's Google photo** (`profiles.avatar_url`, loaded with Coil, clipped to a circle), with the existing placeholder avatar as the fallback (no photo, loading or load error). The photo is never tinted; when Perfil is active its non-colour cue is the extra-bold lime label plus a lime ring around the photo (exact ring width chosen by ux-reviewer in T-037, `AppBorder` tokens).
+  - The Top App Bar **avatar is removed** from every screen; `AppTopBar` shows the section title only. Profile is a normal tab destination: its own back stack, the bottom bar visible, no back arrow, and still **no FAB** (ADR-10/ADR-22).
+- **Consequences:** `01` FR-5.1, `05` §5–6, the E2 epic and T-037 (which implements it) are updated. The T-031/T-034 code (full-screen Profile route, top-bar avatar) is reworked in T-037; the e2e flows that open Profile from the avatar (`auth`, `shell`) are updated by QA after T-037. The photo in the tab is decorative: the visible label "Perfil" names the tab for TalkBack.
+- **Approval:** 2026-10-14, user (Checkpoint E2-A feedback).
 
 ---
 
