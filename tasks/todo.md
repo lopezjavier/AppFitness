@@ -905,7 +905,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 ### Checkpoint E2-A — New user journey on the phone 👤
 - [ ] Every background QA run finished, no open `qa` issue, full Maestro regression green (all tags, catalog flows included); `deploy-supabase` applied both migrations in production.
-- [ ] 👤 The user installs the `prodDebug` APK (`! bash scripts/deliver-apk.sh`) and tries, with their real Google account:
+- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries, with their real Google account:
   - "Continuar con Google" → pick the account → the 5 onboarding steps (try "Atrás" and the picker limits) → choose a strategy, move the adjustment, "Guardar objetivos" → lands on Diario with their Google photo in the top bar.
   - Close the app and reopen it → straight to Diario. Open the Google picker and dismiss it → no error. Airplane mode + "Continuar con Google" → "Sin conexión. Inténtalo de nuevo".
   - Profile → "Cerrar sesión" → Welcome. Kill the app halfway through onboarding (second account, if available) → restarts at step 1 with the saved values prefilled.
@@ -958,7 +958,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Estimated scope:** S
 
 ### Checkpoint E2-B — E2 closure 👤
-- [ ] 👤 The user installs the `prodDebug` APK (`! bash scripts/deliver-apk.sh`) and tries on Profile (opened from the avatar):
+- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries on Profile (opened from the avatar):
   - Change their height (and the other personal data) and tap the single "Guardar" → the TDEE and the daily target change; "Peso actual" shows the latest weight and is not editable.
   - Switch Déficit / Mantenimiento / Superávit and move the adjustment; push it to the safety floor (1200 kcal women / 1500 kcal men).
   - Move each macro slider → the other two rebalance and the badge stays "TOTAL: 100 %"; try to push one past 90 %.
