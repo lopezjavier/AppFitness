@@ -18,6 +18,7 @@ onFlowComplete:
 - setOrientation: PORTRAIT
 - launchApp:
     clearState: true
+- runFlow: subflows/login.yaml
 - extendedWaitUntil:
     notVisible:
       id: "offline_banner"

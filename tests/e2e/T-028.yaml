@@ -13,6 +13,7 @@ onFlowComplete:
 - setOrientation: PORTRAIT
 - launchApp:
     clearState: true
+- runFlow: subflows/login.yaml
 - setOrientation: LANDSCAPE_LEFT
 # Rail layout: rail with the FAB inside, no bottom bar.
 - extendedWaitUntil:
