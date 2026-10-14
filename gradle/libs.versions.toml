@@ -40,6 +40,15 @@ junit = "4.13.2"
 robolectric = "4.17"
 androidx-compose-ui-test = "1.12.1"
 
+# T-034 (all latest stable on 2026-10-14; 3.9.0-beta-1 and credentials 1.7.0-alpha are excluded).
+# supabase-kt 3.8.0 is built against Ktor 3.5.1, so the OkHttp engine and the mock engine use exactly 3.5.1.
+# The `sb_publishable_` key check (ADR-17) is SupabaseClientFactoryTest: the key is sent as `apikey`.
+supabase-bom = "3.8.0"
+ktor = "3.5.1"
+androidx-credentials = "1.6.0"
+googleid = "1.2.1"
+coil = "3.6.3"
+
 # Lint (T-016). Stable releases only.
 ktlint-gradle = "14.2.0"
 ktlint = "1.8.0"
@@ -75,6 +84,17 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "jetbrains-lifecycle" }
 lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "jetbrains-lifecycle" }
+supabase-bom = { module = "io.github.jan-tennert.supabase:bom", version.ref = "supabase-bom" }
+supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt" }
+supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+coil-test = { module = "io.coil-kt.coil3:coil-test", version.ref = "coil" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
