@@ -51,10 +51,10 @@ import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Stateful Welcome: connects [WelcomeViewModel] to the stateless [WelcomeScreen]. */
 // Merging logo and name into one node needs no extra properties.
 private val NoExtraSemantics: SemanticsPropertyReceiver.() -> Unit = {}
 
+/** Stateful Welcome: connects [WelcomeViewModel] to the stateless [WelcomeScreen]. */
 @Composable
 fun WelcomeRoute(
     showTestLogin: Boolean,
