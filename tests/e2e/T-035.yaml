@@ -1,0 +1,100 @@
+# T-035 Biometric onboarding (US-06), local flavor, Test login.
+# Pre-req: npx supabase start + db reset, installLocalDebug, and
+# adb shell pm grant io.github.lopezjavier.appfitness.local android.permission.ACCESS_LOCAL_NETWORK
+# The seeded user is onboarded, so the flow resets it to "not onboarded" over REST (runScript) and
+# restores the seed state in onFlowComplete (also runs on failure). The key is never committed:
+# Run: maestro test -e SUPABASE_LOCAL_PUBLISHABLE_KEY=<PUBLISHABLE_KEY from `npx supabase status`> \
+#        --test-output-dir tests/e2e/screenshots tests/e2e/T-035.yaml
+appId: io.github.lopezjavier.appfitness.local
+tags:
+  - onboarding
+onFlowComplete:
+  - runFlow: subflows/restore-test-user.yaml
+---
+- runFlow: subflows/reset-test-user.yaml
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "welcome_test_login_button"
+    timeout: 20000
+- tapOn:
+    id: "welcome_test_login_button"
+# Scenario: Completing onboarding. Step 1: Continuar is disabled until a sex is chosen.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding_screen"
+    timeout: 30000
+- assertVisible: "1 / 5"
+- assertNotVisible:
+    id: "onboarding_back"
+- tapOn:
+    id: "onboarding_sex_male"
+- tapOn:
+    id: "onboarding_continue"
+# Step 2: birth date.
+- assertVisible: "2 / 5"
+- swipe:
+    from:
+      id: "onboarding_birth_year_picker"
+    direction: DOWN
+- assertVisible:
+    id: "onboarding_age_label"
+- tapOn:
+    id: "onboarding_continue"
+# Scenario: Progress indicator and going back. Step 3.
+- assertVisible: "3 / 5"
+- swipe:
+    from:
+      id: "onboarding_height_picker"
+    direction: UP
+- tapOn:
+    id: "onboarding_back"
+- assertVisible: "2 / 5"
+- tapOn:
+    id: "onboarding_continue"
+- assertVisible: "3 / 5"
+- tapOn:
+    id: "onboarding_continue"
+# Step 4: weight.
+- assertVisible: "4 / 5"
+- tapOn:
+    id: "onboarding_continue"
+# Step 5: activity.
+- assertVisible: "5 / 5"
+- tapOn:
+    id: "onboarding_activity_moderate"
+- takeScreenshot: T-035_activity_step
+- tapOn:
+    id: "onboarding_continue"
+- extendedWaitUntil:
+    visible:
+      id: "onboarding_goals_screen"
+    timeout: 30000
+# Scenario: Resuming an interrupted onboarding, then finishing again (re-save).
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "onboarding_screen"
+    timeout: 30000
+- assertVisible: "1 / 5"
+- assertVisible:
+    id: "onboarding_sex_male"
+    checked: true
+- tapOn:
+    id: "onboarding_continue"
+- tapOn:
+    id: "onboarding_continue"
+- tapOn:
+    id: "onboarding_continue"
+- tapOn:
+    id: "onboarding_continue"
+- assertVisible: "5 / 5"
+- tapOn:
+    id: "onboarding_continue"
+- extendedWaitUntil:
+    visible:
+      id: "onboarding_goals_screen"
+    timeout: 30000
+- takeScreenshot: T-035_goals_stub
