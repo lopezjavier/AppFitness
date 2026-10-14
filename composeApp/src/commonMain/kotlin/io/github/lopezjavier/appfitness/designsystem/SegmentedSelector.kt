@@ -100,8 +100,9 @@ object SegmentedSelectorDefaults {
  * selected segment is lime with dark bold text. All labels share one size: the largest (up to `bodyMedium`)
  * at which the widest label, measured in the selected weight, fits on one line. Below
  * [SegmentedSelectorDefaults.MinLabelFontSize] labels wrap to two lines (hyphenated on API 33+) and the segments
- * grow together; a label is never clipped. [selectedIndex] must be valid for [options]; tapping the active
- * segment does not call [onSelect].
+ * grow together; a label is never clipped. [selectedIndex] is null (no segment active) or valid for [options];
+ * tapping the active segment does not call
+ * [onSelect].
  *
  * Restriction: the control is built on `BoxWithConstraints` (it needs the available width to pick the label
  * size), which does not support intrinsic measurements. Do not place it inside a parent that queries
@@ -110,7 +111,7 @@ object SegmentedSelectorDefaults {
 @Composable
 fun SegmentedSelector(
     options: List<AppOption>,
-    selectedIndex: Int,
+    selectedIndex: Int?,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
