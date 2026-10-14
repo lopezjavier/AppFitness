@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.di
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -50,6 +53,9 @@ class AppModuleTest {
                 ConnectivityObserver::class,
                 AuthRepository::class,
                 ProfileRepository::class,
+                BodyMeasurementRepository::class,
+                Clock::class,
+                SavedStateHandle::class,
                 SignInWithGoogle::class,
                 AppConfig::class,
             ),
