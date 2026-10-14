@@ -60,9 +60,8 @@ def select_serials(devices, include_emulator):
 
 
 def build():
-    gradlew = "gradlew.bat" if IS_WINDOWS else "./gradlew"
-    cmd = [os.path.join(ROOT, "gradlew.bat")] if IS_WINDOWS else [os.path.join(ROOT, "gradlew")]
-    cmd += ["-q", ":androidApp:assembleProdDebug"]
+    gradlew = os.path.join(ROOT, "gradlew.bat" if IS_WINDOWS else "gradlew")
+    cmd = [gradlew, "-q", ":androidApp:assembleProdDebug"]
     fd, log = tempfile.mkstemp(suffix=".log")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as out:
@@ -71,7 +70,7 @@ def build():
             with open(log, encoding="utf-8", errors="replace") as f:
                 tail = f.read().splitlines()[-60:]
             print("\n".join(tail), file=sys.stderr)
-            print(f"Build FAILED ({gradlew})", file=sys.stderr)
+            print("Build FAILED", file=sys.stderr)
             return False
     finally:
         os.remove(log)
@@ -80,8 +79,9 @@ def build():
 
 
 def run(adb, *args):
+    """Run adb; return (exit code, stdout, stderr) with CRs stripped."""
     p = subprocess.run([adb, *args], capture_output=True, text=True, errors="replace")
-    return p.returncode, (p.stdout + p.stderr).replace("\r", "").strip()
+    return p.returncode, p.stdout.replace("\r", "").strip(), p.stderr.replace("\r", "").strip()
 
 
 def main(argv=None):
@@ -101,16 +101,18 @@ def main(argv=None):
     if not args.no_build and not build():
         return 1
 
-    apks = sorted(glob.glob(os.path.join(ROOT, APK_DIR, "*.apk")))
+    apks = sorted(glob.glob(os.path.join(ROOT, APK_DIR, "*.apk")), key=os.path.getmtime, reverse=True)
     if not apks:
         print(f"error: no APK found under {APK_DIR}", file=sys.stderr)
         return 1
-    apk = apks[0]
+    apk = apks[0]  # newest
+    if len(apks) > 1:
+        print(f"warning: {len(apks)} APKs found; using the newest.", file=sys.stderr)
     print(f"APK: {apk}")
 
     serials = list(args.serial)
     if not serials:
-        code, out = run(adb, "devices")
+        code, out, _ = run(adb, "devices")
         if code != 0:
             print("error: 'adb devices' failed", file=sys.stderr)
             return 1
@@ -125,9 +127,10 @@ def main(argv=None):
 
     fail = 0
     for s in serials:
-        _, model = run(adb, "-s", s, "shell", "getprop", "ro.product.model")
-        model = model or "unknown model"
-        code, out = run(adb, "-s", s, "install", "-r", apk)
+        mcode, mout, _ = run(adb, "-s", s, "shell", "getprop", "ro.product.model")
+        model = mout if mcode == 0 and mout else "unknown model"
+        code, so, se = run(adb, "-s", s, "install", "-r", apk)
+        out = "\n".join(x for x in (so, se) if x)
         if code == 0 and "Success" in out:
             print(f"OK     {s} ({model})")
         else:
