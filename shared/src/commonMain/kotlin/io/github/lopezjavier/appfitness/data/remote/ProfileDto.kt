@@ -4,6 +4,10 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Body of the `PATCH /profiles` that sets the onboarding flag (a column the grant allows). */
+@Serializable
+internal data class OnboardingCompletedDto(@SerialName("onboarding_completed") val onboardingCompleted: Boolean)
+
 /** Row of `public.profiles` limited to the columns the shell reads. */
 @Serializable
 internal data class ProfileDto(

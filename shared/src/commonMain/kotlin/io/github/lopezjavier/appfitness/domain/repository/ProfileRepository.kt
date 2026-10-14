@@ -13,4 +13,7 @@ interface ProfileRepository {
 
     /** Saves the four biometric fields. Idempotent. */
     suspend fun updateBiometrics(biometrics: Biometrics): Result<Unit>
+
+    /** Sets `onboarding_completed = true` on the own profile. Idempotent. */
+    suspend fun markOnboardingCompleted(): Result<Unit>
 }

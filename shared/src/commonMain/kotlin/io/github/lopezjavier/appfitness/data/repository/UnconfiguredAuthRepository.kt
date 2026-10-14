@@ -5,12 +5,14 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -38,6 +40,8 @@ class UnconfiguredProfileRepository : ProfileRepository {
 
     override suspend fun updateBiometrics(biometrics: Biometrics): Result<Unit> =
         Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun markOnboardingCompleted(): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Weight counterpart of [UnconfiguredAuthRepository]: nothing can be read or saved. */
@@ -49,4 +53,11 @@ class UnconfiguredBodyMeasurementRepository : BodyMeasurementRepository {
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.failure(AppException(AppError.Unknown))
+}
+
+/** Goals counterpart of [UnconfiguredAuthRepository]: nothing can be read or saved. */
+class UnconfiguredNutritionGoalsRepository : NutritionGoalsRepository {
+    override suspend fun getOwn(): Result<NutritionGoals?> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun upsert(goals: NutritionGoals): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
