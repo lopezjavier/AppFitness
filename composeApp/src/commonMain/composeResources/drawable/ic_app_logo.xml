@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    PLACEHOLDER app logo (a simple dumbbell). The real logo replaces this file under the same name.
+    Full-colour mark drawn on the dark surface; it is not tinted (planning/05-design-system.md).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:fillColor="#FFA3E635"
+        android:pathData="M30,44H66V52H30Z M24,24H30V72H24Z M66,24H72V72H66Z M14,32H20V64H14Z M76,32H82V64H76Z" />
+</vector>

@@ -26,16 +26,25 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_dialog_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bottom_sheet
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_confirm_dialog
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_fab
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_logo
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_close
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_pressed
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
 import io.github.lopezjavier.appfitness.composeapp.resources.fab_label
+import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_confirm
+import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
+import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AppLogo
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
@@ -48,6 +57,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun LazyListScope.overlayItems() {
     item { FabSection() }
     item { BottomSheetSection() }
+    item { ConfirmDialogSection() }
+    item { LogoSection() }
 }
 
 @Composable
@@ -118,5 +129,35 @@ private fun BottomSheetSection() {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ConfirmDialogSection() {
+    var open by rememberSaveable { mutableStateOf(false) }
+    CatalogSection(stringResource(Res.string.catalog_section_confirm_dialog), "catalog_section_confirm_dialog") {
+        SecondaryButton(
+            text = stringResource(Res.string.catalog_dialog_open),
+            onClick = { open = true },
+            modifier = Modifier.fillMaxWidth().testTag("catalog_dialog_open"),
+        )
+    }
+    if (open) {
+        AppConfirmDialog(
+            title = stringResource(Res.string.sign_out_dialog_title),
+            message = stringResource(Res.string.sign_out_dialog_message),
+            confirmLabel = stringResource(Res.string.sign_out_dialog_confirm),
+            cancelLabel = stringResource(Res.string.sign_out_dialog_cancel),
+            onConfirm = { open = false },
+            onDismiss = { open = false },
+            testTagPrefix = "catalog_dialog",
+        )
+    }
+}
+
+@Composable
+private fun LogoSection() {
+    CatalogSection(stringResource(Res.string.catalog_section_logo), "catalog_section_logo") {
+        AppLogo(modifier = Modifier.testTag("catalog_logo"))
     }
 }

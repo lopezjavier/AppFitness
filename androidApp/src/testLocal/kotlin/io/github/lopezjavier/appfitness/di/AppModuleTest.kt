@@ -2,7 +2,12 @@ package io.github.lopezjavier.appfitness.di
 
 import android.content.Context
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
+import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
 import org.koin.test.verify.verify
@@ -32,8 +37,22 @@ class AppModuleTest {
 
     @OptIn(KoinExperimentalAPI::class)
     @Test
-    fun koinGraph_resolvesConnectivityObserverAndAppViewModel() {
-        appModule.verify(extraTypes = listOf(Context::class, String::class, Boolean::class))
-        uiModule.verify(extraTypes = listOf(ConnectivityObserver::class))
+    fun koinGraph_isConsistent() {
+        appModule.verify(
+            extraTypes = listOf(Context::class, String::class, Boolean::class, TestLoginCredentials::class),
+        )
+        sharedModule.verify(
+            extraTypes = listOf(AppConfig::class, ConnectivityObserver::class, AuthCredentialProvider::class),
+        )
+        uiModule.verify(
+            extraTypes =
+            listOf(
+                ConnectivityObserver::class,
+                AuthRepository::class,
+                ProfileRepository::class,
+                SignInWithGoogle::class,
+                AppConfig::class,
+            ),
+        )
     }
 }

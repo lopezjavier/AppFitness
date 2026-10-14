@@ -127,4 +127,21 @@
     <string name="catalog_sheet_close">Cerrar</string>
     <string name="offline_banner_message">Sin conexión</string>
     <string name="catalog_section_offline_banner">Banner sin conexión</string>
+    <string name="welcome_title">AppFitness</string>
+    <string name="welcome_logo_description">Logo de AppFitness</string>
+    <string name="welcome_google_button">Continuar con Google</string>
+    <string name="welcome_test_login">Test login</string>
+    <string name="welcome_signing_in">Iniciando sesión</string>
+    <string name="auth_error_no_network">Sin conexión. Inténtalo de nuevo</string>
+    <string name="auth_error_generic">No se pudo iniciar sesión. Inténtalo de nuevo</string>
+    <string name="root_error_message">No se pudieron cargar tus datos</string>
+    <string name="onboarding_title">Configuración inicial</string>
+    <string name="profile_sign_out">Cerrar sesión</string>
+    <string name="sign_out_dialog_title">¿Cerrar sesión?</string>
+    <string name="sign_out_dialog_message">Tendrás que volver a entrar con tu cuenta de Google.</string>
+    <string name="sign_out_dialog_confirm">Cerrar sesión</string>
+    <string name="sign_out_dialog_cancel">Cancelar</string>
+    <string name="catalog_section_confirm_dialog">Diálogo de confirmación</string>
+    <string name="catalog_dialog_open">Abrir diálogo</string>
+    <string name="catalog_section_logo">Logotipo</string>
 </resources>

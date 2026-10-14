@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +30,9 @@ import androidx.compose.ui.unit.dp
 /** Visual weight of an [AppButton]. */
 enum class AppButtonVariant { Primary, Secondary, Ghost }
 
+/** Colour treatment of a [GhostButton]: the cyan action, a neutral dismissal or a destructive confirmation. */
+enum class GhostTone { Action, Neutral, Destructive }
+
 /** Colours of a button state. A null [border] draws none. */
 @Immutable
 data class AppButtonColors(val container: Color, val content: Color, val border: Color?)
@@ -39,6 +44,10 @@ object AppButtonDefaults {
     val Shape = AppShapes.md
     val HorizontalPadding: Dp = Spacing.xl
 
+    /** In-button progress indicator of a loading [PrimaryButton]. */
+    val LoadingIndicatorSize: Dp = 20.dp
+    val LoadingIndicatorStroke: Dp = 2.dp
+
     @Suppress("ktlint:standard:property-naming") // PascalCase kept to match the other defaults.
     const val PressedScale = 0.97f
 
@@ -49,7 +58,12 @@ object AppButtonDefaults {
      * The meaning is carried by fill and text colour, never by the border alone. Cyan on the ghost
      * button is its action treatment, not a training-domain signal: do not reuse it for other meanings.
      */
-    fun colors(variant: AppButtonVariant, enabled: Boolean, appColors: AppColors): AppButtonColors = when (variant) {
+    fun colors(
+        variant: AppButtonVariant,
+        enabled: Boolean,
+        appColors: AppColors,
+        ghostTone: GhostTone = GhostTone.Action,
+    ): AppButtonColors = when (variant) {
         AppButtonVariant.Primary ->
             if (enabled) {
                 AppButtonColors(appColors.neonLime, appColors.onNeonLime, border = null)
@@ -64,18 +78,28 @@ object AppButtonDefaults {
                 border = if (enabled) appColors.borderStrong else appColors.borderSubtle,
             )
 
-        AppButtonVariant.Ghost ->
+        AppButtonVariant.Ghost -> {
+            val accent =
+                when (ghostTone) {
+                    GhostTone.Action -> appColors.athleticCyan
+                    GhostTone.Neutral -> appColors.textPrimary
+                    GhostTone.Destructive -> appColors.error
+                }
             AppButtonColors(
                 container = Color.Transparent,
-                content = if (enabled) appColors.athleticCyan else appColors.ghostData,
-                border = if (enabled) appColors.athleticCyan else appColors.borderSubtle,
+                content = if (enabled) accent else appColors.ghostData,
+                border = if (enabled) accent else appColors.borderSubtle,
             )
+        }
     }
 
     fun scale(pressed: Boolean): Float = if (pressed) PressedScale else 1f
 }
 
-/** Lime-filled main action. */
+/**
+ * Lime-filled main action. While [loading] a small progress indicator sits at the end of the button (the text
+ * does not change); pass `enabled = false` as well to block taps.
+ */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -83,7 +107,8 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
-) = AppButton(AppButtonVariant.Primary, text, onClick, modifier, enabled, interactionSource)
+    loading: Boolean = false,
+) = AppButton(AppButtonVariant.Primary, text, onClick, modifier, enabled, interactionSource, loading = loading)
 
 /** Raised secondary action with a strong border. */
 @Composable
@@ -95,7 +120,7 @@ fun SecondaryButton(
     interactionSource: MutableInteractionSource? = null,
 ) = AppButton(AppButtonVariant.Secondary, text, onClick, modifier, enabled, interactionSource)
 
-/** Transparent action with a cyan label and border. */
+/** Transparent action with a label and border: cyan by default, [tone] picks a neutral or destructive treatment. */
 @Composable
 fun GhostButton(
     text: String,
@@ -103,7 +128,8 @@ fun GhostButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
-) = AppButton(AppButtonVariant.Ghost, text, onClick, modifier, enabled, interactionSource)
+    tone: GhostTone = GhostTone.Action,
+) = AppButton(AppButtonVariant.Ghost, text, onClick, modifier, enabled, interactionSource, tone)
 
 // Private shared implementation: the public wrappers own the defaults.
 @Suppress("LongParameterList", "ModifierWithoutDefault")
@@ -115,11 +141,13 @@ private fun AppButton(
     modifier: Modifier,
     enabled: Boolean,
     interactionSource: MutableInteractionSource?,
+    ghostTone: GhostTone = GhostTone.Action,
+    loading: Boolean = false,
 ) {
     val source = interactionSource ?: remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(AppButtonDefaults.scale(pressed), label = "button_press_scale")
-    val colors = AppButtonDefaults.colors(variant, enabled, AppTheme.colors)
+    val colors = AppButtonDefaults.colors(variant, enabled, AppTheme.colors, ghostTone)
     Surface(
         onClick = onClick,
         modifier =
@@ -141,6 +169,14 @@ private fun AppButton(
             contentAlignment = Alignment.Center,
         ) {
             Text(text = text, style = AppTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            if (loading) {
+                // Decorative: the caller exposes the busy state through the button's semantics.
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterEnd).size(AppButtonDefaults.LoadingIndicatorSize),
+                    color = AppTheme.colors.neonLime,
+                    strokeWidth = AppButtonDefaults.LoadingIndicatorStroke,
+                )
+            }
         }
     }
 }

@@ -62,6 +62,8 @@ internal fun AppScaffold(
     navController: NavHostController = rememberNavController(),
     navigationType: AppNavigationType = AppNavigationType.Bar,
     isOffline: Boolean = false,
+    avatarUrl: String? = null,
+    onSignOut: () -> Unit = {},
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -76,7 +78,7 @@ internal fun AppScaffold(
     Scaffold(
         modifier = modifier,
         containerColor = AppTheme.colors.surfaceBase,
-        topBar = { ShellTopBar(chrome, avatarButton, backButton) },
+        topBar = { ShellTopBar(chrome, avatarButton, backButton, avatarUrl) },
         bottomBar = {
             if (isBar && chrome is ShellChrome.Tabs) {
                 AppNavigation(
@@ -115,6 +117,7 @@ internal fun AppScaffold(
                         )
                     }
                 },
+                onSignOut = onSignOut,
                 modifier = contentModifier,
             )
         }
@@ -194,6 +197,7 @@ private fun ShellRail(
  * corrupts the restored list position. The bar layout keeps the same trick with its constant bar height.
  * The top of `innerPadding` is expected to be zero because `BelowTopBar` consumes the top inset.
  */
+@Suppress("LongParameterList")
 @Composable
 private fun ShellContent(
     navController: NavHostController,
@@ -201,6 +205,7 @@ private fun ShellContent(
     navigationType: AppNavigationType,
     innerPadding: PaddingValues,
     rail: @Composable (Modifier) -> Unit,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -229,6 +234,7 @@ private fun ShellContent(
             features = features,
             // Constant across tab <-> Profile, like the padding above: the tab's content never shifts.
             tabContentBottomClearance = insets.contentBottomClearance,
+            onSignOut = onSignOut,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(
@@ -243,9 +249,19 @@ private fun ShellContent(
 }
 
 @Composable
-private fun ShellTopBar(chrome: ShellChrome, avatarButton: AppTopBarButton, backButton: AppTopBarButton) {
+private fun ShellTopBar(
+    chrome: ShellChrome,
+    avatarButton: AppTopBarButton,
+    backButton: AppTopBarButton,
+    avatarUrl: String?,
+) {
     when (chrome) {
-        is ShellChrome.Tabs -> AppTopBar(title = stringResource(chrome.tab.label), avatarButton = avatarButton)
+        is ShellChrome.Tabs ->
+            AppTopBar(
+                title = stringResource(chrome.tab.label),
+                avatarButton = avatarButton,
+                avatarImageUrl = avatarUrl,
+            )
 
         is ShellChrome.FullScreen ->
             AppTopBar(title = stringResource(chrome.title), navigationButton = backButton)

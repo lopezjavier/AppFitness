@@ -9,6 +9,9 @@ enum class WindowWidthClass { Compact, Wide }
 object WindowWidthClassDefaults {
     /** First width (inclusive) that is [WindowWidthClass.Wide]; the M3 Medium breakpoint. */
     val WideMinWidth: Dp = 600.dp
+
+    /** Cap of single-column action blocks (sign-in buttons, dialogs) on wide windows. */
+    val NarrowContentMaxWidth: Dp = 360.dp
 }
 
 /** Single source of the 600 dp breakpoint. */

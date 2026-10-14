@@ -1,16 +1,22 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AppFeaturesTest {
-    private fun config(isLocal: Boolean) = AppConfig(
+    private val testLogin = TestLoginCredentials("test@appfitness.local", "pw")
+
+    private fun config(isLocal: Boolean, testLogin: TestLoginCredentials? = null) = AppConfig(
         supabaseUrl = "http://localhost",
         supabasePublishableKey = "sb_publishable_dummy",
         googleWebClientId = "",
         isLocal = isLocal,
+        testLogin = testLogin,
     )
 
     private val nonCatalogRoutes: List<AppRoute> =
@@ -43,5 +49,16 @@ class AppFeaturesTest {
                 assertTrue(AppFeatures(catalog).isAvailable(it), "$it catalog=$catalog")
             }
         }
+    }
+
+    @Test
+    fun testLogin_defaultsToNull_failClosed() {
+        assertNull(AppFeatures().testLogin)
+        assertNull(AppFeatures.from(config(isLocal = true)).testLogin)
+    }
+
+    @Test
+    fun from_configWithTestLogin_copiesIt() {
+        assertEquals(testLogin, AppFeatures.from(config(isLocal = true, testLogin = testLogin)).testLogin)
     }
 }

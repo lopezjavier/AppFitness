@@ -41,6 +41,14 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.core)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.googleid)
+            implementation(libs.ktor.client.okhttp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -53,6 +61,7 @@ kotlin {
             implementation(libs.androidx.compose.ui.test)
             implementation(libs.androidx.compose.ui.test.junit4)
             implementation(libs.androidx.compose.ui.test.manifest)
+            implementation(libs.coil.test)
         }
     }
 }
