@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(29);
+select plan(33);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -128,6 +128,27 @@ select results_eq(
 select throws_ok(
   'truncate public.nutrition_goals',
   '42501', null, 'A cannot truncate nutrition_goals');
+
+-- Positive owner checks: the policies must not be over-restrictive.
+select is(
+  (select count(*)::int from public.nutrition_goals where user_id = '11111111-1111-4111-8111-111111111111'),
+  1,
+  'A sees their own row');
+select results_eq(
+  $$with u as (update public.nutrition_goals set target_kcal = 1900
+               where user_id = '11111111-1111-4111-8111-111111111111' returning 1)
+    select count(*)::int from u$$,
+  $$values (1)$$,
+  'A can update their own row');
+select results_eq(
+  $$with d as (delete from public.nutrition_goals
+               where user_id = '11111111-1111-4111-8111-111111111111' returning 1)
+    select count(*)::int from d$$,
+  $$values (1)$$,
+  'A can delete their own row');
+select lives_ok(
+  $$insert into public.nutrition_goals (target_kcal) values (2200)$$,
+  'A can insert their own row (user_id defaults to the caller)');
 
 reset role;
 select is(
