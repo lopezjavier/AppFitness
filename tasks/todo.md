@@ -883,18 +883,18 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Description:** Backend: one migration with the `goal_strategy` enum and `nutrition_goals` per `03-data-model.md` §2 (one row per user, `strategy` default `maintenance`, `calorie_adjustment`, `target_kcal`, `protein_pct`/`carbs_pct`/`fat_pct` with defaults 30/45/25, each 5–90 and sum = 100 checks, owner RLS on `(select auth.uid())`) + pgTAP. Domain (pure, 100 % unit tested with the `04-business-rules.md` §1 examples): `CalculateTdee` (Mifflin-St Jeor + activity factor, age in full years, latest weight) and `CalculateCalorieTarget` (default adjustment per strategy −400 / 0 / +250, 50 kcal steps within the strategy range, safety floor by sex with a flag: 1200 women / 1500 men, ADR-25, "ligero/moderado/agresivo" label). App: `NutritionGoalsRepository` (upsert, read) and an "Estrategia energética" section (TDEE line, `SegmentedSelector` Déficit/Mantenimiento/Superávit, adjustment stepper, "Meta diaria: N kcal/día", adjustment pill, floor warning) used as the last onboarding step. No macro sliders in onboarding (ADR-24). "Guardar objetivos" upserts the goals with the default split 30/45/25, sets `onboarding_completed = true`, confirms with haptics and lands on Diario.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/nutrition_goals.test.sql`: RLS on and forced; cross-user isolation (select/insert/update/delete); percentage checks reject 4 / 91 and a sum ≠ 100.
-- [ ] Use case tests include: male 26 y, 178 cm, 74.2 kg, moderate → 2681; TDEE 2800 + Déficit → 2400 and "−400 kcal · Déficit moderado"; two steps down → −500 / 2300; female TDEE 1500 − 400 → 1200 + floor flag; male TDEE 1800 − 400 → 1500 + floor flag; range ends (−1000, −50, ±100, +50, +750) are not crossed; label thresholds 300 / 600.
-- [ ] Numbers formatted with `AppNumberFormat` ("TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día").
-- [ ] Goals and `onboarding_completed = true` are written so that a failure never leaves `onboarding_completed = true` without a goals row (order or RPC chosen by the planner); save errors keep the values and offer a retry.
-- [ ] After saving, relaunching the app goes straight to Diario (closes the US-05 "Persistent session" journey for a new user).
+- [x] Migration + `supabase/tests/nutrition_goals.test.sql`: RLS on and forced; cross-user isolation (select/insert/update/delete); percentage checks reject 4 / 91 and a sum ≠ 100.
+- [x] Use case tests include: male 26 y, 178 cm, 74.2 kg, moderate → 2681; TDEE 2800 + Déficit → 2400 and "−400 kcal · Déficit moderado"; two steps down → −500 / 2300; female TDEE 1500 − 400 → 1200 + floor flag; male TDEE 1800 − 400 → 1500 + floor flag; range ends (−1000, −50, ±100, +50, +750) are not crossed; label thresholds 300 / 600.
+- [x] Numbers formatted with `AppNumberFormat` ("TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día").
+- [x] Goals and `onboarding_completed = true` are written so that a failure never leaves `onboarding_completed = true` without a goals row (order or RPC chosen by the planner); save errors keep the values and offer a retry.
+- [x] After saving, relaunching the app goes straight to Diario (closes the US-05 "Persistent session" journey for a new user).
 
 **Host tests (per scenario):** `CalculateTdeeTest`, `CalculateCalorieTargetTest` (TDEE calculation, Changing the strategy, Fine-tuning, Safety floor); `EnergyStrategyViewModelTest` (strategy switch resets the adjustment to the default, stepper, floor warning, Saving the goals → upsert + onboarding flag + haptic/confirmation effect); `EnergyStrategySectionTest` (Robolectric: texts "TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día", pill, warning).
 
 **E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-036.yaml`: full onboarding → strategy → "Guardar objetivos" → Diario; relaunch → Diario).
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-035
