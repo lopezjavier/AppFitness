@@ -1,0 +1,130 @@
+package io.github.lopezjavier.appfitness.data.repository
+
+import io.github.jan.supabase.auth.MemorySessionManager
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.request.HttpRequestData
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
+import io.ktor.http.headersOf
+import kotlinx.coroutines.test.runTest
+import kotlinx.io.IOException
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Instant
+
+private const val SESSION =
+    """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
+        """"user":{"id":"user-1","aud":"authenticated","email":"a@b.c"}}"""
+private const val ROW =
+    """[{"id":"row-1","measured_at":"2026-10-14T10:00:00+00:00","weight_kg":74.2,"source":"manual"}]"""
+private val MEASURED_AT = Instant.parse("2026-10-14T12:30:00Z")
+
+class SupabaseBodyMeasurementRepositoryTest {
+    private val requests = mutableListOf<HttpRequestData>()
+
+    /** [rows] is the body of every GET; writes answer an empty success. [failing] makes every data call fail. */
+    private suspend fun signedIn(rows: () -> String = { "[]" }, failing: () -> Boolean = { false }) =
+        MockEngine { request ->
+            requests += request
+            val headers = headersOf(HttpHeaders.ContentType, "application/json")
+            when {
+                request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
+                failing() -> throw IOException("offline")
+                request.method == HttpMethod.Get -> respond(rows(), HttpStatusCode.OK, headers)
+                else -> respond("", HttpStatusCode.Created, headers)
+            }
+        }.let { engine ->
+            val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
+            val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
+            SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
+            SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
+        }
+
+    private fun writes() = requests.filter { it.method != HttpMethod.Get && !it.url.encodedPath.contains("/auth/") }
+
+    @Test
+    fun onboardingRowQuery_isTheEarliestManualRow() = runTest {
+        val repo = signedIn(rows = { ROW })
+
+        val row = repo.getOnboardingWeight().getOrThrow()
+
+        assertEquals(
+            BodyMeasurement("row-1", Instant.parse("2026-10-14T10:00:00Z"), 74.2, MeasurementSource.Manual),
+            row,
+        )
+        val url = requests.last().url.toString()
+        assertTrue(url.contains("source=eq.manual"), url)
+        assertTrue(url.contains("order=created_at.asc,id.asc") || url.contains("order=created_at.asc"), url)
+        assertTrue(url.contains("limit=1"), url)
+    }
+
+    @Test
+    fun insertThenUpdate_theSecondSaveFindsTheRowAndPatchesIt() = runTest {
+        var stored = "[]"
+        val repo = signedIn(rows = { stored })
+
+        assertTrue(repo.saveOnboardingWeight(74.2, MEASURED_AT).isSuccess)
+        val post = writes().single()
+        assertEquals(HttpMethod.Post, post.method)
+        assertEquals(
+            """[{"weight_kg":74.2,"measured_at":"2026-10-14T12:30:00Z","source":"manual"}]""",
+            (post.body as TextContent).text,
+        )
+
+        stored = ROW
+        assertTrue(repo.saveOnboardingWeight(75.0, MEASURED_AT).isSuccess)
+        val all = writes()
+        assertEquals(2, all.size)
+        assertEquals(1, all.count { it.method == HttpMethod.Post })
+        val patch = all.last()
+        assertEquals(HttpMethod.Patch, patch.method)
+        assertTrue(patch.url.toString().contains("id=eq.row-1"), patch.url.toString())
+        assertEquals(
+            """{"weight_kg":75.0,"measured_at":"2026-10-14T12:30:00Z"}""",
+            (patch.body as TextContent).text,
+        )
+    }
+
+    @Test
+    fun latestWeight_ordersByMeasuredAtDescending() = runTest {
+        val repo = signedIn(rows = { ROW })
+
+        assertEquals(74.2, repo.getLatestWeight().getOrThrow()?.weightKg)
+        val url = requests.last().url.toString()
+        assertTrue(url.contains("order=measured_at.desc"), url)
+        assertTrue(url.contains("limit=1"), url)
+    }
+
+    @Test
+    fun emptyResults_giveNull() = runTest {
+        val repo = signedIn()
+
+        assertNull(repo.getOnboardingWeight().getOrThrow())
+        assertNull(repo.getLatestWeight().getOrThrow())
+    }
+
+    @Test
+    fun networkError_isAppErrorNetwork() = runTest {
+        var fail = false
+        val repo = signedIn(failing = { fail })
+        fail = true
+
+        assertEquals(AppError.Network, repo.getOnboardingWeight().appErrorOrNull())
+        assertEquals(AppError.Network, repo.saveOnboardingWeight(70.0, MEASURED_AT).appErrorOrNull())
+        assertEquals(AppError.Network, repo.getLatestWeight().appErrorOrNull())
+    }
+}

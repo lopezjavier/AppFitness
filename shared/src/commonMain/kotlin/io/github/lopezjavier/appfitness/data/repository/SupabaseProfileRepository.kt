@@ -8,32 +8,53 @@ import io.github.jan.supabase.exceptions.UnauthorizedRestException
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.lopezjavier.appfitness.data.remote.BiometricsDto
+import io.github.lopezjavier.appfitness.data.remote.BiometricsUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.io.IOException
 
-/** Reads the signed-in user's `profiles` row (RLS `profiles_select_own`). */
+/** Reads and updates the signed-in user's `profiles` row (RLS `profiles_select_own` / `profiles_update_own`). */
 class SupabaseProfileRepository(private val auth: Auth, private val postgrest: Postgrest) : ProfileRepository {
-    @Suppress("TooGenericExceptionCaught")
-    override suspend fun getOwnProfile(): Result<ProfileSummary> {
-        val userId = auth.currentUserOrNull()?.id ?: return Result.failure(AppException(AppError.Unauthorized))
-        return try {
-            val dto =
-                postgrest.from("profiles")
-                    .select(Columns.raw(ProfileDto.COLUMNS)) { filter { eq("id", userId) } }
-                    .decodeSingle<ProfileDto>()
-            Result.success(dto.toDomain())
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (failure: Exception) {
-            Result.failure(AppException(failure.toAppError(), failure))
-        }
+    override suspend fun getOwnProfile(): Result<ProfileSummary> = ownRow { userId ->
+        postgrest.from("profiles")
+            .select(Columns.raw(ProfileDto.COLUMNS)) { filter { eq("id", userId) } }
+            .decodeSingle<ProfileDto>()
+            .toDomain()
     }
+
+    override suspend fun getBiometrics(): Result<SavedBiometrics> = ownRow { userId ->
+        postgrest.from("profiles")
+            .select(Columns.raw(BiometricsDto.COLUMNS)) { filter { eq("id", userId) } }
+            .decodeSingle<BiometricsDto>()
+            .toDomain()
+    }
+
+    override suspend fun updateBiometrics(biometrics: Biometrics): Result<Unit> = ownRow { userId ->
+        postgrest.from("profiles").update(BiometricsUpdateDto.from(biometrics)) { filter { eq("id", userId) } }
+    }.map {}
+
+    private suspend fun <T> ownRow(block: suspend (userId: String) -> T): Result<T> {
+        val userId = auth.currentUserOrNull()?.id ?: return Result.failure(AppException(AppError.Unauthorized))
+        return runMappingErrors { block(userId) }
+    }
+}
+
+/** Runs [block], mapping any failure (except cancellation) to an [AppException] carrying an [AppError]. */
+@Suppress("TooGenericExceptionCaught")
+internal suspend fun <T> runMappingErrors(block: suspend () -> T): Result<T> = try {
+    Result.success(block())
+} catch (cancellation: CancellationException) {
+    throw cancellation
+} catch (failure: Exception) {
+    Result.failure(AppException(failure.toAppError(), failure))
 }
 
 internal fun Throwable.toAppError(): AppError = when (this) {
