@@ -69,7 +69,7 @@ class WelcomeViewModelTest {
     }
 
     @Test
-    fun offline_showsNoNetworkError_andRetryRepeatsTheGooglePath() = runTest {
+    fun offline_showsNoNetworkError_andTappingGoogleAgainRepeatsThePath() = runTest {
         connectivity.state.value = false
         val viewModel = viewModel()
 
@@ -79,7 +79,7 @@ class WelcomeViewModelTest {
         assertEquals(0, provider.calls)
 
         connectivity.state.value = true
-        viewModel.onEvent(WelcomeEvent.Retry)
+        viewModel.onEvent(WelcomeEvent.ContinueWithGoogle)
         runCurrent()
 
         assertEquals(WelcomeUiState(), viewModel.uiState.value)
@@ -98,7 +98,7 @@ class WelcomeViewModelTest {
     }
 
     @Test
-    fun testLogin_usesTheConfiguredCredentials_andRetryRepeatsIt() = runTest {
+    fun testLogin_usesTheConfiguredCredentials_andTappingItAgainRepeatsIt() = runTest {
         auth.outcome = SignInOutcome.NoNetwork
         val viewModel = viewModel()
 
@@ -107,7 +107,7 @@ class WelcomeViewModelTest {
         assertEquals(WelcomeUiState(error = WelcomeError.NoNetwork), viewModel.uiState.value)
 
         auth.outcome = SignInOutcome.Success
-        viewModel.onEvent(WelcomeEvent.Retry)
+        viewModel.onEvent(WelcomeEvent.TestLogin)
         runCurrent()
 
         assertEquals(listOf(credentials, credentials), auth.passwordCalls)
@@ -143,15 +143,5 @@ class WelcomeViewModelTest {
         auth.gate?.complete(Unit)
         runCurrent()
         assertEquals(false, viewModel.uiState.value.inFlight)
-    }
-
-    @Test
-    fun retryWithoutAnyPriorAttempt_doesNothing() = runTest {
-        val viewModel = viewModel()
-
-        viewModel.onEvent(WelcomeEvent.Retry)
-        runCurrent()
-
-        assertEquals(WelcomeUiState(), viewModel.uiState.value)
     }
 }

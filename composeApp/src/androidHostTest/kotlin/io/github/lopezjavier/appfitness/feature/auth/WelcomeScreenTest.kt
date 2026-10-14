@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -59,7 +60,6 @@ class WelcomeScreenTest {
         rule.onNodeWithTag("welcome_title", useUnmergedTree = true).assertTextEquals("AppFitness")
         rule.onNodeWithTag("welcome_google_button").assertTextEquals("Continuar con Google").assertIsEnabled()
         rule.onNodeWithTag("welcome_error_message").assertDoesNotExist()
-        rule.onNodeWithTag("welcome_retry_button").assertDoesNotExist()
         rule.onAllNodesWithText("Calorías, peso y gimnasio en un solo sitio").assertCountEquals(0)
     }
 
@@ -84,11 +84,12 @@ class WelcomeScreenTest {
     }
 
     @Test
-    fun noNetworkError_showsMessageAndRetry() {
+    fun noNetworkError_showsMessageOnly_andTheGoogleButtonRetries() {
         show(WelcomeUiState(error = WelcomeError.NoNetwork))
         rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertExists()
-        rule.onNodeWithTag("welcome_retry_button").assertTextEquals("Reintentar").performClick()
-        assertTrue(events == listOf(WelcomeEvent.Retry))
+        rule.onAllNodesWithText("Reintentar").assertCountEquals(0)
+        rule.onNodeWithTag("welcome_google_button").assertIsEnabled().performClick()
+        assertTrue(events == listOf(WelcomeEvent.ContinueWithGoogle))
     }
 
     @Test
@@ -129,9 +130,11 @@ class WelcomeScreenTest {
     }
 
     @Test
-    fun errorBlock_retryTouchTarget_atLeast48dp() {
-        show(WelcomeUiState(error = WelcomeError.NoNetwork))
-        rule.onNodeWithTag("welcome_retry_button").assertHeightIsAtLeast(MIN_TOUCH_DP.dp)
+    @Config(qualifiers = "w640dp-h360dp-xxhdpi")
+    fun shortWindow_keepsTheGoogleButtonVisible() {
+        show(WelcomeUiState(error = WelcomeError.NoNetwork), showTestLogin = true)
+        rule.onNodeWithTag("welcome_google_button").assertIsDisplayed()
+        rule.onNodeWithTag("welcome_test_login_button").assertIsDisplayed()
     }
 
     @Test

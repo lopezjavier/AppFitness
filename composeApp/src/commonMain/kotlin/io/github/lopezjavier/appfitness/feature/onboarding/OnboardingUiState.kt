@@ -121,6 +121,4 @@ sealed interface OnboardingEvent {
     data object Back : OnboardingEvent
 
     data object RetryLoad : OnboardingEvent
-
-    data object RetrySave : OnboardingEvent
 }

@@ -95,12 +95,6 @@ class OnboardingViewModel(
             OnboardingEvent.Back -> onBack()
 
             OnboardingEvent.RetryLoad -> if (_uiState.value.phase == OnboardingPhase.LoadError) load()
-
-            OnboardingEvent.RetrySave -> when (_uiState.value.step) {
-                OnboardingStep.Activity -> save()
-                OnboardingStep.Goals -> saveGoals()
-                else -> Unit
-            }
         }
     }
 

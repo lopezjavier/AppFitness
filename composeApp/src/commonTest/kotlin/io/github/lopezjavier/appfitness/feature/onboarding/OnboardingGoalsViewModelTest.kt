@@ -189,7 +189,7 @@ class OnboardingGoalsViewModelTest {
     }
 
     @Test
-    fun saveGoalsFailure_keepsTheChoice_andRetryRepeatsTheSave() = runTest {
+    fun saveGoalsFailure_keepsTheChoice_andSavingAgainRepeatsTheSave() = runTest {
         val vm = onGoalsStep()
         vm.energy(EnergyStrategyEvent.SelectStrategy(GoalStrategy.Deficit))
         vm.energy(EnergyStrategyEvent.StepDown)
@@ -205,7 +205,7 @@ class OnboardingGoalsViewModelTest {
         assertEquals(0, profile.completedCalls)
 
         goals.upsertResult = Result.success(Unit)
-        vm.onEvent(OnboardingEvent.RetrySave)
+        vm.onEvent(OnboardingEvent.SaveGoals)
         advanceUntilIdle()
 
         assertEquals(2, goals.upserts.size)
