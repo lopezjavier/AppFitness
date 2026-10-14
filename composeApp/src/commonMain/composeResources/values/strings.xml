@@ -140,8 +140,8 @@
     <string name="onboarding_step_height">Altura</string>
     <string name="onboarding_step_weight">Peso actual</string>
     <string name="onboarding_step_activity">Nivel de actividad</string>
-    <string name="onboarding_indicator">%1$d / 5</string>
-    <string name="onboarding_indicator_cd">Paso %1$d de 5</string>
+    <string name="onboarding_indicator">%1$d / %2$d</string>
+    <string name="onboarding_indicator_cd">Paso %1$d de %2$d</string>
     <string name="onboarding_back">Atrás</string>
     <string name="onboarding_continue">Continuar</string>
     <string name="onboarding_sex_male">Hombre</string>
@@ -172,9 +172,6 @@
     <string name="wheel_height_cd">Altura</string>
     <string name="wheel_weight_kg_cd">Peso en kilos</string>
     <string name="wheel_weight_decimal_cd">Decimales del peso</string>
-    <string name="wheel_state_cm">%1$d cm</string>
-    <string name="wheel_state_kg">%1$d kg</string>
-    <string name="wheel_state_decimal">,%1$d</string>
     <string name="activity_sedentary_title">Sedentario</string>
     <string name="activity_sedentary_description">Trabajo sentado y poco o ningún ejercicio</string>
     <string name="activity_light_title">Ligero</string>

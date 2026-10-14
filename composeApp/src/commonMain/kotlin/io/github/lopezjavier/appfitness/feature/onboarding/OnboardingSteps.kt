@@ -155,7 +155,7 @@ private fun monthNames(): List<String> = listOf(
 
 @Composable
 internal fun HeightStep(heightCm: Int, onChange: (Int) -> Unit) {
-    val spoken = stringResource(Res.string.wheel_state_cm, heightCm)
+    val cm = stringResource(Res.string.unit_cm)
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
         WheelPicker(
             range = BiometricBounds.HEIGHT_CM,
@@ -163,7 +163,7 @@ internal fun HeightStep(heightCm: Int, onChange: (Int) -> Unit) {
             onValueChange = onChange,
             label = { it.toString() },
             contentDescription = stringResource(Res.string.wheel_height_cd),
-            stateDescription = { spoken },
+            stateDescription = { "$it $cm" },
             testTagPrefix = "onboarding_height_picker",
         )
         UnitLabel(stringResource(Res.string.unit_cm))
@@ -175,8 +175,8 @@ internal fun WeightStep(weightTenths: Int, onChange: (Int) -> Unit) {
     val kilos = weightTenths / TENTHS_PER_KG
     val decimal = weightTenths % TENTHS_PER_KG
     val maxKilos = BiometricBounds.WEIGHT_TENTHS.last / TENTHS_PER_KG
-    val spokenKilos = stringResource(Res.string.wheel_state_kg, kilos)
-    val spokenDecimal = stringResource(Res.string.wheel_state_decimal, decimal)
+    val kg = stringResource(Res.string.unit_kg)
+    val separator = stringResource(Res.string.onboarding_decimal_separator)
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         WheelPicker(
             range = (BiometricBounds.WEIGHT_TENTHS.first / TENTHS_PER_KG)..maxKilos,
@@ -184,7 +184,7 @@ internal fun WeightStep(weightTenths: Int, onChange: (Int) -> Unit) {
             onValueChange = { onChange(it * TENTHS_PER_KG + decimal) },
             label = { it.toString() },
             contentDescription = stringResource(Res.string.wheel_weight_kg_cd),
-            stateDescription = { spokenKilos },
+            stateDescription = { "$it $kg" },
             testTagPrefix = "onboarding_weight_kg_picker",
         )
         Text(
@@ -198,7 +198,7 @@ internal fun WeightStep(weightTenths: Int, onChange: (Int) -> Unit) {
             onValueChange = { onChange(kilos * TENTHS_PER_KG + it) },
             label = { it.toString() },
             contentDescription = stringResource(Res.string.wheel_weight_decimal_cd),
-            stateDescription = { spokenDecimal },
+            stateDescription = { "$separator$it" },
             testTagPrefix = "onboarding_weight_decimal_picker",
         )
         UnitLabel(stringResource(Res.string.unit_kg))

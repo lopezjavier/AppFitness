@@ -331,4 +331,28 @@ class OnboardingViewModelTest {
 
         assertEquals(OnboardingPhase.LoadError, vm.state.phase)
     }
+
+    @Test
+    fun valueChanges_areIgnoredWhileSaving() = runTest {
+        val vm = started()
+        vm.fillToActivity()
+        vm.onEvent(OnboardingEvent.Continue)
+        assertEquals(OnboardingPhase.Saving, vm.state.phase)
+
+        vm.send(
+            OnboardingEvent.SetHeight(200),
+            OnboardingEvent.SetWeight(900),
+            OnboardingEvent.SelectSex(Sex.Female),
+            OnboardingEvent.SelectActivity(ActivityLevel.High),
+            OnboardingEvent.SetBirthDate(LocalDate(1980, 1, 1)),
+        )
+        advanceUntilIdle()
+
+        assertEquals(178, vm.state.heightCm)
+        assertEquals(742, vm.state.weightTenths)
+        assertEquals(Sex.Male, vm.state.sex)
+        assertEquals(ActivityLevel.Moderate, vm.state.activity)
+        assertEquals(BIRTH_DATE, vm.state.birthDate)
+        assertEquals(Biometrics(Sex.Male, BIRTH_DATE, 178, ActivityLevel.Moderate), profile.biometricsUpdates.single())
+    }
 }

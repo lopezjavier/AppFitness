@@ -178,8 +178,9 @@ private fun ColumnScope.StepForm(
 
 @Composable
 private fun Header(step: OnboardingStep, focusTitle: FocusRequester) {
-    val indicator = stringResource(Res.string.onboarding_indicator, step.number)
-    val indicatorDescription = stringResource(Res.string.onboarding_indicator_cd, step.number)
+    val indicator = stringResource(Res.string.onboarding_indicator, step.number, OnboardingStep.BIOMETRIC_STEPS)
+    val indicatorDescription =
+        stringResource(Res.string.onboarding_indicator_cd, step.number, OnboardingStep.BIOMETRIC_STEPS)
     Column(Modifier.padding(top = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             text = indicator,

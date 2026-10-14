@@ -25,9 +25,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_whe
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_cm
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_height_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_state_cm
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_state_decimal
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_state_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_decimal_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_kg_cd
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -60,9 +57,6 @@ private fun WheelPickerSection() {
     var decimal by rememberSaveable { mutableIntStateOf(DECIMAL_DEFAULT) }
     val cm = stringResource(Res.string.unit_cm)
     val kg = stringResource(Res.string.unit_kg)
-    val stateCm = stringResource(Res.string.wheel_state_cm, height)
-    val stateKg = stringResource(Res.string.wheel_state_kg, kilos)
-    val stateDecimal = stringResource(Res.string.wheel_state_decimal, decimal)
     CatalogSection(stringResource(Res.string.catalog_section_wheel_picker), "catalog_section_wheel_picker") {
         Row(
             Modifier.fillMaxWidth(),
@@ -75,7 +69,7 @@ private fun WheelPickerSection() {
                 onValueChange = { height = it },
                 label = { it.toString() },
                 contentDescription = stringResource(Res.string.wheel_height_cd),
-                stateDescription = { stateCm },
+                stateDescription = { "$it $cm" },
                 testTagPrefix = "catalog_wheel_height",
             )
             Text(cm, style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)
@@ -87,7 +81,7 @@ private fun WheelPickerSection() {
                 onValueChange = { kilos = it },
                 label = { it.toString() },
                 contentDescription = stringResource(Res.string.wheel_weight_kg_cd),
-                stateDescription = { stateKg },
+                stateDescription = { "$it $kg" },
                 testTagPrefix = "catalog_wheel_weight_kg",
             )
             Text(",", style = AppTheme.typography.labelNumeric, color = AppTheme.colors.textPrimary)
@@ -97,7 +91,7 @@ private fun WheelPickerSection() {
                 onValueChange = { decimal = it },
                 label = { it.toString() },
                 contentDescription = stringResource(Res.string.wheel_weight_decimal_cd),
-                stateDescription = { stateDecimal },
+                stateDescription = { ",$it" },
                 testTagPrefix = "catalog_wheel_weight_decimal",
             )
             Text(kg, style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)

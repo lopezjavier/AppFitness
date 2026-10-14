@@ -39,6 +39,7 @@ private const val TENTHS_PER_KG = 10.0
  * rotation and process death; a new instance built from a handle that holds them skips the load.
  * Saving writes the profile biometrics and the onboarding weight row, both idempotent, then moves to the goals step.
  */
+@Suppress("TooManyFunctions") // One small private function per event and step of the flow.
 class OnboardingViewModel(
     private val savedState: SavedStateHandle,
     private val profileRepository: ProfileRepository,
@@ -60,18 +61,18 @@ class OnboardingViewModel(
 
     fun onEvent(event: OnboardingEvent) {
         when (event) {
-            is OnboardingEvent.SelectSex -> change { it.copy(sex = event.sex) }
+            is OnboardingEvent.SelectSex -> edit { it.copy(sex = event.sex) }
 
-            is OnboardingEvent.SetBirthDate -> change {
+            is OnboardingEvent.SetBirthDate -> edit {
                 it.copy(birthDate = BiometricBounds.clampBirthDate(event.date, it.today))
             }
 
-            is OnboardingEvent.SetHeight -> change { it.copy(heightCm = BiometricBounds.clampHeight(event.heightCm)) }
+            is OnboardingEvent.SetHeight -> edit { it.copy(heightCm = BiometricBounds.clampHeight(event.heightCm)) }
 
             is OnboardingEvent.SetWeight ->
-                change { it.copy(weightTenths = BiometricBounds.clampWeightTenths(event.tenths)) }
+                edit { it.copy(weightTenths = BiometricBounds.clampWeightTenths(event.tenths)) }
 
-            is OnboardingEvent.SelectActivity -> change { it.copy(activity = event.level) }
+            is OnboardingEvent.SelectActivity -> edit { it.copy(activity = event.level) }
 
             OnboardingEvent.Continue -> onContinue()
 
@@ -96,6 +97,11 @@ class OnboardingViewModel(
 
     private fun goTo(step: OnboardingStep?) {
         if (step != null) change { it.copy(step = step, saveError = null) }
+    }
+
+    /** Applies an edit of a user value unless a save is running (values are frozen while saving). */
+    private fun edit(transform: (OnboardingUiState) -> OnboardingUiState) {
+        if (_uiState.value.phase == OnboardingPhase.Content) change(transform)
     }
 
     /** Applies an edit of a user value or the step, then keeps the saved state in sync. */
@@ -151,14 +157,8 @@ class OnboardingViewModel(
             if (result.isSuccess) {
                 change { it.copy(step = OnboardingStep.Goals, phase = OnboardingPhase.Content) }
             } else {
-                val error =
-                    if (result.appErrorOrNull() ==
-                        AppError.Network
-                    ) {
-                        OnboardingSaveError.Network
-                    } else {
-                        OnboardingSaveError.Other
-                    }
+                val isNetwork = result.appErrorOrNull() == AppError.Network
+                val error = if (isNetwork) OnboardingSaveError.Network else OnboardingSaveError.Other
                 _uiState.update { it.copy(phase = OnboardingPhase.Content, saveError = error) }
             }
         }

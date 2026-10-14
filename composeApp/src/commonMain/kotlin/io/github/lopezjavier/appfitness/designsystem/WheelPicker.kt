@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.round
 
 /** Sizes and rules of [WheelPicker] (planning/05-design-system.md §6). */
 object WheelPickerDefaults {
@@ -83,8 +86,7 @@ object WheelPickerDefaults {
     }
 
     /** Clamps a requested [progress] (as TalkBack or a test sends it) to [range]. */
-    fun clampProgress(progress: Float, range: IntRange): Int =
-        kotlin.math.round(progress).toInt().coerceIn(range.first, range.last)
+    fun clampProgress(progress: Float, range: IntRange): Int = round(progress).toInt().coerceIn(range.first, range.last)
 }
 
 /**
@@ -112,7 +114,7 @@ fun WheelPicker(
     val selectedIndex = selected - range.first
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = selectedIndex)
     val itemHeightPx =
-        with(androidx.compose.ui.platform.LocalDensity.current) { WheelPickerDefaults.ItemHeight.roundToPx() }
+        with(LocalDensity.current) { WheelPickerDefaults.ItemHeight.roundToPx() }
     val centredIndex by remember(listState, count, itemHeightPx) {
         derivedStateOf {
             WheelPickerDefaults.centredIndex(
@@ -207,7 +209,7 @@ private fun WheelList(
     ) {
         items(range.last - range.first + 1) { index ->
             val itemValue = range.first + index
-            val distance = kotlin.math.abs(index - centredIndex)
+            val distance = abs(index - centredIndex)
             Box(
                 modifier = Modifier.fillMaxWidth().height(WheelPickerDefaults.ItemHeight)
                     .pointerInput(index) { detectTapGestures { onItemTap(index) } }
