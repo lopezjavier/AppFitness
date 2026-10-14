@@ -10,7 +10,18 @@
 | E3 | Food diary | US-09 … US-14 | Full UI + backend | `v0.3.0` — complete meal logging |
 | E4 | Weight tracking | US-15 … US-17 | Full UI | `v0.4.0` — weight, Health Connect, chart |
 | E5 | Training | US-18 … US-23 | Full UI + backend | `v0.5.0` — routines and live session |
-| E6 | Analytics and wrap-up | US-24 … US-25 | Full UI | `v1.0.0` — stable Phase 1 release |
+| E6 | Analytics and wrap-up | US-24 … US-25 | Full UI | `v0.6.0` — analytics, accessibility, tablet and release build |
+| E7 | UI refinement (placeholder) | stories written at its breakdown | Full UI | `v1.0.0` — stable Phase 1 release |
+
+### 1.1 E7 · UI refinement (placeholder, no tasks yet)
+The last epic of Phase 1 (user, Checkpoint E2-A, 2026-10-14): a presentation-only pass (FR-6) over the screens of E2…E6, so that release `v1.0.0` ships after it. Every 👤 checkpoint that defers a UI detail appends it here with its source; epic-planner turns the list into stories when E7 starts.
+
+| Item | Source |
+|---|---|
+| General onboarding polish (spacing, step layout, transitions) after the T-039 regrouping | Checkpoint E2-A |
+| Onboarding "Sexo": better use of the empty space around the two options | Checkpoint E2-A |
+| Typography review across screens (hierarchy and sizes of titles, descriptions and labels) | Checkpoint E2-A |
+| Tablet: move the primary action out of the top of the NavigationRail into each section's content | E1 closure checkpoint, 2026-10-13 (`tasks/todo.md`, "Notes for later epics") |
 
 ## 2. Dependencies
 
@@ -18,7 +29,7 @@
 E0 ──► E1 ──► E2 ──┬──► E3
                    ├──► E4
                    └──► E5 ──► E6 (US-24)
-        E3, E4, E5 ──────────► E6 (US-25)
+        E3, E4, E5 ──────────► E6 (US-25) ──► E7
 ```
 - E2 is a prerequisite for every feature: without an authenticated user and goals there is no Diary.
 - E3, E4 and E5 are independent of each other; the proposed order (Diary → Weight → Training) follows the priority of the original requirements. It can be reordered if the user prefers.
@@ -77,7 +88,8 @@ E0 ──► E1 ──► E2 ──┬──► E3
 | FR-4.5 Timer | US-22 |
 | FR-4.6 History | US-23 |
 | FR-4.7 Strength charts | US-24 |
-| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-25 |
+| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-25 (FR-5.1 4th tab: T-037, ADR-26) |
+| FR-6 UI refinement | E7 (stories at its breakdown) |
 | NFR-03 Tablet | US-04, US-25 |
 | NFR-05, NFR-06 Professional / security | US-01, US-02 (and the DoD of every story) |
 

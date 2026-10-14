@@ -851,20 +851,20 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 **Story:** US-06 · **Flow:** UI + backend · **Scenarios:** Completing onboarding (up to "taken to their goal setup"); Progress indicator and going back; Range validation (Edad, Altura, Peso); Resuming an interrupted onboarding; Finishing the biometric steps again after an interruption. *("Editing data after onboarding" and "Current weight is read-only on Profile" → T-037.)*
 
-**Description:** Backend: one migration with the `measurement_source` enum and `body_measurements` per `03-data-model.md` §4 (weight 20–400, body fat 2–75, `unique (user_id, external_id)`, index `(user_id, measured_at desc)`, `set_updated_at()` trigger, RLS enabled and forced with the owner policy on `(select auth.uid())`) + pgTAP. App: `BodyMeasurementRepository` (insert, latest weight), `ProfileRepository` gains the biometric update, and a 5-step onboarding flow replacing the T-034 stub: sex (`SegmentedSelector`-style), date of birth, height in cm and weight with 1 decimal (a new `WheelPicker` design-system component, built here and added to the catalog), activity level (selectable cards with the `04-business-rules.md` §1.3 labels). "N / 5" indicator, "Atrás" keeps the chosen values, "Continuar" on step 5 saves the profile fields and the first `body_measurements` row (`source = 'manual'`) and moves to the goal step (stub until T-036).
+**Description:** Backend: one migration with the `measurement_source` enum and `body_measurements` per `03-data-model.md` §4 (weight 20–400, body fat 2–75, `unique (user_id, external_id)`, index `(user_id, measured_at desc)`, `set_updated_at()` trigger, RLS enabled and forced with the owner policy on `(select auth.uid())`) + pgTAP. App: `BodyMeasurementRepository` (insert, latest weight), `ProfileRepository` gains the biometric update, and a 5-step onboarding flow replacing the T-034 stub: sex (`SegmentedSelector`-style), date of birth, height in cm and weight with 1 decimal (a new `WheelPicker` design-system component, built here and added to the catalog), activity level (selectable cards with the `04-business-rules.md` §1.3 labels). "N / 5" indicator (regrouped by T-039 into 4 steps with "N / 4", the goal step included), "Atrás" keeps the chosen values, "Continuar" on step 5 saves the profile fields and the first `body_measurements` row (`source = 'manual'`) and moves to the goal step (stub until T-036).
 
 **Acceptance criteria:**
 - [x] Migration + `supabase/tests/body_measurements.test.sql`: RLS on and forced; A sees only their rows; A cannot insert with B's `user_id`, update or delete B's rows; range checks reject 19.9 / 400.1 kg.
 - [x] Picker bounds come from one domain place: age 14–100 (birth date range relative to today), height 100–250 cm, weight 20.0–400.0 kg; unit tests on the bounds and the age calculation (full years).
-- [x] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3.
+- [x] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3 ("3 / 4" since T-039).
 - [x] On save errors (offline, network) the values are kept and a message-only snackbar is shown; the user taps "Continuar" again (02 §9); "Continuar" disabled while saving.
-- [x] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
+- [x] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 (the last biometric step; step 3 since T-039) again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
 - [x] Activity step: each card shows the level title and its description from `04-business-rules.md` §1.3 (user request 2026-10-14; no extra hint).
 - [x] `WheelPicker`: tabular numerals, ≥ 48 dp targets, `contentDescription`/`stateDescription` with the selected value, catalog entry, `testTag`s.
 
-**Host tests (per scenario):** `OnboardingViewModelTest` (Completing onboarding → profile update + measurement insert with `manual`, navigation effect to goals; going back keeps the value; resume starts at step 1 prefilled; re-save updates the weight row instead of inserting; save failure keeps values); `OnboardingBoundsTest` (Range validation outline: 12 → age clamp to 14, 260 → 250, 15 → 20); `OnboardingScreenTest` (Robolectric: "3 / 5", "Atrás", picker semantics); `WheelPickerTest`.
+**Host tests (per scenario):** `OnboardingViewModelTest` (Completing onboarding → profile update + measurement insert with `manual`, navigation effect to goals; going back keeps the value; resume starts at step 1 prefilled; re-save updates the weight row instead of inserting; save failure keeps values); `OnboardingBoundsTest` (Range validation outline: 12 → age clamp to 14, 260 → 250, 15 → 20); `OnboardingScreenTest` (Robolectric: "3 / 5" ("3 / 4" since T-039), "Atrás", picker semantics); `WheelPickerTest`.
 
-**E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-035.yaml`: Test login with a not-onboarded user → 5 steps, back, indicator → goal step).
+**E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-035.yaml`: Test login with a not-onboarded user → 5 steps, back, indicator → goal step; updated by T-039's QA to the 4 steps and "N / 4").
 
 **Verification:**
 - [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
@@ -891,7 +891,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 **Host tests (per scenario):** `CalculateTdeeTest`, `CalculateCalorieTargetTest` (TDEE calculation, Changing the strategy, Fine-tuning, Safety floor); `EnergyStrategyViewModelTest` (strategy switch resets the adjustment to the default, stepper, floor warning, Saving the goals → upsert + onboarding flag + haptic/confirmation effect); `EnergyStrategySectionTest` (Robolectric: texts "TDEE: 2.681 kcal", "Meta diaria: 2.400 kcal/día", pill, warning).
 
-**E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-036.yaml`: full onboarding → strategy → "Guardar objetivos" → Diario; relaunch → Diario).
+**E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-036.yaml`: full onboarding → strategy → "Guardar objetivos" → Diario; relaunch → Diario; the goal step is "4 / 4" since T-039, which updates the flow).
 
 **Verification:**
 - [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
@@ -914,6 +914,36 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
   1. Welcome logo bigger: 160 dp on phones, 200 dp from 600 dp up (the brand zone still scrolls on short windows; the buttons stay pinned to the bottom).
   2. "Reintentar" removed where it duplicated the primary button (Welcome sign-in errors, onboarding and goals save errors): they show the message only and the user taps the primary button again. Full-screen errors keep "Reintentar" (ProfileError, onboarding load error).
   3. `scripts/deliver-apk.py` checks the prod config (`supabase.prod.url`, `supabase.prod.publishableKey`, `google.webClientId` or the env equivalents) before building and names the missing keys.
+- Checkpoint E2-A feedback, second round on the phone (2026-10-14): onboarding regrouped into 4 steps, the unit-label and weight-decimal bugs, activity card typography and the "Atrás" button → corrective **T-039**; Perfil becomes the 4th tab with the Google photo as its icon → **ADR-26**, implemented in T-037; a UI refinement epic is added at the end of Phase 1 (**E7**, `planning/07-roadmap.md` §1.1).
+
+---
+
+## T-039: Checkpoint E2-A corrections (onboarding in 4 steps, picker fixes, secondary button)
+
+**Story:** US-06 + US-07 (onboarding) · **Flow:** UI (frontend only; no migration) · **Scenarios:** US-06 Completing onboarding; Progress indicator and going back ("3 / 4"); Range validation (Peso with 1 decimal); Resuming an interrupted onboarding; Finishing the biometric steps again after an interruption · US-07 Saving the goals in onboarding (regression)
+
+**Description:** Corrections from the phone checkpoint (2026-10-14). Onboarding becomes 4 steps with the indicator "N / 4", the goal step counted: 1/4 "Sobre ti" (Sexo with its two options + Fecha de nacimiento wheels), 2/4 "Medidas" (Altura and Peso wheels side by side), 3/4 "Nivel de actividad" (cards), 4/4 "Objetivos" (strategy + adjustment). Saves stay where they are: "Continuar" on 3/4 writes the profile and the onboarding weight, then 4/4 "Guardar objetivos" writes the goals and then `onboarding_completed`. Fixes the "cm"/"kg" labels wrapping one letter per line and the weight wheel that only allows integers. The activity card description gets the typography chosen by ux-reviewer. "Atrás" (same position) moves to a filled, non-outlined secondary button designed by ux-reviewer as a reusable design-system component. Folds in the PR #50 review follow-ups (`.workflow/qa-followups.md`, second block).
+
+**Acceptance criteria:**
+- [x] Indicator "N / 4" on all four steps (goal step included); step titles "Sobre ti", "Medidas", "Nivel de actividad", "Objetivos"; "Atrás" restores the previous step with every value kept; `SavedStateHandle` restore and the resume prefill (ADR-24) still work, and a saved step name from the old 6-entry enum never crashes the restore.
+- [x] "Continuar" on 1/4 is enabled only once a sex is chosen; on 3/4 only with an activity and online; "Continuar" on 3/4 saves profile + onboarding weight (re-save updates the row, no second row); "Guardar objetivos" on 4/4 behaves as in T-036.
+- [x] Weight is pickable with 1 decimal over 20.0–400.0 kg (400 allows only ,0); the decimal wheel is visible and scrollable on a 360 dp phone; a host test proves picking 70,5 yields 705 tenths.
+- [x] "cm" and "kg" render on one line (no wrapping) on a 360 dp phone at font scale 1.0 and 1.3.
+- [x] Activity cards use the description style chosen by ux-reviewer (design-system tokens only).
+- [x] "Atrás" uses the new filled, non-outlined secondary button from `designsystem/` (catalog entry, host test of colours, ≥ 48 dp, disabled state); `05-design-system.md` §6 records its spec.
+- [x] PR #50 follow-ups: save-error snackbar `SnackbarDuration.Long`; `tasks/plan.md` partial-writes row reworded (done in the planning commit); `deliver-apk.py` `key value` / `\` continuation parsing handled or documented; `WelcomeScreenTest` w800dp case for the 200 dp logo.
+
+**Host tests (per scenario):** `OnboardingViewModelTest` (4-step navigation and "Atrás" keeps values; save on 3/4; resume prefill; re-save updates; old saved step name restores safely); `OnboardingScreenTest` (Robolectric: "3 / 4", titles, decimal wheel → 70,5, unit labels on one line at 360 dp); `WheelPickerTest` (default width inside an unweighted `Row`); `ButtonsTest` + a Robolectric test for the new secondary button; `WelcomeScreenTest` (w800dp).
+
+**E2E scope:** `onboarding`, `auth` (QA updates `tests/e2e/T-035.yaml` and `T-036.yaml` to 4 steps and "N / 4"; `catalog` flows at the next checkpoint for the button entry).
+
+**Verification:**
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Manual (developer, emulator, local flavor): 4 steps, weight 70,5 saved, labels on one line.
+
+**Dependencies:** T-036, Checkpoint E2-A feedback
+**Files likely touched:** `composeApp/…/feature/onboarding/{OnboardingScreen,OnboardingSteps,OnboardingUiState,OnboardingViewModel}.kt`, `composeApp/…/designsystem/{WheelPicker,Buttons,SelectableCard}.kt`, catalog, strings, `scripts/deliver-apk.py`, tests, `planning/05-design-system.md`
+**Estimated scope:** M
 
 ---
 
@@ -921,7 +951,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 **Story:** US-08 + US-06 "Editing data after onboarding" / "Current weight is read-only on Profile" + US-07 on Profile · **Flow:** UI (no new table; the only possible migration is an optional `security invoker` RPC for an atomic save) · **Scenarios:** US-08 Initial display; Auto-balance when moving a slider; Per-macro minimum; Persistence (Diary half verified in E3) · US-06 Editing data after onboarding; Current weight is read-only on Profile · US-07 Saving the goals on Profile (other US-07 scenarios re-run on the Profile card)
 
-**Description:** Profile becomes the real screen (sections from `design/stitch/profile-goals/screen.png`, only personal data, "Estrategia Energética" and "Distribución de Macros"; the sign-out from T-034 and the local-only catalog entry stay). Personal data card (Edad, Altura, Actividad and sex editable with the T-035 pickers; "Peso actual" read-only, latest weight, ADR-24); the T-036 strategy section reused as a card; a "Distribución de Macros" card with three `MacroSlider`s (P lime, C cyan, F amber), a stacked bar with the three macro colours and the "TOTAL: 100 %" badge. Domain: `BalanceMacros` (largest remainder, [5, 90], sum 100) with property tests, and grams = `round(target × pct / 100 / kcal_per_gram)`. One "Guardar" button for the whole screen (ADR-24) saves the profile fields, strategy, adjustment and macros, and stores the daily target recalculated from the new data and the latest weight (`04-business-rules.md` §1.4). Grams targets exposed from the domain so the E3 Diary can consume them.
+**Description:** Navigation per ADR-26 (Checkpoint E2-A): Perfil becomes the 4th bottom tab / rail item (Diario, Entreno, Progreso, Perfil) whose icon is the user's Google photo (Coil, circle, placeholder fallback; active = extra-bold lime label + lime ring), the Top App Bar avatar is removed everywhere, and the full-screen Profile route from T-031/T-034 becomes a tab destination with its own back stack (no back arrow, no FAB). Profile becomes the real screen (sections from `design/stitch/profile-goals/screen.png`, only personal data, "Estrategia Energética" and "Distribución de Macros"; the sign-out from T-034 and the local-only catalog entry stay). Personal data card (Edad, Altura, Actividad and sex editable with the T-035 pickers; "Peso actual" read-only, latest weight, ADR-24); the T-036 strategy section reused as a card; a "Distribución de Macros" card with three `MacroSlider`s (P lime, C cyan, F amber), a stacked bar with the three macro colours and the "TOTAL: 100 %" badge. Domain: `BalanceMacros` (largest remainder, [5, 90], sum 100) with property tests, and grams = `round(target × pct / 100 / kcal_per_gram)`. One "Guardar" button for the whole screen (ADR-24) saves the profile fields, strategy, adjustment and macros, and stores the daily target recalculated from the new data and the latest weight (`04-business-rules.md` §1.4). Grams targets exposed from the domain so the E3 Diary can consume them.
 
 **Acceptance criteria:**
 - [ ] `BalanceMacros` unit + property tests: sum is always 100 and every value in [5, 90] for random moves; 30/45/25 + P→35 → 35/42/23; 90/5/5 cannot raise P; one other at 5 → the rest of Δ goes to the other.
@@ -929,18 +959,19 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 - [ ] Editing height to 180 cm and tapping "Guardar" updates the profile, the displayed TDEE and the stored `target_kcal`; profile and goals are written so a failure never leaves them inconsistent (order or RPC chosen by the planner).
 - [ ] "Peso actual" shows the latest `body_measurements` weight and has no edit affordance.
 - [ ] Profile loads with a skeleton, shows `ErrorState` with "Reintentar" on a read failure, and keeps edits on a save failure (02 §9); save disabled offline.
-- [ ] Haptic confirmation on save; no FAB on Profile (ADR-22); `MacroStackedBar` (or equivalent) in the design system with a catalog entry and `stateDescription`.
+- [ ] ADR-26: 4 tabs on the bar and the rail; the Perfil icon shows the Google photo when `avatar_url` is set and the placeholder otherwise (also on load error), decorative (the label "Perfil" names it), with the active ring; no avatar in any `AppTopBar`; tab switching keeps each tab's state; sign-out still resets the tab back stacks.
+- [ ] Haptic confirmation on save; no FAB on Profile (ADR-10/ADR-26); `MacroStackedBar` (or equivalent) in the design system with a catalog entry and `stateDescription`.
 - [ ] *Carry-over check:* `MacroSlider` callers pass percentages within range (E1 PR #24 note: it `require`s or coerces; confirm which).
 
 **Host tests (per scenario):** `BalanceMacrosTest` (Auto-balance, Per-macro minimum, properties); `MacroTargetsTest` (Initial display grams); `ProfileViewModelTest` with fakes (Initial display, slider move → balanced state, Persistence → upsert with the percentages, Editing data → profile update + TDEE and stored target recalculated, read-only weight, US-07 strategy changes saved by the single "Guardar"); `ProfileScreenTest` (Robolectric: badge "TOTAL: 100 %", texts per macro, sliders' `stateDescription`, save button states).
 
-**E2E scope:** `profile`, `shell` (new `tests/e2e/T-037.yaml`: open Profile from the avatar → change height → "Guardar" → TDEE changes; raise Proteínas → balanced values; save, relaunch, values persisted).
+**E2E scope:** `profile`, `shell`, `auth` (the `shell` and `auth` flows that tap the avatar move to the Perfil tab; new `tests/e2e/T-037.yaml`: open the Perfil tab → change height → "Guardar" → TDEE changes; raise Proteínas → balanced values; save, relaunch, values persisted).
 
 **Verification:**
 - [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
 
-**Dependencies:** T-036
-**Files likely touched:** `shared/…/domain/usecase/{BalanceMacros,CalculateMacroTargets}.kt` + tests, `shared/…/domain/repository/*` (goals with macros, profile update), `composeApp/…/feature/profile/{ProfileScreen,ProfileViewModel,ProfileUiState,PersonalDataCard,MacroSplitCard}.kt`, `composeApp/…/designsystem/MacroStackedBar.kt`, catalog section, strings, tests
+**Dependencies:** T-039
+**Files likely touched:** `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/designsystem/{AppNavigation,AppNavigationParts,AppTopBar}.kt` (ADR-26), `shared/…/domain/usecase/{BalanceMacros,CalculateMacroTargets}.kt` + tests, `shared/…/domain/repository/*` (goals with macros, profile update), `composeApp/…/feature/profile/{ProfileScreen,ProfileViewModel,ProfileUiState,PersonalDataCard,MacroSplitCard}.kt`, `composeApp/…/designsystem/MacroStackedBar.kt`, catalog section, strings, tests
 **Estimated scope:** L
 
 ---
@@ -950,7 +981,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Story:** E2 Definition of Done · **Flow:** PM
 
 **Acceptance criteria:**
-- [ ] T-034…T-037 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
+- [ ] T-034…T-037 and T-039 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
 - [ ] Every background QA run finished, no open `qa` issue, full Maestro regression green (Test login).
 - [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
 
@@ -962,7 +993,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Estimated scope:** S
 
 ### Checkpoint E2-B — E2 closure 👤
-- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries on Profile (opened from the avatar):
+- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries on Profile (the Perfil tab, with their Google photo as its icon; no avatar in the top bar, ADR-26):
   - Change their height (and the other personal data) and tap the single "Guardar" → the TDEE and the daily target change; "Peso actual" shows the latest weight and is not editable.
   - Switch Déficit / Mantenimiento / Superávit and move the adjustment; push it to the safety floor (1200 kcal women / 1500 kcal men).
   - Move each macro slider → the other two rebalance and the badge stays "TOTAL: 100 %"; try to push one past 90 %.
@@ -974,6 +1005,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 - **E3 (food diary), from E2 (T-037):** US-08's "And the Diary uses the new gram targets" is only verified on the Profile side in E2; the E3 Diary must read the macro gram targets from the domain use case added in T-037 (not recompute them).
 - **E3 / E4 / E5, from the E1 review (user, 2026-10-13):** question the shared "+ Registro" FAB (ADR-10). Food, training and weight log in very different ways, so each epic decides its own entry point: a per-screen action with its own label (e.g. "Añadir alimento" per meal, "Empezar entreno"), a per-tab FAB label, or no FAB. A shared FAB may still fit weight (E4). Update ADR-10 when the first of these epics decides.
-- **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved.
+- **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved. Listed in the E7 UI refinement backlog (`planning/07-roadmap.md` §1.1).
+- **E7 (UI refinement), from Checkpoint E2-A (user, 2026-10-14):** general onboarding polish, better use of space on "Sexo", a typography review. Every later checkpoint appends deferred UI details to `planning/07-roadmap.md` §1.1.
 - **E2 (food diary), from the PR #24 review:** `MacroProgressBar` and `ProgressRing` take `Int`, but snapshots are stored to 0.1 g (04 §2), so a caller that rounds first can be off by 1 % (100.9/200 → 50 %, 101/200 → 51 %). Add `Double` overloads or have the domain pass in the percent.
 - **E4 (weight and progress), from the PR #24 review:** `MetricTile` and `TrendPill` are both `surfaceOverlay`, so the pill's outline disappears inside a tile; add a container-colour parameter.

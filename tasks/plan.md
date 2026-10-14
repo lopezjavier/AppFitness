@@ -1,15 +1,18 @@
 # Implementation Plan: E2 · Authentication and profile → `v0.2.0`
 
 ## Overview
-Each person signs in with Google, completes a 5-step biometric onboarding, picks an energy strategy with a calorie target, and later edits their data, strategy and macro split on Profile. E2 is done when a new user can sign in, complete onboarding, set goals, close the app and get straight back in; `profiles`, `body_measurements` and `nutrition_goals` have pgTAP isolation tests; the Maestro regression is green through "Test login"; and the user validates the `prodDebug` APK with their real Google account.
+Each person signs in with Google, completes a 4-step onboarding (3 biometric steps + goals, "N / 4" since T-039), picks an energy strategy with a calorie target, and later edits their data, strategy and macro split on Profile. E2 is done when a new user can sign in, complete onboarding, set goals, close the app and get straight back in; `profiles`, `body_measurements` and `nutrition_goals` have pgTAP isolation tests; the Maestro regression is green through "Test login"; and the user validates the `prodDebug` APK with their real Google account.
 
-Sources: `planning/epics/E2-auth-profile.md` (US-05…US-08), `planning/03-data-model.md` §2 and §4, `planning/04-business-rules.md` §1 and §5, `planning/02-architecture.md`, `planning/05-design-system.md`, mockup `design/stitch/profile-goals/screen.png` (personal data, "Estrategia Energética" and "Distribución de Macros" only). Tasks: `tasks/todo.md` (T-034…T-038). Earlier plans (E0, E1) are in the git history.
+Sources: `planning/epics/E2-auth-profile.md` (US-05…US-08), `planning/03-data-model.md` §2 and §4, `planning/04-business-rules.md` §1 and §5, `planning/02-architecture.md`, `planning/05-design-system.md`, mockup `design/stitch/profile-goals/screen.png` (personal data, "Estrategia Energética" and "Distribución de Macros" only). Tasks: `tasks/todo.md` (T-034…T-039). Earlier plans (E0, E1) are in the git history.
 
 Sizing (E1 retrospective): one task per story, as a vertical slice, so each task pays the 6–7 agent hand-offs once. 4 implementation tasks + closure, 2 👤 checkpoints.
 
 ## Architecture Decisions
 - **ADR-24 (user, 2026-10-14) settles the product gaps found in the breakdown:** onboarding resumes prefilled and re-saving updates the onboarding weight row; onboarding saves the default macros 30/45/25 (no sliders); Profile has one "Guardar" that stores profile, strategy, macros and the recalculated target; "Peso actual" is read-only on Profile until E4. The E2 Gherkin, `03` §4 and `04` §1.4 were updated to match.
 - **Otherwise existing ADRs cover E2.** ADR-02 (Credential Manager → ID token → `signInWith(IDToken)`), ADR-17 (publishable key), ADR-19 (`androidApp` + `composeApp` + `shared`, flavor values via `AppConfig`), ADR-22 (Profile as a full screen from the avatar, no FAB) and ADR-23 (QA in the background) cover E2.
+- **ADR-26 (user, Checkpoint E2-A, 2026-10-14):** Perfil becomes the 4th tab (Diario, Entreno, Progreso, Perfil) with the user's Google photo as its icon; the top-bar avatar is removed. Supersedes ADR-22's navigation part; implemented in T-037.
+- **Checkpoint E2-A corrections → T-039 (before T-037):** onboarding regrouped into 4 steps ("N / 4", goals counted), unit-label and weight-decimal picker bugs, activity card typography, a filled non-outlined secondary button for "Atrás", and the PR #50 review follow-ups.
+- **E7 · UI refinement** (placeholder) is added as the last Phase 1 epic (`planning/07-roadmap.md` §1.1); deferred UI details from checkpoints go there.
 - **Root routing is a pure function** of (session status, `onboarding_completed`): Welcome / Onboarding / Main. Welcome and Onboarding are full-screen destinations above the tab graphs (no bottom bar, no FAB, no avatar), like Profile. A loading state avoids flashing Welcome on cold start with a persisted session.
 - **`profiles` already has the biometric columns** (T-018 created the full §2 table and column grants), so US-06 needs no `profiles` migration; its migration is `body_measurements` only. "At most one migration per story" (02 §6): T-035 `body_measurements`, T-036 `nutrition_goals` (macro columns included, defaults 30/45/25). T-037 needs no migration; if the planner wants an atomic Profile save (profile + goals), a `security invoker` RPC would be T-037's only migration.
 - **`onboarding_completed = true` only with goals saved** (US-06 note). T-036 writes the goals first and the flag second (or one RPC, planner's choice), so a failure never leaves a "completed" user without goals.
@@ -31,8 +34,11 @@ Sizing (E1 retrospective): one task per story, as a vertical slice, so each task
 ### Checkpoint E2-A 👤: New user journey on the phone
 - [ ] Real Google sign-in on `prodDebug`, onboarding, strategy, save → Diario; reopen → straight in; cancelled picker; offline message; sign out. Placed here because Google sign-in against production is the riskiest part of the epic and the onboarding/strategy UX is the decision most worth early feedback.
 
+### Checkpoint E2-A corrections
+- [ ] T-039: Onboarding in 4 steps, picker fixes, secondary button, PR #50 follow-ups — UI (frontend only)
+
 ### Phase 2: Profile (US-08 + US-06/US-07 on Profile)
-- [ ] T-037: Profile: edit personal data, energy strategy and macro split, one "Guardar" — UI (backend only for an optional atomic-save RPC)
+- [ ] T-037: Profile: edit personal data, energy strategy and macro split, one "Guardar"; Perfil as the 4th tab with the Google photo (ADR-26) — UI (backend only for an optional atomic-save RPC)
 
 ### Checkpoint E2-B 👤: Epic closure
 - [ ] T-038: E2 closure — edit data and goals on Profile, auto-balanced macros, persistence across restarts; tag `v0.2.0` and retrospective.
@@ -42,7 +48,7 @@ Internal milestones (not 👤): `deploy-supabase` green after T-035 and T-036; p
 ## Dependencies
 
 ```
-E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-037 ─► T-038 [E2-B 👤]
+E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-039 ─► T-037 ─► T-038 [E2-B 👤]
 ```
 - Strictly sequential: each task builds on the previous one's routing, repositories and screens.
 - The backend half of T-035/T-036 (migration + pgTAP) and the domain use cases are decoupled from the UI, so backend-developer and frontend-developer can work in parallel inside each task once the planner fixes the repository contract.
@@ -55,7 +61,7 @@ E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-0
 | supabase-kt version vs `sb_publishable_` keys, Ktor engine, Kotlin 2.4 | Medium | Pin the latest stable in T-034 and check the release notes (ADR-17); a host test builds the client from `AppConfig`. |
 | Wheel pickers in Compose Multiplatform (no stock component) | Medium | `WheelPicker` built on `LazyColumn` + snap fling in T-035 with host tests for bounds and semantics; ux-reviewer checks it against `05-design-system.md`. |
 | Large slices (T-034, T-035, T-036 are L) | Medium | Each is one story; backend and UI halves can run in parallel inside the task. If a plan exceeds ~15 non-trivial files, the planner may split it into a backend task followed by a UI task (never per component). |
-| Partial writes (profile saved, measurement or goals not; on Profile, profile saved but goals not) | Medium | Write order chosen so the onboarding flag is set last; Profile's single save writes profile then goals (or one RPC); save errors keep the typed values with retry (02 §9). |
+| Partial writes (profile saved, measurement or goals not; on Profile, profile saved but goals not) | Medium | Write order chosen so the onboarding flag is set last; Profile's single save writes profile then goals (or one RPC); save errors keep the typed values and show a message-only snackbar, and the user taps the save button again (no separate "Reintentar", Checkpoint E2-A feedback). |
 | Re-saving onboarding must update, not duplicate, the weight row (ADR-24) | Low | T-035's plan fixes how the onboarding row is identified (e.g. the earliest `manual` row of the user) and covers the update with a repository test. |
 | Haptics and the account picker cannot be checked in Maestro | Low | Host tests for the effects; manual check at Checkpoint E2-A. |
 

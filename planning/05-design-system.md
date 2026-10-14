@@ -83,7 +83,7 @@ Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (w
 
 | Width (WindowSizeClass) | Navigation | Content |
 |---|---|---|
-| Compact (< 600 dp) | Bottom Navigation (3 tabs) + FAB | Single column |
+| Compact (< 600 dp) | Bottom Navigation (4 tabs: Diario, Entreno, Progreso, Perfil; ADR-26) + FAB | Single column |
 | Medium / Expanded (≥ 600 dp) | NavigationRail with the FAB on top | Two asymmetric columns (summary/telemetry on the left, list/table on the right) |
 
 ## 6. Components to build (US-03)
@@ -93,11 +93,11 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | Component | Description / reference |
 |---|---|
 | `AppTheme` | Colors, typography, shapes, `AppColors` |
-| `AppTopBar` | Section title + avatar (opens Profile); full-screen variant with a back arrow and no avatar (Profile, ADR-22) |
-| `AppNavigation` | Adaptive bottom bar / rail; active tab = lime icon and extra-bold lime label + filled icon where the glyph has one, no pill (ADR-22) |
+| `AppTopBar` | Section title only, no avatar (ADR-26); a variant with a back arrow for full-screen destinations |
+| `AppNavigation` | Adaptive bottom bar / rail with 4 tabs; active tab = lime icon and extra-bold lime label + filled icon where the glyph has one, no pill (ADR-22). The Perfil tab icon is the user's Google photo in a circle (placeholder avatar as fallback), never tinted; active = extra-bold lime label + lime ring around the photo (ADR-26) |
 | `UniversalFab` | Lime pill "+ Registro", 52 dp tall, 0.97 scale on press |
 | `AppCard` | `surfaceRaised`, radius 16, subtle border, padding 16 |
-| `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary) / 48 dp |
+| `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary) / 48 dp. A filled, non-outlined secondary action that sits next to a full-width primary (e.g. onboarding "Atrás") is redesigned in T-039 (Checkpoint E2-A: the user rejected both the transparent ghost and an outlined version). **Secondary spec:** `surfaceOverlay` fill, `textPrimary` `titleMedium` label, no border, shape `md`, min height 52 dp (same as primary), 0.97 press scale; disabled = same fill with `ghostData` label. Paired in a footer with a full-width primary: 12 dp gap, secondary wraps content (min 104 dp), primary takes the rest |
 | `AppChip` / `FilterChipRow` | 32 dp visual height (48 dp target); active: cyan border and text |
 | `SegmentedSelector` | Déficit / Mantenimiento / Superávit (active in lime). All labels share one size (largest up to `bodyMedium` where the widest label, measured bold, fits on one line); never below 11 sp (`labelTechnical`); past that they wrap to 2 lines (hyphenated on API 33+) and all segments grow together |
 | `AppBottomSheet` | Top radius 24, 36×4 handle, 65% scrim |

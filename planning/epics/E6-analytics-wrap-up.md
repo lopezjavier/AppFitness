@@ -1,4 +1,4 @@
-# E6 · Strength analytics and Phase 1 wrap-up → `v1.0.0`
+# E6 · Strength analytics and Phase 1 wrap-up → `v0.6.0` (`v1.0.0` after E7, the UI refinement epic: `07-roadmap.md` §1.1)
 
 ## Goal
 Show strength progress per exercise and per muscle group, and polish the app into a stable Phase 1 release on phone and tablet.
@@ -114,8 +114,8 @@ Feature: Version 1.0 quality
 
 ---
 
-## Epic (and Phase 1) Definition of Done
+## Epic Definition of Done
 - All stories US-01…US-25 closed; full Maestro regression green.
 - Security checklist from `02-architecture.md` §7 reviewed and documented in the final PR.
 - Signed release APK installed on the user's phone and tablet; positive feedback.
-- Tag `v1.0.0` and GitHub Release.
+- Tag `v0.6.0`. The Phase 1 release (`v1.0.0` and GitHub Release) moves to E7, the UI refinement epic (`07-roadmap.md` §1.1).

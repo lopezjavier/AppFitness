@@ -67,7 +67,12 @@ REQUIRED_PROD_CONFIG = (
 
 
 def read_local_properties(path):
-    """Parse a minimal java .properties file (key=value or key:value); missing file -> {}."""
+    """Parse a minimal java .properties file; missing file -> {}.
+
+    Only single-line `key=value` / `key:value` entries are read: no `key value` (whitespace separator) and no
+    `\\` line continuations. A key written in a form that is not read is reported as missing, so the script
+    fails safe instead of using a wrong value.
+    """
     props = {}
     try:
         with open(path, encoding="utf-8", errors="replace") as f:

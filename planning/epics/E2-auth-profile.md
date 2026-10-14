@@ -67,6 +67,7 @@ Feature: Google authentication
 - `AuthCredentialProvider` interface (domain) + `GoogleAuthCredentialProvider` (androidMain, Credential Manager with `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce).
 - `supabase.auth.signInWith(IDToken)`; session persisted by supabase-kt; `sessionStatus` as a `Flow` to decide the root route (Welcome / Onboarding / Main).
 - Maestro subflow `tests/e2e/subflows/login.yaml`, reused by the rest of the stories.
+- Profile is reached from the 4th bottom tab "Perfil", whose icon is the user's Google photo; the top-bar avatar is removed (ADR-26, implemented in T-037).
 - The "Test login" button is shared UI, shown only when the build provides test credentials: the `local` flavor provides them (`FlavorTestLogin` source set) and `prod` provides none, so prod never shows the button nor contains the credentials.
 
 ---
@@ -88,10 +89,10 @@ Feature: Biometric data onboarding
     And they are taken to their goal setup (US-07)
 
   Scenario: Progress indicator and going back
-    Given the user is on step 3 of 5
-    Then they see the indicator "3 / 5"
+    Given the user is on step 3 of 4
+    Then they see the indicator "3 / 4"
     When they tap "Atrás"
-    Then they return to step 2 with the value they had chosen
+    Then they return to step 2 with the values they had chosen
 
   Scenario Outline: Range validation
     Given the user is on the "<step>" step
@@ -131,6 +132,7 @@ Feature: Biometric data onboarding
 ```
 
 **Technical notes**
+- Four steps with the indicator "N / 4" (Checkpoint E2-A, T-039): 1 "Sobre ti" (sex + date of birth), 2 "Medidas" (height + weight, two wheels side by side), 3 "Nivel de actividad", 4 "Objetivos" (US-07). "Continuar" on step 3 is the last biometric step: it saves the profile and the onboarding weight.
 - Controls: segmented selector (sex), wheel pickers (date, height in cm, weight with 1 decimal), list of selectable cards (activity with the labels from `04-business-rules.md` §1.3).
 - Migration: `body_measurements` table with RLS + pgTAP (the `profiles` columns already exist since US-02).
 - `onboarding_completed = true` only after the goals are also created (US-07).
@@ -192,7 +194,7 @@ Feature: Energy strategy and calorie target
 **Technical notes**
 - `CalculateTdee` and `CalculateCalorieTarget` use cases (100% tested with the examples from `04-business-rules.md` §1).
 - `nutrition_goals` migration + RLS + pgTAP (including the sum-equals-100 constraint).
-- In onboarding this step comes after weight and has no macro sliders (default split 30/45/25, adjusted later on Profile; ADR-24). On Profile it is an editable card saved by the screen's single "Guardar" button.
+- In onboarding this is step 4 / 4, after the activity level, and has no macro sliders (default split 30/45/25, adjusted later on Profile; ADR-24). On Profile it is an editable card saved by the screen's single "Guardar" button.
 
 ---
 
