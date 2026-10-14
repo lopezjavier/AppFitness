@@ -5,7 +5,7 @@
 --   email:    test@appfitness.local
 --   password: appfitness-local-test   (local-only, not a secret; see planning/08-environment-setup.md section 3.2)
 --   id:       00000000-0000-4000-8000-000000000001 (fixed)
--- Its public.profiles row is created by the on_auth_user_created trigger, not inserted here.
+-- Its public.profiles row is created by the on_auth_user_created trigger, then updated below (onboarded).
 -- If anything here changes, update supabase/tests/seed.test.sql as well.
 
 insert into auth.users (
@@ -41,3 +41,13 @@ insert into auth.identities (
   now()
 )
 on conflict do nothing;
+
+-- The test user is seeded already onboarded so Test login lands on Diario. Flows that need
+-- a not-onboarded user reset the flag themselves (values match the US-07 example).
+update public.profiles
+set onboarding_completed = true,
+    sex = 'male',
+    birth_date = '1999-06-15',
+    height_cm = 178,
+    activity_level = 'moderate'
+where id = '00000000-0000-4000-8000-000000000001';
