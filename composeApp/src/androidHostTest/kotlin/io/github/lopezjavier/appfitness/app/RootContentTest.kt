@@ -29,6 +29,10 @@ class RootContentTest {
         Box(Modifier.fillMaxSize().testTag("welcome_screen"))
     }
 
+    private val onboardingStub: @androidx.compose.runtime.Composable () -> Unit = {
+        Box(Modifier.fillMaxSize().testTag("onboarding_screen"))
+    }
+
     @Test
     fun loading_showsSkeleton_neverWelcome() {
         rule.mainClock.autoAdvance = false
@@ -48,7 +52,7 @@ class RootContentTest {
 
     @Test
     fun onboarding_showsStubWithoutNavBarFabOrAvatar() {
-        rule.setContent { App(rootRoute = RootRoute.Onboarding, welcome = welcomeStub) }
+        rule.setContent { App(rootRoute = RootRoute.Onboarding, welcome = welcomeStub, onboarding = onboardingStub) }
         rule.onNodeWithTag("onboarding_screen").assertExists()
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
         rule.onNodeWithTag("fab").assertDoesNotExist()
@@ -68,7 +72,9 @@ class RootContentTest {
     fun offline_bannerShowsOnEveryNonShellDestination() {
         var route by mutableStateOf<RootRoute>(RootRoute.Welcome)
         rule.mainClock.autoAdvance = false
-        rule.setContent { App(isOffline = true, rootRoute = route, welcome = welcomeStub) }
+        rule.setContent {
+            App(isOffline = true, rootRoute = route, welcome = welcomeStub, onboarding = onboardingStub)
+        }
         listOf(RootRoute.Welcome, RootRoute.Loading, RootRoute.Onboarding, RootRoute.ProfileError).forEach {
             route = it
             rule.mainClock.advanceTimeByFrame()

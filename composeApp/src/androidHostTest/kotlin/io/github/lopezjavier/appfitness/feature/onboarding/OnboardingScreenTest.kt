@@ -1,0 +1,308 @@
+package io.github.lopezjavier.appfitness.feature.onboarding
+
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
+import io.github.lopezjavier.appfitness.app.FakeClock
+import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeProfileRepository
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
+import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
+import io.github.lopezjavier.appfitness.domain.model.Sex
+import kotlinx.datetime.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+private val ACTIVITY_TEXTS =
+    listOf(
+        Triple("sedentary", "Sedentario", "Trabajo sentado y poco o ningún ejercicio"),
+        Triple("light", "Ligero", "Ejercicio 1–3 días por semana, o trabajo sentado pero caminas a diario"),
+        Triple("moderate", "Moderado", "Ejercicio 3–5 días por semana"),
+        Triple("high", "Alto", "Ejercicio intenso 6–7 días por semana"),
+        Triple("very_high", "Muy alto", "Entrenas dos veces al día o tienes un trabajo físico exigente"),
+    )
+
+/** US-06 onboarding scenarios as the screen shows them, driven through the real ViewModel with fakes. */
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per Gherkin scenario and accessibility contract.
+class OnboardingScreenTest {
+    @get:Rule
+    val rule = createComposeRule()
+
+    private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, false)))
+    private val weights = FakeBodyMeasurementRepository()
+    private val connectivity = FakeConnectivityObserver(initial = true)
+    private val clock = FakeClock()
+
+    private fun show() {
+        val viewModel = OnboardingViewModel(SavedStateHandle(), profile, weights, connectivity, clock)
+        rule.setContent { AppTheme { OnboardingRoute(viewModel = viewModel) } }
+        rule.waitForIdle()
+    }
+
+    private fun tap(tag: String) {
+        rule.onNodeWithTag(tag).performClick()
+        rule.waitForIdle()
+    }
+
+    private fun next() = tap("onboarding_continue")
+
+    private fun goToStep(step: Int) {
+        tap("onboarding_sex_male")
+        repeat(step - 1) { next() }
+    }
+
+    private fun setWheel(tag: String, value: Float) {
+        rule.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun firstStep_showsSexSelectorWithNothingSelected_andContinueDisabledUntilChosen() {
+        show()
+
+        rule.onNodeWithTag("onboarding_screen").assertExists()
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("1 / 5")
+        rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Sexo")
+        rule.onNodeWithTag("onboarding_sex_male").assertTextEquals("Hombre").assertIsNotSelected()
+        rule.onNodeWithTag("onboarding_sex_female").assertTextEquals("Mujer").assertIsNotSelected()
+        rule.onNodeWithTag("onboarding_continue").assertIsNotEnabled()
+        rule.onNodeWithTag("onboarding_back").assertDoesNotExist()
+
+        tap("onboarding_sex_male")
+
+        rule.onNodeWithTag("onboarding_sex_male").assertIsSelected()
+        rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
+    }
+
+    @Test
+    fun indicatorAndBack_threeOfFive_thenAtrasReturnsToStepTwoWithTheDateKept() {
+        show()
+        goToStep(2)
+        setWheel("onboarding_birth_year_picker", 1990f)
+        rule.onNodeWithTag("onboarding_age_label").assertTextEquals("36 años")
+
+        next()
+
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("3 / 5")
+        rule.onNodeWithTag("onboarding_step_indicator").assertContentDescriptionEquals("Paso 3 de 5")
+        rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Altura")
+
+        tap("onboarding_back")
+
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("2 / 5")
+        rule.onNodeWithTag("onboarding_age_label").assertTextEquals("36 años")
+        rule.onNodeWithTag("onboarding_birth_year_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "1990"),
+        )
+    }
+
+    @Test
+    fun birthDateStep_showsDayMonthAndYearWheels_withSpanishMonthsAndTheAge() {
+        show()
+        goToStep(2)
+
+        rule.onNodeWithTag("onboarding_birth_day_picker").assertContentDescriptionEquals("Día")
+        rule.onNodeWithTag("onboarding_birth_month_picker").assertContentDescriptionEquals("Mes")
+        rule.onNodeWithTag("onboarding_birth_month_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "octubre"),
+        )
+        rule.onNodeWithTag("onboarding_birth_year_picker").assertContentDescriptionEquals("Año")
+        rule.onNodeWithTag("onboarding_age_label").assertTextEquals("30 años")
+    }
+
+    @Test
+    fun rangeValidation_ageTwelveHeight260AndWeight15AreClamped() {
+        show()
+        goToStep(2)
+        val range = BiometricBounds.birthDateRange(LocalDate(2026, 10, 14))
+        setWheel("onboarding_birth_year_picker", 2014f)
+        rule.onNodeWithTag("onboarding_age_label").assertTextEquals("14 años")
+        assertEquals(2012, range.endInclusive.year)
+
+        next()
+        setWheel("onboarding_height_picker", 260f)
+        rule.onNodeWithTag("onboarding_height_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "250 cm"),
+        )
+
+        next()
+        setWheel("onboarding_weight_kg_picker", 15f)
+        rule.onNodeWithTag("onboarding_weight_kg_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "20 kg"),
+        )
+    }
+
+    @Test
+    fun heightAndWeightSteps_showWheelsWithUnitsAndTheDecimalPair() {
+        show()
+        goToStep(3)
+        rule.onNodeWithTag("onboarding_height_picker").assertContentDescriptionEquals("Altura")
+        rule.onNodeWithTag("onboarding_height_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "170 cm"),
+        )
+        rule.onNodeWithTag("onboarding_height_picker_item_170").assertExists()
+
+        next()
+
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("4 / 5")
+        rule.onNodeWithTag("onboarding_weight_kg_picker").assertContentDescriptionEquals("Peso en kilos")
+        rule.onNodeWithTag("onboarding_weight_decimal_picker").assertContentDescriptionEquals("Decimales del peso")
+        rule.onNodeWithTag("onboarding_weight_kg_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "70 kg"),
+        )
+        rule.onNodeWithTag("onboarding_weight_decimal_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, ",0"),
+        )
+    }
+
+    @Test
+    fun activityStep_showsTheFiveCardsWithTheBusinessRuleTexts_andContinueNeedsOne() {
+        show()
+        goToStep(5)
+
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("5 / 5")
+        ACTIVITY_TEXTS.forEach { (key, title, description) ->
+            rule.onNodeWithTag("onboarding_activity_$key").assertTextContains(title, substring = true)
+            rule.onNodeWithTag("onboarding_activity_$key").assertTextContains(description, substring = true)
+            rule.onNodeWithTag("onboarding_activity_$key").assertHeightIsAtLeast(48.dp).assertIsNotSelected()
+        }
+        rule.onNodeWithTag("onboarding_continue").assertIsNotEnabled()
+
+        tap("onboarding_activity_moderate")
+
+        rule.onNodeWithTag("onboarding_activity_moderate").assertIsSelected()
+        rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
+    }
+
+    @Test
+    fun completing_savesTheDataAndShowsTheGoalsStub() {
+        show()
+        goToStep(5)
+        tap("onboarding_activity_moderate")
+
+        next()
+
+        rule.onNodeWithTag("onboarding_goals_screen").assertExists()
+        rule.onNodeWithTag("onboarding_goals_back").assertExists()
+        assertEquals(1, profile.biometricsUpdates.size)
+        assertEquals(Sex.Male, profile.biometricsUpdates.single().sex)
+        assertEquals(ActivityLevel.Moderate, profile.biometricsUpdates.single().activityLevel)
+        assertEquals(1, weights.inserts.size)
+
+        tap("onboarding_goals_back")
+
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("5 / 5")
+    }
+
+    @Test
+    fun saveError_showsASnackbarWithReintentar_andRetryFinishesTheFlow() {
+        show()
+        goToStep(5)
+        tap("onboarding_activity_moderate")
+        profile.updateResult = Result.failure(AppException(AppError.Network))
+
+        next()
+
+        rule.onNodeWithTag("onboarding_save_retry").assertTextEquals("Reintentar").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("onboarding_activity_moderate").assertIsSelected()
+        rule.onNodeWithTag("onboarding_goals_screen").assertDoesNotExist()
+
+        profile.updateResult = Result.success(Unit)
+        tap("onboarding_save_retry")
+
+        rule.onNodeWithTag("onboarding_goals_screen").assertExists()
+        rule.onNodeWithTag("onboarding_save_retry").assertDoesNotExist()
+    }
+
+    @Test
+    fun saveStepOffline_disablesContinueAndExplainsWhy_whileEarlierStepsStayEnabled() {
+        show()
+        goToStep(4)
+        connectivity.state.value = false
+        rule.waitForIdle()
+        rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
+        rule.onNodeWithTag("onboarding_offline_hint").assertDoesNotExist()
+
+        next()
+        tap("onboarding_activity_light")
+
+        rule.onNodeWithTag("onboarding_continue").assertIsNotEnabled()
+        rule.onNodeWithTag("onboarding_offline_hint").assertTextEquals("Sin conexión. Conéctate para guardar tus datos")
+
+        connectivity.state.value = true
+        rule.waitForIdle()
+        rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
+        rule.onNodeWithTag("onboarding_offline_hint").assertDoesNotExist()
+    }
+
+    @Test
+    fun resume_prefillsTheSexAndKeepsContinueEnabled() {
+        profile.biometrics =
+            Result.success(SavedBiometrics(Sex.Female, LocalDate(1999, 6, 15), 165, ActivityLevel.Light))
+
+        show()
+
+        rule.onNodeWithTag("onboarding_sex_female").assertIsSelected()
+        rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
+        next()
+        rule.onNodeWithTag("onboarding_age_label").assertTextEquals("27 años")
+    }
+
+    @Test
+    fun loadFailure_showsTheErrorStateWithRetry() {
+        profile.biometrics = Result.failure(AppException(AppError.Network))
+        show()
+
+        rule.onNodeWithTag("onboarding_error").assertExists()
+        rule.onNodeWithTag("onboarding_continue").assertDoesNotExist()
+
+        profile.biometrics = Result.success(SavedBiometrics())
+        tap("onboarding_error_action")
+
+        rule.onNodeWithTag("onboarding_sex_male").assertExists()
+    }
+
+    @Test
+    fun loadingState_showsASkeleton() {
+        val today = LocalDate(2026, 10, 14)
+        rule.setContent {
+            AppTheme {
+                OnboardingScreen(
+                    state = OnboardingUiState(birthDate = BiometricBounds.defaultBirthDate(today), today = today),
+                    onEvent = {},
+                )
+            }
+        }
+        rule.mainClock.autoAdvance = false
+
+        rule.onNodeWithTag("onboarding_loading").assertExists()
+        rule.onNodeWithTag("onboarding_continue").assertDoesNotExist()
+    }
+}

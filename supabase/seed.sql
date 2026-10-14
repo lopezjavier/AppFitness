@@ -5,7 +5,8 @@
 --   email:    test@appfitness.local
 --   password: appfitness-local-test   (local-only, not a secret; see planning/08-environment-setup.md section 3.2)
 --   id:       00000000-0000-4000-8000-000000000001 (fixed)
--- Its public.profiles row is created by the on_auth_user_created trigger, then updated below (onboarded).
+-- Its public.profiles row is created by the on_auth_user_created trigger, then updated below (onboarded),
+-- and it gets one manual body_measurements row of 74.20 kg (its onboarding weight).
 -- If anything here changes, update supabase/tests/seed.test.sql as well.
 
 insert into auth.users (
@@ -51,3 +52,7 @@ set onboarding_completed = true,
     height_cm = 178,
     activity_level = 'moderate'
 where id = '00000000-0000-4000-8000-000000000001';
+
+-- Its onboarding weight (latest weight for goals and Profile), consistent with an onboarded user.
+insert into public.body_measurements (user_id, weight_kg, source)
+values ('00000000-0000-4000-8000-000000000001', 74.20, 'manual');

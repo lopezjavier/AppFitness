@@ -83,6 +83,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         item { SegmentedSection() }
         dataVizItems()
         workoutInputItems()
+        pickerItems()
         stateMessageItems()
         shellItems()
         themeItems()

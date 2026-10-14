@@ -4,12 +4,17 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.data.SystemClock
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.dsl.module
@@ -36,5 +41,14 @@ val sharedModule =
                 UnconfiguredProfileRepository()
             }
         }
+        single<BodyMeasurementRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredBodyMeasurementRepository()
+            }
+        }
+        single<Clock> { SystemClock() }
         factory { SignInWithGoogle(get(), get(), get()) }
     }

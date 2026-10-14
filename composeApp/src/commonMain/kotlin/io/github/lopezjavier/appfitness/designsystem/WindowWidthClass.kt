@@ -12,6 +12,9 @@ object WindowWidthClassDefaults {
 
     /** Cap of single-column action blocks (sign-in buttons, dialogs) on wide windows. */
     val NarrowContentMaxWidth: Dp = 360.dp
+
+    /** Cap of a multi-step form column (onboarding) on wide windows. */
+    val FormContentMaxWidth: Dp = 480.dp
 }
 
 /** Single source of the 600 dp breakpoint. */

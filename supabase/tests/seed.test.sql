@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(5);
+select plan(6);
 
 select ok(
   exists (
@@ -41,6 +41,13 @@ select results_eq(
      from public.profiles where id = '00000000-0000-4000-8000-000000000001' $$,
   $$ values (true, 'male', date '1999-06-15', '178.0', 'moderate') $$,
   'the seed user profile is already onboarded'
+);
+
+select results_eq(
+  $$ select source::text, weight_kg::text from public.body_measurements
+     where user_id = '00000000-0000-4000-8000-000000000001' $$,
+  $$ values ('manual', '74.20') $$,
+  'the seed user has exactly one manual weight row of 74.20 kg'
 );
 
 select * from finish();

@@ -21,6 +21,8 @@ kotlin {
         commonMain.dependencies {
             // The ConnectivityObserver port exposes Flow in its public API.
             api(libs.kotlinx.coroutines.core)
+            // LocalDate appears in the public domain API (biometric bounds, Clock port).
+            api(libs.kotlinx.datetime)
             implementation(project.dependencies.platform(libs.supabase.bom))
             implementation(libs.supabase.auth)
             implementation(libs.supabase.postgrest)

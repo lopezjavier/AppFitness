@@ -37,13 +37,14 @@ private val ExpectedTags =
         "catalog_set_row_3_check", "catalog_rest_timer_start", "catalog_empty_state_action",
         "catalog_error_state_action", "catalog_topbar_tabs_avatar", "catalog_topbar_full_back",
         "catalog_nav_tab_diary", "catalog_nav_tab_progress", "catalog_fab", "catalog_sheet_open",
-        "catalog_dialog_open",
+        "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
     )
 
 private val ExpectedSections =
     listOf(
         "cards", "buttons", "chips", "segmented", "ring", "macro_bars", "macro_sliders", "metric_tiles",
-        "trend_pills", "number_input", "set_checkbox", "set_rows", "rest_timer", "state_messages", "offline_banner",
+        "trend_pills", "number_input", "set_checkbox", "set_rows", "rest_timer", "wheel_picker", "selectable_card",
+        "state_messages", "offline_banner",
         "top_bar",
         "navigation", "fab", "bottom_sheet", "confirm_dialog", "logo", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }

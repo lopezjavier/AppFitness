@@ -7,18 +7,26 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
+import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private const val SESSION =
@@ -78,5 +86,56 @@ class SupabaseProfileRepositoryTest {
         fail = true
 
         assertEquals(AppError.Network, repo.getOwnProfile().appErrorOrNull())
+    }
+
+    fun getBiometrics_decodesNullsAndRoundsTheNumericHeight() = runTest {
+        val full =
+            signedInRepository {
+                """[{"sex":"male","birth_date":"1999-06-15","height_cm":178.0,"activity_level":"very_high"}]"""
+            }
+        assertEquals(
+            SavedBiometrics(Sex.Male, LocalDate(1999, 6, 15), 178, ActivityLevel.VeryHigh),
+            full.getBiometrics().getOrThrow(),
+        )
+        val url = requests.last().url.toString()
+        assertTrue(url.contains("id=eq.user-1"), url)
+        assertTrue(url.contains("select=sex"), url)
+
+        val empty =
+            signedInRepository {
+                """[{"sex":null,"birth_date":null,"height_cm":null,"activity_level":null}]"""
+            }
+        assertEquals(SavedBiometrics(), empty.getBiometrics().getOrThrow())
+    }
+
+    fun updateBiometrics_patchesTheOwnRowWithTheFourFieldsOnly() = runTest {
+        val repo = signedInRepository { "[]" }
+
+        val result = repo.updateBiometrics(Biometrics(Sex.Female, LocalDate(1999, 6, 15), 165, ActivityLevel.Light))
+
+        assertTrue(result.isSuccess)
+        val patch = requests.last()
+        assertEquals(HttpMethod.Patch, patch.method)
+        assertTrue(patch.url.toString().contains("id=eq.user-1"), patch.url.toString())
+        val body = (patch.body as TextContent).text
+        assertEquals(
+            """{"sex":"female","birth_date":"1999-06-15","height_cm":165,"activity_level":"light"}""",
+            body,
+        )
+        assertFalse(body.contains("onboarding_completed"))
+    }
+
+    fun biometrics_networkError_isAppErrorNetwork() = runTest {
+        var fail = false
+        val repo =
+            signedInRepository {
+                if (fail) throw IOException("offline")
+                "[]"
+            }
+        fail = true
+
+        assertEquals(AppError.Network, repo.getBiometrics().appErrorOrNull())
+        val update = Biometrics(Sex.Male, LocalDate(1999, 6, 15), 178, ActivityLevel.Moderate)
+        assertEquals(AppError.Network, repo.updateBiometrics(update).appErrorOrNull())
     }
 }

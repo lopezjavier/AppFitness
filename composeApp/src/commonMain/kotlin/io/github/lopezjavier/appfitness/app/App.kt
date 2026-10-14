@@ -19,11 +19,13 @@ import io.github.lopezjavier.appfitness.designsystem.navigationType
 import io.github.lopezjavier.appfitness.designsystem.typeScale
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeRoute
+import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
 
 /**
  * Root composable: theme plus the destination chosen by [rootRoute]. [modifier] reaches the root layout;
  * [isOffline] shows the "Sin conexión" banner on every destination; [avatarUrl] is the top bar photo;
- * [onRetryProfile] and [onSignOut] are the root actions. [welcome] is the Welcome destination (stateful by default).
+ * [onRetryProfile] and [onSignOut] are the root actions. [welcome] and [onboarding] are the Welcome and
+ * Onboarding destinations (stateful by default).
  *
  * The default [rootRoute] is [RootRoute.Main], so previews and shell tests need no session.
  */
@@ -37,6 +39,7 @@ fun App(
     onRetryProfile: () -> Unit = {},
     onSignOut: () -> Unit = {},
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
+    onboarding: @Composable () -> Unit = { OnboardingRoute() },
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val widthClass = windowWidthClassFor(maxWidth)
@@ -60,7 +63,7 @@ fun App(
                         when (rootRoute) {
                             RootRoute.Loading -> RootLoading()
                             RootRoute.Welcome -> welcome()
-                            RootRoute.Onboarding -> OnboardingPlaceholder()
+                            RootRoute.Onboarding -> onboarding()
                             RootRoute.ProfileError -> RootError(onRetry = onRetryProfile)
                             RootRoute.Main -> Unit
                         }

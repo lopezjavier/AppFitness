@@ -23,6 +23,17 @@ class AppOptionTest {
     }
 
     @Test
+    fun requireValid_nullMeansNothingSelected() {
+        SingleSelection.requireValid(selectedIndex = null, size = 2)
+        assertFailsWith<IllegalArgumentException> { SingleSelection.requireValid(selectedIndex = null, size = 0) }
+    }
+
+    @Test
+    fun onTap_withNothingSelected_returnsTheTappedIndex() {
+        assertEquals(0, SingleSelection.onTap(selectedIndex = null, tappedIndex = 0))
+    }
+
+    @Test
     fun requireValid_negativeOrTooLarge_throws() {
         assertFailsWith<IllegalArgumentException> { SingleSelection.requireValid(selectedIndex = -1, size = 3) }
         assertFailsWith<IllegalArgumentException> { SingleSelection.requireValid(selectedIndex = 3, size = 3) }
