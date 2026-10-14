@@ -20,6 +20,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -55,6 +56,9 @@ object SegmentedSelectorDefaults {
      * unreadable at arm's length in a gym, so past this size labels wrap to [OVERFLOW_MAX_LINES] lines.
      */
     val MinLabelFontSize: TextUnit = 11.sp
+
+    /** Alpha of the whole control while disabled (for example during a save). */
+    const val DISABLED_ALPHA = 0.38f
 
     /** Granularity of the shared label size search. */
     val LabelSizeStep: TextUnit = 0.5.sp
@@ -114,6 +118,7 @@ fun SegmentedSelector(
     selectedIndex: Int?,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     SingleSelection.requireValid(selectedIndex, options.size)
     val track = SegmentedSelectorDefaults.colors(selected = false, appColors = AppTheme.colors).track
@@ -150,6 +155,7 @@ fun SegmentedSelector(
             modifier =
             Modifier
                 .fillMaxWidth()
+                .alpha(if (enabled) 1f else SegmentedSelectorDefaults.DISABLED_ALPHA)
                 .height(IntrinsicSize.Min)
                 .clip(SegmentedSelectorDefaults.TrackShape)
                 .background(track)
@@ -162,6 +168,7 @@ fun SegmentedSelector(
                     option = option,
                     selected = index == selectedIndex,
                     labelSize = labelSize,
+                    enabled = enabled,
                     onClick = { SingleSelection.onTap(selectedIndex, index)?.let(onSelect) },
                 )
             }
@@ -170,7 +177,13 @@ fun SegmentedSelector(
 }
 
 @Composable
-private fun RowScope.Segment(option: AppOption, selected: Boolean, labelSize: TextUnit?, onClick: () -> Unit) {
+private fun RowScope.Segment(
+    option: AppOption,
+    selected: Boolean,
+    labelSize: TextUnit?,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
     val colors = SegmentedSelectorDefaults.colors(selected, AppTheme.colors)
     Box(
         modifier =
@@ -182,7 +195,7 @@ private fun RowScope.Segment(option: AppOption, selected: Boolean, labelSize: Te
             .background(colors.segment)
             .testTag(option.testTag)
             .semantics { option.contentDescription?.let { contentDescription = it } }
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = SegmentedSelectorDefaults.SegmentPadding),
         contentAlignment = Alignment.Center,
     ) {

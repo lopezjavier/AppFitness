@@ -10,6 +10,7 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.lopezjavier.appfitness.data.remote.BiometricsDto
 import io.github.lopezjavier.appfitness.data.remote.BiometricsUpdateDto
+import io.github.lopezjavier.appfitness.data.remote.OnboardingCompletedDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -41,10 +42,17 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
         postgrest.from("profiles").update(BiometricsUpdateDto.from(biometrics)) { filter { eq("id", userId) } }
     }.map {}
 
-    private suspend fun <T> ownRow(block: suspend (userId: String) -> T): Result<T> {
-        val userId = auth.currentUserOrNull()?.id ?: return Result.failure(AppException(AppError.Unauthorized))
-        return runMappingErrors { block(userId) }
-    }
+    override suspend fun markOnboardingCompleted(): Result<Unit> = ownRow { userId ->
+        postgrest.from("profiles").update(OnboardingCompletedDto(true)) { filter { eq("id", userId) } }
+    }.map {}
+
+    private suspend fun <T> ownRow(block: suspend (userId: String) -> T): Result<T> = auth.ownRow(block)
+}
+
+/** Runs [block] with the signed-in user's id, or fails with [AppError.Unauthorized] when nobody is signed in. */
+internal suspend fun <T> Auth.ownRow(block: suspend (userId: String) -> T): Result<T> {
+    val userId = currentUserOrNull()?.id ?: return Result.failure(AppException(AppError.Unauthorized))
+    return runMappingErrors { block(userId) }
 }
 
 /** Runs [block], mapping any failure (except cancellation) to an [AppException] carrying an [AppError]. */

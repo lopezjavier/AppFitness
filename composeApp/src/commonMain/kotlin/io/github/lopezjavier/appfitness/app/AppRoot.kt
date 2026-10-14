@@ -25,5 +25,6 @@ fun AppRoot(
         avatarUrl = state.avatarUrl,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
         onSignOut = { profileViewModel.onEvent(ProfileEvent.SignOutConfirmed) },
+        onOnboardingComplete = { viewModel.onEvent(AppEvent.OnboardingCompleted) },
     )
 }

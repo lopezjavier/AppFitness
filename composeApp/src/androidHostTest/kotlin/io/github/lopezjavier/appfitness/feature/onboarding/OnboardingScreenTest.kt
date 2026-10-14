@@ -1,5 +1,9 @@
 package io.github.lopezjavier.appfitness.feature.onboarding
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -12,6 +16,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -21,6 +26,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -30,6 +36,7 @@ import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -37,6 +44,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+private const val CONFIRMATION_START_MS = 100L
 
 private val ACTIVITY_TEXTS =
     listOf(
@@ -57,12 +66,33 @@ class OnboardingScreenTest {
 
     private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, false)))
     private val weights = FakeBodyMeasurementRepository()
+    private val goals = FakeNutritionGoalsRepository()
     private val connectivity = FakeConnectivityObserver(initial = true)
     private val clock = FakeClock()
+    private val haptics = mutableListOf<HapticFeedbackType>()
+    private var completions = 0
+
+    private val recordingHaptics = object : HapticFeedback {
+        override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+            haptics += hapticFeedbackType
+        }
+    }
 
     private fun show() {
-        val viewModel = OnboardingViewModel(SavedStateHandle(), profile, weights, connectivity, clock)
-        rule.setContent { AppTheme { OnboardingRoute(viewModel = viewModel) } }
+        val viewModel = OnboardingViewModel(
+            SavedStateHandle(),
+            profile,
+            weights,
+            goals,
+            CompleteOnboarding(goals, profile),
+            connectivity,
+            clock,
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalHapticFeedback provides recordingHaptics) {
+                AppTheme { OnboardingRoute(onComplete = { completions++ }, viewModel = viewModel) }
+            }
+        }
         rule.waitForIdle()
     }
 
@@ -201,24 +231,134 @@ class OnboardingScreenTest {
         rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
     }
 
-    @Test
-    fun completing_savesTheDataAndShowsTheGoalsStub() {
+    private fun goToGoalsStep() {
         show()
         goToStep(5)
         tap("onboarding_activity_moderate")
-
         next()
+    }
 
-        rule.onNodeWithTag("onboarding_goals_screen").assertExists()
-        rule.onNodeWithTag("onboarding_goals_back").assertExists()
+    @Test
+    fun completing_savesTheDataAndShowsTheGoalsStep() {
+        goToGoalsStep()
+
+        rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Objetivos")
+        rule.onNodeWithTag("onboarding_step_indicator").assertDoesNotExist()
+        rule.onNodeWithTag("onboarding_goals_tdee").assertExists()
+        rule.onNodeWithTag("onboarding_goals_save").assertTextEquals("Guardar objetivos").assertIsEnabled()
+        rule.onNodeWithTag("onboarding_continue").assertDoesNotExist()
         assertEquals(1, profile.biometricsUpdates.size)
         assertEquals(Sex.Male, profile.biometricsUpdates.single().sex)
         assertEquals(ActivityLevel.Moderate, profile.biometricsUpdates.single().activityLevel)
         assertEquals(1, weights.inserts.size)
 
-        tap("onboarding_goals_back")
+        tap("onboarding_back")
 
         rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("5 / 5")
+    }
+
+    @Test
+    fun goalsStep_showsTheTdeeTheStrategiesAndTheDefaultMaintenanceTarget() {
+        goToGoalsStep()
+
+        rule.onNodeWithTag("onboarding_goals_tdee").assertTextContains("TDEE: ", substring = true)
+        rule.onNodeWithTag("onboarding_goals_strategy_maintenance").assertIsSelected()
+        rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("0 kcal · Mantenimiento")
+        rule.onNodeWithTag("onboarding_goals_floor_warning").assertDoesNotExist()
+    }
+
+    @Test
+    fun choosingDeficitAndSteppingDown_updatesThePill() {
+        goToGoalsStep()
+
+        tap("onboarding_goals_strategy_deficit")
+        rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("−400 kcal · Déficit moderado")
+        tap("onboarding_goals_adjust_decrement")
+        tap("onboarding_goals_adjust_decrement")
+
+        rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("−500 kcal · Déficit moderado")
+        rule.onNodeWithTag("onboarding_goals_adjust_value").assertTextEquals("−500 kcal")
+    }
+
+    @Test
+    fun savingTheGoals_confirmsOnceWithAHaptic_andCallsBackAfterTheDelay() {
+        goToGoalsStep()
+        tap("onboarding_goals_strategy_deficit")
+        rule.mainClock.autoAdvance = false
+
+        rule.onNodeWithTag("onboarding_goals_save").performClick()
+        rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
+
+        rule.onNodeWithTag("onboarding_goals_saved").assertTextEquals("Objetivos guardados")
+        rule.onNodeWithTag("onboarding_goals_save").assertDoesNotExist()
+        assertEquals(listOf(HapticFeedbackType.Confirm), haptics)
+        assertEquals(0, completions)
+        assertEquals(1, goals.upserts.size)
+        assertEquals(1, profile.completedCalls)
+
+        rule.mainClock.advanceTimeBy(OnboardingDefaults.ConfirmationDuration.inWholeMilliseconds)
+
+        assertEquals(1, completions)
+        assertEquals(listOf(HapticFeedbackType.Confirm), haptics)
+    }
+
+    @Test
+    fun rotationDuringTheConfirmation_doesNotRepeatTheHaptic() {
+        val restoration = StateRestorationTester(rule)
+        val today = LocalDate(2026, 10, 14)
+        restoration.setContent {
+            CompositionLocalProvider(LocalHapticFeedback provides recordingHaptics) {
+                AppTheme {
+                    OnboardingScreen(
+                        state = OnboardingUiState(
+                            step = OnboardingStep.Goals,
+                            birthDate = BiometricBounds.defaultBirthDate(today),
+                            phase = OnboardingPhase.Completed,
+                            today = today,
+                        ),
+                        onEvent = {},
+                        onComplete = { completions++ },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
+        assertEquals(1, haptics.size)
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
+
+        assertEquals(1, haptics.size)
+    }
+
+    @Test
+    fun goalsStepOffline_disablesSaveAndExplainsWhy() {
+        goToGoalsStep()
+
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("onboarding_goals_save").assertIsNotEnabled()
+        rule.onNodeWithTag("onboarding_offline_hint").assertTextEquals("Sin conexión. Conéctate para guardar tus datos")
+    }
+
+    @Test
+    fun goalsSaveError_showsReintentar_andRetryCompletes() {
+        goToGoalsStep()
+        goals.upsertResult = Result.failure(AppException(AppError.Network))
+
+        tap("onboarding_goals_save")
+
+        rule.onNodeWithTag("onboarding_save_retry").assertTextEquals("Reintentar")
+        rule.onNodeWithTag("onboarding_goals_save").assertExists()
+        assertEquals(0, completions)
+
+        goals.upsertResult = Result.success(Unit)
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag("onboarding_save_retry").performClick()
+        rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
+
+        rule.onNodeWithTag("onboarding_goals_saved").assertExists()
     }
 
     @Test
@@ -232,12 +372,12 @@ class OnboardingScreenTest {
 
         rule.onNodeWithTag("onboarding_save_retry").assertTextEquals("Reintentar").assertHeightIsAtLeast(48.dp)
         rule.onNodeWithTag("onboarding_activity_moderate").assertIsSelected()
-        rule.onNodeWithTag("onboarding_goals_screen").assertDoesNotExist()
+        rule.onNodeWithTag("onboarding_goals_save").assertDoesNotExist()
 
         profile.updateResult = Result.success(Unit)
         tap("onboarding_save_retry")
 
-        rule.onNodeWithTag("onboarding_goals_screen").assertExists()
+        rule.onNodeWithTag("onboarding_goals_save").assertExists()
         rule.onNodeWithTag("onboarding_save_retry").assertDoesNotExist()
     }
 

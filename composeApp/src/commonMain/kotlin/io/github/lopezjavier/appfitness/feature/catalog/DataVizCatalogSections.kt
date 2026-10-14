@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_met
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ring
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_trend_pills
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_text_pill
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_caution
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_favorable
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_unfavorable
@@ -41,6 +42,7 @@ import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
@@ -260,6 +262,10 @@ private fun TrendPillsSection() {
             stringResource(Res.string.weekly_rate_no_data),
             TrendTone.Neutral,
             Modifier.testTag("catalog_trend_neutral"),
+        )
+        TextPill(
+            stringResource(Res.string.catalog_text_pill),
+            Modifier.testTag("catalog_text_pill"),
         )
     }
 }

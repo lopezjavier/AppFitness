@@ -34,6 +34,9 @@ data class AppUiState(
 sealed interface AppEvent {
     /** Reads the profile again after a failure. */
     data object RetryProfile : AppEvent
+
+    /** Onboarding saved the goals: the current session's profile counts as onboarded, without a refetch. */
+    data object OnboardingCompleted : AppEvent
 }
 
 private data class Session(val auth: AuthState, val profile: ProfileLoad, val avatarUrl: String? = null)
@@ -49,14 +52,23 @@ class AppViewModel(
     private val profileRepository: ProfileRepository,
 ) : ViewModel() {
     private val retryTick = MutableStateFlow(0)
+    private val onboardingDone = MutableStateFlow(false)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val session: Flow<Session> =
         combine(authRepository.authState.distinctUntilChanged(), retryTick) { auth, _ -> auth }
             .flatMapLatest { auth ->
+                onboardingDone.value = false
                 when (auth) {
                     is AuthState.SignedIn -> profileSession(auth)
                     else -> flowOf(Session(auth, ProfileLoad.Loading))
+                }
+            }
+            .combine(onboardingDone) { session, done ->
+                if (done && session.profile is ProfileLoad.Loaded) {
+                    session.copy(profile = ProfileLoad.Loaded(onboardingCompleted = true))
+                } else {
+                    session
                 }
             }
 
@@ -72,6 +84,7 @@ class AppViewModel(
     fun onEvent(event: AppEvent) {
         when (event) {
             AppEvent.RetryProfile -> retryTick.update { it + 1 }
+            AppEvent.OnboardingCompleted -> onboardingDone.value = true
         }
     }
 

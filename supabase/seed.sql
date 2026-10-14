@@ -6,7 +6,7 @@
 --   password: appfitness-local-test   (local-only, not a secret; see planning/08-environment-setup.md section 3.2)
 --   id:       00000000-0000-4000-8000-000000000001 (fixed)
 -- Its public.profiles row is created by the on_auth_user_created trigger, then updated below (onboarded),
--- and it gets one manual body_measurements row of 74.20 kg (its onboarding weight).
+-- it gets one manual body_measurements row of 74.20 kg (its onboarding weight) and one nutrition_goals row.
 -- If anything here changes, update supabase/tests/seed.test.sql as well.
 
 insert into auth.users (
@@ -56,3 +56,8 @@ where id = '00000000-0000-4000-8000-000000000001';
 -- Its onboarding weight (latest weight for goals and Profile), consistent with an onboarded user.
 insert into public.body_measurements (user_id, weight_kg, source)
 values ('00000000-0000-4000-8000-000000000001', 74.20, 'manual');
+
+-- Its goals: maintenance, no adjustment, default 30/45/25 split. target_kcal is the TDEE snapshot at seed time
+-- (Mifflin-St Jeor, male, 27 y, 178 cm, 74.2 kg, moderate = 2673).
+insert into public.nutrition_goals (user_id, strategy, calorie_adjustment, target_kcal)
+values ('00000000-0000-4000-8000-000000000001', 'maintenance', 0, 2673);

@@ -21,12 +21,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_gram
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_reps
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_number_input
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_number_stepper
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set_checkbox
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set_rows
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_1
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_2
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_increase_cd
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
+import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SetCompletionCheckbox
 import io.github.lopezjavier.appfitness.designsystem.SetRow
 import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
@@ -43,10 +48,15 @@ private const val GRAMS_MAX_INTEGER_DIGITS = 4
 private const val COMPLETED_ROW_WEIGHT = "60"
 private const val COMPLETED_ROW_REPS = "12"
 private const val THIRD_SET = 3
+private const val STEPPER_START = -400
+private const val STEPPER_STEP = 50
+private const val STEPPER_MIN = -1000
+private const val STEPPER_MAX = -50
 
 /** Catalog sections of the workout input components (T-025). */
 internal fun LazyListScope.workoutInputItems() {
     item { NumberInputSection() }
+    item { NumberStepperSection() }
     item { SetCheckboxSection() }
     item { SetRowsSection() }
     restTimerItems()
@@ -87,6 +97,27 @@ private fun NumberInputSection() {
                     maxIntegerDigits = GRAMS_MAX_INTEGER_DIGITS,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun NumberStepperSection() {
+    var value by rememberSaveable { mutableStateOf(STEPPER_START) }
+    val valueText = AppNumberFormat.signedInteger(value) + " kcal"
+    CatalogSection(stringResource(Res.string.catalog_section_number_stepper), "catalog_section_number_stepper") {
+        AppCard(Modifier.fillMaxWidth()) {
+            NumberStepper(
+                valueText = valueText,
+                onDecrement = { value = (value - STEPPER_STEP).coerceAtLeast(STEPPER_MIN) },
+                onIncrement = { value = (value + STEPPER_STEP).coerceAtMost(STEPPER_MAX) },
+                decrementEnabled = value > STEPPER_MIN,
+                incrementEnabled = value < STEPPER_MAX,
+                decrementContentDescription = stringResource(Res.string.energy_adjust_decrease_cd),
+                incrementContentDescription = stringResource(Res.string.energy_adjust_increase_cd),
+                stateDescription = valueText,
+                testTagPrefix = "catalog_number_stepper",
+            )
         }
     }
 }

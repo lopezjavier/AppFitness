@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(6);
+select plan(7);
 
 select ok(
   exists (
@@ -48,6 +48,13 @@ select results_eq(
      where user_id = '00000000-0000-4000-8000-000000000001' $$,
   $$ values ('manual', '74.20') $$,
   'the seed user has exactly one manual weight row of 74.20 kg'
+);
+
+select results_eq(
+  $$ select strategy::text, calorie_adjustment, target_kcal, protein_pct::int, carbs_pct::int, fat_pct::int
+     from public.nutrition_goals where user_id = '00000000-0000-4000-8000-000000000001' $$,
+  $$ values ('maintenance', 0, 2673, 30, 45, 25) $$,
+  'the seed user has exactly one maintenance goals row with the default split'
 );
 
 select * from finish();

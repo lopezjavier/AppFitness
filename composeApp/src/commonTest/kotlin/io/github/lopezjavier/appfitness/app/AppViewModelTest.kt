@@ -130,6 +130,43 @@ class AppViewModelTest {
     }
 
     @Test
+    fun onboardingCompleted_routesToMainWithoutReadingTheProfileAgain() = runTest {
+        val profile = FakeProfileRepository(notOnboarded)
+        val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), profile = profile)
+        viewModel.uiState.test {
+            awaitItem()
+            assertEquals(RootRoute.Onboarding, awaitItem().rootRoute)
+
+            viewModel.onEvent(AppEvent.OnboardingCompleted)
+
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            expectNoEvents()
+        }
+        assertEquals(1, profile.reads)
+    }
+
+    @Test
+    fun onboardingCompleted_isForgottenWhenTheSessionChanges() = runTest {
+        val auth = FakeAuthRepository(AuthState.SignedIn("u1"))
+        val viewModel = viewModel(auth = auth, profile = FakeProfileRepository(notOnboarded))
+        viewModel.uiState.test {
+            awaitItem()
+            assertEquals(RootRoute.Onboarding, awaitItem().rootRoute)
+            viewModel.onEvent(AppEvent.OnboardingCompleted)
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+
+            auth.state.value = AuthState.SignedOut
+            assertEquals(RootRoute.Welcome, awaitItem().rootRoute)
+            auth.state.value = AuthState.SignedIn("u2")
+            var route: RootRoute
+            do {
+                route = awaitItem().rootRoute
+            } while (route == RootRoute.Loading)
+            assertEquals(RootRoute.Onboarding, route)
+        }
+    }
+
+    @Test
     fun profileFailure_isProfileError_thenRetryLoadsMain() = runTest {
         val failure = Result.failure<ProfileSummary>(AppException(AppError.Network))
         val profile = FakeProfileRepository(listOf(failure, onboarded))
