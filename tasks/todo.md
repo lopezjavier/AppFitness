@@ -854,20 +854,20 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Description:** Backend: one migration with the `measurement_source` enum and `body_measurements` per `03-data-model.md` §4 (weight 20–400, body fat 2–75, `unique (user_id, external_id)`, index `(user_id, measured_at desc)`, `set_updated_at()` trigger, RLS enabled and forced with the owner policy on `(select auth.uid())`) + pgTAP. App: `BodyMeasurementRepository` (insert, latest weight), `ProfileRepository` gains the biometric update, and a 5-step onboarding flow replacing the T-034 stub: sex (`SegmentedSelector`-style), date of birth, height in cm and weight with 1 decimal (a new `WheelPicker` design-system component, built here and added to the catalog), activity level (selectable cards with the `04-business-rules.md` §1.3 labels). "N / 5" indicator, "Atrás" keeps the chosen values, "Continuar" on step 5 saves the profile fields and the first `body_measurements` row (`source = 'manual'`) and moves to the goal step (stub until T-036).
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/body_measurements.test.sql`: RLS on and forced; A sees only their rows; A cannot insert with B's `user_id`, update or delete B's rows; range checks reject 19.9 / 400.1 kg.
-- [ ] Picker bounds come from one domain place: age 14–100 (birth date range relative to today), height 100–250 cm, weight 20.0–400.0 kg; unit tests on the bounds and the age calculation (full years).
-- [ ] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3.
-- [ ] On save errors (offline, network) the values are kept and a retry is offered (02 §9); "Continuar" disabled while saving.
-- [ ] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
-- [ ] Activity step: each card shows the level title and its description from `04-business-rules.md` §1.3 (user request 2026-10-14; no extra hint).
-- [ ] `WheelPicker`: tabular numerals, ≥ 48 dp targets, `contentDescription`/`stateDescription` with the selected value, catalog entry, `testTag`s.
+- [x] Migration + `supabase/tests/body_measurements.test.sql`: RLS on and forced; A sees only their rows; A cannot insert with B's `user_id`, update or delete B's rows; range checks reject 19.9 / 400.1 kg.
+- [x] Picker bounds come from one domain place: age 14–100 (birth date range relative to today), height 100–250 cm, weight 20.0–400.0 kg; unit tests on the bounds and the age calculation (full years).
+- [x] Onboarding state survives configuration changes and process death (`SavedStateHandle`); "Atrás" restores the previous value; the indicator reads "3 / 5" on step 3.
+- [x] On save errors (offline, network) the values are kept and a retry is offered (02 §9); "Continuar" disabled while saving.
+- [x] Resuming (ADR-24): a user with `onboarding_completed = false` reopening the app starts at step 1 with every step prefilled from the saved profile and onboarding weight; "Continuar" on step 5 again updates that weight row (no second row). The plan fixes how the onboarding row is identified; a repository test covers insert-then-update.
+- [x] Activity step: each card shows the level title and its description from `04-business-rules.md` §1.3 (user request 2026-10-14; no extra hint).
+- [x] `WheelPicker`: tabular numerals, ≥ 48 dp targets, `contentDescription`/`stateDescription` with the selected value, catalog entry, `testTag`s.
 
 **Host tests (per scenario):** `OnboardingViewModelTest` (Completing onboarding → profile update + measurement insert with `manual`, navigation effect to goals; going back keeps the value; resume starts at step 1 prefilled; re-save updates the weight row instead of inserting; save failure keeps values); `OnboardingBoundsTest` (Range validation outline: 12 → age clamp to 14, 260 → 250, 15 → 20); `OnboardingScreenTest` (Robolectric: "3 / 5", "Atrás", picker semantics); `WheelPickerTest`.
 
 **E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-035.yaml`: Test login with a not-onboarded user → 5 steps, back, indicator → goal step).
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green and the migration listed as remote.
 
 **Dependencies:** T-034
