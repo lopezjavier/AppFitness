@@ -18,10 +18,16 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -29,6 +35,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -37,14 +44,17 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
+import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
 import io.github.lopezjavier.appfitness.designsystem.SetCompletionCheckbox
 import io.github.lopezjavier.appfitness.designsystem.SetRow
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
+import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
 import io.github.lopezjavier.appfitness.designsystem.UniversalFab
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -264,5 +274,40 @@ class ComponentSemanticsTest {
         }
         rule.waitForIdle()
         rule.onNodeWithTag("sheet_title").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+    }
+
+    @Test
+    fun numberStepper_exposesTargetsDescriptionsAndState() {
+        var taps = 0
+        rule.setContent {
+            AppTheme {
+                NumberStepper(
+                    valueText = "−400 kcal",
+                    onDecrement = { taps-- },
+                    onIncrement = { taps++ },
+                    decrementEnabled = false,
+                    incrementEnabled = true,
+                    decrementContentDescription = "Reducir ajuste 50 kcal",
+                    incrementContentDescription = "Aumentar ajuste 50 kcal",
+                    stateDescription = "Ajuste: −400 kcal",
+                    testTagPrefix = "stepper",
+                )
+            }
+        }
+
+        rule.onNodeWithTag("stepper_decrement").assertContentDescriptionEquals("Reducir ajuste 50 kcal")
+            .assertIsNotEnabled().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
+        rule.onNodeWithTag("stepper_increment").assertContentDescriptionEquals("Aumentar ajuste 50 kcal")
+            .assertIsEnabled().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp).performClick()
+        rule.onNodeWithTag("stepper_decrement").performClick()
+        rule.onNodeWithTag("stepper_value").assertTextEquals("−400 kcal")
+        assertEquals(1, taps)
+    }
+
+    @Test
+    fun textPill_showsItsText() {
+        rule.setContent { AppTheme { TextPill("−400 kcal · Déficit moderado", Modifier.testTag("pill")) } }
+
+        rule.onNodeWithTag("pill").assertTextEquals("−400 kcal · Déficit moderado")
     }
 }

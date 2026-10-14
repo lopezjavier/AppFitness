@@ -151,6 +151,8 @@
     <string name="onboarding_save_error_offline">Sin conexión. Inténtalo de nuevo</string>
     <string name="onboarding_offline_hint">Sin conexión. Conéctate para guardar tus datos</string>
     <string name="onboarding_goals_title">Objetivos</string>
+    <string name="catalog_section_number_stepper">Selector numérico</string>
+    <string name="catalog_text_pill">−400 kcal · Déficit moderado</string>
     <string name="onboarding_decimal_separator">,</string>
     <string name="unit_cm">cm</string>
     <string name="unit_kg">kg</string>

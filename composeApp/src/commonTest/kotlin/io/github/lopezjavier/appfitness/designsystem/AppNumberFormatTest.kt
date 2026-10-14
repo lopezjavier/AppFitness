@@ -26,6 +26,14 @@ class AppNumberFormatTest {
     }
 
     @Test
+    fun signedInteger_marksTheSign() {
+        assertEquals("−400", AppNumberFormat.signedInteger(-400))
+        assertEquals("+250", AppNumberFormat.signedInteger(250))
+        assertEquals("0", AppNumberFormat.signedInteger(0))
+        assertEquals("−1.000", AppNumberFormat.signedInteger(-1000))
+    }
+
+    @Test
     fun integer_minValue_doesNotOverflow() {
         assertEquals("−2.147.483.648", AppNumberFormat.integer(Int.MIN_VALUE))
     }

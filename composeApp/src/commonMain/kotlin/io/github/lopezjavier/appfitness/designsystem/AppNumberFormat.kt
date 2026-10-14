@@ -19,4 +19,7 @@ object AppNumberFormat {
                 .reversed()
         return if (value < 0) "$MINUS$grouped" else grouped
     }
+
+    /** Like [integer] but a positive value carries "+" ("+250", "−400", "0"). */
+    fun signedInteger(value: Int): String = if (value > 0) "+${integer(value)}" else integer(value)
 }
