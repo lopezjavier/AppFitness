@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -51,6 +52,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful Welcome: connects [WelcomeViewModel] to the stateless [WelcomeScreen]. */
+// Merging logo and name into one node needs no extra properties.
+private val NoExtraSemantics: SemanticsPropertyReceiver.() -> Unit = {}
+
 @Composable
 fun WelcomeRoute(
     showTestLogin: Boolean,
@@ -95,8 +99,10 @@ private fun BrandZone(logoSize: Dp, modifier: Modifier = Modifier) {
     ) {
         Column(
             // Optically a bit above the centre.
-            modifier = Modifier.padding(bottom = Spacing.xl).semantics(mergeDescendants = true) {
-            }.testTag("welcome_brand"),
+            modifier = Modifier.padding(
+                bottom = Spacing.xl,
+            ).semantics(mergeDescendants = true, properties = NoExtraSemantics)
+                .testTag("welcome_brand"),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AppLogo(
