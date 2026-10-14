@@ -66,6 +66,15 @@ object WheelPickerDefaults {
 
     val MinWidth: Dp = 72.dp
 
+    /** Default upper bound, so a wheel in an unweighted row leaves room for its siblings. */
+    val MaxWidth: Dp = 96.dp
+
+    /** Width of a one-digit wheel such as the weight decimals. */
+    val CompactWidth: Dp = 48.dp
+
+    /** Below this available width two wheel groups no longer fit side by side and stack vertically. */
+    val SideBySideMinWidth: Dp = 320.dp
+
     /** The band behind the centred item; the same shape as inputs and rows. */
     val BandShape = AppShapes.base
 
@@ -131,7 +140,9 @@ fun WheelPicker(
     WheelSync(listState, range, selected, { centredIndex }) { currentOnValueChange(it) }
 
     Box(
-        modifier = modifier.widthIn(min = WheelPickerDefaults.MinWidth).height(WheelPickerDefaults.WheelHeight),
+        modifier = modifier
+            .widthIn(min = WheelPickerDefaults.MinWidth, max = WheelPickerDefaults.MaxWidth)
+            .height(WheelPickerDefaults.WheelHeight),
         contentAlignment = Alignment.Center,
     ) {
         SelectionBand()

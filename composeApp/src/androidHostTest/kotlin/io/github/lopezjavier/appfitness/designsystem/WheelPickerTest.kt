@@ -1,9 +1,15 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -13,6 +19,8 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -20,6 +28,8 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,6 +39,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 private const val TAG = "wheel"
+private val RowWidth = 200.dp
 
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
@@ -135,6 +146,57 @@ class WheelPickerTest {
         rule.onNodeWithTag(TAG).performTouchInput { swipeUp() }
         rule.waitForIdle()
         assertTrue("value moved up from 178 but is $value", value > 178)
+    }
+
+    @Test
+    fun inAnUnweightedRow_theWheelIsBoundedAndTheSiblingKeepsItsSpaceOnOneLine() {
+        rule.setContent {
+            AppTheme {
+                Row(Modifier.width(RowWidth)) {
+                    WheelPicker(
+                        range = 100..250,
+                        value = 178,
+                        onValueChange = {},
+                        label = { it.toString() },
+                        contentDescription = "Altura",
+                        stateDescription = { "$it cm" },
+                        testTagPrefix = TAG,
+                    )
+                    Text("cm", maxLines = 1, softWrap = false, modifier = Modifier.testTag("sibling"))
+                }
+            }
+        }
+        val wheelWidth = rule.onNodeWithTag(TAG).getUnclippedBoundsInRoot().width
+        assertTrue("wheel is $wheelWidth wide", wheelWidth <= WheelPickerDefaults.MaxWidth)
+        val sibling = rule.onNodeWithTag("sibling").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("sibling starts at ${sibling.left}", sibling.left <= WheelPickerDefaults.MaxWidth)
+        assertTrue("sibling is ${sibling.height} tall", sibling.height < WheelPickerDefaults.ItemHeight)
+    }
+
+    @Test
+    fun theCompactWheel_canBeNarrowerThanTheDefault() {
+        rule.setContent {
+            AppTheme {
+                Row(Modifier.width(RowWidth)) {
+                    WheelPicker(
+                        range = 0..9,
+                        value = 0,
+                        onValueChange = {},
+                        label = { it.toString() },
+                        contentDescription = "Decimales",
+                        stateDescription = { it.toString() },
+                        testTagPrefix = TAG,
+                        modifier = Modifier.widthIn(
+                            min = WheelPickerDefaults.CompactWidth,
+                            max = WheelPickerDefaults.CompactWidth,
+                        ),
+                    )
+                }
+            }
+        }
+        rule.onNodeWithTag(TAG).assertWidthIsEqualTo(WheelPickerDefaults.CompactWidth)
+        assertEquals(48.dp, WheelPickerDefaults.CompactWidth)
+        assertEquals(96.dp, WheelPickerDefaults.MaxWidth)
     }
 
     @Test
