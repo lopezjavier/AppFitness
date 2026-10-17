@@ -166,6 +166,16 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** supersedes ADR-23 and drops the QA step from ADR-04. `CLAUDE.md`, `planning/06-agent-workflow.md`, the agent files and `README.md` are updated; the qa-engineer agent, `tests/e2e/` and `check-e2e-tags.sh` are removed.
 - **Approval:** 2026-10-17, user.
 
+### ADR-28 · One task per session; per-epic audit log
+- **Context:** after E1 the rule was to chain tasks up to the next 👤 checkpoint with the user compacting by hand after about two tasks (`retrospectives/E1.md`). That is the last unbounded context growth in a flow that is otherwise optimised for lean context (subagent delegation, ≤10-line replies, ADR-27); `/compact` was observed to degrade performance and quality drops as the window grows. The local audit log (`.workflow/execution.log`) also grows with every epic.
+- **Decision:**
+  - A task runs in its own session. When its PR is merged and `COMPLETED` is logged, the PM stops and asks the user to start a fresh session (`/clear` or a new terminal) for the next `T-###`. It never starts a second task in the same session and never relies on `/compact`.
+  - The resume point is the "Next" pointer in `CLAUDE.md` plus the first unchecked task in `tasks/todo.md`.
+  - `.workflow/execution.log` holds only the current epic. At epic closure, after the retrospective, the epic's lines move to `.workflow/archive/execution-E#.log` (local, not versioned).
+  - The PM never loads the whole log or an archive: it greps by `[T-###]`, `[E#]` or timestamp.
+- **Consequences:** supersedes the E1-retro rule "chain tasks up to the checkpoint; the user compacts". `CLAUDE.md` (Autonomy, working files, epic closure) and `planning/06-agent-workflow.md` (§2.1, §3, §6) are updated. The checkpoints are unchanged (1–3 per epic): the *session* boundary becomes per task, the *feedback* boundary stays per checkpoint, so the user runs `/clear` at each task boundary instead of `/compact` every two tasks.
+- **Approval:** 2026-10-17, user.
+
 ---
 
 ## 2. Findings from the review of the original documents

@@ -8,6 +8,5 @@ part, without the prior written permission of the copyright holder.
 The visibility of this repository on GitHub does not grant any rights beyond
 those required by the GitHub Terms of Service (viewing and forking within GitHub).
 
-Third-party components (for example the skills in .agents/skills/ from
-addyosmani/agent-skills, or fonts and libraries added later) remain under their
-own licenses.
+Third-party components (for example fonts and libraries added later) remain under
+their own licenses.

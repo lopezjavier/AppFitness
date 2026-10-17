@@ -27,7 +27,7 @@ Supersedes the original orchestrator and workflow documents (kept outside the re
   → pr-reviewer        gh pr diff → verdict (gh pr review --comment)
         └─ CHANGES REQUIRED → developer
 [PM] waits for green CI → gh pr merge --squash --delete-branch → COMPLETED
-  └─ next task starts immediately
+  └─ PM stops and hands off; the next task starts in a fresh session (`/clear`)
 ```
 
 pr-reviewer is skipped for PRs that only touch docs or task files; it always runs when code, tests, CI or scripts change.
@@ -51,6 +51,7 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 ```
 - `AGENT`: PM, EPIC_PLANNER, PLANNER, UX, DEV_FE, DEV_BE, PR_CREATOR, PR_REVIEWER.
 - `STATUS`: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED.
+- The active log holds only the current epic; a closed epic's lines move to `.workflow/archive/execution-E#.log`. Read it with `grep` (`[T-###]`, `[E#]`, timestamp), never in full.
 - Example:
 ```
 [2026-10-20 10:02:10] [PM] [T-014] [STARTED] Branch feature/T-014-kmp-project created from main
@@ -83,19 +84,19 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 
 ## 5. Subagents (`.claude/agents/`)
 
-| Agent | Model | Tools | Skill applied | Output |
-|---|---|---|---|---|
-| `epic-planner` | opus | Read, Grep, Glob, Write, Edit | planning-and-task-breakdown (principles; project sizing rules override it) | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, 1–3 👤 checkpoints |
-| `planner` | sonnet | Read, Grep, Glob, Write, Edit | planning-and-task-breakdown | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
-| `ux-reviewer` | sonnet | Read, Grep, Glob, Edit | frontend-ui-engineering (translated to Compose) | "UX notes" section in the plan + PASSED/REJECTED |
-| `frontend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Kotlin code + tests; lint/tests/build green |
-| `backend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | test-driven-development, incremental-implementation, debugging-and-error-recovery | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
-| `pr-creator` | haiku | Read, Grep, Glob, Bash | git-workflow-and-versioning | One commit per task (squash merge), push, PR; never re-encodes files; stops on any secret |
-| `pr-reviewer` | sonnet | Read, Grep, Glob, Bash | code-review-and-quality | Verdict as a review comment (`--comment`) |
+| Agent | Model | Tools | Output |
+|---|---|---|---|
+| `epic-planner` | opus | Read, Grep, Glob, Write, Edit | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, 1–3 👤 checkpoints |
+| `planner` | sonnet | Read, Grep, Glob, Write, Edit | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
+| `ux-reviewer` | sonnet | Read, Grep, Glob, Edit | "UX notes" section in the plan + PASSED/REJECTED |
+| `frontend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Kotlin code + tests; lint/tests/build green |
+| `backend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
+| `pr-creator` | haiku | Read, Grep, Glob, Bash | One commit per task (squash merge), push, PR; never re-encodes files; stops on any secret |
+| `pr-reviewer` | sonnet | Read, Grep, Glob, Bash | Verdict as a review comment (`--comment`) |
 
 Models (`model:` in each agent's frontmatter) are set by cost: `opus` where judgement drives everything downstream (the epic-planner); `sonnet` for planning a single task, well-specified implementation, review and UX checks; `haiku` for the mechanical pr-creator. If an agent's output quality drops (e.g. more `CHANGES REQUIRED` from the reviewer, or vaguer plans), suggest the user to change the model back to `opus`.
 
-The skills (`addyosmani/agent-skills`, in `.agents/skills/` and linked from `.claude/skills/`) are generic with web examples (npm, React, Jest); agents apply their **principles** with this project's commands. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.
+Each agent carries its own rules and is self-contained. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.
 
 ## 6. Epic closure and delivery
 
@@ -106,4 +107,5 @@ The skills (`addyosmani/agent-skills`, in `.agents/skills/` and linked from `.cl
    - With changes → the PM creates corrective tasks within the epic.
    - Approved → tag `vX.Y.0`.
 5. Retrospective with the user → `retrospectives/E#.md`; durable lessons become rules in `CLAUDE.md` or the agent files.
-6. Next epic: broken down by `epic-planner` in a fresh session; the user confirms the task list and checkpoints before the first task.
+6. Archive the epic's lines from `.workflow/execution.log` to `.workflow/archive/execution-E#.log`.
+7. Next epic: broken down by `epic-planner` in a fresh session; the user confirms the task list and checkpoints before the first task.

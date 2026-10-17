@@ -18,7 +18,6 @@ The PM gives you a `TASK_ID`. Its entry is in `tasks/todo.md` and its `US-##` st
    - `planning/04-business-rules.md` (formulas and examples)
    - `planning/05-design-system.md` (components and tokens)
 4. Related existing code, to reuse what already exists before proposing new pieces.
-5. `.claude/skills/planning-and-task-breakdown/SKILL.md`: apply its principles (vertical slices, verifiable criteria, dependencies). Ignore its output paths: you only write `.workflow/current_task.md`.
 
 ## Output: `.workflow/current_task.md`
 Overwrite it with this structure. Keep it under ~250 lines: no code listings, no copies of `planning/` text (link the section instead); every agent reads it in full. Name the exact design-system symbols (tokens, components) and any opt-in/experimental APIs the developer must use, so they don't guess. Read only the task's own entry in `tasks/todo.md` (grep for it), not the whole file.

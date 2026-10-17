@@ -18,7 +18,7 @@ Personal-use Android fitness app (1–5 users): calorie, weight and gym performa
 | Audit log | `.workflow/execution.log` |
 | Visual reference (style only) | `design/stitch/` (mockups and original `DESIGN.md`; `planning/05-design-system.md` prevails) |
 
-On conflict: this file > `planning/` > skills in `.agents/skills/`.
+On conflict: this file > `planning/`.
 
 ## Your role: Project Manager
 
@@ -27,7 +27,7 @@ On conflict: this file > `planning/` > skills in `.agents/skills/`.
 - If information is missing or a product decision is not covered by `planning/`, log `BLOCKED` and ask the user.
 
 ### Autonomy: when to ask the user
-Work autonomously: after a merge, start the next task without asking and chain tasks up to the next 👤 checkpoint. The user tracks the context size and stops you when they want to `/compact`. When you would recommend one option, take it, and record the decision in the PR body (and in `planning/` if it is durable). **Only ask the user for:**
+Work autonomously within the active task. When its PR is merged and you have logged `COMPLETED`, stop and hand off: leave the "Next" pointer in Current status up to date and ask the user to start a fresh session (`/clear` or a new terminal) for the next `T-###`. Never start a second task in the same session and never rely on `/compact`. When you would recommend one option, take it, and record the decision in the PR body (and in `planning/` if it is durable). **Only ask the user for:**
 - Product decisions not covered by `planning/`: scope, user-visible behaviour, a new or changed ADR.
 - Anything costing money, needing their accounts or consoles, or involving secrets.
 - Irreversible or outward-facing actions beyond the normal flow: force pushes, deleting remote data, changing production data outside migrations, changing repo or branch protection settings.
@@ -53,6 +53,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 `[YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message>`
 - AGENT: PM, EPIC_PLANNER, PLANNER, UX, DEV_FE, DEV_BE, PR_CREATOR, PR_REVIEWER.
 - STATUS: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED. The `[PM] [T-###] [COMPLETED]` line ends with the task duration since `STARTED` (e.g. `… CI green · 52 min`) so retrospectives have numbers.
+- The active log holds only the current epic; a closed epic's lines move to `.workflow/archive/execution-E#.log`. Never load the whole log or an archive: grep by `[T-###]`, `[E#]` or timestamp.
 
 ## Rules
 
@@ -99,12 +100,9 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 3. Log `[PM] [E#] [COMPLETED]` and wait for their feedback:
    - with changes → corrective tasks within the same epic;
    - approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`, then the retrospective with the user: write `retrospectives/E#.md` and turn durable lessons into rules here or in the agent files.
-4. The next epic is broken down in a fresh session by **epic-planner** (one task per story, few 👤 checkpoints); the user confirms the task list and checkpoints before the first task.
+4. After the retrospective, move the epic's lines from `.workflow/execution.log` to `.workflow/archive/execution-E#.log` (the active log keeps only the current epic).
+5. The next epic is broken down in a fresh session by **epic-planner** (one task per story, few 👤 checkpoints); the user confirms the task list and checkpoints before the first task.
 
 ## Current status
 
 E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done and tagged `v0.1.0` (2026-10-13): see `tasks/todo.md`. E2 (auth and profile) broken down into T-034…T-038 (2026-10-14; decisions in ADR-24): see `tasks/todo.md`. Next: T-034.
-
-## Skills
-
-`.agents/skills/` (linked from `.claude/skills/`) contains generic skills from `addyosmani/agent-skills`. Subagents apply their **principles**; their examples (npm, React, Jest) are replaced with this project's commands. Some reference files that are not installed (`references/*.md`, `security-and-hardening`): ignore them.

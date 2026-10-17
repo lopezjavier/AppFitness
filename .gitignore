@@ -25,8 +25,7 @@ supabase/.branches/
 # PM local working files (main is protected)
 .workflow/
 
-# Claude Code: skill junctions (recreate from .agents/skills/) and local settings
-.claude/skills/
+# Claude Code local settings
 .claude/settings.local.json
 
 # Node tooling (Supabase CLI pin)
