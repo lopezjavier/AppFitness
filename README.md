@@ -30,7 +30,6 @@ planning/        Phase 1 planning: decisions, scope, architecture, data model,
 tasks/           Plan and task list of the current epic
 CLAUDE.md        Instructions for Claude Code (Project Manager role and project rules)
 .claude/agents/  Claude Code subagents (planner, ux-reviewer, developers, PR)
-.agents/skills/  Agent skills (addyosmani/agent-skills), linked from .claude/skills/
 design/stitch/   Visual reference mockups (Google Stitch)
 ```
 
@@ -49,11 +48,6 @@ Details in [CLAUDE.md](CLAUDE.md) and [planning/06-agent-workflow.md](planning/0
 ## Getting started
 
 Requirements, accounts and local configuration: [planning/08-environment-setup.md](planning/08-environment-setup.md).
-
-> **Windows:** `.claude/skills/` entries are junctions to `.agents/skills/` and are not versioned. After cloning, recreate them from the repo root in PowerShell:
-> ```powershell
-> Get-ChildItem .agents\skills -Directory | ForEach-Object { New-Item -ItemType Junction -Path ".claude\skills\$($_.Name)" -Target $_.FullName }
-> ```
 
 ## License
 

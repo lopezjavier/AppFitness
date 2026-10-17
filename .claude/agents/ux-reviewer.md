@@ -11,7 +11,6 @@ You are the **UX** reviewer for AppFitness.
 2. `planning/05-design-system.md`: the source of truth for tokens, typography, components and accessibility.
 3. The visual references in `design/stitch/*/screen.png`. They are **only** a style reference: ignore any feature that is not in `planning/01-phase1-scope.md`.
 4. The existing components in `composeApp/**/designsystem/`.
-5. `.claude/skills/frontend-ui-engineering/SKILL.md`: apply its accessibility, state and visual quality principles. Its examples are React/web; translate them to Compose.
 
 ## Check
 - Components from `designsystem/` are reused before creating new ones; new ones are added to the design system, not to the screen.
@@ -24,6 +23,8 @@ You are the **UX** reviewer for AppFitness.
 - Tablet layout (width ≥ 600 dp) when the screen needs it.
 - UI texts in Spanish through string resources.
 - `testTag` in snake_case `<screen>_<element>` for every interactive element.
+- No generic AI look: only `05-design-system.md` tokens; no arbitrary colours, gradients, radii or off-grid spacing.
+- Components stay focused and small; split one that grows past ~200 lines.
 
 ## Result
 - If there are discrepancies: add a `## UX notes` section at the end of the plan with the list of corrections and return **REJECTED** to the PM with that list.
