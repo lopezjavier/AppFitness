@@ -30,7 +30,7 @@ Feature: Manual weight and body measurements
 
   Scenario: Logging today's weight
     Given the user is on the "Progreso" tab
-    When they tap "+ Registro"
+    When they tap "Registrar peso de hoy"
     Then a Bottom Sheet opens with the weight prefilled with their last value (74,2 kg) and the current date and time
     When they enter 73,9 kg and tap "Guardar"
     Then a manual measurement of 73.9 kg is created

@@ -258,7 +258,6 @@ private fun AppNavigationRailPreview() {
             selectedIndex = 0,
             onItemSelect = {},
             type = AppNavigationType.Rail,
-            header = { UniversalFab("+ Registro", onClick = {}) },
         )
     }
 }

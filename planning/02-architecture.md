@@ -39,7 +39,7 @@
   src/testProd/     ← prod flavor unit tests
 /composeApp         ← KMP library (com.android.kotlin.multiplatform.library + Compose Multiplatform)
   src/commonMain/kotlin/<pkg>/
-    app/            ← App(), root navigation, adaptive scaffold, contextual FAB
+    app/            ← App(), root navigation, adaptive scaffold
     designsystem/   ← tokens, theme, typography, reusable components
     feature/
       auth/ onboarding/ profile/ diary/ food/ templates/

@@ -32,7 +32,7 @@ Original source: `../design/stitch/kinetic-dark-performance/DESIGN.md`. This doc
 ### 2.2 Accents
 | Token | Value | Meaning |
 |---|---|---|
-| `neonLime` | `#A3E635` | Primary action, success, completed sets, active tab, FAB, kcal ring |
+| `neonLime` | `#A3E635` | Primary action, success, completed sets, active tab, kcal ring |
 | `onNeonLime` | `#0B0F14` | Text/icons on lime |
 | `athleticCyan` | `#38BDF8` | Training: timer, 1RM, volume, active filters, weight chart |
 | `energyAmber` | `#F97316` | Warnings, thresholds, calorie excess |
@@ -76,15 +76,15 @@ Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (w
 
 - 8 dp grid with a 4 dp sub-grid. Tokens: `none 0` (no space; default for optional extra padding), `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 24`.
 - 16 dp screen side margin (`screenMargin`); 12 dp between cards in a group (`cardGap`); 24 dp between functional blocks (`blockGap`); 16 dp card inner padding (`cardPadding`).
-- Radii: `sm 4`, `base 8` (inputs, rows), `md 12`, `lg 16` (cards), `xl 24` (bottom sheet top corners), `full` (chips, pills, round checkbox, FAB).
+- Radii: `sm 4`, `base 8` (inputs, rows), `md 12`, `lg 16` (cards), `xl 24` (bottom sheet top corners), `full` (chips, pills, round checkbox).
 - Elevation through layers (2.1). Shadows only on bottom sheets (`0 12 32 −4`, black 70%) and the active element "glow" (lime 15%, blur 16). The notation is x/offsetY/blur/spread in dp: tokens `AppElevation.sheetShadowOffsetY 12`, `sheetShadowBlur 32`, `sheetShadowSpread −4`, `glowBlur 16`, with colors `shadowSheet` (black 70%) and `glowLime` (lime 15%) in `AppColors`.
 
 ## 5. Adaptive layout
 
 | Width (WindowSizeClass) | Navigation | Content |
 |---|---|---|
-| Compact (< 600 dp) | Bottom Navigation (4 tabs: Diario, Entreno, Progreso, Perfil; ADR-26) + FAB | Single column |
-| Medium / Expanded (≥ 600 dp) | NavigationRail with the FAB on top | Two asymmetric columns (summary/telemetry on the left, list/table on the right) |
+| Compact (< 600 dp) | Bottom Navigation (4 tabs: Diario, Entreno, Progreso, Perfil; ADR-26) | Single column |
+| Medium / Expanded (≥ 600 dp) | NavigationRail | Two asymmetric columns (summary/telemetry on the left, list/table on the right) |
 
 ## 6. Components to build (US-03)
 
@@ -95,7 +95,6 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `AppTheme` | Colors, typography, shapes, `AppColors` |
 | `AppTopBar` | Section title only, no avatar (ADR-26); a variant with a back arrow for full-screen destinations |
 | `AppNavigation` | Adaptive bottom bar / rail with 4 tabs; active tab = lime icon and extra-bold lime label + filled icon where the glyph has one, no pill (ADR-22). The Perfil tab icon is the user's Google photo in a circle (placeholder avatar as fallback), never tinted; active = extra-bold lime label + lime ring around the photo (ADR-26) |
-| `UniversalFab` | Lime pill "+ Registro", 52 dp tall, 0.97 scale on press |
 | `AppCard` | `surfaceRaised`, radius 16, subtle border, padding 16 |
 | `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary) / 48 dp. A filled, non-outlined secondary action that sits next to a full-width primary (e.g. onboarding "Atrás") is redesigned in T-039 (Checkpoint E2-A: the user rejected both the transparent ghost and an outlined version). **Secondary spec:** `surfaceOverlay` fill, `textPrimary` `titleMedium` label, no border, shape `md`, min height 52 dp (same as primary), 0.97 press scale; disabled = same fill with `ghostData` label. Paired in a footer with a full-width primary: 12 dp gap, secondary wraps content (min 104 dp), primary takes the rest |
 | `AppChip` / `FilterChipRow` | 32 dp visual height (48 dp target); active: cyan border and text |

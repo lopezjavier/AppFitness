@@ -10,7 +10,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -53,7 +52,6 @@ import io.github.lopezjavier.appfitness.designsystem.SetRowValues
 import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
-import io.github.lopezjavier.appfitness.designsystem.UniversalFab
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -239,14 +237,6 @@ class ComponentSemanticsTest {
         rule.setContent { AppTheme { EmptyState("Todavía no hay datos para este periodo.") } }
         rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription), useUnmergedTree = true)
             .assertCountEquals(0)
-    }
-
-    @Test
-    fun universalFab_isButtonWithClickAndText() {
-        rule.setContent { AppTheme { UniversalFab("+ Registro", onClick = {}) } }
-        rule.onNodeWithText("+ Registro")
-            .assertHasClickAction()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

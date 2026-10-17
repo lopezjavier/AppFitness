@@ -237,6 +237,12 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** `03-data-model.md` §1/§2/§4/§8, `04-business-rules.md` §3/§5, `01-phase1-scope.md` FR-3, `05-design-system.md` and the E5 stories US-25, US-26 and US-27 reflect this.
 - **Approval:** 2026-10-18, user.
 
+### ADR-36 · No universal FAB; each screen owns its actions
+- **Context:** US-04 put a single contextual "+ Registro" FAB in the shell, mapped per tab, as a placeholder for logging actions. Each tab will expose its own specific action buttons instead (E3 workout, E5 weight…), so a shared universal button is not useful on any screen.
+- **Decision:** remove the universal FAB entirely — the `UniversalFab` component, its per-tab `FabAction` mapping, the WIP action sheet it opened, its placement in the bottom-bar and rail layouts, its catalog entry, strings and tests. This supersedes the "contextual universal FAB" part of ADR-10; ADR-10's navigation decision (4 tabs, adaptive bar/rail) still stands. Each screen defines its own action buttons.
+- **Consequences:** `05-design-system.md` §4–§6 and `01-phase1-scope.md` FR-5.1 no longer mention the FAB; `02-architecture.md` (module layout) drops it from the `app/` description; the per-screen actions are specified in the E3 and E5 stories.
+- **Approval:** 2026-10-18, user.
+
 ---
 
 ## 2. Findings from the review of the original documents
