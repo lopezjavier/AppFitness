@@ -104,6 +104,12 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `ProgressRing` | kcal ring with normal / over-target (amber) states |
 | `MacroProgressBar` | Linear bar in the macro color, "142 g / 180 g · 79 %" |
 | `MacroSlider` | Slider in the macro color, % and grams/kcal |
+| `ViewModeSelector` | Detail / List / Summary segmented control for the diary (reuses `SegmentedSelector`; the chosen mode persists) |
+| `PortionSelector` | Amount field + portion dropdown ("100 g", "1 huevo"); the unit is the food's base unit (`g`/`ml`) |
+| `FavouriteToggle` | Star icon toggle (lime when starred) in food rows and food detail |
+| `MealSlotEditor` | Rename, reorder, enable/disable and add meals (drag handle, switch, add row) |
+| `MonthCalendarGrid` | Calendar month grid with a per-day kcal indicator; tap opens that day |
+| `DiaryHistoryRow` | Date + kcal + P/C/F mini bars for a day, with a weekly/monthly summary header |
 | `NumberInput` | `surfaceOverlay` background, centered tabular numerals, 1.5 dp border on focus; ghost placeholder |
 | `SetCompletionCheckbox` | 38 dp visual circle / 48 dp target; checked = lime fill + dark check + haptics |
 | `SetRow` | Index · previous (ghost) · KG · REPS · checkbox |

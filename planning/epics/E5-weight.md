@@ -20,7 +20,7 @@ E2 (profile, strategy and the `body_measurements` table).
 
 ---
 
-## US-22 · Manual weight logging
+## US-25 · Manual weight logging
 **As** a user
 **I want** to record my weight and, optionally, my body fat percentage
 **So that** I can track it even without a smart scale.
@@ -63,7 +63,7 @@ Feature: Manual weight logging
 
 ---
 
-## US-23 · Manual Health Connect sync
+## US-26 · Manual Health Connect sync
 **As** a user with a smart scale
 **I want** to import with one button the weight and body fat readings my scale sends to Health Connect
 **So that** I don't have to copy them by hand.
@@ -114,7 +114,7 @@ Feature: Health Connect sync
 
 ---
 
-## US-24 · Metrics panel and trend chart
+## US-27 · Metrics panel and trend chart
 **As** a user going through a body composition change
 **I want** to see my smoothed weight trend and my weekly pace
 **So that** daily fluctuations don't frustrate me.

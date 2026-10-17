@@ -20,7 +20,7 @@ The *(E6)* enums and columns added in `03-data-model.md` §5 (now used, not migr
 
 ---
 
-## US-25 · Exercise detail (history and personal records)
+## US-28 · Exercise detail (history and personal records)
 **As** a user
 **I want** a full detail for each exercise
 **So that** I can review how I have performed it and what my records are.
@@ -46,12 +46,12 @@ Feature: Exercise detail
 ```
 
 **Technical notes**
-- Reuses the catalog assets (thumbnail + start↔peak animation) and the PR catalogue (US-31).
+- Reuses the catalog assets (thumbnail + start↔peak animation) and the PR catalogue (US-34).
 - The "Cómo hacerlo" tab shows the Spanish instructions from `library.json`.
 
 ---
 
-## US-26 · Set types (warm-up, failure, drop)
+## US-29 · Set types (warm-up, failure, drop)
 **As** a lifter
 **I want** to classify my sets
 **So that** warm-up sets do not distort my volume and records.
@@ -83,7 +83,7 @@ Feature: Set types
 
 ---
 
-## US-27 · RPE per set
+## US-30 · RPE per set
 **As** a lifter
 **I want** to log the RPE of each set
 **So that** I can track effort, not only load.
@@ -110,7 +110,7 @@ Feature: RPE
 
 ---
 
-## US-28 · Exercise metric types
+## US-31 · Exercise metric types
 **As** a user
 **I want** to log exercises that are not weight × reps
 **So that** bodyweight, duration, distance and machine exercises are all tracked.
@@ -141,7 +141,7 @@ Feature: Exercise metrics
 
 ---
 
-## US-29 · Volume options
+## US-32 · Volume options
 **As** a user
 **I want** the volume to count correctly for dumbbells and bodyweight
 **So that** my numbers are realistic.
@@ -163,7 +163,7 @@ Feature: Volume options
 
 ---
 
-## US-30 · Warm-up and plate calculators
+## US-33 · Warm-up and plate calculators
 **As** a lifter
 **I want** help choosing warm-up sets and plates
 **So that** I do not calculate them by hand.
@@ -187,11 +187,11 @@ Feature: Calculators
 ```
 
 **Technical notes**
-- Warm-up inserts `set_type = warm_up` sets (US-26); plate defaults from `04-business-rules.md` and the user settings.
+- Warm-up inserts `set_type = warm_up` sets (US-29); plate defaults from `04-business-rules.md` and the user settings.
 
 ---
 
-## US-31 · Personal-record catalogue and live PR
+## US-34 · Personal-record catalogue and live PR
 **As** a user pursuing progress
 **I want** the app to detect and announce my records
 **So that** I know when I beat my best.
@@ -214,11 +214,11 @@ Feature: Personal records
 ```
 
 **Technical notes**
-- `04-business-rules.md` §4.8; the PR RPC (`03-data-model.md` §6). PRs respect the warm-up setting (US-26).
+- `04-business-rules.md` §4.8; the PR RPC (`03-data-model.md` §6). PRs respect the warm-up setting (US-29).
 
 ---
 
-## US-32 · Routine folders and next workout
+## US-35 · Routine folders and next workout
 **As** a user with several routines
 **I want** to organise them
 **So that** I find them quickly.
@@ -244,7 +244,7 @@ Feature: Folders and next workout
 
 ---
 
-## US-33 · Routine tracking and "Actualizar rutina"
+## US-36 · Routine tracking and "Actualizar rutina"
 **As** a user who trains to a routine
 **I want** the app to update the routine from a session when I change it
 **So that** the plan reflects what I actually do.
@@ -273,7 +273,7 @@ Feature: Routine tracking
 
 ---
 
-## US-34 · Workout detail, calendar and editing
+## US-37 · Workout detail, calendar and editing
 **As** a user
 **I want** to review and manage a finished workout
 **So that** I can fix it or reuse it.
@@ -303,7 +303,7 @@ Feature: Workout detail
 
 ---
 
-## US-35 · Session controls
+## US-38 · Session controls
 **As** a lifter
 **I want** to control the session while I train
 **So that** it adapts to the gym.

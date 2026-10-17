@@ -40,7 +40,7 @@ Supersedes the original local development notes (kept outside the repository). S
 No billing account or free trial is needed: OAuth and Sign in with Google are free. Do not activate the free trial.
 1. Create the project and the OAuth consent screen ("External", *Testing* mode, adding the accounts that will use the app as test users).
 2. Create a **Web OAuth client ID** (`appfitness-web`) → its Client ID is `GOOGLE_WEB_CLIENT_ID` (used as `serverClientId` in Credential Manager and in Supabase). Add the Supabase callback as a redirect URI.
-3. Create two **Android OAuth client IDs** (ADR-14): `appfitness-android` (`io.github.lopezjavier.appfitness`) and `appfitness-android-local` (`io.github.lopezjavier.appfitness.local`), both with the debug keystore SHA-1 (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). In US-43 the release keystore SHA-1 is added to the `io.github.lopezjavier.appfitness` client.
+3. Create two **Android OAuth client IDs** (ADR-14): `appfitness-android` (`io.github.lopezjavier.appfitness`) and `appfitness-android-local` (`io.github.lopezjavier.appfitness.local`), both with the debug keystore SHA-1 (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). In US-46 the release keystore SHA-1 is added to the `io.github.lopezjavier.appfitness` client.
 
 ## 3. Local development
 
@@ -96,7 +96,7 @@ npx supabase stop
 - **Backend:** automatic when changes in `supabase/**` are merged into `main` (`.github/workflows/deploy-supabase.yml`, `production` environment, deployable only from `main`): `supabase link` → `supabase db push` → `supabase functions deploy` (only if some `supabase/functions/*/index.ts` exists). The CLI version comes from `package-lock.json` (the same one `npx supabase` uses locally); the job fails if it differs from `package.json`.
   - Re-run manually: `gh workflow run deploy-supabase.yml` and follow it with `gh run watch` (or `gh run list --workflow deploy-supabase.yml`).
   - Result: the run log in GitHub Actions, and the deployment history under *Environments → production* on the repo page.
-- **App:** `prodDebug` APK at the end of each epic (manual install). In US-43, release signing is added with a keystore stored outside the repo (and optionally as a base64 secret for a tag-triggered release workflow).
+- **App:** `prodDebug` APK at the end of each epic (manual install). In US-46, release signing is added with a keystore stored outside the repo (and optionally as a base64 secret for a tag-triggered release workflow).
 - **Keep-alive:** `keepalive.yml` calls `https://<ref>.supabase.co/functions/v1/health` (GET, publishable key as `apikey`; the function runs a `select 1`) every 3 days at 06:00 UTC (cron `0 6 */3 * *`, ADR-12). The log only prints `health OK`, never the URL or key.
   - Run manually: `gh workflow run keepalive.yml` and follow it with `gh run watch` (or `gh run list --workflow keepalive.yml`).
   - GitHub disables scheduled workflows after 60 days without repository activity: re-enable with `gh workflow enable keepalive.yml`.

@@ -45,13 +45,20 @@ Example (target 2400): P 30 / C 45 / F 25 → 180 g / 270 g / 67 g. Raising P to
 
 ## 2. Diary
 
-- Entry values: `kcal = kcal_100g × quantity_g / 100` (same for macros), rounded to 0.1; stored as a snapshot.
-- Meal and day totals = sum of snapshots. In the UI, kcal and grams without decimals.
+- Every food has a **base unit** (`g` for solids, `ml` for drinks) and its nutrition is expressed per 100 base units.
+- Entry values: `kcal = kcal_100 × amount / 100` (same for macros), where `amount` is in the food's base unit, rounded to 0.1; stored as a snapshot.
+- A named portion resolves to an `amount` in base units (e.g. "1 huevo" = 55 g); logging a portion stores the resolved amount and a `portion_label` snapshot.
+- Meal and day totals = sum of snapshots. In the UI, kcal and the base unit without decimals.
 - `remaining = target_kcal − consumed`. If negative, "+N kcal en exceso" (over) is shown with alert styling and the ring in its over-target state.
 - Progress for each macro: `round(consumed_g / target_g × 100)` %. The bar fills to 100% at most; the text shows the real value (may exceed 100).
 - kcal come from the food label; they may not exactly match 4P + 4C + 9F (fiber, alcohol). Story examples do add up for clarity.
 
 Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g C, 48 g F = 1840 kcal → "1.840 / 2.400 kcal", "560 restantes", P 79%, C 78%, F 72%.
+
+### 2.1 Diary history (US-24)
+- Per-day summary = the day's kcal and P/C/F totals (the same sums as the Diary).
+- Weekly average = the average of the day totals over the logged days in the last 7 days (days without entries are not counted).
+- Monthly total = the sum of the day totals in the calendar month; its average uses the logged days only.
 
 ## 3. Weight
 

@@ -375,7 +375,7 @@ Feature: Strength analytics
 
 **Technical notes**
 - `exercise_history` and `weekly_muscle_volume` RPCs + pgTAP with the examples from `04-business-rules.md` §4 (same values as the `EstimateOneRepMax` domain tests).
-- Vico charts in athleticCyan (training domain). E7 extends these charts with record markers and the non-weight metric families (US-36).
+- Vico charts in athleticCyan (training domain). E7 extends these charts with record markers and the non-weight metric families (US-39).
 
 ---
 

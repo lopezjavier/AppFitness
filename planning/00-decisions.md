@@ -106,7 +106,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Approval:** Approved by the user 2026-10-12 (E1 breakdown); the fail-open `changes` job was added by the PM in T-017.
 
 ### ADR-21 · `minSdk` 26
-- **Context:** `planning/` did not fix a minimum Android version. Health Connect (`androidx.health.connect:connect-client`, US-23 in E5) requires API 26.
+- **Context:** `planning/` did not fix a minimum Android version. Health Connect (`androidx.health.connect:connect-client`, US-26 in E5) requires API 26.
 - **Decision:** `minSdk = 26` (Android 8.0) in all modules; `compileSdk`/`targetSdk` = the highest stable API supported by the pinned AGP (37 with AGP 9.3).
 - **Consequences:** no runtime checks are needed for Health Connect availability by API level below 26. Raising `minSdk` later is cheap.
 - **Approval:** 2026-10-12, user.
@@ -136,7 +136,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - Resuming onboarding restarts at the first step with every step **prefilled** from the saved values. Finishing the last biometric step again **updates** the onboarding weight entry in `body_measurements`; it never adds a second row.
   - Onboarding has **no macro sliders**: the goal step saves the default split 30/45/25 (`04-business-rules.md` §1.5), adjusted later on Profile.
   - Profile has **one "Guardar" button** for the whole screen (personal data, strategy and macros). Saving recalculates the TDEE with the latest weight and **stores** the new daily target in `nutrition_goals` (`04-business-rules.md` §1.4).
-  - "Peso actual" is **read-only** on Profile in E2 (latest `body_measurements` row); weight editing arrives with US-22 (E5).
+  - "Peso actual" is **read-only** on Profile in E2 (latest `body_measurements` row); weight editing arrives with US-25 (E5).
 - **Consequences:** the E2 epic Gherkin is updated (resume prefill, re-save without duplicates, onboarding saving with the default split, "Guardar" on Profile, read-only weight). The onboarding weight entry must be identifiable to update it (chosen in the T-035 plan, e.g. the user's earliest `manual` row). Profile's save writes `profiles` and `nutrition_goals` together, so the planner picks an order or an RPC that never leaves them inconsistent.
 - **Approval:** 2026-10-14, user (answers to the E2 breakdown questions Q1–Q4).
 
@@ -182,7 +182,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - The training tables are created **forward-compatible**: the enums and columns added in `03-data-model.md` §5 (marked *(E6)*) ship with E3, with defaults; E3 renders only `weight_reps` / `working` sets, and the live session's set row is built **polymorphic** so E6 extends it without a rewrite.
   - The RepDB free catalogue is **bundled in the APK** (`app/assets/exercises/`, ≈16 MB, `library.json`); catalogue text and images live in the client, never in the DB or a public CDN.
   - Only the **male** variant is used. Animations are a **start↔peak crossfade** (3 s cycle; the free tier has no GIF/video). Attribution "Datos de ejercicios por RepDB (repdb.co)" must be **visible** in the app (full policy in the project's `ATRIBUCION_RepDB.md`).
-  - The app's own licence stays **repo-only** (ADR-13); third-party credits (RepDB, Open Food Facts, OSS libraries, fonts) are shown in an **"Acerca de · Licencias"** screen opened from Profile (screen defined in E8 · US-42).
+  - The app's own licence stays **repo-only** (ADR-13); third-party credits (RepDB, Open Food Facts, OSS libraries, fonts) are shown in an **"Acerca de · Licencias"** screen opened from Profile (screen defined in E8 · US-45).
 - **Consequences:** `03-data-model.md` §5, `04-business-rules.md` §4, the E3/E6/E7/E8 epic files, `01-phase1-scope.md` and `07-roadmap.md` reflect this. **No schema migration** between E3 and E6.
 - **Approval:** 2026-10-17, user.
 
@@ -191,13 +191,39 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Decision:** reorder and reshape Phase 1:
   - E0 Setup · E1 Infrastructure · E2 Auth/profile (unchanged, US-01…US-08).
   - **E3 Training core** (US-09…US-15, v0.3.0): catalog, routine builder, live session, previous performance, rest timer, history and strength-progress charts.
-  - **E4 Food diary** (US-16…US-21, v0.4.0).
-  - **E5 Weight tracking** (US-22…US-24, v0.5.0).
-  - **E6 Training depth** (US-25…US-35, v0.6.0).
-  - **E7 Training insights** (US-36…US-41, v0.7.0).
-  - **E8 Finalization** (US-42 About/licences, US-43 polish/accessibility/tablet/release, plus the UI-refinement bucket, v1.0.0).
-  - Stories US-09…US-43 are renumbered contiguously (mapping in `07-roadmap.md`). Dependencies: E3→E2; E4→E2; E5→E2; E6→E3; E7→E3 (charts) and E6 (PRs/warm-up); E8→E1…E7.
+  - **E4 Food diary** (US-16…US-24, v0.4.0): catalog and OFF cache, search, scanner, manual creation, configurable meals, portions and measures, favourites, diary views, copying, templates and history.
+  - **E5 Weight tracking** (US-25…US-27, v0.5.0).
+  - **E6 Training depth** (US-28…US-38, v0.6.0).
+  - **E7 Training insights** (US-39…US-44, v0.7.0).
+  - **E8 Finalization** (US-45 About/licences, US-46 polish/accessibility/tablet/release, plus the UI-refinement bucket, v1.0.0).
+  - Stories US-09…US-46 are renumbered contiguously. Dependencies: E3→E2; E4→E2; E5→E2; E6→E3; E7→E3 (charts) and E6 (PRs/warm-up); E8→E1…E7.
 - **Consequences:** supersedes the epic order of the earlier roadmap. `01-phase1-scope.md`, `02-architecture.md`, `03-data-model.md`, `07-roadmap.md`, `08-environment-setup.md` and the epic files follow the new numbering; the "Phase 1B" framing and the "wrap-up" epic name are dropped (it is all Phase 1). Version tags: v0.1.0…v0.7.0 at E1…E7, **v1.0.0 only at E8**.
+- **Approval:** 2026-10-17, user.
+
+### ADR-32 · Food base units and named portions (E4)
+- **Context:** logging only in grams does not fit drinks (millilitres) or how people actually log ("1 huevo", "1 rebanada").
+- **Decision:**
+  - Every food has a **base unit**: `g` for solids, `ml` for drinks; its nutrition is stored **per 100 base units** (`03-data-model.md` §3).
+  - `food_portions` holds named portions whose `amount` is expressed in the food's base unit.
+  - `food_log_entries` stores the resolved `amount` in base units plus a `portion_label` snapshot; totals and snapshots use `kcal = kcal_100 × amount / 100` (`04-business-rules.md` §2).
+  - There is no `g`↔`ml` conversion: a food is either solid or liquid.
+  - The OFF normalization sets the base unit from `nutrition_data_per` (`100 g` → `g`, `100 ml` → `ml`).
+- **Consequences:** `03-data-model.md` §1/§3/§7, `04-business-rules.md` §2 and the E4 stories US-16, US-17, US-18 and US-22 reflect this.
+- **Approval:** 2026-10-17, user.
+
+### ADR-33 · Configurable meals via `meal_slots` (E4)
+- **Context:** a fixed four-value meal enum cannot be renamed, reordered or extended, and the Diary is the app's hub.
+- **Decision:**
+  - Meals are rows in `meal_slots` per user (`code` from the `meal_type` enum for the defaults, `label`, `position`, `enabled`), seeded with Desayuno/Comida/Merienda/Cena when onboarding completes.
+  - `food_log_entries` references `meal_slot_id` instead of a fixed `meal_type`.
+  - A meal is **disabled**, never deleted; disabling requires an empty slot.
+- **Consequences:** `03-data-model.md` §1/§3 and the E4 stories US-19 and US-23 reflect this.
+- **Approval:** 2026-10-17, user.
+
+### ADR-34 · Favourites and "most eaten" (E4)
+- **Context:** re-logging the usual foods should be one tap; recent foods alone are not enough.
+- **Decision:** keep an explicit `favorite_foods` table (star toggle) and derive "most eaten" from `food_log_entries` through the `most_eaten_foods` RPC (no stored ranking).
+- **Consequences:** `03-data-model.md` §3/§6 and the E4 story US-17 reflect this.
 - **Approval:** 2026-10-17, user.
 
 ---
@@ -216,8 +242,8 @@ Format: context → decision → consequences. A decision is only changed by add
 | 7 | "Search the backend database" vs Open Food Facts | ADR-06 |
 | 8 | US-03 example: 175 g P / 260 g C / 65 g F = 2,325 kcal, not 2,400 | Examples recalculated (kcal = 4·P + 4·C + 9·F) |
 | 9 | Undefined calculation rules (TDEE, strategy adjustment, auto-balance, weekly rate) | `04-business-rules.md` |
-| 10 | Missing stories: login, onboarding, text search, diary editing, template management, manual weight logging, exercise catalog, routine builder, history, tablet | Added (US-01…US-43 in `epics/`) |
-| 11 | Tablet not covered by any story | US-04 (adaptive shell) and US-43 (review) |
+| 10 | Missing stories: login, onboarding, text search, diary editing, template management, manual weight logging, exercise catalog, routine builder, history, tablet | Added (US-01…US-46 in `epics/`) |
+| 11 | Tablet not covered by any story | US-04 (adaptive shell) and US-46 (review) |
 | 12 | Offline behavior undefined | ADR-01 |
 | 13 | Mockup features outside the requirements (water, photos, reminders, Apple Health, Strava, "Plan Pro") | ADR-03 |
 | 14 | US-11: on Profile the FAB "saves changes" (not a logging action) | ADR-10 |

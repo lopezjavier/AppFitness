@@ -18,7 +18,7 @@ E1, E2, E3, E4, E5, E6 and E7 (its polish pass and the third-party credits cover
 
 ---
 
-## US-42 · About, version and licences
+## US-45 · About, version and licences
 **As** a user
 **I want** to see the app version and the licences and credits it uses
 **So that** the third-party attributions and legal notices are available inside the app.
@@ -47,7 +47,7 @@ Feature: About and licences
 
 ---
 
-## US-43 · Polish, accessibility, tablet and release build
+## US-46 · Polish, accessibility, tablet and release build
 **As** a user
 **I want** a stable, accessible app that is comfortable on my phone and my tablet
 **So that** I can use it every day with confidence.
@@ -108,7 +108,7 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 ---
 
 ## Epic Definition of Done
-- All stories US-01…US-43 closed; the app is verified manually at the checkpoints.
+- All stories US-01…US-46 closed; the app is verified manually at the checkpoints.
 - The "Acerca de" screen shows version/build, the RepDB and Open Food Facts credits and the OSS licences.
 - Security checklist from `02-architecture.md` §7 reviewed and documented in the final PR.
 - Signed release APK installed on the user's phone and tablet; positive feedback.

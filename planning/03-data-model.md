@@ -16,8 +16,9 @@ The story that creates each table is shown in parentheses.
 create type sex as enum ('male', 'female');
 create type activity_level as enum ('sedentary', 'light', 'moderate', 'high', 'very_high');
 create type goal_strategy as enum ('deficit', 'maintenance', 'surplus');
-create type meal_type as enum ('breakfast', 'lunch', 'snack', 'dinner');   -- UI: Desayuno, Comida, Merienda, Cena
+create type meal_type as enum ('breakfast', 'lunch', 'snack', 'dinner');   -- default meal codes (UI: Desayuno, Comida, Merienda, Cena)
 create type food_source as enum ('off', 'user');
+create type food_base_unit as enum ('g', 'ml');   -- solids use g, drinks use ml
 create type measurement_source as enum ('manual', 'health_connect');
 create type muscle_group as enum ('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
                                   'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full_body');
@@ -71,8 +72,10 @@ Shared catalog (OFF cache) + personal foods.
 | barcode | text null | unique when `source = 'off'` |
 | off_id | text null | OFF product code |
 | name, brand | text | |
-| kcal_100g, protein_100g, carbs_100g, fat_100g | numeric(6,2) | ≥ 0 |
-| serving_size_g | numeric(6,1) null | Suggested serving |
+| base_unit | food_base_unit | `g` for solids, `ml` for drinks; nutrition is per 100 base units |
+| kcal_100, protein_100, carbs_100, fat_100 | numeric(6,2) | per 100 base units; ≥ 0 |
+| serving_label | text null | Default serving, e.g. "1 vaso" |
+| serving_amount | numeric(7,1) null | Default serving in the base unit |
 | image_url | text null | OFF URL (images are not stored) |
 | created_by | uuid null | only for `source = 'user'` |
 | search_vector | generated tsvector | GIN index; `unaccent` + `spanish` config (food names are Spanish) |
@@ -83,29 +86,58 @@ RLS:
 - insert/update/delete from the client: only `source = 'user' and created_by = (select auth.uid())`.
 - `off` rows are only written by Edge Functions using the Supabase secret key (legacy `service_role`).
 
-### `food_log_entries` (US-16; used in US-17…US-21)
+### `food_portions` (US-22)
+Named portions of a food ("1 huevo" = 55 g, "1 vaso" = 200 ml).
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| food_id | uuid FK foods | on delete cascade |
+| label | text | e.g. "1 ración", "1 huevo" |
+| amount | numeric(7,1) | > 0; in the food's `base_unit` |
+| position | smallint | order in the picker |
+
+RLS: select when the parent food is readable (`source = 'off' or created_by = (select auth.uid())`); insert/update/delete only on own foods (`source = 'user' and foods.created_by = (select auth.uid())`).
+
+### `food_log_entries` (US-16; used in US-17…US-24)
 | Column | Type | Notes |
 |---|---|---|
 | user_id | uuid | |
 | log_date | date | Local day |
-| meal_type | meal_type | |
+| meal_slot_id | uuid FK meal_slots | on delete restrict (US-23) |
 | food_id | uuid FK foods | on delete restrict |
-| quantity_g | numeric(7,1) | > 0 |
+| amount | numeric(7,1) | > 0; in the food's `base_unit` |
+| portion_label | text null | snapshot of the portion used, if any |
 | food_name | text | snapshot |
-| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the quantity (does not change if the food changes) |
+| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes) |
 
 Index: `(user_id, log_date)`.
 
+### `meal_slots` (US-23)
+Configured meals per user (rename, enable/disable, add).
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid | |
+| code | meal_type null | default meals keep their code; custom meals are null |
+| label | text | shown in the Diary |
+| position | smallint | order within the day |
+| enabled | boolean | default true |
+
+Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner) when onboarding completes. `unique (user_id, position)`. RLS owner policy. Deleting is not allowed: a meal is disabled instead (an empty slot).
+
 ### `meal_templates` (US-21)
-`user_id`, `name` (unique per user), suggested `meal_type`.
+`user_id`, `name` (unique per user), `meal_slot_id` FK null (suggested meal; null = any).
 
 ### `meal_template_items` (US-21)
-`template_id` FK (on delete cascade), `food_id` FK, `quantity_g`, `position`.
+`template_id` FK (on delete cascade), `food_id` FK, `amount` (base unit), `portion_label` null, `position`.
 RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.user_id = (select auth.uid()))`.
+
+### `favorite_foods` (US-17)
+`user_id`, `food_id` FK (on delete cascade); PK `(user_id, food_id)`. RLS owner policy. "Más comidos" (most eaten) is derived from `food_log_entries`, not stored here (see §6).
 
 ## 4. Weight
 
-### `body_measurements` (US-06 creates the first row; US-22, US-23)
+### `body_measurements` (US-06 creates the first row; US-25, US-26)
 | Column | Type | Notes |
 |---|---|---|
 | user_id | uuid | |
@@ -119,7 +151,7 @@ Index: `(user_id, measured_at desc)`.
 
 Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24). The onboarding row is the user's earliest `source = 'manual'` row by `created_at` (tie-break `id`); this holds because nothing else writes `body_measurements` before onboarding completes.
 
-### `health_sync_state` (US-23)
+### `health_sync_state` (US-26)
 `user_id` PK, `last_synced_at timestamptz`. (Per user, not per device: enough for Phase 1.)
 
 ## 5. Training
@@ -215,6 +247,8 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `last_performance(p_exercise_id uuid)` | US-12 | Sets (`set_index`, `weight_kg`, `reps`) of the user's most recent completed session containing that exercise |
 | `exercise_history(p_exercise_id uuid, p_from date)` | US-15 | Per session: date, best estimated 1RM, total volume |
 | `weekly_muscle_volume(p_from date)` | US-15 | Per ISO week and muscle group: total volume |
+| `most_eaten_foods(p_limit int)` | US-17 | The user's most-logged foods (food_id, times logged), derived from `food_log_entries` |
+| `food_diary_summary(p_from date, p_to date)` | US-24 | Per day: kcal and protein/carbs/fat totals |
 
 The 1RM is computed in SQL with the same formula as the domain (see `04-business-rules.md`); domain and pgTAP tests use the same cases.
 
@@ -225,10 +259,10 @@ E6 adds the RPCs for the PR catalogue, the warm-up/plate calculators and routine
 | Function | Story | Auth | Input | Behavior |
 |---|---|---|---|---|
 | `health` | US-02 | public (`verify_jwt = false`) | — | `GET` → `200 {"status":"ok"}` after a `select 1`; other methods → `405` (`Allow: GET`); DB failure → `503` (`db_unavailable`) |
-| `food-search` | US-16 | JWT | `?q=<2..60 chars>&page=1` | 1) full-text search in `foods` (OFF + the user's own); 2) if < 10 results, query OFF (`search`, minimal fields, `lc=es`, `cc=es`), normalize and upsert by `barcode`; 3) return up to 20 normalized results |
+| `food-search` | US-16 | JWT | `?q=<2..60 chars>&page=1` | 1) full-text search in `foods` (OFF + the user's own); 2) if < 10 results, query OFF (`search`, minimal fields, `lc=es`, `cc=es`), normalize and upsert by `barcode`; 3) return up to 20 normalized results (each with `base_unit`, nutrition per 100 base units and the default serving) |
 | `food-barcode` | US-16 | JWT | `?code=<EAN-8/EAN-13/UPC-A>` | Look up in `foods`; if missing or `fetched_at` > 30 days, query OFF `product/<code>`; `404` if OFF does not have it or kcal is missing |
 
-Shared (`functions/_shared/`): OFF client with `User-Agent: AppFitness/<version> (<contact email>)`, 8 s timeout, normalization (kcal from `energy-kcal_100g`, or `energy_100g / 4.184` if only kJ is available), input validation and JSON error responses `{ "error": { "code", "message" } }`.
+Shared (`functions/_shared/`): OFF client with `User-Agent: AppFitness/<version> (<contact email>)`, 8 s timeout, normalization (base unit from `nutrition_data_per`: `100 g` → `g`, `100 ml` → `ml`; kcal from `energy-kcal_100g`/`energy-kcal_100ml`, or `energy_100g / 4.184` if only kJ is available; default serving from `serving_size`), input validation and JSON error responses `{ "error": { "code", "message" } }`.
 
 ## 8. Relationship diagram
 
@@ -236,7 +270,12 @@ Shared (`functions/_shared/`): OFF client with `User-Agent: AppFitness/<version>
 auth.users 1─1 profiles
 auth.users 1─1 nutrition_goals
 auth.users 1─1 health_sync_state
+auth.users 1─n meal_slots
 auth.users 1─n food_log_entries n─1 foods
+auth.users 1─n food_log_entries n─1 meal_slots
+auth.users 1─n favorite_foods n─1 foods
+foods 1─n food_portions
+auth.users 1─n meal_templates n─1 meal_slots
 auth.users 1─n meal_templates 1─n meal_template_items n─1 foods
 auth.users 1─n body_measurements
 auth.users 1─n routine_folders 1─n routines 1─n routine_exercises n─1 exercises

@@ -34,10 +34,15 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.1 Food text search on Open Food Facts (with our own cache).
 - FR-2.2 Barcode scanning with Google Code Scanner.
 - FR-2.3 Manual food creation when a product is not in OFF.
-- FR-2.4 Logging foods with a quantity in grams into 4 meals: Breakfast, Lunch, Snack, Dinner (UI: Desayuno, Comida, Merienda, Cena).
+- FR-2.4 Logging foods with a quantity into the day's meals (configurable; Breakfast, Lunch, Snack, Dinner by default; UI: Desayuno, Comida, Merienda, Cena).
 - FR-2.5 Edit and delete entries; navigate between days.
 - FR-2.6 Daily dashboard: kcal consumed vs target and progress for each macro; totals per meal.
 - FR-2.7 Meal templates: save a meal as a template, add it with one tap, manage templates.
+- FR-2.8 Portions and measures: each food has a base unit (`g` for solids, `ml` for drinks) and optional named portions; log by portion or amount.
+- FR-2.9 Favourites and "most eaten": star foods and see the most logged ones.
+- FR-2.10 Copy foods or a whole meal to another meal or day, and repeat yesterday's meal in one tap.
+- FR-2.11 Configurable meals: rename, reorder, enable/disable and add meals.
+- FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 
 ### FR-3 · Weight tracking — Progress (E5)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete.
@@ -62,9 +67,9 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-5.1 4-tab navigation (Diario, Entreno, Progreso, Perfil) with a contextual FAB; the Perfil tab icon is the user's Google photo (ADR-10, ADR-22, ADR-26).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
-- FR-5.4 "Acerca de · Licencias" screen (E8, US-42): version/build, the RepDB and Open Food Facts credits and the open-source licences, opened from Profile.
+- FR-5.4 "Acerca de · Licencias" screen (E8, US-45): version/build, the RepDB and Open Food Facts credits and the open-source licences, opened from Profile.
 
-### FR-6 · UI refinement (E8, US-43)
+### FR-6 · UI refinement (E8, US-46)
 A last refinement pass over the screens built in E2…E7, fed by the feedback collected at the 👤 checkpoints. It changes presentation only (layout, spacing, typography, component styling), never features. The collected items live in `epics/E8-finalization.md`; later epics add theirs there.
 
 ## 4. Out of Phase 1 scope

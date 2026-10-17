@@ -8,11 +8,11 @@
 | E1 | Infrastructure and skeleton | US-01 … US-04 | Backend + UI | `v0.1.0` — navigable APK with a WIP shell |
 | E2 | Authentication and profile | US-05 … US-08 | Full UI | `v0.2.0` — login, onboarding, goals |
 | E3 | Training core | US-09 … US-15 | Full UI + backend | `v0.3.0` — routines, live session, catalog assets, progress charts |
-| E4 | Food diary | US-16 … US-21 | Full UI + backend | `v0.4.0` — complete meal logging |
-| E5 | Weight tracking | US-22 … US-24 | Full UI | `v0.5.0` — weight, Health Connect, chart |
-| E6 | Training depth | US-25 … US-35 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management |
-| E7 | Training insights | US-36 … US-41 | Full UI | `v0.7.0` — advanced stats, muscle distribution, reports |
-| E8 | Finalization | US-42 … US-43 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
+| E4 | Food diary | US-16 … US-24 | Full UI + backend | `v0.4.0` — meal logging, portions and diary history |
+| E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, Health Connect, chart |
+| E6 | Training depth | US-28 … US-38 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management |
+| E7 | Training insights | US-39 … US-44 | Full UI | `v0.7.0` — advanced stats, muscle distribution, reports |
+| E8 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
 
 ### 1.1 UI refinement (inside E8)
 The UI refinement is not a separate placeholder epic: it is part of **E8 · Finalization** (FR-6). It is a presentation-only pass over the screens of E2…E7; every 👤 checkpoint that defers a UI detail appends it to the table in `epics/E8-finalization.md`.
@@ -52,31 +52,34 @@ E3, E4, E5, E6, E7 ────────────────────�
 | US-16 | E4 | Food catalog and Open Food Facts proxy | Backend |
 | US-17 | E4 | Food text search and logging into a meal | UI |
 | US-18 | E4 | Barcode scanning and manual food creation | UI |
-| US-19 | E4 | Daily diary with 4 meals: view, edit and delete | UI |
+| US-19 | E4 | Daily diary by meal: view, edit and delete | UI |
 | US-20 | E4 | Calorie and macro dashboard | UI |
 | US-21 | E4 | Meal templates | UI + backend |
-| US-22 | E5 | Manual weight logging | UI + backend |
-| US-23 | E5 | Manual Health Connect sync | UI |
-| US-24 | E5 | Metrics panel and trend chart | UI |
-| US-25 | E6 | Exercise detail (history and personal records) | UI |
-| US-26 | E6 | Set types (warm-up, failure, drop) | UI + backend |
-| US-27 | E6 | RPE per set | UI + backend |
-| US-28 | E6 | Exercise metric types | UI + backend |
-| US-29 | E6 | Volume options | UI + backend |
-| US-30 | E6 | Warm-up and plate calculators | UI + backend |
-| US-31 | E6 | Personal-record catalogue and live PR | UI + backend |
-| US-32 | E6 | Routine folders and next workout | UI + backend |
-| US-33 | E6 | Routine tracking and "Update Routine" | UI + backend |
-| US-34 | E6 | Workout detail, calendar and editing | UI |
-| US-35 | E6 | Session controls | UI |
-| US-36 | E7 | Exercise charts: records and non-weight metrics | UI |
-| US-37 | E7 | Advanced statistics | UI + backend |
-| US-38 | E7 | Muscle distribution (radar and body heatmap) | UI + backend |
-| US-39 | E7 | Monthly Report | UI |
-| US-40 | E7 | Year in Review | UI |
-| US-41 | E7 | Streaks and weekly check-ins | UI |
-| US-42 | E8 | About, version and licences | UI |
-| US-43 | E8 | Polish, accessibility, tablet and release build | UI |
+| US-22 | E4 | Food portions and measures | UI + backend |
+| US-23 | E4 | Custom meal structure | UI + backend |
+| US-24 | E4 | Diary history and summaries | UI + backend |
+| US-25 | E5 | Manual weight logging | UI + backend |
+| US-26 | E5 | Manual Health Connect sync | UI |
+| US-27 | E5 | Metrics panel and trend chart | UI |
+| US-28 | E6 | Exercise detail (history and personal records) | UI |
+| US-29 | E6 | Set types (warm-up, failure, drop) | UI + backend |
+| US-30 | E6 | RPE per set | UI + backend |
+| US-31 | E6 | Exercise metric types | UI + backend |
+| US-32 | E6 | Volume options | UI + backend |
+| US-33 | E6 | Warm-up and plate calculators | UI + backend |
+| US-34 | E6 | Personal-record catalogue and live PR | UI + backend |
+| US-35 | E6 | Routine folders and next workout | UI + backend |
+| US-36 | E6 | Routine tracking and "Update Routine" | UI + backend |
+| US-37 | E6 | Workout detail, calendar and editing | UI |
+| US-38 | E6 | Session controls | UI |
+| US-39 | E7 | Exercise charts: records and non-weight metrics | UI |
+| US-40 | E7 | Advanced statistics | UI + backend |
+| US-41 | E7 | Muscle distribution (radar and body heatmap) | UI + backend |
+| US-42 | E7 | Monthly Report | UI |
+| US-43 | E7 | Year in Review | UI |
+| US-44 | E7 | Streaks and weekly check-ins | UI |
+| US-45 | E8 | About, version and licences | UI |
+| US-46 | E8 | Polish, accessibility, tablet and release build | UI |
 
 ## 4. Traceability: requirements → stories
 
@@ -91,9 +94,14 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-2.4, FR-2.5 Logging and editing | US-17, US-19 |
 | FR-2.6 Dashboard | US-20 |
 | FR-2.7 Templates | US-21 |
-| FR-3.1 Manual weight | US-22 |
-| FR-3.2 Health Connect | US-23 |
-| FR-3.3 – FR-3.5 Chart, filters, rate | US-24 |
+| FR-2.8 Portions and measures | US-22 |
+| FR-2.9 Favourites and most eaten | US-17 |
+| FR-2.10 Copy and repeat meals | US-19 |
+| FR-2.11 Configurable meals | US-23 |
+| FR-2.12 Diary views and history | US-19, US-24 |
+| FR-3.1 Manual weight | US-25 |
+| FR-3.2 Health Connect | US-26 |
+| FR-3.3 – FR-3.5 Chart, filters, rate | US-27 |
 | FR-4.1 Exercise catalog | US-09 |
 | FR-4.2 Routines | US-10 |
 | FR-4.3 Live session | US-11 |
@@ -101,11 +109,11 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-4.5 Timer | US-13 |
 | FR-4.6 History | US-14 |
 | FR-4.7 Progress charts | US-15 |
-| FR-4.8 Training depth (set types, RPE, metrics, calculators, PRs, routine tracking, workout detail) | US-25 … US-35 |
-| FR-4.9 Statistics and reports | US-36 … US-41 |
-| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-43 (FR-5.1 4th tab: T-037, ADR-26) |
-| FR-6 UI refinement | US-43 (E8) |
-| NFR-03 Tablet | US-04, US-43 |
+| FR-4.8 Training depth (set types, RPE, metrics, calculators, PRs, routine tracking, workout detail) | US-28 … US-38 |
+| FR-4.9 Statistics and reports | US-39 … US-44 |
+| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-46 (FR-5.1 4th tab: T-037, ADR-26) |
+| FR-6 UI refinement | US-46 (E8) |
+| NFR-03 Tablet | US-04, US-46 |
 | NFR-05, NFR-06 Professional / security | US-01, US-02 (and the DoD of every story) |
 
 ## 5. Definition of Done for every story

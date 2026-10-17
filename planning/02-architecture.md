@@ -141,7 +141,7 @@
 - No secrets in the repository: `.gitignore` for `local.properties`, `.env*`, `supabase/.env*`, keystores. GitHub secret scanning + push protection + gitleaks.
 - Dependabot for Gradle, npm/Deno and GitHub Actions.
 - Ruleset on `main`: PR required, required checks, no force-push.
-- R8/ProGuard enabled in release with rules for kotlinx-serialization (US-43).
+- R8/ProGuard enabled in release with rules for kotlinx-serialization (US-46).
 
 ## 8. CI/CD (GitHub Actions)
 

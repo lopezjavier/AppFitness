@@ -127,7 +127,7 @@ Feature: Biometric data onboarding
     Given a user who completed onboarding
     When they open Profile
     Then "Peso actual" shows their latest weight
-    And it cannot be edited there (weight logging arrives with US-22 in E5)
+    And it cannot be edited there (weight logging arrives with US-25 in E5)
 ```
 
 **Technical notes**

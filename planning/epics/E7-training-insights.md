@@ -20,7 +20,7 @@ Built on `workout_sessions`/`workout_sets` and the exercise catalog. New statist
 
 ---
 
-## US-36 · Exercise charts: records and non-weight metrics
+## US-39 · Exercise charts: records and non-weight metrics
 **As** a user
 **I want** the exercise charts to mark my records and to follow every metric family
 **So that** I can follow each exercise, not only the loaded ones.
@@ -31,7 +31,7 @@ Feature: Exercise graphs
   Scenario: Record markers
     Given the per-exercise 1RM and volume charts (US-15)
     When the user opens the "Press de banca con barra" detail
-    Then the sessions that set a record (US-31) are marked on the chart
+    Then the sessions that set a record (US-34) are marked on the chart
 
   Scenario: All-time frame
     Then the frames add "Todo" alongside 1M, 3M, 6M and 1A
@@ -42,11 +42,11 @@ Feature: Exercise graphs
 ```
 
 **Technical notes**
-- Extends the `exercise_history` RPC (US-15) with the all-time frame and the PR markers (US-31); Vico charts in `athleticCyan`.
+- Extends the `exercise_history` RPC (US-15) with the all-time frame and the PR markers (US-34); Vico charts in `athleticCyan`.
 
 ---
 
-## US-37 · Advanced statistics
+## US-40 · Advanced statistics
 **As** a user aiming for progress
 **I want** a full statistics screen
 **So that** I can review my training over any period.
@@ -69,11 +69,11 @@ Feature: Advanced statistics
 ```
 
 **Technical notes**
-- New statistics RPC (`03-data-model.md` §6); respects the warm-up inclusion setting (US-26).
+- New statistics RPC (`03-data-model.md` §6); respects the warm-up inclusion setting (US-29).
 
 ---
 
-## US-38 · Muscle distribution (radar and body heatmap)
+## US-41 · Muscle distribution (radar and body heatmap)
 **As** a user
 **I want** to see how my training is distributed across muscles
 **So that** I can spot imbalances.
@@ -97,7 +97,7 @@ Feature: Muscle distribution
 
 ---
 
-## US-39 · Monthly Report
+## US-42 · Monthly Report
 **As** a user
 **I want** a monthly summary
 **So that** I can review the month at a glance.
@@ -119,7 +119,7 @@ Feature: Monthly Report
 
 ---
 
-## US-40 · Year in Review
+## US-43 · Year in Review
 **As** a user
 **I want** an annual summary
 **So that** I can look back at the year.
@@ -140,7 +140,7 @@ Feature: Year in Review
 
 ---
 
-## US-41 · Streaks and weekly check-ins
+## US-44 · Streaks and weekly check-ins
 **As** a user
 **I want** to see my consistency
 **So that** I stay motivated.
@@ -163,6 +163,6 @@ Feature: Streaks
 
 ## Epic Definition of Done
 - The statistics RPCs are covered by unit and pgTAP tests with the `04-business-rules.md` examples.
-- Every screen has loading, empty and error states (`US-43`).
+- Every screen has loading, empty and error states (`US-46`).
 - Numbers use tabular numerals and Spanish formatting (`04-business-rules.md` §5).
 - `prodDebug` APK validated by the user. Tag `v0.7.0`.
