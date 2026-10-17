@@ -104,6 +104,20 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 ### 4.5 Personal records (PR) in the summary
 - An exercise is marked as PR in a session if its session estimated 1RM exceeds the maximum of all previous sessions.
 
+### 4.6 Set types and warm-up inclusion
+- Every set has a type: `working` (Normal), `warm_up` (Calentamiento), `failure` (Fallo) or `drop` (Drop).
+- By default **volume, 1RM and PRs ignore `warm_up` sets**; `working`, `failure` and `drop` count. The setting "Incluir calentamiento" (`warmUpIncluded`) makes warm-up sets count too, and toggling it **recalculates** the affected aggregates (past and future). Total sets and reps in the session header follow the same setting.
+- The type can be assigned and removed while planning (routine) and while logging.
+
+### 4.7 Volume options
+- **Double dumbbell** (`doubleDumbbellVolume`): for a dumbbell exercise done with two dumbbells, the logged weight is per dumbbell, so `volume = 2 × weight × reps`.
+- **Bodyweight** (`bodyweight`/`assisted` metric types): `volume = (latest body weight ± added/assisted weight) × reps`; the latest body weight is the newest `body_measurements` row. `weighted` counts the added load only.
+
+### 4.8 PR catalogue
+- Per exercise family: `best_1rm` (Epley, §4.1), `heaviest_lift` (max `weight_kg`), `best_set` (max single-set volume), `max_volume` (max session volume), `total_reps`, and for duration/distance families `best_duration`, `best_distance`, `most_steps`, `most_floors`.
+- A **live PR notification** fires when a completed set beats the current best of that exercise (configurable off / low / normal / high).
+- PRs respect the warm-up inclusion setting (§4.6).
+
 ## 5. Formatting (UI, Spanish locale)
 - Thousands separator "." (also for 4 digits: "1.840") and decimal ",". Use a custom formatter in `commonMain`: the CLDR `es-ES` locale does not group 4-digit numbers.
 - Weight with 1 decimal; kcal and grams without decimals; integer percentages.

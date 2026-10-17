@@ -141,7 +141,7 @@
 - No secrets in the repository: `.gitignore` for `local.properties`, `.env*`, `supabase/.env*`, keystores. GitHub secret scanning + push protection + gitleaks.
 - Dependabot for Gradle, npm/Deno and GitHub Actions.
 - Ruleset on `main`: PR required, required checks, no force-push.
-- R8/ProGuard enabled in release with rules for kotlinx-serialization (US-25).
+- R8/ProGuard enabled in release with rules for kotlinx-serialization (US-43).
 
 ## 8. CI/CD (GitHub Actions)
 
@@ -153,7 +153,7 @@
 | `deploy-supabase.yml` | push to `main` with changes in `supabase/**` + manual | `production` environment → `supabase link` → `supabase db push` → `supabase functions deploy` | — (from E0) |
 | `keepalive.yml` | cron `0 6 */3 * *` + manual | `curl` GET to `health` with the publishable key as `apikey` (ADR-12, ADR-17); fails on non-200 | — (from US-02) |
 
-Optional in E6: a release workflow that, when a `v*` tag is created, builds the `prod` APK and attaches it to a GitHub Release.
+Optional in E8: a release workflow that, when a `v*` tag is created, builds the `prod` APK and attaches it to a GitHub Release.
 
 ## 9. Network behavior
 

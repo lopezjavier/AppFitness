@@ -1,4 +1,4 @@
-# E3 · Food diary → `v0.3.0`
+# E4 · Food diary → `v0.4.0`
 
 ## Goal
 Log what you eat in fewer than 3 taps (search, scanner or template) and see the calories and macros consumed against the target at all times.
@@ -20,7 +20,7 @@ E2 (authenticated user and `nutrition_goals`).
 
 ---
 
-## US-09 · Food catalog and Open Food Facts proxy
+## US-16 · Food catalog and Open Food Facts proxy
 **As** the development team
 **I want** our own food catalog filled on demand from Open Food Facts
 **So that** searches are fast without exceeding OFF limits or depending on its format.
@@ -70,7 +70,7 @@ Feature: Food catalog with an Open Food Facts cache
 
 ---
 
-## US-10 · Food text search and logging into a meal
+## US-17 · Food text search and logging into a meal
 **As** a user
 **I want** to search for a food by name and add it with its quantity to a meal
 **So that** I can log what I eat without knowing its barcode.
@@ -117,7 +117,7 @@ Feature: Text search and logging
 
 ---
 
-## US-11 · Barcode scanning and manual food creation
+## US-18 · Barcode scanning and manual food creation
 **As** a user in a hurry
 **I want** to scan a product's barcode
 **So that** I can log it without typing its name.
@@ -159,7 +159,7 @@ Feature: Barcode scanning
 
 ---
 
-## US-12 · Daily diary with 4 meals: view, edit and delete
+## US-19 · Daily diary with 4 meals: view, edit and delete
 **As** a user
 **I want** to see what I ate each day organized by meal and be able to correct it
 **So that** I keep an accurate record of my intake.
@@ -202,7 +202,7 @@ Feature: Daily diary by meal
 
 ---
 
-## US-13 · Calorie and macro dashboard
+## US-20 · Calorie and macro dashboard
 **As** a user
 **I want** to see at a glance how many calories and macros I have consumed against my target
 **So that** I know how much I have left before the next meal.
@@ -241,7 +241,7 @@ Feature: Daily dashboard
 
 ---
 
-## US-14 · Meal templates
+## US-21 · Meal templates
 **As** a user with recurring meals
 **I want** to save a meal as a template and add it with one tap
 **So that** I don't log the same foods one by one every day.
@@ -288,4 +288,4 @@ Feature: Meal templates
 - A full breakfast logged from a template in 1 tap, and a new food via search in ≤ 3 taps after opening the search.
 - `deno test` tests for the functions with fixtures; pgTAP for the 4 tables.
 - Host (Robolectric) tests cover the Gherkin scenarios.
-- `prodDebug` APK validated with real foods scanned by the user. Tag `v0.3.0`.
+- `prodDebug` APK validated with real foods scanned by the user. Tag `v0.4.0`.

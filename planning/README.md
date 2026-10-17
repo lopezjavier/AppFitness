@@ -34,7 +34,7 @@ All repository content (docs, code, comments, commits, PRs) is in **English**. T
 
 | Prefix | Meaning | Example |
 |---|---|---|
-| `E#` | Epic | `E3` — Food diary |
+| `E#` | Epic | `E3` — Training core |
 | `US-##` | User story (global numbering) | `US-12` |
 | `T-###` | Technical task | `T-031` |
 | `ADR-##` | Architecture/product decision | `ADR-03` |

@@ -30,7 +30,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-1.5 Daily calorie target calculated (TDEE + adjustment) and manually adjustable.
 - FR-1.6 Macro split (P/C/F) with auto-balancing sliders that always add up to 100%.
 
-### FR-2 · Calorie tracking — Diary (E3)
+### FR-2 · Calorie tracking — Diary (E4)
 - FR-2.1 Food text search on Open Food Facts (with our own cache).
 - FR-2.2 Barcode scanning with Google Code Scanner.
 - FR-2.3 Manual food creation when a product is not in OFF.
@@ -39,29 +39,33 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.6 Daily dashboard: kcal consumed vs target and progress for each macro; totals per meal.
 - FR-2.7 Meal templates: save a meal as a template, add it with one tap, manage templates.
 
-### FR-3 · Weight tracking — Progress (E4)
+### FR-3 · Weight tracking — Progress (E5)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete.
 - FR-3.2 Manual sync with Health Connect (weight and body fat % from smart scales).
 - FR-3.3 Progress chart with daily readings and a 7-day moving average.
 - FR-3.4 Time filters 1W, 1M, 3M, 6M, 1Y (UI: 1S, 1M, 3M, 6M, 1A).
 - FR-3.5 Weekly rate of change colored according to the goal.
 
-### FR-4 · Gym performance — Workout (E5, E6)
-- FR-4.1 Exercise catalog (seeded in Spanish) and custom exercises.
+### FR-4 · Gym performance — Workout (E3, E6, E7)
+- FR-4.1 Exercise catalog seeded in Spanish (with the bundled RepDB thumbnail + start↔peak animation + Spanish instructions) and custom exercises.
 - FR-4.2 Create and edit routines: reorderable exercises, supersets, target sets/reps, rest per exercise.
 - FR-4.3 Live workout session: weight and reps per set, add sets/exercises, screen always on, summary when finishing.
 - FR-4.4 Last performance visible during the workout (ghost data).
 - FR-4.5 Automatic, configurable, non-blocking rest timer (+30 s, Skip).
 - FR-4.6 Session history.
 - FR-4.7 Progress charts per exercise (estimated 1RM, volume) and per muscle group (weekly volume).
+- FR-4.8 Training depth (E6): set types (warm-up/failure/drop) and warm-up inclusion, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue and live PR, routine folders/tracking and "Update Routine", workout detail/calendar/editing, session controls (pause, delete set, previous-values modes).
+- FR-4.9 Statistics and reports (E7): exercise chart records and non-weight metrics, advanced statistics (time frames, set-count, sets per muscle group, main exercises), muscle distribution (radar, body heatmap), Monthly Report, Year in Review, streaks and weekly check-ins.
+- The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E7 add features without a schema migration.
 
-### FR-5 · Cross-cutting (E1)
+### FR-5 · Cross-cutting (E1, E8)
 - FR-5.1 4-tab navigation (Diario, Entreno, Progreso, Perfil) with a contextual FAB; the Perfil tab icon is the user's Google photo (ADR-10, ADR-22, ADR-26).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
+- FR-5.4 "Acerca de · Licencias" screen (E8, US-42): version/build, the RepDB and Open Food Facts credits and the open-source licences, opened from Profile.
 
-### FR-6 · UI refinement (E7, placeholder)
-A last refinement pass over the screens built in E2…E6, fed by the feedback collected at the 👤 checkpoints. It changes presentation only (layout, spacing, typography, component styling), never features. Items collected so far are listed in `07-roadmap.md` §1.1; later epics add theirs there.
+### FR-6 · UI refinement (E8, US-43)
+A last refinement pass over the screens built in E2…E7, fed by the feedback collected at the 👤 checkpoints. It changes presentation only (layout, spacing, typography, component styling), never features. The collected items live in `epics/E8-finalization.md`; later epics add theirs there.
 
 ## 4. Out of Phase 1 scope
 
@@ -71,8 +75,8 @@ These appear in the Stitch mockups or in the original documents but not in the o
 - Progress photos ("Bitácora Visual") and Supabase Storage.
 - Reminders / scheduled notifications (hydration, workout).
 - Apple Health (does not exist on Android) and Strava integrations.
-- Plan badges ("Plan Pro Atleta"), RPE indicators and set-type labels (CAL/EFEC) from the workout mockup.
-- Training microcycles / phases.
+- Plan badges ("Plan Pro Atleta") and the CAL/EFEC decorative labels from the workout mockup (RPE and set types themselves are in E6).
+- Training microcycles / phases and the algorithmic program generator / trainer (Phase 2).
 - Background Health Connect sync.
 - Offline mode.
 - Publishing on Google Play (distribution is by APK).

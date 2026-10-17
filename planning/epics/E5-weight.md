@@ -1,4 +1,4 @@
-# E4 · Weight tracking → `v0.4.0`
+# E5 · Weight tracking → `v0.5.0`
 
 ## Goal
 Log body weight (manually or from the scale via Health Connect) and see the real trend by filtering out daily fluctuations.
@@ -14,13 +14,13 @@ E2 (profile, strategy and the `body_measurements` table).
 `body_measurements`, `health_sync_state` (`03-data-model.md` §4).
 
 ## Reference screen
-`design/stitch/progress/screen.png` (Health Connect banner, weight panel and chart). The strength section belongs to E6; the photo log is out of scope.
+`design/stitch/progress/screen.png` (Health Connect banner, weight panel and chart). The strength section belongs to E3; the photo log is out of scope.
 
 > Gherkin convention: steps in English; quoted UI texts in Spanish (the app UI language, with decimal commas).
 
 ---
 
-## US-15 · Manual weight logging
+## US-22 · Manual weight logging
 **As** a user
 **I want** to record my weight and, optionally, my body fat percentage
 **So that** I can track it even without a smart scale.
@@ -63,7 +63,7 @@ Feature: Manual weight logging
 
 ---
 
-## US-16 · Manual Health Connect sync
+## US-23 · Manual Health Connect sync
 **As** a user with a smart scale
 **I want** to import with one button the weight and body fat readings my scale sends to Health Connect
 **So that** I don't have to copy them by hand.
@@ -114,7 +114,7 @@ Feature: Health Connect sync
 
 ---
 
-## US-17 · Metrics panel and trend chart
+## US-24 · Metrics panel and trend chart
 **As** a user going through a body composition change
 **I want** to see my smoothed weight trend and my weekly pace
 **So that** daily fluctuations don't frustrate me.
@@ -168,4 +168,4 @@ Feature: Weight trend
 - Manual and Health Connect weights coexist without duplicates; the weekly rate matches the reference calculation.
 - pgTAP for `body_measurements` (including `external_id` uniqueness) and `health_sync_state`.
 - Health Connect manual test documented in the PR.
-- `prodDebug` APK validated with the user's real scale. Tag `v0.4.0`.
+- `prodDebug` APK validated with the user's real scale. Tag `v0.5.0`.
