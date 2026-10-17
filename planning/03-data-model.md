@@ -20,6 +20,7 @@ create type meal_type as enum ('breakfast', 'lunch', 'snack', 'dinner');   -- de
 create type food_source as enum ('off', 'user');
 create type food_base_unit as enum ('g', 'ml');   -- solids use g, drinks use ml
 create type measurement_source as enum ('manual', 'health_connect');
+create type circumference_site as enum ('neck', 'chest', 'waist', 'hip', 'arm', 'thigh', 'calf');
 create type muscle_group as enum ('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
                                   'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full_body');
 create type equipment as enum ('barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'band', 'other');
@@ -42,13 +43,14 @@ create type set_type as enum ('working', 'warm_up', 'failure', 'drop');   -- UI:
 | sex | sex null | |
 | height_cm | numeric(5,1) null | 100–250 (check) |
 | activity_level | activity_level null | |
+| target_weight_kg | numeric(5,1) null | 20–400 (check); goal weight, no date (E5) |
 | onboarding_completed | boolean | default false |
 
 - `on_auth_user_created` trigger (security definer) that inserts the row with name and avatar from `raw_user_meta_data`. The metadata is user-controlled, so the trigger sanitizes it and sign-up never fails on a constraint:
   - keys are read only from a JSON object and only when the value is a JSON string;
   - `display_name`: `full_name`, then `name`, then the email local part, then `Usuario`; each candidate is trimmed and capped at 100 characters, blank ones are skipped;
   - `avatar_url`: `avatar_url`, then `picture`; kept only if it starts with `https://` and has at most 2048 characters, otherwise null.
-- Client privileges: `SELECT` and column-level `UPDATE` on the user-editable columns only (`display_name`, `avatar_url`, `birth_date`, `sex`, `height_cm`, `activity_level`, `onboarding_completed`); `id`, `created_at` and `updated_at` are not client-writable (`updated_at` is set by the `set_updated_at()` trigger).
+- Client privileges: `SELECT` and column-level `UPDATE` on the user-editable columns only (`display_name`, `avatar_url`, `birth_date`, `sex`, `height_cm`, `activity_level`, `target_weight_kg`, `onboarding_completed`); `id`, `created_at` and `updated_at` are not client-writable (`updated_at` is set by the `set_updated_at()` trigger).
 - RLS: owner by `id = (select auth.uid())`. No delete from the client.
 - Current weight is **not** stored here: it is the latest row of `body_measurements` (onboarding inserts one).
 
@@ -144,12 +146,27 @@ RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.u
 | measured_at | timestamptz | |
 | weight_kg | numeric(5,2) | 20–400 |
 | body_fat_pct | numeric(4,1) null | 2–75 |
+| lean_mass_kg | numeric(5,2) null | from Health Connect |
+| water_kg | numeric(5,2) null | from Health Connect (body water mass) |
+| bone_kg | numeric(4,2) null | from Health Connect |
+| bmr_kcal | integer null | from Health Connect |
 | source | measurement_source | |
 | external_id | text null | Health Connect record id; `unique (user_id, external_id)` |
 
 Index: `(user_id, measured_at desc)`.
 
-Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24). The onboarding row is the user's earliest `source = 'manual'` row by `created_at` (tie-break `id`); this holds because nothing else writes `body_measurements` before onboarding completes.
+Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24). The onboarding row is the user's earliest `source = 'manual'` row by `created_at` (tie-break `id`); this holds because nothing else writes `body_measurements` before onboarding completes. The composition columns (`lean_mass_kg`, `water_kg`, `bone_kg`, `bmr_kcal`) are only written by the Health Connect sync (US-26); manual entries leave them null.
+
+### `body_circumferences` (US-25)
+| Column | Type | Notes |
+|---|---|---|
+| user_id | uuid | |
+| measured_at | timestamptz | |
+| site | circumference_site | |
+| value_cm | numeric(5,1) | 20–250 |
+| source | measurement_source | |
+
+Index: `(user_id, site, measured_at desc)`. Waist-to-hip ratio (WHR) is **derived** from the latest `waist` and `hip` rows, never stored.
 
 ### `health_sync_state` (US-26)
 `user_id` PK, `last_synced_at timestamptz`. (Per user, not per device: enough for Phase 1.)
@@ -278,6 +295,7 @@ foods 1─n food_portions
 auth.users 1─n meal_templates n─1 meal_slots
 auth.users 1─n meal_templates 1─n meal_template_items n─1 foods
 auth.users 1─n body_measurements
+auth.users 1─n body_circumferences
 auth.users 1─n routine_folders 1─n routines 1─n routine_exercises n─1 exercises
 auth.users 1─n workout_sessions 1─n workout_sets n─1 exercises
 ```

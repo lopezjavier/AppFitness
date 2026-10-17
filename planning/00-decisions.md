@@ -226,6 +226,17 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** `03-data-model.md` §3/§6 and the E4 story US-17 reflect this.
 - **Approval:** 2026-10-17, user.
 
+### ADR-35 · Body composition scope in E5 (weight)
+- **Context:** E5 covered weight and body fat only; a smart scale and Health Connect can carry more body-composition data, and users expect a goal weight and an understandance of their numbers.
+- **Decision:**
+  - Extra composition metrics (`lean_mass_kg`, `water_kg`, `bone_kg`, `bmr_kcal`) are stored on `body_measurements` but only written by the Health Connect sync; manual entries leave them null (`03-data-model.md` §4).
+  - Health Connect sync is **bidirectional**: it reads those records and writes the user's manual weight and body fat back when the permission is granted (`04-business-rules.md` §3.7).
+  - **Circumferences** live in their own `body_circumferences` table (site enum + `value_cm`); the waist-to-hip ratio is derived, never stored (`04-business-rules.md` §3.9).
+  - The **target weight** is a plain profile field (`profiles.target_weight_kg`); there is no date or estimated time to reach it.
+  - BMI is derived (not stored); metric interpretation is **informative only** and carries a non-medical disclaimer (`04-business-rules.md` §3.6, §3.8).
+- **Consequences:** `03-data-model.md` §1/§2/§4/§8, `04-business-rules.md` §3/§5, `01-phase1-scope.md` FR-3, `05-design-system.md` and the E5 stories US-25, US-26 and US-27 reflect this.
+- **Approval:** 2026-10-18, user.
+
 ---
 
 ## 2. Findings from the review of the original documents

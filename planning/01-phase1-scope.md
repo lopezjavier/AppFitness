@@ -45,11 +45,14 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 
 ### FR-3 · Weight tracking — Progress (E5)
-- FR-3.1 Manual weight logging (optional body fat %); edit and delete.
-- FR-3.2 Manual sync with Health Connect (weight and body fat % from smart scales).
+- FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.
+- FR-3.2 Manual sync with Health Connect, reading and writing weight, body fat, lean mass, body water, bone mass and BMR from smart scales.
 - FR-3.3 Progress chart with daily readings and a 7-day moving average.
 - FR-3.4 Time filters 1W, 1M, 3M, 6M, 1Y (UI: 1S, 1M, 3M, 6M, 1A).
 - FR-3.5 Weekly rate of change colored according to the goal.
+- FR-3.6 Target weight and distance to the goal.
+- FR-3.7 BMI and informative interpretation of the metrics (with a non-medical disclaimer).
+- FR-3.8 Compare two measurements (difference in weight and body fat against a chosen previous entry).
 
 ### FR-4 · Gym performance — Workout (E3, E6, E7)
 - FR-4.1 Exercise catalog seeded in Spanish (with the bundled RepDB thumbnail + start↔peak animation + Spanish instructions) and custom exercises.

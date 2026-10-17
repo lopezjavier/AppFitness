@@ -118,6 +118,10 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `RestTimerBar` | 48 dp, `surfaceOverlay`, cyan tabular countdown, bottom progress line, "+30s" and "Omitir" |
 | `MetricTile` | Technical label + `headlineMetric` value + unit |
 | `TrendPill` | Weekly rate pill (green/red/amber) |
+| `GoalCard` | Target weight and distance ("faltan 4,2 kg" / "objetivo alcanzado") with a progress bar |
+| `ComparisonDeltaRow` | Two measurements compared: metric label + signed delta in color ("−1,4 kg") |
+| `MetricInterpretationRow` | Metric value + status chip (low/normal/high) + short explanation; the list ends with the non-medical disclaimer |
+| `CircumferenceRow` | Body-site label + value in cm + date, with edit/delete; the site picker is a dropdown |
 | `SkeletonBox` | Animated placeholder (shimmer) |
 | `EmptyState` / `ErrorState` | 48 dp decorative icon (`inbox` / `error`, Material Symbols, tinted `textSecondary` / `error`) + optional title + message + primary action (`Reintentar` is required on `ErrorState`); max width 360 dp, centred; `ErrorState` text is a polite live region |
 | `OfflineBanner` | Full-width `surfaceRaised` strip below the Top Bar, 1 dp `borderSubtle` bottom line, 20 dp decorative `cloud_off` icon in `energyAmber` + "Sin conexión" `bodyMedium`; wraps at large font scale; polite live region; shown on every destination and layout (on the rail layout it spans the full width above the rail) |

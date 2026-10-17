@@ -1,17 +1,17 @@
 # E5 · Weight tracking → `v0.5.0`
 
 ## Goal
-Log body weight (manually or from the scale via Health Connect) and see the real trend by filtering out daily fluctuations.
+Log body weight, body fat, composition and body circumferences (manually or from the scale via Health Connect), track the real trend by filtering out daily fluctuations, and see how far the user is from their goal.
 
 ## Scope
-- Includes: manual logging, editing and deletion, manual Health Connect sync (weight and body fat %), metrics panel, chart with a 7-day moving average, time filters, weekly rate.
-- Out of scope: background sync, other Health Connect data (steps, sleep…), target weight with a date, photos.
+- Includes: manual logging, editing and deletion of weight and body circumferences, manual Health Connect sync (reading and writing weight and body fat plus lean mass, body water, bone mass and BMR from smart scales), target weight and distance to the goal, metrics panel with BMI, measurement comparison and informative interpretation, chart with a 7-day moving average, time filters, weekly rate.
+- Out of scope: background sync, other Health Connect data (steps, sleep…), target weight with a date or estimated time, photos.
 
 ## Dependencies
 E2 (profile, strategy and the `body_measurements` table).
 
 ## Tables
-`body_measurements`, `health_sync_state` (`03-data-model.md` §4).
+`body_measurements`, `body_circumferences`, `health_sync_state`, `profiles.target_weight_kg` (`03-data-model.md` §2, §4).
 
 ## Reference screen
 `design/stitch/progress/screen.png` (Health Connect banner, weight panel and chart). The strength section belongs to E3; the photo log is out of scope.
@@ -20,13 +20,13 @@ E2 (profile, strategy and the `body_measurements` table).
 
 ---
 
-## US-25 · Manual weight logging
+## US-25 · Manual weight and body measurements
 **As** a user
-**I want** to record my weight and, optionally, my body fat percentage
-**So that** I can track it even without a smart scale.
+**I want** to record my weight and, optionally, my body fat percentage and body circumferences
+**So that** I can track my body composition even without a smart scale.
 
 ```gherkin
-Feature: Manual weight logging
+Feature: Manual weight and body measurements
 
   Scenario: Logging today's weight
     Given the user is on the "Progreso" tab
@@ -59,14 +59,41 @@ Feature: Manual weight logging
     When the user edits a manual measurement or deletes it (with "Deshacer")
     Then the chart and metrics are recalculated
     And Health Connect measurements are shown with their icon and can only be deleted
+
+  Scenario: Logging a circumference
+    Given the "Circunferencias" section in Progress
+    When they tap "+ Medida", choose "Cintura" and enter 84,5 cm
+    Then a circumference measurement of 84.5 cm for the waist is created
+    And it appears in the waist history ordered by date
+
+  Scenario: Waist-to-hip ratio
+    Given a waist of 84,5 cm and a hip of 98,0 cm
+    Then the section shows the ratio "0,86"
+
+  Scenario: Editing and deleting a circumference
+    When the user edits a circumference value or deletes it
+    Then the ratio and the history are recalculated
+
+  Scenario Outline: Circumference validation
+    When they enter <value> cm
+    Then the "Guardar" button is disabled and the allowed range is shown
+
+    Examples:
+      | value |
+      | 19,9  |
+      | 251   |
 ```
+
+**Technical notes**
+- `body_circumferences` migration + RLS + pgTAP; the waist-to-hip ratio is derived in the domain (`04-business-rules.md` §3.9), never stored.
+- The circumference site picker offers neck, chest, waist, hip, arm, thigh and calf; value in cm with 1 decimal.
 
 ---
 
 ## US-26 · Manual Health Connect sync
 **As** a user with a smart scale
-**I want** to import with one button the weight and body fat readings my scale sends to Health Connect
-**So that** I don't have to copy them by hand.
+**I want** to import with one button the readings my scale sends to Health Connect and have my own entries written back
+**So that** my weight, body composition and other apps stay in sync without copying them by hand.
 
 ```gherkin
 Feature: Health Connect sync
@@ -74,7 +101,7 @@ Feature: Health Connect sync
   Scenario: First sync and permissions
     Given the user has never granted the app permissions in Health Connect
     When they tap "Sincronizar" on the Health Connect banner
-    Then the Health Connect permissions screen opens for reading weight and body fat
+    Then the Health Connect permissions screen opens for reading and writing weight and body fat
     When they grant them
     Then the app imports the readings from the last 90 days
     And the banner shows "Sincronizado ahora" with a green indicator
@@ -90,6 +117,21 @@ Feature: Health Connect sync
     Given a weight reading and a body fat reading with the same instant
     When they are synced
     Then they are stored as a single measurement with weight and fat percentage
+
+  Scenario: Extra composition metrics
+    Given a weigh-in with weight, body fat, lean mass, body water, bone mass and BMR in Health Connect
+    When it is synced
+    Then the measurement stores all of them in the same row
+
+  Scenario: Writing back a manual entry
+    Given the user has granted the write permission
+    When they log a weight of 73,9 kg and 15,1 % body fat manually
+    Then the app writes both values to Health Connect
+
+  Scenario: Writing back without permission
+    Given the user denied the write permission
+    When they log a weight manually
+    Then the measurement is saved in the app and nothing is written to Health Connect
 
   Scenario: Permissions denied
     When the user denies the permissions
@@ -107,20 +149,20 @@ Feature: Health Connect sync
 ```
 
 **Technical notes**
-- `HealthDataSource` (domain) + `HealthConnectDataSource` (androidMain): `readRecords` of `WeightRecord` and `BodyFatRecord` since `health_sync_state.last_synced_at`.
-- Upsert by `(user_id, external_id)` = the weight record's `metadata.id`. Weight/fat pairing by instant (± 2 min).
-- Manifest: `READ_WEIGHT` and `READ_BODY_FAT` permissions, `<queries>` for the Health Connect package and a *privacy policy rationale* activity (`ACTION_SHOW_PERMISSIONS_RATIONALE`) with a short privacy text.
-- The real Health Connect integration is not covered by automated tests: the ViewModel is tested with a `FakeHealthDataSource`, and the integration is tested manually on the user's phone.
+- `HealthDataSource` (domain) + `HealthConnectDataSource` (androidMain): `readRecords` of `WeightRecord`, `BodyFatRecord`, `LeanBodyMassRecord`, `BodyWaterMassRecord`, `BoneMassRecord` and `BasalMetabolicRateRecord` since `health_sync_state.last_synced_at`, and `insertRecords` for the write-back (`04-business-rules.md` §3.7).
+- Upsert by `(user_id, external_id)` = the weight record's `metadata.id`. Weight and the composition records are paired by instant (± 2 min).
+- Manifest: `READ/WRITE_WEIGHT`, `READ/WRITE_BODY_FAT`, `READ/WRITE_LEAN_BODY_MASS`, `READ/WRITE_BODY_WATER_MASS`, `READ/WRITE_BONE_MASS`, `READ/WRITE_BASAL_METABOLIC_RATE` permissions, `<queries>` for the Health Connect package and a *privacy policy rationale* activity (`ACTION_SHOW_PERMISSIONS_RATIONALE`) with a short privacy text.
+- The write-back never fails the save: a denied or revoked permission skips it. The real Health Connect integration is not covered by automated tests: the ViewModel is tested with a `FakeHealthDataSource`, and the integration is tested manually on the user's phone.
 
 ---
 
-## US-27 · Metrics panel and trend chart
+## US-27 · Metrics panel, goal and trend chart
 **As** a user going through a body composition change
-**I want** to see my smoothed weight trend and my weekly pace
-**So that** daily fluctuations don't frustrate me.
+**I want** to see my smoothed weight trend, my weekly pace, how far I am from my goal and how my metrics read
+**So that** daily fluctuations don't frustrate me and I understand my numbers.
 
 ```gherkin
-Feature: Weight trend
+Feature: Weight trend, goal and interpretation
 
   Background:
     Given the user has the "Déficit" strategy
@@ -132,9 +174,34 @@ Feature: Weight trend
     And the most recent body fat if available
     And the pill "−0,45 kg esta semana" in green
 
+  Scenario: BMI
+    Given a height of 178 cm and a current weight of 74,2 kg
+    Then the panel shows "IMC 23,4" with the status "Normal"
+
   Scenario: Pace against the goal
     Given the moving average rose 0.30 kg in the last week
     Then the pill shows "+0,30 kg esta semana" in red
+
+  Scenario: Target weight and distance
+    Given a target weight of 70,0 kg and a current weight of 74,2 kg
+    Then the goal card shows "faltan 4,2 kg"
+    When the user reaches 70,0 kg
+    Then the goal card shows "objetivo alcanzado"
+
+  Scenario: Setting the target weight
+    Given no target weight is set
+    When the user taps "Fijar objetivo" and enters 70,0 kg
+    Then the target is saved in their profile and the goal card shows the distance
+
+  Scenario: Compare two measurements
+    Given a measurement of 74,2 kg on today and 75,6 kg one month ago
+    When the user selects the older measurement and taps "Comparar"
+    Then they see the difference "−1,4 kg" and the body fat difference
+
+  Scenario: Metric interpretation
+    When the user opens a metric detail
+    Then they see the value, a status and a short explanation
+    And the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico"
 
   Scenario: Two-layer chart
     Then the chart shows daily readings as low-opacity dots
@@ -158,7 +225,8 @@ Feature: Weight trend
 ```
 
 **Technical notes**
-- `DailyWeights`, `MovingAverage` and `WeeklyRate` use cases with the examples from `04-business-rules.md` §3.
+- `DailyWeights`, `MovingAverage`, `WeeklyRate`, `BMI`, `TargetDistance` and interpretation use cases with the examples from `04-business-rules.md` §3 (the interpretation ranges and the disclaimer are in §3.8).
+- The target weight is stored in `profiles.target_weight_kg` (E2 profile, edited from Progress).
 - Vico: dot layer + line; the range is loaded with 6 extra days before its start to compute the MA7 of the first day.
 - Filter remembered with DataStore (local preference).
 
@@ -166,6 +234,7 @@ Feature: Weight trend
 
 ## Epic Definition of Done
 - Manual and Health Connect weights coexist without duplicates; the weekly rate matches the reference calculation.
-- pgTAP for `body_measurements` (including `external_id` uniqueness) and `health_sync_state`.
-- Health Connect manual test documented in the PR.
+- The BMI, target distance and waist-to-hip ratio match the examples in `04-business-rules.md` §3.
+- pgTAP for `body_measurements` (including `external_id` uniqueness), `body_circumferences`, `health_sync_state` and `profiles.target_weight_kg`.
+- Health Connect read and write manual test documented in the PR.
 - `prodDebug` APK validated with the user's real scale. Tag `v0.5.0`.

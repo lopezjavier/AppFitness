@@ -9,7 +9,7 @@
 | E2 | Authentication and profile | US-05 … US-08 | Full UI | `v0.2.0` — login, onboarding, goals |
 | E3 | Training core | US-09 … US-15 | Full UI + backend | `v0.3.0` — routines, live session, catalog assets, progress charts |
 | E4 | Food diary | US-16 … US-24 | Full UI + backend | `v0.4.0` — meal logging, portions and diary history |
-| E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, Health Connect, chart |
+| E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, body composition, Health Connect and goal |
 | E6 | Training depth | US-28 … US-38 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management |
 | E7 | Training insights | US-39 … US-44 | Full UI | `v0.7.0` — advanced stats, muscle distribution, reports |
 | E8 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
@@ -58,9 +58,9 @@ E3, E4, E5, E6, E7 ────────────────────�
 | US-22 | E4 | Food portions and measures | UI + backend |
 | US-23 | E4 | Custom meal structure | UI + backend |
 | US-24 | E4 | Diary history and summaries | UI + backend |
-| US-25 | E5 | Manual weight logging | UI + backend |
+| US-25 | E5 | Manual weight and body measurements | UI + backend |
 | US-26 | E5 | Manual Health Connect sync | UI |
-| US-27 | E5 | Metrics panel and trend chart | UI |
+| US-27 | E5 | Metrics panel, goal and trend chart | UI |
 | US-28 | E6 | Exercise detail (history and personal records) | UI |
 | US-29 | E6 | Set types (warm-up, failure, drop) | UI + backend |
 | US-30 | E6 | RPE per set | UI + backend |
@@ -99,9 +99,12 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-2.10 Copy and repeat meals | US-19 |
 | FR-2.11 Configurable meals | US-23 |
 | FR-2.12 Diary views and history | US-19, US-24 |
-| FR-3.1 Manual weight | US-25 |
-| FR-3.2 Health Connect | US-26 |
+| FR-3.1 Manual weight and circumferences | US-25 |
+| FR-3.2 Health Connect (read and write) | US-26 |
 | FR-3.3 – FR-3.5 Chart, filters, rate | US-27 |
+| FR-3.6 Target weight | US-27 |
+| FR-3.7 BMI and interpretation | US-27 |
+| FR-3.8 Compare measurements | US-27 |
 | FR-4.1 Exercise catalog | US-09 |
 | FR-4.2 Routines | US-10 |
 | FR-4.3 Live session | US-11 |

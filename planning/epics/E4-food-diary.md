@@ -88,7 +88,7 @@ Feature: Text search and logging
     Given the user is on today's Diary
 
   Scenario: Debounced search
-    When they tap "+ Registro" and type "pechuga pollo" in the search box
+    When they add food and type "pechuga pollo" in the search box
     Then the search is triggered 400 ms after the last keystroke
     And skeletons are shown while loading
     And the results are listed with name, brand and kcal per 100 g

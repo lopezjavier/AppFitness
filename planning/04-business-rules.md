@@ -80,6 +80,32 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 ### 3.4 Chart filters
 1W = 7 days · 1M = 30 · 3M = 90 (default) · 6M = 180 · 1Y = 365, counted back from today (UI labels: 1S, 1M, 3M, 6M, 1A). The MA7 of the first day in the range uses data before the range when available.
 
+### 3.5 Target weight
+- `distance = current weight − target_weight`, in kg with 1 decimal and sign.
+- UI: positive → "X kg por encima del objetivo"; negative → "faltan X kg"; zero → "objetivo alcanzado".
+- "Current weight" is the latest `body_measurements` row. There is no date or estimated time to reach the target.
+
+### 3.6 BMI
+- `BMI = weight_kg / (height_cm / 100)²`, rounded to 1 decimal. Derived, never stored.
+- If the profile has no height, BMI is not shown.
+
+### 3.7 Body composition via Health Connect
+- Health Connect records map to `body_measurements` columns: weight → `weight_kg`, body fat → `body_fat_pct`, lean body mass → `lean_mass_kg`, body water mass → `water_kg`, bone mass → `bone_kg`, basal metabolic rate → `bmr_kcal`.
+- **Read:** a weight and a body-fat record with the same instant (± 2 min) are stored as a single measurement; the composition records are merged into the matching weight row by instant. Rows already imported (`external_id`) are never duplicated.
+- **Write:** when the user logs a measurement manually and has granted the write permission, the app writes weight and body fat (and any available composition values) to Health Connect, so other apps see the user's data. Without the permission, writing is skipped silently.
+- Sync is manual (the "Sincronizar" button); there is no background sync.
+
+### 3.8 Metric interpretation (informative)
+Every interpreted metric shows a value, a status and a short explanation. Ranges are for adults and are **informative only**; the screen carries the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico".
+
+- BMI: `< 18,5` underweight · `18,5–24,9` normal · `25,0–29,9` overweight · `≥ 30` obese.
+- Body fat % (adult): men `< 10` low · `10–20` normal · `20–25` high · `> 25` very high; women `< 18` low · `18–28` normal · `28–32` high · `> 32` very high.
+- Waist-to-hip ratio (§3.9): men `≤ 0,90` low risk · `> 0,90` high; women `≤ 0,85` low · `> 0,85` high.
+
+### 3.9 Waist-to-hip ratio (WHR)
+- `WHR = latest waist_cm / latest hip_cm`, rounded to 2 decimals. Requires both a `waist` and a `hip` measurement.
+- Show "Sin datos suficientes" if either is missing.
+
 ## 4. Training
 
 ### 4.1 Estimated 1RM — Epley
@@ -127,5 +153,5 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 
 ## 5. Formatting (UI, Spanish locale)
 - Thousands separator "." (also for 4 digits: "1.840") and decimal ",". Use a custom formatter in `commonMain`: the CLDR `es-ES` locale does not group 4-digit numbers.
-- Weight with 1 decimal; kcal and grams without decimals; integer percentages.
+- Weight with 1 decimal; cm with 1 decimal; BMI with 1 decimal; waist-to-hip ratio with 2 decimals; kcal and grams without decimals; integer percentages.
 - Dates: "Hoy", "Ayer" or "lun, 24 oct".
