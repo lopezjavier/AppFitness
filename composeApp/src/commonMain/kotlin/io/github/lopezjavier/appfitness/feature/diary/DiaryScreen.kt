@@ -3,22 +3,19 @@ package io.github.lopezjavier.appfitness.feature.diary
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_footer
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
-import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WipPlaceholder
 import org.jetbrains.compose.resources.stringResource
 
 /** Work-in-progress diary tab until its epic replaces it. */
 @Composable
-fun DiaryScreen(modifier: Modifier = Modifier, contentBottomClearance: Dp = Spacing.none) {
+fun DiaryScreen(modifier: Modifier = Modifier) {
     WipPlaceholder(
         message = stringResource(Res.string.wip_message),
         footer = stringResource(Res.string.wip_footer),
         testTagPrefix = "diary",
-        contentBottomClearance = contentBottomClearance,
         modifier = modifier.testTag("diary_screen"),
     )
 }

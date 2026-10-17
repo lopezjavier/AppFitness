@@ -25,7 +25,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ske
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_top_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_wip
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
-import io.github.lopezjavier.appfitness.composeapp.resources.fab_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
@@ -48,7 +47,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.UniversalFab
 import io.github.lopezjavier.appfitness.designsystem.WipPlaceholder
 import org.jetbrains.compose.resources.stringResource
 
@@ -125,13 +123,6 @@ private fun NavigationSection() {
                 modifier = Modifier.testTag("catalog_nav_rail").height(RailSampleHeight),
                 type = AppNavigationType.Rail,
                 windowInsets = WindowInsets(0),
-                header = {
-                    UniversalFab(
-                        text = stringResource(Res.string.fab_label),
-                        onClick = {},
-                        modifier = Modifier.testTag("catalog_rail_fab"),
-                    )
-                },
             )
         }
     }

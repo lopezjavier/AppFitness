@@ -51,11 +51,10 @@ class RootContentTest {
     }
 
     @Test
-    fun onboarding_showsStubWithoutNavBarFabOrAvatar() {
+    fun onboarding_showsStubWithoutNavBarOrAvatar() {
         rule.setContent { App(rootRoute = RootRoute.Onboarding, welcome = welcomeStub, onboarding = onboardingStub) }
         rule.onNodeWithTag("onboarding_screen").assertExists()
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
-        rule.onNodeWithTag("fab").assertDoesNotExist()
         rule.onNodeWithTag("topbar_avatar").assertDoesNotExist()
     }
 

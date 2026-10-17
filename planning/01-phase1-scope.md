@@ -67,7 +67,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E7 add features without a schema migration.
 
 ### FR-5 · Cross-cutting (E1, E8)
-- FR-5.1 4-tab navigation (Diario, Entreno, Progreso, Perfil) with a contextual FAB; the Perfil tab icon is the user's Google photo (ADR-10, ADR-22, ADR-26).
+- FR-5.1 4-tab navigation (Diario, Entreno, Progreso, Perfil); the Perfil tab icon is the user's Google photo (ADR-10, ADR-22, ADR-26, ADR-36).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
 - FR-5.4 "Acerca de · Licencias" screen (E8, US-45): version/build, the RepDB and Open Food Facts credits and the open-source licences, opened from Profile.

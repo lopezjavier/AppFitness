@@ -100,7 +100,7 @@ val TabRoute.tab: TopLevelTab
             ProgressGraph, ProgressHome -> TopLevelTab.Progress
         }
 
-/** What the shell draws around a destination. [fabAction] derives the FAB from it (hidden on [FullScreen]). */
+/** What the shell draws around a destination: top bar plus bottom bar, or a full-screen chrome. */
 sealed interface ShellChrome {
     /** Top bar with avatar plus the bottom bar. */
     data class Tabs(val tab: TopLevelTab) : ShellChrome

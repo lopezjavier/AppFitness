@@ -28,7 +28,7 @@ object AppShapes {
     val lg = RoundedCornerShape(AppRadius.lg)
     val xl = RoundedCornerShape(AppRadius.xl)
 
-    /** Chips, pills, round checkbox, FAB. */
+    /** Chips, pills, round checkbox. */
     val full = CircleShape
 
     /** Bottom sheet: only the top corners are rounded. */

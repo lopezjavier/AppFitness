@@ -24,7 +24,6 @@ E2. Independent of E4 and E5.
 ## Workout tab navigation
 - Main view: "Mis rutinas" (list) + "Empezar entreno vacío" button + access to "Historial".
 - If there is an `in_progress` session, the tab opens the live session directly.
-- "+ Registro": Remove this button from this screen, it is not useful here.
 
 ## Exercise assets (RepDB free)
 - The catalog ships the **RepDB free** set (~495 exercises): thumbnail, `inicio`/`final` poses and Spanish instructions, in `app/assets/exercises/` (`library.json`, ≈16 MB). Catalog text and images live in the client, never in the DB or a CDN (ADR-30).

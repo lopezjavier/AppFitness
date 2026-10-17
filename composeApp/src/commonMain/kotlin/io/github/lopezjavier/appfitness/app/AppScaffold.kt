@@ -5,7 +5,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -18,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +29,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.fab_label
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_avatar_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppNavigation
@@ -43,17 +40,15 @@ import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.UniversalFab
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * App shell: top app bar, tab navigation (tabs only), the contextual FAB ([fabAction], tabs only) with
- * its WIP sheet, and the NavHost. On [AppNavigationType.Bar] (compact widths) the navigation is the
- * bottom bar and the FAB sits in the Scaffold slot; on [AppNavigationType.Rail] (>= 600 dp) a side rail
- * carries the FAB at its top. The NavHost is the same composition in both, so switching keeps the
- * active tab, scroll and the open sheet. While [isOffline], the "Sin conexión" [OfflineBanner] sits right
- * below the top bar on every destination and layout and pushes the content (and, on the rail layout,
- * the rail) down; on the rail layout it spans the full width above the rail.
+ * App shell: top app bar, tab navigation (tabs only) and the NavHost. On [AppNavigationType.Bar]
+ * (compact widths) the navigation is the bottom bar; on [AppNavigationType.Rail] (>= 600 dp) a side
+ * rail. The NavHost is the same composition in both, so switching keeps the active tab and scroll.
+ * While [isOffline], the "Sin conexión" [OfflineBanner] sits right below the top bar on every
+ * destination and layout and pushes the content (and, on the rail layout, the rail) down; on the rail
+ * layout it spans the full width above the rail.
  */
 @Composable
 internal fun AppScaffold(
@@ -68,13 +63,9 @@ internal fun AppScaffold(
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
     val chrome = entry.chrome()
-    val fabAction = chrome.fabAction()
-    // Stored action, not the live chrome: the sheet title stays consistent if the chrome changes underneath.
-    var openSheet by rememberSaveable { mutableStateOf<FabAction?>(null) }
     val (avatarButton, backButton) = rememberTopBarButtons(navController, entry)
     val isBar = navigationType == AppNavigationType.Bar
     val onTabSelect: (Int) -> Unit = { navController.navigateToTab(TopLevelTab.entries[it]) }
-    val fabLabel = stringResource(Res.string.fab_label)
     Scaffold(
         modifier = modifier,
         containerColor = AppTheme.colors.surfaceBase,
@@ -87,11 +78,6 @@ internal fun AppScaffold(
                     selectedIndex = chrome.tab.ordinal,
                     onItemSelect = onTabSelect,
                 )
-            }
-        },
-        floatingActionButton = {
-            if (isBar && fabAction != null) {
-                UniversalFab(text = fabLabel, onClick = { openSheet = fabAction }, modifier = Modifier.testTag("fab"))
             }
         },
     ) { innerPadding ->
@@ -107,12 +93,6 @@ internal fun AppScaffold(
                             items = items,
                             selectedIndex = chrome.tab.ordinal,
                             onTabSelect = onTabSelect,
-                            header = {
-                                // Same tag as the phone FAB; the tab's contextual action decides whether it shows.
-                                fabAction?.let { action ->
-                                    UniversalFab(fabLabel, onClick = { openSheet = action }, Modifier.testTag("fab"))
-                                }
-                            },
                             modifier = it,
                         )
                     }
@@ -122,7 +102,6 @@ internal fun AppScaffold(
             )
         }
     }
-    openSheet?.let { WipActionSheet(action = it, onDismiss = { openSheet = null }) }
 }
 
 /**
@@ -177,7 +156,6 @@ private fun ShellRail(
     items: List<AppNavigationItem>,
     selectedIndex: Int,
     onTabSelect: (Int) -> Unit,
-    header: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AppNavigation(
@@ -186,7 +164,6 @@ private fun ShellRail(
         onItemSelect = onTabSelect,
         modifier = modifier,
         type = AppNavigationType.Rail,
-        header = header,
     )
 }
 
@@ -232,8 +209,6 @@ private fun ShellContent(
             tabPadding = tabPadding,
             fullScreenPadding = innerPadding,
             features = features,
-            // Constant across tab <-> Profile, like the padding above: the tab's content never shifts.
-            tabContentBottomClearance = insets.contentBottomClearance,
             onSignOut = onSignOut,
         )
         if (navigationType == AppNavigationType.Rail) {

@@ -7,7 +7,6 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -71,18 +70,6 @@ class ShellRailContentTest {
         rule.waitForIdle()
         rule.onNodeWithTag("nav_tab_progress").assertIsSelected()
         rule.onNodeWithTag("progress_wip_message").assertDoesNotExist()
-    }
-
-    @Test
-    fun switchingLayout_keepsOpenSheet() {
-        var type by mutableStateOf(AppNavigationType.Bar)
-        rule.setContent { AppTheme { AppScaffold(navigationType = type) } }
-        rule.onNodeWithTag("fab").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("wip_sheet_title").assertTextEquals("Añadir alimento")
-        type = AppNavigationType.Rail
-        rule.waitForIdle()
-        rule.onNodeWithTag("wip_sheet_title").assertTextEquals("Añadir alimento")
     }
 
     @Test

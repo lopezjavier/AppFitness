@@ -30,7 +30,6 @@ object WipPlaceholderDefaults {
 /**
  * "Work in progress" screen body: message, shimmering skeleton cards and a footer, in a
  * scrollable list.
- * [contentBottomClearance] is extra bottom content padding (not viewport), e.g. for the FAB.
  * Test tags: `<prefix>_wip_list`, `<prefix>_wip_message`, `<prefix>_wip_footer`.
  */
 @Composable
@@ -40,7 +39,6 @@ fun WipPlaceholder(
     testTagPrefix: String,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
-    contentBottomClearance: Dp = Spacing.none,
 ) {
     // The list spacing is cardGap, so the extra gaps below top it up to blockGap.
     val extraBlockGap = Spacing.blockGap - Spacing.cardGap
@@ -51,7 +49,7 @@ fun WipPlaceholder(
             start = Spacing.screenMargin,
             end = Spacing.screenMargin,
             top = Spacing.lg,
-            bottom = Spacing.lg + contentBottomClearance,
+            bottom = Spacing.lg,
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
