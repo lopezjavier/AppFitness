@@ -156,7 +156,6 @@ Feature: Barcode scanning
 
 **Technical notes**
 - `BarcodeScanner` (domain) + ML Kit `GmsBarcodeScanning` implementation (EAN-13, EAN-8, UPC-A, UPC-E formats) in androidMain.
-- Maestro cannot use the camera: the `local` flavor exposes a hidden "manual code" field in debug (testTag `food_scan_debug_input`) that injects the code into the same flow.
 
 ---
 
@@ -288,5 +287,5 @@ Feature: Meal templates
 ## Epic Definition of Done
 - A full breakfast logged from a template in 1 tap, and a new food via search in ≤ 3 taps after opening the search.
 - `deno test` tests for the functions with fixtures; pgTAP for the 4 tables.
-- Maestro regression green.
+- Host (Robolectric) tests cover the Gherkin scenarios.
 - `prodDebug` APK validated with real foods scanned by the user. Tag `v0.3.0`.

@@ -299,5 +299,5 @@ Feature: Workout history
 ## Epic Definition of Done
 - A full workout (4-exercise routine with a superset) is logged without screen locks, with correct ghost data and rest periods.
 - pgTAP for the 5 tables and for `last_performance`.
-- Maestro regression green (full session, timer with short durations configured for testing).
+- Host (Robolectric) tests cover a full session (timer with short durations configured for testing).
 - `prodDebug` APK validated during a real workout by the user. Tag `v0.5.0`.

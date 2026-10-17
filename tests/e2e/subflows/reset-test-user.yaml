@@ -1,8 +1,0 @@
-# Sets the seeded test user to "not onboarded" (profile biometrics null, no weight rows).
-# Needs: -e SUPABASE_LOCAL_PUBLISHABLE_KEY=<PUBLISHABLE_KEY from `npx supabase status`>
-appId: io.github.lopezjavier.appfitness.local
----
-- runScript:
-    file: ../scripts/test-user-state.js
-    env:
-      MODE: reset

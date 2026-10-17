@@ -39,7 +39,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Text files are clean UTF-8 (no BOM, CRLF or mojibake)
         run: bash scripts/check-text-encoding.sh
-      - name: E2E flows declare tags
-        run: bash scripts/check-e2e-tags.sh
       - name: Delivery script unit tests
         run: python3 -m unittest scripts/test_deliver_apk.py

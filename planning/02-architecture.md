@@ -71,7 +71,6 @@
   tests/            ← pgTAP (*.test.sql)
   functions/        ← food-search, food-barcode, health, _shared/
   seed.sql          ← test user (local only) + exercise catalog
-/tests/e2e          ← Maestro flows <task-id>.yaml + shared subflows (login.yaml)
 /.github/workflows  ← android-ci, supabase-ci, deploy-supabase, keepalive, security
 /design/stitch      ← Stitch mockups (visual reference)
 /gradle/libs.versions.toml
@@ -104,14 +103,14 @@
 | Scanner | `com.google.android.gms:play-services-code-scanner` |
 | Health | `androidx.health.connect:connect-client` |
 | Local preferences | DataStore (multiplatform) |
-| Tests | kotlin-test, kotlinx-coroutines-test, Turbine, MockK (Android host tests only: `androidHostTest` in the KMP modules, `src/test*` in `androidApp`; ADR-19), Robolectric + Compose UI test (`androidHostTest`: semantics and touch-target checks; needs `--add-opens` JVM args, set in `composeApp/build.gradle.kts`), Maestro (E2E) |
+| Tests | kotlin-test, kotlinx-coroutines-test, Turbine, MockK (Android host tests only: `androidHostTest` in the KMP modules, `src/test*` in `androidApp`; ADR-19), Robolectric + Compose UI test (`androidHostTest`: semantics and touch-target checks; needs `--add-opens` JVM args, set in `composeApp/build.gradle.kts`) |
 | Quality | ktlint (Gradle plugin), detekt + Compose rules (io.nlopez.compose.rules); shared config in .editorconfig and config/detekt/detekt.yml, no baseline |
 
 ## 5. Per-environment configuration (flavors)
 
 | Flavor | Supabase | Login | Use |
 |---|---|---|---|
-| `local` | `http://10.0.2.2:54321` (Docker Supabase as seen from the emulator) | Google + "Test login" button (email/password, seeded user) | Development and Maestro |
+| `local` | `http://10.0.2.2:54321` (Docker Supabase as seen from the emulator) | Google + "Test login" button (email/password, seeded user) | Development |
 | `prod` | Cloud Supabase project | Google only | APK delivered to the user |
 
 - Flavors and `BuildConfig` live only in `androidApp` (ADR-19): the KMP library modules have a single variant. `minSdk` 26 (ADR-21); `compileSdk`/`targetSdk` 37.

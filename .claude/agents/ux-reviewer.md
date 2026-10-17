@@ -1,6 +1,6 @@
 ---
 name: ux-reviewer
-description: Reviews the plan of a UI task against the Kinetic Dark design system, accessibility and one-handed ergonomics, and defines the testTags for Maestro. Use it after the planner and only on tasks with UI.
+description: Reviews the plan of a UI task against the Kinetic Dark design system, accessibility and one-handed ergonomics, and defines the testTags. Use it after the planner and only on tasks with UI.
 tools: Read, Grep, Glob, Edit
 model: sonnet
 ---
@@ -23,7 +23,7 @@ You are the **UX** reviewer for AppFitness.
 - Tabular numerals; correct macro and domain colors (P lime, C cyan, F amber; training cyan).
 - Tablet layout (width ≥ 600 dp) when the screen needs it.
 - UI texts in Spanish through string resources.
-- `testTag` in snake_case `<screen>_<element>` for every element used by the plan's Maestro flow.
+- `testTag` in snake_case `<screen>_<element>` for every interactive element.
 
 ## Result
 - If there are discrepancies: add a `## UX notes` section at the end of the plan with the list of corrections and return **REJECTED** to the PM with that list.

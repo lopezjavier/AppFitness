@@ -12,7 +12,6 @@ Supersedes the original local development notes (kept outside the repository). S
 | Node.js LTS | `npx supabase` | `npx supabase --version` |
 | Deno 2.9.7 (same as `supabase-ci`) | Edge Function tests | `deno --version` |
 | Git + authenticated GitHub CLI | Version control and PRs | `gh auth status` |
-| Maestro CLI | E2E tests | `maestro --version` |
 
 ## 2. Accounts and external configuration 👤
 
@@ -77,21 +76,20 @@ npx supabase stop
 ```
 - `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...`.
 - The root `deno.json` only configures Deno tooling for `supabase/functions/` (fmt/lint/test scope, no lockfile, no `node_modules` resolution: the root `package.json` only pins the Supabase CLI). Functions import external code with exact inline specifiers (`npm:postgres@3.4.9`, `jsr:@std/assert@1.0.19`), bumped manually.
-- Locally the Email provider is enabled and `supabase/seed.sql` creates the test user used by the `local` flavor's "Test login" button and by Maestro:
+- Locally the Email provider is enabled and `supabase/seed.sql` creates the test user used by the `local` flavor's "Test login" button:
   - email `test@appfitness.local`, password `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`;
   - its `profiles` row comes from the `on_auth_user_created` trigger (display name "Usuario de prueba") and `seed.sql` then marks it as onboarded (`onboarding_completed = true`, male, born 1999-06-15, 178 cm, moderate activity), so Test login lands on Diario; flows that need a not-onboarded user reset the flag themselves and restore it; `supabase/tests/seed.test.sql` checks all of this.
   - `seed.sql` is never applied in production: `deploy-supabase` runs `supabase db push` without `--include-seed`.
-- Google Sign-In locally: configure `[auth.external.google]` in `supabase/config.toml` with `env(...)` for manual testing; Maestro always uses "Test login".
+- Google Sign-In locally: configure `[auth.external.google]` in `supabase/config.toml` with `env(...)` for manual testing.
 
 ### 3.3 App
 ```bash
 ./gradlew :androidApp:installLocalDebug     # emulator + local Supabase ("AppFitness Local")
 ./gradlew testLocalDebugUnitTest            # unit tests of every module
 ./gradlew :androidApp:assembleProdDebug     # delivery APK: androidApp/build/outputs/apk/prod/debug/
-maestro test -e SUPABASE_LOCAL_PUBLISHABLE_KEY=<PUBLISHABLE_KEY from `npx supabase status`> --test-output-dir tests/e2e/screenshots tests/e2e/   # full E2E regression (checkpoints, epic closure); screenshots in tests/e2e/screenshots/ (gitignored); per task add --include-tags=<areas> (e.g. shell,catalog)
 ```
 
-**Android 17 (API 37) and the local flavor:** apps targeting API 37 need the runtime permission `ACCESS_LOCAL_NETWORK` to reach private addresses such as the emulator's `10.0.2.2`. The `local` manifest declares it, but it must be granted after every install of the local build, otherwise requests to the local Supabase time out without reaching it: `adb shell pm grant io.github.lopezjavier.appfitness.local android.permission.ACCESS_LOCAL_NETWORK` (or install with `adb install -g`). `./gradlew :androidApp:installLocalDebug` does not grant it (AGP's install task has no grant-all option), so Maestro flows and manual checks run the `pm grant` line first.
+**Android 17 (API 37) and the local flavor:** apps targeting API 37 need the runtime permission `ACCESS_LOCAL_NETWORK` to reach private addresses such as the emulator's `10.0.2.2`. The `local` manifest declares it, but it must be granted after every install of the local build, otherwise requests to the local Supabase time out without reaching it: `adb shell pm grant io.github.lopezjavier.appfitness.local android.permission.ACCESS_LOCAL_NETWORK` (or install with `adb install -g`). `./gradlew :androidApp:installLocalDebug` does not grant it (AGP's install task has no grant-all option), so manual checks run the `pm grant` line first.
 
 ## 4. Deployment
 

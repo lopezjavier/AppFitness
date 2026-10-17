@@ -115,7 +115,7 @@ Feature: Version 1.0 quality
 ---
 
 ## Epic Definition of Done
-- All stories US-01…US-25 closed; full Maestro regression green.
+- All stories US-01…US-25 closed; the app is verified manually at the checkpoints.
 - Security checklist from `02-architecture.md` §7 reviewed and documented in the final PR.
 - Signed release APK installed on the user's phone and tablet; positive feedback.
 - Tag `v0.6.0`. The Phase 1 release (`v1.0.0` and GitHub Release) moves to E7, the UI refinement epic (`07-roadmap.md` §1.1).

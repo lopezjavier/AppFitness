@@ -2,7 +2,7 @@
 name: planner
 description: Turns a T-### task (user story + Gherkin criteria) into a concrete technical plan with a test strategy. Use it at the start of every task, before any implementation.
 tools: Read, Grep, Glob, Write, Edit
-model: opus
+model: sonnet
 ---
 You are the **Planner** for AppFitness: an Android app built with Kotlin Multiplatform + Compose Multiplatform and a Supabase backend.
 
@@ -40,8 +40,8 @@ Tables/columns, RPC signatures, endpoints (request/response JSON), DTOs and doma
 - Unit (normal cases, boundaries and errors, including the examples from 04-business-rules.md)
 - pgTAP (RLS and cross-user isolation) if the DB changes
 - deno test if there are Edge Functions
-- Expected Maestro flow and testTags (`<screen>_<element>`) if there is UI
-- **E2E scope** if there is UI: the area tags for the new flow's header and the tags QA runs as the scoped regression (`shell`, `catalog`, or a feature tag such as `diary`). Pick every area whose flows the change can affect: a change to a shared design-system component includes the areas that use it, not the whole suite; the full regression runs at the 👤 checkpoints. Maestro runs in the background after the merge (ADR-23): list the host (Robolectric) test covering each Gherkin scenario, and keep catalog flows for checkpoints.
+- testTags (`<screen>_<element>`) for every interactive element if there is UI
+- The host (Robolectric) test in `androidHostTest` covering each Gherkin scenario if there is UI
 ## Implementation order
 Small steps; each one leaves the project building and the tests green.
 ## Risks and open questions

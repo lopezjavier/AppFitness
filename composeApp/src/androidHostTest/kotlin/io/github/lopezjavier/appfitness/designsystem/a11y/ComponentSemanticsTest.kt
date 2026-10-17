@@ -106,7 +106,7 @@ class ComponentSemanticsTest {
     @Test
     fun macroSlider_header_mergedIntoOneStop() {
         rule.setContent { AppTheme { MacroSlider("Proteínas", Macro.Protein, 30, 180, 720, {}) } }
-        // hideFromAccessibility() would drop "30 %" from the uiautomator tree (T-024 Maestro asserts it), so the
+        // hideFromAccessibility() would drop "30 %" from the semantics tree, so the
         // header is merged instead: one TalkBack stop for the three texts rather than three.
         rule.onNode(hasText("30 %"))
             .assert(

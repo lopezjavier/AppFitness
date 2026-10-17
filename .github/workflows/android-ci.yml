@@ -33,7 +33,7 @@ jobs:
           # 'every': a changed file counts only if it matches every pattern, i.e. it is outside all the
           # excluded paths; the build runs when at least one file counts. Excluded: the backend (its own
           # workflow) and text-only files the build never reads (docs, task files, agent instructions,
-          # Maestro flows, design mockups). A skipped job still reports success to the required check;
+          # design mockups). A skipped job still reports success to the required check;
           # gitleaks still runs on every PR.
           predicate-quantifier: 'every'
           filters: |
@@ -43,7 +43,6 @@ jobs:
               - '!planning/**'
               - '!tasks/**'
               - '!design/**'
-              - '!tests/e2e/**' # safe only while Maestro does not run in CI (T-032 dropped)
               - '!.claude/**'
               - '!.agents/**'
 

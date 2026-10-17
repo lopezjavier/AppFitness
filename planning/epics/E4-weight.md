@@ -110,7 +110,7 @@ Feature: Health Connect sync
 - `HealthDataSource` (domain) + `HealthConnectDataSource` (androidMain): `readRecords` of `WeightRecord` and `BodyFatRecord` since `health_sync_state.last_synced_at`.
 - Upsert by `(user_id, external_id)` = the weight record's `metadata.id`. Weight/fat pairing by instant (± 2 min).
 - Manifest: `READ_WEIGHT` and `READ_BODY_FAT` permissions, `<queries>` for the Health Connect package and a *privacy policy rationale* activity (`ACTION_SHOW_PERMISSIONS_RATIONALE`) with a short privacy text.
-- Maestro cannot interact with Health Connect: the ViewModel is tested with a `FakeHealthDataSource`; QA does a manual test on the emulator (Health Connect allows entering test data) and on the user's phone.
+- The real Health Connect integration is not covered by automated tests: the ViewModel is tested with a `FakeHealthDataSource`, and the integration is tested manually on the user's phone.
 
 ---
 
@@ -167,5 +167,5 @@ Feature: Weight trend
 ## Epic Definition of Done
 - Manual and Health Connect weights coexist without duplicates; the weekly rate matches the reference calculation.
 - pgTAP for `body_measurements` (including `external_id` uniqueness) and `health_sync_state`.
-- Maestro regression green; Health Connect manual test documented in the PR.
+- Health Connect manual test documented in the PR.
 - `prodDebug` APK validated with the user's real scale. Tag `v0.4.0`.

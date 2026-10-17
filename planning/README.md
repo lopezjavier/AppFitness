@@ -28,7 +28,7 @@ Phase 2 (web client and AI) is out of scope for this planning; only what is defe
 
 ## Language
 
-All repository content (docs, code, comments, commits, PRs) is in **English**. The app UI is in **Spanish** (NFR-10): UI strings quoted in Gherkin scenarios stay in Spanish because they are the literal texts Maestro asserts on screen.
+All repository content (docs, code, comments, commits, PRs) is in **English**. The app UI is in **Spanish** (NFR-10): UI strings quoted in Gherkin scenarios stay in Spanish because they are the literal texts the tests assert.
 
 ## Identifier conventions
 

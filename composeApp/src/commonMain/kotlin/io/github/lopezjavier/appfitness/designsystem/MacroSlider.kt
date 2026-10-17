@@ -150,7 +150,7 @@ fun MacroSlider(
 @Composable
 private fun MacroSliderHeader(label: String, percent: Int, grams: Int, kcal: Int, valueColor: Color) {
     // One screen-reader stop instead of three. Not hidden: hideFromAccessibility() also removes the texts from the
-    // uiautomator tree that the T-024 Maestro flow reads.
+    // semantics tree the host tests read.
     Row(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
