@@ -1,31 +1,43 @@
-# E5 · Training → `v0.5.0`
+# E3 · Training core → `v0.3.0`
 
 ## Goal
-Plan routines calmly and run them at the gym with a "sweat-proof" interface: quick-to-log sets, previous performance visible, screen always on and an automatic rest timer.
+Plan routines calmly and run them at the gym with a "sweat-proof" interface: quick-to-log sets, previous performance visible, screen always on and an automatic rest timer. Then see the basic strength progress.
 
 ## Scope
-- Includes: exercise catalog, routines (with supersets), live session, ghost data, timer, history.
-- Out of scope: RPE, set types (warm-up/working), microcycles or weekly programs, cardio, public routine templates.
+- Includes: exercise catalog (with the RepDB asset bundle), a lightweight exercise detail, routines (with supersets), live session, ghost data, timer, history, and strength progress charts.
+- Out of scope: RPE, set types (warm-up/working), per-exercise metric types beyond weight × reps, warm-up/plate calculators, microcycles or weekly programs, cardio, public routine templates, advanced statistics. These arrive in **E6/E7** (`07-roadmap.md`).
+- The training tables ship **forward-compatible** (ADR-30): E3 renders weight × reps and `working` sets, but the model already carries the types and columns marked *(E6)* in `03-data-model.md` §5 and the live set row is built **polymorphic**, so E6 adds features without a migration.
 
 ## Dependencies
-E2. Independent of E3 and E4.
+E2. Independent of E4 and E5.
 
 ## Tables and RPC
-`exercises`, `routines`, `routine_exercises`, `workout_sessions`, `workout_sets`, RPC `last_performance` (`03-data-model.md` §5–6).
+`exercises`, `routines`, `routine_exercises`, `workout_sessions`, `workout_sets`, RPCs `last_performance`, `exercise_history` and `weekly_muscle_volume` (`03-data-model.md` §5–6).
 
 ## Reference screen
-`design/stitch/live-workout/screen.png` (rest bar, session header, exercise cards with a set table). Without RPE, CAL/EFEC labels or "Fase / Microciclo".
+`design/stitch/live-workout/screen.png` (rest bar, session header, exercise cards with a set table) and the "Fuerza y 1RM estimado" sections of `design/stitch/progress/screen.png`. Without RPE, CAL/EFEC labels or "Fase / Microciclo".
+
+## Progress tab placement
+- "Fuerza y 1RM estimado" summary card on the **Progreso** tab (the weight chart joins it in E5).
+- Per-exercise detail screen reachable from that card and from an exercise's detail in Workout/History.
 
 ## Workout tab navigation
 - Main view: "Mis rutinas" (list) + "Empezar entreno vacío" button + access to "Historial".
 - If there is an `in_progress` session, the tab opens the live session directly.
-- "+ Registro" FAB → Bottom Sheet: "Empezar entreno" (choose a routine or empty) / "Nueva rutina".
+- "+ Registro": Remove this button from this screen, it is not useful here.
+
+## Exercise assets (RepDB free)
+- The catalog ships the **RepDB free** set (~495 exercises): thumbnail, `inicio`/`final` poses and Spanish instructions, in `app/assets/exercises/` (`library.json`, ≈16 MB). Catalog text and images live in the client, never in the DB or a CDN (ADR-30).
+- The asset bundle is **provided by the user** (not committed to the repository): it is a manual prerequisite of the build. `app/assets/exercises/` must exist locally before assembling; the project's `.gitignore` excludes it so the RepDB assets are not redistributed in the repo.
+- Only the **male** variant. The animation is a **start↔peak crossfade** (3 s cycle, ease-in-out, a brief pause on each pose); the free tier has no GIF/video.
+- Visible attribution "Datos de ejercicios por RepDB (repdb.co)".
+- `exercises` gains `metric_type` (default `weight_reps`) and each catalog row carries a `key` that links to `library.json`; custom exercises have no media.
 
 > Gherkin convention: steps in English; quoted UI texts in Spanish (the app UI language, with decimal commas). Exercise names are Spanish catalog data.
 
 ---
 
-## US-18 · Exercise catalog
+## US-09 · Exercise catalog
 **As** a user
 **I want** to pick exercises from a Spanish catalog and create the missing ones
 **So that** I can build my routines without typing every exercise from scratch.
@@ -38,9 +50,26 @@ Feature: Exercise catalog
     When the user types "press" and filters by the muscle group "Pecho"
     Then they see "Press de banca con barra", "Press inclinado con mancuernas" and other chest exercises containing "press"
 
+  Scenario: Filter by equipment
+    When the user filters by the equipment "Mancuerna"
+    Then only dumbbell exercises are shown
+
   Scenario: Accent-insensitive search
     When they type "dominadas" or "Dominádas"
     Then they get the same results
+
+  Scenario: Catalog row with thumbnail
+    Given the exercise picker
+    Then each exercise row shows its thumbnail (male variant)
+    And an exercise without media (custom) shows the placeholder
+
+  Scenario: Exercise detail with animation and how-to
+    When the user taps "Press de banca con barra"
+    Then the detail shows the start↔peak animation and the "Cómo hacerlo" instructions in Spanish
+
+  Scenario: Attribution
+    Given the exercise catalog
+    Then the attribution "Datos de ejercicios por RepDB (repdb.co)" is visible
 
   Scenario: Creating a custom exercise
     When they don't find "Press Hammer unilateral" and tap "Crear ejercicio"
@@ -54,12 +83,14 @@ Feature: Exercise catalog
 ```
 
 **Technical notes**
-- `exercises` migration + seed of ~80 exercises (Spanish name, group, equipment) + pgTAP.
+- `exercises` migration + seed of the RepDB catalog (`name`, `key`, `muscle_group`, `equipment`, `metric_type`) + pgTAP. Instructions and images are **not** in the DB: they live in `library.json` in the client (ADR-30).
+- Assets bundled in `app/assets/exercises/` (thumbnails + `inicio`/`final` poses), ≈16 MB, male variant only; the animation is a 3 s start↔peak crossfade.
 - In-memory local search after loading the catalog once (it is small), with accent normalization.
+- The `key` links a catalog row to `library.json`; custom exercises have no `key` and no media.
 
 ---
 
-## US-19 · Routine builder
+## US-10 · Routine builder
 **As** a user
 **I want** to create routines with their exercises, order, supersets and targets
 **So that** they are ready before I go to the gym.
@@ -97,10 +128,11 @@ Feature: Creating and editing routines
 - `routines` + `routine_exercises` migration + RLS via parent + pgTAP.
 - Drag and drop with a reorderable Compose list (multiplatform library or own implementation); accessible alternative with "Subir/Bajar" (move up/down) in the exercise menu.
 - Transactional save of the routine and its exercises (RPC `save_routine(jsonb)` or delete+insert inside a SQL function) so routines are never left half-saved.
+- Columns for E6 (`folder_id`, `pinned_note`, `track_as_routine`, `auto_update_routine`, `is_next`, `target_reps_max`, `target_rpe`, `planned_set_type`, `target_weight_kg`) ship already (ADR-30); E3 does not render them.
 
 ---
 
-## US-20 · Live workout session
+## US-11 · Live workout session
 **As** a lifter at the gym
 **I want** to log each set quickly while I train
 **So that** my real performance is saved without interrupting the workout.
@@ -172,10 +204,11 @@ Feature: Live workout session
 - Every set change is persisted with an upsert by `(session_id, exercise_position, set_index)`; the retry queue lives only in the ViewModel's memory while the session is open (consistent with ADR-01).
 - Inputs with a decimal numeric keyboard; the KG column supports 0.25 kg precision.
 - Haptics through the `Haptics` interface (androidMain).
+- `workout_sets` already carries `set_type`, `rpe` and the per-metric columns, and `workout_sessions` carries `description`, `gym` and `paused_at` (ADR-30); E3 writes only `weight_kg`, `reps` and `set_type = working`. The set row is built **polymorphic** so E6 extends it without a rewrite.
 
 ---
 
-## US-21 · Previous performance (ghost data)
+## US-12 · Previous performance (ghost data)
 **As** a user pursuing progressive overload
 **I want** to see on each set what I did last time
 **So that** I know which weight and reps I need to beat.
@@ -205,10 +238,11 @@ Feature: Previous performance in the session
 
 **Technical notes**
 - `last_performance` RPC (one call per exercise when starting the session or adding an exercise) + pgTAP verifying it ignores other users' sessions and discarded or in-progress sessions.
+- E6 adds the "last time within the routine" mode; E3 always uses the last completed session regardless of routine.
 
 ---
 
-## US-22 · Non-blocking rest timer
+## US-13 · Non-blocking rest timer
 **As** an athlete training
 **I want** an automatic rest timer that doesn't stop me from using the app
 **So that** I respect my rest periods while I review or edit other exercises.
@@ -263,7 +297,7 @@ Feature: Rest timer
 
 ---
 
-## US-23 · Session history
+## US-14 · Session history
 **As** a user
 **I want** to browse my previous workouts
 **So that** I can review what I did and fix mistakes.
@@ -294,10 +328,62 @@ Feature: Workout history
     Then the next 20 are loaded
 ```
 
+**Technical notes**
+- Pagination by `started_at desc` (`limit`/`offset`). E6 adds the workout detail with muscle split, the calendar view and edit/copy/delete/save-as-routine.
+
+---
+
+## US-15 · Strength progress charts
+**As** a user aiming to get stronger
+**I want** to see how my estimated 1RM and my volume evolve
+**So that** I can measure my real progress for each exercise and muscle group.
+
+```gherkin
+Feature: Strength analytics
+
+  Scenario: Summary card on Progress
+    Given the user has trained "Press de banca con barra", "Sentadilla" and "Peso muerto" in the last 6 weeks
+    When they open the "Progreso" tab
+    Then the "Fuerza y 1RM estimado" card shows chips with their 3 most frequent exercises
+    And "Press de banca con barra" is selected by default
+
+  Scenario: Estimated 1RM record
+    Given their best historical Press de banca set is 100 kg × 4
+    When they select the "Press de banca con barra" chip
+    Then "Récord 1RM estimado: 113,5 kg" is shown
+    And if their best 1RM 30 days ago was 108.5 kg, "+5,0 kg este mes" is shown in green
+
+  Scenario: Exercise chart
+    When they open the "Press de banca con barra" detail
+    Then they see a chart of the best estimated 1RM per session
+    And a chart of the total volume per session
+    And they can filter by 1M, 3M, 6M and 1A
+
+  Scenario: Weekly volume per muscle group
+    When they open "Volumen por grupo muscular"
+    Then they see the total volume per muscle group for each of the last 8 weeks
+    And they can select a group to see only its evolution
+
+  Scenario: Exercise without enough data
+    Given an exercise with a single session
+    Then the detail shows that session's value and the message "Necesitas al menos 2 sesiones para ver la evolución"
+
+  Scenario: Exercises without load
+    Given "Dominadas" logged with 0 kg
+    Then the detail shows the evolution of max reps instead of 1RM and volume
+```
+
+**Technical notes**
+- `exercise_history` and `weekly_muscle_volume` RPCs + pgTAP with the examples from `04-business-rules.md` §4 (same values as the `EstimateOneRepMax` domain tests).
+- Vico charts in athleticCyan (training domain). E7 extends these charts with record markers and the non-weight metric families (US-39).
+
 ---
 
 ## Epic Definition of Done
 - A full workout (4-exercise routine with a superset) is logged without screen locks, with correct ghost data and rest periods.
-- pgTAP for the 5 tables and for `last_performance`.
+- pgTAP for the 5 tables and for `last_performance`, `exercise_history` and `weekly_muscle_volume`.
 - Host (Robolectric) tests cover a full session (timer with short durations configured for testing).
-- `prodDebug` APK validated during a real workout by the user. Tag `v0.5.0`.
+- The catalog loads from the in-app assets: rows show the male thumbnail, the exercise detail plays the start↔peak animation and shows the Spanish instructions, and the RepDB attribution is visible.
+- The "Fuerza y 1RM estimado" card and the per-exercise charts work with real session data.
+- The training schema is forward-compatible (ADR-30): the *(E6)* columns/enums exist and the set row is polymorphic, so E6 needs no migration.
+- `prodDebug` APK validated during a real workout by the user. Tag `v0.3.0`.

@@ -104,18 +104,35 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `ProgressRing` | kcal ring with normal / over-target (amber) states |
 | `MacroProgressBar` | Linear bar in the macro color, "142 g / 180 g · 79 %" |
 | `MacroSlider` | Slider in the macro color, % and grams/kcal |
+| `ViewModeSelector` | Detail / List / Summary segmented control for the diary (reuses `SegmentedSelector`; the chosen mode persists) |
+| `PortionSelector` | Amount field + portion dropdown ("100 g", "1 huevo"); the unit is the food's base unit (`g`/`ml`) |
+| `FavouriteToggle` | Star icon toggle (lime when starred) in food rows and food detail |
+| `MealSlotEditor` | Rename, reorder, enable/disable and add meals (drag handle, switch, add row) |
+| `MonthCalendarGrid` | Calendar month grid with a per-day kcal indicator; tap opens that day |
+| `DiaryHistoryRow` | Date + kcal + P/C/F mini bars for a day, with a weekly/monthly summary header |
 | `NumberInput` | `surfaceOverlay` background, centered tabular numerals, 1.5 dp border on focus; ghost placeholder |
 | `SetCompletionCheckbox` | 38 dp visual circle / 48 dp target; checked = lime fill + dark check + haptics |
 | `SetRow` | Index · previous (ghost) · KG · REPS · checkbox |
+| `ExerciseThumbnail` | Exercise image in list rows and detail (male variant), `surfaceOverlay` background, radius `md`; placeholder icon when there is no media (custom exercises) |
+| `ExerciseAnimation` | Start↔peak crossfade of the two poses, 3 s cycle, `ease-in-out`, a brief pause on each pose (see §6.1) |
 | `RestTimerBar` | 48 dp, `surfaceOverlay`, cyan tabular countdown, bottom progress line, "+30s" and "Omitir" |
 | `MetricTile` | Technical label + `headlineMetric` value + unit |
 | `TrendPill` | Weekly rate pill (green/red/amber) |
+| `GoalCard` | Target weight and distance ("faltan 4,2 kg" / "objetivo alcanzado") with a progress bar |
+| `ComparisonDeltaRow` | Two measurements compared: metric label + signed delta in color ("−1,4 kg") |
+| `MetricInterpretationRow` | Metric value + status chip (low/normal/high) + short explanation; the list ends with the non-medical disclaimer |
+| `CircumferenceRow` | Body-site label + value in cm + date, with edit/delete; the site picker is a dropdown |
 | `SkeletonBox` | Animated placeholder (shimmer) |
 | `EmptyState` / `ErrorState` | 48 dp decorative icon (`inbox` / `error`, Material Symbols, tinted `textSecondary` / `error`) + optional title + message + primary action (`Reintentar` is required on `ErrorState`); max width 360 dp, centred; `ErrorState` text is a polite live region |
 | `OfflineBanner` | Full-width `surfaceRaised` strip below the Top Bar, 1 dp `borderSubtle` bottom line, 20 dp decorative `cloud_off` icon in `energyAmber` + "Sin conexión" `bodyMedium`; wraps at large font scale; polite live region; shown on every destination and layout (on the rail layout it spans the full width above the rail) |
 | `WipPlaceholder` | Work-in-progress screen container (E1 only) |
 
 Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vectors, with a `contentDescription` on every actionable icon.
+
+### 6.1 Exercise media
+- The catalog bundles the RepDB free assets (male variant only): a **thumbnail** and two poses (`inicio`/`final`) per exercise, in `app/assets/exercises/` (ADR-30).
+- `ExerciseAnimation` renders the poses with a **start↔peak crossfade**: a 3 s cycle, `ease-in-out`, and a brief pause on each pose (the free tier has no GIF/video). It honours the system "remove animations" setting by showing the `inicio` pose only.
+- Attribution "Datos de ejercicios por RepDB (repdb.co)" is shown where the assets appear (catalog and exercise detail).
 
 ## 7. Accessibility
 

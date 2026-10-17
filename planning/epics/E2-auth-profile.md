@@ -1,7 +1,7 @@
 # E2 · Authentication and profile → `v0.2.0`
 
 ## Goal
-Each person signs in with their Google account, completes their biometric profile and defines their energy strategy and macro split. This data feeds the Diary (E3), the weight rate (E4) and the calculations across the app.
+Each person signs in with their Google account, completes their biometric profile and defines their energy strategy and macro split. This data feeds the Diary (E4), the weight rate (E5) and the calculations across the app.
 
 ## Scope
 - Includes: Google sign-in/sign-out, onboarding, profile editing, TDEE, strategy, calorie target, macros.
@@ -127,7 +127,7 @@ Feature: Biometric data onboarding
     Given a user who completed onboarding
     When they open Profile
     Then "Peso actual" shows their latest weight
-    And it cannot be edited there (weight logging arrives with US-15 in E4)
+    And it cannot be edited there (weight logging arrives with US-25 in E5)
 ```
 
 **Technical notes**
