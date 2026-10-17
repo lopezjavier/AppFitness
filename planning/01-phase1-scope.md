@@ -12,7 +12,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 | NFR-02 | 100% free | Supabase Free, GitHub Free with a public repo (unlimited Actions minutes, ADR-13), free OFF and Health Connect |
 | NFR-03 | Clients: Android phone and tablet | Adaptive layout by WindowSizeClass |
 | NFR-04 | Cloud data per profile | Supabase Postgres as the single source of truth (ADR-01) |
-| NFR-05 | Professional level | GitHub, Conventional Commits, PRs, mandatory CI, unit tests + pgTAP + Maestro |
+| NFR-05 | Professional level | GitHub, Conventional Commits, PRs, mandatory CI, unit and host tests + pgTAP |
 | NFR-06 | Security | RLS on every table with isolation tests; no secrets in the repo or the APK except the public Supabase publishable key |
 | NFR-07 | Modern, consistent design | Kinetic Dark design system implemented in Compose and reused across all screens |
 | NFR-08 | Web-ready (Phase 2) | KMP with logic and UI in `commonMain` (ADR-05) |

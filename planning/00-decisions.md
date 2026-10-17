@@ -11,13 +11,13 @@ Format: context → decision → consequences. A decision is only changed by add
 
 ### ADR-02 · Authentication: Google Sign-In
 - **Decision:** Credential Manager (`GetGoogleIdOption`) → ID token → `supabase.auth.signInWith(IDToken)` with the Google provider.
-- **Consequences:** no sign-up or password recovery screens. For E2E tests (Maestro cannot automate Google), the `local` flavor includes a "Test login" button using email/password against local Supabase and a seeded user. In the production Supabase project the email provider is disabled.
+- **Consequences:** no sign-up or password recovery screens. For local development, the `local` flavor includes a "Test login" button using email/password against local Supabase and a seeded user. In the production Supabase project the email provider is disabled.
 
 ### ADR-03 · Scope: original requirements only
 - **Decision:** the Stitch mockups are used as a **style** reference. Features that appear in the mockups but not in the original requirements are out of Phase 1 (see `01-phase1-scope.md`).
 
-### ADR-04 · Adaptive workflow (QA step amended by ADR-23)
-- **Decision:** tasks with UI follow the full flow (Planner → UX → Dev → QA Maestro → PR Creator → PR Reviewer). Infrastructure/backend tasks without UI skip UX and Maestro and are validated with pgTAP, Edge Function tests and CI.
+### ADR-04 · Adaptive workflow (QA step removed by ADR-27)
+- **Decision:** tasks with UI follow the full flow (Planner → UX → Dev → PR Creator → PR Reviewer). Infrastructure/backend tasks without UI are validated with pgTAP, Edge Function tests and CI.
 - **Consequences:** merging into `main` is gated by required CI checks (branch protection), not by the PR Reviewer's approval (GitHub does not allow approving your own PR). Details in `06-agent-workflow.md`.
 
 ### ADR-05 · Kotlin Multiplatform from day one
@@ -97,9 +97,9 @@ Format: context → decision → consequences. A decision is only changed by add
   - A job skipped by its `if:` conditional reports its check as passing, so a genuine supabase-only diff (`android=false`) satisfies `android-ci` without building.
   - Fail-open: a job whose `needs` fails is also skipped (and would pass). Comparing with `!= 'false'` means an empty output from a failed `changes` job makes the work job *run*, so the check only passes through a real green build or a genuine skip. `!cancelled()` (not `always()`) keeps runs superseded by `concurrency` from starting the build.
   - `workflow_dispatch` bypasses the filter and always builds.
-  - `android-ci` skips when every changed file is under a path the build never reads: `supabase/**` and, since 2026-10-13 (user request, PR #32), the text-only paths `**/*.md`, `planning/**`, `tasks/**`, `design/**`, `tests/e2e/**` (Maestro does not run in CI, T-032), `.claude/**` and `.agents/**`. The filter uses `predicate-quantifier: 'every'` with negated patterns, so a file counts only if it is outside all of them. The same pattern applies to `supabase-ci` (T-018) with the inverse filter (`supabase/**`).
+  - `android-ci` skips when every changed file is under a path the build never reads: `supabase/**` and, since 2026-10-13 (user request, PR #32), the text-only paths `**/*.md`, `planning/**`, `tasks/**`, `design/**`, `.claude/**` and `.agents/**`. The filter uses `predicate-quantifier: 'every'` with negated patterns, so a file counts only if it is outside all of them. The same pattern applies to `supabase-ci` (T-018) with the inverse filter (`supabase/**`).
   - The required check context is the job `name` (`android-ci`), unique across workflows, with `integration_id: 15368` (GitHub Actions), as for `gitleaks`.
-- **Consequences:** the job name is a contract with the ruleset (`.github/rulesets/main.json`): renaming it requires a ruleset update. Supabase-only and text-only PRs show `android-ci` as skipped and can merge (a docs-only merge to `main` produces no APK artifact). If a build step, test or CI e2e job ever starts reading an excluded path, remove it from the filter. The `changes` job costs a few seconds per run and needs `pull-requests: read` (granted on that job only). If GitHub ever reported a skipped required check as pending, the fallback is to keep the job always running and gate its steps with `if:` (same check name, ruleset unchanged).
+- **Consequences:** the job name is a contract with the ruleset (`.github/rulesets/main.json`): renaming it requires a ruleset update. Supabase-only and text-only PRs show `android-ci` as skipped and can merge (a docs-only merge to `main` produces no APK artifact). If a build step or test ever starts reading an excluded path, remove it from the filter. The `changes` job costs a few seconds per run and needs `pull-requests: read` (granted on that job only). If GitHub ever reported a skipped required check as pending, the fallback is to keep the job always running and gate its steps with `if:` (same check name, ruleset unchanged).
 - **Sources (checked 2026-10-12):**
   - GitHub Docs, "Troubleshooting required status checks", section "Handling skipped but required checks" (a job skipped by a conditional reports "Success"; a workflow skipped by path filtering stays "Pending" and blocks merging; a job depending on a failed job is skipped and may not block merging): https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks
   - `dorny/paths-filter` README (v4: `pull_request` uses the API file list; `push` to the default branch compares with the commit before the push; `predicate-quantifier`): https://github.com/dorny/paths-filter
@@ -120,7 +120,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** resolves finding #1 (§2) in favour of "3 tabs + profile via avatar". US-04's Gherkin, `01` FR-5.1, `05` §5–6 and tasks T-027/T-028 are updated; the T-021/T-022 code is adjusted in T-031.
 - **Approval:** 2026-10-12, user (Checkpoint E1-C feedback).
 
-### ADR-23 · Maestro QA in the background, findings as GitHub issues
+### ADR-23 · Maestro QA in the background, findings as GitHub issues (superseded by ADR-27)
 - **Context:** in E1, QA was the largest share of each task (30–100 min in T-027/T-028) and blocked the merge, yet it found no app bug: the 7 defects caught came from pr-reviewer. Host (Robolectric) tests already cover most UI scenarios.
 - **Decision:**
   - A UI task no longer waits for Maestro. After its merge, qa-engineer runs in the background in a separate worktree (`../AppFitness-qa`, on the merged `main`) while the next task starts: it writes `tests/e2e/T-###.yaml` and runs it plus the scoped regression, with a bounded brief (exact flows, at most 2 attempts per flow, never two Maestro runs at once).
@@ -154,6 +154,17 @@ Format: context → decision → consequences. A decision is only changed by add
   - The Top App Bar **avatar is removed** from every screen; `AppTopBar` shows the section title only. Profile is a normal tab destination: its own back stack, the bottom bar visible, no back arrow, and still **no FAB** (ADR-10/ADR-22).
 - **Consequences:** `01` FR-5.1, `05` §5–6, the E2 epic and T-037 (which implements it) are updated. The T-031/T-034 code (full-screen Profile route, top-bar avatar) is reworked in T-037; the e2e flows that open Profile from the avatar (`auth`, `shell`) are updated by QA after T-037. The photo in the tab is decorative: the visible label "Perfil" names the tab for TalkBack.
 - **Approval:** 2026-10-14, user (Checkpoint E2-A feedback).
+
+### ADR-27 · No Maestro QA; manual verification with the delivered APK
+- **Context:** the background Maestro QA (ADR-23) was the largest recurring cost per UI task, and the agent sessions spent most of their tokens writing and debugging `tests/e2e` flows, while the defects it caught were few and the host (Robolectric) tests already cover the Gherkin scenarios. The goal is to cut context and token use in Claude Code.
+- **Decision:**
+  - The `qa-engineer` subagent, the background QA step and the `../AppFitness-qa` worktree are removed from the flow.
+  - Every Gherkin UI scenario is covered by a deterministic host (Robolectric) test in `androidHostTest`, written with the task (frontend-developer rule 13).
+  - The app is verified by hand on real devices with `python scripts/deliver-apk.py`.
+  - A defect found in manual testing becomes a corrective `fix(T-###)` task; no time is spent debugging a UI-automation script.
+  - The Maestro infrastructure is removed: `tests/e2e/`, the `check-e2e-tags.sh` guard, the Maestro command rows and the `qa` GitHub-issue tracking.
+- **Consequences:** supersedes ADR-23 and drops the QA step from ADR-04. `CLAUDE.md`, `planning/06-agent-workflow.md`, the agent files and `README.md` are updated; the qa-engineer agent, `tests/e2e/` and `check-e2e-tags.sh` are removed.
+- **Approval:** 2026-10-17, user.
 
 ---
 
@@ -193,7 +204,7 @@ Format: context → decision → consequences. A decision is only changed by add
 | 21 | A single Kotlin developer agent; the backend had no owner or tests | `frontend-developer` and `backend-developer` agents |
 | 22 | Third-party skills (`npx skills add addyosmani/...`) installed without review | Reviewed; their principles apply with this project's commands (see `CLAUDE.md`) |
 | 23 | The Planner mentioned Room | Removed (ADR-01) |
-| 24 | Maestro cannot complete Google Sign-In | "Test login" button in the `local` flavor (ADR-02) |
+| 24 | Google Sign-In cannot be automated | "Test login" button in the `local` flavor (ADR-02) |
 | 25 | Gradle commands of a plain Android project, no flavors | KMP commands with flavors (`06-agent-workflow.md`) |
 | 26 | CI only deployed the backend; `setup-cli` with `version: latest`; reference to `analyze-meal` (Phase 2) | 4 workflows with pinned versions (`02-architecture.md`) |
 | 27 | Documents in the root and a misspelled file name | Content absorbed into `planning/` and `CLAUDE.md`; originals kept outside the repository |

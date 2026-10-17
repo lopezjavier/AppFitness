@@ -336,7 +336,7 @@ skip_nonce_check = false
 email_optional = false
 
 # Google Sign-In (ADR-02). Locally optional: with empty variables the stack still starts and only
-# email login works (used by "Test login" and Maestro). Production auth is set in the dashboard.
+# email login works (used by "Test login"). Production auth is set in the dashboard.
 [auth.external.google]
 enabled = true
 client_id = "env(GOOGLE_WEB_CLIENT_ID)"

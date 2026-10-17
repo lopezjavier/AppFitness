@@ -814,7 +814,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 # E2 · Authentication and profile
 
 Stories: `planning/epics/E2-auth-profile.md` (US-05…US-08). One task per story as a vertical slice (migration + RLS + pgTAP, repository, use case, ViewModel, screen, host tests); US-06's last scenario ("Editing data after onboarding") moves to T-037 because it needs US-07's TDEE. Plan: [tasks/plan.md](plan.md).
-Flow: every E2 task has UI (planner → ux-reviewer → developers → PR → review → merge; Maestro in the background after the merge, ADR-23). New e2e area tags: `auth`, `onboarding`, `profile`.
+Flow: every E2 task has UI (planner → ux-reviewer → developers → PR → review → merge; the app is verified manually at the checkpoints).
 Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR-24): onboarding resumes prefilled and re-saving updates the weight row; onboarding saves the default macros; Profile has one "Guardar"; "Peso actual" is read-only until E4.
 
 ## T-034: Sign in with Google, session routing and sign out
@@ -965,8 +965,6 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 **Host tests (per scenario):** `BalanceMacrosTest` (Auto-balance, Per-macro minimum, properties); `MacroTargetsTest` (Initial display grams); `ProfileViewModelTest` with fakes (Initial display, slider move → balanced state, Persistence → upsert with the percentages, Editing data → profile update + TDEE and stored target recalculated, read-only weight, US-07 strategy changes saved by the single "Guardar"); `ProfileScreenTest` (Robolectric: badge "TOTAL: 100 %", texts per macro, sliders' `stateDescription`, save button states).
 
-**E2E scope:** `profile`, `shell`, `auth` (the `shell` and `auth` flows that tap the avatar move to the Perfil tab; new `tests/e2e/T-037.yaml`: open the Perfil tab → change height → "Guardar" → TDEE changes; raise Proteínas → balanced values; save, relaunch, values persisted).
-
 **Verification:**
 - [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
 
@@ -982,7 +980,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 **Acceptance criteria:**
 - [ ] T-034…T-037 and T-039 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
-- [ ] Every background QA run finished, no open `qa` issue, full Maestro regression green (Test login).
+- [ ] Host (Robolectric) tests green for every E2 UI scenario; the user has verified the delivered APK at Checkpoint E2-B.
 - [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
 
 **Verification:**

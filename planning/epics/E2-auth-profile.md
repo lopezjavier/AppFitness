@@ -66,7 +66,6 @@ Feature: Google authentication
 **Technical notes**
 - `AuthCredentialProvider` interface (domain) + `GoogleAuthCredentialProvider` (androidMain, Credential Manager with `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce).
 - `supabase.auth.signInWith(IDToken)`; session persisted by supabase-kt; `sessionStatus` as a `Flow` to decide the root route (Welcome / Onboarding / Main).
-- Maestro subflow `tests/e2e/subflows/login.yaml`, reused by the rest of the stories.
 - Profile is reached from the 4th bottom tab "Perfil", whose icon is the user's Google photo; the top-bar avatar is removed (ADR-26, implemented in T-037).
 - The "Test login" button is shared UI, shown only when the build provides test credentials: the `local` flavor provides them (`FlavorTestLogin` source set) and `prod` provides none, so prod never shows the button nor contains the credentials.
 
@@ -243,5 +242,4 @@ Feature: Auto-balanced macro split
 ## Epic Definition of Done
 - A new user can: sign in, complete onboarding, set goals, close the app and get straight back in.
 - pgTAP isolation tests for `profiles`, `nutrition_goals` and `body_measurements`.
-- Maestro regression green (using "Test login").
 - `prodDebug` APK validated by the user with their real Google account. Tag `v0.2.0`.

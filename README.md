@@ -19,7 +19,7 @@ The app UI is in Spanish; the repository is in English.
 
 - **App:** Kotlin Multiplatform + Compose Multiplatform (Android in Phase 1; web in Phase 2), Koin, supabase-kt, Vico.
 - **Backend:** Supabase (Postgres with Row Level Security, Google Auth, Edge Functions in Deno/TypeScript).
-- **Quality:** ktlint, detekt, unit tests, pgTAP, Maestro (E2E) and GitHub Actions.
+- **Quality:** ktlint, detekt, unit tests, pgTAP and GitHub Actions.
 - **Design:** custom "Kinetic Dark" design system ([planning/05-design-system.md](planning/05-design-system.md)).
 
 ## Repository structure
@@ -29,19 +29,19 @@ planning/        Phase 1 planning: decisions, scope, architecture, data model,
                  business rules, design system, workflow and epics with Gherkin stories
 tasks/           Plan and task list of the current epic
 CLAUDE.md        Instructions for Claude Code (Project Manager role and project rules)
-.claude/agents/  Claude Code subagents (planner, ux-reviewer, developers, QA, PR)
+.claude/agents/  Claude Code subagents (planner, ux-reviewer, developers, PR)
 .agents/skills/  Agent skills (addyosmani/agent-skills), linked from .claude/skills/
 design/stitch/   Visual reference mockups (Google Stitch)
 ```
 
-Code lives in `androidApp/` (Android application: flavors, `MainActivity`), `composeApp/` (Compose UI, KMP library) and `shared/` (domain and data, KMP library), plus `supabase/` and `.github/`; `tests/e2e/` arrives with the first UI flow (see [planning/02-architecture.md](planning/02-architecture.md)).
+Code lives in `androidApp/` (Android application: flavors, `MainActivity`), `composeApp/` (Compose UI, KMP library) and `shared/` (domain and data, KMP library), plus `supabase/` and `.github/` (see [planning/02-architecture.md](planning/02-architecture.md)).
 
 ## How it is developed
 
 Development is done by **Claude Code** acting as a Project Manager that coordinates specialized subagents per task:
 
 ```
-planner → ux-reviewer → developer(s) → QA (Maestro) → PR creator → PR reviewer → merge (green CI)
+planner → ux-reviewer → developer(s) → PR creator → PR reviewer → merge (green CI)
 ```
 
 Details in [CLAUDE.md](CLAUDE.md) and [planning/06-agent-workflow.md](planning/06-agent-workflow.md).

@@ -17,13 +17,8 @@
 - [ ] `./gradlew testLocalDebugUnitTest`
 - [ ] `npx supabase test db`
 - [ ] `deno test --allow-all supabase/functions`
-- [ ] `maestro test --test-output-dir tests/e2e/screenshots tests/e2e/T-###.yaml`
 
 <!-- Remove the lines that do not apply and explain why. -->
-
-## QA notes / screenshots
-
-<!-- Maestro verdict, screenshots of UI changes. "N/A" if the task has no UI. -->
 
 ## Security checklist
 

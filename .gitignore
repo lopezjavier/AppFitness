@@ -32,9 +32,6 @@ supabase/.branches/
 # Node tooling (Supabase CLI pin)
 node_modules/
 
-# Maestro screenshots (QA evidence, not versioned)
-tests/e2e/screenshots/
-
 # Python bytecode
 __pycache__/
 *.pyc

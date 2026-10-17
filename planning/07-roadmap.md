@@ -95,7 +95,7 @@ E0 ──► E1 ──► E2 ──┬──► E3
 
 ## 5. Definition of Done for every story
 
-- Gherkin criteria covered by tests (unit and/or Maestro and/or pgTAP).
+- Gherkin criteria covered by tests (unit, host and/or pgTAP).
 - `ktlintCheck`, `detekt`, unit tests and, when applicable, `supabase test db` green locally and in CI.
 - Every new table has RLS and a cross-user isolation test.
 - UI built with design system components and tokens; testTags on interactive elements.

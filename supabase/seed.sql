@@ -1,7 +1,7 @@
 -- Local-only seed data (applied by `supabase db reset`; never in production:
 -- deploy-supabase runs `supabase db push` without --include-seed).
 --
--- Test user for local development, E2 "Test login" and Maestro:
+-- Test user for local development and E2 "Test login":
 --   email:    test@appfitness.local
 --   password: appfitness-local-test   (local-only, not a secret; see planning/08-environment-setup.md section 3.2)
 --   id:       00000000-0000-4000-8000-000000000001 (fixed)

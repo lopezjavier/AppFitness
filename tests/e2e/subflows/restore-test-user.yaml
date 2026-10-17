@@ -1,8 +1,0 @@
-# Restores the seeded test user to its onboarded seed state (and the seed 74.20 kg row).
-# Needs: -e SUPABASE_LOCAL_PUBLISHABLE_KEY=<PUBLISHABLE_KEY from `npx supabase status`>
-appId: io.github.lopezjavier.appfitness.local
----
-- runScript:
-    file: ../scripts/test-user-state.js
-    env:
-      MODE: restore

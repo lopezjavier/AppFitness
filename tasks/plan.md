@@ -1,7 +1,7 @@
 # Implementation Plan: E2 · Authentication and profile → `v0.2.0`
 
 ## Overview
-Each person signs in with Google, completes a 4-step onboarding (3 biometric steps + goals, "N / 4" since T-039), picks an energy strategy with a calorie target, and later edits their data, strategy and macro split on Profile. E2 is done when a new user can sign in, complete onboarding, set goals, close the app and get straight back in; `profiles`, `body_measurements` and `nutrition_goals` have pgTAP isolation tests; the Maestro regression is green through "Test login"; and the user validates the `prodDebug` APK with their real Google account.
+Each person signs in with Google, completes a 4-step onboarding (3 biometric steps + goals, "N / 4" since T-039), picks an energy strategy with a calorie target, and later edits their data, strategy and macro split on Profile. E2 is done when a new user can sign in, complete onboarding, set goals, close the app and get straight back in; `profiles`, `body_measurements` and `nutrition_goals` have pgTAP isolation tests; and the user validates the `prodDebug` APK with their real Google account.
 
 Sources: `planning/epics/E2-auth-profile.md` (US-05…US-08), `planning/03-data-model.md` §2 and §4, `planning/04-business-rules.md` §1 and §5, `planning/02-architecture.md`, `planning/05-design-system.md`, mockup `design/stitch/profile-goals/screen.png` (personal data, "Estrategia Energética" and "Distribución de Macros" only). Tasks: `tasks/todo.md` (T-034…T-039). Earlier plans (E0, E1) are in the git history.
 
@@ -9,7 +9,7 @@ Sizing (E1 retrospective): one task per story, as a vertical slice, so each task
 
 ## Architecture Decisions
 - **ADR-24 (user, 2026-10-14) settles the product gaps found in the breakdown:** onboarding resumes prefilled and re-saving updates the onboarding weight row; onboarding saves the default macros 30/45/25 (no sliders); Profile has one "Guardar" that stores profile, strategy, macros and the recalculated target; "Peso actual" is read-only on Profile until E4. The E2 Gherkin, `03` §4 and `04` §1.4 were updated to match.
-- **Otherwise existing ADRs cover E2.** ADR-02 (Credential Manager → ID token → `signInWith(IDToken)`), ADR-17 (publishable key), ADR-19 (`androidApp` + `composeApp` + `shared`, flavor values via `AppConfig`), ADR-22 (Profile as a full screen from the avatar, no FAB) and ADR-23 (QA in the background) cover E2.
+- **Otherwise existing ADRs cover E2.** ADR-02 (Credential Manager → ID token → `signInWith(IDToken)`), ADR-17 (publishable key), ADR-19 (`androidApp` + `composeApp` + `shared`, flavor values via `AppConfig`) and ADR-22 (Profile as a full screen from the avatar, no FAB) cover E2.
 - **ADR-26 (user, Checkpoint E2-A, 2026-10-14):** Perfil becomes the 4th tab (Diario, Entreno, Progreso, Perfil) with the user's Google photo as its icon; the top-bar avatar is removed. Supersedes ADR-22's navigation part; implemented in T-037.
 - **Checkpoint E2-A corrections → T-039 (before T-037):** onboarding regrouped into 4 steps ("N / 4", goals counted), unit-label and weight-decimal picker bugs, activity card typography, a filled non-outlined secondary button for "Atrás", and the PR #50 review follow-ups.
 - **E7 · UI refinement** (placeholder) is added as the last Phase 1 epic (`planning/07-roadmap.md` §1.1); deferred UI details from checkpoints go there.
@@ -57,13 +57,12 @@ E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-0
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Google sign-in fails on the real device (SHA-1, client IDs, nonce, `serverClientId`) | High | Configuration from T-011/T-012 is already verified; T-034 maps every Credential Manager error to an explicit outcome and logs the cause. Checkpoint E2-A comes right after the onboarding journey, the first point where the user can test it; if the developer cannot sign in with Google on the emulator (local flavor with `GOOGLE_WEB_CLIENT_ID` set), the PM may ask the user for a quick `prodDebug` sign-in check after T-034 instead of waiting. |
-| **E2E user state:** after T-034 every flow starts at Welcome; the seeded `test@appfitness.local` is not onboarded, so the shell/catalog flows would land on onboarding, while the onboarding flows need a not-onboarded user | High | T-034's planner decides and documents one approach before the QA run, e.g. a login subflow that completes onboarding when shown, or a local-only reset script QA runs before the `onboarding` flows, or seeding the test user as onboarded plus a reset for onboarding flows. No change to the Gherkin ("Test login" signs in as the seeded user). T-034's QA brief updates every existing flow to start with `subflows/login.yaml`. |
 | supabase-kt version vs `sb_publishable_` keys, Ktor engine, Kotlin 2.4 | Medium | Pin the latest stable in T-034 and check the release notes (ADR-17); a host test builds the client from `AppConfig`. |
 | Wheel pickers in Compose Multiplatform (no stock component) | Medium | `WheelPicker` built on `LazyColumn` + snap fling in T-035 with host tests for bounds and semantics; ux-reviewer checks it against `05-design-system.md`. |
 | Large slices (T-034, T-035, T-036 are L) | Medium | Each is one story; backend and UI halves can run in parallel inside the task. If a plan exceeds ~15 non-trivial files, the planner may split it into a backend task followed by a UI task (never per component). |
 | Partial writes (profile saved, measurement or goals not; on Profile, profile saved but goals not) | Medium | Write order chosen so the onboarding flag is set last; Profile's single save writes profile then goals (or one RPC); save errors keep the typed values and show a message-only snackbar, and the user taps the save button again (no separate "Reintentar", Checkpoint E2-A feedback). |
 | Re-saving onboarding must update, not duplicate, the weight row (ADR-24) | Low | T-035's plan fixes how the onboarding row is identified (e.g. the earliest `manual` row of the user) and covers the update with a repository test. |
-| Haptics and the account picker cannot be checked in Maestro | Low | Host tests for the effects; manual check at Checkpoint E2-A. |
+| Haptics and the account picker cannot be checked automatically | Low | Host tests for the effects; manual check at Checkpoint E2-A. |
 
 ## Open Questions
 None open. Resolved by the user on 2026-10-14 (recorded in ADR-24):
