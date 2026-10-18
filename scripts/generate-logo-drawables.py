@@ -17,7 +17,7 @@ Every path is treated as a white (``#FFFFFF``) filled shape and its ``transform=
 baked into the coordinates, so the drawables need no nested groups. The geometry is absolute
 ``M``/``C``/``Z`` only.
 
-The mark is wide (about 2.2:1), so a square frame would leave a lot of empty height. The Welcome
+The mark is wide (about 1.9:1), so a square frame would leave a lot of empty height. The Welcome
 drawable therefore uses a non-square viewport that hugs the mark. The launcher and the splash use
 different assets on purpose: the launcher foreground crops the mark to a squarer band, so it fills
 the (roomy) launcher mask, while the splash logo fits the whole mark inside the adaptive icon's safe
@@ -40,9 +40,10 @@ LAUNCHER_MONOCHROME = ROOT / "androidApp/src/main/res/drawable/ic_launcher_monoc
 SPLASH_LOGO = ROOT / "androidApp/src/main/res/drawable/ic_launcher_splash_foreground.xml"
 
 # Welcome logo: wide viewport that hugs the mark, so no empty height is left around it.
+# The viewport aspect tracks the mark's own aspect (its height grew when the torso gained its hip).
 LOGO_SIZE_DP = "256dp"
 LOGO_VIEWPORT_WIDTH = 1024.0
-LOGO_VIEWPORT_HEIGHT = 466.0
+LOGO_VIEWPORT_HEIGHT = 538.0
 LOGO_PADDING = 1.03  # frame height = content height * this factor.
 
 # Launcher adaptive icon: 108-square viewport. The mark is cropped to a squarer band and scaled to

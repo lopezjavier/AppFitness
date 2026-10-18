@@ -18,7 +18,7 @@ import org.jetbrains.compose.resources.painterResource
 /** Sizes of the [AppLogo]. The mark is wide, so it is sized by width and its height follows. */
 object AppLogoDefaults {
     /** Width / height of the mark; matches the drawable's viewport (the artwork is wide, not square). */
-    const val ASPECT_RATIO: Float = 1024f / 466f
+    const val ASPECT_RATIO: Float = 1024f / 538f
 
     /** Width on compact windows. */
     val Width: Dp = 260.dp
