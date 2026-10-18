@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,7 +30,10 @@ internal fun RootLoading(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
         ) {
-            SkeletonBox(Modifier.size(AppLogoDefaults.Size), AppShapes.full)
+            SkeletonBox(
+                Modifier.width(AppLogoDefaults.Width).height(AppLogoDefaults.height(AppLogoDefaults.Width)),
+                AppShapes.full,
+            )
             SkeletonBox(Modifier.width(Spacing.xl * ROOT_NAME_BAR_UNITS).height(Spacing.xl))
         }
     }
