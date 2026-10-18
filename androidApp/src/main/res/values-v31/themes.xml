@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Android 12+ splash screen. Nothing is touched except the animated icon: the background stays the
+        framework colour the splash already used, and the icon is a plain vector (ic_launcher_splash_foreground)
+        so the system keeps that background, drawing the whole mark inside the circular mask (the launcher
+        icon, ic_launcher_foreground, crop-marks the barbell and would be cut here).
+    -->
+    <style name="Theme.AppFitness" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_splash_foreground</item>
+    </style>
+</resources>

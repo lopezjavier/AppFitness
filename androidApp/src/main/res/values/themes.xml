@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App theme: the framework dark theme without an action bar (the Compose shell draws everything). -->
+    <style name="Theme.AppFitness" parent="@android:style/Theme.Material.NoActionBar" />
+</resources>
