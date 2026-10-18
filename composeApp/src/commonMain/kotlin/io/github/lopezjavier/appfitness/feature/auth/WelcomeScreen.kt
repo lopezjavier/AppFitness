@@ -25,8 +25,12 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,7 +41,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.welcome_google_butt
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_logo_description
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_signing_in
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_test_login
-import io.github.lopezjavier.appfitness.composeapp.resources.welcome_title
+import io.github.lopezjavier.appfitness.composeapp.resources.welcome_title_prefix
+import io.github.lopezjavier.appfitness.composeapp.resources.welcome_title_suffix
 import io.github.lopezjavier.appfitness.designsystem.AppLogo
 import io.github.lopezjavier.appfitness.designsystem.AppLogoDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -77,19 +82,19 @@ fun WelcomeScreen(
 ) {
     val colors = AppTheme.colors
     BoxWithConstraints(modifier.fillMaxSize().background(colors.surfaceBase).testTag("welcome_screen")) {
-        val logoSize = AppLogoDefaults.size(windowWidthClassFor(maxWidth))
+        val logoWidth = AppLogoDefaults.width(windowWidthClassFor(maxWidth))
         Column(
             modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = Spacing.screenMargin),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BrandZone(logoSize, Modifier.weight(1f))
+            BrandZone(logoWidth, Modifier.weight(1f))
             ActionZone(state, showTestLogin, onEvent)
         }
     }
 }
 
 @Composable
-private fun BrandZone(logoSize: Dp, modifier: Modifier = Modifier) {
+private fun BrandZone(logoWidth: Dp, modifier: Modifier = Modifier) {
     Column(
         // Scrolls when the window is short (landscape) or the font is large, so nothing clips.
         modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -106,12 +111,12 @@ private fun BrandZone(logoSize: Dp, modifier: Modifier = Modifier) {
         ) {
             AppLogo(
                 modifier = Modifier.testTag("welcome_logo"),
-                size = logoSize,
+                width = logoWidth,
                 contentDescription = stringResource(Res.string.welcome_logo_description),
             )
             Spacer(Modifier.height(Spacing.blockGap))
             Text(
-                text = stringResource(Res.string.welcome_title),
+                text = brandTitle(),
                 style = AppTheme.typography.displayHero,
                 color = AppTheme.colors.textPrimary,
                 textAlign = TextAlign.Center,
@@ -120,6 +125,18 @@ private fun BrandZone(logoSize: Dp, modifier: Modifier = Modifier) {
                 modifier = Modifier.semantics { heading() }.testTag("welcome_title"),
             )
         }
+    }
+}
+
+/** The brand name: "App" in the primary text colour, "Fitness" in the app accent (lime). */
+@Composable
+private fun brandTitle(): AnnotatedString {
+    val accent = AppTheme.colors.neonLime
+    val prefix = stringResource(Res.string.welcome_title_prefix)
+    val suffix = stringResource(Res.string.welcome_title_suffix)
+    return buildAnnotatedString {
+        append(prefix)
+        withStyle(SpanStyle(color = accent)) { append(suffix) }
     }
 }
 

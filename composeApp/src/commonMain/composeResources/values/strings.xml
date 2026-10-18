@@ -122,7 +122,8 @@
     <string name="catalog_sheet_close">Cerrar</string>
     <string name="offline_banner_message">Sin conexión</string>
     <string name="catalog_section_offline_banner">Banner sin conexión</string>
-    <string name="welcome_title">AppFitness</string>
+    <string name="welcome_title_prefix">App</string>
+    <string name="welcome_title_suffix">Fitness</string>
     <string name="welcome_logo_description">Logo de AppFitness</string>
     <string name="welcome_google_button">Continuar con Google</string>
     <string name="welcome_test_login">Test login</string>

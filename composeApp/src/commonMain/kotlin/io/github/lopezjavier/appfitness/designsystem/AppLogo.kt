@@ -3,7 +3,8 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -14,28 +15,35 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_app_logo
 import org.jetbrains.compose.resources.painterResource
 
-/** Sizes of the [AppLogo] (square mark). */
+/** Sizes of the [AppLogo]. The mark is wide, so it is sized by width and its height follows. */
 object AppLogoDefaults {
-    /** Compact widths. */
-    val Size: Dp = 160.dp
+    /** Width / height of the mark; matches the drawable's viewport (the artwork is wide, not square). */
+    const val ASPECT_RATIO: Float = 1024f / 466f
 
-    /** Widths from 600 dp up. */
-    val SizeLarge: Dp = 200.dp
+    /** Width on compact windows. */
+    val Width: Dp = 260.dp
 
-    fun size(widthClass: WindowWidthClass): Dp = if (widthClass == WindowWidthClass.Compact) Size else SizeLarge
+    /** Width from 600 dp up. */
+    val WidthLarge: Dp = 340.dp
+
+    fun width(widthClass: WindowWidthClass): Dp = if (widthClass == WindowWidthClass.Compact) Width else WidthLarge
+
+    /** Height of the mark at [width], keeping [ASPECT_RATIO]. */
+    fun height(width: Dp): Dp = width / ASPECT_RATIO
 }
 
 /**
- * The app logo: the full-colour vector `ic_app_logo` as supplied (no tint, no plate), square, fitted into [size].
+ * The app logo: the white silhouette vector `ic_app_logo` (no tint, transparent background) laid out
+ * at [width] with the height that keeps its wide aspect, so no empty height surrounds the mark.
  * [contentDescription] is null when the logo is decorative.
  */
 @Composable
-fun AppLogo(modifier: Modifier = Modifier, size: Dp = AppLogoDefaults.Size, contentDescription: String? = null) {
+fun AppLogo(modifier: Modifier = Modifier, width: Dp = AppLogoDefaults.Width, contentDescription: String? = null) {
     Image(
         painter = painterResource(Res.drawable.ic_app_logo),
         contentDescription = contentDescription,
         contentScale = ContentScale.Fit,
-        modifier = modifier.size(size),
+        modifier = modifier.width(width).height(AppLogoDefaults.height(width)),
     )
 }
 

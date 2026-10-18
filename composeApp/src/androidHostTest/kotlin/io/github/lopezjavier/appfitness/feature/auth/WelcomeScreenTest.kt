@@ -143,16 +143,16 @@ class WelcomeScreenTest {
         show()
         rule.onNodeWithTag("welcome_logo", useUnmergedTree = true)
             .assertContentDescriptionEquals("Logo de AppFitness")
-            .assertWidthIsEqualTo(AppLogoDefaults.Size)
-            .assertHeightIsEqualTo(AppLogoDefaults.Size)
+            .assertWidthIsEqualTo(AppLogoDefaults.Width)
+            .assertHeightIsEqualTo(AppLogoDefaults.height(AppLogoDefaults.Width))
     }
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp-mdpi")
     fun logo_isLargerOnWideWindows_andActionZoneIsCapped() {
         show(showTestLogin = true)
-        rule.onNodeWithTag("welcome_logo", useUnmergedTree = true).assertWidthIsEqualTo(AppLogoDefaults.SizeLarge)
-        assertEquals(200.dp, AppLogoDefaults.SizeLarge)
+        rule.onNodeWithTag("welcome_logo", useUnmergedTree = true).assertWidthIsEqualTo(AppLogoDefaults.WidthLarge)
+        assertEquals(340.dp, AppLogoDefaults.WidthLarge)
         val width = rule.onNodeWithTag("welcome_google_button").getUnclippedBoundsInRoot()
         assertTrue("action zone capped at 360 dp", (width.right - width.left) <= 360.dp + 0.5.dp)
     }
