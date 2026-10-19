@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
+import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import org.koin.compose.viewmodel.koinViewModel
@@ -26,6 +28,12 @@ fun AppRoot(
             ProfileRootRoute(profileModifier, onOpenPreferences, onOpenCatalog)
         },
         preferences = { preferencesModifier -> PreferencesRoute(preferencesModifier) },
+        exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected ->
+            ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier)
+        },
+        exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect ->
+            ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier)
+        },
         onOnboardingComplete = { viewModel.onEvent(AppEvent.OnboardingCompleted) },
     )
 }

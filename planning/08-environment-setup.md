@@ -91,6 +91,17 @@ npx supabase stop
 
 **Android 17 (API 37) and the local flavor:** apps targeting API 37 need the runtime permission `ACCESS_LOCAL_NETWORK` to reach private addresses such as the emulator's `10.0.2.2`. The `local` manifest declares it, but it must be granted after every install of the local build, otherwise requests to the local Supabase time out without reaching it: `adb shell pm grant io.github.lopezjavier.appfitness.local android.permission.ACCESS_LOCAL_NETWORK` (or install with `adb install -g`). `./gradlew :androidApp:installLocalDebug` does not grant it (AGP's install task has no grant-all option), so manual checks run the `pm grant` line first.
 
+### 3.4 Exercise bundle (RepDB, gitignored)
+
+The exercise names, instructions and images come from the RepDB free bundle (`Biblioteca_Ejercicios_Free`), which is third-party content and is never committed (ADR-38, ADR-39). It is imported into `composeApp/src/commonMain/composeResources/files/exercises/`:
+
+```bash
+python scripts/import-repdb.py <path to Biblioteca_Ejercicios_Free>     # library.json + images (idempotent)
+python scripts/generate-exercise-catalog.py <path to bundle> --out supabase/migrations/<ts>_exercise_catalog.sql   # only when the catalog changes
+```
+
+CI and the unit tests build without the bundle (the catalog then shows only custom exercises). `python scripts/deliver-apk.py` runs the import itself when the bundle is not yet imported, reading the source folder from `--repdb-source PATH`, else `repdb.source` in `local.properties`, else the `REPDB_SOURCE` environment variable (`--reimport` forces it); it fails with a clear error when no source is found.
+
 ## 4. Deployment
 
 - **Backend:** automatic when changes in `supabase/**` are merged into `main` (`.github/workflows/deploy-supabase.yml`, `production` environment, deployable only from `main`): `supabase link` → `supabase db push` → `supabase functions deploy` (only if some `supabase/functions/*/index.ts` exists). The CLI version comes from `package-lock.json` (the same one `npx supabase` uses locally); the job fails if it differs from `package.json`.

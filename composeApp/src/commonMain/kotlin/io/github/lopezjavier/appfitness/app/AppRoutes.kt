@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
@@ -48,6 +50,14 @@ data object CatalogRoute : AppRoute
 /** "Preferencias": the personal data, energy and macro editor, opened from the Perfil root (ADR-37). */
 @Serializable
 data object PreferencesRoute : AppRoute
+
+/** Exercise picker (US-09). In [selectMode] a row returns the exercise to the caller instead of opening the detail. */
+@Serializable
+data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
+
+/** Detail of one exercise; in [selectMode] it offers "Seleccionar". */
+@Serializable
+data class ExerciseDetailRoute(val exerciseId: String, val selectMode: Boolean = false) : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -115,8 +125,16 @@ val AppRoute.chrome: ShellChrome
     get() =
         when (this) {
             is TabRoute -> ShellChrome.Tabs(tab)
+
             CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
+
             PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
+
+            is ExercisePickerRoute ->
+                ShellChrome.FullScreen(Res.string.exercise_picker_title, topBarTag = "exercise_picker_top_bar")
+
+            is ExerciseDetailRoute ->
+                ShellChrome.FullScreen(Res.string.exercise_detail_title, topBarTag = "exercise_detail_top_bar")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -125,5 +143,6 @@ object AppDestinations {
      * Destinations drawn without the bottom bar. Used for chrome lookup only: whether a route is
      * reachable is decided by [AppFeatures].
      */
-    val fullScreenRoutes: List<AppRoute> = listOf(CatalogRoute, PreferencesRoute)
+    val fullScreenRoutes: List<AppRoute> =
+        listOf(CatalogRoute, PreferencesRoute, ExercisePickerRoute(), ExerciseDetailRoute("", false))
 }

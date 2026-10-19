@@ -94,14 +94,14 @@ fun AppChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Mod
 }
 
 /**
- * Horizontally scrollable group of single-select chips. [selectedIndex] must be a valid index of
+ * Horizontally scrollable group of single-select chips. [selectedIndex] is null (nothing selected) or a valid index of
  * [options]; tapping the active chip does not call [onSelect]. Edge padding is the caller's concern
  * (apply it to the row from the call site).
  */
 @Composable
 fun FilterChipRow(
     options: List<AppOption>,
-    selectedIndex: Int,
+    selectedIndex: Int?,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {

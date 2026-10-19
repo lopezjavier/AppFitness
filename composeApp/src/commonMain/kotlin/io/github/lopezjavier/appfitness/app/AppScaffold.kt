@@ -58,6 +58,8 @@ internal fun AppScaffold(
     isOffline: Boolean = false,
     profile: ProfileSlot = DefaultProfileSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
+    exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
+    exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -98,6 +100,8 @@ internal fun AppScaffold(
                 },
                 profile = profile,
                 preferences = preferences,
+                exercisePicker = exercisePicker,
+                exerciseDetail = exerciseDetail,
                 modifier = contentModifier,
             )
         }
@@ -174,6 +178,8 @@ private fun ShellContent(
     rail: @Composable (Modifier) -> Unit,
     profile: ProfileSlot,
     preferences: PreferencesSlot,
+    exercisePicker: ExercisePickerSlot,
+    exerciseDetail: ExerciseDetailSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -202,6 +208,8 @@ private fun ShellContent(
             features = features,
             profile = profile,
             preferences = preferences,
+            exercisePicker = exercisePicker,
+            exerciseDetail = exerciseDetail,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(

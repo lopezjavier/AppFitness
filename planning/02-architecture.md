@@ -70,7 +70,7 @@
   migrations/       ← versioned SQL
   tests/            ← pgTAP (*.test.sql)
   functions/        ← food-search, food-barcode, health, _shared/
-  seed.sql          ← test user (local only) + exercise catalog
+  seed.sql          ← test user (local only); the exercise catalog is a migration (ADR-39)
 /.github/workflows  ← android-ci, supabase-ci, deploy-supabase, keepalive, security
 /design/stitch      ← Stitch mockups (visual reference)
 /gradle/libs.versions.toml
@@ -131,7 +131,8 @@
 - **Migrations:** SQL in `supabase/migrations/`, at most one per story. A merged migration is never edited; a new one is created.
 - **pgTAP tests** (`supabase test db`): for every table, RLS is enabled and user A cannot read/write user B's data.
 - **Edge Functions** (Deno/TypeScript) with `verify_jwt = true` except `health`. Tested with `deno test`. Details in `03-data-model.md`.
-- **Seed** (`seed.sql`): exercise catalog (all databases) and the `test@appfitness.local` user (local only; the user seed is never applied in production).
+- **Seed** (`seed.sql`): the `test@appfitness.local` user (local only; never applied in production). The exercise catalog rows are a generated migration, so they reach every database (ADR-39).
+- **Exercise assets** (gitignored RepDB bundle): `composeApp/src/commonMain/composeResources/files/exercises/`, written by `scripts/import-repdb.py`; `scripts/generate-exercise-catalog.py` produces the catalog migration (ADR-39).
 
 ## 7. Security
 

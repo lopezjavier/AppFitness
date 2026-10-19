@@ -1,7 +1,11 @@
 package io.github.lopezjavier.appfitness.di
 
 import io.github.lopezjavier.appfitness.app.AppViewModel
+import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
+import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
+import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
@@ -27,4 +31,15 @@ val uiModule =
             )
         }
         viewModelOf(::OnboardingViewModel)
+        single<ExerciseLibrary> { ComposeResourcesExerciseLibrary() }
+        viewModel { (selectMode: Boolean) ->
+            ExercisePickerViewModel(
+                loadCatalog = get(),
+                searchExercises = get(),
+                repository = get(),
+                connectivity = get(),
+                selectMode = selectMode,
+            )
+        }
+        viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get()) }
     }

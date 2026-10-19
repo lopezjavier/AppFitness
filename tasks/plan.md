@@ -12,7 +12,7 @@ Sizing: one task per story as a vertical slice. US-11 is split into backend (T-0
 - **One migration per task:** T-042 `exercises` (+ catalog rows per Q1), T-043 `routine_folders`/`routines`/`routine_exercises` + `save_routine(jsonb)`, T-044 `workout_sessions`/`workout_sets` + `exercise_history`, T-046 `last_performance`, T-048 `weekly_muscle_volume`; T-047 only if the planner puts the list aggregates in SQL.
 - **`exercise_history` ships in T-044, not T-048:** the summary's "PR" (US-11) and the history's PRs (US-14) need the previous best estimated 1RM (§4.5). Its pgTAP uses the §4.1 examples, the same cases as `EstimateOneRepMax`.
 - **Account deletion keeps working (ADR-29):** `exercises.created_by` cascades; every new user-owned table cascades from `auth.users`; pgTAP in T-042/T-043/T-044 deletes a user with training data.
-- **RepDB bundle (ADR-30):** not committed; `.gitignore` excludes it. The epic path `app/assets/exercises/` predates ADR-19, so the T-042 planner picks the module (Android assets in `androidApp`, or Compose resources in `composeApp`) and updates the docs. CI builds and tests without it (synthetic fixture); `scripts/deliver-apk.py` refuses to build without it so a delivered APK always carries it. Search is in memory in `shared` (accent- and case-insensitive).
+- **RepDB bundle (ADR-30):** not committed; `.gitignore` excludes it. The epic path `app/assets/exercises/` predates ADR-19, so T-042 chose Compose resources in `composeApp` (`composeResources/files/exercises/`, ADR-39) and updated the docs. CI builds and tests without it (synthetic fixture); `scripts/deliver-apk.py` refuses to build without it so a delivered APK always carries it. Search is in memory in `shared` (accent- and case-insensitive).
 - **Reusable exercise picker:** built in T-042 as a destination returning the selected exercise; reused by the routine builder (T-043) and "Añadir ejercicio" in the session (T-045). Until T-043, a provisional Entreno entry reaches it.
 - **Per-screen actions (ADR-36):** "Nueva rutina" (T-043), "Empezar" / "Empezar entreno vacío" (T-045), "Historial" (T-047) live on the Entreno main view; "Fuerza" is the first statistics entry on the Perfil root (ADR-37, T-048). This consumes the E1 "FAB question" note.
 - **Live session:** session created in the DB on start, every set upserted by `(session_id, exercise_position, set_index)` when checked; offline sets queue in the ViewModel's memory only while the session is open (ADR-01 exception). `keepScreenOn` via `DisposableEffect`, never a `WakeLock`. Haptics through the `Haptics` port; the rest-end alert through a new sound port in `androidMain`.
@@ -24,7 +24,7 @@ Sizing: one task per story as a vertical slice. US-11 is split into backend (T-0
 ## Task List
 
 ### Phase 1: Plan and run a workout (US-09…US-13)
-- [ ] T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises (US-09) — UI + backend
+- [x] T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises (US-09) — UI + backend
 - [ ] T-043: Routine builder and "Mis rutinas" (US-10) — UI + backend
 - [ ] T-044: Workout sessions backend and training domain (US-11 backend half + `exercise_history`) — backend
 - [ ] T-045: Live workout session (US-11 UI half) — UI

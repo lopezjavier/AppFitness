@@ -31,8 +31,19 @@ class ShellChromeTest {
     }
 
     @Test
-    fun fullScreenRoutes_containsTheCatalogAndPreferences_andNoTabRoute() {
-        assertEquals(listOf<AppRoute>(CatalogRoute, PreferencesRoute), AppDestinations.fullScreenRoutes)
+    fun fullScreenRoutes_containsTheFullScreenDestinations_andNoTabRoute() {
+        assertEquals(
+            listOf(CatalogRoute, PreferencesRoute, ExercisePickerRoute::class, ExerciseDetailRoute::class),
+            AppDestinations.fullScreenRoutes.map {
+                if (it is CatalogRoute ||
+                    it is PreferencesRoute
+                ) {
+                    it
+                } else {
+                    it::class
+                }
+            },
+        )
         assertTrue(AppDestinations.fullScreenRoutes.none { it is TabRoute })
     }
 

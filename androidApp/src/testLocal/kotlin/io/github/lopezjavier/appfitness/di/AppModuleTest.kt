@@ -7,13 +7,17 @@ import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
+import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
@@ -49,7 +53,13 @@ class AppModuleTest {
             extraTypes = listOf(Context::class, String::class, Boolean::class, TestLoginCredentials::class),
         )
         sharedModule.verify(
-            extraTypes = listOf(AppConfig::class, ConnectivityObserver::class, AuthCredentialProvider::class),
+            extraTypes =
+            listOf(
+                AppConfig::class,
+                ConnectivityObserver::class,
+                AuthCredentialProvider::class,
+                ExerciseLibrary::class,
+            ),
         )
         uiModule.verify(
             extraTypes =
@@ -64,6 +74,11 @@ class AppModuleTest {
                 SavePreferences::class,
                 Clock::class,
                 SavedStateHandle::class,
+                ExerciseRepository::class,
+                LoadExerciseCatalog::class,
+                SearchExercises::class,
+                Boolean::class,
+                String::class,
                 SignInWithGoogle::class,
                 AppConfig::class,
             ),

@@ -1,0 +1,135 @@
+package io.github.lopezjavier.appfitness.app
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/** The provisional Entreno button, the picker/detail destinations and the selection result hand-off. */
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w360dp-h800dp-xxhdpi")
+class ExerciseNavigationTest {
+    @get:Rule
+    val rule = createComposeRule()
+
+    private lateinit var nav: NavHostController
+
+    private val pickerSlot: ExercisePickerSlot = { modifier, selectMode, onOpenDetail, onSelected ->
+        Column(modifier.fillMaxSize().testTag("exercise_picker_screen")) {
+            Text(if (selectMode) "select" else "browse", Modifier.testTag("picker_mode"))
+            Box(Modifier.size(48.dp).testTag("picker_open_detail").clickable { onOpenDetail("ex-1") })
+            Box(Modifier.size(48.dp).testTag("picker_select").clickable { onSelected("ex-9") })
+        }
+    }
+    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect ->
+        Column(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
+            Text("$exerciseId $selectMode", Modifier.testTag("detail_args"))
+            Box(Modifier.size(48.dp).testTag("detail_select").clickable(onClick = onSelect))
+        }
+    }
+
+    private fun showShell() {
+        rule.setContent {
+            AppTheme {
+                nav = rememberNavController()
+                Shell()
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    @Composable
+    private fun Shell() {
+        AppScaffold(navController = nav, exercisePicker = pickerSlot, exerciseDetail = detailSlot)
+    }
+
+    private fun openLibrary() {
+        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.onNodeWithTag("workout_exercise_library_button").performClick()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun libraryButton_opensThePickerInBrowseMode_andBackReturnsToEntreno() {
+        showShell()
+        openLibrary()
+
+        rule.onNodeWithTag("exercise_picker_screen").assertExists()
+        rule.onNodeWithTag("picker_mode").assertTextEquals("browse")
+        rule.onNodeWithTag("exercise_picker_top_bar_title").assertTextEquals("Ejercicios")
+        rule.onNodeWithTag("nav_bar").assertDoesNotExist()
+
+        rule.onNodeWithTag("exercise_picker_top_bar_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("exercise_picker_screen").assertDoesNotExist()
+        rule.onNodeWithTag("workout_exercise_library_button").assertExists()
+    }
+
+    @Test
+    fun pickerRow_opensTheDetail_withTheExerciseId() {
+        showShell()
+        openLibrary()
+
+        rule.onNodeWithTag("picker_open_detail").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("detail_args").assertTextEquals("ex-1 false")
+        rule.onNodeWithTag("exercise_detail_top_bar_title").assertTextEquals("Ejercicio")
+    }
+
+    @Test
+    fun selection_isHandedToThePreviousDestination_andThePickerCloses() {
+        showShell()
+        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.runOnUiThread { nav.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("picker_mode").assertTextEquals("select")
+
+        rule.onNodeWithTag("picker_select").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_picker_screen").assertDoesNotExist()
+        val entry = nav.currentBackStackEntry
+        assertTrue(entry?.destination?.hasRoute(WorkoutHome::class) == true)
+        assertEquals("ex-9", entry?.savedStateHandle?.get<String>(SELECTED_EXERCISE_KEY))
+    }
+
+    @Test
+    fun selectingFromTheDetail_closesBothScreensAndReturnsTheId() {
+        showShell()
+        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.runOnUiThread { nav.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("picker_open_detail").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("detail_args").assertTextEquals("ex-1 true")
+
+        rule.onNodeWithTag("detail_select").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_detail_screen").assertDoesNotExist()
+        rule.onNodeWithTag("exercise_picker_screen").assertDoesNotExist()
+        assertEquals("ex-1", nav.currentBackStackEntry?.savedStateHandle?.get<String>(SELECTED_EXERCISE_KEY))
+    }
+}

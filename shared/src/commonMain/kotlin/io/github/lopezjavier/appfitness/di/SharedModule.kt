@@ -10,22 +10,27 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
+import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.dsl.module
 
@@ -74,9 +79,19 @@ val sharedModule =
                 UnconfiguredAccountRepository()
             }
         }
+        single<ExerciseRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseExerciseRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredExerciseRepository()
+            }
+        }
         single<Clock> { SystemClock() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }
         factory { SavePreferences(get()) }
         factory { DeleteAccount(get(), get()) }
+        factory { LoadExerciseCatalog(get(), get()) }
+        factory { SearchExercises() }
     }

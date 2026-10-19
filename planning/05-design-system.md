@@ -115,7 +115,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `NumberInput` | `surfaceOverlay` background, centered tabular numerals, 1.5 dp border on focus; ghost placeholder |
 | `SetCompletionCheckbox` | 38 dp visual circle / 48 dp target; checked = lime fill + dark check + haptics |
 | `SetRow` | Index · previous (ghost) · KG · REPS · checkbox |
-| `ExerciseThumbnail` | Exercise image in list rows and detail (male variant), `surfaceOverlay` background, radius `md`; placeholder icon when there is no media (custom exercises) |
+| `ExerciseThumbnail` | Exercise image in list rows and detail (the `start` pose, cropped), `surfaceOverlay` background, radius `md`; placeholder icon when there is no media (custom exercises) or the image fails to load |
 | `ExerciseAnimation` | Start↔peak crossfade of the two poses, 3 s cycle, `ease-in-out`, a brief pause on each pose (see §6.1) |
 | `RestTimerBar` | 48 dp, `surfaceOverlay`, cyan tabular countdown, bottom progress line, "+30s" and "Omitir" |
 | `MetricTile` | Technical label + `headlineMetric` value + unit |
@@ -147,8 +147,8 @@ Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vec
 **Onboarding name field** (step 1 "Sobre ti", only when Google gave no name): above the sex selector, label "¿Cómo te llamas?", `AppTextField`, `maxLength` 100, autofocus off, `ImeAction.Done` hides the keyboard; "Continuar" disabled while blank.
 
 ### 6.1 Exercise media
-- The catalog bundles the RepDB free assets (male variant only): a **thumbnail** and two poses (`inicio`/`final`) per exercise, in `app/assets/exercises/` (ADR-30).
-- `ExerciseAnimation` renders the poses with a **start↔peak crossfade**: a 3 s cycle, `ease-in-out`, and a brief pause on each pose (the free tier has no GIF/video). It honours the system "remove animations" setting by showing the `inicio` pose only.
+- The catalog bundles the RepDB free assets: two poses (`start`/`peak`) per exercise (a single `start` image for exercises that have one pose); the thumbnail is the `start` pose. They live in `composeApp/src/commonMain/composeResources/files/exercises/` (ADR-30, ADR-39).
+- `ExerciseAnimation` renders the poses with a **start↔peak crossfade**: a 3 s cycle, `ease-in-out`, and a brief pause on each pose (the free tier has no GIF/video). It honours the system "remove animations" setting by showing the `start` pose only.
 - Attribution "Datos de ejercicios por RepDB (repdb.co)" is shown where the assets appear (catalog and exercise detail).
 
 ## 7. Accessibility

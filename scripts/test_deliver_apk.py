@@ -74,5 +74,80 @@ class ProdConfigTest(unittest.TestCase):
         self.assertEqual(deliver.read_local_properties(os.path.join(d, "nope")), {})
 
 
+class RepdbBundleTest(unittest.TestCase):
+    def _exercises_dir(self, root):
+        d = os.path.join(root, deliver.EXERCISES_DIR)
+        os.makedirs(os.path.join(d, "images"))
+        return d
+
+    def test_refuses_without_bundle_and_names_path_and_command(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as root:
+            problem = deliver.repdb_bundle_problem(root)
+        self.assertIn(os.path.join("files", "exercises"), problem)
+        self.assertIn("python scripts/import-repdb.py", problem)
+
+    def test_refuses_with_library_but_no_images(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as root:
+            d = self._exercises_dir(root)
+            open(os.path.join(d, "library.json"), "w", encoding="utf-8").close()
+            self.assertIsNotNone(deliver.repdb_bundle_problem(root))
+
+    def test_accepts_library_and_an_image(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as root:
+            d = self._exercises_dir(root)
+            open(os.path.join(d, "library.json"), "w", encoding="utf-8").close()
+            open(os.path.join(d, "images", "x-start.webp"), "wb").close()
+            self.assertIsNone(deliver.repdb_bundle_problem(root))
+
+
+class RepdbSourceTest(unittest.TestCase):
+    def test_cli_wins_over_properties_and_env(self):
+        props = {"repdb.source": "from-props"}
+        env = {"REPDB_SOURCE": "from-env"}
+        self.assertEqual(deliver.resolve_repdb_source("from-cli", props, env), "from-cli")
+        self.assertEqual(deliver.resolve_repdb_source(None, props, env), "from-props")
+        self.assertEqual(deliver.resolve_repdb_source(None, {}, env), "from-env")
+
+    def test_blank_values_are_ignored_and_none_when_unset(self):
+        self.assertEqual(deliver.resolve_repdb_source("  ", {"repdb.source": ""}, {"REPDB_SOURCE": "e"}), "e")
+        self.assertIsNone(deliver.resolve_repdb_source(None, {}, {}))
+
+    def test_step_fails_clearly_when_source_is_missing(self):
+        import contextlib
+        import io
+
+        original = deliver.repdb_bundle_problem
+        deliver.repdb_bundle_problem = lambda root=deliver.ROOT: "missing"
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                ok = deliver.step_repdb("/definitely/not/here", False)
+        finally:
+            deliver.repdb_bundle_problem = original
+        self.assertFalse(ok)
+        self.assertIn("--repdb-source", err.getvalue())
+
+    def test_step_skips_when_already_imported(self):
+        import contextlib
+        import io
+
+        original = deliver.repdb_bundle_problem
+        deliver.repdb_bundle_problem = lambda root=deliver.ROOT: None
+        try:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                ok = deliver.step_repdb(None, False)
+        finally:
+            deliver.repdb_bundle_problem = original
+        self.assertTrue(ok)
+        self.assertIn("skipped", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

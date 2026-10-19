@@ -84,6 +84,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         dataVizItems()
         workoutInputItems()
         pickerItems()
+        exerciseMediaItems()
         stateMessageItems()
         shellItems()
         themeItems()

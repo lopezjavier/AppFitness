@@ -181,8 +181,8 @@ The training model is **forward-compatible** (ADR-30): the columns marked *(E6)*
 ### `exercises` (US-09)
 | Column | Type | Notes |
 |---|---|---|
-| name | text | In Spanish (user-facing data) |
-| key | text null | Slug linking to the client catalog (`library.json`); null for custom |
+| name | text null | Custom exercises only (user-facing, any language); null for catalog rows, whose Spanish name comes from the client bundle (ADR-38) |
+| key | text null | Slug linking to the client bundle (`library.json`, generated from `free.es.json`); null for custom |
 | muscle_group | muscle_group | Primary group |
 | secondary_muscles | muscle_group[] | default `'{}'` *(E6)* |
 | equipment | equipment | |
@@ -190,7 +190,7 @@ The training model is **forward-compatible** (ADR-30): the columns marked *(E6)*
 | is_custom | boolean | |
 | created_by | uuid null | custom only |
 
-Seed: the RepDB free catalog (Spanish names + `key`). Instructions and images are **not** stored here: they live in the client asset bundle (`app/assets/exercises/`, ADR-30). RLS select: `not is_custom or created_by = (select auth.uid())`; writes only on own custom exercises.
+Catalog: one row per RepDB free exercise (`key`, `muscle_group`, `equipment`, `metric_type = weight_reps`, no name), loaded by a generated migration (`supabase/migrations/*_exercise_catalog.sql`, ADR-39), not by `seed.sql`. Consistency check: custom => `created_by` and `name` set (1-100 chars), `key` null; catalog => `key` set, `created_by` and `name` null. Names, instructions and images are **not** stored here: they live in the client asset bundle (`composeApp/src/commonMain/composeResources/files/exercises/`, ADR-30, ADR-39). RLS select: `not is_custom or created_by = (select auth.uid())`; writes only on own custom exercises.
 
 ### `routine_folders` (E6)
 `user_id`, `name`, `position`. RLS owner policy. Deleting a folder moves its routines to the default folder (never deletes them).

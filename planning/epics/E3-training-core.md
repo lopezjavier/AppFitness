@@ -26,9 +26,9 @@ E2. Independent of E4 and E5.
 - If there is an `in_progress` session, the tab opens the live session directly.
 
 ## Exercise assets (RepDB free)
-- The catalog ships the **RepDB free** set (~495 exercises): thumbnail, `inicio`/`final` poses and Spanish instructions, in `app/assets/exercises/` (`library.json`, ≈16 MB). Catalog text and images live in the client, never in the DB or a CDN (ADR-30).
-- The asset bundle is **provided by the user** (not committed to the repository): it is a manual prerequisite of the build. `app/assets/exercises/` must exist locally before assembling; the project's `.gitignore` excludes it so the RepDB assets are not redistributed in the repo.
-- Only the **male** variant. The animation is a **start↔peak crossfade** (3 s cycle, ease-in-out, a brief pause on each pose); the free tier has no GIF/video.
+- The catalog ships the **RepDB free** set (643 exercises): `start`/`peak` poses (the thumbnail is the `start` pose) and Spanish instructions, in `composeApp/src/commonMain/composeResources/files/exercises/` (`library.json` generated from `free.es.json`, ≈16 MB; ADR-39). Catalog text and images live in the client, never in the DB or a CDN (ADR-30).
+- The asset bundle is **provided by the user** (not committed to the repository): it is a manual prerequisite of the build. run `python scripts/import-repdb.py <bundle>` before delivering an APK (CI and unit tests build without it); the project's `.gitignore` excludes it so the RepDB assets are not redistributed in the repo.
+- The bundle has no male/female variants. The animation is a **start↔peak crossfade** (3 s cycle, ease-in-out, a brief pause on each pose); the free tier has no GIF/video.
 - Visible attribution "Datos de ejercicios por RepDB (repdb.co)".
 - `exercises` gains `metric_type` (default `weight_reps`) and each catalog row carries a `key` that links to `library.json`; custom exercises have no media.
 
@@ -59,8 +59,8 @@ Feature: Exercise catalog
 
   Scenario: Catalog row with thumbnail
     Given the exercise picker
-    Then each exercise row shows its thumbnail (male variant)
-    And an exercise without media (custom) shows the placeholder
+    Then each exercise row shows its thumbnail (the start pose)
+    And an exercise without media (custom) or whose image fails to load shows the placeholder
 
   Scenario: Exercise detail with animation and how-to
     When the user taps "Press de banca con barra"
@@ -82,8 +82,8 @@ Feature: Exercise catalog
 ```
 
 **Technical notes**
-- `exercises` migration + seed of the RepDB catalog (`name`, `key`, `muscle_group`, `equipment`, `metric_type`) + pgTAP. Instructions and images are **not** in the DB: they live in `library.json` in the client (ADR-30).
-- Assets bundled in `app/assets/exercises/` (thumbnails + `inicio`/`final` poses), ≈16 MB, male variant only; the animation is a 3 s start↔peak crossfade.
+- `exercises` migration + a generated catalog migration (`key`, `muscle_group`, `equipment`, `metric_type`; no name, ADR-38/ADR-39) + pgTAP. Names, instructions and images are **not** in the DB: they live in `library.json` in the client (ADR-30).
+- Assets bundled in `composeApp/src/commonMain/composeResources/files/exercises/` (`start`/`peak` poses), ≈16 MB; the animation is a 3 s start↔peak crossfade.
 - In-memory local search after loading the catalog once (it is small), with accent normalization.
 - The `key` links a catalog row to `library.json`; custom exercises have no `key` and no media.
 
@@ -382,7 +382,7 @@ Feature: Strength analytics
 - A full workout (4-exercise routine with a superset) is logged without screen locks, with correct ghost data and rest periods.
 - pgTAP for the 5 tables and for `last_performance`, `exercise_history` and `weekly_muscle_volume`.
 - Host (Robolectric) tests cover a full session (timer with short durations configured for testing).
-- The catalog loads from the in-app assets: rows show the male thumbnail, the exercise detail plays the start↔peak animation and shows the Spanish instructions, and the RepDB attribution is visible.
+- The catalog loads from the in-app assets: rows show the thumbnail (start pose), the exercise detail plays the start↔peak animation and shows the Spanish instructions, and the RepDB attribution is visible.
 - The "Fuerza y 1RM estimado" card and the per-exercise charts work with real session data.
 - The training schema is forward-compatible (ADR-30): the *(E6)* columns/enums exist and the set row is polymorphic, so E6 needs no migration.
 - `prodDebug` APK validated during a real workout by the user. Tag `v0.3.0`.

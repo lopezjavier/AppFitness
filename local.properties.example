@@ -6,3 +6,5 @@ supabase.local.publishableKey=<publishable key printed by `npx supabase start`>
 supabase.prod.url=https://<ref>.supabase.co
 supabase.prod.publishableKey=<production publishable key (sb_publishable_...)>
 google.webClientId=<GOOGLE_WEB_CLIENT_ID>
+# Optional: folder of the RepDB free bundle (Biblioteca_Ejercicios_Free); deliver-apk.py imports it when needed.
+# repdb.source=C:/path/to/Biblioteca_Ejercicios_Free
