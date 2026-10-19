@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
 import io.github.lopezjavier.appfitness.composeapp.resources.history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
@@ -15,6 +16,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
+import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
@@ -77,6 +79,14 @@ data object HistoryRoute : AppRoute
 /** Detail of one completed session: sets, records, correction and deletion. */
 @Serializable
 data class SessionDetailRoute(val sessionId: String) : AppRoute
+
+/** "Fuerza": the strength summary card, opened from the Perfil root (US-15). */
+@Serializable
+data object StrengthRoute : AppRoute
+
+/** Progress charts of one exercise (US-15), opened from Fuerza, the exercise detail and the session detail. */
+@Serializable
+data class ExerciseProgressRoute(val exerciseId: String) : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -167,6 +177,11 @@ val AppRoute.chrome: ShellChrome
 
             is SessionDetailRoute ->
                 ShellChrome.FullScreen(Res.string.session_detail_title, topBarTag = "session_detail_top_bar")
+
+            StrengthRoute -> ShellChrome.FullScreen(Res.string.strength_title, topBarTag = "strength")
+
+            is ExerciseProgressRoute ->
+                ShellChrome.FullScreen(Res.string.exercise_progress_title, topBarTag = "exercise_progress")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -185,5 +200,7 @@ object AppDestinations {
             LiveSessionRoute,
             HistoryRoute,
             SessionDetailRoute(""),
+            StrengthRoute,
+            ExerciseProgressRoute(""),
         )
 }

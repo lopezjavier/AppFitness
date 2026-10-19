@@ -24,4 +24,5 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     PreferencesRoute -> true
     is ExercisePickerRoute, is ExerciseDetailRoute, is RoutineBuilderRoute, LiveSessionRoute -> true
     HistoryRoute, is SessionDetailRoute -> true
+    StrengthRoute, is ExerciseProgressRoute -> true
 }

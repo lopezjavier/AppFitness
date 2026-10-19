@@ -1255,30 +1255,48 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 
 ---
 
-## T-048: Strength progress: "Fuerza" screen, exercise charts and weekly muscle volume
+## T-048: Strength progress: "Fuerza" screen and exercise charts
 
-**Story:** US-15 · **Flow:** UI + backend (`weekly_muscle_volume`) · **Scenarios:** Summary card on the strength screen; Estimated 1RM record; Exercise chart; Weekly volume per muscle group; Exercise without enough data; Exercises without load
+**Story:** US-15 · **Flow:** UI (weekly muscle volume split into T-048b by the planner) · **Scenarios:** Summary card on the strength screen; Estimated 1RM record; Exercise chart; Exercise without enough data; Exercises without load
 
 **Description:** Backend: one migration with `weekly_muscle_volume(p_from)` (`security invoker`; per ISO week Monday–Sunday and the exercise's `muscle_group`, completed sets of completed sessions) + pgTAP; `exercise_history` exists since T-044. Add Vico (latest stable, multiplatform) and a chart component in `designsystem/` (athleticCyan, tabular numerals, catalog entry, `stateDescription` summarising the data). Perfil root gains its first statistics entry "Fuerza" (ADR-37; layout by ux-reviewer) opening a full-screen destination with a back arrow: the "Fuerza y 1RM estimado" card with chips for the 3 exercises with most sessions in the last 6 weeks (the most frequent selected by default), "Récord 1RM estimado: 113,5 kg" and "+5,0 kg este mes" in green (`TrendPill`) against the best 1RM as of 30 days ago; an entry "Volumen por grupo muscular" (last 8 weeks per group, selecting a group shows only its evolution). Per-exercise detail: best estimated 1RM per session and total volume per session, filters 1M, 3M, 6M, 1A; a single session shows its value and "Necesitas al menos 2 sesiones para ver la evolución"; an exercise logged only with 0 kg shows max reps instead of 1RM and volume. The detail is reachable from the card, from the exercise detail (T-042) and from the session detail (T-047). Domain: `StrengthSummary` (top 3, record, monthly delta) with tests from `04` §4.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/weekly_muscle_volume.test.sql`: ISO-week grouping (a Sunday and the next Monday fall in different weeks), completed only, other users ignored.
-- [ ] With Press de banca, Sentadilla and Peso muerto trained in the last 6 weeks, the card shows those 3 chips with "Press de banca con barra" selected.
-- [ ] Best set 100 kg × 4 → "Récord 1RM estimado: 113,5 kg"; best 30 days ago 108,5 kg → "+5,0 kg este mes" in green.
-- [ ] Exercise detail: two charts (1RM, volume) and the 1M / 3M / 6M / 1A filters change the range; single-session message; Dominadas at 0 kg → max-reps chart.
-- [ ] Weekly volume: 8 weeks per group; selecting a group isolates it.
-- [ ] Empty state on "Fuerza" for a user with no completed sessions; loading skeleton and `ErrorState` with "Reintentar" on a failed read.
-- [ ] Perfil root keeps sign-out and delete-account behaviour unchanged.
+- [x] With Press de banca, Sentadilla and Peso muerto trained in the last 6 weeks, the card shows those 3 chips with "Press de banca con barra" selected.
+- [x] Best set 100 kg × 4 → "Récord 1RM estimado: 113,5 kg"; best 30 days ago 108,5 kg → "+5,0 kg este mes" in green.
+- [x] Exercise detail: two charts (1RM, volume) and the 1M / 3M / 6M / 1A filters change the range; single-session message; Dominadas at 0 kg → max-reps chart.
+- [x] Empty state on "Fuerza" for a user with no completed sessions; loading skeleton and `ErrorState` with "Reintentar" on a failed read.
+- [x] Perfil root keeps sign-out and delete-account behaviour unchanged.
 
-**Host tests (per scenario):** `StrengthSummaryTest` (Summary card; Estimated 1RM record); `ExerciseProgressViewModelTest` (Exercise chart filters; Exercise without enough data; Exercises without load); `MuscleVolumeViewModelTest` (Weekly volume per muscle group); `StrengthScreenTest` and `ExerciseProgressScreenTest` (Robolectric: chips, texts "Récord 1RM estimado: 113,5 kg", "+5,0 kg este mes", filters, message); `ProfileRootScreenTest` update (Fuerza entry); pgTAP `weekly_muscle_volume.test.sql`.
+**Host tests (per scenario):** `StrengthSummaryTest` (Summary card; Estimated 1RM record); `ExerciseProgressViewModelTest` (Exercise chart filters; Exercise without enough data; Exercises without load); `StrengthScreenTest` and `ExerciseProgressScreenTest` (Robolectric: chips, texts "Récord 1RM estimado: 113,5 kg", "+5,0 kg este mes", filters, message); `ProfileRootScreenTest` update (Fuerza entry).
+
+**Verification:**
+- [x] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-047
+**Files likely touched:** `supabase/migrations/<ts>_weekly_muscle_volume.sql`, `supabase/tests/weekly_muscle_volume.test.sql`, `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `shared/…/domain/usecase/StrengthSummary.kt` + tests, `shared/…/domain/repository/StrengthRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/analytics/{StrengthScreen,StrengthViewModel,ExerciseProgressScreen,ExerciseProgressViewModel,MuscleVolumeScreen,MuscleVolumeViewModel}.kt`, `composeApp/…/designsystem/AppLineChart.kt`, `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests
+**Estimated scope:** L (if the plan passes ~15 non-trivial files, the planner may move the weekly muscle volume into its own UI follow-up task)
+
+---
+
+## T-048b: Weekly muscle volume
+
+**Story:** US-15 · **Flow:** UI + backend · **Scenarios:** Weekly volume per muscle group
+
+**Description:** Split from T-048 by the planner. Migration with `weekly_muscle_volume(p_from)` (`security invoker`; per ISO week Monday–Sunday and the exercise's `muscle_group`, completed sets of completed sessions) + pgTAP. `MuscleVolumeViewModel` and screen; the "Volumen por grupo muscular" entry from "Fuerza" (last 8 weeks per group; selecting a group shows only its evolution).
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/weekly_muscle_volume.test.sql`: ISO-week grouping (a Sunday and the next Monday fall in different weeks), completed only, other users ignored.
+- [ ] Weekly volume: 8 weeks per group; selecting a group isolates it.
+
+**Host tests:** `MuscleVolumeViewModelTest`; screen test; pgTAP.
 
 **Verification:**
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
-**Dependencies:** T-047
-**Files likely touched:** `supabase/migrations/<ts>_weekly_muscle_volume.sql`, `supabase/tests/weekly_muscle_volume.test.sql`, `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `shared/…/domain/usecase/StrengthSummary.kt` + tests, `shared/…/domain/repository/StrengthRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/analytics/{StrengthScreen,StrengthViewModel,ExerciseProgressScreen,ExerciseProgressViewModel,MuscleVolumeScreen,MuscleVolumeViewModel}.kt`, `composeApp/…/designsystem/AppLineChart.kt`, `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests
-**Estimated scope:** L (if the plan passes ~15 non-trivial files, the planner may move the weekly muscle volume into its own UI follow-up task)
+**Dependencies:** T-048
+**Estimated scope:** M
 
 ---
 
@@ -1287,7 +1305,7 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Story:** E3 Definition of Done · **Flow:** PM
 
 **Acceptance criteria:**
-- [ ] T-042…T-048 merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
+- [ ] T-042…T-048b merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
 - [ ] Host tests green for every E3 UI scenario, including the full-session test (T-046).
 - [ ] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
 - [ ] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
@@ -1296,7 +1314,7 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
 
-**Dependencies:** T-048
+**Dependencies:** T-048b
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 

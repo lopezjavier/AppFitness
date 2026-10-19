@@ -57,6 +57,10 @@ private val MonthNames: Map<Month, StringResource> = mapOf(
     Month.DECEMBER to Res.string.month_short_12,
 )
 
+/** Short Spanish month name ("oct"). */
+@Composable
+internal fun Month.shortLabel(): String = stringResource(MonthNames.getValue(this))
+
 /** "Hoy", "Ayer" or "lun, 24 oct". */
 @Composable
 internal fun DateLabel.text(): String = when (this) {

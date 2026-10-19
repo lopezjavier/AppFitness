@@ -1,10 +1,14 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -24,18 +28,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_row
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
@@ -54,6 +65,7 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val NAME_MAX_LINES = 2
@@ -63,6 +75,7 @@ private const val NAME_SKELETON_WIDTH_UNITS = 8
 private class RootActions(
     val onOpenPreferences: () -> Unit,
     val onOpenCatalog: (() -> Unit)?,
+    val onOpenStrength: () -> Unit,
     val onSignOut: () -> Unit,
     val onDelete: () -> Unit,
 )
@@ -73,6 +86,7 @@ fun ProfileRootRoute(
     modifier: Modifier = Modifier,
     onOpenPreferences: () -> Unit = {},
     onOpenCatalog: (() -> Unit)? = null,
+    onOpenStrength: () -> Unit = {},
     viewModel: ProfileRootViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,6 +96,7 @@ fun ProfileRootRoute(
         modifier = modifier,
         onOpenPreferences = onOpenPreferences,
         onOpenCatalog = onOpenCatalog,
+        onOpenStrength = onOpenStrength,
         effects = viewModel.effects,
     )
 }
@@ -98,6 +113,7 @@ fun ProfileRootScreen(
     modifier: Modifier = Modifier,
     onOpenPreferences: () -> Unit = {},
     onOpenCatalog: (() -> Unit)? = null,
+    onOpenStrength: () -> Unit = {},
     effects: Flow<ProfileRootEffect> = emptyFlow(),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
@@ -105,7 +121,13 @@ fun ProfileRootScreen(
     var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
     val actions =
-        RootActions(onOpenPreferences, onOpenCatalog, { confirmingSignOut = true }, { confirmingDelete = true })
+        RootActions(
+            onOpenPreferences,
+            onOpenCatalog,
+            onOpenStrength,
+            { confirmingSignOut = true },
+            { confirmingDelete = true },
+        )
     Box(modifier.fillMaxSize().testTag("profile_screen"), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier
@@ -149,6 +171,39 @@ fun ProfileRootScreen(
             },
             onDismiss = { confirmingDelete = false },
         )
+    }
+}
+
+/** "Estadísticas": a heading and the "Fuerza" row (48 dp, decorative chevron; the label is the accessible name). */
+@Composable
+private fun StatisticsSection(onOpenStrength: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            text = stringResource(Res.string.profile_statistics_section).uppercase(),
+            style = AppTheme.typography.labelTechnical,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.semantics { heading() },
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = Spacing.minTouchTarget)
+                .clickable(role = Role.Button, onClick = onOpenStrength)
+                .testTag("profile_strength_row"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(Res.string.profile_strength_row),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Image(
+                imageVector = vectorResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(AppTheme.colors.textSecondary),
+            )
+        }
     }
 }
 
@@ -217,7 +272,10 @@ private fun HeaderSkeleton() {
     }
 }
 
-/** "Preferencias", catalog (local only), a 24 dp gap, "Cerrar sesión" and "Borrar cuenta" (loaded only). */
+/**
+ * "Estadísticas" (the "Fuerza" row), "Preferencias", catalog (local only), a 24 dp gap, "Cerrar sesión" and
+ * "Borrar cuenta" (loaded only).
+ */
 @Composable
 private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
     Column(
@@ -225,6 +283,7 @@ private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         if (state is ProfileRootUiState.Loaded) {
+            StatisticsSection(actions.onOpenStrength)
             PrimaryButton(
                 text = stringResource(Res.string.preferences_title),
                 onClick = actions.onOpenPreferences,

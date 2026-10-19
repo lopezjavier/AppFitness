@@ -48,6 +48,8 @@ ktor = "3.5.1"
 androidx-credentials = "1.6.0"
 googleid = "1.2.1"
 coil = "3.6.3"
+# Latest stable multiplatform charts (T-048); 3.3.0-next.* are pre-releases and excluded.
+vico = "3.3.1"
 
 # Lint (T-016). Stable releases only.
 ktlint-gradle = "14.2.0"
@@ -95,6 +97,7 @@ androidx-credentials-play-services-auth = { module = "androidx.credentials:crede
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vico" }
 coil-test = { module = "io.coil-kt.coil3:coil-test", version.ref = "coil" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 

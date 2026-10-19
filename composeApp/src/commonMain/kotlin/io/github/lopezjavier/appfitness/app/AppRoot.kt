@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
+import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
@@ -29,21 +31,27 @@ fun AppRoot(
         isOffline = state.isOffline,
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
-        profile = { profileModifier, onOpenPreferences, onOpenCatalog ->
-            ProfileRootRoute(profileModifier, onOpenPreferences, onOpenCatalog)
+        profile = { profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength ->
+            ProfileRootRoute(profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength)
         },
+        strength = { strengthModifier, onOpenExercise, onStartWorkout ->
+            StrengthRoot(onOpenExercise, onStartWorkout, strengthModifier)
+        },
+        exerciseProgress = { progressModifier, exerciseId -> ExerciseProgressRoot(exerciseId, progressModifier) },
         preferences = { preferencesModifier -> PreferencesRoute(preferencesModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier)
         },
-        exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect ->
-            ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier)
+        exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect, onOpenProgress ->
+            ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier, onOpenProgress)
         },
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
         history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
-        sessionDetail = { detailModifier, sessionId, onClose -> SessionDetailRoot(sessionId, onClose, detailModifier) },
+        sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->
+            SessionDetailRoot(sessionId, onClose, detailModifier, onOpenProgress)
+        },
         routineBuilder = { builderModifier, host ->
             RoutineBuilderRoot(
                 routineId = host.routineId,

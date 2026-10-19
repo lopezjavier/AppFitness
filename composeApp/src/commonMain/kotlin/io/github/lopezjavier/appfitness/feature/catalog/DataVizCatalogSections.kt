@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // One small section composable per component.
+
 package io.github.lopezjavier.appfitness.feature.catalog
 
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_line_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_fat_trend
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_goal
@@ -20,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_full
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_over
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_stacked_bar
@@ -36,6 +40,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
@@ -77,6 +82,7 @@ internal fun LazyListScope.dataVizItems() {
     item { MacroStackedBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
+    item { LineChartSection() }
 }
 
 private val RingStates =
@@ -287,5 +293,23 @@ private fun TrendPillsSection() {
             stringResource(Res.string.catalog_text_pill),
             Modifier.testTag("catalog_text_pill"),
         )
+    }
+}
+
+private val DemoChartValues = listOf(100.0, 104.0, 102.5, 108.0, 113.5)
+private val DemoChartLabels = listOf("1 oct", "8 oct", "15 oct", "22 oct", "29 oct")
+
+@Composable
+private fun LineChartSection() {
+    CatalogSection(stringResource(Res.string.catalog_section_line_chart), "catalog_section_line_chart") {
+        AppCard(Modifier.fillMaxWidth()) {
+            AppLineChart(
+                values = DemoChartValues,
+                labels = DemoChartLabels,
+                description = stringResource(Res.string.catalog_line_chart_cd),
+                modifier = Modifier.fillMaxWidth().testTag("catalog_line_chart"),
+                valueLabel = { it.roundToInt().toString() },
+            )
+        }
     }
 }

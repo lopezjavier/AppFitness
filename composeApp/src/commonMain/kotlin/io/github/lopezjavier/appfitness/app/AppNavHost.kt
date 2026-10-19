@@ -29,11 +29,16 @@ import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 
 /**
- * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener and the catalog opener (null where
- * it is unavailable).
+ * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener, the catalog opener (null where
+ * it is unavailable) and the "Fuerza" opener.
  */
 internal typealias ProfileSlot =
-    @Composable (modifier: Modifier, onOpenPreferences: () -> Unit, onOpenCatalog: (() -> Unit)?) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenPreferences: () -> Unit,
+        onOpenCatalog: (() -> Unit)?,
+        onOpenStrength: () -> Unit,
+    ) -> Unit
 
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
 internal typealias PreferencesSlot = @Composable (modifier: Modifier) -> Unit
@@ -47,9 +52,15 @@ internal typealias ExercisePickerSlot =
         onSelected: (String) -> Unit,
     ) -> Unit
 
-/** Exercise detail content: modifier, exercise id, select mode and the select action. */
+/** Exercise detail content: modifier, exercise id, select mode, the select action and the progress opener. */
 internal typealias ExerciseDetailSlot =
-    @Composable (modifier: Modifier, exerciseId: String, selectMode: Boolean, onSelect: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        exerciseId: String,
+        selectMode: Boolean,
+        onSelect: () -> Unit,
+        onOpenProgress: () -> Unit,
+    ) -> Unit
 
 /** "Mis rutinas" content: its modifier (tab insets) and the opener of the builder (null id = new routine). */
 internal typealias RoutinesSlot =
@@ -63,8 +74,24 @@ internal typealias RoutinesSlot =
 /** History content: modifier (full-screen insets) and the opener of a session detail (by session id). */
 internal typealias HistorySlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
 
-/** Session detail content: modifier (full-screen insets), the session id and how to leave after a deletion. */
-internal typealias SessionDetailSlot = @Composable (modifier: Modifier, sessionId: String, onClose: () -> Unit) -> Unit
+/**
+ * Session detail content: modifier (full-screen insets), the session id, how to leave after a deletion and the opener
+ * of the progress of one of its exercises (by exercise id).
+ */
+internal typealias SessionDetailSlot =
+    @Composable (
+        modifier: Modifier,
+        sessionId: String,
+        onClose: () -> Unit,
+        onOpenProgress: (String) -> Unit,
+    ) -> Unit
+
+/** "Fuerza" content: modifier (full-screen insets), the progress opener (by exercise id) and "start workout". */
+internal typealias StrengthSlot =
+    @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit, onStartWorkout: () -> Unit) -> Unit
+
+/** Exercise progress content: modifier (full-screen insets) and the exercise id. */
+internal typealias ExerciseProgressSlot = @Composable (modifier: Modifier, exerciseId: String) -> Unit
 
 /**
  * What the live workout needs from navigation: the exercise the picker returned (to be consumed with
@@ -99,7 +126,7 @@ internal typealias RoutineBuilderSlot = @Composable (modifier: Modifier, host: R
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
@@ -111,7 +138,7 @@ internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _
 }
 
 /** Empty detail for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _ ->
+internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_detail_screen"))
 }
 
@@ -136,8 +163,18 @@ internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
 }
 
 /** Empty session detail for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _ ->
+internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("session_detail_screen"))
+}
+
+/** Empty "Fuerza" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("strength_screen"))
+}
+
+/** Empty exercise progress for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("exercise_progress_screen"))
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -167,6 +204,8 @@ internal fun AppNavHost(
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
+    strength: StrengthSlot = DefaultStrengthSlot,
+    exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -175,6 +214,9 @@ internal fun AppNavHost(
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineBuilderRoute(id)) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
+    val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
+    val openProgress: (String) -> Unit =
+        remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
@@ -186,7 +228,12 @@ internal fun AppNavHost(
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
-                profile(Modifier.padding(tabPadding), openPreferences, if (catalogAvailable) openCatalog else null)
+                profile(
+                    Modifier.padding(tabPadding),
+                    openPreferences,
+                    if (catalogAvailable) openCatalog else null,
+                    openStrength,
+                )
             }
         }
         composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding)) }
@@ -206,6 +253,7 @@ internal fun AppNavHost(
                 route.exerciseId,
                 route.selectMode,
                 { navController.returnSelectedExercise(route.exerciseId) },
+                { openProgress(route.exerciseId) },
             )
         }
         composable<RoutineBuilderRoute> { entry ->
@@ -223,7 +271,8 @@ internal fun AppNavHost(
             )
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
-        historyDestinations(navController, fullScreenPadding, history, sessionDetail)
+        historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
+        strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, openProgress)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }
@@ -236,6 +285,7 @@ private fun NavGraphBuilder.historyDestinations(
     fullScreenPadding: PaddingValues,
     history: HistorySlot,
     sessionDetail: SessionDetailSlot,
+    openProgress: (String) -> Unit,
 ) {
     composable<HistoryRoute> {
         history(Modifier.padding(fullScreenPadding)) { navController.navigateToFullScreen(SessionDetailRoute(it)) }
@@ -245,7 +295,24 @@ private fun NavGraphBuilder.historyDestinations(
             Modifier.padding(fullScreenPadding),
             entry.toRoute<SessionDetailRoute>().sessionId,
             { navController.popBackStack() },
+            openProgress,
         )
+    }
+}
+
+/** "Fuerza" and the progress of one exercise; the empty state leads to the Entreno tab. */
+private fun NavGraphBuilder.strengthDestinations(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    strength: StrengthSlot,
+    exerciseProgress: ExerciseProgressSlot,
+    openProgress: (String) -> Unit,
+) {
+    composable<StrengthRoute> {
+        strength(Modifier.padding(fullScreenPadding), openProgress) { navController.navigateToTab(TopLevelTab.Workout) }
+    }
+    composable<ExerciseProgressRoute> { entry ->
+        exerciseProgress(Modifier.padding(fullScreenPadding), entry.toRoute<ExerciseProgressRoute>().exerciseId)
     }
 }
 

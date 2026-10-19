@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.di
 
 import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
+import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
@@ -59,6 +61,17 @@ val uiModule =
                 exerciseRepository = get(),
                 exerciseLibrary = get(),
                 connectivity = get(),
+                clock = get(),
+            )
+        }
+        viewModelOf(::StrengthViewModel)
+        viewModel { (exerciseId: String) ->
+            ExerciseProgressViewModel(
+                exerciseId = exerciseId,
+                workouts = get(),
+                strength = get(),
+                exerciseRepository = get(),
+                exerciseLibrary = get(),
                 clock = get(),
             )
         }

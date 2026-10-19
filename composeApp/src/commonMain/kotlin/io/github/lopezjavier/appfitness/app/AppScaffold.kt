@@ -69,6 +69,8 @@ internal fun AppScaffold(
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
+    strength: StrengthSlot = DefaultStrengthSlot,
+    exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -118,6 +120,8 @@ internal fun AppScaffold(
                     liveSession = liveSession,
                     history = history,
                     sessionDetail = sessionDetail,
+                    strength = strength,
+                    exerciseProgress = exerciseProgress,
                     modifier = contentModifier,
                 )
             }
@@ -210,6 +214,8 @@ private fun ShellContent(
     liveSession: LiveSessionSlot,
     history: HistorySlot,
     sessionDetail: SessionDetailSlot,
+    strength: StrengthSlot,
+    exerciseProgress: ExerciseProgressSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -245,6 +251,8 @@ private fun ShellContent(
             liveSession = liveSession,
             history = history,
             sessionDetail = sessionDetail,
+            strength = strength,
+            exerciseProgress = exerciseProgress,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(
