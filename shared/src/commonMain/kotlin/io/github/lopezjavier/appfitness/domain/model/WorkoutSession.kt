@@ -1,0 +1,26 @@
+package io.github.lopezjavier.appfitness.domain.model
+
+import kotlin.time.Instant
+
+/** One set of a session. A set is pending until [completedAt] is set; finishing the session drops pending sets. */
+data class WorkoutSet(val setIndex: Int, val setType: SetType, val entry: SetEntry, val completedAt: Instant?) {
+    val isCompleted: Boolean get() = completedAt != null
+}
+
+/** An exercise of a session with its sets ordered by [WorkoutSet.setIndex]. [position] is 0-based. */
+data class SessionExercise(
+    val exerciseId: String,
+    val position: Int,
+    val supersetGroup: Int?,
+    val sets: List<WorkoutSet>,
+)
+
+data class WorkoutSession(
+    val id: String,
+    val routineId: String?,
+    val name: String,
+    val status: SessionStatus,
+    val startedAt: Instant,
+    val endedAt: Instant?,
+    val exercises: List<SessionExercise>,
+)

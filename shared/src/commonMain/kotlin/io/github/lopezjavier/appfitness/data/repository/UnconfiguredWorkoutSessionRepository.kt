@@ -1,0 +1,40 @@
+package io.github.lopezjavier.appfitness.data.repository
+
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
+import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
+
+/** Used when Supabase is not configured: every call fails. */
+class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
+    private fun <T> fail(): Result<T> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun startFromRoutine(routineId: String): Result<String> = fail()
+
+    override suspend fun startEmpty(): Result<String> = fail()
+
+    override suspend fun getInProgress(): Result<WorkoutSession?> = fail()
+
+    override suspend fun upsertSet(
+        sessionId: String,
+        exerciseId: String,
+        exercisePosition: Int,
+        supersetGroup: Int?,
+        setIndex: Int,
+        entry: SetEntry,
+        completedAt: Instant?,
+        setType: SetType,
+    ): Result<Unit> = fail()
+
+    override suspend fun finish(sessionId: String): Result<Unit> = fail()
+
+    override suspend fun discard(sessionId: String): Result<Unit> = fail()
+
+    override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =
+        fail()
+}
