@@ -44,11 +44,15 @@ sealed interface ProfileUiState {
         val today: LocalDate,
         val isSaving: Boolean = false,
         val isOnline: Boolean = true,
+        val isDeleting: Boolean = false,
     ) : ProfileUiState {
         val isDirty: Boolean get() = form != saved
 
         /** "Guardar" is enabled when something changed, the network is up and no save is running. */
-        val canSave: Boolean get() = isDirty && isOnline && !isSaving
+        val canSave: Boolean get() = isDirty && isOnline && !isSaving && !isDeleting
+
+        /** "Borrar cuenta" is enabled while online and no delete is running. */
+        val canDelete: Boolean get() = isOnline && !isDeleting
 
         val energy: EnergyStrategyUiState
             get() = energyStrategyUiState(
@@ -88,6 +92,9 @@ sealed interface ProfileEvent {
 
     /** The user confirmed the sign-out dialog. */
     data object SignOutConfirmed : ProfileEvent
+
+    /** The user confirmed the delete-account dialog. */
+    data object DeleteAccountConfirmed : ProfileEvent
 }
 
 /** One-off results shown as a snackbar (the screen also fires the haptic on [Saved]). */
@@ -96,4 +103,7 @@ sealed interface ProfileEffect {
 
     /** [offline] is true when the failure was the network. */
     data class SaveFailed(val offline: Boolean) : ProfileEffect
+
+    /** Deleting the account failed; the session is kept. [offline] is true when the failure was the network. */
+    data class DeleteFailed(val offline: Boolean) : ProfileEffect
 }

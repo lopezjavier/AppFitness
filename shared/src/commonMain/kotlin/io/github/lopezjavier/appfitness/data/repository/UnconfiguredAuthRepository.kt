@@ -5,11 +5,13 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -63,4 +65,9 @@ class UnconfiguredNutritionGoalsRepository : NutritionGoalsRepository {
     override suspend fun getOwn(): Result<NutritionGoals?> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun upsert(goals: NutritionGoals): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+}
+
+/** Account counterpart of [UnconfiguredAuthRepository]: there is no server to delete from. */
+class UnconfiguredAccountRepository : AccountRepository {
+    override suspend fun deleteAccount(): DeleteAccountOutcome = DeleteAccountOutcome.Failed
 }

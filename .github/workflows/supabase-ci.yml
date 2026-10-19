@@ -68,7 +68,9 @@ jobs:
       - name: Deno lint
         run: deno lint supabase/functions
       - name: Deno type-check entrypoints
-        run: deno check supabase/functions/health/index.ts
+        run: |
+          deno check supabase/functions/health/index.ts
+          deno check supabase/functions/delete-account/index.ts
       - name: Deno tests (Edge Functions)
         run: deno test --allow-all supabase/functions
       - name: Start local Supabase

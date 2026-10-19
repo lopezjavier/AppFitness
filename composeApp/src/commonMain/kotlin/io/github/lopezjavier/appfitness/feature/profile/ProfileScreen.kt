@@ -34,19 +34,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
+import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_save
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_saved
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
-import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -66,6 +64,9 @@ import org.koin.compose.viewmodel.koinViewModel
 
 private const val SKELETON_CARDS = 3
 private const val SKELETON_CARD_UNITS = 5
+
+/** The account buttons' callbacks, grouped to keep the layout composables' signatures short. */
+private class AccountCallbacks(val onOpenCatalog: (() -> Unit)?, val onSignOut: () -> Unit, val onDelete: () -> Unit)
 
 /** Stateful Profile tab: connects [ProfileViewModel] to the stateless [ProfileScreen]. */
 @Composable
@@ -101,6 +102,7 @@ fun ProfileScreen(
     val snackbarHost = remember { SnackbarHostState() }
     SaveEffects(effects, snackbarHost)
     var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
+    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
     Box(modifier.fillMaxSize().testTag("profile_screen"), contentAlignment = Alignment.TopCenter) {
         when (state) {
             ProfileUiState.Loading -> ProfileLoading()
@@ -113,28 +115,37 @@ fun ProfileScreen(
                         testTagPrefix = "profile_error",
                     )
                 }
-                AccountActions(onOpenCatalog, {
-                    confirmingSignOut = true
-                }, Modifier.padding(horizontal = Spacing.screenMargin))
+                AccountActions(
+                    state = null,
+                    callbacks = AccountCallbacks(onOpenCatalog, { confirmingSignOut = true }, {}),
+                    modifier = Modifier.padding(horizontal = Spacing.screenMargin),
+                )
             }
 
-            is ProfileUiState.Loaded -> ProfileLoaded(state, onEvent, snackbarHost, onOpenCatalog) {
-                confirmingSignOut = true
-            }
+            is ProfileUiState.Loaded -> ProfileLoaded(
+                state = state,
+                onEvent = onEvent,
+                snackbarHost = snackbarHost,
+                callbacks = AccountCallbacks(onOpenCatalog, { confirmingSignOut = true }, { confirmingDelete = true }),
+            )
         }
     }
     if (confirmingSignOut) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.sign_out_dialog_title),
-            message = stringResource(Res.string.sign_out_dialog_message),
-            confirmLabel = stringResource(Res.string.sign_out_dialog_confirm),
-            cancelLabel = stringResource(Res.string.sign_out_dialog_cancel),
+        SignOutDialog(
             onConfirm = {
                 confirmingSignOut = false
                 onEvent(ProfileEvent.SignOutConfirmed)
             },
             onDismiss = { confirmingSignOut = false },
-            testTagPrefix = "sign_out_dialog",
+        )
+    }
+    if (confirmingDelete) {
+        DeleteAccountDialog(
+            onConfirm = {
+                confirmingDelete = false
+                onEvent(ProfileEvent.DeleteAccountConfirmed)
+            },
+            onDismiss = { confirmingDelete = false },
         )
     }
 }
@@ -146,6 +157,7 @@ private fun SaveEffects(effects: Flow<ProfileEffect>, host: SnackbarHostState) {
     val saved = stringResource(Res.string.profile_saved)
     val failed = stringResource(Res.string.onboarding_save_error)
     val offline = stringResource(Res.string.onboarding_save_error_offline)
+    val deleteFailed = stringResource(Res.string.delete_account_error)
     LaunchedEffect(effects) {
         effects.collect { effect ->
             when (effect) {
@@ -156,6 +168,9 @@ private fun SaveEffects(effects: Flow<ProfileEffect>, host: SnackbarHostState) {
 
                 is ProfileEffect.SaveFailed ->
                     host.showSnackbar(if (effect.offline) offline else failed, duration = SnackbarDuration.Long)
+
+                is ProfileEffect.DeleteFailed ->
+                    host.showSnackbar(if (effect.offline) offline else deleteFailed, duration = SnackbarDuration.Long)
             }
         }
     }
@@ -182,8 +197,7 @@ private fun ProfileLoaded(
     state: ProfileUiState.Loaded,
     onEvent: (ProfileEvent) -> Unit,
     snackbarHost: SnackbarHostState,
-    onOpenCatalog: (() -> Unit)?,
-    onSignOut: () -> Unit,
+    callbacks: AccountCallbacks,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val wide = maxWidth >= WindowWidthClassDefaults.WideMinWidth
@@ -198,11 +212,11 @@ private fun ProfileLoaded(
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
                 if (wide) {
-                    TwoColumns(state, onEvent, onOpenCatalog, onSignOut)
+                    TwoColumns(state, onEvent, callbacks)
                 } else {
                     PersonalAndEnergy(state, onEvent)
                     MacroSplitCard(state, onEvent)
-                    AccountActions(onOpenCatalog, onSignOut, Modifier.padding(top = Spacing.blockGap - Spacing.cardGap))
+                    AccountActions(state, callbacks, Modifier.padding(top = Spacing.blockGap - Spacing.cardGap))
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
@@ -224,16 +238,11 @@ private fun ColumnScope.PersonalAndEnergy(state: ProfileUiState.Loaded, onEvent:
 }
 
 @Composable
-private fun TwoColumns(
-    state: ProfileUiState.Loaded,
-    onEvent: (ProfileEvent) -> Unit,
-    onOpenCatalog: (() -> Unit)?,
-    onSignOut: () -> Unit,
-) {
+private fun TwoColumns(state: ProfileUiState.Loaded, onEvent: (ProfileEvent) -> Unit, callbacks: AccountCallbacks) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             PersonalAndEnergy(state, onEvent)
-            AccountActions(onOpenCatalog, onSignOut, Modifier.padding(top = Spacing.blockGap - Spacing.cardGap))
+            AccountActions(state, callbacks, Modifier.padding(top = Spacing.blockGap - Spacing.cardGap))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             MacroSplitCard(state, onEvent)
@@ -241,10 +250,11 @@ private fun TwoColumns(
     }
 }
 
-/** Catalog (local flavor only) and "Cerrar sesión", below the cards and away from "Guardar". */
+/** Catalog (local only), "Cerrar sesión" and "Borrar cuenta" (loaded only), below the cards, away from "Guardar". */
 @Composable
-private fun AccountActions(onOpenCatalog: (() -> Unit)?, onSignOut: () -> Unit, modifier: Modifier = Modifier) {
+private fun AccountActions(state: ProfileUiState.Loaded?, callbacks: AccountCallbacks, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+        val onOpenCatalog = callbacks.onOpenCatalog
         if (onOpenCatalog != null) {
             SecondaryButton(
                 text = stringResource(Res.string.catalog_title),
@@ -254,10 +264,22 @@ private fun AccountActions(onOpenCatalog: (() -> Unit)?, onSignOut: () -> Unit, 
         }
         GhostButton(
             text = stringResource(Res.string.profile_sign_out),
-            onClick = onSignOut,
+            onClick = callbacks.onSignOut,
             modifier = Modifier.fillMaxWidth().testTag("profile_sign_out_button"),
             tone = GhostTone.Destructive,
         )
+        if (state != null) {
+            GhostButton(
+                text = stringResource(
+                    if (state.isDeleting) Res.string.profile_deleting_account else Res.string.profile_delete_account,
+                ),
+                onClick = callbacks.onDelete,
+                modifier = Modifier.fillMaxWidth().testTag("profile_delete_account_button"),
+                enabled = state.canDelete,
+                tone = GhostTone.Destructive,
+                loading = state.isDeleting,
+            )
+        }
     }
 }
 

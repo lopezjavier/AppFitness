@@ -223,6 +223,13 @@
     <string name="sign_out_dialog_message">Tendrás que volver a entrar con tu cuenta de Google.</string>
     <string name="sign_out_dialog_confirm">Cerrar sesión</string>
     <string name="sign_out_dialog_cancel">Cancelar</string>
+    <string name="profile_delete_account">Borrar cuenta</string>
+    <string name="profile_deleting_account">Borrando…</string>
+    <string name="delete_account_error">No se pudo borrar la cuenta. Inténtalo de nuevo</string>
+    <string name="delete_account_dialog_title">¿Borrar tu cuenta?</string>
+    <string name="delete_account_dialog_message">Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer.</string>
+    <string name="delete_account_dialog_confirm">Borrar</string>
+    <string name="delete_account_dialog_cancel">Cancelar</string>
     <string name="catalog_section_confirm_dialog">Diálogo de confirmación</string>
     <string name="catalog_dialog_open">Abrir diálogo</string>
     <string name="catalog_section_logo">Logotipo</string>

@@ -17,6 +17,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -60,6 +62,7 @@ class ProfileScreenTest {
         saved: MacroSplit = split,
         isOnline: Boolean = true,
         isSaving: Boolean = false,
+        isDeleting: Boolean = false,
     ): ProfileUiState.Loaded {
         val form = ProfileForm(
             sex = Sex.Male,
@@ -77,6 +80,7 @@ class ProfileScreenTest {
             today = today,
             isSaving = isSaving,
             isOnline = isOnline,
+            isDeleting = isDeleting,
         )
     }
 
@@ -371,5 +375,87 @@ class ProfileScreenTest {
         assertTrue(events.isEmpty())
         rule.onNodeWithTag("sign_out_dialog").assertDoesNotExist()
         rule.onNodeWithTag("profile_screen").assertExists()
+    }
+
+    // -- US-05 delete account -----------------------------------------------------------------------------------
+
+    @Test
+    fun deleteButton_isLastInTheScroll_andMeetsTheTouchTarget() {
+        show()
+        rule.onNodeWithTag("profile_delete_account_button").performScrollTo()
+            .assertTextEquals("Borrar cuenta").assertIsEnabled().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("delete_account_dialog").assertDoesNotExist()
+        val signOutBottom = rule.onNodeWithTag("profile_sign_out_button").getUnclippedBoundsInRoot().bottom
+        val deleteTop = rule.onNodeWithTag("profile_delete_account_button").getUnclippedBoundsInRoot().top
+        assertTrue(deleteTop >= signOutBottom)
+    }
+
+    @Test
+    fun tappingDelete_opensTheDialogWithTheApprovedTexts_andDeletesNothing() {
+        show()
+        rule.onNodeWithTag("profile_delete_account_button").performScrollTo().performClick()
+        rule.onNodeWithTag("delete_account_dialog").assertExists()
+        rule.onNodeWithText("¿Borrar tu cuenta?").assertExists()
+        rule.onNodeWithText("Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer.").assertExists()
+        rule.onNodeWithTag("delete_account_dialog_cancel").assertTextEquals("Cancelar")
+        rule.onNodeWithTag("delete_account_dialog_confirm").assertTextEquals("Borrar")
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun cancellingDelete_closesTheDialog_andDeletesNothing() {
+        show()
+        rule.onNodeWithTag("profile_delete_account_button").performScrollTo().performClick()
+        rule.onNodeWithTag("delete_account_dialog_cancel").performClick()
+        rule.waitForIdle()
+        assertTrue(events.isEmpty())
+        rule.onNodeWithTag("delete_account_dialog").assertDoesNotExist()
+        rule.onNodeWithTag("profile_screen").assertExists()
+    }
+
+    @Test
+    fun confirmingDelete_sendsTheEventOnce_andClosesTheDialog() {
+        show()
+        rule.onNodeWithTag("profile_delete_account_button").performScrollTo().performClick()
+        rule.onNodeWithTag("delete_account_dialog_confirm").performClick()
+        rule.waitForIdle()
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.DeleteAccountConfirmed), events)
+        rule.onNodeWithTag("delete_account_dialog").assertDoesNotExist()
+    }
+
+    @Test
+    fun deleteButton_isDisabledOffline() {
+        show(loaded(isOnline = false))
+        rule.onNodeWithTag("profile_delete_account_button").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun deleting_disablesTheButton_andReadsBorrando() {
+        show(loaded(isDeleting = true))
+        rule.onNodeWithTag("profile_delete_account_button").performScrollTo()
+            .assertIsNotEnabled().assertTextEquals("Borrando…")
+        rule.onNode(
+            SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo) and
+                hasAnyAncestor(hasTestTag("profile_delete_account_button")),
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
+    @Test
+    fun deleteFailedEffect_showsTheErrorSnackbar() {
+        val effects = Channel<ProfileEffect>(Channel.BUFFERED)
+        show(effects = effects)
+        effects.trySend(ProfileEffect.DeleteFailed(offline = false))
+        rule.waitForIdle()
+        rule.onNodeWithText("No se pudo borrar la cuenta. Inténtalo de nuevo").assertIsDisplayed()
+    }
+
+    @Test
+    fun deleteFailedOfflineEffect_showsTheOfflineSnackbar() {
+        val effects = Channel<ProfileEffect>(Channel.BUFFERED)
+        show(effects = effects)
+        effects.trySend(ProfileEffect.DeleteFailed(offline = true))
+        rule.waitForIdle()
+        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertIsDisplayed()
     }
 }
