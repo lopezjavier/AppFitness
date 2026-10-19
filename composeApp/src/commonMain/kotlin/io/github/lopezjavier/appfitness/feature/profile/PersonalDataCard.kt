@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.name_error_blank
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_age
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_decimal_separator
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_birth_date
@@ -41,13 +42,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_la
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_age_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_height_spoken
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_height_value
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_row_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sheet_done
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -57,6 +59,7 @@ import io.github.lopezjavier.appfitness.feature.biometrics.ActivityCards
 import io.github.lopezjavier.appfitness.feature.biometrics.BirthDateWheels
 import io.github.lopezjavier.appfitness.feature.biometrics.HeightWheel
 import io.github.lopezjavier.appfitness.feature.biometrics.SexSelector
+import io.github.lopezjavier.appfitness.feature.biometrics.WeightWheels
 import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -66,19 +69,19 @@ import kotlin.math.roundToInt
 
 private val RowMinHeight: Dp = Spacing.minTouchTarget
 private const val TENTHS_PER_KG = 10
-private const val TAG_PREFIX = "profile"
+private const val TAG_PREFIX = "preferences"
 
 /** Which picker sheet is open. */
-private enum class PersonalSheet { BirthDate, Height, Activity }
+private enum class PersonalSheet { BirthDate, Height, Weight, Activity }
 
 /**
- * "Datos personales": sex inline, birth date / height / activity as rows that open a picker sheet, and the latest
- * weight as a read-only row. Sheet edits reach the form only through "Listo".
+ * "Datos personales": the name field, sex inline, and birth date / height / current weight / activity as rows that
+ * open a picker sheet. Sheet edits reach the form only through "Listo".
  */
 @Composable
 internal fun PersonalDataCard(
-    state: ProfileUiState.Loaded,
-    onEvent: (ProfileEvent) -> Unit,
+    state: PreferencesUiState.Loaded,
+    onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var sheet by rememberSaveable { mutableStateOf<PersonalSheet?>(null) }
@@ -91,13 +94,14 @@ internal fun PersonalDataCard(
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.semantics { heading() },
         )
+        NameField(form.name, editable, onEvent, Modifier.padding(top = Spacing.md))
         Column(Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 text = stringResource(Res.string.onboarding_label_sex),
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.textSecondary,
             )
-            SexSelector(form.sex, { onEvent(ProfileEvent.SelectSex(it)) }, tagPrefix = TAG_PREFIX)
+            SexSelector(form.sex, { onEvent(PreferencesEvent.SelectSex(it)) }, tagPrefix = TAG_PREFIX)
         }
         val age = BiometricBounds.ageOn(form.birthDate, state.today)
         val ageText = stringResource(Res.string.onboarding_age, age)
@@ -105,14 +109,14 @@ internal fun PersonalDataCard(
             label = stringResource(Res.string.profile_age_label),
             value = ageText,
             spokenValue = ageText,
-            tag = "profile_birth_date_row",
+            tag = "preferences_birth_date_row",
             enabled = editable,
         ) { sheet = PersonalSheet.BirthDate }
         EditableRow(
             label = stringResource(Res.string.onboarding_label_height),
             value = stringResource(Res.string.profile_height_value, form.heightCm),
             spokenValue = stringResource(Res.string.profile_height_spoken, form.heightCm),
-            tag = "profile_height_row",
+            tag = "preferences_height_row",
             enabled = editable,
         ) { sheet = PersonalSheet.Height }
         val activity = stringResource(activityTitle(form.activity))
@@ -120,10 +124,10 @@ internal fun PersonalDataCard(
             label = stringResource(Res.string.profile_activity_label),
             value = activity,
             spokenValue = activity,
-            tag = "profile_activity_row",
+            tag = "preferences_activity_row",
             enabled = editable,
         ) { sheet = PersonalSheet.Activity }
-        WeightRow(state.weightKg)
+        WeightRow(form.weightKg, editable) { sheet = PersonalSheet.Weight }
     }
     PersonalSheets(sheet, state, onEvent) { sheet = null }
 }
@@ -170,50 +174,57 @@ private fun EditableRow(
     }
 }
 
-/** The latest weight: no chevron, no click, with the hint that explains where it is edited. */
+/** "Peso actual": an editable row like the others; the value is the weight with one decimal. */
 @Composable
-private fun WeightRow(weightKg: Double) {
+private fun WeightRow(weightKg: Double, enabled: Boolean, onClick: () -> Unit) {
     val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
     val separator = stringResource(Res.string.onboarding_decimal_separator)
     val text =
         stringResource(Res.string.profile_weight_value, "${tenths / TENTHS_PER_KG}$separator${tenths % TENTHS_PER_KG}")
-    Column(Modifier.fillMaxWidth().defaultMinSize(minHeight = RowMinHeight), verticalArrangement = Arrangement.Center) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = stringResource(Res.string.onboarding_label_weight),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = text,
-                style = AppTheme.typography.labelNumeric,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("profile_weight_value"),
-            )
-        }
-        Text(
-            text = stringResource(Res.string.profile_weight_hint),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-        )
-    }
+    EditableRow(
+        label = stringResource(Res.string.onboarding_label_weight),
+        value = text,
+        spokenValue = text,
+        tag = "preferences_weight_row",
+        enabled = enabled,
+        onClick = onClick,
+    )
+}
+
+/** The name text field; a blank name shows "Escribe tu nombre" and blocks saving. */
+@Composable
+private fun NameField(
+    name: String,
+    enabled: Boolean,
+    onEvent: (PreferencesEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AppTextField(
+        value = name,
+        onValueChange = { onEvent(PreferencesEvent.SetName(it)) },
+        label = stringResource(Res.string.profile_name_label),
+        modifier = modifier,
+        maxLength = BiometricBounds.NAME_MAX_LENGTH,
+        errorText = if (name.isBlank()) stringResource(Res.string.name_error_blank) else null,
+        enabled = enabled,
+        testTagPrefix = "preferences_name_field",
+    )
 }
 
 @Composable
 private fun PersonalSheets(
     sheet: PersonalSheet?,
-    state: ProfileUiState.Loaded,
-    onEvent: (ProfileEvent) -> Unit,
+    state: PreferencesUiState.Loaded,
+    onEvent: (PreferencesEvent) -> Unit,
     onClose: () -> Unit,
 ) {
     val form = state.form
     when (sheet) {
         PersonalSheet.BirthDate -> PickerSheet(
             title = Res.string.onboarding_label_birth_date,
-            contentTag = "profile_sheet_birth_date",
+            contentTag = "preferences_sheet_birth_date",
             initial = form.birthDate,
-            onApply = { onEvent(ProfileEvent.SetBirthDate(it)) },
+            onApply = { onEvent(PreferencesEvent.SetBirthDate(it)) },
             onClose = onClose,
         ) { draft, onDraft, onCentred ->
             BirthDateWheels(draft, state.today, onDraft, tagPrefix = TAG_PREFIX, onCentredChange = onCentred)
@@ -221,19 +232,29 @@ private fun PersonalSheets(
 
         PersonalSheet.Height -> PickerSheet(
             title = Res.string.onboarding_label_height,
-            contentTag = "profile_sheet_height",
+            contentTag = "preferences_sheet_height",
             initial = form.heightCm,
-            onApply = { onEvent(ProfileEvent.SetHeight(it)) },
+            onApply = { onEvent(PreferencesEvent.SetHeight(it)) },
             onClose = onClose,
         ) { draft, onDraft, onCentred ->
             HeightWheel(draft, onDraft, tagPrefix = TAG_PREFIX, onCentredChange = onCentred)
         }
 
+        PersonalSheet.Weight -> PickerSheet(
+            title = Res.string.onboarding_label_weight,
+            contentTag = "preferences_sheet_weight",
+            initial = (form.weightKg * TENTHS_PER_KG).roundToInt(),
+            onApply = { onEvent(PreferencesEvent.SetWeight(it)) },
+            onClose = onClose,
+        ) { draft, onDraft, onCentred ->
+            WeightWheels(draft, onDraft, tagPrefix = TAG_PREFIX, onCentredChange = onCentred)
+        }
+
         PersonalSheet.Activity -> PickerSheet<ActivityLevel>(
             title = Res.string.profile_activity_label,
-            contentTag = "profile_sheet_activity",
+            contentTag = "preferences_sheet_activity",
             initial = form.activity,
-            onApply = { onEvent(ProfileEvent.SelectActivity(it)) },
+            onApply = { onEvent(PreferencesEvent.SelectActivity(it)) },
             onClose = onClose,
         ) { draft, onDraft, _ -> ActivityCards(draft, onDraft, tagPrefix = TAG_PREFIX) }
 
@@ -263,7 +284,7 @@ private fun <T> PickerSheet(
     var centred by remember { mutableStateOf(initial) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    AppBottomSheet(onDismissRequest = onClose, sheetState = sheetState, testTagPrefix = "profile_sheet") {
+    AppBottomSheet(onDismissRequest = onClose, sheetState = sheetState, testTagPrefix = "preferences_sheet") {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -288,7 +309,7 @@ private fun <T> PickerSheet(
                     onApply(centred)
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onClose() }
                 },
-                modifier = Modifier.fillMaxWidth().testTag("profile_sheet_done"),
+                modifier = Modifier.fillMaxWidth().testTag("preferences_sheet_done"),
             )
         }
     }

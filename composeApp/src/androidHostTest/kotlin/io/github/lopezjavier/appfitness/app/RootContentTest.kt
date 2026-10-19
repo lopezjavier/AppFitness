@@ -7,7 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -21,6 +23,7 @@ import org.robolectric.annotation.Config
 /** US-05: the root of the app follows the session (Welcome / loading / onboarding stub / Main). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per Gherkin scenario.
 class RootContentTest {
     @get:Rule
     val rule = createComposeRule()
@@ -51,7 +54,7 @@ class RootContentTest {
     }
 
     @Test
-    fun onboarding_showsStubWithoutNavBarOrAvatar() {
+    fun onboarding_showsStubWithoutNavBar() {
         rule.setContent { App(rootRoute = RootRoute.Onboarding, welcome = welcomeStub, onboarding = onboardingStub) }
         rule.onNodeWithTag("onboarding_screen").assertExists()
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
@@ -123,11 +126,38 @@ class RootContentTest {
     }
 
     @Test
-    fun main_hasFourTabs_andNoTopBarAvatar() {
+    fun main_hasExactlyThreeTabs_andNoPhotoInTheBar() {
         rule.setContent { App(rootRoute = RootRoute.Main) }
-        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile").forEach {
+        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_profile").forEach {
             rule.onNodeWithTag(it).assertExists()
         }
+        rule.onNodeWithTag("nav_tab_progress").assertDoesNotExist()
         rule.onNodeWithTag("topbar_avatar").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_profile_avatar_placeholder", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_diary").assertIsSelected()
+    }
+
+    @Test
+    fun profileTab_labelIsPerfil_andItIsSelectedWhenOpened() {
+        rule.setContent { App(rootRoute = RootRoute.Main) }
+        rule.onNodeWithTag("nav_tab_profile").assertContentDescriptionEquals("Perfil").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("nav_tab_profile").assertIsSelected()
+        rule.onNodeWithTag("topbar_title").assertTextEquals("Perfil")
+    }
+
+    @Test
+    fun preferences_opensFullScreen_andBackReturnsToPerfil() {
+        rule.setContent { App(rootRoute = RootRoute.Main) }
+        rule.onNodeWithTag("nav_tab_profile").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("profile_stub_open_preferences").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("preferences_screen").assertExists()
+
+        rule.onNodeWithTag("preferences_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("profile_screen").assertExists()
+        rule.onNodeWithTag("nav_tab_profile").assertIsSelected()
     }
 }

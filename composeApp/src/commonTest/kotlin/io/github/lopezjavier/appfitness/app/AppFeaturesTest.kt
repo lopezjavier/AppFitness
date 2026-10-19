@@ -20,7 +20,7 @@ class AppFeaturesTest {
     )
 
     private val nonCatalogRoutes: List<AppRoute> =
-        listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProgressGraph, ProgressHome, ProfileGraph, ProfileHome)
+        listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome, PreferencesRoute)
 
     @Test
     fun default_disablesCatalog() {
@@ -43,7 +43,7 @@ class AppFeaturesTest {
     }
 
     @Test
-    fun isAvailable_profileAndAllTabRoutes_alwaysTrue() {
+    fun isAvailable_preferencesAndAllTabRoutes_alwaysTrue() {
         listOf(true, false).forEach { catalog ->
             nonCatalogRoutes.forEach {
                 assertTrue(AppFeatures(catalog).isAvailable(it), "$it catalog=$catalog")

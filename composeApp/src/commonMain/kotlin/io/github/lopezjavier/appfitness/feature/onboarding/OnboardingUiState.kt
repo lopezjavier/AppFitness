@@ -48,10 +48,13 @@ enum class OnboardingSaveError { Network, Other }
 
 /**
  * State of the onboarding flow. The user values always hold a valid value (the defaults of [BiometricBounds]
- * until the user changes them), except [sex] and [activity], which start unselected.
+ * until the user changes them), except [sex] and [activity], which start unselected. [needsName] is true when Google
+ * gave no name: step 1 then asks for [name], which must be filled and is saved when the step completes.
  */
 data class OnboardingUiState(
     val step: OnboardingStep = OnboardingStep.AboutYou,
+    val needsName: Boolean = false,
+    val name: String = "",
     val sex: Sex? = null,
     val birthDate: LocalDate,
     val heightCm: Int = BiometricBounds.DEFAULT_HEIGHT_CM,
@@ -68,15 +71,18 @@ data class OnboardingUiState(
     val canContinue: Boolean
         get() = phase == OnboardingPhase.Content &&
             when (step) {
-                OnboardingStep.AboutYou -> sex != null
+                OnboardingStep.AboutYou -> sex != null && (!needsName || name.isNotBlank()) && !(needsName && isOffline)
                 OnboardingStep.Activity -> activity != null && !isOffline
                 OnboardingStep.Goals -> !isOffline
                 else -> true
             }
 
+    /** Whether completing the current step writes the name (step 1 with a missing Google name). */
+    val savesName: Boolean get() = step == OnboardingStep.AboutYou && needsName
+
     /** Whether the offline hint explaining the disabled save is shown. */
     val showOfflineHint: Boolean
-        get() = (step == OnboardingStep.Activity || step == OnboardingStep.Goals) &&
+        get() = (step == OnboardingStep.Activity || step == OnboardingStep.Goals || savesName) &&
             isOffline &&
             phase == OnboardingPhase.Content
 
@@ -107,6 +113,8 @@ private const val TENTHS_PER_KG = 10.0
 
 /** Events of the onboarding screen. */
 sealed interface OnboardingEvent {
+    data class SetName(val name: String) : OnboardingEvent
+
     data class SelectSex(val sex: Sex) : OnboardingEvent
 
     data class SetBirthDate(val date: LocalDate) : OnboardingEvent

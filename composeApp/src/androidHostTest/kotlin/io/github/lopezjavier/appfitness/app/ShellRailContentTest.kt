@@ -54,28 +54,28 @@ class ShellRailContentTest {
     fun switchingBarToRail_keepsActiveTabAndScroll() {
         var type by mutableStateOf(AppNavigationType.Bar)
         rule.setContent { AppTheme { AppScaffold(navigationType = type) } }
-        rule.onNodeWithTag("nav_tab_progress").performClick()
+        rule.onNodeWithTag("nav_tab_workout").performClick()
         rule.waitForIdle()
         // Scrolled past the first item (the message): a reset to the top would bring it back.
-        rule.onNodeWithTag("progress_screen").performSemanticsAction(SemanticsActions.ScrollBy) {
+        rule.onNodeWithTag("workout_screen").performSemanticsAction(SemanticsActions.ScrollBy) {
             it(0f, SCROLL_BY_PX)
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("progress_wip_message").assertDoesNotExist()
+        rule.onNodeWithTag("workout_wip_message").assertDoesNotExist()
         type = AppNavigationType.Rail
         rule.waitForIdle()
-        rule.onNodeWithTag("nav_tab_progress").assertIsSelected()
-        rule.onNodeWithTag("progress_wip_message").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_workout").assertIsSelected()
+        rule.onNodeWithTag("workout_wip_message").assertDoesNotExist()
         type = AppNavigationType.Bar
         rule.waitForIdle()
-        rule.onNodeWithTag("nav_tab_progress").assertIsSelected()
-        rule.onNodeWithTag("progress_wip_message").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_workout").assertIsSelected()
+        rule.onNodeWithTag("workout_wip_message").assertDoesNotExist()
     }
 
     @Test
     fun rail_itemsKeepSemantics() {
         setRailContent()
-        listOf("diary" to "Diario", "workout" to "Entreno", "progress" to "Progreso").forEach { (tab, label) ->
+        listOf("diary" to "Diario", "workout" to "Entreno", "profile" to "Perfil").forEach { (tab, label) ->
             val node = rule.onNodeWithTag("nav_tab_$tab")
             node.assertContentDescriptionEquals(label)
             val bounds = node.getUnclippedBoundsInRoot()

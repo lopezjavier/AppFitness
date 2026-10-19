@@ -22,10 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -33,15 +30,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_save
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_saved
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -49,10 +41,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
@@ -65,125 +54,82 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val SKELETON_CARDS = 3
 private const val SKELETON_CARD_UNITS = 5
 
-/** The account buttons' callbacks, grouped to keep the layout composables' signatures short. */
-private class AccountCallbacks(val onOpenCatalog: (() -> Unit)?, val onSignOut: () -> Unit, val onDelete: () -> Unit)
-
-/** Stateful Profile tab: connects [ProfileViewModel] to the stateless [ProfileScreen]. */
+/** Stateful Preferencias: connects [PreferencesViewModel] to the stateless [PreferencesScreen]. */
 @Composable
-fun ProfileRoute(
-    modifier: Modifier = Modifier,
-    onOpenCatalog: (() -> Unit)? = null,
-    viewModel: ProfileViewModel = koinViewModel(),
-) {
+fun PreferencesRoute(modifier: Modifier = Modifier, viewModel: PreferencesViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ProfileScreen(
+    PreferencesScreen(
         state = state,
         onEvent = viewModel::onEvent,
         modifier = modifier,
-        onOpenCatalog = onOpenCatalog,
         effects = viewModel.effects,
     )
 }
 
 /**
- * The Profile tab (US-06, US-07, US-08, US-05 sign out). Cards scroll above a pinned "Guardar" footer; from 600 dp
- * the personal data and energy cards sit in the left column and the macro split in the right one. [onOpenCatalog] is
- * non-null only where the debug component catalog is available (local flavor). [effects] feed the "Cambios
- * guardados" / error snackbars and the confirm haptic.
+ * Preferencias (US-06, US-07, US-08; ADR-37): the name, personal data and current weight, the energy strategy and the
+ * macro split. Cards scroll above a pinned "Guardar" footer; from 600 dp the personal data and energy cards sit in
+ * the left column and the macro split in the right one. [effects] feed the "Cambios guardados" / error snackbars and
+ * the confirm haptic.
  */
 @Composable
-fun ProfileScreen(
-    state: ProfileUiState,
-    onEvent: (ProfileEvent) -> Unit,
+fun PreferencesScreen(
+    state: PreferencesUiState,
+    onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenCatalog: (() -> Unit)? = null,
-    effects: Flow<ProfileEffect> = emptyFlow(),
+    effects: Flow<PreferencesEffect> = emptyFlow(),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     SaveEffects(effects, snackbarHost)
-    var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
-    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
-    Box(modifier.fillMaxSize().testTag("profile_screen"), contentAlignment = Alignment.TopCenter) {
+    Box(modifier.fillMaxSize().testTag("preferences_screen"), contentAlignment = Alignment.TopCenter) {
         when (state) {
-            ProfileUiState.Loading -> ProfileLoading()
+            PreferencesUiState.Loading -> PreferencesLoading()
 
-            ProfileUiState.LoadFailed -> Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.root_error_message),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(ProfileEvent.Retry) },
-                        testTagPrefix = "profile_error",
-                    )
-                }
-                AccountActions(
-                    state = null,
-                    callbacks = AccountCallbacks(onOpenCatalog, { confirmingSignOut = true }, {}),
-                    modifier = Modifier.padding(horizontal = Spacing.screenMargin),
+            PreferencesUiState.LoadFailed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ErrorState(
+                    message = stringResource(Res.string.root_error_message),
+                    action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        onEvent(PreferencesEvent.Retry)
+                    },
+                    testTagPrefix = "preferences_error",
                 )
             }
 
-            is ProfileUiState.Loaded -> ProfileLoaded(
-                state = state,
-                onEvent = onEvent,
-                snackbarHost = snackbarHost,
-                callbacks = AccountCallbacks(onOpenCatalog, { confirmingSignOut = true }, { confirmingDelete = true }),
-            )
+            is PreferencesUiState.Loaded -> PreferencesLoaded(state, onEvent, snackbarHost)
         }
-    }
-    if (confirmingSignOut) {
-        SignOutDialog(
-            onConfirm = {
-                confirmingSignOut = false
-                onEvent(ProfileEvent.SignOutConfirmed)
-            },
-            onDismiss = { confirmingSignOut = false },
-        )
-    }
-    if (confirmingDelete) {
-        DeleteAccountDialog(
-            onConfirm = {
-                confirmingDelete = false
-                onEvent(ProfileEvent.DeleteAccountConfirmed)
-            },
-            onDismiss = { confirmingDelete = false },
-        )
     }
 }
 
 /** Haptic and snackbar for the result of a save: confirm on success only, a long message-only snackbar on failure. */
 @Composable
-private fun SaveEffects(effects: Flow<ProfileEffect>, host: SnackbarHostState) {
+private fun SaveEffects(effects: Flow<PreferencesEffect>, host: SnackbarHostState) {
     val haptic = LocalHapticFeedback.current
     val saved = stringResource(Res.string.profile_saved)
     val failed = stringResource(Res.string.onboarding_save_error)
     val offline = stringResource(Res.string.onboarding_save_error_offline)
-    val deleteFailed = stringResource(Res.string.delete_account_error)
     LaunchedEffect(effects) {
         effects.collect { effect ->
             when (effect) {
-                ProfileEffect.Saved -> {
+                PreferencesEffect.Saved -> {
                     haptic.performHapticFeedback(HapticFeedbackType.Confirm)
                     host.showSnackbar(saved)
                 }
 
-                is ProfileEffect.SaveFailed ->
+                is PreferencesEffect.SaveFailed ->
                     host.showSnackbar(if (effect.offline) offline else failed, duration = SnackbarDuration.Long)
-
-                is ProfileEffect.DeleteFailed ->
-                    host.showSnackbar(if (effect.offline) offline else deleteFailed, duration = SnackbarDuration.Long)
             }
         }
     }
 }
 
 @Composable
-private fun ProfileLoading() {
+private fun PreferencesLoading() {
     Column(
         Modifier
             .widthIn(max = WindowWidthClassDefaults.TwoColumnContentMaxWidth)
             .fillMaxSize()
             .padding(Spacing.screenMargin)
-            .testTag("profile_loading"),
+            .testTag("preferences_loading"),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         repeat(SKELETON_CARDS) {
@@ -193,11 +139,10 @@ private fun ProfileLoading() {
 }
 
 @Composable
-private fun ProfileLoaded(
-    state: ProfileUiState.Loaded,
-    onEvent: (ProfileEvent) -> Unit,
+private fun PreferencesLoaded(
+    state: PreferencesUiState.Loaded,
+    onEvent: (PreferencesEvent) -> Unit,
     snackbarHost: SnackbarHostState,
-    callbacks: AccountCallbacks,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val wide = maxWidth >= WindowWidthClassDefaults.WideMinWidth
@@ -208,15 +153,14 @@ private fun ProfileLoaded(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)
-                    .testTag("profile_content"),
+                    .testTag("preferences_content"),
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
                 if (wide) {
-                    TwoColumns(state, onEvent, callbacks)
+                    TwoColumns(state, onEvent)
                 } else {
                     PersonalAndEnergy(state, onEvent)
                     MacroSplitCard(state, onEvent)
-                    AccountActions(state, callbacks, Modifier.padding(top = Spacing.blockGap - Spacing.cardGap))
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
@@ -226,23 +170,22 @@ private fun ProfileLoaded(
 }
 
 @Composable
-private fun ColumnScope.PersonalAndEnergy(state: ProfileUiState.Loaded, onEvent: (ProfileEvent) -> Unit) {
+private fun ColumnScope.PersonalAndEnergy(state: PreferencesUiState.Loaded, onEvent: (PreferencesEvent) -> Unit) {
     PersonalDataCard(state, onEvent)
     AppCard(Modifier.fillMaxWidth()) {
         EnergyStrategySection(
             state = state.energy,
-            onEvent = { onEvent(ProfileEvent.Energy(it)) },
-            testTagPrefix = "profile_energy",
+            onEvent = { onEvent(PreferencesEvent.Energy(it)) },
+            testTagPrefix = "preferences_energy",
         )
     }
 }
 
 @Composable
-private fun TwoColumns(state: ProfileUiState.Loaded, onEvent: (ProfileEvent) -> Unit, callbacks: AccountCallbacks) {
+private fun TwoColumns(state: PreferencesUiState.Loaded, onEvent: (PreferencesEvent) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             PersonalAndEnergy(state, onEvent)
-            AccountActions(state, callbacks, Modifier.padding(top = Spacing.blockGap - Spacing.cardGap))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             MacroSplitCard(state, onEvent)
@@ -250,42 +193,9 @@ private fun TwoColumns(state: ProfileUiState.Loaded, onEvent: (ProfileEvent) -> 
     }
 }
 
-/** Catalog (local only), "Cerrar sesión" and "Borrar cuenta" (loaded only), below the cards, away from "Guardar". */
+/** The pinned "Guardar" bar; always shown, disabled unless there is something to save. */
 @Composable
-private fun AccountActions(state: ProfileUiState.Loaded?, callbacks: AccountCallbacks, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-        val onOpenCatalog = callbacks.onOpenCatalog
-        if (onOpenCatalog != null) {
-            SecondaryButton(
-                text = stringResource(Res.string.catalog_title),
-                onClick = onOpenCatalog,
-                modifier = Modifier.fillMaxWidth().testTag("profile_catalog_button"),
-            )
-        }
-        GhostButton(
-            text = stringResource(Res.string.profile_sign_out),
-            onClick = callbacks.onSignOut,
-            modifier = Modifier.fillMaxWidth().testTag("profile_sign_out_button"),
-            tone = GhostTone.Destructive,
-        )
-        if (state != null) {
-            GhostButton(
-                text = stringResource(
-                    if (state.isDeleting) Res.string.profile_deleting_account else Res.string.profile_delete_account,
-                ),
-                onClick = callbacks.onDelete,
-                modifier = Modifier.fillMaxWidth().testTag("profile_delete_account_button"),
-                enabled = state.canDelete,
-                tone = GhostTone.Destructive,
-                loading = state.isDeleting,
-            )
-        }
-    }
-}
-
-/** The pinned "Guardar" bar above the bottom navigation; always shown, disabled unless there is something to save. */
-@Composable
-private fun SaveFooter(state: ProfileUiState.Loaded, onEvent: (ProfileEvent) -> Unit) {
+private fun SaveFooter(state: PreferencesUiState.Loaded, onEvent: (PreferencesEvent) -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -294,8 +204,8 @@ private fun SaveFooter(state: ProfileUiState.Loaded, onEvent: (ProfileEvent) -> 
     ) {
         PrimaryButton(
             text = stringResource(Res.string.profile_save),
-            onClick = { onEvent(ProfileEvent.Save) },
-            modifier = Modifier.fillMaxWidth().testTag("profile_save_button"),
+            onClick = { onEvent(PreferencesEvent.Save) },
+            modifier = Modifier.fillMaxWidth().testTag("preferences_save"),
             enabled = state.canSave,
             loading = state.isSaving,
         )

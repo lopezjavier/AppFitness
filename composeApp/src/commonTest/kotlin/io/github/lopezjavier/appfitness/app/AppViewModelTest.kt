@@ -106,13 +106,12 @@ class AppViewModelTest {
     }
 
     @Test
-    fun signedInOnboarded_isMainAndExposesTheAvatar() = runTest {
+    fun signedInOnboarded_isMain() = runTest {
         val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")))
         viewModel.uiState.test {
             awaitItem()
             val state = awaitItem()
             assertEquals(RootRoute.Main, state.rootRoute)
-            assertEquals("https://img/ana.png", state.avatarUrl)
         }
     }
 
@@ -191,7 +190,6 @@ class AppViewModelTest {
             auth.state.value = AuthState.SignedOut
             val state = awaitItem()
             assertEquals(RootRoute.Welcome, state.rootRoute)
-            assertEquals(null, state.avatarUrl)
         }
     }
 }

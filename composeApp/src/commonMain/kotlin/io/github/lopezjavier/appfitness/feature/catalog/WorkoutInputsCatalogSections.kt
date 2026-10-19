@@ -24,12 +24,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_num
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_number_stepper
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set_checkbox
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set_rows
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_text_field
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_1
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_2
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.name_error_blank
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SetCompletionCheckbox
@@ -56,6 +60,7 @@ private const val STEPPER_MAX = -50
 /** Catalog sections of the workout input components (T-025). */
 internal fun LazyListScope.workoutInputItems() {
     item { NumberInputSection() }
+    item { TextFieldSection() }
     item { NumberStepperSection() }
     item { SetCheckboxSection() }
     item { SetRowsSection() }
@@ -95,6 +100,31 @@ private fun NumberInputSection() {
                     modifier = Modifier.testTag("catalog_number_input_grams"),
                     maxDecimals = GRAMS_MAX_DECIMALS,
                     maxIntegerDigits = GRAMS_MAX_INTEGER_DIGITS,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TextFieldSection() {
+    var name by rememberSaveable { mutableStateOf("Ana") }
+    var empty by rememberSaveable { mutableStateOf("") }
+    CatalogSection(stringResource(Res.string.catalog_section_text_field), "catalog_section_text_field") {
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                AppTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = stringResource(Res.string.profile_name_label),
+                    testTagPrefix = "catalog_text_field_name",
+                )
+                AppTextField(
+                    value = empty,
+                    onValueChange = { empty = it },
+                    label = stringResource(Res.string.profile_name_label),
+                    errorText = if (empty.isBlank()) stringResource(Res.string.name_error_blank) else null,
+                    testTagPrefix = "catalog_text_field_error",
                 )
             }
         }

@@ -22,7 +22,7 @@ internal fun SignOutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         cancelLabel = stringResource(Res.string.sign_out_dialog_cancel),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
-        testTagPrefix = "sign_out_dialog",
+        testTagPrefix = "profile_root_sign_out_dialog",
     )
 }
 
@@ -35,6 +35,6 @@ internal fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         cancelLabel = stringResource(Res.string.delete_account_dialog_cancel),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
-        testTagPrefix = "delete_account_dialog",
+        testTagPrefix = "profile_root_delete_account_dialog",
     )
 }

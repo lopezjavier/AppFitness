@@ -21,4 +21,5 @@ data class AppFeatures(val componentCatalog: Boolean = false, val testLogin: Tes
 fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
     CatalogRoute -> componentCatalog
+    PreferencesRoute -> true
 }

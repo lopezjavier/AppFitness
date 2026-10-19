@@ -3,7 +3,6 @@
 <resources>
     <string name="nav_diary">Diario</string>
     <string name="nav_workout">Entreno</string>
-    <string name="nav_progress">Progreso</string>
     <string name="profile_title">Perfil</string>
     <string name="wip_message">Sección en construcción. Pronto verás aquí tus datos.</string>
     <string name="wip_footer">Más funciones próximamente</string>
@@ -151,7 +150,8 @@
     <string name="onboarding_goals_save">Guardar objetivos</string>
     <string name="onboarding_goals_saved">Objetivos guardados</string>
     <string name="energy_heading">Estrategia energética</string>
-    <string name="energy_tdee">TDEE: %1$s kcal</string>
+    <string name="energy_tdee">Gasto diario estimado: %1$s kcal</string>
+    <string name="energy_tdee_helper">Calorías que quemas al día según tu cuerpo y tu actividad.</string>
     <string name="energy_strategy_deficit">Déficit</string>
     <string name="energy_strategy_maintenance">Mantenimiento</string>
     <string name="energy_strategy_surplus">Superávit</string>
@@ -203,10 +203,14 @@
     <string name="activity_very_high_description">Entrenas dos veces al día o tienes un trabajo físico exigente</string>
     <string name="catalog_section_wheel_picker">Selector de rueda</string>
     <string name="catalog_section_selectable_card">Tarjeta seleccionable</string>
+    <string name="preferences_title">Preferencias</string>
+    <string name="profile_name_label">Nombre</string>
+    <string name="onboarding_name_label">¿Cómo te llamas?</string>
+    <string name="name_error_blank">Escribe tu nombre</string>
+    <string name="catalog_section_text_field">Campo de texto</string>
     <string name="profile_personal_title">Datos personales</string>
     <string name="profile_age_label">Edad</string>
     <string name="profile_activity_label">Actividad</string>
-    <string name="profile_weight_hint">Se actualiza desde Progreso</string>
     <string name="profile_height_value">%1$d cm</string>
     <string name="profile_height_spoken">%1$d centímetros</string>
     <string name="profile_weight_value">%1$s kg</string>

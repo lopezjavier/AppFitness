@@ -13,53 +13,56 @@ import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyUiState
 import io.github.lopezjavier.appfitness.feature.goals.energyStrategyUiState
 import kotlinx.datetime.LocalDate
 
-/** Everything the Profile screen edits: the biometrics, the energy strategy and the macro split. */
-data class ProfileForm(
+/**
+ * Everything Preferencias edits: the name, the biometrics, the current weight, the energy strategy and the macro
+ * split. [weightKg] has one decimal (a multiple of 0.1).
+ */
+data class PreferencesForm(
+    val name: String,
     val sex: Sex,
     val birthDate: LocalDate,
     val heightCm: Int,
+    val weightKg: Double,
     val activity: ActivityLevel,
     val strategy: GoalStrategy,
     val adjustment: Int,
     val split: MacroSplit,
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
+
+    /** The name without surrounding blanks is what gets stored; an empty one is not valid. */
+    val isNameValid: Boolean get() = name.isNotBlank()
 }
 
-/** State of the Profile screen. */
-sealed interface ProfileUiState {
-    data object Loading : ProfileUiState
+/** State of the Preferencias screen. */
+sealed interface PreferencesUiState {
+    data object Loading : PreferencesUiState
 
     /** Any read failed, or the profile is incomplete (no weight, missing biometrics). */
-    data object LoadFailed : ProfileUiState
+    data object LoadFailed : PreferencesUiState
 
     /**
-     * [form] is what the user is editing, [saved] what the server holds. [weightKg] is the latest weight (read-only
-     * here). The energy card and the macro targets follow [form] live.
+     * [form] is what the user is editing, [saved] what the server holds. The energy card and the macro targets follow
+     * [form] live, including its weight.
      */
     data class Loaded(
-        val form: ProfileForm,
-        val saved: ProfileForm,
-        val weightKg: Double,
+        val form: PreferencesForm,
+        val saved: PreferencesForm,
         val today: LocalDate,
         val isSaving: Boolean = false,
         val isOnline: Boolean = true,
-        val isDeleting: Boolean = false,
-    ) : ProfileUiState {
+    ) : PreferencesUiState {
         val isDirty: Boolean get() = form != saved
 
-        /** "Guardar" is enabled when something changed, the network is up and no save is running. */
-        val canSave: Boolean get() = isDirty && isOnline && !isSaving && !isDeleting
-
-        /** "Borrar cuenta" is enabled while online and no delete is running. */
-        val canDelete: Boolean get() = isOnline && !isDeleting
+        /** "Guardar" needs a change, a filled name, the network and no save running. */
+        val canSave: Boolean get() = isDirty && form.isNameValid && isOnline && !isSaving
 
         val energy: EnergyStrategyUiState
             get() = energyStrategyUiState(
                 sex = form.sex,
                 birthDate = form.birthDate,
                 heightCm = form.heightCm,
-                weightKg = weightKg,
+                weightKg = form.weightKg,
                 activityLevel = form.activity,
                 today = today,
                 strategy = form.strategy,
@@ -71,39 +74,35 @@ sealed interface ProfileUiState {
     }
 }
 
-/** Events of the Profile screen. */
-sealed interface ProfileEvent {
-    data class SelectSex(val sex: Sex) : ProfileEvent
+/** Events of the Preferencias screen. */
+sealed interface PreferencesEvent {
+    data class SetName(val name: String) : PreferencesEvent
 
-    data class SetBirthDate(val date: LocalDate) : ProfileEvent
+    data class SelectSex(val sex: Sex) : PreferencesEvent
 
-    data class SetHeight(val heightCm: Int) : ProfileEvent
+    data class SetBirthDate(val date: LocalDate) : PreferencesEvent
 
-    data class SelectActivity(val level: ActivityLevel) : ProfileEvent
+    data class SetHeight(val heightCm: Int) : PreferencesEvent
 
-    data class Energy(val event: EnergyStrategyEvent) : ProfileEvent
+    /** The weight picker applied [tenths] tenths of a kilogram. */
+    data class SetWeight(val tenths: Int) : PreferencesEvent
+
+    data class SelectActivity(val level: ActivityLevel) : PreferencesEvent
+
+    data class Energy(val event: EnergyStrategyEvent) : PreferencesEvent
 
     /** A macro slider moved to [percent]; the others rebalance. */
-    data class MoveMacro(val macro: Macronutrient, val percent: Int) : ProfileEvent
+    data class MoveMacro(val macro: Macronutrient, val percent: Int) : PreferencesEvent
 
-    data object Save : ProfileEvent
+    data object Save : PreferencesEvent
 
-    data object Retry : ProfileEvent
-
-    /** The user confirmed the sign-out dialog. */
-    data object SignOutConfirmed : ProfileEvent
-
-    /** The user confirmed the delete-account dialog. */
-    data object DeleteAccountConfirmed : ProfileEvent
+    data object Retry : PreferencesEvent
 }
 
 /** One-off results shown as a snackbar (the screen also fires the haptic on [Saved]). */
-sealed interface ProfileEffect {
-    data object Saved : ProfileEffect
+sealed interface PreferencesEffect {
+    data object Saved : PreferencesEffect
 
     /** [offline] is true when the failure was the network. */
-    data class SaveFailed(val offline: Boolean) : ProfileEffect
-
-    /** Deleting the account failed; the session is kept. [offline] is true when the failure was the network. */
-    data class DeleteFailed(val offline: Boolean) : ProfileEffect
+    data class SaveFailed(val offline: Boolean) : PreferencesEffect
 }

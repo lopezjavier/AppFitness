@@ -34,6 +34,7 @@ import kotlin.math.roundToInt
 
 private const val KEY_READY = "onboarding_ready"
 private const val KEY_STEP = "onboarding_step"
+private const val KEY_NAME = "onboarding_name"
 private const val KEY_SEX = "onboarding_sex"
 private const val KEY_BIRTH_DATE = "onboarding_birth_date"
 private const val KEY_HEIGHT = "onboarding_height_cm"
@@ -45,6 +46,7 @@ private const val TENTHS_PER_KG = 10.0
 
 /** What [OnboardingViewModel.load] reads in parallel. */
 private class Loaded(
+    val displayName: Result<String?>,
     val biometrics: Result<SavedBiometrics>,
     val weightTenths: Result<Int?>,
     val goals: Result<NutritionGoals?>,
@@ -80,6 +82,7 @@ class OnboardingViewModel(
 
     fun onEvent(event: OnboardingEvent) {
         when (event) {
+            is OnboardingEvent.SetName,
             is OnboardingEvent.SelectSex,
             is OnboardingEvent.SetBirthDate,
             is OnboardingEvent.SetHeight,
@@ -100,6 +103,8 @@ class OnboardingViewModel(
 
     /** The new state after an event that edits a user value; other events leave it as it is. */
     private fun applyValueEvent(state: OnboardingUiState, event: OnboardingEvent): OnboardingUiState = when (event) {
+        is OnboardingEvent.SetName -> state.copy(name = event.name.take(BiometricBounds.NAME_MAX_LENGTH))
+
         is OnboardingEvent.SelectSex -> state.copy(sex = event.sex)
 
         is OnboardingEvent.SetBirthDate ->
@@ -151,6 +156,7 @@ class OnboardingViewModel(
         when (state.step) {
             OnboardingStep.Activity -> save()
             OnboardingStep.Goals -> Unit
+            OnboardingStep.AboutYou -> if (state.needsName) saveName(state.name) else goTo(state.step.next())
             else -> goTo(state.step.next())
         }
     }
@@ -180,10 +186,19 @@ class OnboardingViewModel(
         _uiState.update { it.copy(phase = OnboardingPhase.Loading) }
         work = viewModelScope.launch {
             val loaded = coroutineScope {
+                val savedName = async {
+                    // Only read when Google gave no name: it is the only case where the field is shown.
+                    if (_uiState.value.needsName) {
+                        profileRepository.getOwnProfile().map { it.displayName }
+                    } else {
+                        Result.success(null)
+                    }
+                }
                 val profile = async { profileRepository.getBiometrics() }
                 val weight = async { bodyMeasurementRepository.getOnboardingWeight() }
                 val goals = async { goalsRepository.getOwn() }
                 Loaded(
+                    displayName = savedName.await(),
                     biometrics = profile.await(),
                     weightTenths = weight.await().map { row ->
                         row?.let { (it.weightKg * TENTHS_PER_KG).roundToInt() }
@@ -192,11 +207,13 @@ class OnboardingViewModel(
                 )
             }
             val saved = loaded.biometrics.getOrNull()
-            if (saved == null || loaded.weightTenths.isFailure || loaded.goals.isFailure) {
+            val readFailed = listOf(loaded.displayName, loaded.weightTenths, loaded.goals).any { it.isFailure }
+            if (saved == null || readFailed) {
                 _uiState.update { it.copy(phase = OnboardingPhase.LoadError) }
             } else {
                 change {
                     prefilled(it, saved, loaded.weightTenths.getOrNull(), loaded.goals.getOrNull())
+                        .copy(name = if (it.name.isEmpty()) loaded.displayName.getOrNull().orEmpty() else it.name)
                         .copy(phase = OnboardingPhase.Content)
                 }
             }
@@ -242,6 +259,19 @@ class OnboardingViewModel(
         }
     }
 
+    /** Stores the name asked on step 1, then moves on; a failure keeps the step, the values and the error. */
+    private fun saveName(name: String) {
+        _uiState.update { it.copy(phase = OnboardingPhase.Saving, saveError = null) }
+        work = viewModelScope.launch {
+            val result = profileRepository.updateDisplayName(name.trim())
+            if (result.isSuccess) {
+                change { it.copy(step = OnboardingStep.Measures, phase = OnboardingPhase.Content) }
+            } else {
+                _uiState.update { it.copy(phase = OnboardingPhase.Content, saveError = saveErrorOf(result)) }
+            }
+        }
+    }
+
     private fun saveGoals() {
         val state = _uiState.value
         val energy = state.energy
@@ -263,10 +293,16 @@ class OnboardingViewModel(
 
     private fun restoreOrDefault(): OnboardingUiState {
         val today = clock.today()
-        val base = OnboardingUiState(birthDate = BiometricBounds.defaultBirthDate(today), today = today)
+        val base =
+            OnboardingUiState(
+                needsName = !profileRepository.hasProvidedFullName(),
+                birthDate = BiometricBounds.defaultBirthDate(today),
+                today = today,
+            )
         if (savedState.get<Boolean>(KEY_READY) != true) return base
         return base.copy(
             step = OnboardingStep.fromSavedName(savedState.get<String>(KEY_STEP)),
+            name = savedState.get<String>(KEY_NAME).orEmpty(),
             sex = savedState.get<String>(KEY_SEX)?.let(Sex::valueOf),
             birthDate = savedState.get<String>(KEY_BIRTH_DATE)?.let(LocalDate::parse) ?: base.birthDate,
             heightCm = savedState.get<Int>(KEY_HEIGHT) ?: base.heightCm,
@@ -282,6 +318,7 @@ class OnboardingViewModel(
         if (state.phase == OnboardingPhase.Loading || state.phase == OnboardingPhase.LoadError) return
         savedState[KEY_READY] = true
         savedState[KEY_STEP] = state.step.name
+        savedState[KEY_NAME] = state.name
         savedState[KEY_SEX] = state.sex?.name
         savedState[KEY_BIRTH_DATE] = state.birthDate.toString()
         savedState[KEY_HEIGHT] = state.heightCm

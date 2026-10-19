@@ -41,9 +41,9 @@ class ShellRailTest {
     }
 
     @Test
-    fun rail_hasFourItems_andProfileKeepsTheRail() {
+    fun rail_hasThreeItems_andProfileKeepsTheRail() {
         setRailContent()
-        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile").forEach {
+        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_profile").forEach {
             rule.onNodeWithTag(it).assertIsDisplayed()
         }
         rule.onNodeWithTag("nav_tab_profile").performClick()

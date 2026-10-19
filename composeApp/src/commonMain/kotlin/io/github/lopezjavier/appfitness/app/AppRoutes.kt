@@ -2,15 +2,15 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
-import io.github.lopezjavier.appfitness.composeapp.resources.nav_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -30,9 +30,6 @@ data object DiaryGraph : TabRoute
 data object WorkoutGraph : TabRoute
 
 @Serializable
-data object ProgressGraph : TabRoute
-
-@Serializable
 data object ProfileGraph : TabRoute
 
 @Serializable
@@ -42,19 +39,19 @@ data object DiaryHome : TabRoute
 data object WorkoutHome : TabRoute
 
 @Serializable
-data object ProgressHome : TabRoute
-
-@Serializable
 data object ProfileHome : TabRoute
 
-/** Debug component catalog: local flavor only (see [AppFeatures]), opened from Profile. */
+/** Debug component catalog: local flavor only (see [AppFeatures]), opened from the Perfil root. */
 @Serializable
 data object CatalogRoute : AppRoute
 
+/** "Preferencias": the personal data, energy and macro editor, opened from the Perfil root (ADR-37). */
+@Serializable
+data object PreferencesRoute : AppRoute
+
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
- * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon]. With [showsAvatar] the
- * tab draws the user's photo instead of the glyph (ADR-26).
+ * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon].
  */
 enum class TopLevelTab(
     val graph: TabRoute,
@@ -63,7 +60,6 @@ enum class TopLevelTab(
     val icon: DrawableResource,
     val selectedIcon: DrawableResource,
     val testTag: String,
-    val showsAvatar: Boolean = false,
 ) {
     Diary(
         DiaryGraph,
@@ -81,22 +77,13 @@ enum class TopLevelTab(
         Res.drawable.ic_nav_workout,
         "nav_tab_workout",
     ),
-    Progress(
-        ProgressGraph,
-        ProgressHome,
-        Res.string.nav_progress,
-        Res.drawable.ic_nav_progress,
-        Res.drawable.ic_nav_progress,
-        "nav_tab_progress",
-    ),
     Profile(
         ProfileGraph,
         ProfileHome,
         Res.string.profile_title,
-        Res.drawable.ic_avatar_person,
-        Res.drawable.ic_avatar_person,
+        Res.drawable.ic_nav_profile,
+        Res.drawable.ic_nav_profile,
         "nav_tab_profile",
-        showsAvatar = true,
     ),
     ;
 
@@ -111,7 +98,6 @@ val TabRoute.tab: TopLevelTab
         when (this) {
             DiaryGraph, DiaryHome -> TopLevelTab.Diary
             WorkoutGraph, WorkoutHome -> TopLevelTab.Workout
-            ProgressGraph, ProgressHome -> TopLevelTab.Progress
             ProfileGraph, ProfileHome -> TopLevelTab.Profile
         }
 
@@ -120,8 +106,8 @@ sealed interface ShellChrome {
     /** Top bar with the section title plus the bottom bar. */
     data class Tabs(val tab: TopLevelTab) : ShellChrome
 
-    /** Top bar with a back arrow, no bottom bar. */
-    data class FullScreen(val title: StringResource) : ShellChrome
+    /** Top bar with a back arrow, no bottom bar. Its tags are `<topBarTag>`, `_title` and `_back`. */
+    data class FullScreen(val title: StringResource, val topBarTag: String = AppTopBarDefaults.TestTag) : ShellChrome
 }
 
 /** Shell chrome of this route. Exhaustive on purpose. */
@@ -130,6 +116,7 @@ val AppRoute.chrome: ShellChrome
         when (this) {
             is TabRoute -> ShellChrome.Tabs(tab)
             CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
+            PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -138,5 +125,5 @@ object AppDestinations {
      * Destinations drawn without the bottom bar. Used for chrome lookup only: whether a route is
      * reachable is decided by [AppFeatures].
      */
-    val fullScreenRoutes: List<AppRoute> = listOf(CatalogRoute)
+    val fullScreenRoutes: List<AppRoute> = listOf(CatalogRoute, PreferencesRoute)
 }

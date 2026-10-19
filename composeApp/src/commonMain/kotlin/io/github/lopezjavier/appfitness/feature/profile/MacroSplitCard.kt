@@ -33,8 +33,8 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 internal fun MacroSplitCard(
-    state: ProfileUiState.Loaded,
-    onEvent: (ProfileEvent) -> Unit,
+    state: PreferencesUiState.Loaded,
+    onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val split = state.form.split
@@ -48,12 +48,12 @@ internal fun MacroSplitCard(
             modifier = Modifier.semantics { heading() },
         )
         Column(Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            TextPill(stringResource(Res.string.profile_macros_total), Modifier.testTag("profile_macro_total"))
+            TextPill(stringResource(Res.string.profile_macros_total), Modifier.testTag("preferences_macro_total"))
             MacroStackedBar(
                 proteinPct = split.proteinPct,
                 carbsPct = split.carbsPct,
                 fatPct = split.fatPct,
-                testTag = "profile_macro_bar",
+                testTag = "preferences_macro_bar",
             )
         }
         Column(
@@ -78,10 +78,10 @@ internal fun MacroSplitCard(
                     percent = split[macronutrient],
                     grams = grams.first,
                     kcal = grams.second,
-                    onPercentChange = { onEvent(ProfileEvent.MoveMacro(macronutrient, it)) },
-                    modifier = Modifier.testTag("profile_macro_${name}_slider"),
+                    onPercentChange = { onEvent(PreferencesEvent.MoveMacro(macronutrient, it)) },
+                    modifier = Modifier.testTag("preferences_macro_${name}_slider"),
                     enabled = enabled,
-                    valueTestTag = "profile_macro_${name}_value",
+                    valueTestTag = "preferences_macro_${name}_value",
                 )
             }
         }

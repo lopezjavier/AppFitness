@@ -25,13 +25,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ske
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_top_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_wip
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
-import io.github.lopezjavier.appfitness.composeapp.resources.nav_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
@@ -134,13 +132,7 @@ private val NavigationSampleItems =
             Res.drawable.ic_nav_diary_filled,
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_nav_tab_workout"),
-        AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "catalog_nav_tab_progress"),
-        AppNavigationItem(
-            Res.string.profile_title,
-            Res.drawable.ic_avatar_person,
-            "catalog_nav_tab_profile",
-            showsAvatar = true,
-        ),
+        AppNavigationItem(Res.string.profile_title, Res.drawable.ic_nav_profile, "catalog_nav_tab_profile"),
     )
 
 private val RailSampleItems =
@@ -152,13 +144,7 @@ private val RailSampleItems =
             Res.drawable.ic_nav_diary_filled,
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_rail_tab_workout"),
-        AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "catalog_rail_tab_progress"),
-        AppNavigationItem(
-            Res.string.profile_title,
-            Res.drawable.ic_avatar_person,
-            "catalog_rail_tab_profile",
-            showsAvatar = true,
-        ),
+        AppNavigationItem(Res.string.profile_title, Res.drawable.ic_nav_profile, "catalog_rail_tab_profile"),
     )
 
 @Composable
