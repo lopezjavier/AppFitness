@@ -1078,7 +1078,8 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 Stories: `planning/epics/E3-training-core.md` (US-09…US-15). One task per story as a vertical slice; US-11 (live session) is split into a backend task (T-044) and a UI task (T-045) because both halves are heavy; US-12 and US-13 (ghost data and rest timer, both layered on the live screen) are merged into T-046. Plan: [tasks/plan.md](plan.md).
 Flow: every task with UI follows the full flow (planner → ux-reviewer → developers → PR → review → merge); T-044 is backend only (no ux-reviewer). The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
 Forward-compatible schema (ADR-30): every training table ships with its *(E6)* columns and enums; E3 renders only `weight_reps` / `working` sets. Account deletion (ADR-29) must keep working: every new user-owned row cascades from `auth.users`.
-Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the first-ever session of an exercise is a "PR". Superset rest configuration (rounds, reps, rest between exercises, rest between rounds) is part of T-043 and T-046.
+Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the first-ever session of an exercise is a "PR". Superset rest configuration (rounds, reps, rest between exercises, rest between rounds) is part of T-043 and T-046. Q5 and Q6 (T-051) are **BLOCKING**.
+Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-054, one 👤 checkpoint per functionality (E3-C state restoration → E3-D routines and catalog → E3-E live session → E3-F history → E3-G strength), then T-049 and Checkpoint E3-B as final regression and approval. Out of scope here: per-set weight/reps/set type in routines (E6 US-29) and background rest alerts (Phase 2).
 
 ## T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises
 
@@ -1221,8 +1222,9 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 ---
 
 ### Checkpoint E3-A — A real workout on the phone 👤
-- [ ] T-042…T-046 merged, CI green, `deploy-supabase` applied the four migrations in production, every reported bug fixed.
-- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`, with the RepDB bundle in place) and tries:
+- [x] Merged into one end-of-epic test by user decision; that test was held on 2026-10-20 and its findings became T-050…T-054 (re-tested at E3-C…E3-G).
+- [x] T-042…T-046 merged, CI green, `deploy-supabase` applied the four migrations in production.
+- [x] 👤 *(superseded by the 2026-10-20 test)* The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`, with the RepDB bundle in place) and tries:
   - Entreno → "Nueva rutina": search "press" with "Pecho", filter "Mancuerna", type "dominádas"; open an exercise (animation, "Cómo hacerlo", RepDB attribution); create a custom exercise; drag to reorder, "Agrupar con el siguiente", "Guardar"; then edit, duplicate and archive a routine.
   - At the gym, "Empezar" a routine with a superset: the screen stays on; log sets with LISTO (vibration), uncheck one, "Añadir serie" / "Añadir ejercicio"; the rest bar ("+30s", "Omitir", the alert at 00:00, leaving the app and coming back), the superset waits for A2; change an exercise's rest from its menu.
   - Close the app mid-workout and reopen → back in the session; airplane mode while checking a set → "pendiente de guardar", then saved on reconnecting.
@@ -1300,30 +1302,199 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 
 ---
 
+## T-050: App-wide state restoration (tab, screen, drafts, process death)
+
+**Story:** cross-cutting (user feedback 2026-10-20, items 3 and 9; `planning/epics/E3-training-core.md` "App state restoration") · **Flow:** UI (kotlin-core-developer + compose-ui-developer; ux-reviewer only if a visible change is needed) · **Scenarios:** Returning to the same tab; Returning to the same screen; Keeping a draft; Restoring after process death
+
+**Description:** Today, leaving the app and coming back can drop the user on another tab or screen and loses in-progress input (e.g. a half-built "Nueva rutina"). Make restoration a property of the whole app, not of single screens: the selected tab, each tab's navigation back stack (type-safe `@Serializable` routes) and every in-progress form survive both a plain background/foreground and a process death. The planner first finds why the current app resets (e.g. the root/auth routing recreating the `NavHost`, tab back stacks not saved, form state held only in `remember`) and fixes the cause centrally (root navigation, per-tab `saveState`/`restoreState`, `rememberSaveable`/`SavedStateHandle` for form drafts). Drafts in scope: routine builder ("Nueva rutina" and edit), create-custom-exercise form, exercise picker search and filters, history "Corregir serie" edit, Perfil edit forms and Preferencias, onboarding steps not yet saved (ADR-24 resume still applies). The live session already resumes from the server (T-045) and must keep doing so. Record the rule as **ADR-40** ("every screen and draft survives background and process death; a new screen ships with a restoration test") and add it to `planning/02-architecture.md` (UI pattern) so later epics inherit it.
+
+**Acceptance criteria:**
+- [ ] Root cause identified and written in the PR body; the fix lives in the root navigation / scaffold, not as per-screen workarounds.
+- [ ] Leaving the app on any tab and returning (home button, app switcher, screen off) shows the same tab and the same screen, with the scroll position of lists kept where the platform allows.
+- [ ] After process death (developer option "No mantener actividades" or `adb shell am kill`), reopening restores the selected tab, that tab's back stack and the visible screen; a signed-out or expired session still routes to sign-in (auth wins over restoration).
+- [ ] A partially created "Nueva rutina" (name + 2 exercises + edited sets/rest, superset grouping) is restored exactly after background and after process death; the same holds for editing an existing routine, the create-exercise form, the picker search/filters, the "Corregir serie" edit and the Perfil edit forms.
+- [ ] Restored drafts are never saved silently: they stay unsaved until the user taps the screen's save action; discarding with back behaves as before.
+- [ ] An in-progress live session still reopens on the Entreno tab with its sets (T-045 behaviour unchanged).
+- [ ] ADR-40 written; `planning/02-architecture.md` states the rule; `.claude/agents/planner.md` (or the developer agents) require a restoration test for every new screen with input.
+
+**Host tests (per scenario):** `StateRestorationTester` (Compose UI test) on the app scaffold: selected tab and nested back stack restored (Returning to the same tab; Returning to the same screen); `RoutineBuilderViewModelTest` + screen test recreating the ViewModel from a saved `SavedStateHandle` (Keeping a draft; Restoring after process death); equivalent restoration tests for the create-exercise form, picker filters, set edit and Perfil edit; `WorkoutTabRouteTest` still green (in-progress session).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Manual (developer, emulator, local flavor): "No mantener actividades" on, build half a routine, switch apps, return.
+
+**Dependencies:** T-048b
+**Files likely touched:** `composeApp/…/app/{App,AppRoot,AppNavHost,AppScaffold,AppRoutes,AppViewModel,RootRoute,RootStates}.kt`, `composeApp/…/feature/routines/{RoutineBuilderViewModel,RoutineBuilderUiState}.kt`, `composeApp/…/feature/exercises/{ExercisePickerViewModel,CreateExerciseSheet}.kt`, `composeApp/…/feature/workout/{SessionEditSheet,SessionDetailViewModel}.kt`, `composeApp/…/feature/profile/*` (edit forms), tests, `planning/00-decisions.md`, `planning/02-architecture.md`, `.claude/agents/planner.md`
+**Estimated scope:** L (if the plan passes ~15 non-trivial files, the planner may slice it: navigation/tab restoration first, then form drafts, one dev run each)
+
+### Checkpoint E3-C — State restoration 👤
+- [ ] T-050 merged, CI green.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - On each tab (Diario, Entreno, Perfil) open a sub-screen (e.g. Entreno → "Historial" → a session; Perfil → "Fuerza"), press home, open other apps, come back: same tab and same screen.
+  - Entreno → "Nueva rutina": type a name, add 2 exercises, change sets and rest, group a superset; leave the app (and once with "No mantener actividades" on in the developer options), come back: the draft is intact and still unsaved.
+  - Half-fill the "Crear ejercicio" form and a Perfil edit form, leave and come back: the input is still there.
+  - With a session in progress, close the app from the app switcher and reopen: Entreno opens the session with its sets.
+  - Leave the app and come back: the same tab, screen and draft are restored.
+
+---
+
+## T-051: Routines and catalog fixes
+
+**Story:** US-09 + US-10 (user feedback 2026-10-20, routines/catalog items) · **Flow:** UI (core + UI; ux-reviewer for the rest picker and the detail entry points) · **Scenarios:** US-09 Exercise detail with animation and how-to (new entry points, per Q5); US-10 Creating a routine (custom exercise name), "Mis rutinas" order, rest picker; removal of "Empezar entreno vacío"
+
+**Description:** Five fixes on the routine and catalog journey. (1) A custom exercise shows the name the user entered wherever it appears (routine builder, "Mis rutinas", live session, summary, history, Fuerza); today the routine shows "Ejercicio" because names are resolved only from the RepDB bundle (catalog rows have no DB name, ADR-38); custom rows must use their DB `name`. (2) Tapping an exercise's thumbnail or name opens its detail (animation, "Cómo hacerlo"; nothing happens today) in the routine builder and the live session cards, and in the picker as answered in **Q5**; custom exercises open a detail without media (placeholder). (3) "Mis rutinas" sorted by name ascending, case- and accent-insensitive (same normalisation as the catalog search). (4) Remove "Empezar entreno vacío" completely: button, strings, ViewModel/use-case path and its tests; the DB keeps `routine_id` nullable (ADR-30, E6). (5) Rest picker (builder and the session "Descanso" menu) moves in 10 s steps within 0–600 s, and values above 60 s read "1 min 10 s" (edge cases per **Q6**). New screens/forms keep T-050's restoration rule.
+
+**Acceptance criteria:**
+- [ ] Creating custom "Press Hammer unilateral" and adding it to a routine shows "Press Hammer unilateral" in the builder, "Mis rutinas", the live session, the summary, the history detail and Fuerza; never "Ejercicio".
+- [ ] Thumbnail or name tap opens the exercise detail from the builder and the live session cards (and the picker; Q5 resolved: thumbnail/name open the detail, a separate checkbox/"+" selects); back returns to the same place with the draft or session intact.
+- [ ] "Mis rutinas" lists "Abdominales", "brazos", "Énfasis pierna", "Torso fuerza" in that order (case- and accent-insensitive, ascending); order kept after create, edit, duplicate and archive.
+- [ ] No "Empezar entreno vacío" anywhere (UI, strings, tests); `rg "start_empty|Empezar entreno vacío"` finds nothing in `composeApp` and `shared`.
+- [ ] Rest picker: steps of 10 s (0, 10, …, 600); 70 s shows "1 min 10 s"; 45 s shows "45 s"; Q6 resolved: 60 s → "1 min", whole minutes "2 min"; same format in the builder and the session "Descanso" menu.
+- [ ] `planning/epics/E3-training-core.md` already updated for order and removal (2026-10-20); the T-045 "Empezar entreno vacío" criterion is superseded by this task.
+
+**Host tests (per scenario):** `ExerciseNamesTest` (custom name vs. catalog key); `RoutinesViewModelTest` (sort order incl. accents/case); `RoutinesScreenTest` (no empty-workout button); `RestDurationFormatTest` (10 s steps, "1 min 10 s", Q6 cases); `RoutineBuilderScreenTest` and `LiveSessionScreenTest` (thumbnail/name tap → detail navigation event; custom name shown).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-050
+**Files likely touched:** `composeApp/…/feature/workout/{ExerciseNames,LiveExerciseCard,ExerciseMenu,LiveSessionFormat}.kt`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesUiState,RoutinesViewModel,RoutineBuilderRow,RoutineBuilderScreen,RoutineSheetActions}.kt`, `composeApp/…/feature/exercises/{ExercisePickerScreen,ExerciseDetailScreen,ExerciseLabels}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt` (drop start-empty), strings, tests
+**Estimated scope:** M
+
+### Checkpoint E3-D — Routines and catalog 👤
+- [ ] T-051 merged, CI green.
+- [ ] 👤 Install the APK and re-test the fixes:
+  - Create a custom exercise, add it to a routine: its own name appears in the routine, "Mis rutinas" and later in the session (was "Ejercicio").
+  - Tap an exercise's thumbnail or name in the routine builder (and in the picker): the detail opens with the animation and "Cómo hacerlo".
+  - "Mis rutinas" is sorted by name A→Z; "Empezar entreno vacío" is gone.
+  - Change a rest: it moves in 10 s steps and shows "1 min 10 s" above 60 s.
+  - Quick regression: search and filter, reorder, superset, save, edit, duplicate, archive.
+  - Leave the app and come back: the same tab, screen and draft are restored.
+
+---
+
+## T-052: Live session fixes
+
+**Story:** US-11 + US-13 (user feedback 2026-10-20, live-session items) · **Flow:** UI (core + UI; ux-reviewer for the menu and the card) · **Scenarios:** US-11 Starting from a routine (no fixed bottom button); Finishing and summary (from the ⋮ menu); Resuming or discarding from "Mis rutinas"; Starting while a session is in progress · US-13 End of rest (~1 s sound)
+
+**Description:** (1) "Finalizar entreno" leaves the fixed bottom bar and becomes an item of the session's ⋮ menu, placed above "Descartar entreno"; the existing confirmation sheet (with the pending-sets warning) and summary are unchanged; the freed bottom space goes to the set list. (2) The "Tienes un entreno en curso" card on "Mis rutinas" gets a play button (continuar → opens the live session) and a trash button (descartar → the existing "¿Descartar entreno?" confirmation → discarded; the card disappears). (3) Tapping "Empezar" on a routine while a session is in progress shows "Ya hay un entreno en curso" (message-only snackbar) instead of "No se pudo completar la acción"; the in-progress session is left untouched. (4) At 00:00 the rest alert plays a sound of about 1 s together with the existing vibration, through the `AlertSound` port (T-046), only with the app in the foreground, silent when the system is muted (`04-business-rules.md` §4.4); background alerts stay out of scope (Phase 2).
+
+**Acceptance criteria:**
+- [ ] No fixed "Finalizar entreno" button; the ⋮ menu lists "Finalizar entreno" directly above "Descartar entreno"; finishing with 3 pending sets still warns "Hay 3 series sin completar; no se guardarán" and shows the summary.
+- [ ] "Tienes un entreno en curso" card: play opens the session; trash asks for confirmation, then the session is `discarded`, never in the history, and the card is gone; both buttons have Spanish `contentDescription`s, snake_case `testTag`s and ≥ 48 dp targets.
+- [ ] "Empezar" with a session in progress shows "Ya hay un entreno en curso"; no second session is created (the partial unique index error is mapped to this message in the repository/use case, not by string matching in the UI).
+- [ ] Rest end: one vibration and one ~1 s sound while the app is visible; nothing when the system is muted; no sound if the user left the app.
+- [ ] `planning/epics/E3-training-core.md` scenarios match (updated 2026-10-20).
+
+**Host tests (per scenario):** `LiveSessionScreenTest` (menu order, no bottom button, finish from the menu → sheet → summary); `RoutinesScreenTest` + `RoutinesViewModelTest` (card play/trash, discard confirmation, "Ya hay un entreno en curso" on start conflict); `WorkoutSessionRepositoryTest` (unique-violation → `SessionAlreadyInProgress`); `RestTimerTest`/`LiveSessionViewModelTest` (alert port called once at 00:00, not when backgrounded, fake records the sound duration request).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Manual (developer, emulator): the alert sound is audible and about 1 s.
+
+**Dependencies:** T-051
+**Files likely touched:** `composeApp/…/feature/workout/{LiveSessionScreen,LiveSessionTopBar,LiveSessionDialogs,LiveSessionViewModel,LiveSessionUiState,WorkoutEntry,WorkoutEntryViewModel}.kt`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesUiState,RoutinesViewModel}.kt`, `shared/…/domain/port/AlertSound.kt`, `composeApp/src/androidMain/…/platform/AndroidAlertSound.kt` (+ a ~1 s sound resource if needed), `shared/…/data/repository/*` (error mapping), strings, tests
+**Estimated scope:** M
+
+### Checkpoint E3-E — Live session 👤
+- [ ] T-052 merged, CI green.
+- [ ] 👤 Install the APK and re-test the fixes:
+  - Start a routine: no fixed bottom button; ⋮ shows "Finalizar entreno" above "Descartar entreno"; finish from there (pending-sets warning, summary).
+  - Start another, go back to "Mis rutinas": the "Tienes un entreno en curso" card has play (continues the session) and trash (asks, then discards).
+  - With a session running, tap "Empezar" on another routine: "Ya hay un entreno en curso".
+  - Let a rest reach 00:00 with the app open: vibration plus a ~1 s sound.
+  - Quick regression at the gym: LISTO, ANTERIOR, rest bar "+30s"/"Omitir", superset rest, "Añadir serie"/"Añadir ejercicio".
+  - Leave the app and come back: the same tab, screen and draft are restored (and the running session with its sets).
+
+---
+
+## T-053: Fix the "Corregir serie" dialog in the history
+
+**Story:** US-14 (user feedback 2026-10-20) · **Flow:** UI (bug fix; compose-ui-developer, core only if the ViewModel is involved) · **Scenarios:** Correcting a set
+
+**Description:** In the session detail, "Corregir serie" is broken: the reps field cannot be edited and the label is rendered vertically (one character per line, a width/constraint problem). Fix the dialog so KG and REPS are both editable side by side with readable labels on phone and tablet widths, keeping the behaviour of T-047 (save, volume recalculated, message-only snackbar on error, disabled offline). Check every caller of any shared component touched (`NumberInput`, `AppBottomSheet`; E2 lesson T-040).
+
+**Acceptance criteria:**
+- [ ] Editing 87,5 kg × 8 to 87,5 kg × 7 works by typing in REPS; the volume updates in the detail and the list.
+- [ ] Labels render horizontally at 360 dp and 600+ dp widths and with the largest system font scale; fields ≥ 48 dp.
+- [ ] The edit survives leaving the app (T-050 rule).
+
+**Host tests (per scenario):** `SessionDetailScreenTest` (Robolectric: type into REPS, label bounds wider than tall at 360 dp and font scale 2.0, save → volume); `SessionDetailViewModelTest` unchanged and green.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-052
+**Files likely touched:** `composeApp/…/feature/workout/{SessionEditSheet,SessionDetailScreen}.kt`, possibly `designsystem/NumberInput.kt` (check callers), tests
+**Estimated scope:** S
+
+### Checkpoint E3-F — History 👤
+- [ ] T-053 merged, CI green.
+- [ ] 👤 Install the APK and re-test the fix:
+  - Entreno → "Historial" → a session → "Corregir serie": both KG and REPS are editable, labels read horizontally; change 8 reps to 7 and see the volume update in the detail and the list.
+  - Quick regression: list order, "PR" marks, delete a session (gone from ANTERIOR), scroll for more.
+  - Leave the app and come back: the same tab, screen and draft are restored.
+
+---
+
+## T-054: Weekly muscle volume starts at the first recorded session
+
+**Story:** US-15 (user feedback 2026-10-20) · **Flow:** UI (+ backend only if the planner moves the range into `weekly_muscle_volume`; then a new migration + pgTAP, never an edit of the merged one) · **Scenarios:** Weekly volume per muscle group (updated)
+
+**Description:** "Volumen por grupo muscular" currently starts at a fixed date (31 August) and shows empty weeks before the user has any data. The chart must start at the ISO week (Monday) of the user's first completed session and run to the current week, capped at the last 8 weeks; no empty weeks before the first record. A user with no completed sessions sees the existing empty state.
+
+**Acceptance criteria:**
+- [ ] First completed session on a Wednesday two weeks ago → the chart shows 3 weeks (that week, last week, this week); none before.
+- [ ] First session more than 8 weeks ago → the last 8 weeks, as before.
+- [ ] Weeks after the first session with no training still appear with 0 (only the leading empty weeks are removed).
+- [ ] Selecting a group still isolates it; empty state unchanged.
+
+**Host tests (per scenario):** `MuscleVolumeViewModelTest` (first session 2 weeks ago → 3 weeks; > 8 weeks → 8; gap week → 0; no sessions → empty) with a test `Clock`; screen test for the axis start; pgTAP only if SQL changes.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` and `deploy-supabase` green if a migration is added).
+
+**Dependencies:** T-053
+**Files likely touched:** `composeApp/…/feature/analytics/{MuscleVolumeViewModel,MuscleVolumeUiState,MuscleVolumeScreen,MuscleVolumeComponents}.kt`, `shared/…/domain/repository/StrengthRepository.kt`, `shared/…/data/repository/*`, optionally a migration + pgTAP, tests
+**Estimated scope:** S
+
+### Checkpoint E3-G — Strength 👤
+- [ ] T-054 merged, CI green.
+- [ ] 👤 Install the APK and re-test the fix:
+  - Perfil → "Fuerza" → "Volumen por grupo muscular": the first week shown is the week of your first recorded session (no empty weeks from 31 August); pick a group.
+  - Quick regression: chips, "Récord 1RM estimado", monthly change, an exercise's 1RM and volume charts with 1M/3M/6M/1A.
+  - Leave the app and come back: the same tab, screen and draft are restored.
+
+---
+
 ## T-049: E3 closure
 
 **Story:** E3 Definition of Done · **Flow:** PM
+
+**Description:** Closes E3 after the corrective tasks: final regression on the phone, approval, tag `v0.3.0` and the retrospective.
 
 **Acceptance criteria:**
 - [x] T-042…T-048b merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
 - [x] Host tests green for every E3 UI scenario, including the full-session test (T-046).
 - [x] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
+- [ ] T-050…T-054 merged with green CI; Checkpoints E3-C…E3-G approved; `deploy-supabase` green if any of them added a migration.
 - [ ] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
-- [x] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
+- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
 
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
 
-**Dependencies:** T-048b
+**Dependencies:** T-054 (and Checkpoints E3-C…E3-G)
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
-### Checkpoint E3-B — E3 closure 👤
-- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries:
-  - Entreno → "Historial": sessions newest first with date, duration, volume and sets; open one (sets and "PR"), change a set's reps and see the volume update; delete a session and check it no longer shows as ANTERIOR.
-  - Perfil → "Fuerza": the chips of the most trained exercises, the 1RM record and the monthly change; open an exercise (1RM and volume charts, 1M/3M/6M/1A), one with a single session (message) and Dominadas (max reps); "Volumen por grupo muscular" and pick a group.
-  - Open the progress of an exercise from its catalog detail and from a history session.
-  - Approval → `git tag -a v0.3.0 -m "Epic E3"` + retrospective (includes the Claude Code workflows discussion from `retrospectives/E2.md`).
+### Checkpoint E3-B — E3 closure: final regression and approval 👤
+- [ ] T-050…T-054 and T-049 merged, CI green, every reported bug fixed.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and run one real workout end to end as a final regression:
+  - Build a routine with a custom exercise and a superset, start it, log sets with LISTO and ANTERIOR, let a rest end (vibration + sound), finish from ⋮ and read the summary.
+  - Open it in "Historial", correct a set; check Perfil → "Fuerza" and "Volumen por grupo muscular" with the new data.
+  - Leave the app and come back: the same tab, screen and draft are restored.
+  - Approval → `git tag -a v0.3.0 -m "Epic E3"` + `git push --tags` + retrospective (includes the Claude Code workflows discussion from `retrospectives/E2.md`).
 
 ---
 
