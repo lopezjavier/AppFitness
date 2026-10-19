@@ -3,12 +3,14 @@ package io.github.lopezjavier.appfitness.feature.workout
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
@@ -21,8 +23,23 @@ import kotlin.time.Instant
 internal class FakeHaptics : Haptics {
     var ticks = 0
 
+    var alerts = 0
+
     override fun tick() {
         ticks++
+    }
+
+    override fun alert() {
+        alerts++
+    }
+}
+
+/** Counts the plays. */
+internal class FakeAlertSound : AlertSound {
+    var plays = 0
+
+    override fun play() {
+        plays++
     }
 }
 
@@ -58,6 +75,9 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var historyFailure: AppError? = null
     var history: Map<String, List<ExerciseHistoryPoint>> = emptyMap()
     var startedId = "s-new"
+    var previous: Map<String, List<PreviousSet>> = emptyMap()
+    var lastPerformanceFailure: AppError? = null
+    val lastPerformanceCalls = mutableListOf<String>()
 
     private fun failing(error: AppError?) = error?.let { Result.failure<Nothing>(AppException(it)) }
 
@@ -102,6 +122,11 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         failing(discardFailure)?.let { return it }
         discarded += sessionId
         return Result.success(Unit)
+    }
+
+    override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> {
+        lastPerformanceCalls += exerciseId
+        return failing(lastPerformanceFailure) ?: Result.success(previous[exerciseId].orEmpty())
     }
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =

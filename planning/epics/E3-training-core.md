@@ -279,7 +279,7 @@ Feature: Rest timer
     Then the timer shows "00:30"
 
   Scenario: Superset
-    Given the superset Press de banca (A1) and Dominadas (A2)
+    Given the superset Press de banca (A1, rest 0 s) and Dominadas (A2)
     When the user completes a set of A1
     Then the timer does not start
     When they complete the corresponding set of A2

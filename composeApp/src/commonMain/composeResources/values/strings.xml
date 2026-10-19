@@ -377,6 +377,12 @@
     <string name="live_discard_message">Se borrará esta sesión con todas sus series.</string>
     <string name="live_discard_confirm">Descartar</string>
     <string name="live_discard_cancel">Cancelar</string>
+    <string name="live_exercise_menu_cd">Más opciones de %1$s</string>
+    <string name="live_exercise_menu_title">Opciones del ejercicio</string>
+    <string name="live_exercise_menu_rest">Descanso</string>
+    <string name="live_rest_sheet_title">Descanso de este ejercicio</string>
+    <string name="live_rest_sheet_hint">Solo en este entreno; la rutina no cambia.</string>
+    <string name="live_rest_save">Guardar</string>
     <string name="summary_title">Entreno completado</string>
     <string name="summary_duration">Duración</string>
     <string name="summary_sets">Series completadas</string>

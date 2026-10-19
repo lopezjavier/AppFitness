@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -101,6 +102,19 @@ internal data class ExerciseHistoryParams(
     @SerialName("p_exercise_id") val exerciseId: String,
     @EncodeDefault @SerialName("p_from") val from: LocalDate? = null,
 )
+
+@Serializable
+internal data class LastPerformanceParams(@SerialName("p_exercise_id") val exerciseId: String)
+
+/** Row returned by the `last_performance` RPC. */
+@Serializable
+internal data class PreviousSetDto(
+    @SerialName("set_index") val setIndex: Int,
+    @SerialName("weight_kg") val weightKg: Double = 0.0,
+    val reps: Int = 0,
+) {
+    fun toDomain() = PreviousSet(setIndex, weightKg, reps)
+}
 
 /** Row returned by the `exercise_history` RPC. */
 @Serializable

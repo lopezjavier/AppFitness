@@ -7,11 +7,14 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
+import io.github.lopezjavier.appfitness.data.remote.LastPerformanceParams
+import io.github.lopezjavier.appfitness.data.remote.PreviousSetDto
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
@@ -70,6 +73,12 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
     override suspend fun discard(sessionId: String): Result<Unit> = auth.ownRow {
         postgrest.rpc("discard_workout_session", SessionIdParams(sessionId))
     }.map {}
+
+    override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> = auth.ownRow {
+        postgrest.rpc("last_performance", LastPerformanceParams(exerciseId))
+            .decodeList<PreviousSetDto>()
+            .map { it.toDomain() }
+    }
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =
         auth.ownRow {

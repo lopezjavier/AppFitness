@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
@@ -33,6 +34,9 @@ interface WorkoutSessionRepository {
     suspend fun finish(sessionId: String): Result<Unit>
 
     suspend fun discard(sessionId: String): Result<Unit>
+
+    /** Completed sets of the latest finished session containing the exercise, by set index; empty if never done. */
+    suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>>
 
     suspend fun exerciseHistory(exerciseId: String, from: LocalDate? = null): Result<List<ExerciseHistoryPoint>>
 }

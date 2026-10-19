@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -69,6 +70,7 @@ class AppModuleTest {
             listOf(
                 ConnectivityObserver::class,
                 Haptics::class,
+                AlertSound::class,
                 AuthRepository::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,

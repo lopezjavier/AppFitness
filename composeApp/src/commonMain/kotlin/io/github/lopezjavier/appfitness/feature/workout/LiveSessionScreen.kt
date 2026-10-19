@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.live_action_failed
@@ -38,6 +39,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -87,6 +89,11 @@ fun LiveSessionRoot(
     }
     // The session was finished or discarded elsewhere: go back to "Mis rutinas" instead of a blank screen.
     LaunchedEffect(state) { if (state == LiveSessionUiState.NoSession) currentClose() }
+    // Back from the background: the rest countdown is recomputed from the clock at once.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.onEvent(LiveSessionEvent.Resume)
+        onPauseOrDispose {}
+    }
     LiveSessionScreen(state, elapsed, viewModel::onEvent, onClose, modifier, snackbarHost)
 }
 
@@ -150,6 +157,22 @@ private fun LiveLoading() {
     }
 }
 
+/** The running rest, pinned above the list (never over its rows) and capped to the list's width. */
+@Composable
+private fun RestBar(timer: RestTimerUi, onEvent: (LiveSessionEvent) -> Unit) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin), contentAlignment = Alignment.TopCenter) {
+        RestTimerBar(
+            remaining = timer.remaining,
+            total = timer.total,
+            onAddTime = { onEvent(LiveSessionEvent.RestAdd30) },
+            onSkip = { onEvent(LiveSessionEvent.RestSkip) },
+            modifier = Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth)
+                .padding(top = Spacing.sm, bottom = Spacing.md),
+            testTagPrefix = "live_rest",
+        )
+    }
+}
+
 @Composable
 private fun LiveActive(
     state: LiveSessionUiState.Active,
@@ -163,6 +186,7 @@ private fun LiveActive(
     Column(Modifier.fillMaxSize().imePadding()) {
         LiveSessionTopBar(elapsedSeconds, onBack, onMenu = { menuOpen = true })
         KeepAwakeIndicator(Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.xs))
+        state.restTimer?.let { RestBar(it, onEvent) }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
                 Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth).fillMaxSize(),

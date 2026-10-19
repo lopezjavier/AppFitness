@@ -1200,18 +1200,18 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Description:** Backend: one migration with `last_performance(p_exercise_id)` (`security invoker`; sets `set_index`, `weight_kg`, `reps` of the caller's most recent **completed** session containing the exercise, completed sets only, regardless of routine) + pgTAP. App: ghost data loaded once per exercise when the session starts or an exercise is added; ANTERIOR shows "85 kg × 8" in `ghostData` matched by `set_index` ("—" when missing); KG/REPS show the values as a dim placeholder (never as a value); tapping the ANTERIOR text fills both fields. Rest timer (`04-business-rules.md` §4.4): state from an `endsAt` instant and the injected `Clock`, never a decrementing counter; starts on LISTO with the exercise's `rest_seconds` (120 s for exercises added in the session, 0 = no timer); checking another set restarts it; "+30s" and "Omitir"; in a superset it starts only after the set of the last exercise in the group, with the rest decided in **Q3**; the existing `RestTimerBar` pinned below the Top App Bar with the content inset so it never covers set rows or controls; at 00:00 the `Haptics` port plus a short alert through a new sound port in `androidMain` (silent when the system is muted; only with the app visible, no foreground service), then the bar hides. Exercise menu "Descanso" changes the rest for the rest of this session only (no routine write; E6 adds "Update Routine"). Adds the DoD full-session host test.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/last_performance.test.sql`: returns the latest completed session's sets; ignores other users', discarded and in-progress sessions and pending sets.
-- [ ] Ghost: "85 kg × 8" in ANTERIOR for set 2; placeholders 85 and 8; "—" for a never-done exercise and for set 4 when last time had 3; tapping fills 85 and 8.
-- [ ] Timer: LISTO with 120 s → "02:00", cyan decreasing line, "+30s" and "Omitir"; "01:12" + 30 s → "01:42"; "Omitir" hides it; 00:00 → vibration + alert + hidden; 60 s left, 30 s in the background → "00:30" on return.
-- [ ] Superset A1/A2: completing A1's set starts nothing; completing the matching A2 set starts the timer with the Q3 rest.
-- [ ] Changing an exercise's rest to 90 s from its menu applies to its following sets in this session; the routine is unchanged.
-- [ ] The bar never overlaps set rows or controls while scrolling or editing (bounds asserted in a Robolectric test).
-- [ ] DoD: a host test runs a full session of a 4-exercise routine with a superset (short rest durations), with correct ghost data and rest periods.
+- [x] Migration + `supabase/tests/last_performance.test.sql`: returns the latest completed session's sets; ignores other users', discarded and in-progress sessions and pending sets.
+- [x] Ghost: "85 kg × 8" in ANTERIOR for set 2; placeholders 85 and 8; "—" for a never-done exercise and for set 4 when last time had 3; tapping fills 85 and 8.
+- [x] Timer: LISTO with 120 s → "02:00", cyan decreasing line, "+30s" and "Omitir"; "01:12" + 30 s → "01:42"; "Omitir" hides it; 00:00 → vibration + alert + hidden; 60 s left, 30 s in the background → "00:30" on return.
+- [x] Superset A1/A2 (Q3): completing A1's set starts a timer only if A1's own rest is above 0 (0 = nothing); completing the matching A2 set starts the timer with A2's rest.
+- [x] Changing an exercise's rest to 90 s from its menu applies to its following sets in this session; the routine is unchanged.
+- [x] The bar never overlaps set rows or controls while scrolling or editing (bounds asserted in a Robolectric test).
+- [x] DoD: a host test runs a full session of a 4-exercise routine with a superset (short rest durations), with correct ghost data and rest periods.
 
 **Host tests (per scenario):** `GhostDataTest` (Showing the previous performance; No previous performance; More sets than last time; format); `RestTimerTest` with `runTest` + `advanceTimeBy` and a test `Clock` (Automatic start; Quick adjustments; End of rest effects; Accuracy with the app in the background; Rest configurable); `SupersetRestTest` (Superset); `LiveSessionViewModelTest` additions (Using the previous performance; timer restart on another set); `LiveSessionScreenTest` (Robolectric: ghost text, placeholder semantics, bar texts, Free navigation non-overlap); `FullSessionTest` (Epic DoD); pgTAP `last_performance.test.sql`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-045, Q3

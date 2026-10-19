@@ -2,9 +2,15 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -32,24 +38,25 @@ internal fun LiveExerciseCard(
     modifier: Modifier = Modifier,
 ) {
     val position = exercise.position
+    val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
+    var sheet by rememberSaveable { mutableStateOf(ExerciseSheet.None) }
     AppCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Column(
-                Modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() }
-                    .testTag("live_exercise_$position"),
-            ) {
-                exercise.supersetLabel?.let {
-                    Text(
-                        text = stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number),
-                        style = AppTheme.typography.labelTechnical,
-                        color = AppTheme.colors.athleticCyan,
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }
+                        .testTag("live_exercise_$position"),
+                ) {
+                    exercise.supersetLabel?.let {
+                        Text(
+                            text = stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number),
+                            style = AppTheme.typography.labelTechnical,
+                            color = AppTheme.colors.athleticCyan,
+                        )
+                    }
+                    Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
                 }
-                Text(
-                    text = exercise.name ?: stringResource(Res.string.exercise_unnamed),
-                    style = AppTheme.typography.titleMedium,
-                    color = AppTheme.colors.textPrimary,
-                )
+                ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
             SetTableHeader()
             exercise.sets.forEach { SessionSetRow(position, it, onEvent) }
@@ -61,4 +68,25 @@ internal fun LiveExerciseCard(
             )
         }
     }
+    when (sheet) {
+        ExerciseSheet.None -> Unit
+
+        ExerciseSheet.Menu -> ExerciseMenuSheet(
+            position = position,
+            onRest = { sheet = ExerciseSheet.Rest },
+            onDismiss = { sheet = ExerciseSheet.None },
+        )
+
+        ExerciseSheet.Rest -> ExerciseRestSheet(
+            position = position,
+            currentSeconds = exercise.restSeconds,
+            onSave = {
+                onEvent(LiveSessionEvent.SetExerciseRest(position, it))
+                sheet = ExerciseSheet.None
+            },
+            onDismiss = { sheet = ExerciseSheet.None },
+        )
+    }
 }
+
+private enum class ExerciseSheet { None, Menu, Rest }
