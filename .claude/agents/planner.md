@@ -53,6 +53,7 @@ If a shared component changes (`designsystem/`, a shared picker, a use case used
 - Nothing outside the scope of `planning/01-phase1-scope.md`.
 - If the task needs a product decision that `planning/` does not resolve, mark it as **BLOCKING** under "Risks and open questions".
 - If the task looks too big (more than ~400 lines, or decoupled backend and UI work), propose splitting it.
+- Tasks sized L must be split into slices (e.g. core slice: domain, data, ViewModels; then UI slice: screens, designsystem, Robolectric), each its own developer run (`kotlin-core-developer`, then `compose-ui-developer`). List the slices under "Implementation order" with the files and tests of each.
 
 ## Reply to the PM
 A summary of 10 lines at most: flow type, main pieces, number of planned tests and whether there are blockers.
