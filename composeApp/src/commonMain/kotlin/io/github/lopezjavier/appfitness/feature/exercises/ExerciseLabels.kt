@@ -1,0 +1,61 @@
+package io.github.lopezjavier.appfitness.feature.exercises
+
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_band
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_barbell
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_bodyweight
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_cable
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_dumbbell
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_kettlebell
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_machine
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_other
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_back
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_biceps
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_calves
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_chest
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_core
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_forearms
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_full_body
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_glutes
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_hamstrings
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_quads
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_shoulders
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_triceps
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import org.jetbrains.compose.resources.StringResource
+
+/** Spanish label of this muscle group. */
+internal val MuscleGroup.label: StringResource
+    get() =
+        when (this) {
+            MuscleGroup.Chest -> Res.string.muscle_chest
+            MuscleGroup.Back -> Res.string.muscle_back
+            MuscleGroup.Shoulders -> Res.string.muscle_shoulders
+            MuscleGroup.Biceps -> Res.string.muscle_biceps
+            MuscleGroup.Triceps -> Res.string.muscle_triceps
+            MuscleGroup.Forearms -> Res.string.muscle_forearms
+            MuscleGroup.Quads -> Res.string.muscle_quads
+            MuscleGroup.Hamstrings -> Res.string.muscle_hamstrings
+            MuscleGroup.Glutes -> Res.string.muscle_glutes
+            MuscleGroup.Calves -> Res.string.muscle_calves
+            MuscleGroup.Core -> Res.string.muscle_core
+            MuscleGroup.FullBody -> Res.string.muscle_full_body
+        }
+
+/** Spanish label of this equipment. */
+internal val Equipment.label: StringResource
+    get() =
+        when (this) {
+            Equipment.Barbell -> Res.string.equipment_barbell
+            Equipment.Dumbbell -> Res.string.equipment_dumbbell
+            Equipment.Machine -> Res.string.equipment_machine
+            Equipment.Cable -> Res.string.equipment_cable
+            Equipment.Bodyweight -> Res.string.equipment_bodyweight
+            Equipment.Kettlebell -> Res.string.equipment_kettlebell
+            Equipment.Band -> Res.string.equipment_band
+            Equipment.Other -> Res.string.equipment_other
+        }
+
+/** Test-tag suffix of an enum value: `FullBody` gives `full_body`. */
+internal fun Enum<*>.tagName(): String = name.replace(Regex("([a-z])([A-Z])"), "$1_$2").lowercase()

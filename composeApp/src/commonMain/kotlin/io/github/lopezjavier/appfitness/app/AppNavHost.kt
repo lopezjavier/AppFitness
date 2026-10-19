@@ -19,6 +19,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutScreen
@@ -33,11 +34,37 @@ internal typealias ProfileSlot =
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
 internal typealias PreferencesSlot = @Composable (modifier: Modifier) -> Unit
 
+/** Exercise picker content: modifier, select mode, and the two ways out (open a detail, return a selection). */
+internal typealias ExercisePickerSlot =
+    @Composable (
+        modifier: Modifier,
+        selectMode: Boolean,
+        onOpenDetail: (String) -> Unit,
+        onSelected: (String) -> Unit,
+    ) -> Unit
+
+/** Exercise detail content: modifier, exercise id, select mode and the select action. */
+internal typealias ExerciseDetailSlot =
+    @Composable (modifier: Modifier, exerciseId: String, selectMode: Boolean, onSelect: () -> Unit) -> Unit
+
+/** Key under which a picker started in select mode leaves the chosen exercise id for the previous destination. */
+const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
+
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
+}
+
+/** Empty picker for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("exercise_picker_screen"))
+}
+
+/** Empty detail for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("exercise_detail_screen"))
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -59,16 +86,19 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
+    exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
+    exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
     val openPreferences = remember(navController) { { navController.navigateToFullScreen(PreferencesRoute) } }
+    val openExerciseLibrary = remember(navController) { { navController.navigateToFullScreen(ExercisePickerRoute()) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
-            composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding)) }
+            composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding), openExerciseLibrary) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -76,6 +106,24 @@ internal fun AppNavHost(
             }
         }
         composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding)) }
+        composable<ExercisePickerRoute> { entry ->
+            val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode
+            exercisePicker(
+                Modifier.padding(fullScreenPadding),
+                selectMode,
+                { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode)) },
+                { navController.returnSelectedExercise(it) },
+            )
+        }
+        composable<ExerciseDetailRoute> { entry ->
+            val route = entry.toRoute<ExerciseDetailRoute>()
+            exerciseDetail(
+                Modifier.padding(fullScreenPadding),
+                route.exerciseId,
+                route.selectMode,
+                { navController.returnSelectedExercise(route.exerciseId) },
+            )
+        }
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }
@@ -132,4 +180,15 @@ internal fun NavBackStackEntry?.chrome(): ShellChrome {
             destination?.hierarchy?.any { it.hasRoute(tab.graph::class) } == true
         } ?: TopLevelTab.Start
     return ShellChrome.Tabs(tab)
+}
+
+/**
+ * Hands [exerciseId] to the destination that opened the exercise picker (read it from its `savedStateHandle` under
+ * [SELECTED_EXERCISE_KEY]) and pops the picker together with any detail above it.
+ */
+internal fun NavController.returnSelectedExercise(exerciseId: String) {
+    val stack = currentBackStack.value
+    val pickerIndex = stack.indexOfLast { it.destination.hasRoute(ExercisePickerRoute::class) }
+    if (pickerIndex > 0) stack[pickerIndex - 1].savedStateHandle[SELECTED_EXERCISE_KEY] = exerciseId
+    popBackStack<ExercisePickerRoute>(inclusive = true)
 }

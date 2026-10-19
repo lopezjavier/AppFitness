@@ -46,7 +46,7 @@ private val ExpectedSections =
         "metric_tiles",
         "trend_pills", "number_input", "text_field", "number_stepper", "set_checkbox", "set_rows", "rest_timer",
         "wheel_picker",
-        "selectable_card",
+        "selectable_card", "exercise_media",
         "state_messages", "offline_banner",
         "top_bar",
         "navigation", "bottom_sheet", "confirm_dialog", "logo", "skeleton", "wip", "theme",

@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import io.github.lopezjavier.appfitness.app.AppFeatures
 import io.github.lopezjavier.appfitness.app.AppRoot
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.platform.ProvideSystemAnimations
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
@@ -21,9 +22,11 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         setContent {
-            AppRoot(
-                features = AppFeatures.from(appConfig),
-            )
+            ProvideSystemAnimations {
+                AppRoot(
+                    features = AppFeatures.from(appConfig),
+                )
+            }
         }
     }
 }

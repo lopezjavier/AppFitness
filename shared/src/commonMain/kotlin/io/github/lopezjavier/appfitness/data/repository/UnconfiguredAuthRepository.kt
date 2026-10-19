@@ -6,6 +6,9 @@ import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -15,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.Flow
@@ -79,4 +83,14 @@ class UnconfiguredNutritionGoalsRepository : NutritionGoalsRepository {
 /** Account counterpart of [UnconfiguredAuthRepository]: there is no server to delete from. */
 class UnconfiguredAccountRepository : AccountRepository {
     override suspend fun deleteAccount(): DeleteAccountOutcome = DeleteAccountOutcome.Failed
+}
+
+/** Exercise counterpart of [UnconfiguredAuthRepository]: there is no catalog to read. */
+class UnconfiguredExerciseRepository : ExerciseRepository {
+    override suspend fun getAll(): Result<List<Exercise>> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun getById(id: String): Result<Exercise> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise> =
+        Result.failure(AppException(AppError.Unknown))
 }
