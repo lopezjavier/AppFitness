@@ -46,7 +46,8 @@ import org.jetbrains.compose.resources.StringResource
 
 /**
  * One destination of [AppNavigation]. [testTag] goes on the selectable item. [selectedIcon] is the
- * filled glyph shown while active; it defaults to [icon] for glyphs with no filled variant.
+ * filled glyph shown while active; it defaults to [icon] for glyphs with no filled variant. With [showsAvatar]
+ * the icon slot draws the user's [AppAvatar] instead of a glyph (ring in `neonLime` while selected, never tinted).
  */
 @Immutable
 data class AppNavigationItem(
@@ -54,6 +55,7 @@ data class AppNavigationItem(
     val icon: DrawableResource,
     val testTag: String,
     val selectedIcon: DrawableResource = icon,
+    val showsAvatar: Boolean = false,
 ) {
     fun iconFor(selected: Boolean): DrawableResource = if (selected) selectedIcon else icon
 }
@@ -121,6 +123,7 @@ object AppNavigationDefaults {
  * @param type [AppNavigationType.Bar] or [AppNavigationType.Rail].
  * @param windowInsets insets it pads for; pass `WindowInsets(0)` when it is embedded mid-screen.
  *   The caller tags it through [modifier] (the shell uses `nav_bar` / `nav_rail`).
+ * @param avatarUrl photo of the user, drawn by the items with `showsAvatar`; null shows the placeholder.
  * @param header content above the items; used only by the rail (its font scale is clamped to 130%
  *   too), ignored by the bar.
  */
@@ -133,12 +136,13 @@ fun AppNavigation(
     type: AppNavigationType = AppNavigationType.Bar,
     windowInsets: WindowInsets = AppNavigationDefaults.windowInsets(type),
     header: (@Composable ColumnScope.() -> Unit)? = null,
+    avatarUrl: String? = null,
 ) {
     when (type) {
-        AppNavigationType.Bar -> AppNavigationBar(items, selectedIndex, onItemSelect, windowInsets, modifier)
+        AppNavigationType.Bar -> AppNavigationBar(items, selectedIndex, onItemSelect, windowInsets, avatarUrl, modifier)
 
         AppNavigationType.Rail ->
-            AppNavigationRail(items, selectedIndex, onItemSelect, windowInsets, header, modifier)
+            AppNavigationRail(items, selectedIndex, onItemSelect, windowInsets, header, avatarUrl, modifier)
     }
 }
 
@@ -148,6 +152,7 @@ private fun AppNavigationBar(
     selectedIndex: Int,
     onItemSelect: (Int) -> Unit,
     windowInsets: WindowInsets,
+    avatarUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
@@ -170,7 +175,7 @@ private fun AppNavigationBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onItemSelect(index) },
-                icon = { NavIcon(item, selected) },
+                icon = { NavIcon(item, selected, avatarUrl) },
                 modifier = item.itemModifier(),
                 alwaysShowLabel = true,
                 label = { NavLabel(item, selected) },
@@ -188,6 +193,7 @@ private fun AppNavigationRail(
     onItemSelect: (Int) -> Unit,
     windowInsets: WindowInsets,
     header: (@Composable ColumnScope.() -> Unit)?,
+    avatarUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
@@ -221,7 +227,7 @@ private fun AppNavigationRail(
             NavigationRailItem(
                 selected = selected,
                 onClick = { onItemSelect(index) },
-                icon = { NavIcon(item, selected) },
+                icon = { NavIcon(item, selected, avatarUrl) },
                 modifier = item.itemModifier(),
                 alwaysShowLabel = true,
                 label = { NavLabel(item, selected) },

@@ -78,6 +78,15 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         return updateResult
     }
 
+    /** Result of every [saveSettings], which also records the arguments. */
+    var settingsResult: Result<Unit> = Result.success(Unit)
+    val settingsSaves = mutableListOf<Pair<Biometrics, NutritionGoals>>()
+
+    override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> {
+        settingsSaves += biometrics to goals
+        return settingsResult
+    }
+
     /** Result of every [markOnboardingCompleted], which also counts the calls. */
     var completedResult: Result<Unit> = Result.success(Unit)
     var completedCalls = 0

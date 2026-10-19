@@ -26,6 +26,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.Density
@@ -261,9 +262,15 @@ class OnboardingScreenTest {
     private fun assertUnitLabelsOnOneLine(scale: Float) {
         showMeasures(mutableListOf(), fontScale = scale)
         val lineHeight = with(Density(rule.density.density, scale)) { UNIT_LINE_HEIGHT_SP.sp.toDp() }
+        val rootWidth = rule.onRoot().getUnclippedBoundsInRoot().let { it.right - it.left }
         listOf("onboarding_height_unit", "onboarding_weight_unit").forEach { tag ->
-            val height = rule.onNodeWithTag(tag).assertIsDisplayed().getUnclippedBoundsInRoot().height
-            assertTrue("$tag is $height tall at scale $scale", height <= lineHeight)
+            val bounds = rule.onNodeWithTag(tag).assertIsDisplayed().getUnclippedBoundsInRoot()
+            assertTrue("$tag is ${bounds.height} tall at scale $scale", bounds.height <= lineHeight)
+            // One line also means it is not squeezed or wider than its column: it stays within half of the screen.
+            assertTrue(
+                "$tag is ${bounds.right - bounds.left} wide at scale $scale",
+                bounds.right - bounds.left <= rootWidth / 2,
+            )
         }
     }
 

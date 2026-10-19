@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -62,5 +63,38 @@ internal data class NutritionGoalsUpsertDto(
             carbsPct = goals.split.carbsPct,
             fatPct = goals.split.fatPct,
         )
+    }
+}
+
+/** Arguments of the `save_profile_settings` RPC: biometrics and goals saved atomically. */
+@Serializable
+internal data class SaveProfileSettingsParams(
+    @SerialName("p_sex") val sex: SexDto,
+    @SerialName("p_birth_date") val birthDate: String,
+    @SerialName("p_height_cm") val heightCm: Int,
+    @SerialName("p_activity_level") val activityLevel: ActivityLevelDto,
+    @SerialName("p_strategy") val strategy: GoalStrategyDto,
+    @SerialName("p_calorie_adjustment") val calorieAdjustment: Int,
+    @SerialName("p_target_kcal") val targetKcal: Int,
+    @SerialName("p_protein_pct") val proteinPct: Int,
+    @SerialName("p_carbs_pct") val carbsPct: Int,
+    @SerialName("p_fat_pct") val fatPct: Int,
+) {
+    companion object {
+        fun from(biometrics: Biometrics, goals: NutritionGoals): SaveProfileSettingsParams {
+            val profile = BiometricsUpdateDto.from(biometrics)
+            return SaveProfileSettingsParams(
+                sex = profile.sex,
+                birthDate = profile.birthDate,
+                heightCm = profile.heightCm,
+                activityLevel = profile.activityLevel,
+                strategy = GoalStrategyDto.entries.first { it.domain == goals.strategy },
+                calorieAdjustment = goals.calorieAdjustment,
+                targetKcal = goals.targetKcal,
+                proteinPct = goals.split.proteinPct,
+                carbsPct = goals.split.carbsPct,
+                fatPct = goals.split.fatPct,
+            )
+        }
     }
 }

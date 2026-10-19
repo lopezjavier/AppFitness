@@ -24,4 +24,7 @@ object Spacing {
 
     /** Card inner padding. */
     val cardPadding = lg
+
+    /** Minimum height of a tappable row (the 48 dp touch target). */
+    val minTouchTarget = 48.dp
 }

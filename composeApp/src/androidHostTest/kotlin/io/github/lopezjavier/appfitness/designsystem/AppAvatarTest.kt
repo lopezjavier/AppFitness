@@ -1,17 +1,18 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import android.graphics.Color
-import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertHeightIsEqualTo
-import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import coil3.ColorImage
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.test.FakeImageLoaderEngine
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -22,10 +23,10 @@ import org.robolectric.annotation.Config
 
 private const val PHOTO_URL = "https://img.example/ana.png"
 
-/** US-05: the Top App Bar avatar shows the Google photo, with the person icon as the fallback. */
+/** US-05 / ADR-26: the avatar shows the Google photo, with the person icon as the fallback; the ring is opt-in. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
-class AppTopBarAvatarTest {
+class AppAvatarTest {
     @get:Rule
     val rule = createComposeRule()
 
@@ -45,13 +46,14 @@ class AppTopBarAvatarTest {
         SingletonImageLoader.reset()
     }
 
-    private fun show(avatarImageUrl: String?) {
+    private fun show(imageUrl: String?, ring: Boolean = false) {
         rule.setContent {
             AppTheme {
-                AppTopBar(
-                    title = "Diario",
-                    avatarButton = AppTopBarButton("Abrir perfil") {},
-                    avatarImageUrl = avatarImageUrl,
+                AppAvatar(
+                    imageUrl = imageUrl,
+                    size = 40.dp,
+                    testTagPrefix = "av",
+                    ring = if (ring) AppTheme.colors.neonLime else null,
                 )
             }
         }
@@ -59,25 +61,32 @@ class AppTopBarAvatarTest {
     }
 
     @Test
-    fun withUrl_drawsTheImageInsideTheAvatar_andDropsThePlaceholder() {
+    fun withUrl_drawsTheImage_andDropsThePlaceholder() {
         show(PHOTO_URL)
-        rule.onNodeWithTag("topbar_avatar_image", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("topbar_avatar_placeholder", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("av_avatar_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("av_avatar_placeholder", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
     fun withoutUrl_showsThePlaceholder_andNoImage() {
         show(null)
-        rule.onNodeWithTag("topbar_avatar_placeholder", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("topbar_avatar_image", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("av_avatar_placeholder", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("av_avatar_image", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
-    fun avatarButton_keepsTargetAndLabel() {
-        show(PHOTO_URL)
-        rule.onNodeWithTag("topbar_avatar")
-            .assertContentDescriptionEquals("Abrir perfil")
-            .assertWidthIsEqualTo(48.dp)
-            .assertHeightIsEqualTo(48.dp)
+    fun ring_insetsTheContent_keepingTheOuterSize() {
+        rule.setContent {
+            AppTheme {
+                Column {
+                    AppAvatar(null, 40.dp, "plain")
+                    AppAvatar(null, 40.dp, "ring", ring = AppTheme.colors.neonLime)
+                }
+            }
+        }
+        rule.waitForIdle()
+        val plain = rule.onNodeWithTag("plain_avatar_placeholder", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val ringed = rule.onNodeWithTag("ring_avatar_placeholder", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("placeholder shrinks inside the ring", ringed.width < plain.width)
     }
 }

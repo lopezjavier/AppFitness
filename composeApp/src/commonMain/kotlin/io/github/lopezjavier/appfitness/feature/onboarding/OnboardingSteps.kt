@@ -18,60 +18,40 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.month_1
-import io.github.lopezjavier.appfitness.composeapp.resources.month_10
-import io.github.lopezjavier.appfitness.composeapp.resources.month_11
-import io.github.lopezjavier.appfitness.composeapp.resources.month_12
-import io.github.lopezjavier.appfitness.composeapp.resources.month_2
-import io.github.lopezjavier.appfitness.composeapp.resources.month_3
-import io.github.lopezjavier.appfitness.composeapp.resources.month_4
-import io.github.lopezjavier.appfitness.composeapp.resources.month_5
-import io.github.lopezjavier.appfitness.composeapp.resources.month_6
-import io.github.lopezjavier.appfitness.composeapp.resources.month_7
-import io.github.lopezjavier.appfitness.composeapp.resources.month_8
-import io.github.lopezjavier.appfitness.composeapp.resources.month_9
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_age
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_decimal_separator
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_sex_female
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_sex_male
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_birth_date
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_height
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_sex
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_birth_date
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_height
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_sex
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_cm
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_day_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_height_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_month_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_decimal_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_kg_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_year_cd
-import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WheelPicker
 import io.github.lopezjavier.appfitness.designsystem.WheelPickerDefaults
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.feature.biometrics.BirthDateWheels
+import io.github.lopezjavier.appfitness.feature.biometrics.HeightWheel
+import io.github.lopezjavier.appfitness.feature.biometrics.SexSelector
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.number
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-private const val MONTH_COUNT = 12
 private const val DECIMAL_MAX = 9
 private const val TENTHS_PER_KG = 10
-private const val DAY_WHEEL_WEIGHT = 1f
-private const val MONTH_WHEEL_WEIGHT = 2f
-private const val YEAR_WHEEL_WEIGHT = 1.4f
 
 /** Step 1: sex and birth date, each under its own label. */
 @Composable
 internal fun AboutYouStep(state: OnboardingUiState, onSelectSex: (Sex) -> Unit, onBirthDate: (LocalDate) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-        FieldGroup(Res.string.onboarding_step_sex, "onboarding_label_sex") { SexSelector(state.sex, onSelectSex) }
-        FieldGroup(Res.string.onboarding_step_birth_date, "onboarding_label_birth_date") {
+        FieldGroup(Res.string.onboarding_label_sex, "onboarding_label_sex") {
+            SexSelector(state.sex, onSelectSex, tagPrefix = "onboarding")
+        }
+        FieldGroup(Res.string.onboarding_label_birth_date, "onboarding_label_birth_date") {
             BirthDateStep(state, onBirthDate)
         }
     }
@@ -97,60 +77,10 @@ private fun FieldLabel(label: StringResource, tag: String, modifier: Modifier = 
 }
 
 @Composable
-private fun SexSelector(sex: Sex?, onSelect: (Sex) -> Unit) {
-    val options =
-        listOf(
-            AppOption(stringResource(Res.string.onboarding_sex_male), "onboarding_sex_male"),
-            AppOption(stringResource(Res.string.onboarding_sex_female), "onboarding_sex_female"),
-        )
-    SegmentedSelector(
-        options = options,
-        selectedIndex = sex?.ordinal,
-        onSelect = { onSelect(Sex.entries[it]) },
-    )
-}
-
-@Composable
 private fun BirthDateStep(state: OnboardingUiState, onChange: (LocalDate) -> Unit) {
-    val date = state.birthDate
-    val range = BiometricBounds.birthDateRange(state.today)
-    val monthNames = monthNames()
-    val age = BiometricBounds.ageOn(date, state.today)
-    fun compose(year: Int = date.year, month: Int = date.month.number, day: Int = date.day) =
-        onChange(BiometricBounds.composeBirthDate(year, month, day, state.today))
+    val age = BiometricBounds.ageOn(state.birthDate, state.today)
     Column {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            WheelPicker(
-                range = 1..BiometricBounds.daysIn(date.year, date.month.number),
-                value = date.day,
-                onValueChange = { compose(day = it) },
-                label = { it.toString() },
-                contentDescription = stringResource(Res.string.wheel_day_cd),
-                stateDescription = { it.toString() },
-                testTagPrefix = "onboarding_birth_day_picker",
-                modifier = Modifier.weight(DAY_WHEEL_WEIGHT),
-            )
-            WheelPicker(
-                range = 1..MONTH_COUNT,
-                value = date.month.number,
-                onValueChange = { compose(month = it) },
-                label = { monthNames[it - 1] },
-                contentDescription = stringResource(Res.string.wheel_month_cd),
-                stateDescription = { monthNames[it - 1] },
-                testTagPrefix = "onboarding_birth_month_picker",
-                modifier = Modifier.weight(MONTH_WHEEL_WEIGHT),
-            )
-            WheelPicker(
-                range = range.start.year..range.endInclusive.year,
-                value = date.year,
-                onValueChange = { compose(year = it) },
-                label = { it.toString() },
-                contentDescription = stringResource(Res.string.wheel_year_cd),
-                stateDescription = { it.toString() },
-                testTagPrefix = "onboarding_birth_year_picker",
-                modifier = Modifier.weight(YEAR_WHEEL_WEIGHT),
-            )
-        }
+        BirthDateWheels(state.birthDate, state.today, onChange, tagPrefix = "onboarding")
         Text(
             text = stringResource(Res.string.onboarding_age, age),
             style = AppTheme.typography.bodyMedium,
@@ -161,22 +91,6 @@ private fun BirthDateStep(state: OnboardingUiState, onChange: (LocalDate) -> Uni
     }
 }
 
-@Composable
-private fun monthNames(): List<String> = listOf(
-    stringResource(Res.string.month_1),
-    stringResource(Res.string.month_2),
-    stringResource(Res.string.month_3),
-    stringResource(Res.string.month_4),
-    stringResource(Res.string.month_5),
-    stringResource(Res.string.month_6),
-    stringResource(Res.string.month_7),
-    stringResource(Res.string.month_8),
-    stringResource(Res.string.month_9),
-    stringResource(Res.string.month_10),
-    stringResource(Res.string.month_11),
-    stringResource(Res.string.month_12),
-)
-
 /**
  * Step 2: height and current weight side by side, each with its label, wheel(s) and the unit centred under the
  * wheel. When the width cannot hold two columns the two fields stack.
@@ -186,16 +100,16 @@ internal fun MeasuresStep(heightCm: Int, weightTenths: Int, onHeight: (Int) -> U
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val height = @Composable { modifier: Modifier ->
             MeasureField(
-                label = Res.string.onboarding_step_height,
+                label = Res.string.onboarding_label_height,
                 labelTag = "onboarding_label_height",
                 unit = stringResource(Res.string.unit_cm),
                 unitTag = "onboarding_height_unit",
                 modifier = modifier,
-            ) { HeightWheel(heightCm, onHeight) }
+            ) { HeightWheel(heightCm, onHeight, tagPrefix = "onboarding") }
         }
         val weight = @Composable { modifier: Modifier ->
             MeasureField(
-                label = Res.string.onboarding_step_weight,
+                label = Res.string.onboarding_label_weight,
                 labelTag = "onboarding_label_weight",
                 unit = stringResource(Res.string.unit_kg),
                 unitTag = "onboarding_weight_unit",
@@ -237,20 +151,6 @@ private fun MeasureField(
             modifier = Modifier.padding(top = Spacing.xs).testTag(unitTag),
         )
     }
-}
-
-@Composable
-private fun HeightWheel(heightCm: Int, onChange: (Int) -> Unit) {
-    val cm = stringResource(Res.string.unit_cm)
-    WheelPicker(
-        range = BiometricBounds.HEIGHT_CM,
-        value = heightCm,
-        onValueChange = onChange,
-        label = { it.toString() },
-        contentDescription = stringResource(Res.string.wheel_height_cd),
-        stateDescription = { "$it $cm" },
-        testTagPrefix = "onboarding_height_picker",
-    )
 }
 
 @Composable

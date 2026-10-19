@@ -54,8 +54,7 @@ class SaveProfileSettingsTest {
         split = split,
     )
 
-    private fun tdee(sex: Sex, height: Int) =
-        CalculateTdee(sex, birthDate, height, 80.0, ActivityLevel.Moderate, today)
+    private fun tdee(sex: Sex, height: Int) = CalculateTdee(sex, birthDate, height, 80.0, ActivityLevel.Moderate, today)
 
     @Test
     fun storesTargetAsTdeePlusAdjustment() = runTest {

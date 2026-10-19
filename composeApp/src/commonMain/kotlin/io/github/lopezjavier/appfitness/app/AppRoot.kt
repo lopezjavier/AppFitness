@@ -4,17 +4,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.lopezjavier.appfitness.feature.profile.ProfileEvent
-import io.github.lopezjavier.appfitness.feature.profile.ProfileViewModel
+import io.github.lopezjavier.appfitness.feature.profile.ProfileRoute
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Stateful entry point: connects [AppViewModel] and [ProfileViewModel] to the stateless [App]. */
+/** Stateful entry point: connects [AppViewModel] and the Profile tab to the stateless [App]. */
 @Composable
 fun AppRoot(
     modifier: Modifier = Modifier,
     features: AppFeatures = AppFeatures(),
     viewModel: AppViewModel = koinViewModel(),
-    profileViewModel: ProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     App(
@@ -24,7 +22,7 @@ fun AppRoot(
         rootRoute = state.rootRoute,
         avatarUrl = state.avatarUrl,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
-        onSignOut = { profileViewModel.onEvent(ProfileEvent.SignOutConfirmed) },
+        profile = { profileModifier, onOpenCatalog -> ProfileRoute(profileModifier, onOpenCatalog) },
         onOnboardingComplete = { viewModel.onEvent(AppEvent.OnboardingCompleted) },
     )
 }

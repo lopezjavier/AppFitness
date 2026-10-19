@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementReposit
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.SaveProfileSettings
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.dsl.module
 
@@ -64,4 +65,5 @@ val sharedModule =
         single<Clock> { SystemClock() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }
+        factory { SaveProfileSettings(get()) }
     }

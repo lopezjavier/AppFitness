@@ -37,7 +37,16 @@ internal fun AppNavigationItem.itemModifier(): Modifier {
 }
 
 @Composable
-internal fun NavIcon(item: AppNavigationItem, selected: Boolean) {
+internal fun NavIcon(item: AppNavigationItem, selected: Boolean, avatarUrl: String?) {
+    if (item.showsAvatar) {
+        AppAvatar(
+            imageUrl = avatarUrl,
+            size = AppNavigationDefaults.IconSize,
+            testTagPrefix = item.testTag,
+            ring = if (selected) AppTheme.colors.neonLime else null,
+        )
+        return
+    }
     Icon(
         painterResource(item.iconFor(selected)),
         contentDescription = null,

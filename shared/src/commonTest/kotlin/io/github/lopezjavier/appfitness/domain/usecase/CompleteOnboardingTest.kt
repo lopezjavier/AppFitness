@@ -40,6 +40,8 @@ class CompleteOnboardingTest {
             calls += "flag"
             return flagResult
         }
+
+        override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> = error("unused")
     }
     private val completeOnboarding = CompleteOnboarding(goalsRepository, profileRepository)
 

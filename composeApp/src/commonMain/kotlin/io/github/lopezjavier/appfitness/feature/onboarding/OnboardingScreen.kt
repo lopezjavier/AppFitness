@@ -63,6 +63,7 @@ import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
+import io.github.lopezjavier.appfitness.feature.biometrics.ActivityCards
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategySection
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
@@ -196,7 +197,11 @@ private fun ColumnScope.StepForm(
                 onWeight = { onEvent(OnboardingEvent.SetWeight(it)) },
             )
 
-            OnboardingStep.Activity -> ActivityStep(state.activity) { onEvent(OnboardingEvent.SelectActivity(it)) }
+            OnboardingStep.Activity -> ActivityCards(
+                state.activity,
+                onSelect = { onEvent(OnboardingEvent.SelectActivity(it)) },
+                tagPrefix = "onboarding",
+            )
 
             OnboardingStep.Goals -> state.energy?.let { energy ->
                 EnergyStrategySection(

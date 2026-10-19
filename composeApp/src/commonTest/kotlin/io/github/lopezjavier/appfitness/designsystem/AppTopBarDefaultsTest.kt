@@ -7,25 +7,8 @@ import kotlin.test.assertTrue
 
 class AppTopBarDefaultsTest {
     @Test
-    fun avatarTouchTarget_meetsMinimum() {
-        assertTrue(AppTopBarDefaults.AvatarTouchTarget >= 48.dp)
-    }
-
-    @Test
-    fun avatarSizes_nestInsideTheTouchTarget() {
-        assertTrue(AppTopBarDefaults.AvatarSize <= AppTopBarDefaults.AvatarTouchTarget)
-        assertTrue(AppTopBarDefaults.AvatarIconSize < AppTopBarDefaults.AvatarSize)
-    }
-
-    @Test
     fun height_isTheMinimumBarHeight() {
         assertEquals(56.dp, AppTopBarDefaults.Height)
-    }
-
-    @Test
-    fun endPadding_alignsTheVisualCircleWithTheScreenMargin() {
-        val slack = (AppTopBarDefaults.AvatarTouchTarget - AppTopBarDefaults.AvatarSize) / 2
-        assertEquals(Spacing.screenMargin, AppTopBarDefaults.EndPadding + slack)
     }
 
     @Test
@@ -50,10 +33,9 @@ class AppTopBarDefaultsTest {
             listOf(
                 AppTopBarDefaults.TestTag,
                 AppTopBarDefaults.TitleTestTag,
-                AppTopBarDefaults.AvatarTestTag,
                 AppTopBarDefaults.BackTestTag,
             )
-        assertEquals(listOf("topbar", "topbar_title", "topbar_avatar", "topbar_back"), tags)
+        assertEquals(listOf("topbar", "topbar_title", "topbar_back"), tags)
         val pattern = Regex("^[a-z]+(_[a-z0-9]+)*$")
         tags.forEach { assertTrue(pattern.matches(it), it) }
     }
@@ -61,8 +43,7 @@ class AppTopBarDefaultsTest {
     @Test
     fun defaultPrefix_keepsLegacyTags() {
         assertEquals("topbar_title", AppTopBarDefaults.titleTag(AppTopBarDefaults.TestTag))
-        assertEquals("topbar_avatar", AppTopBarDefaults.avatarTag(AppTopBarDefaults.TestTag))
         assertEquals("topbar_back", AppTopBarDefaults.backTag(AppTopBarDefaults.TestTag))
-        assertEquals("catalog_topbar_tabs_avatar", AppTopBarDefaults.avatarTag("catalog_topbar_tabs"))
+        assertEquals("catalog_topbar_full_back", AppTopBarDefaults.backTag("catalog_topbar_full"))
     }
 }

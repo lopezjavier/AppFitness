@@ -5,7 +5,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import kotlinx.serialization.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -19,7 +18,10 @@ class TopLevelTabTest {
 
     @Test
     fun entries_followTheBarOrder() {
-        assertEquals(listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Progress), TopLevelTab.entries)
+        assertEquals(
+            listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Progress, TopLevelTab.Profile),
+            TopLevelTab.entries,
+        )
     }
 
     @Test
@@ -41,8 +43,7 @@ class TopLevelTabTest {
     @Test
     fun testTags_matchTheContract() {
         val actual = TopLevelTab.entries.map { it.testTag }
-        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress"), actual)
-        assertFalse("nav_tab_profile" in actual)
+        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile"), actual)
         actual.forEach { assertTrue(tags.matches(it), it) }
     }
 
@@ -51,6 +52,11 @@ class TopLevelTabTest {
         val tabs = TopLevelTab.entries
         assertEquals(tabs.size, tabs.map { it.label }.toSet().size)
         assertEquals(tabs.size, tabs.map { it.icon }.toSet().size)
+    }
+
+    @Test
+    fun onlyProfile_showsTheAvatar() {
+        assertEquals(listOf(TopLevelTab.Profile), TopLevelTab.entries.filter { it.showsAvatar })
     }
 
     @Test
@@ -71,8 +77,9 @@ class TopLevelTabTest {
                 serializer<DiaryHome>(),
                 serializer<WorkoutHome>(),
                 serializer<ProgressHome>(),
-                serializer<ProfileRoute>(),
+                serializer<ProfileGraph>(),
+                serializer<ProfileHome>(),
             ).map { it.descriptor.serialName }
-        assertEquals(7, names.toSet().size)
+        assertEquals(8, names.toSet().size)
     }
 }
