@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -76,11 +80,25 @@ internal fun SexSelector(sex: Sex?, onSelect: (Sex) -> Unit, tagPrefix: String, 
     )
 }
 
-/** Day, month and year wheels; the composed date is always inside the allowed range. */
+/**
+ * Day, month and year wheels; the composed date is always inside the allowed range. [onCentredChange] reports the
+ * date composed from the items currently centred, even mid-scroll; it never feeds the wheels.
+ */
 @Composable
-internal fun BirthDateWheels(date: LocalDate, today: LocalDate, onChange: (LocalDate) -> Unit, tagPrefix: String) {
+internal fun BirthDateWheels(
+    date: LocalDate,
+    today: LocalDate,
+    onChange: (LocalDate) -> Unit,
+    tagPrefix: String,
+    onCentredChange: (LocalDate) -> Unit = {},
+) {
     val range = BiometricBounds.birthDateRange(today)
     val monthNames = monthNames()
+    var centred by remember(date) { mutableStateOf(Triple(date.year, date.month.number, date.day)) }
+    fun centre(next: Triple<Int, Int, Int>) {
+        centred = next
+        onCentredChange(BiometricBounds.composeBirthDate(next.first, next.second, next.third, today))
+    }
     fun compose(year: Int = date.year, month: Int = date.month.number, day: Int = date.day) =
         onChange(BiometricBounds.composeBirthDate(year, month, day, today))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -88,6 +106,7 @@ internal fun BirthDateWheels(date: LocalDate, today: LocalDate, onChange: (Local
             range = 1..BiometricBounds.daysIn(date.year, date.month.number),
             value = date.day,
             onValueChange = { compose(day = it) },
+            onCentredChange = { centre(centred.copy(third = it)) },
             label = { it.toString() },
             contentDescription = stringResource(Res.string.wheel_day_cd),
             stateDescription = { it.toString() },
@@ -98,6 +117,7 @@ internal fun BirthDateWheels(date: LocalDate, today: LocalDate, onChange: (Local
             range = 1..MONTH_COUNT,
             value = date.month.number,
             onValueChange = { compose(month = it) },
+            onCentredChange = { centre(centred.copy(second = it)) },
             label = { monthNames[it - 1] },
             contentDescription = stringResource(Res.string.wheel_month_cd),
             stateDescription = { monthNames[it - 1] },
@@ -108,6 +128,7 @@ internal fun BirthDateWheels(date: LocalDate, today: LocalDate, onChange: (Local
             range = range.start.year..range.endInclusive.year,
             value = date.year,
             onValueChange = { compose(year = it) },
+            onCentredChange = { centre(centred.copy(first = it)) },
             label = { it.toString() },
             contentDescription = stringResource(Res.string.wheel_year_cd),
             stateDescription = { it.toString() },
@@ -134,7 +155,13 @@ private fun monthNames(): List<String> = listOf(
 )
 
 @Composable
-internal fun HeightWheel(heightCm: Int, onChange: (Int) -> Unit, tagPrefix: String, modifier: Modifier = Modifier) {
+internal fun HeightWheel(
+    heightCm: Int,
+    onChange: (Int) -> Unit,
+    tagPrefix: String,
+    modifier: Modifier = Modifier,
+    onCentredChange: (Int) -> Unit = {},
+) {
     val cm = stringResource(Res.string.unit_cm)
     WheelPicker(
         range = BiometricBounds.HEIGHT_CM,
@@ -145,6 +172,7 @@ internal fun HeightWheel(heightCm: Int, onChange: (Int) -> Unit, tagPrefix: Stri
         stateDescription = { "$it $cm" },
         testTagPrefix = "${tagPrefix}_height_picker",
         modifier = modifier,
+        onCentredChange = onCentredChange,
     )
 }
 

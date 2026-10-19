@@ -215,7 +215,9 @@ private fun PersonalSheets(
             initial = form.birthDate,
             onApply = { onEvent(ProfileEvent.SetBirthDate(it)) },
             onClose = onClose,
-        ) { draft, onDraft -> BirthDateWheels(draft, state.today, onDraft, tagPrefix = TAG_PREFIX) }
+        ) { draft, onDraft, onCentred ->
+            BirthDateWheels(draft, state.today, onDraft, tagPrefix = TAG_PREFIX, onCentredChange = onCentred)
+        }
 
         PersonalSheet.Height -> PickerSheet(
             title = Res.string.onboarding_label_height,
@@ -223,7 +225,9 @@ private fun PersonalSheets(
             initial = form.heightCm,
             onApply = { onEvent(ProfileEvent.SetHeight(it)) },
             onClose = onClose,
-        ) { draft, onDraft -> HeightWheel(draft, onDraft, tagPrefix = TAG_PREFIX) }
+        ) { draft, onDraft, onCentred ->
+            HeightWheel(draft, onDraft, tagPrefix = TAG_PREFIX, onCentredChange = onCentred)
+        }
 
         PersonalSheet.Activity -> PickerSheet<ActivityLevel>(
             title = Res.string.profile_activity_label,
@@ -231,7 +235,7 @@ private fun PersonalSheets(
             initial = form.activity,
             onApply = { onEvent(ProfileEvent.SelectActivity(it)) },
             onClose = onClose,
-        ) { draft, onDraft -> ActivityCards(draft, onDraft, tagPrefix = TAG_PREFIX) }
+        ) { draft, onDraft, _ -> ActivityCards(draft, onDraft, tagPrefix = TAG_PREFIX) }
 
         null -> Unit
     }
@@ -239,7 +243,7 @@ private fun PersonalSheets(
 
 /**
  * Bottom sheet with a title, the picker bound to a local draft and a full-width "Listo". Only "Listo" applies the
- * draft; the scrim, back and a drag discard it.
+ * centred value (what the wheels show, even mid-snap); the scrim, back and a drag discard it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongParameterList")
@@ -250,9 +254,13 @@ private fun <T> PickerSheet(
     initial: T,
     onApply: (T) -> Unit,
     onClose: () -> Unit,
-    picker: @Composable (draft: T, onDraft: (T) -> Unit) -> Unit,
+    picker: @Composable (draft: T, onDraft: (T) -> Unit, onCentred: (T) -> Unit) -> Unit,
 ) {
     var draft by remember { mutableStateOf(initial) }
+
+    // What the wheels show right now. It runs ahead of [draft] while a snap animation is still settling, so "Listo"
+    // applies the centred item and not the value from before the swipe.
+    var centred by remember { mutableStateOf(initial) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     AppBottomSheet(onDismissRequest = onClose, sheetState = sheetState, testTagPrefix = "profile_sheet") {
@@ -269,12 +277,15 @@ private fun <T> PickerSheet(
             Column(
                 Modifier.weight(1f, fill = false).testTag(contentTag).verticalScroll(rememberScrollState()),
             ) {
-                picker(draft) { draft = it }
+                picker(draft, {
+                    draft = it
+                    centred = it
+                }) { centred = it }
             }
             PrimaryButton(
                 text = stringResource(Res.string.profile_sheet_done),
                 onClick = {
-                    onApply(draft)
+                    onApply(centred)
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onClose() }
                 },
                 modifier = Modifier.fillMaxWidth().testTag("profile_sheet_done"),

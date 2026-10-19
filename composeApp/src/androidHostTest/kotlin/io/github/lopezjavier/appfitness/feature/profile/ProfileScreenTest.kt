@@ -47,6 +47,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private const val FRAMES_INTO_THE_SNAP = 4
+
 /** US-05 sign out, US-06 editing data, US-07 saving the goals and US-08 macro split on the Profile tab. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
@@ -304,6 +306,38 @@ class ProfileScreenTest {
         assertTrue("the swiped value ($applied) must differ from the old 180", applied > 180)
         rule.onNodeWithTag("profile_height_row")
             .assertContentDescriptionEquals("Altura, $applied centímetros, editar")
+    }
+
+    @Test
+    fun listoDuringAnInProgressSwipe_appliesTheCentredHeight() {
+        showStateful()
+        openSheet("profile_height_row")
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag("profile_height_picker").performTouchInput { swipeUp() }
+        repeat(FRAMES_INTO_THE_SNAP) { rule.mainClock.advanceTimeByFrame() }
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+
+        val applied = events.filterIsInstance<ProfileEvent.SetHeight>().single().heightCm
+        assertTrue("the centred value ($applied) must differ from the old 180", applied > 180)
+        rule.onNodeWithTag("profile_height_row")
+            .assertContentDescriptionEquals("Altura, $applied centímetros, editar")
+    }
+
+    @Test
+    fun listoDuringAnInProgressBirthYearSwipe_appliesTheCentredYear() {
+        showStateful()
+        openSheet("profile_birth_date_row")
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag("profile_birth_year_picker").performTouchInput { swipeUp() }
+        repeat(FRAMES_INTO_THE_SNAP) { rule.mainClock.advanceTimeByFrame() }
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+
+        val applied = events.filterIsInstance<ProfileEvent.SetBirthDate>().single().date
+        assertTrue("the centred year (${applied.year}) must differ from the old 2000", applied.year > 2000)
     }
 
     @Test

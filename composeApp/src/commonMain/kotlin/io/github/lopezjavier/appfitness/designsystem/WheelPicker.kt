@@ -47,6 +47,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -102,8 +103,10 @@ object WheelPickerDefaults {
  * wheel settles on another item, when an item is tapped and when assistive technology sets a progress.
  * An external [value] change scrolls the wheel. [label] renders an item; [contentDescription] names the field
  * and [stateDescription] speaks the selected value with its unit. Items are hidden from accessibility: only the
- * wheel node is exposed, with a range and a clamping set-progress action. Test tags: [testTagPrefix] on the
- * wheel and `<prefix>_item_<value>` on each item.
+ * wheel node is exposed, with a range and a clamping set-progress action. [onCentredChange] is a read-only live
+ * feed of the item currently centred, including while the wheel still scrolls; it never replaces [onValueChange]
+ * (a consumer that derives other state from it would see every item the wheel passes). Test tags:
+ * [testTagPrefix] on the wheel and `<prefix>_item_<value>` on each item.
  */
 @Suppress("LongParameterList")
 @Composable
@@ -116,6 +119,7 @@ fun WheelPicker(
     stateDescription: (Int) -> String,
     testTagPrefix: String,
     modifier: Modifier = Modifier,
+    onCentredChange: (Int) -> Unit = {},
 ) {
     val count = range.last - range.first + 1
     val selected = value.coerceIn(range)
@@ -136,7 +140,8 @@ fun WheelPicker(
     val stateText = stateDescription(selected)
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val scope = rememberCoroutineScope()
-    WheelSync(listState, range, selected, { centredIndex }) { currentOnValueChange(it) }
+    val currentOnCentredChange by rememberUpdatedState(onCentredChange)
+    WheelSync(listState, range, selected, { centredIndex }, { currentOnValueChange(it) }) { currentOnCentredChange(it) }
 
     Box(
         modifier = modifier
@@ -171,9 +176,11 @@ fun WheelPicker(
 }
 
 /**
- * Keeps the list and the value in step: reports the item the wheel is centred on, and scrolls the wheel when the
- * value (or the range) changes from outside, as with a prefill, a clamp or an accessibility action.
+ * Keeps the list and the value in step: reports the item the wheel settled on (and, separately, the centred one
+ * live), and scrolls the wheel when the value (or the range) changes from outside, as with a prefill, a clamp or
+ * an accessibility action.
  */
+@Suppress("LongParameterList")
 @Composable
 private fun WheelSync(
     listState: LazyListState,
@@ -181,17 +188,24 @@ private fun WheelSync(
     selected: Int,
     centredIndex: () -> Int,
     onSettle: (Int) -> Unit,
+    onCentre: (Int) -> Unit,
 ) {
     val currentSelected by rememberUpdatedState(selected)
     val currentOnSettle by rememberUpdatedState(onSettle)
+    val currentOnCentred by rememberUpdatedState(onCentre)
     val currentCentredIndex by rememberUpdatedState(centredIndex)
     LaunchedEffect(listState, range) {
-        // Reported live, not only once idle: "Listo" tapped while the snap animation still runs must apply the item
-        // the wheel is showing, not the stale value from before the swipe.
+        snapshotFlow { if (listState.isScrollInProgress) null else currentCentredIndex() }
+            .filter { it != null }
+            .map { range.first + it!! }
+            .distinctUntilChanged()
+            .collect { settled -> if (settled != currentSelected) currentOnSettle(settled) }
+    }
+    LaunchedEffect(listState, range) {
         snapshotFlow { currentCentredIndex() }
             .map { range.first + it }
             .distinctUntilChanged()
-            .collect { settled -> if (settled != currentSelected) currentOnSettle(settled) }
+            .collect { currentOnCentred(it) }
     }
     LaunchedEffect(selected, range) {
         val index = selected - range.first
