@@ -48,7 +48,7 @@ select set_config('request.jwt.claims',
 
 -- Upsert creates A's goals row (none yet) and updates the profile.
 select lives_ok(
-  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35, 42, 23)$$,
+  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35::smallint, 42::smallint, 23::smallint)$$,
   'A saves settings');
 select results_eq(
   $$select sex::text, birth_date, height_cm, activity_level::text from public.profiles
@@ -63,7 +63,7 @@ select results_eq(
 
 -- Second save updates the existing row (on conflict) instead of failing.
 select lives_ok(
-  $$select public.save_profile_settings('male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30, 45, 25)$$,
+  $$select public.save_profile_settings('male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint)$$,
   'A saves again');
 select results_eq(
   $$select strategy::text, target_kcal from public.nutrition_goals
@@ -73,14 +73,14 @@ select results_eq(
 
 -- Invalid input: nothing changes (profile written first, then goals fail -> both roll back).
 select throws_ok(
-  $$select public.save_profile_settings('female', '1985-01-01', 170, 'light', 'deficit', -200, 2000, 30, 30, 30)$$,
+  $$select public.save_profile_settings('female', '1985-01-01', 170, 'light', 'deficit', -200, 2000, 30::smallint, 30::smallint, 30::smallint)$$,
   '23514', null, 'a split that does not add up to 100 is rejected');
 select results_eq(
   $$select sex::text, height_cm from public.profiles where id = '11111111-1111-4111-8111-111111111111'$$,
   $$values ('male', 181.0::numeric)$$,
   'rejected goals leave the profile unchanged (atomic)');
 select throws_ok(
-  $$select public.save_profile_settings('female', '1985-01-01', 260, 'light', 'deficit', -200, 2000, 30, 45, 25)$$,
+  $$select public.save_profile_settings('female', '1985-01-01', 260, 'light', 'deficit', -200, 2000, 30::smallint, 45::smallint, 25::smallint)$$,
   '23514', null, 'height 260 is rejected');
 select results_eq(
   $$select strategy::text, target_kcal from public.nutrition_goals
@@ -94,12 +94,12 @@ select results_eq(
 select set_config('request.jwt.claims',
   '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}', true);
 select throws_ok(
-  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35, 42, 23)$$,
+  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35::smallint, 42::smallint, 23::smallint)$$,
   'P0002', null, 'a caller without a profile row gets no_data_found');
 
 select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
 select throws_ok(
-  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35, 42, 23)$$,
+  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35::smallint, 42::smallint, 23::smallint)$$,
   'P0002', null, 'no auth.uid() updates nothing and raises');
 
 -- ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ select ok(
 
 set local role anon;
 select throws_ok(
-  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35, 42, 23)$$,
+  $$select public.save_profile_settings('male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292, 35::smallint, 42::smallint, 23::smallint)$$,
   '42501', null, 'anon cannot call save_profile_settings');
 reset role;
 
