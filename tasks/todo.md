@@ -1305,11 +1305,11 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Story:** E3 Definition of Done · **Flow:** PM
 
 **Acceptance criteria:**
-- [ ] T-042…T-048b merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
-- [ ] Host tests green for every E3 UI scenario, including the full-session test (T-046).
-- [ ] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
+- [x] T-042…T-048b merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
+- [x] Host tests green for every E3 UI scenario, including the full-session test (T-046).
+- [x] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
 - [ ] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
-- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
+- [x] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
 
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
