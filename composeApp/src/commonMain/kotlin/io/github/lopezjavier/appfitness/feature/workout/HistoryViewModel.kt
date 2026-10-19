@@ -71,7 +71,15 @@ class HistoryViewModel(private val repository: WorkoutSessionRepository, private
                         HistoryUiState.Content(page.map { it.toRow() }, endReached = page.size < PAGE_SIZE)
                     }
                 },
-                onFailure = { if (showLoading) _uiState.value = HistoryUiState.Error },
+                onFailure = {
+                    val current = _uiState.value
+                    if (showLoading) {
+                        _uiState.value = HistoryUiState.Error
+                    } else if (current is HistoryUiState.Content && current.loadingMore) {
+                        // The refresh cancelled an in-flight page load: keep the rows, allow loading more again.
+                        _uiState.value = current.copy(loadingMore = false)
+                    }
+                },
             )
         }
     }

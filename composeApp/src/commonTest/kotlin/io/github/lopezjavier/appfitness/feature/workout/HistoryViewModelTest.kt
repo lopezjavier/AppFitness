@@ -269,6 +269,27 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun aFailedRefreshThatCancelledLoadMoreLeavesLoadMoreWorkingAgain() = runTest(dispatcher) {
+        seed(25)
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(HistoryEvent.LoadMore)
+        assertTrue(model.content().loadingMore)
+
+        repository.listFailure = AppError.Network
+        model.onEvent(HistoryEvent.Refresh)
+        advanceUntilIdle()
+        assertEquals(false, model.content().loadingMore)
+        assertEquals(20, model.content().rows.size)
+
+        repository.listFailure = null
+        model.onEvent(HistoryEvent.LoadMore)
+        advanceUntilIdle()
+
+        assertEquals(25, model.content().rows.size)
+    }
+
+    @Test
     fun openingASessionEmitsTheOpenDetailEffect() = runTest(dispatcher) {
         seed(1)
         val model = viewModel()

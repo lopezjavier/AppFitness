@@ -77,7 +77,13 @@ class SessionDetailViewModel(
 
             is SessionDetailEvent.RepsChanged -> changeEdit { it.copy(reps = event.text, invalid = false) }
 
-            SessionDetailEvent.SaveSet -> if (online && !busy) saveSet()
+            SessionDetailEvent.SaveSet -> if (!busy) {
+                if (online) {
+                    saveSet()
+                } else if (edit != null) {
+                    effectChannel.trySend(SessionDetailEffect.ActionFailed)
+                }
+            }
 
             SessionDetailEvent.DismissEdit -> if (!busy) {
                 edit = null
@@ -89,7 +95,9 @@ class SessionDetailViewModel(
                 publish()
             }
 
-            SessionDetailEvent.ConfirmDelete -> if (online && !busy && deleteConfirm) delete()
+            SessionDetailEvent.ConfirmDelete -> if (!busy && deleteConfirm) {
+                if (online) delete() else effectChannel.trySend(SessionDetailEffect.ActionFailed)
+            }
 
             SessionDetailEvent.DismissDelete -> if (!busy) {
                 deleteConfirm = false

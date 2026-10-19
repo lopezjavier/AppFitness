@@ -279,6 +279,34 @@ class SessionDetailViewModelTest {
     }
 
     @Test
+    fun savingOrConfirmingDeletionWhenOfflineEmitsActionFailed() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.EditSet(0, 2))
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(SessionDetailEvent.SaveSet)
+            assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
+        }
+        assertTrue(repository.upserts.isEmpty())
+
+        connectivity.state.value = true
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.DismissEdit)
+        model.onEvent(SessionDetailEvent.RequestDelete)
+        connectivity.state.value = false
+        advanceUntilIdle()
+        model.effects.test {
+            model.onEvent(SessionDetailEvent.ConfirmDelete)
+            assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
+        }
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
     fun offlineDeletionCannotBeRequested() = runTest(dispatcher) {
         seed()
         connectivity.state.value = false
