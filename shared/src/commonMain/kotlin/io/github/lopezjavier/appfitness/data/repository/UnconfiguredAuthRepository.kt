@@ -11,6 +11,8 @@ import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.Routine
+import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
@@ -21,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementReposit
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlin.time.Instant
@@ -93,4 +96,17 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
 
     override suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise> =
         Result.failure(AppException(AppError.Unknown))
+}
+
+/** Routine counterpart of [UnconfiguredAuthRepository]: there is no server to read or write. */
+class UnconfiguredRoutineRepository : RoutineRepository {
+    override suspend fun listActive(): Result<List<RoutineSummary>> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun get(id: String): Result<Routine> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun save(routine: Routine): Result<String> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun duplicate(id: String): Result<String> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun archive(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }

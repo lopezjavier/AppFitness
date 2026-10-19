@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,50 +61,57 @@ internal fun AppScaffold(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
+    routines: RoutinesSlot = DefaultRoutinesSlot,
+    routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
     val chrome = entry.chrome()
-    val backButton = rememberBackButton(navController, entry)
+    val backInterceptor = remember { BackInterceptor() }
+    val backButton = rememberBackButton(navController, entry, backInterceptor)
     val isBar = navigationType == AppNavigationType.Bar
     val onTabSelect: (Int) -> Unit = { navController.navigateToTab(TopLevelTab.entries[it]) }
-    Scaffold(
-        modifier = modifier,
-        containerColor = AppTheme.colors.surfaceBase,
-        topBar = { ShellTopBar(chrome, backButton) },
-        bottomBar = {
-            if (isBar && chrome is ShellChrome.Tabs) {
-                AppNavigation(
-                    modifier = Modifier.testTag("nav_bar"),
-                    items = items,
-                    selectedIndex = chrome.tab.ordinal,
-                    onItemSelect = onTabSelect,
+    CompositionLocalProvider(LocalBackInterceptor provides backInterceptor) {
+        Scaffold(
+            modifier = modifier,
+            containerColor = AppTheme.colors.surfaceBase,
+            topBar = { ShellTopBar(chrome, backButton) },
+            bottomBar = {
+                if (isBar && chrome is ShellChrome.Tabs) {
+                    AppNavigation(
+                        modifier = Modifier.testTag("nav_bar"),
+                        items = items,
+                        selectedIndex = chrome.tab.ordinal,
+                        onItemSelect = onTabSelect,
+                    )
+                }
+            },
+        ) { innerPadding ->
+            BelowTopBar(isOffline, innerPadding) { contentPadding, contentModifier ->
+                ShellContent(
+                    navController = navController,
+                    features = features,
+                    navigationType = navigationType,
+                    innerPadding = contentPadding,
+                    rail = {
+                        if (chrome is ShellChrome.Tabs) {
+                            ShellRail(
+                                items = items,
+                                selectedIndex = chrome.tab.ordinal,
+                                onTabSelect = onTabSelect,
+                                modifier = it,
+                            )
+                        }
+                    },
+                    profile = profile,
+                    preferences = preferences,
+                    exercisePicker = exercisePicker,
+                    exerciseDetail = exerciseDetail,
+                    routines = routines,
+                    routineBuilder = routineBuilder,
+                    modifier = contentModifier,
                 )
             }
-        },
-    ) { innerPadding ->
-        BelowTopBar(isOffline, innerPadding) { contentPadding, contentModifier ->
-            ShellContent(
-                navController = navController,
-                features = features,
-                navigationType = navigationType,
-                innerPadding = contentPadding,
-                rail = {
-                    if (chrome is ShellChrome.Tabs) {
-                        ShellRail(
-                            items = items,
-                            selectedIndex = chrome.tab.ordinal,
-                            onTabSelect = onTabSelect,
-                            modifier = it,
-                        )
-                    }
-                },
-                profile = profile,
-                preferences = preferences,
-                exercisePicker = exercisePicker,
-                exerciseDetail = exerciseDetail,
-                modifier = contentModifier,
-            )
         }
     }
 }
@@ -138,9 +146,17 @@ private fun rememberNavigationItems(): List<AppNavigationItem> = remember {
 }
 
 @Composable
-private fun rememberBackButton(navController: NavHostController, entry: NavBackStackEntry?): AppTopBarButton {
+private fun rememberBackButton(
+    navController: NavHostController,
+    entry: NavBackStackEntry?,
+    interceptor: BackInterceptor,
+): AppTopBarButton {
     // Pops only the full-screen entry the top bar was drawn for: a stale tap cannot pop the tab underneath.
-    val goBack = remember(navController, entry) { { navController.popFullScreen(entry) } }
+    // A destination can take the press over first (for example to confirm discarding edits).
+    val goBack =
+        remember(navController, entry, interceptor) {
+            { if (!interceptor.intercept()) navController.popFullScreen(entry) }
+        }
     val backDescription = stringResource(Res.string.topbar_back_cd)
     return remember(backDescription, goBack) { AppTopBarButton(backDescription, goBack) }
 }
@@ -180,6 +196,8 @@ private fun ShellContent(
     preferences: PreferencesSlot,
     exercisePicker: ExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot,
+    routines: RoutinesSlot,
+    routineBuilder: RoutineBuilderSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -210,6 +228,8 @@ private fun ShellContent(
             preferences = preferences,
             exercisePicker = exercisePicker,
             exerciseDetail = exerciseDetail,
+            routines = routines,
+            routineBuilder = routineBuilder,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(

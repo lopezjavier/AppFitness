@@ -42,6 +42,8 @@ fun App(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
+    routines: RoutinesSlot = DefaultRoutinesSlot,
+    routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
     onboarding: @Composable () -> Unit = { OnboardingRoute(onComplete = onOnboardingComplete) },
 ) {
@@ -62,6 +64,8 @@ fun App(
                         preferences = preferences,
                         exercisePicker = exercisePicker,
                         exerciseDetail = exerciseDetail,
+                        routines = routines,
+                        routineBuilder = routineBuilder,
                     )
 
                 else ->

@@ -33,7 +33,13 @@ class ShellChromeTest {
     @Test
     fun fullScreenRoutes_containsTheFullScreenDestinations_andNoTabRoute() {
         assertEquals(
-            listOf(CatalogRoute, PreferencesRoute, ExercisePickerRoute::class, ExerciseDetailRoute::class),
+            listOf(
+                CatalogRoute,
+                PreferencesRoute,
+                ExercisePickerRoute::class,
+                ExerciseDetailRoute::class,
+                RoutineBuilderRoute::class,
+            ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute
