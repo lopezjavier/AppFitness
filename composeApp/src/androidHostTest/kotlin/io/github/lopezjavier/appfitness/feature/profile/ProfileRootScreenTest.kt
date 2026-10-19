@@ -40,6 +40,7 @@ class ProfileRootScreenTest {
     private val events = mutableListOf<ProfileRootEvent>()
     private var catalogOpens = 0
     private var preferencesOpens = 0
+    private var strengthOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -56,12 +57,14 @@ class ProfileRootScreenTest {
         events.clear()
         catalogOpens = 0
         preferencesOpens = 0
+        strengthOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
                     state = state,
                     onEvent = { events += it },
                     onOpenPreferences = { preferencesOpens++ },
+                    onOpenStrength = { strengthOpens++ },
                     onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
                     effects = effects.receiveAsFlow(),
                 )
@@ -108,6 +111,33 @@ class ProfileRootScreenTest {
         rule.onNodeWithTag("profile_root_preferences_button")
             .assertTextEquals("Preferencias").assertHeightIsAtLeast(48.dp).performClick()
         assertEquals(1, preferencesOpens)
+    }
+
+    @Test
+    fun strengthRow_isInTheStatisticsSection_andOpensFuerza() {
+        show()
+        rule.onNodeWithText("ESTADÍSTICAS").assertExists()
+        rule.onNodeWithTag("profile_strength_row").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Fuerza").assertExists()
+
+        rule.onNodeWithTag("profile_strength_row").performClick()
+
+        assertEquals(1, strengthOpens)
+    }
+
+    @Test
+    fun strengthRow_isAboveTheAccountActions() {
+        show()
+        val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
+        val signOut = rule.onNodeWithTag("profile_root_sign_out").getUnclippedBoundsInRoot()
+        assertTrue(signOut.top >= strength.bottom)
+    }
+
+    @Test
+    fun strengthRow_isHiddenWhileTheProfileLoads() {
+        show(ProfileRootUiState.Loading)
+        rule.onNodeWithTag("profile_strength_row").assertDoesNotExist()
+        rule.onNodeWithTag("profile_root_sign_out").assertExists()
     }
 
     @Test

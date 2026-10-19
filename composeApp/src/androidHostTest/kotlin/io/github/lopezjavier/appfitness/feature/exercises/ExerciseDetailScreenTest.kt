@@ -60,6 +60,7 @@ class ExerciseDetailScreenTest {
         animations: Boolean = true,
         onSelect: () -> Unit = {},
         onRetry: () -> Unit = {},
+        onOpenProgress: () -> Unit = {},
     ) {
         rule.setContent {
             AppTheme {
@@ -67,7 +68,7 @@ class ExerciseDetailScreenTest {
                     LocalAnimationsEnabled provides animations,
                     LocalExerciseMediaUris provides FakeExerciseMediaUris,
                 ) {
-                    ExerciseDetailScreen(state, selectMode, onSelect, onRetry)
+                    ExerciseDetailScreen(state, selectMode, onSelect, onRetry, onOpenProgress = onOpenProgress)
                 }
             }
         }
@@ -85,6 +86,16 @@ class ExerciseDetailScreenTest {
         rule.onNodeWithText("1. Primer paso").assertExists()
         rule.onNodeWithText("2. Segundo paso").assertExists()
         rule.onNodeWithText("Un consejo").assertExists()
+    }
+
+    @Test
+    fun progressLink_opensTheProgressOfTheExercise() {
+        var opened = 0
+        show(ExerciseDetailUiState.Loaded(withBothPoses), onOpenProgress = { opened++ })
+
+        rule.onNodeWithTag("exercise_detail_progress_link").assertTextEquals("Ver progreso").performClick()
+
+        assertEquals(1, opened)
     }
 
     @Test

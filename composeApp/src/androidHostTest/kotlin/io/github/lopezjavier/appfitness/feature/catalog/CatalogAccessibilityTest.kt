@@ -44,7 +44,8 @@ private val ExpectedSections =
     listOf(
         "cards", "buttons", "chips", "segmented", "ring", "macro_bars", "macro_sliders", "macro_stacked_bar",
         "metric_tiles",
-        "trend_pills", "number_input", "text_field", "number_stepper", "set_checkbox", "set_rows", "rest_timer",
+        "trend_pills", "line_chart", "number_input", "text_field", "number_stepper", "set_checkbox", "set_rows",
+        "rest_timer",
         "wheel_picker",
         "selectable_card", "exercise_media", "reorderable",
         "state_messages", "offline_banner",

@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
+import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
@@ -83,6 +84,7 @@ class AppModuleTest {
                 ExerciseRepository::class,
                 RoutineRepository::class,
                 WorkoutSessionRepository::class,
+                StrengthRepository::class,
                 LoadExerciseCatalog::class,
                 SearchExercises::class,
                 Boolean::class,

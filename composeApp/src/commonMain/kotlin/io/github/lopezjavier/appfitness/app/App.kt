@@ -47,6 +47,8 @@ fun App(
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
+    strength: StrengthSlot = DefaultStrengthSlot,
+    exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
     onboarding: @Composable () -> Unit = { OnboardingRoute(onComplete = onOnboardingComplete) },
 ) {
@@ -72,6 +74,8 @@ fun App(
                         liveSession = liveSession,
                         history = history,
                         sessionDetail = sessionDetail,
+                        strength = strength,
+                        exerciseProgress = exerciseProgress,
                     )
 
                 else ->

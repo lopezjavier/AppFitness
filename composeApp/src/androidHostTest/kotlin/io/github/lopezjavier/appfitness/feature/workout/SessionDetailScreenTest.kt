@@ -72,6 +72,25 @@ class SessionDetailScreenTest {
     }
 
     @Test
+    fun progressLink_opensTheProgressOfThatExercise() {
+        val opened = mutableListOf<String>()
+        rule.setContent {
+            AppTheme {
+                SessionDetailScreen(detail(), { events += it }, snackbarHost = snackbarHost, onOpenProgress = {
+                    opened +=
+                        it
+                })
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_progress_e2"))
+        rule.onNodeWithTag("session_detail_progress_e2").performClick()
+
+        assertEquals(listOf("e2"), opened)
+    }
+
+    @Test
     fun content_showsHeaderStats_exercises_andSets() {
         show(detail())
 

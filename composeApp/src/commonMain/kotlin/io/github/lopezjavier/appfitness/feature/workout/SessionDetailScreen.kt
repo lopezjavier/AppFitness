@@ -37,6 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_button
@@ -86,6 +88,7 @@ fun SessionDetailRoot(
     sessionId: String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenProgress: (String) -> Unit = {},
     viewModel: SessionDetailViewModel = koinViewModel(key = sessionId, parameters = { parametersOf(sessionId) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,7 +105,7 @@ fun SessionDetailRoot(
             }
         }
     }
-    SessionDetailScreen(state, viewModel::onEvent, modifier, snackbarHost)
+    SessionDetailScreen(state, viewModel::onEvent, modifier, snackbarHost, onOpenProgress)
 }
 
 /**
@@ -115,6 +118,7 @@ fun SessionDetailScreen(
     onEvent: (SessionDetailEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    onOpenProgress: (String) -> Unit = {},
 ) {
     Box(modifier.fillMaxSize().testTag("session_detail_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
@@ -122,7 +126,7 @@ fun SessionDetailScreen(
                 when (state) {
                     SessionDetailUiState.Loading -> DetailLoading()
                     SessionDetailUiState.Error -> DetailError { onEvent(SessionDetailEvent.Retry) }
-                    is SessionDetailUiState.Content -> DetailContent(state, onEvent)
+                    is SessionDetailUiState.Content -> DetailContent(state, onEvent, onOpenProgress)
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
@@ -132,7 +136,11 @@ fun SessionDetailScreen(
 }
 
 @Composable
-private fun DetailContent(state: SessionDetailUiState.Content, onEvent: (SessionDetailEvent) -> Unit) {
+private fun DetailContent(
+    state: SessionDetailUiState.Content,
+    onEvent: (SessionDetailEvent) -> Unit,
+    onOpenProgress: (String) -> Unit,
+) {
     val canChange = state.isOnline && !state.busy
     LazyColumn(
         Modifier.fillMaxSize().testTag("session_detail_list"),
@@ -149,7 +157,7 @@ private fun DetailContent(state: SessionDetailUiState.Content, onEvent: (Session
             )
         }
         items(state.exercises, key = { it.position }) { exercise ->
-            ExerciseBlock(exercise, canChange) { setIndex ->
+            ExerciseBlock(exercise, canChange, { onOpenProgress(exercise.exerciseId) }) { setIndex ->
                 onEvent(SessionDetailEvent.EditSet(exercise.position, setIndex))
             }
         }
@@ -225,7 +233,12 @@ private fun StatRow(label: String, value: String, tag: String) {
 }
 
 @Composable
-private fun ExerciseBlock(exercise: DetailExercise, canEdit: Boolean, onEditSet: (setIndex: Int) -> Unit) {
+private fun ExerciseBlock(
+    exercise: DetailExercise,
+    canEdit: Boolean,
+    onOpenProgress: () -> Unit,
+    onEditSet: (setIndex: Int) -> Unit,
+) {
     AppCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
@@ -250,6 +263,17 @@ private fun ExerciseBlock(exercise: DetailExercise, canEdit: Boolean, onEditSet:
                 )
             }
             exercise.sets.forEach { set -> SetLine(exercise.position, set, canEdit) { onEditSet(set.setIndex) } }
+            val link = stringResource(
+                Res.string.exercise_progress_link_cd,
+                exercise.name ?: stringResource(Res.string.exercise_unnamed),
+            )
+            GhostButton(
+                text = stringResource(Res.string.exercise_progress_link),
+                onClick = onOpenProgress,
+                modifier = Modifier
+                    .semantics { contentDescription = link }
+                    .testTag("session_detail_progress_${exercise.exerciseId}"),
+            )
         }
     }
 }

@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_no_
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_tips
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_step_number
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
@@ -38,6 +39,7 @@ import io.github.lopezjavier.appfitness.designsystem.ExerciseAnimation
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TextPill
@@ -55,10 +57,11 @@ fun ExerciseDetailRoot(
     selectMode: Boolean,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenProgress: () -> Unit = {},
     viewModel: ExerciseDetailViewModel = koinViewModel(key = exerciseId, parameters = { parametersOf(exerciseId) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ExerciseDetailScreen(state, selectMode, onSelect, viewModel::retry, modifier)
+    ExerciseDetailScreen(state, selectMode, onSelect, viewModel::retry, modifier, onOpenProgress)
 }
 
 /**
@@ -72,6 +75,7 @@ fun ExerciseDetailScreen(
     onSelect: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenProgress: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -87,7 +91,7 @@ fun ExerciseDetailScreen(
                         )
                     }
 
-                is ExerciseDetailUiState.Loaded -> DetailContent(state.detail)
+                is ExerciseDetailUiState.Loaded -> DetailContent(state.detail, onOpenProgress)
             }
         }
         if (selectMode && state is ExerciseDetailUiState.Loaded) {
@@ -118,7 +122,7 @@ private fun DetailLoading() {
 private const val NAME_FRACTION = 0.6f
 
 @Composable
-private fun DetailContent(detail: ExerciseDetail) {
+private fun DetailContent(detail: ExerciseDetail, onOpenProgress: () -> Unit) {
     val name = detail.name.ifBlank { stringResource(Res.string.exercise_unnamed) }
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
@@ -134,12 +138,12 @@ private fun DetailContent(detail: ExerciseDetail) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                     Box(Modifier.weight(1f)) { DetailMedia(detail, name) }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-                        DetailText(detail, name)
+                        DetailText(detail, name, onOpenProgress)
                     }
                 }
             } else {
                 DetailMedia(detail, name)
-                DetailText(detail, name)
+                DetailText(detail, name, onOpenProgress)
             }
             Text(
                 text = stringResource(Res.string.exercise_attribution),
@@ -170,9 +174,14 @@ private fun DetailMedia(detail: ExerciseDetail, name: String) {
 }
 
 @Composable
-private fun DetailText(detail: ExerciseDetail, name: String) {
+private fun DetailText(detail: ExerciseDetail, name: String, onOpenProgress: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
         DetailHeader(detail, name)
+        SecondaryButton(
+            text = stringResource(Res.string.exercise_progress_link),
+            onClick = onOpenProgress,
+            modifier = Modifier.fillMaxWidth().testTag("exercise_detail_progress_link"),
+        )
         DetailHowTo(detail.info?.instructions.orEmpty())
         DetailTips(detail.info?.tips.orEmpty())
     }

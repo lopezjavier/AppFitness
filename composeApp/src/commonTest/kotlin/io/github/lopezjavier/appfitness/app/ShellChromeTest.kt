@@ -43,12 +43,15 @@ class ShellChromeTest {
                 LiveSessionRoute,
                 HistoryRoute,
                 SessionDetailRoute::class,
+                StrengthRoute,
+                ExerciseProgressRoute::class,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute ||
                     it is LiveSessionRoute ||
-                    it is HistoryRoute
+                    it is HistoryRoute ||
+                    it is StrengthRoute
                 ) {
                     it
                 } else {
@@ -74,5 +77,11 @@ class ShellChromeTest {
     fun historyRoutes_haveFullScreenChrome_withTheirTopBarTags() {
         assertEquals("history_top_bar", (HistoryRoute.chrome as ShellChrome.FullScreen).topBarTag)
         assertEquals("session_detail_top_bar", (SessionDetailRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
+    }
+
+    @Test
+    fun strengthRoutes_haveFullScreenChrome_withTheirTopBarTags() {
+        assertEquals("strength", (StrengthRoute.chrome as ShellChrome.FullScreen).topBarTag)
+        assertEquals("exercise_progress", (ExerciseProgressRoute("e1").chrome as ShellChrome.FullScreen).topBarTag)
     }
 }
