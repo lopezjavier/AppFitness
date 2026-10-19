@@ -88,7 +88,15 @@ internal typealias SessionDetailSlot =
 
 /** "Fuerza" content: modifier (full-screen insets), the progress opener (by exercise id) and "start workout". */
 internal typealias StrengthSlot =
-    @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit, onStartWorkout: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenExercise: (String) -> Unit,
+        onOpenMuscleVolume: () -> Unit,
+        onStartWorkout: () -> Unit,
+    ) -> Unit
+
+/** Weekly muscle volume content: modifier (full-screen insets) and "start workout" (empty state). */
+internal typealias MuscleVolumeSlot = @Composable (modifier: Modifier, onStartWorkout: () -> Unit) -> Unit
 
 /** Exercise progress content: modifier (full-screen insets) and the exercise id. */
 internal typealias ExerciseProgressSlot = @Composable (modifier: Modifier, exerciseId: String) -> Unit
@@ -168,8 +176,13 @@ internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _, _ -
 }
 
 /** Empty "Fuerza" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _ ->
+internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("strength_screen"))
+}
+
+/** Empty weekly muscle volume for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("muscle_volume_screen"))
 }
 
 /** Empty exercise progress for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -206,6 +219,7 @@ internal fun AppNavHost(
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
+    muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -272,7 +286,7 @@ internal fun AppNavHost(
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
         historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
-        strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, openProgress)
+        strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }
@@ -301,15 +315,24 @@ private fun NavGraphBuilder.historyDestinations(
 }
 
 /** "Fuerza" and the progress of one exercise; the empty state leads to the Entreno tab. */
+@Suppress("LongParameterList") // One slot per destination.
 private fun NavGraphBuilder.strengthDestinations(
     navController: NavHostController,
     fullScreenPadding: PaddingValues,
     strength: StrengthSlot,
     exerciseProgress: ExerciseProgressSlot,
+    muscleVolume: MuscleVolumeSlot,
     openProgress: (String) -> Unit,
 ) {
     composable<StrengthRoute> {
-        strength(Modifier.padding(fullScreenPadding), openProgress) { navController.navigateToTab(TopLevelTab.Workout) }
+        strength(
+            Modifier.padding(fullScreenPadding),
+            openProgress,
+            { navController.navigateToFullScreen(MuscleVolumeRoute) },
+        ) { navController.navigateToTab(TopLevelTab.Workout) }
+    }
+    composable<MuscleVolumeRoute> {
+        muscleVolume(Modifier.padding(fullScreenPadding)) { navController.navigateToTab(TopLevelTab.Workout) }
     }
     composable<ExerciseProgressRoute> { entry ->
         exerciseProgress(Modifier.padding(fullScreenPadding), entry.toRoute<ExerciseProgressRoute>().exerciseId)

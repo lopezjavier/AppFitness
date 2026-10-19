@@ -36,6 +36,7 @@ class StrengthScreenTest {
     private val events = mutableListOf<StrengthEvent>()
     private val opened = mutableListOf<String>()
     private var startedWorkout = 0
+    private var openedVolume = 0
 
     private fun show(state: StrengthUiState) {
         rule.setContent {
@@ -44,6 +45,7 @@ class StrengthScreenTest {
                     state = state,
                     onEvent = { events += it },
                     onOpenExercise = { opened += it },
+                    onOpenMuscleVolume = { openedVolume++ },
                     onStartWorkout = { startedWorkout++ },
                 )
             }
@@ -132,10 +134,20 @@ class StrengthScreenTest {
     }
 
     @Test
+    fun volumenPorGrupoMuscular_opensTheWeeklyVolume() {
+        show(content(StrengthSummary(90.0, null)))
+
+        rule.onNodeWithTag("strength_open_muscle_volume").assertTextEquals("Volumen por grupo muscular").performClick()
+
+        assertEquals(1, openedVolume)
+    }
+
+    @Test
     fun empty_invitesToStartAWorkout() {
         show(StrengthUiState.Empty)
 
         rule.onNodeWithTag("strength_empty_action", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("strength_open_muscle_volume").assertDoesNotExist()
         rule.onNodeWithText("Empezar entreno").performClick()
         assertEquals(1, startedWorkout)
     }
