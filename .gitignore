@@ -34,3 +34,6 @@ node_modules/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# RepDB exercise bundle imported by scripts/import-repdb.py (third-party content, ADR-39)
+composeApp/src/commonMain/composeResources/files/exercises/

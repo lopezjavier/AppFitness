@@ -2,11 +2,13 @@
 """Build the prod debug APK and install it on connected physical Android devices."""
 import argparse
 import glob
+import importlib.util
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 APK_DIR = os.path.join("androidApp", "build", "outputs", "apk", "prod", "debug")
@@ -111,22 +113,94 @@ def check_prod_config():
     return False
 
 
-def build():
+EXERCISES_DIR = os.path.join("composeApp", "src", "commonMain", "composeResources", "files", "exercises")
+
+
+def repdb_bundle_problem(root=ROOT):
+    """Return an error message when the gitignored RepDB bundle is not imported, else None."""
+    base = os.path.join(root, EXERCISES_DIR)
+    has_library = os.path.isfile(os.path.join(base, "library.json"))
+    has_image = bool(glob.glob(os.path.join(base, "images", "*.webp")))
+    if has_library and has_image:
+        return None
+    return (f"the RepDB exercise bundle is missing under {base} (needs library.json and images/*.webp). "
+            "Run: python scripts/import-repdb.py <path to Biblioteca_Ejercicios_Free> "
+            "(see planning/08-environment-setup.md).")
+
+
+def resolve_repdb_source(cli_value, props, env):
+    """Source folder of the RepDB bundle: --repdb-source, then repdb.source (local.properties), then REPDB_SOURCE."""
+    for value in (cli_value, props.get("repdb.source"), env.get("REPDB_SOURCE")):
+        if value and value.strip():
+            return value.strip()
+    return None
+
+
+def log(message, stream=None):
+    print(message, file=stream or sys.stdout, flush=True)
+
+
+def step_prod_config():
+    """[1/5] prod config check."""
+    log("[1/5] Checking prod config...")
+    t = time.monotonic()
+    ok = check_prod_config()
+    if ok:
+        log(f"[1/5] Prod config OK ({time.monotonic() - t:.1f}s)")
+    return ok
+
+
+def step_repdb(source, reimport):
+    """[2/5] Import the RepDB bundle unless it is already imported."""
+    log("[2/5] RepDB exercise bundle...")
+    t = time.monotonic()
+    if repdb_bundle_problem() is None and not reimport:
+        log("[2/5] RepDB bundle already imported: skipped (use --reimport to force)")
+        return True
+    if not source or not os.path.isdir(source):
+        shown = source or "(none)"
+        print(f"error: RepDB source folder not found: {shown}. Pass --repdb-source PATH, set repdb.source in "
+              "local.properties or the REPDB_SOURCE environment variable "
+              "(the Biblioteca_Ejercicios_Free folder; see planning/08-environment-setup.md).", file=sys.stderr)
+        return False
+    log(f"[2/5] Importing RepDB bundle from {source}...")
+    spec = importlib.util.spec_from_file_location("import_repdb", os.path.join(ROOT, "scripts", "import-repdb.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    try:
+        count, images = mod.import_bundle(os.path.abspath(source))
+    except mod.ImportError_ as e:
+        print(f"error: RepDB import failed: {e}", file=sys.stderr)
+        return False
+    log(f"[2/5] RepDB imported: {count} exercises, {images} images copied ({time.monotonic() - t:.1f}s)")
+    return True
+
+
+def build(verbose=False):
+    """[3/5] Gradle build."""
     gradlew = os.path.join(ROOT, "gradlew.bat" if IS_WINDOWS else "gradlew")
     cmd = [gradlew, "-q", ":androidApp:assembleProdDebug"]
-    fd, log = tempfile.mkstemp(suffix=".log")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as out:
-            code = subprocess.call(cmd, cwd=ROOT, stdout=out, stderr=subprocess.STDOUT)
+    log("[3/5] Gradle build (assembleProdDebug)..." + (" streaming output" if verbose else " this can take minutes"))
+    t = time.monotonic()
+    if verbose:
+        code = subprocess.call(cmd, cwd=ROOT)
         if code != 0:
-            with open(log, encoding="utf-8", errors="replace") as f:
-                tail = f.read().splitlines()[-60:]
-            print("\n".join(tail), file=sys.stderr)
-            print("Build FAILED", file=sys.stderr)
+            print(f"[3/5] Build FAILED after {time.monotonic() - t:.0f}s", file=sys.stderr, flush=True)
             return False
-    finally:
-        os.remove(log)
-    print("Build OK")
+    else:
+        fd, logfile = tempfile.mkstemp(suffix=".log")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as out:
+                code = subprocess.call(cmd, cwd=ROOT, stdout=out, stderr=subprocess.STDOUT)
+            if code != 0:
+                with open(logfile, encoding="utf-8", errors="replace") as f:
+                    tail = f.read().splitlines()[-60:]
+                print("\n".join(tail), file=sys.stderr)
+                print(f"[3/5] Build FAILED after {time.monotonic() - t:.0f}s", file=sys.stderr, flush=True)
+                return False
+        finally:
+            os.remove(logfile)
+    log(f"[3/5] Build OK ({time.monotonic() - t:.0f}s)")
     return True
 
 
@@ -142,6 +216,11 @@ def main(argv=None):
     ap.add_argument("--serial", action="append", default=[], metavar="ID",
                     help="Install only on this device (repeatable).")
     ap.add_argument("--include-emulator", action="store_true", help="Also install on emulator-* devices.")
+    ap.add_argument("--repdb-source", metavar="PATH",
+                    help="Biblioteca_Ejercicios_Free folder to import (else repdb.source in local.properties, "
+                         "else REPDB_SOURCE).")
+    ap.add_argument("--reimport", action="store_true", help="Import the RepDB bundle even if already imported.")
+    ap.add_argument("--verbose", action="store_true", help="Stream the Gradle output live.")
     args = ap.parse_args(argv)
 
     adb = find_adb()
@@ -150,9 +229,15 @@ def main(argv=None):
               "(platform-tools).", file=sys.stderr)
         return 1
 
-    if not args.no_build and not (check_prod_config() and build()):
-        return 1
+    if not args.no_build:
+        props = read_local_properties(os.path.join(ROOT, "local.properties"))
+        source = resolve_repdb_source(args.repdb_source, props, os.environ)
+        if not (step_prod_config() and step_repdb(source, args.reimport) and build(args.verbose)):
+            return 1
+    else:
+        log("[1/5] [2/5] [3/5] Skipped (--no-build)")
 
+    log("[4/5] Looking for the APK...")
     apks = sorted(glob.glob(os.path.join(ROOT, APK_DIR, "*.apk")), key=os.path.getmtime, reverse=True)
     if not apks:
         print(f"error: no APK found under {APK_DIR}", file=sys.stderr)
@@ -160,8 +245,9 @@ def main(argv=None):
     apk = apks[0]  # newest
     if len(apks) > 1:
         print(f"warning: {len(apks)} APKs found; using the newest.", file=sys.stderr)
-    print(f"APK: {apk}")
+    log(f"[4/5] APK: {apk} ({os.path.getsize(apk) / (1024 * 1024):.1f} MB)")
 
+    log("[5/5] Looking for devices and installing...")
     serials = list(args.serial)
     if not serials:
         code, out, _ = run(adb, "devices")
@@ -173,18 +259,20 @@ def main(argv=None):
             print(w, file=sys.stderr)
 
     if not serials:
-        print("No physical device connected.")
-        print(f'Install later with: adb -s <serial> install -r "{apk}"')
+        log("[5/5] No physical device connected.")
+        log(f'Install later with: adb -s <serial> install -r "{apk}"')
         return 0
 
     fail = 0
     for s in serials:
         mcode, mout, _ = run(adb, "-s", s, "shell", "getprop", "ro.product.model")
         model = mout if mcode == 0 and mout else "unknown model"
+        log(f"[5/5] Installing on {s} ({model})...")
+        t0 = time.monotonic()
         code, so, se = run(adb, "-s", s, "install", "-r", apk)
         out = "\n".join(x for x in (so, se) if x)
         if code == 0 and "Success" in out:
-            print(f"OK     {s} ({model})")
+            log(f"OK     {s} ({model}) ({time.monotonic() - t0:.1f}s)")
         else:
             print(f"FAILED {s} ({model})", file=sys.stderr)
             print(out, file=sys.stderr)

@@ -84,7 +84,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 | Text guard | `bash scripts/check-text-encoding.sh` (run in the always-on `gitleaks` job) |
 | Unit tests | `./gradlew testLocalDebugUnitTest` |
 | Install on the emulator (local Supabase) | `./gradlew :androidApp:installLocalDebug` |
-| Delivery APK | `python scripts/deliver-apk.py` (builds `prodDebug` and installs it on every connected phone/tablet; `--no-build`, `--serial <id>`, `--include-emulator`) |
+| Delivery APK | `python scripts/deliver-apk.py` (builds `prodDebug` and installs it on every connected phone/tablet; imports the RepDB bundle when missing; `--no-build`, `--serial <id>`, `--include-emulator`, `--repdb-source <path>`, `--reimport`, `--verbose`) |
 | Local Supabase | `npx supabase start` · `npx supabase db reset` · `npx supabase stop` |
 | DB tests | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
