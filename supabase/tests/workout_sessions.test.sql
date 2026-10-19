@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(56);
+select plan(61);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -204,6 +204,39 @@ insert into started3 select public.start_workout_session('a0000000-0000-4000-800
 select is((select name from public.workout_sessions where id = (select id from started3)), 'Vacia A',
   'a routine without exercises starts a named session');
 select lives_ok($$select public.discard_workout_session((select id from started3))$$, 'discard the third session');
+
+-- US-10: editing or archiving a routine leaves performed sessions unchanged
+create temp table started4 (id uuid);
+grant all on started4 to authenticated;
+insert into started4 select public.start_workout_session('a0000000-0000-4000-8000-000000000001');
+create temp table sets_before as
+  select exercise_id, exercise_position, set_index, superset_group
+  from public.workout_sets where session_id = (select id from started4);
+grant select on sets_before to authenticated;
+
+select lives_ok(
+  format($$select public.save_routine(jsonb_build_object(
+    'id', 'a0000000-0000-4000-8000-000000000001', 'name', 'Torso renombrada',
+    'exercises', jsonb_build_array(jsonb_build_object(
+      'exercise_id', %L, 'target_sets', 5, 'target_reps', 5))))$$,
+    (select id from cat where n = 3)),
+  'renaming the routine and replacing its exercises succeeds');
+update public.routines set archived = true where id = 'a0000000-0000-4000-8000-000000000001';
+select is((select archived from public.routines where id = 'a0000000-0000-4000-8000-000000000001'), true,
+  'the routine is archived');
+
+select results_eq(
+  $$select name, routine_id from public.workout_sessions where id = (select id from started4)$$,
+  $$values ('Torso A'::text, 'a0000000-0000-4000-8000-000000000001'::uuid)$$,
+  'the session keeps its snapshot name after the routine is renamed and archived');
+select is((select count(*)::int from public.workout_sets where session_id = (select id from started4)), 6,
+  'the session keeps its six sets after the routine is edited and archived');
+select is_empty(
+  $$select exercise_id, exercise_position, set_index, superset_group
+    from public.workout_sets where session_id = (select id from started4)
+    except select * from sets_before$$,
+  'the session sets are identical to those created at start');
+select public.discard_workout_session((select id from started4));
 
 -- ---------------------------------------------------------------------------
 -- exercise_history (as A; fixtures inserted as postgres)
