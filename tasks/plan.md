@@ -1,77 +1,72 @@
-# Implementation Plan: E2 · Authentication and profile → `v0.2.0`
+# Implementation Plan: E3 · Training core → `v0.3.0`
 
 ## Overview
-Each person signs in with Google, completes a 4-step onboarding (3 biometric steps + goals, "N / 4" since T-039), picks an energy strategy with a calorie target, and later edits their data, strategy and macro split on Profile. E2 is done when a new user can sign in, complete onboarding, set goals, close the app and get straight back in; `profiles`, `body_measurements` and `nutrition_goals` have pgTAP isolation tests; and the user validates the `prodDebug` APK with their real Google account.
+Plan routines calmly and run them at the gym with a sweat-proof live session: a Spanish exercise catalog with the bundled RepDB assets, a routine builder with supersets, quick set logging with the screen always on, previous performance (ghost data), a non-blocking rest timer, session history and strength-progress charts reached from Perfil. E3 is done when the user logs a full real workout (4-exercise routine with a superset) on the `prodDebug` APK, the five training tables and the three RPCs have pgTAP tests, a host test covers a full session, and the schema is forward-compatible with E6 (ADR-30).
 
-Sources: `planning/epics/E2-auth-profile.md` (US-05…US-08), `planning/03-data-model.md` §2 and §4, `planning/04-business-rules.md` §1 and §5, `planning/02-architecture.md`, `planning/05-design-system.md`, mockup `design/stitch/profile-goals/screen.png` (personal data, "Estrategia Energética" and "Distribución de Macros" only). Tasks: `tasks/todo.md` (T-034…T-039). Earlier plans (E0, E1) are in the git history.
+Sources: `planning/epics/E3-training-core.md` (US-09…US-15), `planning/03-data-model.md` §1, §5, §6, `planning/04-business-rules.md` §4–§5, `planning/02-architecture.md`, `planning/05-design-system.md` (`SetRow`, `RestTimerBar`, `NumberInput`, `ExerciseAnimation`, `ghostData`, `athleticCyan`), ADR-01, ADR-09, ADR-29, ADR-30, ADR-36, ADR-37, mockups `design/stitch/live-workout/screen.png` and the "Fuerza y 1RM estimado" part of `design/stitch/progress/screen.png`. Tasks: `tasks/todo.md` (T-042…T-049). Earlier plans are in the git history.
 
-Sizing (E1 retrospective): one task per story, as a vertical slice, so each task pays the 6–7 agent hand-offs once. 4 implementation tasks + closure, 2 👤 checkpoints.
+Sizing: one task per story as a vertical slice. US-11 is split into backend (T-044) and UI (T-045) because both halves are heavy and reviewable apart; US-12 and US-13 are merged (T-046) because both layer onto the live screen. 6 implementation tasks + closure, 2 👤 checkpoints.
 
 ## Architecture Decisions
-- **ADR-24 (user, 2026-10-14) settles the product gaps found in the breakdown:** onboarding resumes prefilled and re-saving updates the onboarding weight row; onboarding saves the default macros 30/45/25 (no sliders); Profile has one "Guardar" that stores profile, strategy, macros and the recalculated target; "Peso actual" is read-only on Profile until E4. The E2 Gherkin, `03` §4 and `04` §1.4 were updated to match.
-- **Otherwise existing ADRs cover E2.** ADR-02 (Credential Manager → ID token → `signInWith(IDToken)`), ADR-17 (publishable key), ADR-19 (`androidApp` + `composeApp` + `shared`, flavor values via `AppConfig`) and ADR-22 (Profile as a full screen from the avatar, no FAB) cover E2.
-- **ADR-26 (user, Checkpoint E2-A, 2026-10-14):** Perfil becomes the 4th tab (Diario, Entreno, Progreso, Perfil) with the user's Google photo as its icon; the top-bar avatar is removed. Supersedes ADR-22's navigation part; implemented in T-037.
-- **ADR-37 (user, Checkpoint E2-B, 2026-10-19):** 3 tabs (Diario, Entreno, Perfil; no Progreso); Perfil root with the large Google photo, the name, "Preferencias" (the editable Profile), "Cerrar sesión" and "Borrar cuenta"; weight editable in Preferencias (today's manual row; amends ADR-24's read-only weight); name from Google, asked in onboarding only when missing; "Gasto diario estimado" copy. Supersedes ADR-26. Statistics of later epics become entries from Perfil. Implemented in T-041; the Edad/Altura display bug is T-040.
-- **Checkpoint E2-A corrections → T-039 (before T-037):** onboarding regrouped into 4 steps ("N / 4", goals counted), unit-label and weight-decimal picker bugs, activity card typography, a filled non-outlined secondary button for "Atrás", and the PR #50 review follow-ups.
-- **E7 · UI refinement** (placeholder) is added as the last Phase 1 epic (`planning/07-roadmap.md` §1.1); deferred UI details from checkpoints go there.
-- **Root routing is a pure function** of (session status, `onboarding_completed`): Welcome / Onboarding / Main. Welcome and Onboarding are full-screen destinations above the tab graphs (no bottom bar, no FAB). Perfil is a tab (the 3rd of 3 since ADR-37, T-041; it was the 4th since ADR-26, T-037). A loading state avoids flashing Welcome on cold start with a persisted session.
-- **`profiles` already has the biometric columns** (T-018 created the full §2 table and column grants), so US-06 needs no `profiles` migration; its migration is `body_measurements` only. "At most one migration per story" (02 §6): T-035 `body_measurements`, T-036 `nutrition_goals` (macro columns included, defaults 30/45/25). T-037 needs no migration; if the planner wants an atomic Profile save (profile + goals), a `security invoker` RPC would be T-037's only migration.
-- **`onboarding_completed = true` only with goals saved** (US-06 note). T-036 writes the goals first and the flag second (or one RPC, planner's choice), so a failure never leaves a "completed" user without goals.
-- **"Test login" uses the existing `AppFeatures` flavor mechanism** (as the catalog entry); a `prod` unit test asserts it is absent.
-- **Supabase client and auth live in `shared`** (data layer, behind `AuthRepository`); the Google credential provider is an `androidMain` platform implementation of the `AuthCredentialProvider` port. UI never touches supabase-kt types.
-- **New design-system pieces are built inside the first story that needs them** (no component tasks): `WheelPicker` in T-035, `MacroStackedBar` in T-037; both get catalog entries and host tests.
-- **Formulas live in `shared/domain/usecase/`** with the `04-business-rules.md` examples as tests: `CalculateTdee`, `CalculateCalorieTarget` (T-036), `BalanceMacros` + gram targets (T-037, property tests). Numbers use `AppNumberFormat` ("2.681").
-- **US-06 "Editing data after onboarding" moves to T-037**: it asserts the TDEE, which only exists after US-07.
-- **US-08 "And the Diary uses the new gram targets"** is verified on the Profile/domain side in E2; the Diary half lands in E3 (note added to "Notes for later epics").
-- **Notes for later epics:** none targets E2. The "E2 (food diary)" note from the PR #24 review concerns `MacroProgressBar`/`ProgressRing` in the Diary, i.e. E3; left in place.
+- **Forward-compatible schema (ADR-30).** Each migration creates its tables with every *(E6)* column and enum and its default. `routine_folders` is created in T-043 (it is the target of `routines.folder_id`), so E6 needs no migration. The live set row is a polymorphic entry keyed by `metric_type`; E3 maps only `weight_reps` / `working`.
+- **One migration per task:** T-042 `exercises` (+ catalog rows per Q1), T-043 `routine_folders`/`routines`/`routine_exercises` + `save_routine(jsonb)`, T-044 `workout_sessions`/`workout_sets` + `exercise_history`, T-046 `last_performance`, T-048 `weekly_muscle_volume`; T-047 only if the planner puts the list aggregates in SQL.
+- **`exercise_history` ships in T-044, not T-048:** the summary's "PR" (US-11) and the history's PRs (US-14) need the previous best estimated 1RM (§4.5). Its pgTAP uses the §4.1 examples, the same cases as `EstimateOneRepMax`.
+- **Account deletion keeps working (ADR-29):** `exercises.created_by` cascades; every new user-owned table cascades from `auth.users`; pgTAP in T-042/T-043/T-044 deletes a user with training data.
+- **RepDB bundle (ADR-30):** not committed; `.gitignore` excludes it. The epic path `app/assets/exercises/` predates ADR-19, so the T-042 planner picks the module (Android assets in `androidApp`, or Compose resources in `composeApp`) and updates the docs. CI builds and tests without it (synthetic fixture); `scripts/deliver-apk.py` refuses to build without it so a delivered APK always carries it. Search is in memory in `shared` (accent- and case-insensitive).
+- **Reusable exercise picker:** built in T-042 as a destination returning the selected exercise; reused by the routine builder (T-043) and "Añadir ejercicio" in the session (T-045). Until T-043, a provisional Entreno entry reaches it.
+- **Per-screen actions (ADR-36):** "Nueva rutina" (T-043), "Empezar" / "Empezar entreno vacío" (T-045), "Historial" (T-047) live on the Entreno main view; "Fuerza" is the first statistics entry on the Perfil root (ADR-37, T-048). This consumes the E1 "FAB question" note.
+- **Live session:** session created in the DB on start, every set upserted by `(session_id, exercise_position, set_index)` when checked; offline sets queue in the ViewModel's memory only while the session is open (ADR-01 exception). `keepScreenOn` via `DisposableEffect`, never a `WakeLock`. Haptics through the `Haptics` port; the rest-end alert through a new sound port in `androidMain`.
+- **Rest timer:** state from an `endsAt` instant and the injected `Clock` (§4.4), tested with virtual time; the alert fires only with the app visible (no foreground service or notifications in Phase 1).
+- **Existing design-system components are reused:** `SetRow`, `SetCompletionCheckbox`, `NumberInput`, `RestTimerBar`, `AppBottomSheet`, `TrendPill`, `EmptyState`/`ErrorState`. New ones are built inside the first task that needs them: `ExerciseAnimation` (T-042), a reorderable-list helper if needed (T-043), the Vico chart wrapper (T-048). Before changing a shared component, check every caller (E2 lesson, T-040).
+- **Charts:** Vico (multiplatform), added in T-048 at the latest stable version, athleticCyan.
+- **Notes for later epics:** the "E3 (food diary)" and "E2 (food diary)" notes in `tasks/todo.md` predate ADR-31's renumbering and target the food diary, now **E4**; left in place.
 
 ## Task List
 
-### Phase 1: New user journey (US-05, US-06, US-07)
-- [ ] T-034: Sign in with Google, session routing and sign out (US-05) — UI, frontend
-- [ ] T-035: Biometric onboarding (US-06) — UI + backend (`body_measurements`)
-- [ ] T-036: Energy strategy and calorie target; onboarding completes (US-07) — UI + backend (`nutrition_goals`)
+### Phase 1: Plan and run a workout (US-09…US-13)
+- [ ] T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises (US-09) — UI + backend
+- [ ] T-043: Routine builder and "Mis rutinas" (US-10) — UI + backend
+- [ ] T-044: Workout sessions backend and training domain (US-11 backend half + `exercise_history`) — backend
+- [ ] T-045: Live workout session (US-11 UI half) — UI
+- [ ] T-046: Ghost data and rest timer in the live session (US-12 + US-13) — UI + backend (`last_performance`)
 
-### Checkpoint E2-A 👤: New user journey on the phone
-- [ ] Real Google sign-in on `prodDebug`, onboarding, strategy, save → Diario; reopen → straight in; cancelled picker; offline message; sign out. Placed here because Google sign-in against production is the riskiest part of the epic and the onboarding/strategy UX is the decision most worth early feedback.
+### Checkpoint E3-A 👤: a real workout on the phone
+- [ ] Build a routine with a superset from the catalog, run it at the gym (screen on, LISTO, ghost data, rest bar, resume after closing, offline set), finish with the summary. Placed here because the live session is the riskiest user-visible part of E3, and feedback can still shape history and charts.
 
-### Checkpoint E2-A corrections
-- [ ] T-039: Onboarding in 4 steps, picker fixes, secondary button, PR #50 follow-ups — UI (frontend only)
+### Phase 2: Review and progress (US-14, US-15)
+- [ ] T-047: Session history (US-14) — UI (+ optional SQL aggregates)
+- [ ] T-048: Strength progress: "Fuerza" screen, exercise charts, weekly muscle volume (US-15) — UI + backend (`weekly_muscle_volume`)
 
-### Phase 2: Profile (US-08 + US-06/US-07 on Profile)
-- [ ] T-037: Profile: edit personal data, energy strategy and macro split, one "Guardar"; Perfil as the 4th tab with the Google photo (ADR-26) — UI (backend only for an optional atomic-save RPC)
+### Checkpoint E3-B 👤: epic closure
+- [ ] T-049: E3 closure — history (edit, delete, pagination) and the Fuerza screen with real session data; tag `v0.3.0` and retrospective.
 
-### Checkpoint E2-B corrections (ADR-37)
-- [ ] T-040: fix: Edad and Altura do not show the new value on Profile — UI (frontend only)
-- [ ] T-041: Perfil restructure: 3 tabs, root with photo and name, Preferencias, editable weight, "Gasto diario estimado" copy — UI (+ optional weight-upsert RPC)
-
-### Checkpoint E2-B 👤: Epic closure (re-presented after T-041)
-- [ ] T-038: E2 closure — edit data and goals on Profile, auto-balanced macros, persistence across restarts; tag `v0.2.0` and retrospective.
-
-Internal milestones (not 👤): `deploy-supabase` green after T-035 and T-036; pgTAP isolation for the three tables green in `supabase-ci`.
+Internal milestones (not 👤): `deploy-supabase` green after each migration (T-042, T-043, T-044, T-046, T-048); production catalog row count matches the bundle (T-042); pgTAP for every training table and RPC green in `supabase-ci`.
 
 ## Dependencies
 
 ```
-E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-039 ─► T-037 ─► T-040 ─► T-041 ─► [E2-B 👤] ─► T-038
+E2 (v0.2.0) + Q1 + RepDB bundle ─► T-042 ─► T-043 ─► T-044 ─► T-045 ─► T-046 ─► [E3-A 👤] ─► T-047 ─► T-048 ─► [E3-B 👤] ─► T-049
+                                                  Q2 ─┘──────────┘   Q3 ─┘
 ```
-- Strictly sequential: each task builds on the previous one's routing, repositories and screens.
-- The backend half of T-035/T-036 (migration + pgTAP) and the domain use cases are decoupled from the UI, so backend-developer and frontend-developer can work in parallel inside each task once the planner fixes the repository contract.
+- Strictly sequential: each task builds on the previous one's tables, repositories and screens.
+- Inside T-042, T-043 and T-046, backend (migration + pgTAP) and frontend can run in parallel once the planner fixes the repository contract. T-044's domain use cases (1RM, volume) can start before Q2 is answered; only `DetectPersonalRecords` waits for it.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Google sign-in fails on the real device (SHA-1, client IDs, nonce, `serverClientId`) | High | Configuration from T-011/T-012 is already verified; T-034 maps every Credential Manager error to an explicit outcome and logs the cause. Checkpoint E2-A comes right after the onboarding journey, the first point where the user can test it; if the developer cannot sign in with Google on the emulator (local flavor with `GOOGLE_WEB_CLIENT_ID` set), the PM may ask the user for a quick `prodDebug` sign-in check after T-034 instead of waiting. |
-| supabase-kt version vs `sb_publishable_` keys, Ktor engine, Kotlin 2.4 | Medium | Pin the latest stable in T-034 and check the release notes (ADR-17); a host test builds the client from `AppConfig`. |
-| Wheel pickers in Compose Multiplatform (no stock component) | Medium | `WheelPicker` built on `LazyColumn` + snap fling in T-035 with host tests for bounds and semantics; ux-reviewer checks it against `05-design-system.md`. |
-| Large slices (T-034, T-035, T-036 are L) | Medium | Each is one story; backend and UI halves can run in parallel inside the task. If a plan exceeds ~15 non-trivial files, the planner may split it into a backend task followed by a UI task (never per component). |
-| Partial writes (profile saved, measurement or goals not; on Profile, profile saved but goals not) | Medium | Write order chosen so the onboarding flag is set last; Profile's single save writes profile then goals (or one RPC); save errors keep the typed values and show a message-only snackbar, and the user taps the save button again (no separate "Reintentar", Checkpoint E2-A feedback). |
-| Re-saving onboarding must update, not duplicate, the weight row (ADR-24) | Low | T-035's plan fixes how the onboarding row is identified (e.g. the earliest `manual` row of the user) and covers the update with a repository test. |
-| Haptics and the account picker cannot be checked automatically | Low | Host tests for the effects; manual check at Checkpoint E2-A. |
+| RepDB data in a public repo (catalog names/keys in a migration) vs. the in-app-only licence | High | Q1 asked before T-042; no RepDB file is committed; the fixture is synthetic. |
+| The bundle is missing on a build machine (CI, a fresh clone) | Medium | Build and tests tolerate its absence; `deliver-apk.py` blocks delivery without it; path documented in `08-environment-setup.md`. |
+| APK size grows by ≈16 MB; loading `library.json` on the main thread | Medium | Parse once off the main thread and cache in memory; thumbnails loaded lazily (Coil or bitmap decode, planner's choice). |
+| Live session loses data (offline, process death, double in-progress) | High | Upsert per set, partial unique index on `in_progress`, in-memory retry queue with "pendiente de guardar", resume test from a fresh process state. |
+| Timer drift in the background; timer and ghost tests flaky | Medium | `endsAt` + injected `Clock`, virtual-time tests; no real delays in host tests. |
+| `keepScreenOn` leaking after the session | Medium | `DisposableEffect` scoped to the session screen; host test for on/off; checked at E3-A. |
+| Drag-and-drop reorder in Compose Multiplatform (no stock component) | Medium | Small own implementation or a stable multiplatform library; "Subir"/"Bajar" as the accessible fallback and the main test path. |
+| Account deletion fails once training tables reference `auth.users` or custom exercises | Medium | Cascade FKs; pgTAP deletes a user with training data in T-042…T-044. |
+| Large slices (T-042, T-043, T-045, T-046, T-048 are L) | Medium | If a plan exceeds ~15 non-trivial files, the planner splits it into backend then UI (never per component). |
+| Haptics, the rest alert sound and the always-on screen cannot be fully checked on the host | Low | Ports with fakes in host tests; manual check at E3-A. |
 
 ## Open Questions
-None open. Resolved by the user on 2026-10-14 (recorded in ADR-24):
-- **Q1 · Resuming onboarding (T-035):** steps are prefilled with the saved values; finishing step 5 again updates the existing onboarding weight entry (no duplicate row).
-- **Q2 · Macros in onboarding (T-036):** no sliders in onboarding; the default split 30/45/25 is saved and adjusted later on Profile.
-- **Q3 · Saving on Profile (T-037):** one "Guardar" button for the whole screen; saving recalculates and stores the daily target from the new data (`04` §1.4).
-- **Q4 · Weight on Profile (T-037):** "Peso actual" is read-only (latest weight); editing arrives with US-15 in E4.
+- **Q1 · RESOLVED (ADR-38) · RepDB catalog rows.** Option (b): the migration stores only `key`, muscle group and equipment; `name` is nullable for catalog rows and the app shows the Spanish name from the bundle. No RepDB text or asset is committed (bundle gitignored, pgTAP fixtures synthetic). The user's bundle is at `C:/Users/javie/Documents/AppFitness/hevy-zip/Biblioteca_Ejercicios_Free` (includes `ATRIBUCION_RepDB.md`, `free.es.json`, `images/`); T-042 copies what it needs from there.
+- **Q2 · OPEN, awaiting the user's answer · First session of an exercise.** "PR" = personal record: a session whose estimated 1RM for an exercise exceeds the best of all previous sessions (§4.5), shown as a "PR" badge in the summary and history. Question: with no previous session, is the first-ever session marked "PR"? Planner default if unanswered: no (a record needs something to beat).
+- **Q3 · RESOLVED (ADR-38) · Superset rest.** The user configures, per superset: number of rounds (sets), reps per exercise, the rest between exercises within a round (e.g. 1 min biceps → triceps) and the rest between rounds (e.g. 3 min). Mapping onto `routine_exercises.rest_seconds` (no schema change): for non-last members it is the transition rest after that exercise; for the last member it is the rest between rounds. All members share the same set count. T-043 builder UI and T-046 timer implement it.
+- **Q4 · RESOLVED · "Borrar cuenta" wording.** No change: it is a testing aid; the real account is never deleted.

@@ -1073,10 +1073,246 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 ---
 
+# E3 · Training core
+
+Stories: `planning/epics/E3-training-core.md` (US-09…US-15). One task per story as a vertical slice; US-11 (live session) is split into a backend task (T-044) and a UI task (T-045) because both halves are heavy; US-12 and US-13 (ghost data and rest timer, both layered on the live screen) are merged into T-046. Plan: [tasks/plan.md](plan.md).
+Flow: every task with UI follows the full flow (planner → ux-reviewer → developers → PR → review → merge); T-044 is backend only (no ux-reviewer). The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
+Forward-compatible schema (ADR-30): every training table ships with its *(E6)* columns and enums; E3 renders only `weight_reps` / `working` sets. Account deletion (ADR-29) must keep working: every new user-owned row cascades from `auth.users`.
+Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 (is the first-ever session a "PR"?) still blocks T-045. Superset rest configuration (rounds, reps, rest between exercises, rest between rounds) is part of T-043 and T-046.
+
+## T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises
+
+**Story:** US-09 · **Flow:** UI + backend · **Scenarios:** Search and filter; Filter by equipment; Accent-insensitive search; Catalog row with thumbnail; Exercise detail with animation and how-to; Attribution; Creating a custom exercise; Custom exercise privacy
+
+**Prerequisites (👤, before the task starts):** the user places the RepDB free bundle (`library.json`, thumbnails, male `inicio`/`final` poses) in the agreed local path and answers **Q1** (how the catalog rows reach the DB, see `tasks/plan.md`).
+
+**Description:** Backend: one migration with the `muscle_group`, `equipment` and `exercise_metric_type` enums and `exercises` per `03-data-model.md` §5, including the *(E6)* columns (`secondary_muscles`, `metric_type` default `weight_reps`); `created_by` references `auth.users` **on delete cascade** (ADR-29); consistency check (custom ⇔ `created_by` set and `key` null); RLS enabled and forced, select `not is_custom or created_by = (select auth.uid())`, insert/update/delete only own custom rows. Catalog rows reach every database (local and production) as decided in Q1 (`seed.sql` never runs in production). App: the bundle lives in the module chosen by the planner under ADR-19 (the epic's `app/assets/exercises/` predates the module split; update the docs to the real path), is excluded by `.gitignore`, and its absence never breaks the build or CI (host tests use a small synthetic fixture, never RepDB content); `scripts/deliver-apk.py` refuses to build when the bundle is missing and names the expected path. `ExerciseLibrary` parses `library.json` once (key → Spanish instructions, thumbnail, male start/peak poses); `ExerciseRepository` (catalog + own custom exercises, create custom); a pure search use case in `shared` (case- and accent-insensitive, muscle-group and equipment filters, in memory). Screens: an exercise picker (search field, muscle-group and equipment chips with Spanish labels, rows with the male thumbnail or a placeholder for custom exercises, visible attribution "Datos de ejercicios por RepDB (repdb.co)", "Crear ejercicio") built as a reusable destination that returns the selected exercise (T-043's builder and T-045's "Añadir ejercicio" reuse it); exercise detail with the new `ExerciseAnimation` design-system component (start↔peak crossfade, 3 s cycle, ease-in-out, brief pause on each pose; `inicio` only when system animations are off; `05-design-system.md` §6.1) and "Cómo hacerlo"; create-custom form (name, group, equipment) that returns the new exercise as selected. Until T-043 wires it into the builder, the picker is reached from the Entreno tab through a provisional entry chosen by the planner (removed in T-043).
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/exercises.test.sql`: RLS on and forced; catalog rows visible to every user; A's custom exercise invisible to B (Custom exercise privacy); B cannot update or delete A's custom rows or any catalog row; a custom row without `created_by` or with a `key` is rejected; deleting a user with custom exercises succeeds.
+- [ ] Catalog rows exist in local and production databases with `name`, `key`, `muscle_group`, `equipment`, `metric_type` as decided in Q1; no instructions or image paths in the DB (ADR-30).
+- [ ] Search: "press" + "Pecho" returns "Press de banca con barra" and "Press inclinado con mancuernas" (with the real bundle; the fixture mirrors these names); "dominadas" and "Dominádas" give identical results; equipment "Mancuerna" returns dumbbell exercises only.
+- [ ] Rows show the male thumbnail; custom exercises (no `key`) and keys missing from the bundle show the placeholder, never a crash.
+- [ ] Attribution text visible on the picker (and on the detail if ux-reviewer places it there too).
+- [ ] "Crear ejercicio" prefills the search text as the name; the created exercise is custom, saved with the chosen group and equipment, and returned as selected; disabled offline (02 §9).
+- [ ] Bundle handling: `.gitignore` excludes it; `assembleProdDebug` and the unit tests pass in CI without it; `deliver-apk.py` checks it; `planning/08-environment-setup.md` documents where it goes.
+- [ ] `ExerciseAnimation`: catalog entry, `testTag`s, reduced-motion behaviour, `contentDescription` in Spanish.
+
+**Host tests (per scenario):** `SearchExercisesTest` (Search and filter; Filter by equipment; Accent-insensitive search); `ExerciseLibraryTest` (fixture parsing, male variant only, unknown key → no media); `ExercisePickerViewModelTest` (filters, create custom → selected result, offline disables create); `ExercisePickerScreenTest` (Robolectric: thumbnail vs placeholder; Attribution; "Crear ejercicio"); `ExerciseDetailScreenTest` (animation and "Cómo hacerlo"; reduced motion shows the start pose); pgTAP `exercises.test.sql` (Custom exercise privacy).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; the production catalog row count matches the bundle.
+
+**Dependencies:** E2 (`v0.2.0`), Q1, the bundle in place
+**Files likely touched:** `supabase/migrations/<ts>_exercises.sql`, `supabase/tests/exercises.test.sql`, possibly `supabase/seed.sql` and a one-off generator script (Q1), `.gitignore`, `scripts/deliver-apk.py`, `shared/…/domain/model/{Exercise,MuscleGroup,Equipment,ExerciseMetricType}.kt`, `shared/…/domain/usecase/SearchExercises.kt`, `shared/…/domain/repository/ExerciseRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/exercises/{ExercisePickerScreen,ExercisePickerViewModel,ExerciseDetailScreen,CreateExerciseSheet,ExerciseLibrary}.kt`, `composeApp/…/designsystem/ExerciseAnimation.kt`, catalog, strings, test fixture, tests, `planning/08-environment-setup.md`
+**Estimated scope:** L (if the plan passes ~15 non-trivial files, the planner may split it into backend + catalog data, then UI)
+
+---
+
+## T-043: Routine builder and "Mis rutinas"
+
+**Story:** US-10 · **Flow:** UI + backend · **Scenarios:** Creating a routine; Reordering exercises; Grouping into a superset; Validation; Edit, duplicate and archive (the "sessions already performed do not change" half is asserted in T-045, when sessions exist)
+
+**Description:** Backend: one migration with the `set_type` enum, `routine_folders` *(E6: created now so `routines.folder_id` has its target and E6 needs no migration; owner RLS + pgTAP, not rendered)*, `routines` and `routine_exercises` per `03-data-model.md` §5 with every *(E6)* column and its default; checks `target_sets` 1–10, `target_reps` 1–50, `rest_seconds` 0–600 default 120, `target_rpe` 1–10; at most one `is_next` per user (partial unique index); RLS on `routine_exercises` via the parent routine; a routine may only reference exercises the caller can see (catalog or own custom). Transactional save: `save_routine(jsonb)` (`security invoker`; inserts or replaces the routine and its exercises in one transaction) so a routine is never half-saved. App: `RoutineRepository` (list active routines with exercise count, get, save, duplicate, archive). Entreno tab main view becomes "Mis rutinas" (list, "Nueva rutina"; it later gains "Empezar entreno vacío" in T-045 and "Historial" in T-047; the T-042 provisional picker entry is removed). Builder: name, "Añadir ejercicio" through the T-042 picker, per exercise target sets/reps and rest (steppers or `NumberInput`, ux-reviewer), drag-and-drop reorder plus "Subir"/"Bajar" in the exercise menu (accessible alternative), "Agrupar con el siguiente" / ungroup, superset labels "Superserie A1"/"A2" (letter per group in order), "Guardar" disabled without a name or without exercises. Routine menu: edit, duplicate, archive (archived routines leave "Mis rutinas").
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/routines.test.sql`: RLS on and forced on `routines`, `routine_exercises` and `routine_folders`; cross-user isolation for select/insert/update/delete; A cannot attach exercises to B's routine nor reference B's custom exercise; checks reject 0 / 11 sets and 601 s rest; `save_routine` is atomic (an invalid exercise row leaves nothing saved) and cannot write into another user's routine; deleting a user with routines succeeds.
+- [ ] Creating "Torso fuerza" with "Press de banca con barra" and "Dominadas", 3 × 8 and 120 s each, shows it in "Mis rutinas" with "2 ejercicios".
+- [ ] Dragging C to the first position saves C, A, B; "Subir"/"Bajar" give the same result; the order survives a reload.
+- [ ] "Agrupar con el siguiente" on "Press de banca con barra" shows "Superserie A1" / "A2"; grouping is stored in `superset_group` (consecutive exercises, same value); ungrouping clears it.
+- [ ] "Guardar" disabled with a blank name or no exercises; save errors keep the edits with a message-only snackbar (02 §9); write actions disabled offline.
+- [ ] Edit, duplicate and archive reflected in "Mis rutinas"; the *(E6)* columns are written with their defaults and never rendered.
+- [ ] Builder state survives configuration changes and process death (`SavedStateHandle`).
+
+**Host tests (per scenario):** `SupersetLabelsTest` (groups → "A1", "A2", "B1"…); `RoutineBuilderViewModelTest` with fakes + Turbine (Creating a routine; Reordering C, A, B by drag and by Subir/Bajar; Grouping into a superset; Validation; Edit, duplicate and archive); `RoutineBuilderScreenTest` (Robolectric: "Guardar" disabled state, superset labels, move-up/down menu); `RoutinesScreenTest` ("Mis rutinas" list, exercise count, empty state); repository test of the `save_routine` payload; pgTAP `routines.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-042
+**Files likely touched:** `supabase/migrations/<ts>_routines.sql`, `supabase/tests/routines.test.sql`, `shared/…/domain/model/{Routine,RoutineExercise,SetType}.kt`, `shared/…/domain/usecase/SupersetLabels.kt`, `shared/…/domain/repository/RoutineRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesViewModel,RoutineBuilderScreen,RoutineBuilderViewModel,RoutineBuilderUiState}.kt`, `composeApp/…/feature/workout/WorkoutScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, possibly a reorderable-list helper in `designsystem/`, strings, tests
+**Estimated scope:** L
+
+---
+
+## T-044: Workout sessions backend and training domain
+
+**Story:** US-11 (backend half) + the `exercise_history` RPC of US-15 (needed now for PR detection) · **Flow:** backend (no UI, no ux-reviewer) · **Scenarios (data side):** US-11 Starting from a routine (session + pending sets); Completing a set (upsert); Continuing after closing the app (in-progress session with its sets); Finishing and summary (volume "2.120 kg", PR); Finishing with incomplete sets (pending sets dropped); Discarding the session · US-15 Estimated 1RM record (SQL side)
+
+**Description:** One migration with the `session_status` enum, `workout_sessions` and `workout_sets` per `03-data-model.md` §5 with every *(E6)* column (`description`, `gym`, `paused_at`; `set_type` default `working`, `rpe`, `duration_s`, `distance_m`, `steps`, `floors`); at most one `in_progress` session per user (partial unique index); `unique (session_id, exercise_position, set_index)`; checks `weight_kg ≥ 0`, `reps ≥ 0`, `rpe` 1–10; indexes for the history (`user_id, started_at desc`) and per-exercise lookups; RLS on `workout_sets` via the parent session; FKs chosen so account deletion (ADR-29) still succeeds with sessions and custom exercises. The RPC `exercise_history(p_exercise_id, p_from)` (`security invoker`; per completed session: date, best estimated 1RM with Epley rounded to 0.5 kg, total volume; only completed sets) ships here because the summary (T-045) and the history (T-047) need the previous best 1RM; T-048 reuses it for the charts. Finishing is one transaction (pending sets deleted + `completed` + `ended_at`; an RPC or equivalent, planner's choice). Domain (pure, `04-business-rules.md` §4 examples as tests): `EstimateOneRepMax` (§4.1), `CalculateVolume` (§4.2), `DetectPersonalRecords` (§4.5; first-ever session per Q2). Session model with a **polymorphic set entry** (a sealed type keyed by `metric_type`; E3 maps only `weight_reps`) so E6 extends it without a rewrite (ADR-30). `WorkoutSessionRepository`: start from a routine (name snapshot, pending sets from the targets, `superset_group` copied), start empty, get the in-progress session with its sets, upsert a set, finish, discard.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/workout_sessions.test.sql`: RLS on and forced on both tables; cross-user isolation (select/insert/update/delete, including a set inserted into B's session); a second `in_progress` session for the same user fails; the upsert key replaces instead of duplicating; deleting a user with sessions, sets and custom exercises succeeds.
+- [ ] `exercise_history` pgTAP with the domain cases: 100 kg × 5 → 116.5; 85 kg × 8 → 107.5; 100 kg × 4 → 113.5; sets with 0 reps, > 12 reps or 0 kg excluded from the 1RM; discarded, in-progress and other users' sessions ignored; volume per session.
+- [ ] Domain tests use the same cases; volume of 60 × 12 + 87.5 × 8 + 87.5 × 8 = 2120 (formatted "2.120 kg" with `AppNumberFormat`); PR flag per §4.5 and Q2.
+- [ ] Finishing keeps only completed sets and is atomic; discarding sets `discarded` and the session leaves every history query.
+- [ ] Repository tests with fakes for start-from-routine (3 × 8 → 3 pending rows per exercise), resume, upsert, finish and discard.
+
+**Host tests (per scenario):** `EstimateOneRepMaxTest`, `CalculateVolumeTest` (Finishing and summary volume), `DetectPersonalRecordsTest`, `WorkoutSessionRepositoryTest` (Starting from a routine, Completing a set, Continuing after closing, Finishing with incomplete sets, Discarding); pgTAP `workout_sessions.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-043, Q2 (only for `DetectPersonalRecords`; the rest can start before the answer)
+**Files likely touched:** `supabase/migrations/<ts>_workout_sessions.sql`, `supabase/tests/workout_sessions.test.sql`, `shared/…/domain/model/{WorkoutSession,WorkoutSet,SetEntry,SessionStatus}.kt`, `shared/…/domain/usecase/{EstimateOneRepMax,CalculateVolume,DetectPersonalRecords}.kt` + tests, `shared/…/domain/repository/WorkoutSessionRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI
+**Estimated scope:** M–L
+
+---
+
+## T-045: Live workout session
+
+**Story:** US-11 (UI half) + US-10 "Edit, duplicate and archive" (sessions-unchanged half) · **Flow:** UI · **Scenarios:** Starting from a routine; Screen always on; Completing a set; Unchecking a set; Adding sets and exercises; Continuing after closing the app; Finishing and summary; Finishing with incomplete sets; Discarding the session; Network error when saving a set · US-10 sessions already performed do not change
+
+**Description:** Entreno main view gains "Empezar" on each routine and "Empezar entreno vacío" (per-screen actions, ADR-36); when an `in_progress` session exists the Entreno tab opens it directly (also after a cold start). Live session screen (reference `design/stitch/live-workout/screen.png`, without RPE, CAL/EFEC or "Fase / Microciclo"): header with the "EN VIVO" stopwatch (from `started_at` and the injected `Clock`), the "Pantalla activa" indicator and "Finalizar"; one card per exercise (superset labels from T-043) with the existing `SetRow` table SERIE · ANTERIOR · KG · REPS · LISTO (ANTERIOR shows "—" until T-046), rendered through the polymorphic set row (only `weight_reps` in E3); KG with a decimal keyboard and 0.25 kg precision. Checking LISTO fills the round `SetCompletionCheckbox` in neonLime, triggers the `Haptics` port and upserts the set at once; unchecking makes it pending and editable. "Añadir serie" (placeholder = previous set's values), "Añadir ejercicio" through the T-042 picker (appended with one empty set, rest 120 s). `keepScreenOn` as a `DisposableEffect` on the session screen only (never a `WakeLock`), released on leaving and after finishing. "Finalizar" opens an `AppBottomSheet` (warning "Hay N series sin completar; no se guardarán" when pending sets exist) → summary (duration, completed sets, volume per exercise, "PR" marks). "Descartar entreno" with a confirmation → discarded, back to "Mis rutinas". Offline: checking a set keeps it in an in-memory retry queue in the ViewModel, marks it "pendiente de guardar" under the "Sin conexión" banner and flushes it when the connection returns while the session is open (ADR-01 exception); starting a session is disabled offline.
+
+**Acceptance criteria:**
+- [ ] "Empezar" on "Torso fuerza" (Press de banca 3 × 8, Dominadas 3 × 8) creates one in-progress session and shows 3 rows per exercise with the five column headers; "Empezar entreno vacío" starts a session with no exercises.
+- [ ] The window keeps the screen on only while the session screen is visible; leaving it or finishing restores the normal timeout.
+- [ ] Completing 60 kg × 12 in set 1: checked state, one haptic, one upsert; unchecking returns it to pending and editable.
+- [ ] "Añadir serie" → set 4 with set 3's values as a placeholder; "Añadir ejercicio" → "Press militar con mancuernas" at the end with one empty set.
+- [ ] Killing and reopening the app with 2 completed sets opens the Entreno tab on the session with both sets checked.
+- [ ] Summary for 60 × 12, 87.5 × 8, 87.5 × 8 shows the duration, 3 completed sets and "2.120 kg"; exercises with a new estimated 1RM record show "PR" (Q2 rule).
+- [ ] Finishing with 3 pending sets shows "Hay 3 series sin completar; no se guardarán" and keeps only the completed ones.
+- [ ] Discarding asks for confirmation; the session is `discarded` and never appears in the history (checked again in T-047).
+- [ ] Offline check → "pendiente de guardar" + banner; reconnecting saves it with no user action; no set is lost while the session stays open.
+- [ ] Editing or archiving a routine after a session leaves that session's name and sets unchanged (US-10).
+- [ ] Every interactive element has a snake_case `testTag` (e.g. `workout_set_2_done`); targets ≥ 48 dp.
+
+**Host tests (per scenario):** `LiveSessionViewModelTest` with fakes, a test `Clock` and Turbine (Starting from a routine; Completing a set; Unchecking; Adding sets and exercises; Continuing after closing; Finishing and summary; Finishing with incomplete sets; Discarding; Network error → queue → flush on reconnect); `LiveSessionScreenTest` (Robolectric: headers, checkbox state, "EN VIVO", "Pantalla activa", sheet warning text, summary "2.120 kg" and "PR"); `KeepScreenOnTest` (flag on while shown, off after leaving and after finishing); `WorkoutTabRouteTest` (in-progress session → live screen); `RoutineSnapshotTest` (US-10 sessions unchanged).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Manual (developer, emulator, local flavor): start, check sets, kill and reopen, finish; airplane mode while checking a set.
+
+**Dependencies:** T-044, Q2
+**Files likely touched:** `composeApp/…/feature/workout/{WorkoutScreen,LiveSessionScreen,LiveSessionViewModel,LiveSessionUiState,SessionSummaryScreen,FinishSessionSheet,SessionSetRow}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `composeApp/src/androidMain/…/platform/*` (keep-screen-on helper if needed), `designsystem/{SetRow,NumberInput}.kt` (only if the polymorphic row needs a slot; check every caller first), strings, tests
+**Estimated scope:** L
+
+---
+
+## T-046: Ghost data and rest timer in the live session
+
+**Story:** US-12 + US-13 · **Flow:** UI + backend (`last_performance`) · **Scenarios:** US-12 Showing the previous performance; No previous performance; More sets than last time; Using the previous performance · US-13 Automatic start; Quick adjustments; Free navigation; End of rest; Accuracy with the app in the background; Superset; Rest configurable during the session
+
+**Description:** Backend: one migration with `last_performance(p_exercise_id)` (`security invoker`; sets `set_index`, `weight_kg`, `reps` of the caller's most recent **completed** session containing the exercise, completed sets only, regardless of routine) + pgTAP. App: ghost data loaded once per exercise when the session starts or an exercise is added; ANTERIOR shows "85 kg × 8" in `ghostData` matched by `set_index` ("—" when missing); KG/REPS show the values as a dim placeholder (never as a value); tapping the ANTERIOR text fills both fields. Rest timer (`04-business-rules.md` §4.4): state from an `endsAt` instant and the injected `Clock`, never a decrementing counter; starts on LISTO with the exercise's `rest_seconds` (120 s for exercises added in the session, 0 = no timer); checking another set restarts it; "+30s" and "Omitir"; in a superset it starts only after the set of the last exercise in the group, with the rest decided in **Q3**; the existing `RestTimerBar` pinned below the Top App Bar with the content inset so it never covers set rows or controls; at 00:00 the `Haptics` port plus a short alert through a new sound port in `androidMain` (silent when the system is muted; only with the app visible, no foreground service), then the bar hides. Exercise menu "Descanso" changes the rest for the rest of this session only (no routine write; E6 adds "Update Routine"). Adds the DoD full-session host test.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/last_performance.test.sql`: returns the latest completed session's sets; ignores other users', discarded and in-progress sessions and pending sets.
+- [ ] Ghost: "85 kg × 8" in ANTERIOR for set 2; placeholders 85 and 8; "—" for a never-done exercise and for set 4 when last time had 3; tapping fills 85 and 8.
+- [ ] Timer: LISTO with 120 s → "02:00", cyan decreasing line, "+30s" and "Omitir"; "01:12" + 30 s → "01:42"; "Omitir" hides it; 00:00 → vibration + alert + hidden; 60 s left, 30 s in the background → "00:30" on return.
+- [ ] Superset A1/A2: completing A1's set starts nothing; completing the matching A2 set starts the timer with the Q3 rest.
+- [ ] Changing an exercise's rest to 90 s from its menu applies to its following sets in this session; the routine is unchanged.
+- [ ] The bar never overlaps set rows or controls while scrolling or editing (bounds asserted in a Robolectric test).
+- [ ] DoD: a host test runs a full session of a 4-exercise routine with a superset (short rest durations), with correct ghost data and rest periods.
+
+**Host tests (per scenario):** `GhostDataTest` (Showing the previous performance; No previous performance; More sets than last time; format); `RestTimerTest` with `runTest` + `advanceTimeBy` and a test `Clock` (Automatic start; Quick adjustments; End of rest effects; Accuracy with the app in the background; Rest configurable); `SupersetRestTest` (Superset); `LiveSessionViewModelTest` additions (Using the previous performance; timer restart on another set); `LiveSessionScreenTest` (Robolectric: ghost text, placeholder semantics, bar texts, Free navigation non-overlap); `FullSessionTest` (Epic DoD); pgTAP `last_performance.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-045, Q3
+**Files likely touched:** `supabase/migrations/<ts>_last_performance.sql`, `supabase/tests/last_performance.test.sql`, `shared/…/domain/usecase/{GhostData,RestTimer}.kt` + tests, `shared/…/domain/port/AlertSound.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt`, `shared/…/data/repository/*`, `composeApp/src/androidMain/…/platform/AndroidAlertSound.kt`, `composeApp/…/feature/workout/{LiveSessionScreen,LiveSessionViewModel,LiveSessionUiState,ExerciseMenu}.kt`, DI, strings, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E3-A — A real workout on the phone 👤
+- [ ] T-042…T-046 merged, CI green, `deploy-supabase` applied the four migrations in production, every reported bug fixed.
+- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`, with the RepDB bundle in place) and tries:
+  - Entreno → "Nueva rutina": search "press" with "Pecho", filter "Mancuerna", type "dominádas"; open an exercise (animation, "Cómo hacerlo", RepDB attribution); create a custom exercise; drag to reorder, "Agrupar con el siguiente", "Guardar"; then edit, duplicate and archive a routine.
+  - At the gym, "Empezar" a routine with a superset: the screen stays on; log sets with LISTO (vibration), uncheck one, "Añadir serie" / "Añadir ejercicio"; the rest bar ("+30s", "Omitir", the alert at 00:00, leaving the app and coming back), the superset waits for A2; change an exercise's rest from its menu.
+  - Close the app mid-workout and reopen → back in the session; airplane mode while checking a set → "pendiente de guardar", then saved on reconnecting.
+  - "Finalizar" with pending sets → warning, summary with volume and "PR"; a second session of the same routine shows ANTERIOR "kg × reps" and tapping it fills the fields; "Descartar entreno" on a throwaway session.
+  - Placed here because the live session is the riskiest user-visible part of E3 and its feedback can still shape history and charts.
+
+---
+
+## T-047: Session history
+
+**Story:** US-14 · **Flow:** UI (+ one migration only if the planner computes the list aggregates in SQL) · **Scenarios:** Session list; Session detail; Correcting a set; Deleting a session; Pagination
+
+**Description:** Entreno main view gains "Historial". List of the caller's completed sessions (never `in_progress` or `discarded`), newest first by `started_at`, 20 per page (`limit`/`offset`), loading the next 20 at the end of the list; each row shows date ("Hoy", "Ayer", "lun, 24 oct"; `04` §5), name, duration, total volume and number of completed sets (aggregates in the client or a `security invoker` view/RPC, planner's choice; SQL means a new migration + pgTAP). Detail: each exercise with its sets "87,5 kg × 8" and the PRs achieved in that session (`DetectPersonalRecords` against earlier sessions); editing a set (`NumberInput`) saves it and recalculates the volume; deleting the session (confirmation dialog) removes it and its sets, so it is no longer previous performance or history. E6 adds the richer detail, calendar and copy/save-as-routine; not built here.
+
+**Acceptance criteria:**
+- [ ] List newest to oldest with date, name, duration, total volume ("2.120 kg") and number of sets; discarded and in-progress sessions never listed; empty state when there are none.
+- [ ] Detail shows exercises, sets and "PR" marks consistent with the T-045 summary.
+- [ ] Editing 87,5 kg × 8 to 87,5 kg × 7 saves it and the volume updates in the detail and the list; save errors keep the edit with a message-only snackbar; disabled offline.
+- [ ] Deleting asks for confirmation; the session disappears from the list and `last_performance` no longer returns it (repository/pgTAP check).
+- [ ] With 25 sessions, scrolling to the end loads the remaining 5 without duplicates; a page error shows a retry at the list end.
+
+**Host tests (per scenario):** `HistoryViewModelTest` with fakes + Turbine (Session list; Pagination; Deleting a session); `SessionDetailViewModelTest` (Session detail PRs; Correcting a set → volume recalculated); `HistoryScreenTest` and `SessionDetailScreenTest` (Robolectric: row texts, "PR", edit field, delete dialog); pgTAP only if SQL is added (aggregates isolation; deleted session not returned by `last_performance`).
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
+
+**Dependencies:** T-046
+**Files likely touched:** `composeApp/…/feature/workout/{HistoryScreen,HistoryViewModel,SessionDetailScreen,SessionDetailViewModel}.kt`, `composeApp/…/feature/workout/WorkoutScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt` (paged list, detail, update set, delete), `shared/…/data/repository/*`, optionally one migration + pgTAP, strings, tests
+**Estimated scope:** M–L
+
+---
+
+## T-048: Strength progress: "Fuerza" screen, exercise charts and weekly muscle volume
+
+**Story:** US-15 · **Flow:** UI + backend (`weekly_muscle_volume`) · **Scenarios:** Summary card on the strength screen; Estimated 1RM record; Exercise chart; Weekly volume per muscle group; Exercise without enough data; Exercises without load
+
+**Description:** Backend: one migration with `weekly_muscle_volume(p_from)` (`security invoker`; per ISO week Monday–Sunday and the exercise's `muscle_group`, completed sets of completed sessions) + pgTAP; `exercise_history` exists since T-044. Add Vico (latest stable, multiplatform) and a chart component in `designsystem/` (athleticCyan, tabular numerals, catalog entry, `stateDescription` summarising the data). Perfil root gains its first statistics entry "Fuerza" (ADR-37; layout by ux-reviewer) opening a full-screen destination with a back arrow: the "Fuerza y 1RM estimado" card with chips for the 3 exercises with most sessions in the last 6 weeks (the most frequent selected by default), "Récord 1RM estimado: 113,5 kg" and "+5,0 kg este mes" in green (`TrendPill`) against the best 1RM as of 30 days ago; an entry "Volumen por grupo muscular" (last 8 weeks per group, selecting a group shows only its evolution). Per-exercise detail: best estimated 1RM per session and total volume per session, filters 1M, 3M, 6M, 1A; a single session shows its value and "Necesitas al menos 2 sesiones para ver la evolución"; an exercise logged only with 0 kg shows max reps instead of 1RM and volume. The detail is reachable from the card, from the exercise detail (T-042) and from the session detail (T-047). Domain: `StrengthSummary` (top 3, record, monthly delta) with tests from `04` §4.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/weekly_muscle_volume.test.sql`: ISO-week grouping (a Sunday and the next Monday fall in different weeks), completed only, other users ignored.
+- [ ] With Press de banca, Sentadilla and Peso muerto trained in the last 6 weeks, the card shows those 3 chips with "Press de banca con barra" selected.
+- [ ] Best set 100 kg × 4 → "Récord 1RM estimado: 113,5 kg"; best 30 days ago 108,5 kg → "+5,0 kg este mes" in green.
+- [ ] Exercise detail: two charts (1RM, volume) and the 1M / 3M / 6M / 1A filters change the range; single-session message; Dominadas at 0 kg → max-reps chart.
+- [ ] Weekly volume: 8 weeks per group; selecting a group isolates it.
+- [ ] Empty state on "Fuerza" for a user with no completed sessions; loading skeleton and `ErrorState` with "Reintentar" on a failed read.
+- [ ] Perfil root keeps sign-out and delete-account behaviour unchanged.
+
+**Host tests (per scenario):** `StrengthSummaryTest` (Summary card; Estimated 1RM record); `ExerciseProgressViewModelTest` (Exercise chart filters; Exercise without enough data; Exercises without load); `MuscleVolumeViewModelTest` (Weekly volume per muscle group); `StrengthScreenTest` and `ExerciseProgressScreenTest` (Robolectric: chips, texts "Récord 1RM estimado: 113,5 kg", "+5,0 kg este mes", filters, message); `ProfileRootScreenTest` update (Fuerza entry); pgTAP `weekly_muscle_volume.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-047
+**Files likely touched:** `supabase/migrations/<ts>_weekly_muscle_volume.sql`, `supabase/tests/weekly_muscle_volume.test.sql`, `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `shared/…/domain/usecase/StrengthSummary.kt` + tests, `shared/…/domain/repository/StrengthRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/analytics/{StrengthScreen,StrengthViewModel,ExerciseProgressScreen,ExerciseProgressViewModel,MuscleVolumeScreen,MuscleVolumeViewModel}.kt`, `composeApp/…/designsystem/AppLineChart.kt`, `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests
+**Estimated scope:** L (if the plan passes ~15 non-trivial files, the planner may move the weekly muscle volume into its own UI follow-up task)
+
+---
+
+## T-049: E3 closure
+
+**Story:** E3 Definition of Done · **Flow:** PM
+
+**Acceptance criteria:**
+- [ ] T-042…T-048 merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
+- [ ] Host tests green for every E3 UI scenario, including the full-session test (T-046).
+- [ ] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
+- [ ] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
+- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
+
+**Verification:**
+- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
+
+**Dependencies:** T-048
+**Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
+**Estimated scope:** S
+
+### Checkpoint E3-B — E3 closure 👤
+- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries:
+  - Entreno → "Historial": sessions newest first with date, duration, volume and sets; open one (sets and "PR"), change a set's reps and see the volume update; delete a session and check it no longer shows as ANTERIOR.
+  - Perfil → "Fuerza": the chips of the most trained exercises, the 1RM record and the monthly change; open an exercise (1RM and volume charts, 1M/3M/6M/1A), one with a single session (message) and Dominadas (max reps); "Volumen por grupo muscular" and pick a group.
+  - Open the progress of an exercise from its catalog detail and from a history session.
+  - Approval → `git tag -a v0.3.0 -m "Epic E3"` + retrospective (includes the Claude Code workflows discussion from `retrospectives/E2.md`).
+
+---
+
 ## Notes for later epics
 
 - **E3 (food diary), from E2 (T-037):** US-08's "And the Diary uses the new gram targets" is only verified on the Profile side in E2; the E3 Diary must read the macro gram targets from the domain use case added in T-037 (not recompute them).
-- **E3 / E4 / E5, from the E1 review (user, 2026-10-13):** question the shared "+ Registro" FAB (ADR-10). Food, training and weight log in very different ways, so each epic decides its own entry point: a per-screen action with its own label (e.g. "Añadir alimento" per meal, "Empezar entreno"), a per-tab FAB label, or no FAB. A shared FAB may still fit weight (E4). Update ADR-10 when the first of these epics decides.
+- **E3 / E4 / E5 FAB question (E1 review):** resolved by ADR-36 (no universal FAB); E3's per-screen actions are in T-043 and T-045.
 - **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved. Listed in the E7 UI refinement backlog (`planning/07-roadmap.md` §1.1).
 - **E7 (UI refinement), from Checkpoint E2-A (user, 2026-10-14):** general onboarding polish, better use of space on "Sexo", a typography review. Every later checkpoint appends deferred UI details to `planning/07-roadmap.md` §1.1.
 - **E2 (food diary), from the PR #24 review:** `MacroProgressBar` and `ProgressRing` take `Int`, but snapshots are stored to 0.1 g (04 §2), so a caller that rounds first can be off by 1 % (100.9/200 → 50 %, 101/200 → 51 %). Add `Double` overloads or have the domain pass in the percent.
