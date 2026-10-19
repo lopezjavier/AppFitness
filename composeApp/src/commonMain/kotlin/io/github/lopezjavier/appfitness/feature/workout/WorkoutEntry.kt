@@ -20,9 +20,11 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_continue
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_history
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_in_progress
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesRoot
@@ -30,20 +32,21 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Content of the Entreno tab: "Mis rutinas" (with starting a session) and, while a session is in progress, a
- * "Continuar entreno" card. A session found at launch (cold start included) opens the live screen once.
+ * Content of the Entreno tab: a "Historial" entry, "Mis rutinas" (with starting a session) and, while a session is
+ * in progress, a "Continuar entreno" card. A session found at launch (cold start included) opens the live screen once.
  */
 @Composable
 fun WorkoutEntryRoot(
     onOpenBuilder: (routineId: String?) -> Unit,
     onOpenLiveSession: () -> Unit,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutEntryViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Coming back from the live screen, a finished or discarded session must stop showing as in progress.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.recheck() }
-    WorkoutEntryHost(state, onOpenLiveSession, modifier) { routinesModifier, openLive ->
+    WorkoutEntryHost(state, onOpenLiveSession, onOpenHistory, modifier) { routinesModifier, openLive ->
         RoutinesRoot(onOpenBuilder, openLive, routinesModifier)
     }
 }
@@ -57,6 +60,7 @@ fun WorkoutEntryRoot(
 fun WorkoutEntryHost(
     state: WorkoutEntryState,
     onOpenLiveSession: () -> Unit,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     routines: @Composable (modifier: Modifier, onOpenLiveSession: () -> Unit) -> Unit,
 ) {
@@ -74,6 +78,12 @@ fun WorkoutEntryHost(
     }
     Column(modifier) {
         if (state == WorkoutEntryState.Live) ContinueCard(open)
+        GhostButton(
+            text = stringResource(Res.string.workout_history),
+            onClick = onOpenHistory,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
+                .testTag("workout_history"),
+        )
         Box(Modifier.weight(1f).fillMaxWidth()) { routines(Modifier, open) }
     }
 }

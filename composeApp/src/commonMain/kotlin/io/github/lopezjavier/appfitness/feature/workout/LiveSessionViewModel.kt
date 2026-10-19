@@ -238,12 +238,7 @@ class LiveSessionViewModel(
 
     /** Catalog names come from the library by key, custom ones from their row; a failure leaves rows unnamed. */
     private suspend fun loadNames() {
-        val rows = exerciseRepository.getAll().getOrNull() ?: return
-        val library = exerciseLibrary.load()
-        names = rows.mapNotNull { row ->
-            val name = if (row.isCustom) row.name else row.key?.let { library[it]?.name }
-            name?.let { row.id to it }
-        }.toMap()
+        names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: return
     }
 
     /**

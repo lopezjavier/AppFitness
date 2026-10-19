@@ -1238,16 +1238,16 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Description:** Entreno main view gains "Historial". List of the caller's completed sessions (never `in_progress` or `discarded`), newest first by `started_at`, 20 per page (`limit`/`offset`), loading the next 20 at the end of the list; each row shows date ("Hoy", "Ayer", "lun, 24 oct"; `04` §5), name, duration, total volume and number of completed sets (aggregates in the client or a `security invoker` view/RPC, planner's choice; SQL means a new migration + pgTAP). Detail: each exercise with its sets "87,5 kg × 8" and the PRs achieved in that session (`DetectPersonalRecords` against earlier sessions); editing a set (`NumberInput`) saves it and recalculates the volume; deleting the session (confirmation dialog) removes it and its sets, so it is no longer previous performance or history. E6 adds the richer detail, calendar and copy/save-as-routine; not built here.
 
 **Acceptance criteria:**
-- [ ] List newest to oldest with date, name, duration, total volume ("2.120 kg") and number of sets; discarded and in-progress sessions never listed; empty state when there are none.
-- [ ] Detail shows exercises, sets and "PR" marks consistent with the T-045 summary.
-- [ ] Editing 87,5 kg × 8 to 87,5 kg × 7 saves it and the volume updates in the detail and the list; save errors keep the edit with a message-only snackbar; disabled offline.
-- [ ] Deleting asks for confirmation; the session disappears from the list and `last_performance` no longer returns it (repository/pgTAP check).
-- [ ] With 25 sessions, scrolling to the end loads the remaining 5 without duplicates; a page error shows a retry at the list end.
+- [x] List newest to oldest with date, name, duration, total volume ("2.120 kg") and number of sets; discarded and in-progress sessions never listed; empty state when there are none.
+- [x] Detail shows exercises, sets and "PR" marks consistent with the T-045 summary.
+- [x] Editing 87,5 kg × 8 to 87,5 kg × 7 saves it and the volume updates in the detail and the list; save errors keep the edit with a message-only snackbar; disabled offline.
+- [x] Deleting asks for confirmation; the session disappears from the list and `last_performance` no longer returns it (repository/pgTAP check).
+- [x] With 25 sessions, scrolling to the end loads the remaining 5 without duplicates; a page error shows a retry at the list end.
 
 **Host tests (per scenario):** `HistoryViewModelTest` with fakes + Turbine (Session list; Pagination; Deleting a session); `SessionDetailViewModelTest` (Session detail PRs; Correcting a set → volume recalculated); `HistoryScreenTest` and `SessionDetailScreenTest` (Robolectric: row texts, "PR", edit field, delete dialog); pgTAP only if SQL is added (aggregates isolation; deleted session not returned by `last_performance`).
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
+- [x] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
 
 **Dependencies:** T-046
 **Files likely touched:** `composeApp/…/feature/workout/{HistoryScreen,HistoryViewModel,SessionDetailScreen,SessionDetailViewModel}.kt`, `composeApp/…/feature/workout/WorkoutScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt` (paged list, detail, update set, delete), `shared/…/data/repository/*`, optionally one migration + pgTAP, strings, tests

@@ -34,10 +34,11 @@ class WorkoutTabRouteTest {
 
     private var entry by mutableStateOf<WorkoutEntryState>(WorkoutEntryState.Routines)
     private var openedLive = 0
+    private var openedHistory = 0
     private lateinit var nav: NavHostController
 
-    private val routinesSlot: RoutinesSlot = { modifier, _, onOpenLive ->
-        WorkoutEntryHost(entry, onOpenLive, modifier) { routinesModifier, openLive ->
+    private val routinesSlot: RoutinesSlot = { modifier, _, onOpenLive, onOpenHistory ->
+        WorkoutEntryHost(entry, onOpenLive, onOpenHistory, modifier) { routinesModifier, openLive ->
             Box(routinesModifier.fillMaxSize().testTag("routines_screen")) {
                 Box(Modifier.size(48.dp).testTag("routines_start_stub").clickable(onClick = openLive))
             }
@@ -50,12 +51,16 @@ class WorkoutTabRouteTest {
                 nav = rememberNavController()
                 AppScaffold(
                     navController = nav,
-                    routines = { modifier, builder, live ->
-                        routinesSlot(modifier, builder) {
+                    routines = { modifier, builder, live, history ->
+                        routinesSlot(modifier, builder, {
                             openedLive++
                             live()
+                        }) {
+                            openedHistory++
+                            history()
                         }
                     },
+                    history = { modifier, _ -> Box(modifier.fillMaxSize().testTag("history_screen")) },
                     liveSession = { modifier, host ->
                         Box(modifier.fillMaxSize().testTag("live_screen")) {
                             Box(Modifier.size(48.dp).testTag("live_stub_back").clickable(onClick = host.onClose))
@@ -137,5 +142,30 @@ class WorkoutTabRouteTest {
 
         rule.onNodeWithTag("live_screen").assertExists()
         assertEquals(1, openedLive)
+    }
+
+    @Test
+    fun historialButton_isVisibleInEveryState_andOpensTheHistory() {
+        entry = WorkoutEntryState.Routines
+        showShell()
+
+        rule.onNodeWithTag("workout_history").assertExists()
+        rule.onNodeWithTag("workout_history").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, openedHistory)
+        rule.onNodeWithTag("history_screen").assertExists()
+        rule.onNodeWithTag("nav_bar").assertDoesNotExist()
+    }
+
+    @Test
+    fun historialButton_staysVisibleWhileASessionIsInProgress() {
+        entry = WorkoutEntryState.Live
+        showShell()
+        rule.onNodeWithTag("live_stub_back").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("workout_continue").assertExists()
+        rule.onNodeWithTag("workout_history").assertExists()
     }
 }

@@ -45,6 +45,8 @@ fun App(
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
+    history: HistorySlot = DefaultHistorySlot,
+    sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
     onboarding: @Composable () -> Unit = { OnboardingRoute(onComplete = onOnboardingComplete) },
 ) {
@@ -68,6 +70,8 @@ fun App(
                         routines = routines,
                         routineBuilder = routineBuilder,
                         liveSession = liveSession,
+                        history = history,
+                        sessionDetail = sessionDetail,
                     )
 
                 else ->

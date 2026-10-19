@@ -1,9 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
-import io.github.lopezjavier.appfitness.domain.model.SessionExercise
-import io.github.lopezjavier.appfitness.domain.model.SetEntry
-import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import kotlin.time.Instant
 
@@ -37,9 +34,4 @@ object BuildSessionSummary {
             },
         )
     }
-
-    private fun bestOneRepMax(rows: List<SessionExercise>): Double? = rows.flatMap { it.sets }
-        .filter { it.isCompleted && it.setType != SetType.WarmUp }
-        .mapNotNull { set -> (set.entry as? SetEntry.WeightReps)?.let { EstimateOneRepMax(it.weightKg, it.reps) } }
-        .maxOrNull()
 }

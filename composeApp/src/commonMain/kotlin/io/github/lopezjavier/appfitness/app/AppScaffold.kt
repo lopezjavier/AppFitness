@@ -67,6 +67,8 @@ internal fun AppScaffold(
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
+    history: HistorySlot = DefaultHistorySlot,
+    sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -114,6 +116,8 @@ internal fun AppScaffold(
                     routines = routines,
                     routineBuilder = routineBuilder,
                     liveSession = liveSession,
+                    history = history,
+                    sessionDetail = sessionDetail,
                     modifier = contentModifier,
                 )
             }
@@ -204,6 +208,8 @@ private fun ShellContent(
     routines: RoutinesSlot,
     routineBuilder: RoutineBuilderSlot,
     liveSession: LiveSessionSlot,
+    history: HistorySlot,
+    sessionDetail: SessionDetailSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -237,6 +243,8 @@ private fun ShellContent(
             routines = routines,
             routineBuilder = routineBuilder,
             liveSession = liveSession,
+            history = history,
+            sessionDetail = sessionDetail,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(

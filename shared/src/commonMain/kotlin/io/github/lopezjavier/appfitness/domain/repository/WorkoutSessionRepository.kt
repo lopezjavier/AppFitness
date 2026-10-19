@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 /** Live workout sessions of the signed-in user. A user has at most one in-progress session. */
+@Suppress("TooManyFunctions") // One function per session operation.
 interface WorkoutSessionRepository {
     /** Starts a session with one pending set per routine target set; returns its id. */
     suspend fun startFromRoutine(routineId: String): Result<String>
@@ -29,6 +30,15 @@ interface WorkoutSessionRepository {
         completedAt: Instant?,
         setType: SetType = SetType.Working,
     ): Result<Unit>
+
+    /** Completed sessions, newest first; a page is [limit] rows starting at [offset]. */
+    suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>>
+
+    /** A completed session with its sets; null when it does not exist or is not completed. */
+    suspend fun getSession(sessionId: String): Result<WorkoutSession?>
+
+    /** Deletes the session and its sets. */
+    suspend fun deleteSession(sessionId: String): Result<Unit>
 
     /** Closes the session as completed and drops its pending sets. */
     suspend fun finish(sessionId: String): Result<Unit>

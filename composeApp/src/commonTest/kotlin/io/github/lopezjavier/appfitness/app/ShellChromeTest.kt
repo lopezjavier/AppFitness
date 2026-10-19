@@ -31,6 +31,7 @@ class ShellChromeTest {
     }
 
     @Test
+    @Suppress("ComplexCondition") // Lists the routes that are objects.
     fun fullScreenRoutes_containsTheFullScreenDestinations_andNoTabRoute() {
         assertEquals(
             listOf(
@@ -40,11 +41,14 @@ class ShellChromeTest {
                 ExerciseDetailRoute::class,
                 RoutineBuilderRoute::class,
                 LiveSessionRoute,
+                HistoryRoute,
+                SessionDetailRoute::class,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute ||
-                    it is LiveSessionRoute
+                    it is LiveSessionRoute ||
+                    it is HistoryRoute
                 ) {
                     it
                 } else {
@@ -64,5 +68,11 @@ class ShellChromeTest {
     @Test
     fun liveSessionRoute_drawsItsOwnBar_andHasNoBottomBar() {
         assertEquals(ShellChrome.Own, LiveSessionRoute.chrome)
+    }
+
+    @Test
+    fun historyRoutes_haveFullScreenChrome_withTheirTopBarTags() {
+        assertEquals("history_top_bar", (HistoryRoute.chrome as ShellChrome.FullScreen).topBarTag)
+        assertEquals("session_detail_top_bar", (SessionDetailRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
     }
 }

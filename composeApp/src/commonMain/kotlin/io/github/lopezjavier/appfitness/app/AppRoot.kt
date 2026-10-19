@@ -9,7 +9,9 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
+import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
+import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryRoot
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -37,9 +39,11 @@ fun AppRoot(
         exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect ->
             ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier)
         },
-        routines = { routinesModifier, onOpenBuilder, onOpenLive ->
-            WorkoutEntryRoot(onOpenBuilder, onOpenLive, routinesModifier)
+        routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
+            WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
+        history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
+        sessionDetail = { detailModifier, sessionId, onClose -> SessionDetailRoot(sessionId, onClose, detailModifier) },
         routineBuilder = { builderModifier, host ->
             RoutineBuilderRoot(
                 routineId = host.routineId,
