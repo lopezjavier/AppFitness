@@ -104,6 +104,9 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Onboarding "Sexo": better use of the empty space around the two options | Checkpoint E2-A |
 | Typography review across screens (hierarchy and sizes of titles, descriptions and labels) | Checkpoint E2-A |
 | Tablet: move the primary action out of the top of the NavigationRail into each section's content | E1 closure checkpoint, 2026-10-13 (`tasks/todo.md`, "Notes for later epics") |
+| Preferencias: drop the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." under "Gasto diario estimado" (not needed) | Checkpoint E2-B, 2026-10-19 |
+| Preferencias: "Guardar" should close the screen and return to the Perfil root (today the user taps Guardar and then back: two actions) | Checkpoint E2-B, 2026-10-19 |
+| Perfil root: replace the full-width "Preferencias" button with a gear or pencil icon button next to the user's name, to leave room for the metrics and charts the Perfil will gain | Checkpoint E2-B, 2026-10-19 |
 
 ---
 
