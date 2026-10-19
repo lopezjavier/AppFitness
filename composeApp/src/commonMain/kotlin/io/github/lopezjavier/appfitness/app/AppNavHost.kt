@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // Slot types and one helper per destination.
+
 package io.github.lopezjavier.appfitness.app
 
 import androidx.compose.foundation.clickable
@@ -51,7 +53,18 @@ internal typealias ExerciseDetailSlot =
 
 /** "Mis rutinas" content: its modifier (tab insets) and the opener of the builder (null id = new routine). */
 internal typealias RoutinesSlot =
-    @Composable (modifier: Modifier, onOpenBuilder: (String?) -> Unit, onOpenLiveSession: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenBuilder: (String?) -> Unit,
+        onOpenLiveSession: () -> Unit,
+        onOpenHistory: () -> Unit,
+    ) -> Unit
+
+/** History content: modifier (full-screen insets) and the opener of a session detail (by session id). */
+internal typealias HistorySlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
+
+/** Session detail content: modifier (full-screen insets), the session id and how to leave after a deletion. */
+internal typealias SessionDetailSlot = @Composable (modifier: Modifier, sessionId: String, onClose: () -> Unit) -> Unit
 
 /**
  * What the live workout needs from navigation: the exercise the picker returned (to be consumed with
@@ -103,7 +116,7 @@ internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _
 }
 
 /** Empty "Mis rutinas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _ ->
+internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("routines_screen"))
 }
 
@@ -117,6 +130,16 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("live_screen"))
 }
 
+/** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("history_screen"))
+}
+
+/** Empty session detail for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("session_detail_screen"))
+}
+
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultPreferencesSlot: PreferencesSlot = { modifier ->
     Box(modifier.fillMaxSize().testTag("preferences_screen"))
@@ -128,6 +151,7 @@ internal val DefaultPreferencesSlot: PreferencesSlot = { modifier ->
  * destinations get their own padding so hiding the bottom bar never resizes a tab's viewport.
  */
 @Composable
+@Suppress("LongMethod") // The destination table, one line per route.
 internal fun AppNavHost(
     navController: NavHostController,
     tabPadding: PaddingValues,
@@ -141,6 +165,8 @@ internal fun AppNavHost(
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
+    history: HistorySlot = DefaultHistorySlot,
+    sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -148,12 +174,15 @@ internal fun AppNavHost(
     val openBuilder: (String?) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineBuilderRoute(id)) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
+    val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
-            composable<WorkoutHome> { routines(Modifier.padding(tabPadding), openBuilder, openLiveSession) }
+            composable<WorkoutHome> {
+                routines(Modifier.padding(tabPadding), openBuilder, openLiveSession, openHistory)
+            }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -194,9 +223,29 @@ internal fun AppNavHost(
             )
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
+        historyDestinations(navController, fullScreenPadding, history, sessionDetail)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }
+    }
+}
+
+/** The history list and the detail of one of its sessions; deleting a session pops back to the list. */
+private fun NavGraphBuilder.historyDestinations(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    history: HistorySlot,
+    sessionDetail: SessionDetailSlot,
+) {
+    composable<HistoryRoute> {
+        history(Modifier.padding(fullScreenPadding)) { navController.navigateToFullScreen(SessionDetailRoute(it)) }
+    }
+    composable<SessionDetailRoute> { entry ->
+        sessionDetail(
+            Modifier.padding(fullScreenPadding),
+            entry.toRoute<SessionDetailRoute>().sessionId,
+            { navController.popBackStack() },
+        )
     }
 }
 

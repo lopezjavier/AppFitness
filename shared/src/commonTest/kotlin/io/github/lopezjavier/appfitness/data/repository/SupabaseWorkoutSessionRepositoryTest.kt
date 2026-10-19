@@ -277,4 +277,68 @@ class SupabaseWorkoutSessionRepositoryTest {
 
         assertEquals("""{"p_exercise_id":"e1","p_from":null}""", bodyOf(rest().single()))
     }
+
+    @Test
+    fun listCompleted_filtersByStatusOrdersNewestFirstAndSendsTheWindow() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW.replace("in_progress", "completed")
+
+        val sessions = repo.listCompleted(offset = 20, limit = 20).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/workout_sessions", call.url.encodedPath)
+        val query = call.url.encodedQuery
+        assertTrue("status=eq.completed" in query, query)
+        assertTrue("order=started_at.desc" in query && "id.desc" in query, query)
+        assertTrue("offset=20" in query && "limit=20" in query, query)
+        assertEquals(listOf("s1"), sessions.map { it.id })
+        assertEquals(SessionStatus.Completed, sessions.single().status)
+    }
+
+    @Test
+    fun listCompleted_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.listCompleted(0, 20).appErrorOrNull())
+    }
+
+    @Test
+    fun getSession_filtersByIdAndCompletedStatus() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW.replace("in_progress", "completed")
+
+        val session = repo.getSession("s1").getOrThrow()
+
+        val query = rest().single().url.encodedQuery
+        assertTrue("id=eq.s1" in query && "status=eq.completed" in query, query)
+        assertEquals("s1", session?.id)
+    }
+
+    @Test
+    fun getSession_withNoRows_isNull() = runTest {
+        val repo = signedIn()
+
+        assertNull(repo.getSession("missing").getOrThrow())
+    }
+
+    @Test
+    fun deleteSession_sendsADeleteWithTheId() = runTest {
+        val repo = signedIn()
+
+        repo.deleteSession("s1").getOrThrow()
+
+        val call = rest().single()
+        assertEquals(HttpMethod.Delete, call.method)
+        assertEquals("/rest/v1/workout_sessions", call.url.encodedPath)
+        assertTrue("id=eq.s1" in call.url.encodedQuery, call.url.encodedQuery)
+    }
+
+    @Test
+    fun deleteSession_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.deleteSession("s1").appErrorOrNull())
+    }
 }

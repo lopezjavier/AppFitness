@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
@@ -13,6 +14,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_title
+import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
@@ -67,6 +69,14 @@ data class RoutineBuilderRoute(val routineId: String? = null) : AppRoute
 /** The live workout (US-11): the single in-progress session, with its own top bar; its summary lives inside it. */
 @Serializable
 data object LiveSessionRoute : AppRoute
+
+/** The history of completed sessions (US-14), opened from the Entreno tab. */
+@Serializable
+data object HistoryRoute : AppRoute
+
+/** Detail of one completed session: sets, records, correction and deletion. */
+@Serializable
+data class SessionDetailRoute(val sessionId: String) : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -152,6 +162,11 @@ val AppRoute.chrome: ShellChrome
                 ShellChrome.FullScreen(Res.string.routine_builder_title, topBarTag = "routine_builder_top_bar")
 
             LiveSessionRoute -> ShellChrome.Own
+
+            HistoryRoute -> ShellChrome.FullScreen(Res.string.history_title, topBarTag = "history_top_bar")
+
+            is SessionDetailRoute ->
+                ShellChrome.FullScreen(Res.string.session_detail_title, topBarTag = "session_detail_top_bar")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -168,5 +183,7 @@ object AppDestinations {
             ExerciseDetailRoute("", false),
             RoutineBuilderRoute(),
             LiveSessionRoute,
+            HistoryRoute,
+            SessionDetailRoute(""),
         )
 }

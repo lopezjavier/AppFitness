@@ -79,6 +79,16 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var lastPerformanceFailure: AppError? = null
     val lastPerformanceCalls = mutableListOf<String>()
 
+    /** Completed sessions (history); `session` stays the in-progress one. */
+    val completed = mutableListOf<WorkoutSession>()
+    val listCalls = mutableListOf<Pair<Int, Int>>()
+    val deleted = mutableListOf<String>()
+    var getSessionCalls = 0
+    var listFailure: AppError? = null
+    var listFailureFromOffset: Int? = null
+    var getSessionFailure: AppError? = null
+    var deleteFailure: AppError? = null
+
     private fun failing(error: AppError?) = error?.let { Result.failure<Nothing>(AppException(it)) }
 
     override suspend fun startFromRoutine(routineId: String): Result<String> {
@@ -107,9 +117,61 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         setType: SetType,
     ): Result<Unit> {
         failing(upsertFailure)?.let { return it }
+        applyToCompleted(sessionId, exercisePosition, setIndex, entry)
         upserts +=
             SetWrite(sessionId, exerciseId, exercisePosition, supersetGroup, setIndex, entry, completedAt, setType)
         return Result.success(Unit)
+    }
+
+    @Suppress("ReturnCount")
+    override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> {
+        listCalls += offset to limit
+        failing(listFailure)?.let { return it }
+        if (listFailureFromOffset?.let { offset >= it } == true) return failing(AppError.Network)!!
+        val ordered = completed.sortedWith(
+            compareByDescending<WorkoutSession> {
+                it.startedAt
+            }.thenByDescending { it.id },
+        )
+        return Result.success(ordered.drop(offset).take(limit))
+    }
+
+    override suspend fun getSession(sessionId: String): Result<WorkoutSession?> {
+        getSessionCalls++
+        return failing(getSessionFailure) ?: Result.success(completed.firstOrNull { it.id == sessionId })
+    }
+
+    override suspend fun deleteSession(sessionId: String): Result<Unit> {
+        failing(deleteFailure)?.let { return it }
+        deleted += sessionId
+        completed.removeAll { it.id == sessionId }
+        return Result.success(Unit)
+    }
+
+    private fun applyToCompleted(sessionId: String, position: Int, setIndex: Int, entry: SetEntry) {
+        val index = completed.indexOfFirst { it.id == sessionId }
+        if (index < 0) return
+        completed[index] = completed[index].let { stored ->
+            stored.copy(
+                exercises = stored.exercises.map { exercise ->
+                    if (exercise.position != position) {
+                        exercise
+                    } else {
+                        exercise.copy(
+                            sets = exercise.sets.map {
+                                if (it.setIndex ==
+                                    setIndex
+                                ) {
+                                    it.copy(entry = entry)
+                                } else {
+                                    it
+                                }
+                            },
+                        )
+                    }
+                },
+            )
+        }
     }
 
     override suspend fun finish(sessionId: String): Result<Unit> {
@@ -124,9 +186,19 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         return Result.success(Unit)
     }
 
+    @Suppress("ReturnCount")
     override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> {
         lastPerformanceCalls += exerciseId
-        return failing(lastPerformanceFailure) ?: Result.success(previous[exerciseId].orEmpty())
+        failing(lastPerformanceFailure)?.let { return it }
+        previous[exerciseId]?.let { return Result.success(it) }
+        val latest = completed.sortedByDescending { it.startedAt }
+            .firstOrNull { session -> session.exercises.any { it.exerciseId == exerciseId } }
+        val sets = latest?.exercises?.filter { it.exerciseId == exerciseId }?.flatMap { it.sets }.orEmpty()
+        return Result.success(
+            sets.filter { it.isCompleted }.mapNotNull { set ->
+                (set.entry as? SetEntry.WeightReps)?.let { PreviousSet(set.setIndex, it.weightKg, it.reps) }
+            },
+        )
     }
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =

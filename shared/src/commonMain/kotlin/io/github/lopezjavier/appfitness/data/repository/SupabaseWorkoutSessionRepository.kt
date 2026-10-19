@@ -4,6 +4,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
@@ -23,6 +24,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 /** Workout sessions of the signed-in user (RLS scopes every query); lifecycle changes use atomic RPCs. */
+@Suppress("TooManyFunctions") // One small function per repository operation.
 class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postgrest: Postgrest) :
     WorkoutSessionRepository {
     override suspend fun startFromRoutine(routineId: String): Result<String> = start(routineId)
@@ -40,6 +42,35 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
             .firstOrNull()
             ?.toDomain()
     }
+
+    override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> = auth.ownRow {
+        postgrest.from("workout_sessions")
+            .select(Columns.raw(WorkoutSessionDto.COLUMNS)) {
+                filter { eq("status", "completed") }
+                order("started_at", Order.DESCENDING)
+                order("id", Order.DESCENDING)
+                range(offset.toLong(), (offset + limit - 1).toLong())
+            }
+            .decodeList<WorkoutSessionDto>()
+            .map { it.toDomain() }
+    }
+
+    override suspend fun getSession(sessionId: String): Result<WorkoutSession?> = auth.ownRow {
+        postgrest.from("workout_sessions")
+            .select(Columns.raw(WorkoutSessionDto.COLUMNS)) {
+                filter {
+                    eq("id", sessionId)
+                    eq("status", "completed")
+                }
+            }
+            .decodeList<WorkoutSessionDto>()
+            .firstOrNull()
+            ?.toDomain()
+    }
+
+    override suspend fun deleteSession(sessionId: String): Result<Unit> = auth.ownRow {
+        postgrest.from("workout_sessions").delete { filter { eq("id", sessionId) } }
+    }.map {}
 
     override suspend fun upsertSet(
         sessionId: String,

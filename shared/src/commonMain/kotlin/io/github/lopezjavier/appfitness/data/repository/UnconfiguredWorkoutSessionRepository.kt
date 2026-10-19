@@ -12,6 +12,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 /** Used when Supabase is not configured: every call fails. */
+@Suppress("TooManyFunctions") // One failing stub per repository operation.
 class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
     private fun <T> fail(): Result<T> = Result.failure(AppException(AppError.Unknown))
 
@@ -31,6 +32,12 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
         completedAt: Instant?,
         setType: SetType,
     ): Result<Unit> = fail()
+
+    override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> = fail()
+
+    override suspend fun getSession(sessionId: String): Result<WorkoutSession?> = fail()
+
+    override suspend fun deleteSession(sessionId: String): Result<Unit> = fail()
 
     override suspend fun finish(sessionId: String): Result<Unit> = fail()
 
