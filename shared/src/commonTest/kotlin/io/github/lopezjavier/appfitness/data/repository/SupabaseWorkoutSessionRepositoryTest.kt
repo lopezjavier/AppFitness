@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -229,6 +230,42 @@ class SupabaseWorkoutSessionRepositoryTest {
         assertEquals(113.5, points[0].bestOneRepMax)
         assertEquals(2120.0, points[0].totalVolume)
         assertNull(points[1].bestOneRepMax)
+    }
+
+    @Test
+    fun lastPerformance_callsTheRpcAndMapsTheRows() = runTest {
+        val repo = signedIn()
+        rpcBody = """[{"set_index":1,"weight_kg":80,"reps":10},{"set_index":2,"weight_kg":82.5,"reps":8}]"""
+
+        val sets = repo.lastPerformance("e1").getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/last_performance", call.url.encodedPath)
+        assertEquals("""{"p_exercise_id":"e1"}""", bodyOf(call))
+        assertEquals(listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 82.5, 8)), sets)
+    }
+
+    @Test
+    fun lastPerformance_neverDone_isEmpty() = runTest {
+        val repo = signedIn()
+        rpcBody = "[]"
+
+        assertTrue(repo.lastPerformance("e1").getOrThrow().isEmpty())
+    }
+
+    @Test
+    fun lastPerformance_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.lastPerformance("e1").appErrorOrNull())
+    }
+
+    @Test
+    fun lastPerformance_signedOut_isUnauthorized() = runTest {
+        val repo = signedIn(signIn = false)
+
+        assertEquals(AppError.Unauthorized, repo.lastPerformance("e1").appErrorOrNull())
     }
 
     @Test

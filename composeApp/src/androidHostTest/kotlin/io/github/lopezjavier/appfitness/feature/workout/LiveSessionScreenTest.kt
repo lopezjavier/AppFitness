@@ -9,11 +9,14 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
@@ -141,6 +144,7 @@ class LiveSessionScreenTest {
         show(active())
 
         rule.onNodeWithTag("live_exercise_1_add_set").performClick()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("live_add_exercise"))
         rule.onNodeWithTag("live_add_exercise").performClick()
 
         assertEquals(listOf(LiveSessionEvent.AddSet(1), LiveSessionEvent.AddExercise), events)

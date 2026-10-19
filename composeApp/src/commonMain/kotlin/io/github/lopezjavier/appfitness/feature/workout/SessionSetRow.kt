@@ -28,7 +28,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Maps a live domain row to the values of a [SetRow]. The single place to extend for other set entry types. */
 internal fun LiveSetRow.toSetRowValues() = SetRowValues(
     index = setIndex,
-    previous = null,
+    previous = previous,
     weight = weight,
     reps = reps,
     completed = completed,
@@ -55,6 +55,7 @@ internal fun SessionSetRow(
             onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
             onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },
             modifier = Modifier.testTag(tag),
+            onUsePrevious = { onEvent(LiveSessionEvent.UsePrevious(position, row.setIndex)) },
             testTagPrefix = tag,
         )
         if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))

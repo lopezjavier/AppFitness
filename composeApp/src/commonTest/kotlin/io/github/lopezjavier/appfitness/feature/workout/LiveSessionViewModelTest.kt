@@ -4,6 +4,9 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.Routine
+import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
@@ -11,6 +14,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -31,6 +35,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
+@Suppress("LargeClass") // One class per view model: session, ghost data and rest timer share the same setup.
 class LiveSessionViewModelTest {
     private val repository = FakeWorkoutSessionRepository(twoExercises())
     private val exercises =
@@ -45,6 +50,28 @@ class LiveSessionViewModelTest {
     private val connectivity = FakeConnectivityObserver()
     private val clock = MutableClock()
     private val haptics = FakeHaptics()
+    private val alertSound = FakeAlertSound()
+    private val routines = FakeRoutineRepository(listOf(routineWithRests(0, 0)))
+
+    private var created: LiveSessionViewModel? = null
+
+    private fun newViewModel() = LiveSessionViewModel(
+        repository,
+        exercises,
+        library,
+        connectivity,
+        clock,
+        haptics,
+        routines,
+        alertSound,
+    ).also { created = it }
+
+    /** Stops a rest ticker left running, which would never let the virtual scheduler go idle (frozen clock). */
+    private fun runSessionTest(body: suspend TestScope.() -> Unit) = runTest {
+        body()
+        created?.onEvent(LiveSessionEvent.RestSkip)
+        runCurrent()
+    }
 
     @BeforeTest
     fun setUp() {
@@ -57,7 +84,7 @@ class LiveSessionViewModelTest {
     }
 
     private fun TestScope.loaded(): LiveSessionViewModel {
-        val vm = LiveSessionViewModel(repository, exercises, library, connectivity, clock, haptics)
+        val vm = newViewModel()
         advanceUntilIdle()
         return vm
     }
@@ -70,17 +97,17 @@ class LiveSessionViewModelTest {
     private fun TestScope.type(vm: LiveSessionViewModel, position: Int, index: Int, weight: String, reps: String) {
         vm.onEvent(LiveSessionEvent.WeightChanged(position, index, weight))
         vm.onEvent(LiveSessionEvent.RepsChanged(position, index, reps))
-        advanceUntilIdle()
+        runCurrent() // Not advanceUntilIdle: a running rest ticker never goes idle on a virtual clock.
     }
 
     private fun TestScope.check(vm: LiveSessionViewModel, position: Int, index: Int, checked: Boolean = true) {
         vm.onEvent(LiveSessionEvent.SetChecked(position, index, checked))
-        advanceUntilIdle()
+        runCurrent()
     }
 
     @Test
-    fun startsLoading_thenShowsTheSessionWithThreeRowsPerExercise() = runTest {
-        val vm = LiveSessionViewModel(repository, exercises, library, connectivity, clock, haptics)
+    fun startsLoading_thenShowsTheSessionWithThreeRowsPerExercise() = runSessionTest {
+        val vm = newViewModel()
         assertEquals(LiveSessionUiState.Loading, vm.uiState.value)
 
         advanceUntilIdle()
@@ -94,7 +121,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun customExercisesShowTheirOwnName() = runTest {
+    fun customExercisesShowTheirOwnName() = runSessionTest {
         repository.session = sessionOf(SessionExercise("e3", 0, null, listOf(pendingSet(1))))
 
         val vm = loaded()
@@ -103,7 +130,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun supersetExercisesCarryTheirLabel() = runTest {
+    fun supersetExercisesCarryTheirLabel() = runSessionTest {
         repository.session = sessionOf(
             SessionExercise("e1", 0, 4, listOf(pendingSet(1))),
             SessionExercise("e2", 1, 4, listOf(pendingSet(1))),
@@ -118,7 +145,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun noInProgressSession_isNoSession() = runTest {
+    fun noInProgressSession_isNoSession() = runSessionTest {
         repository.session = null
 
         val vm = loaded()
@@ -127,7 +154,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun loadFailure_isAnErrorThatRetryRecovers() = runTest {
+    fun loadFailure_isAnErrorThatRetryRecovers() = runSessionTest {
         repository.getFailure = AppError.Network
         val vm = loaded()
         assertEquals(LiveSessionUiState.Error, vm.uiState.value)
@@ -141,7 +168,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun exerciseNamesFailing_stillShowsTheSessionWithoutNames() = runTest {
+    fun exerciseNamesFailing_stillShowsTheSessionWithoutNames() = runSessionTest {
         exercises.failure = AppError.Network
 
         val vm = loaded()
@@ -150,7 +177,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun resumingRestoresTheCheckedRows() = runTest {
+    fun resumingRestoresTheCheckedRows() = runSessionTest {
         repository.session = sessionOf(
             SessionExercise("e1", 0, null, listOf(doneSet(1, 60.0, 12), doneSet(2, 87.5, 8), pendingSet(3))),
         )
@@ -165,7 +192,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun checkingASet_ticksOnce_andUpsertsItCompletedNow() = runTest {
+    fun checkingASet_ticksOnce_andUpsertsItCompletedNow() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
         clock.advance(30.seconds)
@@ -182,7 +209,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun weightAcceptsACommaOrADot() = runTest {
+    fun weightAcceptsACommaOrADot() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "87,5", "8")
         type(vm, 0, 2, "87.5", "8")
@@ -194,7 +221,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun editingADraftDoesNotSaveAnything() = runTest {
+    fun editingADraftDoesNotSaveAnything() = runSessionTest {
         val vm = loaded()
 
         type(vm, 0, 1, "60", "12")
@@ -204,7 +231,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun uncheckingASet_upsertsItPendingAndMakesItEditable() = runTest {
+    fun uncheckingASet_upsertsItPendingAndMakesItEditable() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
         check(vm, 0, 1)
@@ -219,7 +246,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun aCompletedRowIgnoresEdits() = runTest {
+    fun aCompletedRowIgnoresEdits() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
         check(vm, 0, 1)
@@ -230,7 +257,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun checkingWithEmptyReps_isRefusedWithoutHapticOrUpsert() = runTest {
+    fun checkingWithEmptyReps_isRefusedWithoutHapticOrUpsert() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "60", "")
 
@@ -243,7 +270,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun checkingWithZeroRepsOrNoWeight_isRefused() = runTest {
+    fun checkingWithZeroRepsOrNoWeight_isRefused() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "60", "0")
         type(vm, 0, 2, "", "10")
@@ -255,7 +282,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun aZeroWeightWithRepsIsValid() = runTest {
+    fun aZeroWeightWithRepsIsValid() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "0", "10")
 
@@ -265,7 +292,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun editingARefusedRowClearsTheInvalidMark() = runTest {
+    fun editingARefusedRowClearsTheInvalidMark() = runSessionTest {
         val vm = loaded()
         check(vm, 0, 1)
 
@@ -275,7 +302,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun addingASet_appendsTheNextIndexWithThePreviousValuesAsPlaceholders() = runTest {
+    fun addingASet_appendsTheNextIndexWithThePreviousValuesAsPlaceholders() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 3, "87,5", "8")
 
@@ -293,7 +320,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun addingAnExercise_asksForThePicker_thenAppendsItAtTheEndWithOneEmptySet() = runTest {
+    fun addingAnExercise_asksForThePicker_thenAppendsItAtTheEndWithOneEmptySet() = runSessionTest {
         val vm = loaded()
 
         vm.effects.test {
@@ -314,7 +341,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun offlineCheck_marksTheRowPendingWithoutCallingTheServer() = runTest {
+    fun offlineCheck_marksTheRowPendingWithoutCallingTheServer() = runSessionTest {
         connectivity.state.value = false
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
@@ -329,7 +356,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun reconnecting_flushesTheQueueOnceAndClearsTheMarker() = runTest {
+    fun reconnecting_flushesTheQueueOnceAndClearsTheMarker() = runSessionTest {
         connectivity.state.value = false
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
@@ -345,7 +372,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun anUpsertFailureWhileOnline_queuesTheSetAndTheNextReconnectSendsIt() = runTest {
+    fun anUpsertFailureWhileOnline_queuesTheSetAndTheNextReconnectSendsIt() = runSessionTest {
         repository.upsertFailure = AppError.Network
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
@@ -364,7 +391,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun anUpsertFailureWhileOnline_isRetriedWithBackoffAndClearsTheMarkerWithoutAConnectivityChange() = runTest {
+    fun anUpsertFailureWhileOnline_isRetriedWithBackoffAndClearsTheMarkerWithoutAConnectivityChange() = runSessionTest {
         repository.upsertFailure = AppError.Network
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
@@ -381,11 +408,13 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun retriesAreBounded_soAPersistentFailureStaysPendingAfterThem() = runTest {
+    fun retriesAreBounded_soAPersistentFailureStaysPendingAfterThem() = runSessionTest {
         repository.upsertFailure = AppError.Network
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
         check(vm, 0, 1)
+        advanceTimeBy(60_000)
+        runCurrent()
 
         repository.upsertFailure = null
         advanceTimeBy(60_000)
@@ -396,7 +425,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun aLaterSuccessfulWriteAlsoSendsTheQueuedOnes() = runTest {
+    fun aLaterSuccessfulWriteAlsoSendsTheQueuedOnes() = runSessionTest {
         repository.upsertFailure = AppError.Network
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
@@ -411,7 +440,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun twoEditsOfTheSameQueuedSet_sendOnlyTheLast() = runTest {
+    fun twoEditsOfTheSameQueuedSet_sendOnlyTheLast() = runSessionTest {
         connectivity.state.value = false
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
@@ -426,7 +455,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun requestingFinish_countsTheIncompleteSets() = runTest {
+    fun requestingFinish_countsTheIncompleteSets() = runSessionTest {
         val vm = loaded()
         completeBenchSets(vm)
 
@@ -436,7 +465,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun dismissingTheFinishSheet_closesItWithoutFinishing() = runTest {
+    fun dismissingTheFinishSheet_closesItWithoutFinishing() = runSessionTest {
         val vm = loaded()
         vm.onEvent(LiveSessionEvent.RequestFinish)
 
@@ -447,7 +476,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun confirmingFinish_finishesAndShowsTheSummary() = runTest {
+    fun confirmingFinish_finishesAndShowsTheSummary() = runSessionTest {
         repository.history = mapOf("e1" to emptyList(), "e2" to emptyList())
         val vm = loaded()
         completeBenchSets(vm)
@@ -466,7 +495,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun summaryMarksAFirstEverSessionAsARecord_andNotALowerOneRepMax() = runTest {
+    fun summaryMarksAFirstEverSessionAsARecord_andNotALowerOneRepMax() = runSessionTest {
         repository.history = mapOf(
             "e1" to listOf(ExerciseHistoryPoint("old", LocalDate(2026, 10, 1), 500.0, 0.0)),
             "e2" to emptyList(),
@@ -486,7 +515,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun historyFailure_stillShowsTheSummaryWithoutRecords() = runTest {
+    fun historyFailure_stillShowsTheSummaryWithoutRecords() = runSessionTest {
         repository.historyFailure = AppError.Network
         val vm = loaded()
         completeBenchSets(vm)
@@ -500,7 +529,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun finishFailure_keepsTheStateAndReportsIt() = runTest {
+    fun finishFailure_keepsTheStateAndReportsIt() = runSessionTest {
         repository.finishFailure = AppError.Network
         val vm = loaded()
         vm.onEvent(LiveSessionEvent.RequestFinish)
@@ -517,7 +546,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun finishingOffline_isBlocked() = runTest {
+    fun finishingOffline_isBlocked() = runSessionTest {
         connectivity.state.value = false
         val vm = loaded()
         assertTrue(vm.active().actionsBlocked)
@@ -530,7 +559,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun finishingFlushesTheQueueFirst_andKeepsTheStateIfItCannotBeSent() = runTest {
+    fun finishingFlushesTheQueueFirst_andKeepsTheStateIfItCannotBeSent() = runSessionTest {
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
         repository.upsertFailure = AppError.Network
@@ -548,7 +577,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun confirmingDiscard_discardsAndCloses() = runTest {
+    fun confirmingDiscard_discardsAndCloses() = runSessionTest {
         val vm = loaded()
 
         vm.onEvent(LiveSessionEvent.RequestDiscard)
@@ -563,7 +592,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun dismissingDiscard_keepsTheSession() = runTest {
+    fun dismissingDiscard_keepsTheSession() = runSessionTest {
         val vm = loaded()
         vm.onEvent(LiveSessionEvent.RequestDiscard)
 
@@ -574,7 +603,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun discardFailure_keepsTheStateAndReportsIt() = runTest {
+    fun discardFailure_keepsTheStateAndReportsIt() = runSessionTest {
         repository.discardFailure = AppError.Network
         val vm = loaded()
         vm.onEvent(LiveSessionEvent.RequestDiscard)
@@ -590,7 +619,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun done_closesTheFlow() = runTest {
+    fun done_closesTheFlow() = runSessionTest {
         val vm = loaded()
         vm.onEvent(LiveSessionEvent.RequestFinish)
         vm.onEvent(LiveSessionEvent.ConfirmFinish)
@@ -603,7 +632,7 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun theStopwatchCountsFromTheStartWithTheInjectedClock() = runTest {
+    fun theStopwatchCountsFromTheStartWithTheInjectedClock() = runSessionTest {
         val vm = loaded()
         clock.advance(90.seconds)
 
@@ -625,7 +654,323 @@ class LiveSessionViewModelTest {
         check(vm, 0, 3)
     }
 
+    private fun replaceRoutine(vararg rests: Int) {
+        routines.routines.clear()
+        routines.routines += routineWithRests(*rests)
+    }
+
+    // --- Ghost data (US-12) ---
+
+    @Test
+    fun ghostIsLoadedOncePerExerciseAtLoad() = runSessionTest {
+        repository.session = sessionOf(
+            SessionExercise("e1", 0, null, listOf(pendingSet(1))),
+            SessionExercise("e1", 1, null, listOf(pendingSet(1))),
+            SessionExercise("e2", 2, null, listOf(pendingSet(1))),
+        )
+
+        loaded()
+
+        assertEquals(listOf("e1", "e2"), repository.lastPerformanceCalls)
+    }
+
+    @Test
+    fun ghostFeedsThePreviousTextAndThePlaceholders_andMissingSetsHaveNone() = runSessionTest {
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 85.0, 8)))
+
+        val vm = loaded()
+
+        val first = vm.row(0, 1)
+        assertEquals("80 kg × 10", first.previous)
+        assertEquals("80" to "10", first.weightPlaceholder to first.repsPlaceholder)
+        assertEquals("85 kg × 8", vm.row(0, 2).previous)
+        assertNull(vm.row(0, 3).previous)
+        assertNull(vm.row(1, 1).previous)
+        assertEquals("" to "", first.weight to first.reps)
+    }
+
+    @Test
+    fun ghostFailure_isTolerated() = runSessionTest {
+        repository.lastPerformanceFailure = AppError.Network
+
+        val vm = loaded()
+
+        assertNull(vm.row(0, 1).previous)
+        assertEquals(6, vm.active().exercises.sumOf { it.sets.size })
+    }
+
+    @Test
+    fun usePrevious_fillsTheDraftsAndTheSetIsWrittenOnCheck() = runSessionTest {
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 82.5, 8)))
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.UsePrevious(0, 2))
+        runCurrent()
+
+        assertEquals("82,5" to "8", vm.row(0, 2).weight to vm.row(0, 2).reps)
+        assertTrue(repository.upserts.isEmpty())
+        check(vm, 0, 2)
+        assertEquals(SetEntry.WeightReps(82.5, 8), repository.upserts.single().entry)
+    }
+
+    @Test
+    fun usePrevious_withoutGhostOrOnACompletedSet_changesNothing() = runSessionTest {
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10)))
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.UsePrevious(0, 1))
+        vm.onEvent(LiveSessionEvent.UsePrevious(0, 3))
+        vm.onEvent(LiveSessionEvent.UsePrevious(1, 1))
+
+        assertEquals("60" to "12", vm.row(0, 1).weight to vm.row(0, 1).reps)
+        assertEquals("" to "", vm.row(0, 3).weight to vm.row(0, 3).reps)
+    }
+
+    @Test
+    fun addingAnExercise_loadsItsGhost() = runSessionTest {
+        repository.previous = mapOf("e3" to listOf(PreviousSet(1, 40.0, 12)))
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.ExerciseSelected("e3"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("e1", "e2", "e3"), repository.lastPerformanceCalls)
+        assertEquals("40 kg × 12", vm.row(2, 1).previous)
+    }
+
+    // --- Rest timer (US-13) ---
+
+    private fun TestScope.timerVm(vararg rests: Int): LiveSessionViewModel {
+        replaceRoutine(*rests)
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        return vm
+    }
+
+    @Test
+    fun noTimerRunsBeforeASetIsChecked() = runSessionTest {
+        val vm = timerVm(120, 120)
+
+        assertNull(vm.active().restTimer)
+    }
+
+    @Test
+    fun checkingASet_startsTheRoutineRest() = runSessionTest {
+        val vm = timerVm(90, 120)
+
+        check(vm, 0, 1)
+
+        assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
+        assertEquals(listOf(90, 120), vm.active().exercises.map { it.restSeconds })
+    }
+
+    @Test
+    fun zeroRest_startsNoTimer() = runSessionTest {
+        val vm = timerVm(0, 120)
+
+        check(vm, 0, 1)
+
+        assertNull(vm.active().restTimer)
+    }
+
+    @Test
+    fun countdownIsRecomputedFromTheClock_evenAfterABackgroundGap() = runSessionTest {
+        val vm = timerVm(120, 120)
+        check(vm, 0, 1)
+
+        clock.advance(100.seconds)
+        vm.onEvent(LiveSessionEvent.Resume)
+
+        assertEquals(20.seconds, vm.active().restTimer?.remaining)
+    }
+
+    @Test
+    fun theTickerRefreshesTheRemainingTimeEverySecond() = runSessionTest {
+        val vm = timerVm(120, 120)
+        check(vm, 0, 1)
+
+        clock.advance(1.seconds)
+        advanceTimeBy(1_001)
+
+        assertEquals(119.seconds, vm.active().restTimer?.remaining)
+    }
+
+    @Test
+    fun add30_extendsWhatIsLeft_andGrowsTheTotalWhenExceeded() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+        clock.advance(40.seconds)
+
+        vm.onEvent(LiveSessionEvent.RestAdd30)
+
+        assertEquals(RestTimerUi(50.seconds, 60.seconds), vm.active().restTimer)
+        vm.onEvent(LiveSessionEvent.RestAdd30)
+        assertEquals(RestTimerUi(80.seconds, 80.seconds), vm.active().restTimer)
+    }
+
+    @Test
+    fun skip_removesTheTimerWithoutAlert() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.RestSkip)
+        clock.advance(120.seconds)
+        advanceTimeBy(5_000)
+
+        assertNull(vm.active().restTimer)
+        assertEquals(0, haptics.alerts)
+        assertEquals(0, alertSound.plays)
+    }
+
+    @Test
+    fun atZero_alertsOnce_andTheTimerDisappears() = runSessionTest {
+        val vm = timerVm(30, 120)
+        check(vm, 0, 1)
+
+        clock.advance(29.seconds)
+        advanceTimeBy(1_001)
+        assertEquals(0, haptics.alerts)
+        assertEquals(1.seconds, vm.active().restTimer?.remaining)
+        clock.advance(1.seconds)
+        advanceTimeBy(1_001)
+        advanceTimeBy(5_000)
+
+        assertNull(vm.active().restTimer)
+        assertEquals(1, haptics.alerts)
+        assertEquals(1, alertSound.plays)
+    }
+
+    @Test
+    fun restEndingInTheBackground_resolvesTheBarWithoutAlert() = runSessionTest {
+        val vm = timerVm(30, 120)
+        check(vm, 0, 1)
+        vm.onEvent(LiveSessionEvent.Pause)
+
+        clock.advance(31.seconds)
+        advanceTimeBy(1_001)
+
+        assertNull(vm.active().restTimer)
+        assertEquals(0, haptics.alerts)
+        assertEquals(0, alertSound.plays)
+    }
+
+    @Test
+    fun checkingAnotherSet_restartsTheTimerWithThatExercisesRest() = runSessionTest {
+        val vm = timerVm(60, 90)
+        check(vm, 0, 1)
+        clock.advance(20.seconds)
+        type(vm, 1, 1, "40", "10")
+
+        check(vm, 1, 1)
+
+        assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
+    }
+
+    @Test
+    fun uncheckingASet_doesNotStopTheTimer() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        check(vm, 0, 1, checked = false)
+
+        assertEquals(60.seconds, vm.active().restTimer?.remaining)
+    }
+
+    @Test
+    fun supersetMembers_useTheirOwnRest_transitionThenBetweenRounds() = runSessionTest {
+        repository.session = sessionOf(
+            SessionExercise("e1", 0, 1, listOf(pendingSet(1))),
+            SessionExercise("e2", 1, 1, listOf(pendingSet(1))),
+        )
+        replaceRoutine(0, 90)
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        type(vm, 1, 1, "40", "10")
+
+        check(vm, 0, 1)
+        assertNull(vm.active().restTimer)
+        check(vm, 1, 1)
+
+        assertEquals(90.seconds, vm.active().restTimer?.remaining)
+    }
+
+    @Test
+    fun exercisesAddedDuringTheSession_rest120Seconds() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.ExerciseSelected("e3"))
+        advanceUntilIdle()
+        type(vm, 2, 1, "40", "10")
+
+        check(vm, 2, 1)
+
+        assertEquals(120.seconds, vm.active().restTimer?.remaining)
+        assertEquals(120, vm.active().exercises[2].restSeconds)
+    }
+
+    @Test
+    fun aRoutineReadFailure_fallsBackTo120Seconds() = runSessionTest {
+        routines.failure = AppError.Network
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+
+        check(vm, 0, 1)
+
+        assertEquals(120.seconds, vm.active().restTimer?.remaining)
+    }
+
+    @Test
+    fun aSessionOverride_appliesToFollowingSetsOnly_andNeverSavesTheRoutine() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+        assertEquals(60.seconds, vm.active().restTimer?.remaining)
+
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 90))
+        assertEquals(60.seconds, vm.active().restTimer?.remaining)
+        type(vm, 0, 2, "60", "12")
+        check(vm, 0, 2)
+
+        assertEquals(90.seconds, vm.active().restTimer?.remaining)
+        assertEquals(90, vm.active().exercises[0].restSeconds)
+        assertTrue(routines.saved.isEmpty())
+    }
+
+    @Test
+    fun aRestOverride_isClampedToTheRoutineBounds() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 9_999))
+        assertEquals(600, vm.active().exercises[0].restSeconds)
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, -5))
+        assertEquals(0, vm.active().exercises[0].restSeconds)
+    }
+
+    @Test
+    fun finishing_removesTheTimer() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.RequestFinish)
+        vm.onEvent(LiveSessionEvent.ConfirmFinish)
+        runCurrent()
+        clock.advance(120.seconds)
+        advanceTimeBy(5_000)
+
+        assertEquals(0, haptics.alerts)
+    }
+
     private companion object {
+        fun routineWithRests(vararg rests: Int) = Routine(
+            id = "r1",
+            name = "Torso",
+            notes = null,
+            archived = false,
+            exercises = rests.mapIndexed { index, rest ->
+                RoutineExercise("e${index + 1}", index, null, 3, 8, rest)
+            },
+        )
+
         fun twoExercises() = sessionOf(
             SessionExercise("e1", 0, null, listOf(pendingSet(1), pendingSet(2), pendingSet(3))),
             SessionExercise("e2", 1, null, listOf(pendingSet(1), pendingSet(2), pendingSet(3))),

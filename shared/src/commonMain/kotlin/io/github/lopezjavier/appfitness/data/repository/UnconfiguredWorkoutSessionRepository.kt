@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.data.repository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
@@ -34,6 +35,8 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
     override suspend fun finish(sessionId: String): Result<Unit> = fail()
 
     override suspend fun discard(sessionId: String): Result<Unit> = fail()
+
+    override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> = fail()
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =
         fail()
