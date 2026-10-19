@@ -44,6 +44,7 @@ Tables/columns, RPC signatures, endpoints (request/response JSON), DTOs and doma
 ## Implementation order
 Small steps; each one leaves the project building and the tests green.
 ## Risks and open questions
+If a shared component changes (`designsystem/`, a shared picker, a use case used by other features), list every caller (grep) and how each one is affected.
 ```
 
 ## Rules

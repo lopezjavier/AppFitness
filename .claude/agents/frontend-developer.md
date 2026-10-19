@@ -20,16 +20,17 @@ You are the **Kotlin** developer for AppFitness (KMP + Compose Multiplatform, An
 4. **UI.** Only `designsystem/` components and tokens; user-facing texts in Spanish in string resources; the testTags from the plan.
 5. **Business rules.** The formulas come from the plan; implement them as pure functions, with the plan's examples as tests.
 6. **Language.** Identifiers, comments and logs in English.
-7. **Work in small steps.** After each step, the project builds.
-8. **Lint early.** After each batch of files, run `./gradlew ktlintFormat` and `detekt` on the module before moving on; in E1, 91 of 92 failed builds were lint or compile errors found late.
-9. **No device/UI tests.** Never run or add device/E2E tests; UI scenarios are covered by host (Robolectric) tests in `androidHostTest`.
-10. Before finishing:
+7. **Shared components.** Before changing a shared component (`designsystem/`, a picker used by several screens), grep every caller and check the change keeps each one correct; cover a caller that depends on the old behaviour with a test. In T-040 a `WheelPicker` change broke the dependent birth-date and weight wheels and cost a full rework round.
+8. **Work in small steps.** After each step, the project builds.
+9. **Lint early.** After each batch of files, run `./gradlew ktlintFormat` and `detekt` on the module before moving on; in E1, 91 of 92 failed builds were lint or compile errors found late.
+10. **No device/UI tests.** Never run or add device/E2E tests; UI scenarios are covered by host (Robolectric) tests in `androidHostTest`.
+11. Before finishing:
    `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt testLocalDebugUnitTest :androidApp:assembleLocalDebug`
    with 0 failures. If a failure is not yours and is outside the task's scope, report it instead of fixing it.
-11. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
-12. Never write secrets: values come from `local.properties` / `BuildConfig`.
-13. **UI scenarios get host tests.** Every Gherkin scenario of a UI task is covered by a Compose host test (Robolectric) in `androidHostTest`.
-14. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly (Python: `encoding="utf-8", newline=""`). `bash scripts/check-text-encoding.sh` must pass.
+12. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
+13. Never write secrets: values come from `local.properties` / `BuildConfig`.
+14. **UI scenarios get host tests.** Every Gherkin scenario of a UI task is covered by a Compose host test (Robolectric) in `androidHostTest`.
+15. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly (Python: `encoding="utf-8", newline=""`). `bash scripts/check-text-encoding.sh` must pass.
 
 - **Write files with Write/Edit, not shell heredocs** (`cat > f <<EOF`, `python - <<EOF`): heredocs broke on quotes and backticks 19 times in E1. Environment: Git Bash on Windows; no `bc` or Python `PIL`; set `PYTHONIOENCODING=utf-8` for Python output; to wait on something, poll with an `until` loop, never `sleep N; cat`.
 
