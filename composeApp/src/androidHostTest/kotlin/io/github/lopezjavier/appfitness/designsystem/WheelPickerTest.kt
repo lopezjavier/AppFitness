@@ -149,6 +149,16 @@ class WheelPickerTest {
     }
 
     @Test
+    fun swipingTheWheel_reportsTheCentredItemBeforeTheSnapAnimationEnds() {
+        show()
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag(TAG).performTouchInput { swipeUp() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+        assertTrue("value moved up from 178 while still scrolling but is $value", value > 178)
+    }
+
+    @Test
     fun inAnUnweightedRow_theWheelIsBoundedAndTheSiblingKeepsItsSpaceOnOneLine() {
         rule.setContent {
             AppTheme {

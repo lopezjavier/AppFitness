@@ -263,6 +263,108 @@ class ProfileViewModelTest {
     }
 
     @Test
+    fun editingHeightAndBirthDate_updatesTheFormAndMakesItSavable() = runTest {
+        val (viewModel, state) = loaded()
+        val newBirth = LocalDate(1995, 5, 5)
+
+        viewModel.onEvent(ProfileEvent.SetHeight(172))
+        viewModel.onEvent(ProfileEvent.SetBirthDate(newBirth))
+        advanceUntilIdle()
+
+        assertEquals(172, state().form.heightCm)
+        assertEquals(newBirth, state().form.birthDate)
+        assertTrue(state().isDirty)
+        assertTrue(state().canSave)
+    }
+
+    @Test
+    fun editingTheBirthDate_recalculatesTheEnergyFromTheNewAge() = runTest {
+        val (viewModel, state) = loaded()
+        val before = state().energy.tdeeKcal
+
+        viewModel.onEvent(ProfileEvent.SetBirthDate(LocalDate(1990, 5, 5)))
+        advanceUntilIdle()
+
+        val expected = CalculateTdee(Sex.Male, LocalDate(1990, 5, 5), 178, 80.0, ActivityLevel.Moderate, today)
+        assertEquals(expected, state().energy.tdeeKcal)
+        assertTrue(before != state().energy.tdeeKcal)
+    }
+
+    @Test
+    fun heightAndBirthDate_areClampedToTheAllowedRanges() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(ProfileEvent.SetHeight(50))
+        assertEquals(100, state().form.heightCm)
+        viewModel.onEvent(ProfileEvent.SetHeight(300))
+        assertEquals(250, state().form.heightCm)
+
+        viewModel.onEvent(ProfileEvent.SetBirthDate(LocalDate(2026, 1, 1)))
+        assertEquals(LocalDate(2012, 10, 14), state().form.birthDate)
+        viewModel.onEvent(ProfileEvent.SetBirthDate(LocalDate(1800, 1, 1)))
+        assertEquals(LocalDate(1925, 10, 15), state().form.birthDate)
+    }
+
+    @Test
+    fun activityChange_isPartOfTheForm() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(ProfileEvent.SelectActivity(ActivityLevel.Light))
+
+        assertEquals(ActivityLevel.Light, state().form.activity)
+        assertTrue(state().isDirty)
+    }
+
+    @Test
+    fun saving_keepsTheEditedValuesInTheForm_andWritesThem() = runTest {
+        val (viewModel, state) = loaded()
+        val newBirth = LocalDate(1995, 5, 5)
+
+        viewModel.onEvent(ProfileEvent.SetHeight(172))
+        viewModel.onEvent(ProfileEvent.SetBirthDate(newBirth))
+        viewModel.onEvent(ProfileEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(172, state().form.heightCm)
+        assertEquals(newBirth, state().form.birthDate)
+        assertEquals(state().form, state().saved)
+        val biometrics = profile.settingsSaves.single().first
+        assertEquals(172, biometrics.heightCm)
+        assertEquals(newBirth, biometrics.birthDate)
+    }
+
+    @Test
+    fun reopening_loadsTheSavedHeightAndBirthDate() = runTest {
+        val (viewModel, _) = loaded()
+        val newBirth = LocalDate(1995, 5, 5)
+        viewModel.onEvent(ProfileEvent.SetHeight(172))
+        viewModel.onEvent(ProfileEvent.SetBirthDate(newBirth))
+        viewModel.onEvent(ProfileEvent.Save)
+        advanceUntilIdle()
+        val stored = profile.settingsSaves.single().first
+        profile.biometrics = Result.success(
+            SavedBiometrics(stored.sex, stored.birthDate, stored.heightCm, stored.activityLevel),
+        )
+
+        val (_, reopened) = loaded()
+
+        assertEquals(172, reopened().form.heightCm)
+        assertEquals(newBirth, reopened().form.birthDate)
+    }
+
+    @Test
+    fun editsAreIgnoredWhileSaving() = runTest {
+        val (viewModel, state) = loaded()
+        viewModel.onEvent(ProfileEvent.SetHeight(172))
+        viewModel.onEvent(ProfileEvent.Save)
+
+        viewModel.onEvent(ProfileEvent.SetHeight(190))
+        advanceUntilIdle()
+
+        assertEquals(172, state().form.heightCm)
+    }
+
+    @Test
     fun signOutConfirmed_signsOutOnce() = runTest {
         val viewModel = viewModel()
 

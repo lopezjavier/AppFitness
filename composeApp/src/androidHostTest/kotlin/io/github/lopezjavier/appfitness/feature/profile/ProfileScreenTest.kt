@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -25,6 +26,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -211,6 +214,153 @@ class ProfileScreenTest {
         rule.waitForIdle()
         rule.onNodeWithTag("profile_sheet_birth_date").assertExists()
         rule.onNodeWithTag("profile_birth_year_picker").assertExists()
+    }
+
+    // -- US-06 edited values reach the card (T-040) ---------------------------------------------------------------
+
+    /** Shows the screen with a minimal reducer, so a sheet's "Listo" feeds the new state back to the card. */
+    private fun showStateful() {
+        var state by mutableStateOf(loaded())
+        events.clear()
+        rule.setContent {
+            AppTheme {
+                ProfileScreen(
+                    state = state,
+                    onEvent = { event ->
+                        events += event
+                        state = reduce(state, event)
+                    },
+                )
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    private fun reduce(state: ProfileUiState.Loaded, event: ProfileEvent): ProfileUiState.Loaded = when (event) {
+        is ProfileEvent.SetHeight -> state.copy(form = state.form.copy(heightCm = event.heightCm))
+        is ProfileEvent.SetBirthDate -> state.copy(form = state.form.copy(birthDate = event.date))
+        is ProfileEvent.SelectActivity -> state.copy(form = state.form.copy(activity = event.level))
+        is ProfileEvent.SelectSex -> state.copy(form = state.form.copy(sex = event.sex))
+        ProfileEvent.Save -> state.copy(saved = state.form)
+        else -> state
+    }
+
+    private fun openSheet(rowTag: String) {
+        rule.onNodeWithTag(rowTag).performScrollTo().performClick()
+        rule.waitForIdle()
+    }
+
+    private fun setWheel(tag: String, value: Float) {
+        rule.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
+    }
+
+    @Test
+    fun editedHeight_isShownOnTheCardAfterListo() {
+        showStateful()
+        openSheet("profile_height_row")
+        setWheel("profile_height_picker", 172f)
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_height_row").assertContentDescriptionEquals("Altura, 172 centímetros, editar")
+        rule.onNodeWithText("172 cm").assertExists()
+    }
+
+    @Test
+    fun editedHeight_startsTheWheelAtTheNewValueWhenReopened() {
+        showStateful()
+        openSheet("profile_height_row")
+        setWheel("profile_height_picker", 172f)
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        openSheet("profile_height_row")
+
+        rule.onNodeWithTag("profile_height_picker").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "172 cm"),
+        )
+    }
+
+    @Test
+    fun editedHeight_byTappingANeighbourItem_isShownOnTheCard() {
+        showStateful()
+        openSheet("profile_height_row")
+        rule.onNodeWithTag("profile_height_picker_item_181").performClick()
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_height_row").assertContentDescriptionEquals("Altura, 181 centímetros, editar")
+    }
+
+    @Test
+    fun editedHeight_bySwipingTheWheel_isAppliedByListo() {
+        showStateful()
+        openSheet("profile_height_row")
+        rule.onNodeWithTag("profile_height_picker").performTouchInput { swipeUp() }
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        val applied = events.filterIsInstance<ProfileEvent.SetHeight>().single().heightCm
+        assertTrue("the swiped value ($applied) must differ from the old 180", applied > 180)
+        rule.onNodeWithTag("profile_height_row")
+            .assertContentDescriptionEquals("Altura, $applied centímetros, editar")
+    }
+
+    @Test
+    fun editedBirthYear_isShownOnTheCardAfterListo() {
+        showStateful()
+        openSheet("profile_birth_date_row")
+        setWheel("profile_birth_year_picker", 1990f)
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_birth_date_row").assertContentDescriptionEquals("Edad, 36 años, editar")
+        rule.onNodeWithText("36 años").assertExists()
+    }
+
+    @Test
+    fun changingTheWheel_doesNotTouchTheCardUntilListo() {
+        showStateful()
+        openSheet("profile_height_row")
+        setWheel("profile_height_picker", 172f)
+        rule.waitForIdle()
+
+        assertTrue(events.isEmpty())
+        rule.onNodeWithTag("profile_height_row").assertContentDescriptionEquals("Altura, 180 centímetros, editar")
+    }
+
+    @Test
+    fun editedActivity_isShownOnTheCardAfterListo() {
+        showStateful()
+        openSheet("profile_activity_row")
+        rule.onNodeWithTag("profile_activity_light").performClick()
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_activity_row").assertContentDescriptionEquals("Actividad, Ligero, editar")
+    }
+
+    @Test
+    fun editedSex_isShownAsSelected() {
+        showStateful()
+        rule.onNodeWithTag("profile_sex_female").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_sex_female").assertIsSelected()
+    }
+
+    @Test
+    fun afterSaving_theCardStillShowsTheEditedValues() {
+        showStateful()
+        openSheet("profile_height_row")
+        setWheel("profile_height_picker", 172f)
+        rule.onNodeWithTag("profile_sheet_done").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_save_button").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_height_row").assertContentDescriptionEquals("Altura, 172 centímetros, editar")
     }
 
     // -- US-07 saving the goals on Profile ------------------------------------------------------------------------

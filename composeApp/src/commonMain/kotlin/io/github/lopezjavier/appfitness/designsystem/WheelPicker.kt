@@ -47,7 +47,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -172,7 +171,7 @@ fun WheelPicker(
 }
 
 /**
- * Keeps the list and the value in step: reports the item the wheel settled on, and scrolls the wheel when the
+ * Keeps the list and the value in step: reports the item the wheel is centred on, and scrolls the wheel when the
  * value (or the range) changes from outside, as with a prefill, a clamp or an accessibility action.
  */
 @Composable
@@ -187,9 +186,10 @@ private fun WheelSync(
     val currentOnSettle by rememberUpdatedState(onSettle)
     val currentCentredIndex by rememberUpdatedState(centredIndex)
     LaunchedEffect(listState, range) {
-        snapshotFlow { if (listState.isScrollInProgress) null else currentCentredIndex() }
-            .filter { it != null }
-            .map { range.first + it!! }
+        // Reported live, not only once idle: "Listo" tapped while the snap animation still runs must apply the item
+        // the wheel is showing, not the stale value from before the swipe.
+        snapshotFlow { currentCentredIndex() }
+            .map { range.first + it }
             .distinctUntilChanged()
             .collect { settled -> if (settled != currentSelected) currentOnSettle(settled) }
     }
