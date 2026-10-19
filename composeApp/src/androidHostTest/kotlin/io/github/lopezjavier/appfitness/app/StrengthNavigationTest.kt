@@ -34,11 +34,15 @@ class StrengthNavigationTest {
             Box(tapTarget().testTag("profile_open_strength").clickable(onClick = onOpenStrength))
         }
     }
-    private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onStartWorkout ->
+    private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
         Column(modifier.fillMaxSize().testTag("strength_screen")) {
             Box(tapTarget().testTag("strength_open").clickable { onOpenExercise("bench") })
+            Box(tapTarget().testTag("strength_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
             Box(tapTarget().testTag("strength_start").clickable(onClick = onStartWorkout))
         }
+    }
+    private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _ ->
+        Box(modifier.fillMaxSize().testTag("muscle_volume_screen"))
     }
     private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId ->
         Text(exerciseId, modifier.testTag("progress_exercise_id"))
@@ -64,6 +68,7 @@ class StrengthNavigationTest {
                     navController = nav,
                     profile = profileSlot,
                     strength = strengthSlot,
+                    muscleVolume = muscleVolumeSlot,
                     exerciseProgress = progressSlot,
                     exerciseDetail = detailSlot,
                     sessionDetail = sessionDetailSlot,
@@ -103,6 +108,21 @@ class StrengthNavigationTest {
 
         rule.onNodeWithTag("progress_exercise_id").assertTextEquals("bench")
         rule.onNodeWithTag("exercise_progress_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("strength_screen").assertExists()
+    }
+
+    @Test
+    fun volumenPorGrupoMuscular_opensItsScreenWithTitle_andBackReturnsToFuerza() {
+        showShell()
+        openStrengthFromProfile()
+
+        rule.onNodeWithTag("strength_open_muscle_volume").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("muscle_volume_screen").assertExists()
+        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen por grupo muscular")
+        rule.onNodeWithTag("muscle_volume_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("strength_screen").assertExists()
     }

@@ -1,6 +1,9 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
@@ -27,3 +30,16 @@ internal data class MaxRepsRowDto(
 
 @Serializable
 internal data class SessionStartDto(@SerialName("started_at") val startedAt: String)
+
+@Serializable
+internal data class WeeklyMuscleVolumeParams(@SerialName("p_from") val from: LocalDate)
+
+/** Row returned by the `weekly_muscle_volume` RPC. */
+@Serializable
+internal data class WeeklyMuscleVolumeRowDto(
+    @SerialName("week_start") val weekStart: LocalDate,
+    @SerialName("muscle_group") val muscleGroup: MuscleGroup,
+    @SerialName("total_volume") val totalVolume: Double = 0.0,
+) {
+    fun toDomain() = WeeklyMuscleVolumeRow(weekStart, muscleGroup, totalVolume)
+}

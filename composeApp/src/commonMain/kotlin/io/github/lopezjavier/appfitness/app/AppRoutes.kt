@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
@@ -83,6 +84,10 @@ data class SessionDetailRoute(val sessionId: String) : AppRoute
 /** "Fuerza": the strength summary card, opened from the Perfil root (US-15). */
 @Serializable
 data object StrengthRoute : AppRoute
+
+/** Weekly volume per muscle group (US-15), opened from Fuerza. */
+@Serializable
+data object MuscleVolumeRoute : AppRoute
 
 /** Progress charts of one exercise (US-15), opened from Fuerza, the exercise detail and the session detail. */
 @Serializable
@@ -180,6 +185,8 @@ val AppRoute.chrome: ShellChrome
 
             StrengthRoute -> ShellChrome.FullScreen(Res.string.strength_title, topBarTag = "strength")
 
+            MuscleVolumeRoute -> ShellChrome.FullScreen(Res.string.muscle_volume_title, topBarTag = "muscle_volume")
+
             is ExerciseProgressRoute ->
                 ShellChrome.FullScreen(Res.string.exercise_progress_title, topBarTag = "exercise_progress")
         }
@@ -201,6 +208,7 @@ object AppDestinations {
             HistoryRoute,
             SessionDetailRoute(""),
             StrengthRoute,
+            MuscleVolumeRoute,
             ExerciseProgressRoute(""),
         )
 }

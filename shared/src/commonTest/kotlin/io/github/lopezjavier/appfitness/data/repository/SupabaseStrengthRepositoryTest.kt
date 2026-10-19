@@ -8,12 +8,15 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -116,6 +119,46 @@ class SupabaseStrengthRepositoryTest {
             ),
             points,
         )
+    }
+
+    @Test
+    fun weeklyMuscleVolume_callsTheRpcWithTheLowerBoundAndMapsTheRows() = runTest {
+        val repo = signedIn()
+        getBody = """[{"week_start":"2026-10-12","muscle_group":"chest","total_volume":5400.0},""" +
+            """{"week_start":"2026-10-19","muscle_group":"quads","total_volume":1500}]"""
+
+        val rows = repo.weeklyMuscleVolume(LocalDate(2026, 9, 1)).getOrThrow()
+
+        val request = rest().single()
+        assertTrue(request.url.encodedPath.endsWith("/rest/v1/rpc/weekly_muscle_volume"), request.url.toString())
+        assertEquals(
+            listOf(
+                WeeklyMuscleVolumeRow(LocalDate(2026, 10, 12), MuscleGroup.Chest, 5400.0),
+                WeeklyMuscleVolumeRow(LocalDate(2026, 10, 19), MuscleGroup.Quads, 1500.0),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun weeklyMuscleVolume_sendsPFromInTheBody() = runTest {
+        val repo = signedIn()
+
+        repo.weeklyMuscleVolume(LocalDate(2026, 9, 1)).getOrThrow()
+
+        val body = (rest().single().body as TextContent).text
+        assertEquals("""{"p_from":"2026-09-01"}""", body)
+    }
+
+    @Test
+    fun weeklyMuscleVolume_signedOutIsUnauthorizedAndOfflineIsNetworkError() = runTest {
+        val signedOut = signedIn(signIn = false)
+        assertEquals(AppError.Unauthorized, signedOut.weeklyMuscleVolume(LocalDate(2026, 9, 1)).appErrorOrNull())
+        assertTrue(rest().isEmpty())
+
+        val repo = signedIn()
+        failing = true
+        assertEquals(AppError.Network, repo.weeklyMuscleVolume(LocalDate(2026, 9, 1)).appErrorOrNull())
     }
 
     @Test

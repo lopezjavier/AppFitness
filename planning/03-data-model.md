@@ -270,7 +270,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `finish_workout_session(p_session_id uuid)` | US-11 (T-044) | `void`. One transaction: deletes the pending sets and sets `completed` + `ended_at`; `P0002` if not an own `in_progress` session |
 | `discard_workout_session(p_session_id uuid)` | US-11 (T-044) | `void`. Sets `discarded` + `ended_at` (sets are kept, history ignores them); `P0002` if not an own `in_progress` session |
 | `exercise_history(p_exercise_id uuid, p_from date default null)` | US-15 (T-044) | `table(session_id, session_date, best_one_rm, total_volume)` per `completed` session (UTC date of `started_at`, `>= p_from`) with completed, non-warm-up sets of the exercise, ordered by start. `best_one_rm`: Epley over sets with reps 1..12 and weight > 0 (reps 1 = weight), rounded to 0.5 kg, null if none; `total_volume = sum(weight_kg * reps)` |
-| `weekly_muscle_volume(p_from date)` | US-15 | Per ISO week and muscle group: total volume |
+| `weekly_muscle_volume(p_from date)` | US-15 (T-048b) | `table(week_start date, muscle_group, total_volume numeric)`, security invoker. `week_start` = Monday of the UTC week of `started_at` (`>= p_from`), only `completed` sessions, completed non-warm-up sets (same filter as `exercise_history`), attributed to the exercise's primary `muscle_group`; `total_volume = sum(weight_kg * reps)`. Only weeks/groups with data; ordered by week, group |
 | `most_eaten_foods(p_limit int)` | US-17 | The user's most-logged foods (food_id, times logged), derived from `food_log_entries` |
 | `food_diary_summary(p_from date, p_to date)` | US-24 | Per day: kcal and protein/carbs/fat totals |
 

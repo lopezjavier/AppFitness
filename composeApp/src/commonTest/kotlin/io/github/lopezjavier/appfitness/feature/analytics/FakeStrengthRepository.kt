@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.feature.workout.doneSet
@@ -18,6 +19,14 @@ internal class FakeStrengthRepository : StrengthRepository {
     var sessionsFailure: AppError? = null
     var maxRepsFailure: AppError? = null
     var maxRepsCalls = 0
+    var volumeRows: List<WeeklyMuscleVolumeRow> = emptyList()
+    var volumeFailure: AppError? = null
+    var volumeFromArgs = mutableListOf<LocalDate>()
+
+    override suspend fun weeklyMuscleVolume(from: LocalDate): Result<List<WeeklyMuscleVolumeRow>> {
+        volumeFromArgs += from
+        return volumeFailure?.let { Result.failure(AppException(it)) } ?: Result.success(volumeRows)
+    }
 
     override suspend fun recentSessions(since: Instant): Result<List<WorkoutSession>> =
         sessionsFailure?.let { Result.failure(AppException(it)) } ?: Result.success(sessions)

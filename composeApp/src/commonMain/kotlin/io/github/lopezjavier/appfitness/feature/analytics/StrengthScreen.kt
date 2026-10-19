@@ -24,6 +24,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
@@ -59,18 +60,20 @@ private val SkeletonRecordHeight = Spacing.xl * 2
 private val SkeletonChipsHeight = Spacing.minTouchTarget
 
 /**
- * Stateful "Fuerza" screen: connects [StrengthViewModel]. [onOpenExercise] opens the progress of an exercise and
+ * Stateful "Fuerza" screen: connects [StrengthViewModel]. [onOpenExercise] opens the progress of an exercise,
+ * [onOpenMuscleVolume] the weekly volume per muscle group and
  * [onStartWorkout] leads the empty state to the Entreno tab.
  */
 @Composable
 fun StrengthRoot(
     onOpenExercise: (String) -> Unit,
+    onOpenMuscleVolume: () -> Unit,
     onStartWorkout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StrengthViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    StrengthScreen(state, viewModel::onEvent, onOpenExercise, onStartWorkout, modifier)
+    StrengthScreen(state, viewModel::onEvent, onOpenExercise, onOpenMuscleVolume, onStartWorkout, modifier)
 }
 
 /**
@@ -82,6 +85,7 @@ fun StrengthScreen(
     state: StrengthUiState,
     onEvent: (StrengthEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
+    onOpenMuscleVolume: () -> Unit,
     onStartWorkout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -108,7 +112,7 @@ fun StrengthScreen(
                     )
                 }
 
-                is StrengthUiState.Content -> StrengthContent(state, onEvent, onOpenExercise)
+                is StrengthUiState.Content -> StrengthContent(state, onEvent, onOpenExercise, onOpenMuscleVolume)
             }
         }
     }
@@ -119,6 +123,7 @@ private fun StrengthContent(
     state: StrengthUiState.Content,
     onEvent: (StrengthEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
+    onOpenMuscleVolume: () -> Unit,
 ) {
     val unnamed = stringResource(Res.string.exercise_unnamed)
     val options = state.chips.map { AppOption(it.name ?: unnamed, "strength_chip_${it.exerciseId}") }
@@ -148,6 +153,11 @@ private fun StrengthContent(
                 )
             }
         }
+        SecondaryButton(
+            text = stringResource(Res.string.muscle_volume_open),
+            onClick = onOpenMuscleVolume,
+            modifier = Modifier.fillMaxWidth().testTag("strength_open_muscle_volume"),
+        )
     }
 }
 

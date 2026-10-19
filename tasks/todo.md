@@ -1286,14 +1286,14 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Description:** Split from T-048 by the planner. Migration with `weekly_muscle_volume(p_from)` (`security invoker`; per ISO week Monday–Sunday and the exercise's `muscle_group`, completed sets of completed sessions) + pgTAP. `MuscleVolumeViewModel` and screen; the "Volumen por grupo muscular" entry from "Fuerza" (last 8 weeks per group; selecting a group shows only its evolution).
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/weekly_muscle_volume.test.sql`: ISO-week grouping (a Sunday and the next Monday fall in different weeks), completed only, other users ignored.
-- [ ] Weekly volume: 8 weeks per group; selecting a group isolates it.
+- [x] Migration + `supabase/tests/weekly_muscle_volume.test.sql`: ISO-week grouping (a Sunday and the next Monday fall in different weeks), completed only, other users ignored.
+- [x] Weekly volume: 8 weeks per group; selecting a group isolates it.
 
 **Host tests:** `MuscleVolumeViewModelTest`; screen test; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-048
 **Estimated scope:** M

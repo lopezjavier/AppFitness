@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
+import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
@@ -34,9 +35,10 @@ fun AppRoot(
         profile = { profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength ->
             ProfileRootRoute(profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength)
         },
-        strength = { strengthModifier, onOpenExercise, onStartWorkout ->
-            StrengthRoot(onOpenExercise, onStartWorkout, strengthModifier)
+        strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
+            StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, strengthModifier)
         },
+        muscleVolume = { volumeModifier, onStartWorkout -> MuscleVolumeRoot(onStartWorkout, volumeModifier) },
         exerciseProgress = { progressModifier, exerciseId -> ExerciseProgressRoot(exerciseId, progressModifier) },
         preferences = { preferencesModifier -> PreferencesRoute(preferencesModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected ->

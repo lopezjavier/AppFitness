@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.di
 import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
+import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
@@ -65,6 +66,7 @@ val uiModule =
             )
         }
         viewModelOf(::StrengthViewModel)
+        viewModelOf(::MuscleVolumeViewModel)
         viewModel { (exerciseId: String) ->
             ExerciseProgressViewModel(
                 exerciseId = exerciseId,
