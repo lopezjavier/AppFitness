@@ -1144,16 +1144,16 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Description:** One migration with the `session_status` enum, `workout_sessions` and `workout_sets` per `03-data-model.md` §5 with every *(E6)* column (`description`, `gym`, `paused_at`; `set_type` default `working`, `rpe`, `duration_s`, `distance_m`, `steps`, `floors`); at most one `in_progress` session per user (partial unique index); `unique (session_id, exercise_position, set_index)`; checks `weight_kg ≥ 0`, `reps ≥ 0`, `rpe` 1–10; indexes for the history (`user_id, started_at desc`) and per-exercise lookups; RLS on `workout_sets` via the parent session; FKs chosen so account deletion (ADR-29) still succeeds with sessions and custom exercises. The RPC `exercise_history(p_exercise_id, p_from)` (`security invoker`; per completed session: date, best estimated 1RM with Epley rounded to 0.5 kg, total volume; only completed sets) ships here because the summary (T-045) and the history (T-047) need the previous best 1RM; T-048 reuses it for the charts. Finishing is one transaction (pending sets deleted + `completed` + `ended_at`; an RPC or equivalent, planner's choice). Domain (pure, `04-business-rules.md` §4 examples as tests): `EstimateOneRepMax` (§4.1), `CalculateVolume` (§4.2), `DetectPersonalRecords` (§4.5; first-ever session per Q2). Session model with a **polymorphic set entry** (a sealed type keyed by `metric_type`; E3 maps only `weight_reps`) so E6 extends it without a rewrite (ADR-30). `WorkoutSessionRepository`: start from a routine (name snapshot, pending sets from the targets, `superset_group` copied), start empty, get the in-progress session with its sets, upsert a set, finish, discard.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/workout_sessions.test.sql`: RLS on and forced on both tables; cross-user isolation (select/insert/update/delete, including a set inserted into B's session); a second `in_progress` session for the same user fails; the upsert key replaces instead of duplicating; deleting a user with sessions, sets and custom exercises succeeds.
-- [ ] `exercise_history` pgTAP with the domain cases: 100 kg × 5 → 116.5; 85 kg × 8 → 107.5; 100 kg × 4 → 113.5; sets with 0 reps, > 12 reps or 0 kg excluded from the 1RM; discarded, in-progress and other users' sessions ignored; volume per session.
-- [ ] Domain tests use the same cases; volume of 60 × 12 + 87.5 × 8 + 87.5 × 8 = 2120 (formatted "2.120 kg" with `AppNumberFormat`); PR flag per §4.5 and Q2.
-- [ ] Finishing keeps only completed sets and is atomic; discarding sets `discarded` and the session leaves every history query.
-- [ ] Repository tests with fakes for start-from-routine (3 × 8 → 3 pending rows per exercise), resume, upsert, finish and discard.
+- [x] Migration + `supabase/tests/workout_sessions.test.sql`: RLS on and forced on both tables; cross-user isolation (select/insert/update/delete, including a set inserted into B's session); a second `in_progress` session for the same user fails; the upsert key replaces instead of duplicating; deleting a user with sessions, sets and custom exercises succeeds.
+- [x] `exercise_history` pgTAP with the domain cases: 100 kg × 5 → 116.5; 85 kg × 8 → 107.5; 100 kg × 4 → 113.5; sets with 0 reps, > 12 reps or 0 kg excluded from the 1RM; discarded, in-progress and other users' sessions ignored; volume per session.
+- [x] Domain tests use the same cases; volume of 60 × 12 + 87.5 × 8 + 87.5 × 8 = 2120 (formatted "2.120 kg" with `AppNumberFormat`); PR flag per §4.5 and Q2.
+- [x] Finishing keeps only completed sets and is atomic; discarding sets `discarded` and the session leaves every history query.
+- [x] Repository tests with fakes for start-from-routine (3 × 8 → 3 pending rows per exercise), resume, upsert, finish and discard.
 
 **Host tests (per scenario):** `EstimateOneRepMaxTest`, `CalculateVolumeTest` (Finishing and summary volume), `DetectPersonalRecordsTest`, `WorkoutSessionRepositoryTest` (Starting from a routine, Completing a set, Continuing after closing, Finishing with incomplete sets, Discarding); pgTAP `workout_sessions.test.sql`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-043

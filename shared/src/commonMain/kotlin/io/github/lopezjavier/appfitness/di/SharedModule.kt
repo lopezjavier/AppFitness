@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseReposito
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepo
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
@@ -29,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
+import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -96,6 +99,14 @@ val sharedModule =
                 SupabaseRoutineRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredRoutineRepository()
+            }
+        }
+        single<WorkoutSessionRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseWorkoutSessionRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredWorkoutSessionRepository()
             }
         }
         single<Clock> { SystemClock() }
