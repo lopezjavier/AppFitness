@@ -15,6 +15,9 @@ object WindowWidthClassDefaults {
 
     /** Cap of a multi-step form column (onboarding) on wide windows. */
     val FormContentMaxWidth: Dp = 480.dp
+
+    /** Cap of a two-column settings screen (Profile) on wide windows. */
+    val TwoColumnContentMaxWidth: Dp = 960.dp
 }
 
 /** Single source of the 600 dp breakpoint. */

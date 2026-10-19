@@ -55,7 +55,7 @@ class RootContentTest {
         rule.setContent { App(rootRoute = RootRoute.Onboarding, welcome = welcomeStub, onboarding = onboardingStub) }
         rule.onNodeWithTag("onboarding_screen").assertExists()
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
-        rule.onNodeWithTag("topbar_avatar").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_profile").assertDoesNotExist()
     }
 
     @Test
@@ -107,13 +107,27 @@ class RootContentTest {
     }
 
     @Test
-    fun signOutFromProfile_confirmingTheDialogCallsBack() {
-        var signOuts = 0
-        rule.setContent { App(rootRoute = RootRoute.Main, onSignOut = { signOuts++ }) }
-        rule.onNodeWithTag("topbar_avatar").performClick()
+    fun signOut_resetsEveryTabBackStack_includingProfile() {
+        var route by mutableStateOf<RootRoute>(RootRoute.Main)
+        rule.setContent { App(rootRoute = route, welcome = welcomeStub) }
+        rule.onNodeWithTag("nav_tab_profile").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("profile_sign_out_button").performClick()
-        rule.onNodeWithTag("sign_out_dialog_confirm").performClick()
-        assertEquals(1, signOuts)
+        rule.onNodeWithTag("nav_tab_profile").assertIsSelected()
+        rule.onNodeWithTag("profile_screen").assertExists()
+
+        route = RootRoute.Welcome
+        rule.waitForIdle()
+        route = RootRoute.Main
+        rule.waitForIdle()
+        rule.onNodeWithTag("nav_tab_diary").assertIsSelected()
+    }
+
+    @Test
+    fun main_hasFourTabs_andNoTopBarAvatar() {
+        rule.setContent { App(rootRoute = RootRoute.Main) }
+        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile").forEach {
+            rule.onNodeWithTag(it).assertExists()
+        }
+        rule.onNodeWithTag("topbar_avatar").assertDoesNotExist()
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -93,7 +94,8 @@ object MacroSliderDefaults {
 /**
  * Independent macro-percentage slider in 1% steps (no auto-balance: the caller owns the state and
  * the grams/kcal, 04 §1.5). The caller's [modifier] lands on the Slider node, which is at least 48 dp
- * tall; its state description speaks percent, grams and kilocalories.
+ * tall; its state description speaks percent, grams and kilocalories. [valueTestTag] tags the header row
+ * (label, percent and "grams . kcal" merged into one node).
  */
 @Composable
 // The caller tag and semantics belong on the Slider node (E2E swipes, a11y), not on the root Column.
@@ -109,6 +111,7 @@ fun MacroSlider(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     valueRange: IntRange = MacroSliderDefaults.ValueRange,
+    valueTestTag: String? = null,
 ) {
     val shownPercent = MacroSliderDefaults.coercePercent(percent, valueRange)
     val colors = MacroSliderDefaults.colors(macro, enabled, AppTheme.colors)
@@ -120,7 +123,7 @@ fun MacroSlider(
             AppNumberFormat.integer(kcal),
         )
     Column {
-        MacroSliderHeader(label, shownPercent, grams, kcal, colors.value)
+        MacroSliderHeader(label, shownPercent, grams, kcal, colors.value, valueTestTag)
         Slider(
             value = shownPercent.toFloat(),
             onValueChange = { raw ->
@@ -147,12 +150,14 @@ fun MacroSlider(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
-private fun MacroSliderHeader(label: String, percent: Int, grams: Int, kcal: Int, valueColor: Color) {
+private fun MacroSliderHeader(label: String, percent: Int, grams: Int, kcal: Int, valueColor: Color, tag: String?) {
     // One screen-reader stop instead of three. Not hidden: hideFromAccessibility() also removes the texts from the
     // semantics tree the host tests read.
     Row(
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {

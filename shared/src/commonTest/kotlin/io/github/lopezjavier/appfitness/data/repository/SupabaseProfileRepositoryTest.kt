@@ -9,6 +9,9 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -152,5 +155,65 @@ class SupabaseProfileRepositoryTest {
         assertEquals(AppError.Network, repo.getBiometrics().appErrorOrNull())
         val update = Biometrics(Sex.Male, LocalDate(1999, 6, 15), 178, ActivityLevel.Moderate)
         assertEquals(AppError.Network, repo.updateBiometrics(update).appErrorOrNull())
+    }
+}
+
+class SupabaseProfileRepositorySaveSettingsTest {
+    private val requests = mutableListOf<HttpRequestData>()
+    private var fail: Throwable? = null
+    private var status = HttpStatusCode.NoContent
+
+    private suspend fun repository(): SupabaseProfileRepository {
+        val engine =
+            MockEngine { request ->
+                requests += request
+                fail?.let { if (!request.url.encodedPath.contains("/auth/")) throw it }
+                val headers = headersOf(HttpHeaders.ContentType, "application/json")
+                if (request.url.encodedPath.contains("/auth/")) {
+                    respond(SESSION, HttpStatusCode.OK, headers)
+                } else {
+                    respond("", status, headers)
+                }
+            }
+        val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
+        val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
+        SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
+        return SupabaseProfileRepository(client.auth, client.postgrest)
+    }
+
+    private val biometrics = Biometrics(Sex.Male, LocalDate(1999, 6, 15), 180, ActivityLevel.Moderate)
+    private val goals = NutritionGoals(GoalStrategy.Deficit, -400, 2292, MacroSplit(35, 42, 23))
+
+    @Test
+    fun callsTheRpcWithTheExactBody() = runTest {
+        val result = repository().saveSettings(biometrics, goals)
+
+        assertTrue(result.isSuccess)
+        val call = requests.last()
+        assertEquals(HttpMethod.Post, call.method)
+        assertEquals("/rest/v1/rpc/save_profile_settings", call.url.encodedPath)
+        val body = (call.body as TextContent).text
+        assertEquals(
+            """{"p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,"p_activity_level":"moderate",""" +
+                """"p_strategy":"deficit","p_calorie_adjustment":-400,"p_target_kcal":2292,""" +
+                """"p_protein_pct":35,"p_carbs_pct":42,"p_fat_pct":23}""",
+            body,
+        )
+    }
+
+    @Test
+    fun ioFailure_isNetwork() = runTest {
+        val repo = repository()
+        fail = IOException("offline")
+
+        assertEquals(AppError.Network, repo.saveSettings(biometrics, goals).appErrorOrNull())
+    }
+
+    @Test
+    fun clientError_isAnAppError() = runTest {
+        val repo = repository()
+        status = HttpStatusCode.BadRequest
+
+        assertEquals(AppError.Unknown, repo.saveSettings(biometrics, goals).appErrorOrNull())
     }
 }

@@ -261,6 +261,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 
 | Function | Story | Returns |
 |---|---|---|
+| `save_profile_settings(p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct)` | US-06/07/08 (T-037, ADR-24) | `void`. One transaction: updates the caller's `profiles` biometric fields and upserts their `nutrition_goals` row, so Profile's single "Guardar" never leaves them inconsistent; raises if the caller has no profile row |
 | `last_performance(p_exercise_id uuid)` | US-12 | Sets (`set_index`, `weight_kg`, `reps`) of the user's most recent completed session containing that exercise |
 | `exercise_history(p_exercise_id uuid, p_from date)` | US-15 | Per session: date, best estimated 1RM, total volume |
 | `weekly_muscle_volume(p_from date)` | US-15 | Per ISO week and muscle group: total volume |
@@ -276,6 +277,7 @@ E6 adds the RPCs for the PR catalogue, the warm-up/plate calculators and routine
 | Function | Story | Auth | Input | Behavior |
 |---|---|---|---|---|
 | `health` | US-02 | public (`verify_jwt = false`) | — | `GET` → `200 {"status":"ok"}` after a `select 1`; other methods → `405` (`Allow: GET`); DB failure → `503` (`db_unavailable`) |
+| `delete-account` | US-05 (ADR-29) | JWT | `POST`, no body | Resolves the caller from the access token (never from the body) and deletes that auth user with the Auth admin API using the server-side secret key; user-owned rows cascade. `200 {"status":"deleted"}`; missing/invalid token or user already gone → `401` (`unauthorized`); other methods → `405` (`Allow: POST`); admin failure → `500` (`delete_failed`) |
 | `food-search` | US-16 | JWT | `?q=<2..60 chars>&page=1` | 1) full-text search in `foods` (OFF + the user's own); 2) if < 10 results, query OFF (`search`, minimal fields, `lc=es`, `cc=es`), normalize and upsert by `barcode`; 3) return up to 20 normalized results (each with `base_unit`, nutrition per 100 base units and the default serving) |
 | `food-barcode` | US-16 | JWT | `?code=<EAN-8/EAN-13/UPC-A>` | Look up in `foods`; if missing or `fetched_at` > 30 days, query OFF `product/<code>`; `404` if OFF does not have it or kcal is missing |
 

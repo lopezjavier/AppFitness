@@ -87,7 +87,7 @@ class ShellOfflineBannerTest {
     @Test
     fun offline_profile_bannerShown() {
         rule.setContent { AppTheme { AppScaffold(isOffline = true) } }
-        rule.onNodeWithTag("topbar_avatar").performClick()
+        rule.onNodeWithTag("nav_tab_profile").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("offline_banner").assertExists()
         assertAtLeast("profile top vs banner bottom", bounds("profile_screen").top, bounds("offline_banner").bottom)

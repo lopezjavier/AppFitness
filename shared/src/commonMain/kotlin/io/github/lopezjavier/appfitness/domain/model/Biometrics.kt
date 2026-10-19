@@ -18,7 +18,16 @@ data class SavedBiometrics(
     val birthDate: LocalDate? = null,
     val heightCm: Int? = null,
     val activityLevel: ActivityLevel? = null,
-)
+) {
+    /** The four fields as [Biometrics], or null while any is missing (interrupted onboarding). */
+    @Suppress("ComplexCondition") // Four independent optional fields.
+    fun toBiometricsOrNull(): Biometrics? =
+        if (sex != null && birthDate != null && heightCm != null && activityLevel != null) {
+            Biometrics(sex, birthDate, heightCm, activityLevel)
+        } else {
+            null
+        }
+}
 
 /** Where a body measurement came from. */
 enum class MeasurementSource { Manual, HealthConnect }

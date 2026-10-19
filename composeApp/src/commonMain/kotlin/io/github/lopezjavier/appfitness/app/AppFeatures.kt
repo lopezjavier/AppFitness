@@ -20,6 +20,5 @@ data class AppFeatures(val componentCatalog: Boolean = false, val testLogin: Tes
 /** Whether [route] can be reached. Exhaustive on purpose: a new route must declare its availability. */
 fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
-    ProfileRoute -> true
     CatalogRoute -> componentCatalog
 }

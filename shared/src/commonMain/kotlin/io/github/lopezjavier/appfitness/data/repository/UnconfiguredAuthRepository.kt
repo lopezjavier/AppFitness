@@ -42,6 +42,9 @@ class UnconfiguredProfileRepository : ProfileRepository {
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun markOnboardingCompleted(): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
 }
 
 /** Weight counterpart of [UnconfiguredAuthRepository]: nothing can be read or saved. */

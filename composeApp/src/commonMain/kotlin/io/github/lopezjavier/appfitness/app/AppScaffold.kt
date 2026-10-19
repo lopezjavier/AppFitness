@@ -29,7 +29,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.topbar_avatar_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppNavigation
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationDefaults
@@ -58,18 +57,18 @@ internal fun AppScaffold(
     navigationType: AppNavigationType = AppNavigationType.Bar,
     isOffline: Boolean = false,
     avatarUrl: String? = null,
-    onSignOut: () -> Unit = {},
+    profile: ProfileSlot = DefaultProfileSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
     val chrome = entry.chrome()
-    val (avatarButton, backButton) = rememberTopBarButtons(navController, entry)
+    val backButton = rememberBackButton(navController, entry)
     val isBar = navigationType == AppNavigationType.Bar
     val onTabSelect: (Int) -> Unit = { navController.navigateToTab(TopLevelTab.entries[it]) }
     Scaffold(
         modifier = modifier,
         containerColor = AppTheme.colors.surfaceBase,
-        topBar = { ShellTopBar(chrome, avatarButton, backButton, avatarUrl) },
+        topBar = { ShellTopBar(chrome, backButton) },
         bottomBar = {
             if (isBar && chrome is ShellChrome.Tabs) {
                 AppNavigation(
@@ -77,6 +76,7 @@ internal fun AppScaffold(
                     items = items,
                     selectedIndex = chrome.tab.ordinal,
                     onItemSelect = onTabSelect,
+                    avatarUrl = avatarUrl,
                 )
             }
         },
@@ -93,11 +93,12 @@ internal fun AppScaffold(
                             items = items,
                             selectedIndex = chrome.tab.ordinal,
                             onTabSelect = onTabSelect,
+                            avatarUrl = avatarUrl,
                             modifier = it,
                         )
                     }
                 },
-                onSignOut = onSignOut,
+                profile = profile,
                 modifier = contentModifier,
             )
         }
@@ -130,25 +131,15 @@ private fun BelowTopBar(
 
 @Composable
 private fun rememberNavigationItems(): List<AppNavigationItem> = remember {
-    TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
+    TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon, it.showsAvatar) }
 }
 
 @Composable
-private fun rememberTopBarButtons(
-    navController: NavHostController,
-    entry: NavBackStackEntry?,
-): Pair<AppTopBarButton, AppTopBarButton> {
-    // launchSingleTop stops a double tap from pushing two Profiles.
-    val openAvatarTarget =
-        remember(navController) { { navController.navigateToFullScreen(AppDestinations.AvatarTarget) } }
+private fun rememberBackButton(navController: NavHostController, entry: NavBackStackEntry?): AppTopBarButton {
     // Pops only the full-screen entry the top bar was drawn for: a stale tap cannot pop the tab underneath.
     val goBack = remember(navController, entry) { { navController.popFullScreen(entry) } }
-    val avatarDescription = stringResource(Res.string.topbar_avatar_cd)
     val backDescription = stringResource(Res.string.topbar_back_cd)
-    val avatarButton =
-        remember(avatarDescription, openAvatarTarget) { AppTopBarButton(avatarDescription, openAvatarTarget) }
-    val backButton = remember(backDescription, goBack) { AppTopBarButton(backDescription, goBack) }
-    return avatarButton to backButton
+    return remember(backDescription, goBack) { AppTopBarButton(backDescription, goBack) }
 }
 
 @Composable
@@ -156,9 +147,11 @@ private fun ShellRail(
     items: List<AppNavigationItem>,
     selectedIndex: Int,
     onTabSelect: (Int) -> Unit,
+    avatarUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     AppNavigation(
+        avatarUrl = avatarUrl,
         items = items,
         selectedIndex = selectedIndex,
         onItemSelect = onTabSelect,
@@ -182,7 +175,7 @@ private fun ShellContent(
     navigationType: AppNavigationType,
     innerPadding: PaddingValues,
     rail: @Composable (Modifier) -> Unit,
-    onSignOut: () -> Unit,
+    profile: ProfileSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -209,7 +202,7 @@ private fun ShellContent(
             tabPadding = tabPadding,
             fullScreenPadding = innerPadding,
             features = features,
-            onSignOut = onSignOut,
+            profile = profile,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(
@@ -224,19 +217,9 @@ private fun ShellContent(
 }
 
 @Composable
-private fun ShellTopBar(
-    chrome: ShellChrome,
-    avatarButton: AppTopBarButton,
-    backButton: AppTopBarButton,
-    avatarUrl: String?,
-) {
+private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
     when (chrome) {
-        is ShellChrome.Tabs ->
-            AppTopBar(
-                title = stringResource(chrome.tab.label),
-                avatarButton = avatarButton,
-                avatarImageUrl = avatarUrl,
-            )
+        is ShellChrome.Tabs -> AppTopBar(title = stringResource(chrome.tab.label))
 
         is ShellChrome.FullScreen ->
             AppTopBar(title = stringResource(chrome.title), navigationButton = backButton)

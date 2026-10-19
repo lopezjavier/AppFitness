@@ -37,6 +37,14 @@ class AppNavigationTest {
     }
 
     @Test
+    fun avatarItem_isFlagged_andOthersAreNot() {
+        val avatar =
+            AppNavigationItem(Res.string.nav_diary, Res.drawable.ic_nav_diary, "nav_tab_profile", showsAvatar = true)
+        assertEquals(true, avatar.showsAvatar)
+        assertEquals(false, withFilled.showsAvatar)
+    }
+
+    @Test
     fun colors_haveNoPill_limeSelected_greyUnselected() {
         val colors = AppNavigationDefaults.colors(KineticDarkColors)
         assertEquals(Color.Transparent, colors.indicator)

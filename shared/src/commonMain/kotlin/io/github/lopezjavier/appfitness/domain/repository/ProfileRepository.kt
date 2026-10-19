@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 
@@ -16,4 +17,7 @@ interface ProfileRepository {
 
     /** Sets `onboarding_completed = true` on the own profile. Idempotent. */
     suspend fun markOnboardingCompleted(): Result<Unit>
+
+    /** Saves the biometrics and the goals in one atomic call (RPC `save_profile_settings`): both or neither. */
+    suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit>
 }

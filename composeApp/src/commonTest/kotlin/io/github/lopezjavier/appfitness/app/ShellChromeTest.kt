@@ -2,32 +2,14 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ShellChromeTest {
     private val tabRoutes: List<TabRoute> =
-        listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProgressGraph, ProgressHome)
-
-    @Test
-    fun avatarTarget_isProfileRoute() {
-        assertEquals(ProfileRoute, AppDestinations.AvatarTarget)
-    }
-
-    @Test
-    fun avatarTarget_isFullScreen() {
-        assertFalse(AppDestinations.AvatarTarget is TabRoute)
-        assertIs<ShellChrome.FullScreen>(AppDestinations.AvatarTarget.chrome)
-    }
-
-    @Test
-    fun profileRoute_chrome_isFullScreenWithProfileTitle() {
-        assertEquals(ShellChrome.FullScreen(Res.string.profile_title), ProfileRoute.chrome)
-    }
+        listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProgressGraph, ProgressHome, ProfileGraph, ProfileHome)
 
     @Test
     fun catalogRoute_chrome_isFullScreenWithCatalogTitle() {
@@ -40,8 +22,8 @@ class ShellChromeTest {
     }
 
     @Test
-    fun fullScreenRoutes_containsProfileAndCatalog_andNoTabRoute() {
-        assertTrue(ProfileRoute in AppDestinations.fullScreenRoutes)
+    fun fullScreenRoutes_containsOnlyTheCatalog_andNoTabRoute() {
+        assertEquals(listOf<AppRoute>(CatalogRoute), AppDestinations.fullScreenRoutes)
         assertTrue(CatalogRoute in AppDestinations.fullScreenRoutes)
         assertTrue(AppDestinations.fullScreenRoutes.none { it is TabRoute })
     }

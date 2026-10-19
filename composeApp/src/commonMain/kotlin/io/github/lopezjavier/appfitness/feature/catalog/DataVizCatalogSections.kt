@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_over
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_stacked_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_metric_tiles
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ring
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_trend_pills
@@ -39,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
+import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -72,6 +74,7 @@ internal fun LazyListScope.dataVizItems() {
     item { RingSection() }
     item { MacroBarsSection() }
     item { MacroSlidersSection() }
+    item { MacroStackedBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
 }
@@ -136,6 +139,23 @@ private fun MacroBarsSection() {
                     Modifier.testTag("catalog_macro_bar_over"),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MacroStackedBarSection() {
+    CatalogSection(
+        stringResource(Res.string.catalog_section_macro_stacked_bar),
+        "catalog_section_macro_stacked_bar",
+    ) {
+        AppCard(Modifier.fillMaxWidth()) {
+            MacroStackedBar(
+                proteinPct = DEFAULT_PROTEIN_PERCENT,
+                carbsPct = DEFAULT_CARBS_PERCENT,
+                fatPct = DEFAULT_FAT_PERCENT,
+                testTag = "catalog_macro_stacked_bar",
+            )
         }
     }
 }

@@ -41,14 +41,15 @@ class ShellRailTest {
     }
 
     @Test
-    fun rail_profileHidesRail_backRestoresIt() {
+    fun rail_hasFourItems_andProfileKeepsTheRail() {
         setRailContent()
-        rule.onNodeWithTag("topbar_avatar").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("nav_rail").assertDoesNotExist()
-        rule.onNodeWithTag("topbar_back").performClick()
+        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile").forEach {
+            rule.onNodeWithTag(it).assertIsDisplayed()
+        }
+        rule.onNodeWithTag("nav_tab_profile").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("nav_rail").assertIsDisplayed()
-        rule.onNodeWithTag("nav_tab_diary").assertIsSelected()
+        rule.onNodeWithTag("nav_tab_profile").assertIsSelected()
+        rule.onNodeWithTag("profile_screen").assertIsDisplayed()
     }
 }

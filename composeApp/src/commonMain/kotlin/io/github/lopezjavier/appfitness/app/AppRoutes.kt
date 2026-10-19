@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
@@ -32,6 +33,9 @@ data object WorkoutGraph : TabRoute
 data object ProgressGraph : TabRoute
 
 @Serializable
+data object ProfileGraph : TabRoute
+
+@Serializable
 data object DiaryHome : TabRoute
 
 @Serializable
@@ -40,9 +44,8 @@ data object WorkoutHome : TabRoute
 @Serializable
 data object ProgressHome : TabRoute
 
-/** Full-screen profile, opened only from the Top App Bar avatar, above the tabs (ADR-22). */
 @Serializable
-data object ProfileRoute : AppRoute
+data object ProfileHome : TabRoute
 
 /** Debug component catalog: local flavor only (see [AppFeatures]), opened from Profile. */
 @Serializable
@@ -50,7 +53,8 @@ data object CatalogRoute : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
- * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon].
+ * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon]. With [showsAvatar] the
+ * tab draws the user's photo instead of the glyph (ADR-26).
  */
 enum class TopLevelTab(
     val graph: TabRoute,
@@ -59,6 +63,7 @@ enum class TopLevelTab(
     val icon: DrawableResource,
     val selectedIcon: DrawableResource,
     val testTag: String,
+    val showsAvatar: Boolean = false,
 ) {
     Diary(
         DiaryGraph,
@@ -84,6 +89,15 @@ enum class TopLevelTab(
         Res.drawable.ic_nav_progress,
         "nav_tab_progress",
     ),
+    Profile(
+        ProfileGraph,
+        ProfileHome,
+        Res.string.profile_title,
+        Res.drawable.ic_avatar_person,
+        Res.drawable.ic_avatar_person,
+        "nav_tab_profile",
+        showsAvatar = true,
+    ),
     ;
 
     companion object {
@@ -98,11 +112,12 @@ val TabRoute.tab: TopLevelTab
             DiaryGraph, DiaryHome -> TopLevelTab.Diary
             WorkoutGraph, WorkoutHome -> TopLevelTab.Workout
             ProgressGraph, ProgressHome -> TopLevelTab.Progress
+            ProfileGraph, ProfileHome -> TopLevelTab.Profile
         }
 
 /** What the shell draws around a destination: top bar plus bottom bar, or a full-screen chrome. */
 sealed interface ShellChrome {
-    /** Top bar with avatar plus the bottom bar. */
+    /** Top bar with the section title plus the bottom bar. */
     data class Tabs(val tab: TopLevelTab) : ShellChrome
 
     /** Top bar with a back arrow, no bottom bar. */
@@ -114,18 +129,14 @@ val AppRoute.chrome: ShellChrome
     get() =
         when (this) {
             is TabRoute -> ShellChrome.Tabs(tab)
-            ProfileRoute -> ShellChrome.FullScreen(Res.string.profile_title)
             CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
         }
 
 /** Navigation entry points shared by the shell. */
 object AppDestinations {
-    /** Destination the Top App Bar avatar opens (ADR-22). */
-    val AvatarTarget: AppRoute = ProfileRoute
-
     /**
      * Destinations drawn without the bottom bar. Used for chrome lookup only: whether a route is
      * reachable is decided by [AppFeatures].
      */
-    val fullScreenRoutes: List<AppRoute> = listOf(ProfileRoute, CatalogRoute)
+    val fullScreenRoutes: List<AppRoute> = listOf(CatalogRoute)
 }

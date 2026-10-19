@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ske
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_top_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_wip
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
@@ -33,7 +34,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
-import io.github.lopezjavier.appfitness.composeapp.resources.topbar_avatar_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_footer
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
@@ -67,16 +67,13 @@ internal fun LazyListScope.shellItems() {
 @Composable
 private fun TopBarSection() {
     var count by rememberSaveable { mutableIntStateOf(0) }
-    val avatarDescription = stringResource(Res.string.topbar_avatar_cd)
     val backDescription = stringResource(Res.string.topbar_back_cd)
-    val avatar = remember(avatarDescription) { AppTopBarButton(avatarDescription) { count++ } }
     val back = remember(backDescription) { AppTopBarButton(backDescription) { count++ } }
     CatalogSection(stringResource(Res.string.catalog_section_top_bar), "catalog_section_top_bar") {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             // The embedded bars pad no system insets and carry their own tags, so the shell's stay unique.
             AppTopBar(
                 title = stringResource(Res.string.nav_diary),
-                avatarButton = avatar,
                 windowInsets = WindowInsets(0),
                 testTagPrefix = "catalog_topbar_tabs",
             )
@@ -138,6 +135,12 @@ private val NavigationSampleItems =
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_nav_tab_workout"),
         AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "catalog_nav_tab_progress"),
+        AppNavigationItem(
+            Res.string.profile_title,
+            Res.drawable.ic_avatar_person,
+            "catalog_nav_tab_profile",
+            showsAvatar = true,
+        ),
     )
 
 private val RailSampleItems =
@@ -150,6 +153,12 @@ private val RailSampleItems =
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_rail_tab_workout"),
         AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "catalog_rail_tab_progress"),
+        AppNavigationItem(
+            Res.string.profile_title,
+            Res.drawable.ic_avatar_person,
+            "catalog_rail_tab_profile",
+            showsAvatar = true,
+        ),
     )
 
 @Composable

@@ -24,8 +24,8 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
 /**
  * Root composable: theme plus the destination chosen by [rootRoute]. [modifier] reaches the root layout;
  * [isOffline] shows the "Sin conexión" banner on every destination; [avatarUrl] is the top bar photo;
- * [onRetryProfile], [onSignOut] and [onOnboardingComplete] are the root actions. [welcome] and [onboarding] are
- * the Welcome and Onboarding destinations (stateful by default).
+ * [onRetryProfile] and [onOnboardingComplete] are the root actions. [profile], [welcome] and [onboarding] are
+ * the Profile tab, Welcome and Onboarding destinations (stateful in `AppRoot`, empty or stubbed in tests).
  *
  * The default [rootRoute] is [RootRoute.Main], so previews and shell tests need no session.
  */
@@ -37,8 +37,8 @@ fun App(
     rootRoute: RootRoute = RootRoute.Main,
     avatarUrl: String? = null,
     onRetryProfile: () -> Unit = {},
-    onSignOut: () -> Unit = {},
     onOnboardingComplete: () -> Unit = {},
+    profile: ProfileSlot = DefaultProfileSlot,
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
     onboarding: @Composable () -> Unit = { OnboardingRoute(onComplete = onOnboardingComplete) },
 ) {
@@ -56,7 +56,7 @@ fun App(
                         navigationType = widthClass.navigationType,
                         isOffline = isOffline,
                         avatarUrl = avatarUrl,
-                        onSignOut = onSignOut,
+                        profile = profile,
                     )
 
                 else ->

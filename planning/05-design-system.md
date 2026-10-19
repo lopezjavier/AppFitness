@@ -96,7 +96,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `AppTopBar` | Section title only, no avatar (ADR-26); a variant with a back arrow for full-screen destinations |
 | `AppNavigation` | Adaptive bottom bar / rail with 4 tabs; active tab = lime icon and extra-bold lime label + filled icon where the glyph has one, no pill (ADR-22). The Perfil tab icon is the user's Google photo in a circle (placeholder avatar as fallback), never tinted; active = extra-bold lime label + lime ring around the photo (ADR-26) |
 | `AppCard` | `surfaceRaised`, radius 16, subtle border, padding 16 |
-| `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary) / 48 dp. A filled, non-outlined secondary action that sits next to a full-width primary (e.g. onboarding "Atrás") is redesigned in T-039 (Checkpoint E2-A: the user rejected both the transparent ghost and an outlined version). **Secondary spec:** `surfaceOverlay` fill, `textPrimary` `titleMedium` label, no border, shape `md`, min height 52 dp (same as primary), 0.97 press scale; disabled = same fill with `ghostData` label. Paired in a footer with a full-width primary: 12 dp gap, secondary wraps content (min 104 dp), primary takes the rest |
+| `PrimaryButton` / `SecondaryButton` / `GhostButton` | Per DESIGN.md §Buttons; min 52 dp (primary and secondary) / 48 dp (ghost). The secondary is a filled, non-outlined action that sits next to a full-width primary (e.g. onboarding "Atrás"; Checkpoint E2-A rejected both a transparent ghost and an outlined version). **Secondary spec:** `surfaceOverlay` fill, `textPrimary` `titleMedium` label, no border, shape `md`, min height 52 dp (same as primary), 0.97 press scale; disabled = same fill with `ghostData` label. Paired in a footer with a full-width primary: 12 dp gap, secondary wraps content (min 104 dp), primary takes the rest |
 | `AppChip` / `FilterChipRow` | 32 dp visual height (48 dp target); active: cyan border and text |
 | `SegmentedSelector` | Déficit / Mantenimiento / Superávit (active in lime). All labels share one size (largest up to `bodyMedium` where the widest label, measured bold, fits on one line); never below 11 sp (`labelTechnical`); past that they wrap to 2 lines (hyphenated on API 33+) and all segments grow together |
 | `AppBottomSheet` | Top radius 24, 36×4 handle, 65% scrim |
@@ -109,6 +109,8 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `MealSlotEditor` | Rename, reorder, enable/disable and add meals (drag handle, switch, add row) |
 | `MonthCalendarGrid` | Calendar month grid with a per-day kcal indicator; tap opens that day |
 | `DiaryHistoryRow` | Date + kcal + P/C/F mini bars for a day, with a weekly/monthly summary header |
+| `MacroStackedBar` | One horizontal bar split P/C/F by percentage in `macroProtein` / `macroCarbs` / `macroFat`; decorative segments, the whole bar exposes the split as `stateDescription` (T-037) |
+| `AppAvatar` | Circular Google photo (Coil) with the placeholder person icon until it loads or on error; optional lime ring for the active Perfil tab (`AppBorder` width chosen by ux-reviewer); decorative (T-037, ADR-26) |
 | `NumberInput` | `surfaceOverlay` background, centered tabular numerals, 1.5 dp border on focus; ghost placeholder |
 | `SetCompletionCheckbox` | 38 dp visual circle / 48 dp target; checked = lime fill + dark check + haptics |
 | `SetRow` | Index · previous (ghost) · KG · REPS · checkbox |

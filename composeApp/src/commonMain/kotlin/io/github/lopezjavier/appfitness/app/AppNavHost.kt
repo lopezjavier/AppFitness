@@ -1,10 +1,13 @@
 package io.github.lopezjavier.appfitness.app
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -17,9 +20,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
-import io.github.lopezjavier.appfitness.feature.profile.ProfileScreen
 import io.github.lopezjavier.appfitness.feature.progress.ProgressScreen
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutScreen
+
+/** Content of the Profile tab: its modifier (tab insets) and the catalog opener (null where it is unavailable). */
+internal typealias ProfileSlot = @Composable (modifier: Modifier, onOpenCatalog: (() -> Unit)?) -> Unit
+
+/** Empty Profile content for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultProfileSlot: ProfileSlot = { modifier, _ -> Box(modifier.fillMaxSize().testTag("profile_screen")) }
 
 /**
  * Single type-safe NavHost with one nested graph (own back stack) per tab (ADR-10) and the
@@ -33,7 +41,7 @@ internal fun AppNavHost(
     fullScreenPadding: PaddingValues,
     features: AppFeatures,
     modifier: Modifier = Modifier,
-    onSignOut: () -> Unit = {},
+    profile: ProfileSlot = DefaultProfileSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -47,12 +55,10 @@ internal fun AppNavHost(
         navigation<ProgressGraph>(startDestination = TopLevelTab.Progress.startRoute) {
             composable<ProgressHome> { ProgressScreen(Modifier.padding(tabPadding)) }
         }
-        composable<ProfileRoute> {
-            ProfileScreen(
-                Modifier.padding(fullScreenPadding),
-                onOpenCatalog = if (catalogAvailable) openCatalog else null,
-                onSignOut = onSignOut,
-            )
+        navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
+            composable<ProfileHome> {
+                profile(Modifier.padding(tabPadding), if (catalogAvailable) openCatalog else null)
+            }
         }
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }

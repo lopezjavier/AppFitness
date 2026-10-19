@@ -8,13 +8,16 @@ import io.github.jan.supabase.exceptions.UnauthorizedRestException
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BiometricsDto
 import io.github.lopezjavier.appfitness.data.remote.BiometricsUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.OnboardingCompletedDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
+import io.github.lopezjavier.appfitness.data.remote.SaveProfileSettingsParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
@@ -44,6 +47,10 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun markOnboardingCompleted(): Result<Unit> = ownRow { userId ->
         postgrest.from("profiles").update(OnboardingCompletedDto(true)) { filter { eq("id", userId) } }
+    }.map {}
+
+    override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> = runMappingErrors {
+        postgrest.rpc("save_profile_settings", SaveProfileSettingsParams.from(biometrics, goals))
     }.map {}
 
     private suspend fun <T> ownRow(block: suspend (userId: String) -> T): Result<T> = auth.ownRow(block)

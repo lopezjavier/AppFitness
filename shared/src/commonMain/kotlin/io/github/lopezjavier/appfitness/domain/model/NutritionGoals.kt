@@ -5,6 +5,18 @@ enum class GoalStrategy { Deficit, Maintenance, Surplus }
 
 /** Macro split in whole percent of the daily calories; the three values add up to 100. */
 data class MacroSplit(val proteinPct: Int, val carbsPct: Int, val fatPct: Int) {
+    operator fun get(macro: Macronutrient): Int = when (macro) {
+        Macronutrient.Protein -> proteinPct
+        Macronutrient.Carbs -> carbsPct
+        Macronutrient.Fat -> fatPct
+    }
+
+    fun with(macro: Macronutrient, percent: Int): MacroSplit = when (macro) {
+        Macronutrient.Protein -> copy(proteinPct = percent)
+        Macronutrient.Carbs -> copy(carbsPct = percent)
+        Macronutrient.Fat -> copy(fatPct = percent)
+    }
+
     companion object {
         val DEFAULT = MacroSplit(proteinPct = 30, carbsPct = 45, fatPct = 25)
     }
