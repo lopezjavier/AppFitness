@@ -1078,7 +1078,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 Stories: `planning/epics/E3-training-core.md` (US-09…US-15). One task per story as a vertical slice; US-11 (live session) is split into a backend task (T-044) and a UI task (T-045) because both halves are heavy; US-12 and US-13 (ghost data and rest timer, both layered on the live screen) are merged into T-046. Plan: [tasks/plan.md](plan.md).
 Flow: every task with UI follows the full flow (planner → ux-reviewer → developers → PR → review → merge); T-044 is backend only (no ux-reviewer). The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
 Forward-compatible schema (ADR-30): every training table ships with its *(E6)* columns and enums; E3 renders only `weight_reps` / `working` sets. Account deletion (ADR-29) must keep working: every new user-owned row cascades from `auth.users`.
-Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 (is the first-ever session a "PR"?) still blocks T-045. Superset rest configuration (rounds, reps, rest between exercises, rest between rounds) is part of T-043 and T-046.
+Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the first-ever session of an exercise is a "PR". Superset rest configuration (rounds, reps, rest between exercises, rest between rounds) is part of T-043 and T-046.
 
 ## T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises
 
@@ -1156,7 +1156,7 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 (is the first-
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
-**Dependencies:** T-043, Q2 (only for `DetectPersonalRecords`; the rest can start before the answer)
+**Dependencies:** T-043
 **Files likely touched:** `supabase/migrations/<ts>_workout_sessions.sql`, `supabase/tests/workout_sessions.test.sql`, `shared/…/domain/model/{WorkoutSession,WorkoutSet,SetEntry,SessionStatus}.kt`, `shared/…/domain/usecase/{EstimateOneRepMax,CalculateVolume,DetectPersonalRecords}.kt` + tests, `shared/…/domain/repository/WorkoutSessionRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI
 **Estimated scope:** M–L
 
@@ -1187,7 +1187,7 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 (is the first-
 - [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] Manual (developer, emulator, local flavor): start, check sets, kill and reopen, finish; airplane mode while checking a set.
 
-**Dependencies:** T-044, Q2
+**Dependencies:** T-044
 **Files likely touched:** `composeApp/…/feature/workout/{WorkoutScreen,LiveSessionScreen,LiveSessionViewModel,LiveSessionUiState,SessionSummaryScreen,FinishSessionSheet,SessionSetRow}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `composeApp/src/androidMain/…/platform/*` (keep-screen-on helper if needed), `designsystem/{SetRow,NumberInput}.kt` (only if the polymorphic row needs a slot; check every caller first), strings, tests
 **Estimated scope:** L
 
