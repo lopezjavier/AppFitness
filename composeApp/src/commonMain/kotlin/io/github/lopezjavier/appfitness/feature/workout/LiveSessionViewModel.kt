@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +41,8 @@ import kotlin.time.Instant
 
 private const val TICK_MILLIS = 1000L
 private const val MAX_REPS = 999
+private const val MAX_RETRIES = 3
+private const val RETRY_BASE_MILLIS = 1000L
 
 /** One set of the session as the screen edits it. */
 private data class SetState(
@@ -92,6 +95,7 @@ class LiveSessionViewModel(
 
     private val queue = PendingSetQueue()
     private val flushLock = Mutex()
+    private var syncJob: Job? = null
 
     /** Sets whose last write has not reached the server (shown as "pendiente de guardar"). */
     private var unsynced: Set<Pair<Int, Int>> = emptySet()
@@ -336,10 +340,18 @@ class LiveSessionViewModel(
         }
     }
 
+    /** Flushes the queue; while online a failed flush is retried with a growing delay, a bounded number of times. */
     private fun sync() {
-        viewModelScope.launch {
-            flushQueue()
-            publish()
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch {
+            var retries = 0
+            while (true) {
+                val sent = flushQueue()
+                publish()
+                if (sent || !online || retries >= MAX_RETRIES) break
+                delay(RETRY_BASE_MILLIS shl retries)
+                retries++
+            }
         }
     }
 

@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
@@ -360,6 +361,38 @@ class LiveSessionViewModelTest {
 
         assertEquals(1, repository.upserts.size)
         assertFalse(vm.row(0, 1).pendingSave)
+    }
+
+    @Test
+    fun anUpsertFailureWhileOnline_isRetriedWithBackoffAndClearsTheMarkerWithoutAConnectivityChange() = runTest {
+        repository.upsertFailure = AppError.Network
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        vm.onEvent(LiveSessionEvent.SetChecked(0, 1, true))
+        runCurrent()
+        assertTrue(vm.row(0, 1).pendingSave)
+
+        repository.upsertFailure = null
+        advanceTimeBy(1_001)
+        runCurrent()
+
+        assertEquals(1, repository.upserts.size)
+        assertFalse(vm.row(0, 1).pendingSave)
+    }
+
+    @Test
+    fun retriesAreBounded_soAPersistentFailureStaysPendingAfterThem() = runTest {
+        repository.upsertFailure = AppError.Network
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        check(vm, 0, 1)
+
+        repository.upsertFailure = null
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertTrue(repository.upserts.isEmpty())
+        assertTrue(vm.row(0, 1).pendingSave)
     }
 
     @Test
