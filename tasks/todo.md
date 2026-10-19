@@ -1000,13 +1000,13 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Description:** At Checkpoint E2-B the user changed "Edad" (birth year) and "Altura" on Profile and the new value was not shown on the screen (the picker or the saved value is not reflected in the personal data card). The developer reproduces it with a failing test first, finds the cause (state not updated from the picker result, or the card reading the stale loaded value) and fixes it; nothing else changes. The screen is still the T-037 Profile (the restructure is T-041).
 
 **Acceptance criteria:**
-- [ ] After choosing a new birth year or height in its picker, the personal data card shows the new value immediately, before and after "Guardar", and after reopening the screen.
-- [ ] Regression test for both fields (and the same check for Actividad and sex if they share the cause); no other behaviour changes.
+- [x] After choosing a new birth year or height in its picker, the personal data card shows the new value immediately, before and after "Guardar", and after reopening the screen.
+- [x] Regression test for both fields (and the same check for Actividad and sex if they share the cause); no other behaviour changes.
 
 **Host tests (per scenario):** `ProfileViewModelTest` (picking a birth year / height updates the state; save keeps it); `ProfileScreenTest` (Robolectric: the card text shows the new age and height after the picker confirms).
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green.
+- [x] Lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-037
 **Files likely touched:** `composeApp/…/feature/profile/{ProfileViewModel,ProfileUiState,PersonalDataCard}.kt`, tests

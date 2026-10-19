@@ -149,6 +149,36 @@ class WheelPickerTest {
     }
 
     @Test
+    fun swipingTheWheel_reportsValueChangeOncePerSettleNotPerPassedItem() {
+        val changes = mutableListOf<Int>()
+        val centred = mutableListOf<Int>()
+        rule.setContent {
+            AppTheme {
+                WheelPicker(
+                    range = 100..250,
+                    value = value,
+                    onValueChange = {
+                        changes += it
+                        value = it
+                    },
+                    label = { it.toString() },
+                    contentDescription = "Altura",
+                    stateDescription = { "$it cm" },
+                    testTagPrefix = TAG,
+                    onCentredChange = { centred += it },
+                )
+            }
+        }
+        rule.onNodeWithTag(TAG).performTouchInput { swipeUp() }
+        rule.waitForIdle()
+
+        assertEquals("one callback for the landing item, got $changes", 1, changes.size)
+        assertEquals(value, changes.single())
+        assertTrue("the live feed passes several items, got $centred", centred.size > 2)
+        assertEquals(value, centred.last())
+    }
+
+    @Test
     fun inAnUnweightedRow_theWheelIsBoundedAndTheSiblingKeepsItsSpaceOnOneLine() {
         rule.setContent {
             AppTheme {
