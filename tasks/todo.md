@@ -1027,19 +1027,19 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 6. **Copy:** "TDEE: %s kcal" becomes "Gasto diario estimado: %s kcal" with the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." in onboarding and Preferencias.
 
 **Acceptance criteria:**
-- [ ] Bar and rail show exactly Diario, Entreno, Perfil; Diario is the start tab; each tab keeps its state; sign-out resets the back stacks; no Progreso route, string or catalog leftovers.
-- [ ] Perfil icon = `person` glyph, tinted like the other tabs, active = lime + extra-bold label; no photo in the navigation; no avatar in any `AppTopBar`.
-- [ ] Perfil root shows the photo (placeholder on missing/failed load), the name, "Preferencias", "Cerrar sesión" and "Borrar cuenta"; "Preferencias" opens the full-screen editor with a back arrow and back returns to the root; "Borrar cuenta" keeps the ADR-29 dialog, texts and offline rule; sign-out unchanged.
-- [ ] Editing the weight and tapping "Guardar" writes one manual row for today (replaces today's manual row; earlier rows untouched) and the displayed "Peso actual" is the latest row from any source; the target is recalculated with it; a newer non-manual row is shown and stays editable.
-- [ ] The name comes from Google; the "¿Cómo te llamas?" field appears in onboarding step 1 only when `full_name` is missing and blocks "Continuar" while blank (max 100 characters); the name is editable in Preferencias.
-- [ ] The new TDEE copy and helper line in onboarding and Preferencias; the number keeps `AppNumberFormat`.
-- [ ] If the weight write is an RPC or touches policies: new migration (never edit a merged one) + pgTAP cross-user isolation; otherwise no DB change.
-- [ ] Docs consistent with ADR-37 (already updated); `05-design-system.md` §6 records the final Perfil root layout.
+- [x] Bar and rail show exactly Diario, Entreno, Perfil; Diario is the start tab; each tab keeps its state; sign-out resets the back stacks; no Progreso route, string or catalog leftovers.
+- [x] Perfil icon = `person` glyph, tinted like the other tabs, active = lime + extra-bold label; no photo in the navigation; no avatar in any `AppTopBar`.
+- [x] Perfil root shows the photo (placeholder on missing/failed load), the name, "Preferencias", "Cerrar sesión" and "Borrar cuenta"; "Preferencias" opens the full-screen editor with a back arrow and back returns to the root; "Borrar cuenta" keeps the ADR-29 dialog, texts and offline rule; sign-out unchanged.
+- [x] Editing the weight and tapping "Guardar" writes one manual row for today (replaces today's manual row; earlier rows untouched) and the displayed "Peso actual" is the latest row from any source; the target is recalculated with it; a newer non-manual row is shown and stays editable.
+- [x] The name comes from Google; the "¿Cómo te llamas?" field appears in onboarding step 1 only when `full_name` is missing and blocks "Continuar" while blank (max 100 characters); the name is editable in Preferencias.
+- [x] The new TDEE copy and helper line in onboarding and Preferencias; the number keeps `AppNumberFormat`.
+- [x] If the weight write is an RPC or touches policies: new migration (never edit a merged one) + pgTAP cross-user isolation; otherwise no DB change.
+- [x] Docs consistent with ADR-37 (already updated); `05-design-system.md` §6 records the final Perfil root layout.
 
 **Host tests (per scenario):** `AppNavigationTest` (3 tabs, no photo, `person` icon, active cue); `AppRootTest`/shell test (start tab, state kept, no Progreso); `ProfileRootScreenTest` (photo placeholder, name, buttons, Preferencias navigation and back, sign-out, delete dialog); `PreferencesViewModelTest` (weight edit → today's manual upsert, latest-any-source display, name edit, recalculated target); `PreferencesScreenTest` (Robolectric: editable weight and name, new TDEE copy); `OnboardingViewModelTest` + `OnboardingScreenTest` (name step only when `full_name` is missing; copy); repository test for the same-day manual replace (and pgTAP if SQL changes).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
 
 **Dependencies:** T-040
 **Files likely touched:** `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/designsystem/{AppNavigation,AppNavigationParts,AppAvatar}.kt`, `composeApp/…/feature/profile/*` (root + preferences split), `composeApp/…/feature/onboarding/*`, `shared/…/domain/repository/*` (weight upsert, name), strings, catalog, tests, optionally one migration

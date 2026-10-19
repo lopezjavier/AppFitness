@@ -110,7 +110,8 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `MonthCalendarGrid` | Calendar month grid with a per-day kcal indicator; tap opens that day |
 | `DiaryHistoryRow` | Date + kcal + P/C/F mini bars for a day, with a weekly/monthly summary header |
 | `MacroStackedBar` | One horizontal bar split P/C/F by percentage in `macroProtein` / `macroCarbs` / `macroFat`; decorative segments, the whole bar exposes the split as `stateDescription` (T-037) |
-| `AppAvatar` | Circular Google photo (Coil) with the placeholder person icon until it loads or on error; used large on the Perfil root (size chosen by ux-reviewer), no longer in the navigation (ADR-37); decorative (T-037) |
+| `AppAvatar` | Circular Google photo (Coil) with the placeholder person icon until it loads or on error; used large on the Perfil root (96 dp, no ring; §6.2), no longer in the navigation (ADR-37); decorative (T-037) |
+| `AppTextField` | Single-line text input (T-041, name): label `bodyMedium` `textSecondary` above, `surfaceOverlay` fill, shape `base` (8), min height 52 dp, `bodyLarge` `textPrimary` left-aligned, 1.5 dp `athleticCyan` border on focus (like `NumberInput`), `error` border + supporting text when invalid, `maxLength` enforced, ghost placeholder, label as `contentDescription`, `ImeAction.Done`; `BasicTextField` based, state updated synchronously (same note as `NumberInput`). Lives in `designsystem/`, not in the screen |
 | `NumberInput` | `surfaceOverlay` background, centered tabular numerals, 1.5 dp border on focus; ghost placeholder |
 | `SetCompletionCheckbox` | 38 dp visual circle / 48 dp target; checked = lime fill + dark check + haptics |
 | `SetRow` | Index · previous (ghost) · KG · REPS · checkbox |
@@ -129,6 +130,21 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `WipPlaceholder` | Work-in-progress screen container (E1 only) |
 
 Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vectors, with a `contentDescription` on every actionable icon.
+
+### 6.2 Perfil root and Preferencias (ADR-37, T-041)
+**Perfil root** (tab destination: Top App Bar "Perfil" without back arrow, bottom bar/rail visible, no FAB). Single column, content max width `FormContentMaxWidth` (480 dp) centred on tablets; 16 dp side margins.
+- Upper block (scrollable, centred horizontally, starts 24 dp below the bar): `AppAvatar` **96 dp** (`AppAvatarDefaults.RootSize`), no ring, decorative; 16 dp; display name in `titleLarge` `textPrimary`, centred, max 2 lines, polite-free (static text). Missing name shows nothing extra (the placeholder avatar stays).
+- Action block (pinned to the bottom of the content area, above the bottom bar, 16 dp margins, full-width buttons):
+  1. "Preferencias": `PrimaryButton` (the only forward action; lime), tag `profile_root_preferences_button`.
+  2. 12 dp, then local flavor only: "Catálogo de componentes" `SecondaryButton`.
+  3. 24 dp (`blockGap`) separator, then "Cerrar sesión": `GhostButton` tone `Neutral` (it is reversible, so not red; keeps the confirm dialog).
+  4. 12 dp, "Borrar cuenta": `GhostButton` tone `Destructive` (red), disabled/loading rules of ADR-29. Both confirmations stay `AppConfirmDialog` (destructive-confirmation exception).
+- States: loading = circle skeleton (96 dp, `AppShapes.full`) + name-line skeleton + the action block; load failure = `ErrorState` with "Reintentar" above the sign-out button (as today); offline banner is global.
+- Tablet (>= 600 dp): same single column, centred (no two columns: the screen has no dense content).
+
+**Preferencias** (full-screen destination: `AppTopBar` back-arrow variant titled "Preferencias", no bottom bar, no FAB; pinned "Guardar" `PrimaryButton` footer as in T-037). Order of cards (12 dp apart, 16 dp margins): "Datos personales" (first row = name `AppTextField`, label "Nombre"; then Sexo, Edad, Altura, Nivel de actividad, **Peso actual** as `EditableRow` with chevron that opens the existing `PickerSheet`), energy/strategy card, macro split card. "Peso actual" sheet = two `WheelPicker`s (kg · decimal, range 20,0..400,0 as in onboarding; extract `WeightWheels` to `feature/biometrics` next to `HeightWheel`, parameterised by `tagPrefix`), "Listo" applies. The old read-only hint (`profile_weight_hint`) is removed. From 600 dp: personal data + energy left, macros right (unchanged). Back with unsaved changes discards silently (no dialog). 
+
+**Onboarding name field** (step 1 "Sobre ti", only when Google gave no name): above the sex selector, label "¿Cómo te llamas?", `AppTextField`, `maxLength` 100, autofocus off, `ImeAction.Done` hides the keyboard; "Continuar" disabled while blank.
 
 ### 6.1 Exercise media
 - The catalog bundles the RepDB free assets (male variant only): a **thumbnail** and two poses (`inicio`/`final`) per exercise, in `app/assets/exercises/` (ADR-30).
