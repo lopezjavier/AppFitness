@@ -1169,22 +1169,22 @@ Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the 
 **Description:** Entreno main view gains "Empezar" on each routine and "Empezar entreno vacío" (per-screen actions, ADR-36); when an `in_progress` session exists the Entreno tab opens it directly (also after a cold start). Live session screen (reference `design/stitch/live-workout/screen.png`, without RPE, CAL/EFEC or "Fase / Microciclo"): header with the "EN VIVO" stopwatch (from `started_at` and the injected `Clock`), the "Pantalla activa" indicator and "Finalizar"; one card per exercise (superset labels from T-043) with the existing `SetRow` table SERIE · ANTERIOR · KG · REPS · LISTO (ANTERIOR shows "—" until T-046), rendered through the polymorphic set row (only `weight_reps` in E3); KG with a decimal keyboard and 0.25 kg precision. Checking LISTO fills the round `SetCompletionCheckbox` in neonLime, triggers the `Haptics` port and upserts the set at once; unchecking makes it pending and editable. "Añadir serie" (placeholder = previous set's values), "Añadir ejercicio" through the T-042 picker (appended with one empty set, rest 120 s). `keepScreenOn` as a `DisposableEffect` on the session screen only (never a `WakeLock`), released on leaving and after finishing. "Finalizar" opens an `AppBottomSheet` (warning "Hay N series sin completar; no se guardarán" when pending sets exist) → summary (duration, completed sets, volume per exercise, "PR" marks). "Descartar entreno" with a confirmation → discarded, back to "Mis rutinas". Offline: checking a set keeps it in an in-memory retry queue in the ViewModel, marks it "pendiente de guardar" under the "Sin conexión" banner and flushes it when the connection returns while the session is open (ADR-01 exception); starting a session is disabled offline.
 
 **Acceptance criteria:**
-- [ ] "Empezar" on "Torso fuerza" (Press de banca 3 × 8, Dominadas 3 × 8) creates one in-progress session and shows 3 rows per exercise with the five column headers; "Empezar entreno vacío" starts a session with no exercises.
-- [ ] The window keeps the screen on only while the session screen is visible; leaving it or finishing restores the normal timeout.
-- [ ] Completing 60 kg × 12 in set 1: checked state, one haptic, one upsert; unchecking returns it to pending and editable.
-- [ ] "Añadir serie" → set 4 with set 3's values as a placeholder; "Añadir ejercicio" → "Press militar con mancuernas" at the end with one empty set.
-- [ ] Killing and reopening the app with 2 completed sets opens the Entreno tab on the session with both sets checked.
-- [ ] Summary for 60 × 12, 87.5 × 8, 87.5 × 8 shows the duration, 3 completed sets and "2.120 kg"; exercises with a new estimated 1RM record show "PR" (Q2 rule).
-- [ ] Finishing with 3 pending sets shows "Hay 3 series sin completar; no se guardarán" and keeps only the completed ones.
-- [ ] Discarding asks for confirmation; the session is `discarded` and never appears in the history (checked again in T-047).
-- [ ] Offline check → "pendiente de guardar" + banner; reconnecting saves it with no user action; no set is lost while the session stays open.
-- [ ] Editing or archiving a routine after a session leaves that session's name and sets unchanged (US-10).
-- [ ] Every interactive element has a snake_case `testTag` (e.g. `workout_set_2_done`); targets ≥ 48 dp.
+- [x] "Empezar" on "Torso fuerza" (Press de banca 3 × 8, Dominadas 3 × 8) creates one in-progress session and shows 3 rows per exercise with the five column headers; "Empezar entreno vacío" starts a session with no exercises.
+- [x] The window keeps the screen on only while the session screen is visible; leaving it or finishing restores the normal timeout.
+- [x] Completing 60 kg × 12 in set 1: checked state, one haptic, one upsert; unchecking returns it to pending and editable.
+- [x] "Añadir serie" → set 4 with set 3's values as a placeholder; "Añadir ejercicio" → "Press militar con mancuernas" at the end with one empty set.
+- [x] Killing and reopening the app with 2 completed sets opens the Entreno tab on the session with both sets checked.
+- [x] Summary for 60 × 12, 87.5 × 8, 87.5 × 8 shows the duration, 3 completed sets and "2.120 kg"; exercises with a new estimated 1RM record show "PR" (Q2 rule).
+- [x] Finishing with 3 pending sets shows "Hay 3 series sin completar; no se guardarán" and keeps only the completed ones.
+- [x] Discarding asks for confirmation; the session is `discarded` and never appears in the history (checked again in T-047).
+- [x] Offline check → "pendiente de guardar" + banner; reconnecting saves it with no user action; no set is lost while the session stays open.
+- [x] Editing or archiving a routine after a session leaves that session's name and sets unchanged (US-10).
+- [x] Every interactive element has a snake_case `testTag` (e.g. `workout_set_2_done`); targets ≥ 48 dp.
 
 **Host tests (per scenario):** `LiveSessionViewModelTest` with fakes, a test `Clock` and Turbine (Starting from a routine; Completing a set; Unchecking; Adding sets and exercises; Continuing after closing; Finishing and summary; Finishing with incomplete sets; Discarding; Network error → queue → flush on reconnect); `LiveSessionScreenTest` (Robolectric: headers, checkbox state, "EN VIVO", "Pantalla activa", sheet warning text, summary "2.120 kg" and "PR"); `KeepScreenOnTest` (flag on while shown, off after leaving and after finishing); `WorkoutTabRouteTest` (in-progress session → live screen); `RoutineSnapshotTest` (US-10 sessions unchanged).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] Manual (developer, emulator, local flavor): start, check sets, kill and reopen, finish; airplane mode while checking a set.
 
 **Dependencies:** T-044

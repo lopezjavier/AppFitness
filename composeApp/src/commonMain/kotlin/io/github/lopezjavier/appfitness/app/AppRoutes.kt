@@ -64,6 +64,10 @@ data class ExerciseDetailRoute(val exerciseId: String, val selectMode: Boolean =
 @Serializable
 data class RoutineBuilderRoute(val routineId: String? = null) : AppRoute
 
+/** The live workout (US-11): the single in-progress session, with its own top bar; its summary lives inside it. */
+@Serializable
+data object LiveSessionRoute : AppRoute
+
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
  * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon].
@@ -123,6 +127,9 @@ sealed interface ShellChrome {
 
     /** Top bar with a back arrow, no bottom bar. Its tags are `<topBarTag>`, `_title` and `_back`. */
     data class FullScreen(val title: StringResource, val topBarTag: String = AppTopBarDefaults.TestTag) : ShellChrome
+
+    /** No bottom bar and no shell top bar: the destination draws its own (the shell keeps the status bar inset). */
+    data object Own : ShellChrome
 }
 
 /** Shell chrome of this route. Exhaustive on purpose. */
@@ -143,6 +150,8 @@ val AppRoute.chrome: ShellChrome
 
             is RoutineBuilderRoute ->
                 ShellChrome.FullScreen(Res.string.routine_builder_title, topBarTag = "routine_builder_top_bar")
+
+            LiveSessionRoute -> ShellChrome.Own
         }
 
 /** Navigation entry points shared by the shell. */
@@ -158,5 +167,6 @@ object AppDestinations {
             ExercisePickerRoute(),
             ExerciseDetailRoute("", false),
             RoutineBuilderRoute(),
+            LiveSessionRoute,
         )
 }

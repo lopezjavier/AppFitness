@@ -39,10 +39,12 @@ class ShellChromeTest {
                 ExercisePickerRoute::class,
                 ExerciseDetailRoute::class,
                 RoutineBuilderRoute::class,
+                LiveSessionRoute,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
-                    it is PreferencesRoute
+                    it is PreferencesRoute ||
+                    it is LiveSessionRoute
                 ) {
                     it
                 } else {
@@ -54,7 +56,13 @@ class ShellChromeTest {
     }
 
     @Test
-    fun fullScreenRoutes_allHaveFullScreenChrome() {
-        AppDestinations.fullScreenRoutes.forEach { assertIs<ShellChrome.FullScreen>(it.chrome) }
+    fun fullScreenRoutes_allHaveFullScreenChrome_exceptTheOnesThatDrawTheirOwnBar() {
+        AppDestinations.fullScreenRoutes.filter { it != LiveSessionRoute }
+            .forEach { assertIs<ShellChrome.FullScreen>(it.chrome) }
+    }
+
+    @Test
+    fun liveSessionRoute_drawsItsOwnBar_andHasNoBottomBar() {
+        assertEquals(ShellChrome.Own, LiveSessionRoute.chrome)
     }
 }

@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
+import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -33,10 +34,11 @@ class RoutinesScreenTest {
     private val repository =
         FakeRoutineRepository(listOf(routineOf("r1", "Torso fuerza", "a", "b"), routineOf("r2", "Pierna", "c")))
     private val connectivity = FakeConnectivityObserver()
+    private val sessions = FakeWorkoutSessionRepository()
     private val effects = mutableListOf<RoutinesEffect>()
 
     private fun show(): RoutinesViewModel {
-        val vm = RoutinesViewModel(repository, connectivity)
+        val vm = RoutinesViewModel(repository, sessions, connectivity)
         rule.setContent {
             AppTheme {
                 val state by vm.uiState.collectAsState()
@@ -203,6 +205,57 @@ class RoutinesScreenTest {
         rule.onNodeWithTag("routines_menu_duplicate_r1").assertIsNotEnabled()
         rule.onNodeWithTag("routines_menu_archive_r1").assertIsNotEnabled()
         rule.onNodeWithTag("routines_menu_offline_reason").assertExists()
+    }
+
+    @Test
+    fun everyRoutineHasAnEmpezarButton_andEmptyWorkoutIsOffered() {
+        show()
+
+        rule.onNodeWithTag("routines_start_r1").assertTextContains("Empezar")
+        rule.onNodeWithTag("routines_start_r2").assertTextContains("Empezar")
+        rule.onNodeWithTag("routines_start_empty").assertTextContains("Empezar entreno vacío")
+        rule.onNodeWithTag("routines_start_offline_reason").assertDoesNotExist()
+    }
+
+    @Test
+    fun empezar_startsTheRoutine_andOpensTheLiveSession() {
+        show()
+
+        rule.onNodeWithTag("routines_start_r1").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("r1"), sessions.startedRoutines)
+        assertTrue(effects.contains(RoutinesEffect.OpenLiveSession))
+    }
+
+    @Test
+    fun emptyWorkout_startsAnEmptySession() {
+        show()
+
+        rule.onNodeWithTag("routines_start_empty").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, sessions.startedEmpty)
+        assertTrue(effects.contains(RoutinesEffect.OpenLiveSession))
+    }
+
+    @Test
+    fun offline_disablesEveryStartButton_andExplainsWhy() {
+        show()
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routines_start_r1").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_start_empty").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_start_offline_reason").assertExists()
+    }
+
+    @Test
+    fun emptyList_stillOffersTheEmptyWorkout() {
+        repository.routines.clear()
+        show()
+
+        rule.onNodeWithTag("routines_start_empty").assertExists()
     }
 
     @Test

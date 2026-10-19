@@ -9,7 +9,8 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
-import io.github.lopezjavier.appfitness.feature.routines.RoutinesRoot
+import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
+import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryRoot
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful entry point: connects [AppViewModel], the Perfil root and Preferencias to the stateless [App]. */
@@ -36,7 +37,9 @@ fun AppRoot(
         exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect ->
             ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier)
         },
-        routines = { routinesModifier, onOpenBuilder -> RoutinesRoot(onOpenBuilder, routinesModifier) },
+        routines = { routinesModifier, onOpenBuilder, onOpenLive ->
+            WorkoutEntryRoot(onOpenBuilder, onOpenLive, routinesModifier)
+        },
         routineBuilder = { builderModifier, host ->
             RoutineBuilderRoot(
                 routineId = host.routineId,
@@ -45,6 +48,15 @@ fun AppRoot(
                 onAddExercise = host.onAddExercise,
                 onClose = host.onClose,
                 modifier = builderModifier,
+            )
+        },
+        liveSession = { liveModifier, host ->
+            LiveSessionRoot(
+                selectedExerciseId = host.selectedExerciseId,
+                onConsumeSelection = host.onConsumeSelection,
+                onAddExercise = host.onAddExercise,
+                onClose = host.onClose,
+                modifier = liveModifier,
             )
         },
         onOnboardingComplete = { viewModel.onEvent(AppEvent.OnboardingCompleted) },

@@ -4,7 +4,9 @@ import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.platform.AndroidConnectivityObserver
+import io.github.lopezjavier.appfitness.platform.AndroidHaptics
 import io.github.lopezjavier.appfitness.platform.CurrentActivityHolder
 import io.github.lopezjavier.appfitness.platform.GoogleAuthCredentialProvider
 import org.koin.android.ext.koin.androidContext
@@ -22,6 +24,7 @@ val appModule =
             )
         }
         single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
+        single<Haptics> { AndroidHaptics(androidContext()) }
         single { CurrentActivityHolder() }
         single<AuthCredentialProvider> { GoogleAuthCredentialProvider(get(), get()) }
     }

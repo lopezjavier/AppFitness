@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +52,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_error
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_new
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_row_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_start
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_empty
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -60,7 +65,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
@@ -75,23 +82,27 @@ private val SkeletonRowHeight = Spacing.xl * 3
 
 /**
  * Stateful "Mis rutinas": connects [RoutinesViewModel], reloads when the screen comes back (for example after the
- * builder saved) and routes its one-off results: [onOpenBuilder] for new/edit and a snackbar for a failed action.
+ * builder saved) and routes its one-off results: [onOpenBuilder] for new/edit, [onOpenLiveSession] once a session was
+ * started and a snackbar for a failed action.
  */
 @Composable
 fun RoutinesRoot(
     onOpenBuilder: (routineId: String?) -> Unit,
+    onOpenLiveSession: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RoutinesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val currentOpenBuilder by rememberUpdatedState(onOpenBuilder)
+    val currentOpenLive by rememberUpdatedState(onOpenLiveSession)
     val failed = stringResource(Res.string.routines_action_failed)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is RoutinesEffect.OpenBuilder -> currentOpenBuilder(effect.routineId)
-                RoutinesEffect.ActionFailed -> snackbarHost.showSnackbar(failed)
+                RoutinesEffect.ActionFailed, RoutinesEffect.StartFailed -> snackbarHost.showSnackbar(failed)
+                RoutinesEffect.OpenLiveSession -> currentOpenLive()
             }
         }
     }
@@ -101,8 +112,8 @@ fun RoutinesRoot(
 
 /**
  * "Mis rutinas": the routines as cards (name, exercise count, a menu with Editar / Duplicar / Archivar) and
- * "Nueva rutina" pinned at the bottom. Loading shows skeleton rows, an empty list offers "Nueva rutina" in place and a
- * failed load offers "Reintentar".
+ * "Nueva rutina" and "Empezar entreno vacío" pinned at the bottom, and "Empezar" on every card. Loading shows
+ * skeleton rows, an empty list offers "Nueva rutina" in place and a failed load offers "Reintentar".
  */
 @Composable
 fun RoutinesScreen(
@@ -121,20 +132,41 @@ fun RoutinesScreen(
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
-            if (state is RoutinesUiState.Content && !state.isEmpty) {
-                PrimaryButton(
-                    text = stringResource(Res.string.routines_new),
-                    onClick = { onEvent(RoutinesEvent.NewRoutine) },
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)
-                        .testTag("routines_new_button"),
-                )
-            }
+            if (state is RoutinesUiState.Content) RoutinesBottomActions(state, onEvent)
         }
     }
     (state as? RoutinesUiState.Content)?.let { RoutinesDialogs(it, onEvent) }
+}
+
+/** "Nueva rutina" (once there are routines) and "Empezar entreno vacío"; starting needs a connection. */
+@Composable
+private fun RoutinesBottomActions(state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        if (!state.isEmpty) {
+            PrimaryButton(
+                text = stringResource(Res.string.routines_new),
+                onClick = { onEvent(RoutinesEvent.NewRoutine) },
+                modifier = Modifier.fillMaxWidth().testTag("routines_new_button"),
+            )
+        }
+        GhostButton(
+            text = stringResource(Res.string.routines_start_empty),
+            onClick = { onEvent(RoutinesEvent.StartEmpty) },
+            modifier = Modifier.fillMaxWidth().testTag("routines_start_empty"),
+            enabled = state.isOnline && !state.starting,
+        )
+        if (!state.isOnline) {
+            Text(
+                text = stringResource(Res.string.routines_start_offline_reason),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("routines_start_offline_reason"),
+            )
+        }
+    }
 }
 
 @Composable
@@ -164,14 +196,15 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
             )
         }
         items(state.routines, key = { it.id }) { routine ->
-            RoutineRow(routine, onEvent)
+            RoutineRow(routine, state.isOnline && !state.starting, onEvent)
         }
     }
 }
 
 @Composable
-private fun RoutineRow(routine: RoutineSummary, onEvent: (RoutinesEvent) -> Unit) {
+private fun RoutineRow(routine: RoutineSummary, canStart: Boolean, onEvent: (RoutinesEvent) -> Unit) {
     val menuLabel = stringResource(Res.string.routines_row_menu_cd, routine.name)
+    val startLabel = stringResource(Res.string.routines_start_cd, routine.name)
     AppCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(
@@ -215,6 +248,13 @@ private fun RoutineRow(routine: RoutineSummary, onEvent: (RoutinesEvent) -> Unit
                 )
             }
         }
+        SecondaryButton(
+            text = stringResource(Res.string.routines_start),
+            onClick = { onEvent(RoutinesEvent.StartRoutine(routine.id)) },
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm).semantics { contentDescription = startLabel }
+                .testTag("routines_start_${routine.id}"),
+            enabled = canStart,
+        )
     }
 }
 
