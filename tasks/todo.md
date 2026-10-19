@@ -1346,7 +1346,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 
 **Acceptance criteria:**
 - [ ] Creating custom "Press Hammer unilateral" and adding it to a routine shows "Press Hammer unilateral" in the builder, "Mis rutinas", the live session, the summary, the history detail and Fuerza; never "Ejercicio".
-- [ ] Thumbnail or name tap opens the exercise detail from the builder and the live session cards (and the picker; Q5 resolved: thumbnail/name open the detail, a separate checkbox/"+" selects); back returns to the same place with the draft or session intact.
+- [ ] Thumbnail or name tap opens the exercise detail from the builder and the live session cards (Q5 resolved: the "Nueva rutina" picker is unchanged, a row tap still adds the exercise; elsewhere, including an opened routine, the thumbnail or name opens the detail); back returns to the same place with the draft or session intact.
 - [ ] "Mis rutinas" lists "Abdominales", "brazos", "Énfasis pierna", "Torso fuerza" in that order (case- and accent-insensitive, ascending); order kept after create, edit, duplicate and archive.
 - [ ] No "Empezar entreno vacío" anywhere (UI, strings, tests); `rg "start_empty|Empezar entreno vacío"` finds nothing in `composeApp` and `shared`.
 - [ ] Rest picker: steps of 10 s (0, 10, …, 600); 70 s shows "1 min 10 s"; 45 s shows "45 s"; Q6 resolved: 60 s → "1 min", whole minutes "2 min"; same format in the builder and the session "Descanso" menu.
@@ -1365,7 +1365,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 - [ ] T-051 merged, CI green.
 - [ ] 👤 Install the APK and re-test the fixes:
   - Create a custom exercise, add it to a routine: its own name appears in the routine, "Mis rutinas" and later in the session (was "Ejercicio").
-  - Tap an exercise's thumbnail or name in the routine builder (and in the picker): the detail opens with the animation and "Cómo hacerlo".
+  - Tap an exercise's thumbnail or name in an opened routine (the "Nueva rutina" picker still adds the exercise on a row tap): the detail opens with the animation and "Cómo hacerlo".
   - "Mis rutinas" is sorted by name A→Z; "Empezar entreno vacío" is gone.
   - Change a rest: it moves in 10 s steps and shows "1 min 10 s" above 60 s.
   - Quick regression: search and filter, reorder, superset, save, edit, duplicate, archive.
