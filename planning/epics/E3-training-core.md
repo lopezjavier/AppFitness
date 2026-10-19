@@ -22,8 +22,31 @@ E2. Independent of E4 and E5.
 - Per-exercise detail screen reachable from that card and from an exercise's detail in Workout/History.
 
 ## Workout tab navigation
-- Main view: "Mis rutinas" (list) + "Empezar entreno vacío" button + access to "Historial".
-- If there is an `in_progress` session, the tab opens the live session directly.
+- Main view: "Mis rutinas" (list sorted by name ascending, case- and accent-insensitive) + "Nueva rutina" + access to "Historial". There is no empty workout: every session starts from a routine (user feedback 2026-10-20, T-051).
+- If there is an `in_progress` session, the tab opens the live session directly; on "Mis rutinas" the "Tienes un entreno en curso" card offers continue (play) and discard (trash) (T-052).
+
+## App state restoration (user feedback 2026-10-20, T-050, ADR-40)
+Applies to the whole app, not only E3.
+
+```gherkin
+Feature: App state restoration
+
+  Scenario: Returning to the same tab and screen
+    Given the user is on a sub-screen of a tab (e.g. Entreno → "Historial" → a session)
+    When they leave the app and come back
+    Then the same tab and the same screen are shown
+
+  Scenario: Keeping a draft
+    Given the user has typed a name and added 2 exercises in "Nueva rutina" without saving
+    When they leave the app and come back
+    Then the draft is shown exactly as they left it and is still unsaved
+
+  Scenario: Restoring after process death
+    Given the system closed the app process while it was in the background
+    When the user opens the app again
+    Then the selected tab, its screen stack and any unsaved draft are restored
+    And a signed-out user is still sent to sign-in
+```
 
 ## Exercise assets (RepDB free)
 - The catalog ships the **RepDB free** set (643 exercises): `start`/`peak` poses (the thumbnail is the `start` pose) and Spanish instructions, in `composeApp/src/commonMain/composeResources/files/exercises/` (`library.json` generated from `free.es.json`, ≈16 MB; ADR-39). Catalog text and images live in the client, never in the DB or a CDN (ADR-30).
@@ -104,6 +127,11 @@ Feature: Creating and editing routines
     And they tap "Guardar"
     Then the routine appears in "Mis rutinas" with 2 exercises
 
+  Scenario: Routines sorted by name
+    Given the routines "Torso fuerza", "brazos" and "Abdominales"
+    When the user opens "Mis rutinas"
+    Then they are listed as "Abdominales", "brazos", "Torso fuerza"
+
   Scenario: Reordering exercises
     Given a routine with exercises A, B and C
     When the user drags C to the first position
@@ -143,8 +171,24 @@ Feature: Live workout session
     Given the routine "Torso fuerza" with Press de banca (3 × 8) and Dominadas (3 × 8)
     When the user taps "Empezar" on that routine
     Then an in-progress session is created
-    And the session screen is shown with the "EN VIVO" stopwatch, the "Pantalla activa" indicator and the "Finalizar" button
+    And the session screen is shown with the "EN VIVO" stopwatch and the "Pantalla activa" indicator
+    And its ⋮ menu offers "Finalizar entreno" above "Descartar entreno" (there is no fixed bottom button)
     And each exercise shows 3 set rows with the columns SERIE, ANTERIOR, KG, REPS and LISTO
+
+  Scenario: Starting while a session is in progress
+    Given a session is in progress
+    When the user taps "Empezar" on another routine
+    Then the message "Ya hay un entreno en curso" is shown
+    And no new session is created
+
+  Scenario: Resuming or discarding from "Mis rutinas"
+    Given a session is in progress
+    When the user opens "Mis rutinas"
+    Then the "Tienes un entreno en curso" card shows a play button and a trash button
+    When they tap play
+    Then the live session opens
+    When they tap trash and confirm
+    Then the session is marked as discarded and the card disappears
 
   Scenario: Screen always on
     Given the session screen is visible
@@ -176,7 +220,7 @@ Feature: Live workout session
 
   Scenario: Finishing and summary
     Given the user completed Press de banca 60 kg × 12, 87.5 kg × 8 and 87.5 kg × 8
-    When they tap "Finalizar" and confirm in the Bottom Sheet
+    When they choose "Finalizar entreno" in the ⋮ menu and confirm in the Bottom Sheet
     Then the session becomes completed and the screen is no longer kept on
     And the summary shows the duration, the completed sets and the Press de banca volume "2.120 kg"
     And exercises with a new estimated 1RM record are marked as "PR"
@@ -270,7 +314,7 @@ Feature: Rest timer
 
   Scenario: End of rest
     When the timer reaches "00:00"
-    Then the device vibrates and plays a short alert
+    Then the device vibrates and plays an alert sound of about 1 s (only with the app in the foreground)
     And the bar disappears
 
   Scenario: Accuracy with the app in the background
@@ -361,6 +405,7 @@ Feature: Strength analytics
   Scenario: Weekly volume per muscle group
     When they open "Volumen por grupo muscular"
     Then they see the total volume per muscle group for each of the last 8 weeks
+    And the first week shown is never earlier than the week of their first completed session
     And they can select a group to see only its evolution
 
   Scenario: Exercise without enough data

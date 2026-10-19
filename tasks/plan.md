@@ -1,72 +1,70 @@
 # Implementation Plan: E3 · Training core → `v0.3.0`
 
 ## Overview
-Plan routines calmly and run them at the gym with a sweat-proof live session: a Spanish exercise catalog with the bundled RepDB assets, a routine builder with supersets, quick set logging with the screen always on, previous performance (ghost data), a non-blocking rest timer, session history and strength-progress charts reached from Perfil. E3 is done when the user logs a full real workout (4-exercise routine with a superset) on the `prodDebug` APK, the five training tables and the three RPCs have pgTAP tests, a host test covers a full session, and the schema is forward-compatible with E6 (ADR-30).
+Plan routines calmly and run them at the gym with a sweat-proof live session: a Spanish exercise catalog with the bundled RepDB assets, a routine builder with supersets, quick set logging with the screen always on, previous performance (ghost data), a non-blocking rest timer, session history and strength-progress charts reached from Perfil.
 
-Sources: `planning/epics/E3-training-core.md` (US-09…US-15), `planning/03-data-model.md` §1, §5, §6, `planning/04-business-rules.md` §4–§5, `planning/02-architecture.md`, `planning/05-design-system.md` (`SetRow`, `RestTimerBar`, `NumberInput`, `ExerciseAnimation`, `ghostData`, `athleticCyan`), ADR-01, ADR-09, ADR-29, ADR-30, ADR-36, ADR-37, mockups `design/stitch/live-workout/screen.png` and the "Fuerza y 1RM estimado" part of `design/stitch/progress/screen.png`. Tasks: `tasks/todo.md` (T-042…T-049). Earlier plans are in the git history.
+Status (2026-10-20): the build phase is done (T-042…T-048b merged). The user tested the whole epic in one go (Checkpoint E3-A was merged into the end-of-epic test by user decision) and reported findings. This plan now covers the **corrective phase**: five tasks, one 👤 checkpoint per user-visible functionality, then the final regression and approval (T-049 + Checkpoint E3-B) and the `v0.3.0` tag.
 
-Sizing: one task per story as a vertical slice. US-11 is split into backend (T-044) and UI (T-045) because both halves are heavy and reviewable apart; US-12 and US-13 are merged (T-046) because both layer onto the live screen. 6 implementation tasks + closure, 2 👤 checkpoints.
+Sources: `planning/epics/E3-training-core.md` (US-09…US-15, updated 2026-10-20 for routine order, removal of the empty workout, "Finalizar entreno" in the ⋮ menu, the in-progress card buttons, the start-conflict message, the ~1 s rest sound, the muscle-volume start and the app state restoration feature), `planning/02-architecture.md`, `planning/04-business-rules.md` §4.4, ADR-24, ADR-30, ADR-36, ADR-37, ADR-38. Tasks: `tasks/todo.md` (T-042…T-054, T-049 last). Earlier plans are in the git history.
+
+Out of scope for the corrective phase: per-set weight/reps/set type in routines (moved to E6 US-29) and rest alerts in the background (Phase 2, `01-phase1-scope.md`).
 
 ## Architecture Decisions
-- **Forward-compatible schema (ADR-30).** Each migration creates its tables with every *(E6)* column and enum and its default. `routine_folders` is created in T-043 (it is the target of `routines.folder_id`), so E6 needs no migration. The live set row is a polymorphic entry keyed by `metric_type`; E3 maps only `weight_reps` / `working`.
-- **One migration per task:** T-042 `exercises` (+ catalog rows per Q1), T-043 `routine_folders`/`routines`/`routine_exercises` + `save_routine(jsonb)`, T-044 `workout_sessions`/`workout_sets` + `exercise_history`, T-046 `last_performance`, T-048 `weekly_muscle_volume`; T-047 only if the planner puts the list aggregates in SQL.
-- **`exercise_history` ships in T-044, not T-048:** the summary's "PR" (US-11) and the history's PRs (US-14) need the previous best estimated 1RM (§4.5). Its pgTAP uses the §4.1 examples, the same cases as `EstimateOneRepMax`.
-- **Account deletion keeps working (ADR-29):** `exercises.created_by` cascades; every new user-owned table cascades from `auth.users`; pgTAP in T-042/T-043/T-044 deletes a user with training data.
-- **RepDB bundle (ADR-30):** not committed; `.gitignore` excludes it. The epic path `app/assets/exercises/` predates ADR-19, so T-042 chose Compose resources in `composeApp` (`composeResources/files/exercises/`, ADR-39) and updated the docs. CI builds and tests without it (synthetic fixture); `scripts/deliver-apk.py` refuses to build without it so a delivered APK always carries it. Search is in memory in `shared` (accent- and case-insensitive).
-- **Reusable exercise picker:** built in T-042 as a destination returning the selected exercise; reused by the routine builder (T-043) and "Añadir ejercicio" in the session (T-045). Until T-043, a provisional Entreno entry reaches it.
-- **Per-screen actions (ADR-36):** "Nueva rutina" (T-043), "Empezar" / "Empezar entreno vacío" (T-045), "Historial" (T-047) live on the Entreno main view; "Fuerza" is the first statistics entry on the Perfil root (ADR-37, T-048). This consumes the E1 "FAB question" note.
-- **Live session:** session created in the DB on start, every set upserted by `(session_id, exercise_position, set_index)` when checked; offline sets queue in the ViewModel's memory only while the session is open (ADR-01 exception). `keepScreenOn` via `DisposableEffect`, never a `WakeLock`. Haptics through the `Haptics` port; the rest-end alert through a new sound port in `androidMain`.
-- **Rest timer:** state from an `endsAt` instant and the injected `Clock` (§4.4), tested with virtual time; the alert fires only with the app visible (no foreground service or notifications in Phase 1).
-- **Existing design-system components are reused:** `SetRow`, `SetCompletionCheckbox`, `NumberInput`, `RestTimerBar`, `AppBottomSheet`, `TrendPill`, `EmptyState`/`ErrorState`. New ones are built inside the first task that needs them: `ExerciseAnimation` (T-042), a reorderable-list helper if needed (T-043), the Vico chart wrapper (T-048). Before changing a shared component, check every caller (E2 lesson, T-040).
-- **Charts:** Vico (multiplatform), added in T-048 at the latest stable version, athleticCyan.
-- **Notes for later epics:** the "E3 (food diary)" and "E2 (food diary)" notes in `tasks/todo.md` predate ADR-31's renumbering and target the food diary, now **E4**; left in place.
+- **State restoration is an app-wide property (new ADR-40, written in T-050).** The selected tab, each tab's back stack and every unsaved form survive a background/foreground cycle and process death. Fixed centrally (root navigation, per-tab `saveState`/`restoreState`, `@Serializable` routes, `SavedStateHandle`/`rememberSaveable` for drafts), not per screen; auth routing wins over restoration. `02-architecture.md` and the planner agent gain the rule "every new screen with input ships with a restoration test", so later epics inherit it. T-050 runs first so T-051…T-054 build on it.
+- **Exercise names:** catalog rows have no DB name (ADR-38) and take it from the bundle; custom rows use their DB `name`. One resolver used by every screen (T-051).
+- **No empty workout:** sessions always start from a routine; the client path is removed, the DB keeps `workout_sessions.routine_id` nullable for E6 (ADR-30). No migration.
+- **Start conflict:** the partial unique index on `in_progress` (T-044) is mapped to a typed domain error in the repository and shown as "Ya hay un entreno en curso"; the UI never matches error strings.
+- **Rest alert sound:** the existing `AlertSound` port (T-046) plays ~1 s with the vibration, foreground only, silent when muted (`04` §4.4).
+- **Muscle volume range:** from the ISO week of the first completed session, capped at 8 weeks; in the client unless the planner moves it into SQL (then a new migration, never an edit of the merged one).
+- **Shared components:** before changing `NumberInput`, `AppBottomSheet` or `SetRow`, check every caller (E2 lesson, T-040).
 
 ## Task List
 
-### Phase 1: Plan and run a workout (US-09…US-13)
-- [x] T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises (US-09) — UI + backend
-- [ ] T-043: Routine builder and "Mis rutinas" (US-10) — UI + backend
-- [ ] T-044: Workout sessions backend and training domain (US-11 backend half + `exercise_history`) — backend
-- [ ] T-045: Live workout session (US-11 UI half) — UI
-- [ ] T-046: Ghost data and rest timer in the live session (US-12 + US-13) — UI + backend (`last_performance`)
+### Phase 1 (done): Plan and run a workout (US-09…US-13)
+- [x] T-042 exercise catalog · T-043 routine builder · T-044 sessions backend · T-045 live session · T-046 ghost data and rest timer
 
-### Checkpoint E3-A 👤: a real workout on the phone
-- [ ] Build a routine with a superset from the catalog, run it at the gym (screen on, LISTO, ghost data, rest bar, resume after closing, offline set), finish with the summary. Placed here because the live session is the riskiest user-visible part of E3, and feedback can still shape history and charts.
+### Phase 2 (done): Review and progress (US-14, US-15)
+- [x] T-047 session history · T-048 strength progress · T-048b weekly muscle volume
 
-### Phase 2: Review and progress (US-14, US-15)
-- [ ] T-047: Session history (US-14) — UI (+ optional SQL aggregates)
-- [ ] T-048: Strength progress: "Fuerza" screen, exercise charts, weekly muscle volume (US-15) — UI + backend (`weekly_muscle_volume`)
+### Phase 3: Corrective tasks (user feedback 2026-10-20)
+- [ ] T-050: App-wide state restoration (tab, screen, drafts, process death) — UI
+  - **Checkpoint E3-C 👤 State restoration:** sub-screens on every tab and a half-built "Nueva rutina" survive leaving the app, also with "No mantener actividades"; a running session still reopens.
+- [ ] T-051: Routines and catalog fixes (custom name, detail on thumbnail/name tap, A→Z order, no "Empezar entreno vacío", 10 s rest steps "1 min 10 s") — UI
+  - **Checkpoint E3-D 👤 Routines and catalog:** re-test each of the five fixes plus a quick routine regression.
+- [ ] T-052: Live session fixes ("Finalizar entreno" in ⋮, card play/trash, "Ya hay un entreno en curso", ~1 s rest sound) — UI
+  - **Checkpoint E3-E 👤 Live session:** re-test the four fixes plus a quick gym regression.
+- [ ] T-053: Fix the "Corregir serie" dialog — UI
+  - **Checkpoint E3-F 👤 History:** edit reps in "Corregir serie", labels horizontal, volume updates.
+- [ ] T-054: Weekly muscle volume starts at the first recorded session — UI (+ optional SQL)
+  - **Checkpoint E3-G 👤 Strength:** chart starts at the week of the first session; quick Fuerza regression.
 
-### Checkpoint E3-B 👤: epic closure
-- [ ] T-049: E3 closure — history (edit, delete, pagination) and the Fuerza screen with real session data; tag `v0.3.0` and retrospective.
+Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored".
 
-Internal milestones (not 👤): `deploy-supabase` green after each migration (T-042, T-043, T-044, T-046, T-048); production catalog row count matches the bundle (T-042); pgTAP for every training table and RPC green in `supabase-ci`.
+### Closure
+- [ ] T-049: E3 closure (final regression and approval)
+  - **Checkpoint E3-B 👤 final regression:** one real workout end to end on the delivered APK; approval → `v0.3.0` tag and retrospective.
+
+Internal milestones (not 👤): lint + `testLocalDebugUnitTest` green per task; `deploy-supabase` green only if T-054 adds a migration.
 
 ## Dependencies
 
 ```
-E2 (v0.2.0) + Q1 + RepDB bundle ─► T-042 ─► T-043 ─► T-044 ─► T-045 ─► T-046 ─► [E3-A 👤] ─► T-047 ─► T-048 ─► [E3-B 👤] ─► T-049
-                                                  Q2 ─┘──────────┘   Q3 ─┘
+T-048b ─► T-050 ─► [E3-C 👤] ─► T-051 (Q5, Q6) ─► [E3-D 👤] ─► T-052 ─► [E3-E 👤] ─► T-053 ─► [E3-F 👤] ─► T-054 ─► [E3-G 👤] ─► T-049 ─► [E3-B 👤] ─► v0.3.0
 ```
-- Strictly sequential: each task builds on the previous one's tables, repositories and screens.
-- Inside T-042, T-043 and T-046, backend (migration + pgTAP) and frontend can run in parallel once the planner fixes the repository contract. T-044's domain use cases (1RM, volume) can start before Q2 is answered; only `DetectPersonalRecords` waits for it.
+- Strictly sequential: each checkpoint gates the next task (the user's feedback can still change it), and T-050 goes first so every later fix inherits restoration.
+- Q5 and Q6 are answered (see below).
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| RepDB data in a public repo (catalog names/keys in a migration) vs. the in-app-only licence | High | Q1 asked before T-042; no RepDB file is committed; the fixture is synthetic. |
-| The bundle is missing on a build machine (CI, a fresh clone) | Medium | Build and tests tolerate its absence; `deliver-apk.py` blocks delivery without it; path documented in `08-environment-setup.md`. |
-| APK size grows by ≈16 MB; loading `library.json` on the main thread | Medium | Parse once off the main thread and cache in memory; thumbnails loaded lazily (Coil or bitmap decode, planner's choice). |
-| Live session loses data (offline, process death, double in-progress) | High | Upsert per set, partial unique index on `in_progress`, in-memory retry queue with "pendiente de guardar", resume test from a fresh process state. |
-| Timer drift in the background; timer and ghost tests flaky | Medium | `endsAt` + injected `Clock`, virtual-time tests; no real delays in host tests. |
-| `keepScreenOn` leaking after the session | Medium | `DisposableEffect` scoped to the session screen; host test for on/off; checked at E3-A. |
-| Drag-and-drop reorder in Compose Multiplatform (no stock component) | Medium | Small own implementation or a stable multiplatform library; "Subir"/"Bajar" as the accessible fallback and the main test path. |
-| Account deletion fails once training tables reference `auth.users` or custom exercises | Medium | Cascade FKs; pgTAP deletes a user with training data in T-042…T-044. |
-| Large slices (T-042, T-043, T-045, T-046, T-048 are L) | Medium | If a plan exceeds ~15 non-trivial files, the planner splits it into backend then UI (never per component). |
-| Haptics, the rest alert sound and the always-on screen cannot be fully checked on the host | Low | Ports with fakes in host tests; manual check at E3-A. |
+| State restoration touches the root navigation and auth routing of the whole app | High | Root cause first (in the PR body); `StateRestorationTester` tests on the scaffold; auth-wins rule tested; the planner may slice T-050 (navigation, then drafts). |
+| Restored drafts saved by accident, or stale drafts reappearing after a save | Medium | Drafts stay unsaved until the explicit save; cleared on save/discard; tested per form. |
+| Process death cannot be fully reproduced on the host | Medium | `SavedStateHandle` recreation in ViewModel tests; manual check with "No mantener actividades" at E3-C. |
+| Removing the empty-workout path breaks tests or the in-progress resume | Low | Remove with its tests; `WorkoutTabRouteTest` and resume tests stay green. |
+| Fixing the edit dialog through a shared component regresses other screens | Medium | Check every caller of `NumberInput`/`AppBottomSheet`; screen tests at 360 dp and font scale 2.0. |
+| The alert sound is inaudible or too long on real devices | Low | ~1 s asset, emulator check by the developer, re-test at E3-E. |
 
 ## Open Questions
-- **Q1 · RESOLVED (ADR-38) · RepDB catalog rows.** Option (b): the migration stores only `key`, muscle group and equipment; `name` is nullable for catalog rows and the app shows the Spanish name from the bundle. No RepDB text or asset is committed (bundle gitignored, pgTAP fixtures synthetic). The user's bundle is at `C:/Users/javie/Documents/AppFitness/hevy-zip/Biblioteca_Ejercicios_Free` (includes `ATRIBUCION_RepDB.md`, `free.es.json`, `images/`); T-042 copies what it needs from there.
-- **Q2 · RESOLVED (user, 2026-10-19) · First session of an exercise.** The first-ever session of an exercise IS marked "PR" (a missing previous best counts as 0). Later sessions need an estimated 1RM above the best of all previous ones (§4.5).
-- **Q3 · RESOLVED (ADR-38) · Superset rest.** The user configures, per superset: number of rounds (sets), reps per exercise, the rest between exercises within a round (e.g. 1 min biceps → triceps) and the rest between rounds (e.g. 3 min). Mapping onto `routine_exercises.rest_seconds` (no schema change): for non-last members it is the transition rest after that exercise; for the last member it is the rest between rounds. All members share the same set count. T-043 builder UI and T-046 timer implement it.
-- **Q4 · RESOLVED · "Borrar cuenta" wording.** No change: it is a testing aid; the real account is never deleted.
+- **Q1–Q4 · RESOLVED** (ADR-38 and the user, 2026-10-19): RepDB rows without names; first session of an exercise is a "PR"; superset rest per member; "Borrar cuenta" wording unchanged.
+- **Q5 · RESOLVED 2026-10-20 (user): in the picker too, thumbnail and name open the detail; selecting is done with a separate checkbox/"+" control (ux-reviewer defines it).** *(was BLOCKING)* — **Q5 (T-051) · Opening the exercise detail from the picker.** Today tapping a picker row selects the exercise. In the builder and the session cards a thumbnail/name tap will open the detail. In the picker, should (a) the thumbnail open the detail and the rest of the row select, (b) both thumbnail and name open the detail with a separate select control, or (c) the picker stay as it is (detail only from the builder and session)?
+- **Q6 · RESOLVED 2026-10-20 (user): under 60 s "50 s"; from 60 s "1 min", "1 min 10 s", "2 min" (never "2 min 0 s").** *(was BLOCKING)* — **Q6 (T-051) · Rest format edge cases.** With "1 min 10 s" above 60 s: does exactly 60 s read "60 s" or "1 min"? Do whole minutes read "2 min" or "2 min 0 s"?
