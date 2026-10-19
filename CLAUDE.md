@@ -40,7 +40,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 1. **[PM]** `git checkout main && git pull && git checkout -b feature/T-###-<slug>`. Never work on `main`. A bug the user reports becomes the next task (`fix(T-###)`).
 2. **planner** → plan in `.workflow/current_task.md`.
 3. **ux-reviewer** → only if the task has UI.
-4. **frontend-developer** and/or **backend-developer** → TDD until green (in parallel if decoupled). UI scenarios get host (Robolectric) tests.
+4. **kotlin-core-developer** (domain, data, ViewModels) then **compose-ui-developer** (screens, designsystem, Robolectric; starts from the finished core), and/or **backend-developer** → TDD until green (backend in parallel if decoupled). L tasks run as slices, one dev run each. UI scenarios get host (Robolectric) tests.
 5. **[PM]** marks the task as done in `tasks/todo.md` **on the branch** (`main` is protected: nothing can be committed to it after the merge).
 6. **pr-creator** → commits + push + `gh pr create`.
 7. **pr-reviewer** → `gh pr review --comment` with a verdict (it cannot approve your own PR). On `CHANGES REQUIRED`, go back to step 4. Skipped for PRs that only touch docs or task files; always run when code, tests, CI or scripts change.
@@ -51,7 +51,7 @@ Do not ask about process and documentation fixes, keeping docs and agent instruc
 - `pr-body.md`: PR body (pr-creator).
 - `execution.log`: local audit. Only the PM writes to it, one line per transition:
 `[YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message>`
-- AGENT: PM, EPIC_PLANNER, PLANNER, UX, DEV_FE, DEV_BE, PR_CREATOR, PR_REVIEWER.
+- AGENT: PM, EPIC_PLANNER, PLANNER, UX, DEV_CORE, DEV_UI, DEV_BE, PR_CREATOR, PR_REVIEWER.
 - STATUS: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED. The `[PM] [T-###] [COMPLETED]` line ends with the task duration since `STARTED` (e.g. `… CI green · 52 min`) so retrospectives have numbers.
 - The active log holds only the current epic; a closed epic's lines move to `.workflow/archive/execution-E#.log`. Never load the whole log or an archive: grep by `[T-###]`, `[E#]` or timestamp.
 
@@ -106,4 +106,4 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 
 ## Current status
 
-E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done and tagged `v0.1.0` (2026-10-13): see `tasks/todo.md`. E2 (auth and profile) broken down into T-034…T-038 (2026-10-14; decisions in ADR-24): see `tasks/todo.md`. T-034…T-037 and T-039 done (T-037 = Perfil tab and Profile screen #57, account deletion ADR-29). Checkpoint E2-B feedback (2026-10-19, ADR-37) added T-040 and T-041. T-040 and T-041 (Perfil restructure) done. Checkpoint E2-B approved (2026-10-19; UI refinements deferred to E8, PR #63). T-038 (E2 closure) done; E2 tagged `v0.2.0` after the merge. E2 retrospective held (retrospectives/E2.md; QA removed, Claude Code workflows to be explored in the E3 retrospective). E3 (training core) broken down into T-042…T-049 with checkpoints E3-A and E3-B (2026-10-19; ADR-38, questions Q1–Q4 resolved). T-042 (exercise catalog, PR #67) done. Next: T-043 (routines) in a fresh session. Pending process change (user-approved 2026-10-19, apply after T-043 merges, before T-044): split `frontend-developer` into a core agent (domain, data, ViewModels) and a Compose UI agent (screens, design system, Robolectric); the planner splits L tasks into slices; agents run Gradle quietly and read only failing lines. No separate tester agent (revisit for pure-logic tasks).
+E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done and tagged `v0.1.0` (2026-10-13): see `tasks/todo.md`. E2 (auth and profile) broken down into T-034…T-038 (2026-10-14; decisions in ADR-24): see `tasks/todo.md`. T-034…T-037 and T-039 done (T-037 = Perfil tab and Profile screen #57, account deletion ADR-29). Checkpoint E2-B feedback (2026-10-19, ADR-37) added T-040 and T-041. T-040 and T-041 (Perfil restructure) done. Checkpoint E2-B approved (2026-10-19; UI refinements deferred to E8, PR #63). T-038 (E2 closure) done; E2 tagged `v0.2.0` after the merge. E2 retrospective held (retrospectives/E2.md; QA removed, Claude Code workflows to be explored in the E3 retrospective). E3 (training core) broken down into T-042…T-049 with checkpoints E3-A and E3-B (2026-10-19; ADR-38, questions Q1–Q4 resolved). T-042 (exercise catalog, PR #67) done. T-043 (routines, PR #68) done. Process change applied: `frontend-developer` split into `kotlin-core-developer` and `compose-ui-developer`, L tasks sliced by the planner. Next: T-044 (workout sessions backend and training domain) in a fresh session.

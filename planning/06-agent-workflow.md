@@ -20,7 +20,7 @@ Supersedes the original orchestrator and workflow documents (kept outside the re
 [PM] start: git checkout main && git pull && git checkout -b feature/T-###-slug
   → planner            plan in .workflow/current_task.md
   → ux-reviewer        validates the plan vs 05-design-system.md; defines testTags
-  → frontend-developer and/or backend-developer (in parallel if decoupled)
+  → kotlin-core-developer, then compose-ui-developer (L tasks: one run per slice), and/or backend-developer (in parallel if decoupled)
                        TDD until green; UI scenarios covered by host (Robolectric) tests
 [PM] marks the task done in tasks/todo.md on the branch
   → pr-creator         commit(s), push, gh pr create
@@ -49,14 +49,14 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 ```
 [YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message / artifact>
 ```
-- `AGENT`: PM, EPIC_PLANNER, PLANNER, UX, DEV_FE, DEV_BE, PR_CREATOR, PR_REVIEWER.
+- `AGENT`: PM, EPIC_PLANNER, PLANNER, UX, DEV_CORE, DEV_UI, DEV_BE, PR_CREATOR, PR_REVIEWER.
 - `STATUS`: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED.
 - The active log holds only the current epic; a closed epic's lines move to `.workflow/archive/execution-E#.log`. Read it with `grep` (`[T-###]`, `[E#]`, timestamp), never in full.
 - Example:
 ```
 [2026-10-20 10:02:10] [PM] [T-014] [STARTED] Branch feature/T-014-kmp-project created from main
 [2026-10-20 10:05:25] [PLANNER] [T-014] [PASSED] Plan in .workflow/current_task.md
-[2026-10-20 10:40:00] [DEV_FE] [T-014] [PASSED] testLocalDebugUnitTest 12/12
+[2026-10-20 10:40:00] [DEV_CORE] [T-014] [PASSED] testLocalDebugUnitTest 12/12
 [2026-10-20 10:46:15] [PR_CREATOR] [T-014] [PASSED] PR #3
 [2026-10-20 10:50:30] [PR_REVIEWER] [T-014] [PASSED] No blocking findings
 [2026-10-20 10:58:00] [PM] [T-014] [COMPLETED] Squash-merged into main; CI green
@@ -89,7 +89,8 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | `epic-planner` | opus | Read, Grep, Glob, Write, Edit | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, 1–3 👤 checkpoints |
 | `planner` | sonnet | Read, Grep, Glob, Write, Edit | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
 | `ux-reviewer` | sonnet | Read, Grep, Glob, Edit | "UX notes" section in the plan + PASSED/REJECTED |
-| `frontend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Kotlin code + tests; lint/tests/build green |
+| `kotlin-core-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Domain, data, DI, ViewModels + unit tests; lint/tests/build green |
+| `compose-ui-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Screens, designsystem, navigation wiring, Robolectric tests; starts from the core |
 | `backend-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
 | `pr-creator` | haiku | Read, Grep, Glob, Bash | One commit per task (squash merge), push, PR; never re-encodes files; stops on any secret |
 | `pr-reviewer` | sonnet | Read, Grep, Glob, Bash | Verdict as a review comment (`--comment`) |

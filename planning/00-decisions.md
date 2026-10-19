@@ -159,7 +159,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Context:** the background Maestro QA (ADR-23) was the largest recurring cost per UI task, and the agent sessions spent most of their tokens writing and debugging `tests/e2e` flows, while the defects it caught were few and the host (Robolectric) tests already cover the Gherkin scenarios. The goal is to cut context and token use in Claude Code.
 - **Decision:**
   - The `qa-engineer` subagent, the background QA step and the `../AppFitness-qa` worktree are removed from the flow.
-  - Every Gherkin UI scenario is covered by a deterministic host (Robolectric) test in `androidHostTest`, written with the task (frontend-developer rule 13).
+  - Every Gherkin UI scenario is covered by a deterministic host (Robolectric) test in `androidHostTest`, written with the task (compose-ui-developer rule 14).
   - The app is verified by hand on real devices with `python scripts/deliver-apk.py`.
   - A defect found in manual testing becomes a corrective `fix(T-###)` task; no time is spent debugging a UI-automation script.
   - The Maestro infrastructure is removed: `tests/e2e/`, the `check-e2e-tags.sh` guard, the Maestro command rows and the `qa` GitHub-issue tracking.
