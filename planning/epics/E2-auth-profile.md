@@ -4,8 +4,8 @@
 Each person signs in with their Google account, completes their biometric profile and defines their energy strategy and macro split. This data feeds the Diary (E4), the weight rate (E5) and the calculations across the app.
 
 ## Scope
-- Includes: Google sign-in/sign-out, onboarding, profile editing, TDEE, strategy, calorie target, macros.
-- Out of scope: account deletion, custom profile photo (the Google one is used), connections with other apps.
+- Includes: Google sign-in/sign-out, account deletion from Profile (ADR-29), onboarding, profile editing, TDEE, strategy, calorie target, macros.
+- Out of scope: custom profile photo (the Google one is used), connections with other apps.
 
 ## Dependencies
 E1. Google OAuth client and Supabase Google provider configured (E0, T-011/T-012).
@@ -61,12 +61,27 @@ Feature: Google authentication
     Then the welcome screen also shows the "Test login" button
     When they tap it
     Then they are signed in as the seeded user test@appfitness.local
+
+  Scenario: Delete account (ADR-29)
+    Given a signed-in user on Profile
+    When they tap "Borrar cuenta"
+    Then the dialog "¿Borrar tu cuenta?" is shown with the text "Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer."
+    When they tap "Borrar"
+    Then their account and all their data (profile, weight entries and goals) are deleted
+    And the session is removed from the device
+    And the welcome screen is shown
+
+  Scenario: Delete account cancelled
+    Given the "¿Borrar tu cuenta?" dialog is open
+    When they tap "Cancelar"
+    Then the dialog closes, nothing is deleted and they stay on Profile
 ```
 
 **Technical notes**
 - `AuthCredentialProvider` interface (domain) + `GoogleAuthCredentialProvider` (androidMain, Credential Manager with `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce).
 - `supabase.auth.signInWith(IDToken)`; session persisted by supabase-kt; `sessionStatus` as a `Flow` to decide the root route (Welcome / Onboarding / Main).
 - Profile is reached from the 4th bottom tab "Perfil", whose icon is the user's Google photo; the top-bar avatar is removed (ADR-26, implemented in T-037).
+- Account deletion (ADR-29): Edge Function `delete-account` (JWT; resolves the caller from the token and deletes the auth user with the server-side secret key; user data cascades). Success or `401` → local sign-out → Welcome; any other failure keeps the session and shows a transient message. "Borrar cuenta" is disabled offline.
 - The "Test login" button is shared UI, shown only when the build provides test credentials: the `local` flavor provides them (`FlavorTestLogin` source set) and `prod` provides none, so prod never shows the button nor contains the credentials.
 
 ---
@@ -81,8 +96,8 @@ Feature: Biometric data onboarding
 
   Scenario: Completing onboarding
     Given an authenticated user with onboarding_completed = false
-    When they go through the steps: sex, date of birth, height, current weight and activity level
-    And they tap "Continuar" on the last step
+    When they go through the steps: sex and date of birth, height and current weight, and activity level
+    And they tap "Continuar" on the activity step (3 / 4)
     Then sex, date of birth, height and activity level are saved in their profile
     And their current weight is logged as the first body_measurements entry with source "manual"
     And they are taken to their goal setup (US-07)
@@ -94,12 +109,12 @@ Feature: Biometric data onboarding
     Then they return to step 2 with the values they had chosen
 
   Scenario Outline: Range validation
-    Given the user is on the "<step>" step
+    Given the user is on the step with the "<field>" field
     When they try to enter the value <value>
     Then the control does not allow selecting it and the value stays within [<min>, <max>]
 
     Examples:
-      | step   | value | min | max |
+      | field  | value | min | max |
       | Edad   | 12    | 14  | 100 |
       | Altura | 260   | 100 | 250 |
       | Peso   | 15    | 20  | 400 |

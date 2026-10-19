@@ -23,7 +23,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 ## 3. Functional requirements
 
 ### FR-1 · User profile and settings (E2)
-- FR-1.1 Sign in with Google; persistent session; sign out.
+- FR-1.1 Sign in with Google; persistent session; sign out; delete the account and all its data from Profile (ADR-29).
 - FR-1.2 Onboarding: age (date of birth), sex, height, current weight and activity level.
 - FR-1.3 Later editing of that data in Profile.
 - FR-1.4 Main goal: Deficit, Maintenance or Surplus.

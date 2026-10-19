@@ -954,14 +954,33 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Description:** Navigation per ADR-26 (Checkpoint E2-A): Perfil becomes the 4th bottom tab / rail item (Diario, Entreno, Progreso, Perfil) whose icon is the user's Google photo (Coil, circle, placeholder fallback; active = extra-bold lime label + lime ring), the Top App Bar avatar is removed everywhere, and the full-screen Profile route from T-031/T-034 becomes a tab destination with its own back stack (no back arrow, no FAB). Profile becomes the real screen (sections from `design/stitch/profile-goals/screen.png`, only personal data, "Estrategia Energética" and "Distribución de Macros"; the sign-out from T-034 and the local-only catalog entry stay). Personal data card (Edad, Altura, Actividad and sex editable with the T-035 pickers; "Peso actual" read-only, latest weight, ADR-24); the T-036 strategy section reused as a card; a "Distribución de Macros" card with three `MacroSlider`s (P lime, C cyan, F amber), a stacked bar with the three macro colours and the "TOTAL: 100 %" badge. Domain: `BalanceMacros` (largest remainder, [5, 90], sum 100) with property tests, and grams = `round(target × pct / 100 / kcal_per_gram)`. One "Guardar" button for the whole screen (ADR-24) saves the profile fields, strategy, adjustment and macros, and stores the daily target recalculated from the new data and the latest weight (`04-business-rules.md` §1.4). Grams targets exposed from the domain so the E3 Diary can consume them.
 
 **Acceptance criteria:**
-- [ ] `BalanceMacros` unit + property tests: sum is always 100 and every value in [5, 90] for random moves; 30/45/25 + P→35 → 35/42/23; 90/5/5 cannot raise P; one other at 5 → the rest of Δ goes to the other.
-- [ ] Grams/kcal text matches the Gherkin ("30 % · 180 g · 720 kcal", "45 % · 270 g · 1.080 kcal", "25 % · 67 g · 600 kcal"; after P→35: 210 g / 252 g / 61 g).
-- [ ] Editing height to 180 cm and tapping "Guardar" updates the profile, the displayed TDEE and the stored `target_kcal`; profile and goals are written so a failure never leaves them inconsistent (order or RPC chosen by the planner).
-- [ ] "Peso actual" shows the latest `body_measurements` weight and has no edit affordance.
-- [ ] Profile loads with a skeleton, shows `ErrorState` with "Reintentar" on a read failure, and keeps edits on a save failure (02 §9); save disabled offline.
-- [ ] ADR-26: 4 tabs on the bar and the rail; the Perfil icon shows the Google photo when `avatar_url` is set and the placeholder otherwise (also on load error), decorative (the label "Perfil" names it), with the active ring; no avatar in any `AppTopBar`; tab switching keeps each tab's state; sign-out still resets the tab back stacks.
-- [ ] Haptic confirmation on save; no FAB on Profile (ADR-10/ADR-26); `MacroStackedBar` (or equivalent) in the design system with a catalog entry and `stateDescription`.
-- [ ] *Carry-over check:* `MacroSlider` callers pass percentages within range (E1 PR #24 note: it `require`s or coerces; confirm which).
+- [x] `BalanceMacros` unit + property tests: sum is always 100 and every value in [5, 90] for random moves; 30/45/25 + P→35 → 35/42/23; 90/5/5 cannot raise P; one other at 5 → the rest of Δ goes to the other.
+- [x] Grams/kcal text matches the Gherkin ("30 % · 180 g · 720 kcal", "45 % · 270 g · 1.080 kcal", "25 % · 67 g · 600 kcal"; after P→35: 210 g / 252 g / 61 g).
+- [x] Editing height to 180 cm and tapping "Guardar" updates the profile, the displayed TDEE and the stored `target_kcal`; profile and goals are written so a failure never leaves them inconsistent (order or RPC chosen by the planner).
+- [x] "Peso actual" shows the latest `body_measurements` weight and has no edit affordance.
+- [x] Profile loads with a skeleton, shows `ErrorState` with "Reintentar" on a read failure, and keeps edits on a save failure (02 §9); save disabled offline.
+- [x] ADR-26: 4 tabs on the bar and the rail; the Perfil icon shows the Google photo when `avatar_url` is set and the placeholder otherwise (also on load error), decorative (the label "Perfil" names it), with the active ring; no avatar in any `AppTopBar`; tab switching keeps each tab's state; sign-out still resets the tab back stacks.
+- [x] Haptic confirmation on save; no FAB anywhere since ADR-36; `MacroStackedBar` (or equivalent) in the design system with a catalog entry and `stateDescription`.
+- [x] *Carry-over check:* `MacroSlider` callers pass percentages within range (E1 PR #24 note: it `require`s or coerces; confirm which). → it coerces (clamps); callers pass `BalanceMacros` output, always in [5, 90].
+
+**Delete account (ADR-29; user decision 2026-10-14; planner recommends splitting it into its own task/PR, see `.workflow/current_task.md`):** scenarios US-05 "Delete account (ADR-29)" and "Delete account cancelled".
+
+```gherkin
+  Scenario: Delete account (ADR-29)
+    Given a signed-in user on Profile
+    When they tap "Borrar cuenta"
+    Then the dialog "¿Borrar tu cuenta?" is shown with the text "Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer."
+    When they tap "Borrar"
+    Then their account and all their data (profile, weight entries and goals) are deleted
+    And the session is removed from the device
+    And the welcome screen is shown
+```
+
+- [ ] "Borrar cuenta" (destructive ghost) below "Cerrar sesión"; dialog with the approved texts and "Cancelar" / "Borrar"; "Cancelar" deletes nothing; disabled offline.
+- [ ] Edge Function `delete-account` (`03-data-model.md` §7): caller resolved from the JWT only, auth user deleted with the server-side secret key, `profiles`/`body_measurements`/`nutrition_goals` cascade; `verify_jwt = true` in `config.toml`; `deno check` of its entrypoint added to `supabase-ci`; deployed by `deploy-supabase`.
+- [ ] Deno tests: 405 non-POST, 401 without/with invalid token, 200 deletes exactly the token's user (a `user_id` in the body is ignored), 500 `delete_failed` without leaking details.
+- [ ] App: success or 401 → local sign-out → Welcome; other failures keep the session with a transient message (no deletion). Host tests for the dialog, the disabled-offline state and each outcome.
+- [ ] The local test user is re-creatable after the e2e deletion flow (`test-user-state.js` restore re-creates it, or `npx supabase db reset`).
 
 **Host tests (per scenario):** `BalanceMacrosTest` (Auto-balance, Per-macro minimum, properties); `MacroTargetsTest` (Initial display grams); `ProfileViewModelTest` with fakes (Initial display, slider move → balanced state, Persistence → upsert with the percentages, Editing data → profile update + TDEE and stored target recalculated, read-only weight, US-07 strategy changes saved by the single "Guardar"); `ProfileScreenTest` (Robolectric: badge "TOTAL: 100 %", texts per macro, sliders' `stateDescription`, save button states).
 

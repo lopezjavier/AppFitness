@@ -176,6 +176,16 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** supersedes the E1-retro rule "chain tasks up to the checkpoint; the user compacts". `CLAUDE.md` (Autonomy, working files, epic closure) and `planning/06-agent-workflow.md` (§2.1, §3, §6) are updated. The checkpoints are unchanged (1–3 per epic): the *session* boundary becomes per task, the *feedback* boundary stays per checkpoint, so the user runs `/clear` at each task boundary instead of `/compact` every two tasks.
 - **Approval:** 2026-10-17, user.
 
+### ADR-29 · Account deletion from Profile (E2)
+- **Context:** the E2 epic left account deletion out of scope. With Profile becoming the real screen (ADR-26), the user asked for a way to delete the account and all its data from the app, without going through the Supabase console.
+- **Decision:**
+  - Profile shows **"Borrar cuenta"** below "Cerrar sesión" (destructive ghost button). It opens the confirmation dialog (approved wording): title "¿Borrar tu cuenta?", text "Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer.", buttons "Cancelar" / "Borrar" (destructive). Offline the button is disabled (`02-architecture.md` §9).
+  - "Borrar" calls the Edge Function **`delete-account`** (`POST`, JWT required, no body). The function resolves the caller from their access token (never from the request body) and deletes that auth user with the Auth admin API, using the **secret key** that only exists server-side (ADR-17). Every user-owned row goes with it through `on delete cascade` (today `profiles`, `body_measurements`, `nutrition_goals`).
+  - On success, or on `401` (the user or session no longer exists, e.g. a retried request whose first response was lost), the app clears the local session and the root shows Welcome. Any other failure keeps the user signed in with a transient message and nothing deleted.
+  - A later Google sign-in with the same account creates a brand-new user that goes through onboarding again.
+- **Consequences:** `01` FR-1.1, `03-data-model.md` §7, the E2 epic (US-05 scenarios, "Out of scope") and T-037 are updated. Every future table that references `auth.users` must cascade (already the convention in `03` §Conventions); nullable author columns such as `foods.created_by` must pick `on delete cascade` or `set null` when they are created, or deletion fails. The function is deployed by `deploy-supabase` with the others. If manual testing deletes the seeded local test user, `npx supabase db reset` recreates it.
+- **Approval:** 2026-10-14, user (follow-up to Checkpoint E2-A).
+
 ### ADR-30 · Forward-compatible training model and in-app RepDB assets
 - **Context:** E3 (Phase 1) logs sets as weight × reps only, but the follow-up training epics (**E6** depth, **E7** insights) need set types, RPE, per-exercise metric types, routine folders/tracking and a PR catalogue. Building E3 on the minimal shape would force a schema migration and a live-session refactor later. Separately, the exercise catalogue uses the RepDB free assets (495 exercises: thumbnails, start/peak poses and Spanish instructions), whose licence allows only in-app use with visible attribution.
 - **Decision:**
