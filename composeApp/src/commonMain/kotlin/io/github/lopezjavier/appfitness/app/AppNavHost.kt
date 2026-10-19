@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.app
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,14 +21,29 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
-import io.github.lopezjavier.appfitness.feature.progress.ProgressScreen
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutScreen
 
-/** Content of the Profile tab: its modifier (tab insets) and the catalog opener (null where it is unavailable). */
-internal typealias ProfileSlot = @Composable (modifier: Modifier, onOpenCatalog: (() -> Unit)?) -> Unit
+/**
+ * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener and the catalog opener (null where
+ * it is unavailable).
+ */
+internal typealias ProfileSlot =
+    @Composable (modifier: Modifier, onOpenPreferences: () -> Unit, onOpenCatalog: (() -> Unit)?) -> Unit
 
-/** Empty Profile content for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, _ -> Box(modifier.fillMaxSize().testTag("profile_screen")) }
+/** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
+internal typealias PreferencesSlot = @Composable (modifier: Modifier) -> Unit
+
+/** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _ ->
+    Box(modifier.fillMaxSize().testTag("profile_screen")) {
+        Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
+    }
+}
+
+/** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier ->
+    Box(modifier.fillMaxSize().testTag("preferences_screen"))
+}
 
 /**
  * Single type-safe NavHost with one nested graph (own back stack) per tab (ADR-10) and the
@@ -42,9 +58,11 @@ internal fun AppNavHost(
     features: AppFeatures,
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
+    preferences: PreferencesSlot = DefaultPreferencesSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
+    val openPreferences = remember(navController) { { navController.navigateToFullScreen(PreferencesRoute) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
@@ -52,14 +70,12 @@ internal fun AppNavHost(
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding)) }
         }
-        navigation<ProgressGraph>(startDestination = TopLevelTab.Progress.startRoute) {
-            composable<ProgressHome> { ProgressScreen(Modifier.padding(tabPadding)) }
-        }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
-                profile(Modifier.padding(tabPadding), if (catalogAvailable) openCatalog else null)
+                profile(Modifier.padding(tabPadding), openPreferences, if (catalogAvailable) openCatalog else null)
             }
         }
+        composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding)) }
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }

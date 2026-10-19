@@ -74,7 +74,7 @@ class EnergyStrategySectionTest {
     fun showsTheTdeeOfTheBiometrics() {
         show(state())
 
-        rule.onNodeWithTag("${TAG}_tdee").assertTextEquals("TDEE: 2.681 kcal")
+        rule.onNodeWithTag("${TAG}_tdee").assertTextEquals("Gasto diario estimado: 2.681 kcal")
     }
 
     @Test

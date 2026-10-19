@@ -25,7 +25,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
-import io.github.lopezjavier.appfitness.domain.usecase.SaveProfileSettings
+import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.dsl.module
 
@@ -77,6 +77,6 @@ val sharedModule =
         single<Clock> { SystemClock() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }
-        factory { SaveProfileSettings(get()) }
+        factory { SavePreferences(get()) }
         factory { DeleteAccount(get(), get()) }
     }

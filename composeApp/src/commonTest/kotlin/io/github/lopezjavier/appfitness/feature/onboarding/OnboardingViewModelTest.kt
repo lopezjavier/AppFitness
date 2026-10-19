@@ -395,4 +395,108 @@ class OnboardingViewModelTest {
         assertEquals(BIRTH_DATE, vm.state.birthDate)
         assertEquals(Biometrics(Sex.Male, BIRTH_DATE, 178, ActivityLevel.Moderate), profile.biometricsUpdates.single())
     }
+
+    // -- name step (ADR-37): only when Google gave no full_name ----------------------------------------------------
+
+    private fun noGoogleName() {
+        profile.providedFullName = false
+        profile.profileOverride = Result.success(ProfileSummary(null, null, false))
+    }
+
+    @Test
+    fun withAGoogleName_theNameStepIsNotRequired() = runTest {
+        profile.providedFullName = true
+        val vm = started()
+
+        assertFalse(vm.state.needsName)
+        vm.onEvent(OnboardingEvent.SelectSex(Sex.Male))
+        assertTrue(vm.state.canContinue)
+    }
+
+    @Test
+    fun withoutAGoogleName_continueIsBlockedWhileTheNameIsBlank() = runTest {
+        noGoogleName()
+        val vm = started()
+        vm.onEvent(OnboardingEvent.SelectSex(Sex.Male))
+
+        assertTrue(vm.state.needsName)
+        assertFalse(vm.state.canContinue)
+        vm.onEvent(OnboardingEvent.SetName("   "))
+        assertFalse(vm.state.canContinue)
+        vm.onEvent(OnboardingEvent.SetName("Ana"))
+        assertTrue(vm.state.canContinue)
+    }
+
+    @Test
+    fun withoutAGoogleName_continueSavesTheTrimmedNameBeforeMovingOn() = runTest {
+        noGoogleName()
+        val vm = started()
+        vm.send(OnboardingEvent.SelectSex(Sex.Male), OnboardingEvent.SetName("  Ana "), OnboardingEvent.Continue)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Ana"), profile.displayNameUpdates)
+        assertEquals(OnboardingStep.Measures, vm.state.step)
+    }
+
+    @Test
+    fun withAGoogleName_continueDoesNotTouchTheName() = runTest {
+        profile.providedFullName = true
+        val vm = started()
+        vm.send(OnboardingEvent.SelectSex(Sex.Male), OnboardingEvent.Continue)
+        advanceUntilIdle()
+
+        assertTrue(profile.displayNameUpdates.isEmpty())
+        assertEquals(OnboardingStep.Measures, vm.state.step)
+    }
+
+    @Test
+    fun nameSaveFailure_staysOnTheStepWithTheError_andRetryWorks() = runTest {
+        noGoogleName()
+        profile.displayNameResult = Result.failure(AppException(AppError.Network))
+        val vm = started()
+        vm.send(OnboardingEvent.SelectSex(Sex.Male), OnboardingEvent.SetName("Ana"), OnboardingEvent.Continue)
+        advanceUntilIdle()
+
+        assertEquals(OnboardingStep.AboutYou, vm.state.step)
+        assertEquals(OnboardingSaveError.Network, vm.state.saveError)
+        assertEquals("Ana", vm.state.name)
+
+        profile.displayNameResult = Result.success(Unit)
+        vm.onEvent(OnboardingEvent.Continue)
+        advanceUntilIdle()
+
+        assertEquals(OnboardingStep.Measures, vm.state.step)
+    }
+
+    @Test
+    fun theName_isCutAtOneHundredCharacters() = runTest {
+        noGoogleName()
+        val vm = started()
+
+        vm.onEvent(OnboardingEvent.SetName("a".repeat(130)))
+
+        assertEquals(100, vm.state.name.length)
+    }
+
+    @Test
+    fun resume_prefillsTheSavedNameOnlyWhenGoogleGaveNone() = runTest {
+        profile.profileOverride = Result.success(ProfileSummary("Marta", null, false))
+
+        profile.providedFullName = false
+        assertEquals("Marta", started(SavedStateHandle()).state.name)
+
+        profile.providedFullName = true
+        assertEquals("", started(SavedStateHandle()).state.name)
+    }
+
+    @Test
+    fun theName_survivesProcessDeath() = runTest {
+        noGoogleName()
+        val first = started()
+        first.onEvent(OnboardingEvent.SetName("Ana"))
+
+        val restored = started(handle)
+
+        assertEquals("Ana", restored.state.name)
+    }
 }

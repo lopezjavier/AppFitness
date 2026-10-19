@@ -186,6 +186,7 @@ private fun ColumnScope.StepForm(
         when (state.step) {
             OnboardingStep.AboutYou -> AboutYouStep(
                 state = state,
+                onName = { onEvent(OnboardingEvent.SetName(it)) },
                 onSelectSex = { onEvent(OnboardingEvent.SelectSex(it)) },
                 onBirthDate = { onEvent(OnboardingEvent.SetBirthDate(it)) },
             )

@@ -4,12 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -35,18 +38,24 @@ import io.github.lopezjavier.appfitness.composeapp.resources.month_6
 import io.github.lopezjavier.appfitness.composeapp.resources.month_7
 import io.github.lopezjavier.appfitness.composeapp.resources.month_8
 import io.github.lopezjavier.appfitness.composeapp.resources.month_9
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_decimal_separator
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_sex_female
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_sex_male
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_cm
+import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_day_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_height_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_month_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_decimal_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_kg_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_year_cd
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SelectableCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WheelPicker
+import io.github.lopezjavier.appfitness.designsystem.WheelPickerDefaults
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -56,6 +65,8 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val MONTH_COUNT = 12
+private const val DECIMAL_MAX = 9
+private const val TENTHS_PER_KG = 10
 private const val DAY_WHEEL_WEIGHT = 1f
 private const val MONTH_WHEEL_WEIGHT = 2f
 private const val YEAR_WHEEL_WEIGHT = 1.4f
@@ -174,6 +185,59 @@ internal fun HeightWheel(
         modifier = modifier,
         onCentredChange = onCentredChange,
     )
+}
+
+/**
+ * Kilos and tenths wheels (20,0 to 400,0 kg) around a decimal separator. [weightTenths] is the weight in tenths of a
+ * kilogram. [onCentredChange] reports the weight composed from the items currently centred, even mid-scroll; it
+ * never feeds the wheels.
+ */
+@Composable
+internal fun WeightWheels(
+    weightTenths: Int,
+    onChange: (Int) -> Unit,
+    tagPrefix: String,
+    onCentredChange: (Int) -> Unit = {},
+) {
+    val kilos = weightTenths / TENTHS_PER_KG
+    val decimal = weightTenths % TENTHS_PER_KG
+    val maxKilos = BiometricBounds.WEIGHT_TENTHS.last / TENTHS_PER_KG
+    val kg = stringResource(Res.string.unit_kg)
+    val separator = stringResource(Res.string.onboarding_decimal_separator)
+    var centred by remember(weightTenths) { mutableStateOf(kilos to decimal) }
+    fun centre(next: Pair<Int, Int>) {
+        centred = next
+        onCentredChange(BiometricBounds.clampWeightTenths(next.first * TENTHS_PER_KG + next.second))
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+        WheelPicker(
+            range = (BiometricBounds.WEIGHT_TENTHS.first / TENTHS_PER_KG)..maxKilos,
+            value = kilos,
+            onValueChange = { onChange(it * TENTHS_PER_KG + decimal) },
+            label = { it.toString() },
+            contentDescription = stringResource(Res.string.wheel_weight_kg_cd),
+            stateDescription = { "$it $kg" },
+            testTagPrefix = "${tagPrefix}_weight_kg_picker",
+            modifier = Modifier.width(WheelPickerDefaults.MinWidth),
+            onCentredChange = { centre(it to centred.second) },
+        )
+        Text(
+            text = separator,
+            style = AppTheme.typography.labelNumeric,
+            color = AppTheme.colors.textPrimary,
+        )
+        WheelPicker(
+            range = 0..(if (kilos == maxKilos) 0 else DECIMAL_MAX),
+            value = decimal,
+            onValueChange = { onChange(kilos * TENTHS_PER_KG + it) },
+            label = { it.toString() },
+            contentDescription = stringResource(Res.string.wheel_weight_decimal_cd),
+            stateDescription = { "$separator$it" },
+            testTagPrefix = "${tagPrefix}_weight_decimal_picker",
+            modifier = Modifier.width(WheelPickerDefaults.CompactWidth),
+            onCentredChange = { centre(centred.first to it) },
+        )
+    }
 }
 
 private class ActivityOption(

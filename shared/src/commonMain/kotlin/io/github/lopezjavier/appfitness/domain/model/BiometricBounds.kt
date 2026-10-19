@@ -17,6 +17,9 @@ object BiometricBounds {
     val HEIGHT_CM: IntRange = 100..250
     val WEIGHT_TENTHS: IntRange = 200..4000
 
+    /** Longest display name the `profiles_display_name_length` check accepts. */
+    const val NAME_MAX_LENGTH = 100
+
     const val DEFAULT_AGE_YEARS = 30
     const val DEFAULT_HEIGHT_CM = 170
     const val DEFAULT_WEIGHT_TENTHS = 700

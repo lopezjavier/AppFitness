@@ -29,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -344,7 +345,7 @@ class OnboardingScreenTest {
     fun goalsStep_showsTheTdeeTheStrategiesAndTheDefaultMaintenanceTarget() {
         goToGoalsStep()
 
-        rule.onNodeWithTag("onboarding_goals_tdee").assertTextContains("TDEE: ", substring = true)
+        rule.onNodeWithTag("onboarding_goals_tdee").assertTextContains("Gasto diario estimado: ", substring = true)
         rule.onNodeWithTag("onboarding_goals_strategy_maintenance").assertIsSelected()
         rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("0 kcal · Mantenimiento")
         rule.onNodeWithTag("onboarding_goals_floor_warning").assertDoesNotExist()
@@ -527,5 +528,60 @@ class OnboardingScreenTest {
 
         rule.onNodeWithTag("onboarding_loading").assertExists()
         rule.onNodeWithTag("onboarding_continue").assertDoesNotExist()
+    }
+
+    // -- name step (ADR-37): only when Google gave no name ---------------------------------------------------------
+
+    @Test
+    fun nameField_isHidden_whenGoogleGaveAName() {
+        profile.providedFullName = true
+        show()
+
+        rule.onNodeWithTag("onboarding_about_name_field").assertDoesNotExist()
+    }
+
+    @Test
+    fun nameField_isShownAboveTheSexSelector_whenGoogleGaveNone() {
+        profile.providedFullName = false
+        profile.profileOverride = Result.success(ProfileSummary(null, null, false))
+        show()
+
+        rule.onNodeWithTag("onboarding_about_name_field").assertExists()
+        rule.onNodeWithText("¿Cómo te llamas?").assertDoesNotExist() // the label is spoken, not a text node
+        rule.onNodeWithTag("onboarding_about_name_field").assertContentDescriptionEquals("¿Cómo te llamas?")
+        val field = rule.onNodeWithTag("onboarding_about_name_field").getUnclippedBoundsInRoot()
+        val sex = rule.onNodeWithTag("onboarding_label_sex").getUnclippedBoundsInRoot()
+        assertTrue("name field is above the sex label", field.bottom <= sex.top)
+    }
+
+    @Test
+    fun continueIsDisabled_untilTheNameIsFilled_andThenSavesIt() {
+        profile.providedFullName = false
+        profile.profileOverride = Result.success(ProfileSummary(null, null, false))
+        show()
+        tap("onboarding_sex_male")
+        rule.onNodeWithTag("onboarding_continue").assertIsNotEnabled()
+
+        rule.onNodeWithTag("onboarding_about_name_field").performTextInput("Ana")
+        rule.waitForIdle()
+        rule.onNodeWithTag("onboarding_continue").assertIsEnabled()
+        next()
+
+        assertEquals(listOf("Ana"), profile.displayNameUpdates)
+        rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("2 / 4")
+    }
+
+    @Test
+    fun theNameField_stopsAtOneHundredCharacters() {
+        profile.providedFullName = false
+        profile.profileOverride = Result.success(ProfileSummary(null, null, false))
+        show()
+
+        rule.onNodeWithTag("onboarding_about_name_field").performTextInput("a".repeat(120))
+        rule.waitForIdle()
+
+        tap("onboarding_sex_male")
+        next()
+        assertEquals(100, profile.displayNameUpdates.single().length)
     }
 }

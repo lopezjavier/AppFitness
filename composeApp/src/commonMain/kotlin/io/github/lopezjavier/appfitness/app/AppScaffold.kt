@@ -56,8 +56,8 @@ internal fun AppScaffold(
     navController: NavHostController = rememberNavController(),
     navigationType: AppNavigationType = AppNavigationType.Bar,
     isOffline: Boolean = false,
-    avatarUrl: String? = null,
     profile: ProfileSlot = DefaultProfileSlot,
+    preferences: PreferencesSlot = DefaultPreferencesSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -76,7 +76,6 @@ internal fun AppScaffold(
                     items = items,
                     selectedIndex = chrome.tab.ordinal,
                     onItemSelect = onTabSelect,
-                    avatarUrl = avatarUrl,
                 )
             }
         },
@@ -93,12 +92,12 @@ internal fun AppScaffold(
                             items = items,
                             selectedIndex = chrome.tab.ordinal,
                             onTabSelect = onTabSelect,
-                            avatarUrl = avatarUrl,
                             modifier = it,
                         )
                     }
                 },
                 profile = profile,
+                preferences = preferences,
                 modifier = contentModifier,
             )
         }
@@ -131,7 +130,7 @@ private fun BelowTopBar(
 
 @Composable
 private fun rememberNavigationItems(): List<AppNavigationItem> = remember {
-    TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon, it.showsAvatar) }
+    TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
 }
 
 @Composable
@@ -147,11 +146,9 @@ private fun ShellRail(
     items: List<AppNavigationItem>,
     selectedIndex: Int,
     onTabSelect: (Int) -> Unit,
-    avatarUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     AppNavigation(
-        avatarUrl = avatarUrl,
         items = items,
         selectedIndex = selectedIndex,
         onItemSelect = onTabSelect,
@@ -163,7 +160,7 @@ private fun ShellRail(
 /**
  * NavHost plus, on the rail layout, the rail drawn over its start edge. The NavHost always fills the
  * same area and tab content reserves the (remembered) rail width as start padding, so showing or
- * hiding the rail (Profile) never resizes a tab's viewport: a viewport change at full scroll
+ * hiding the rail (full-screen destinations) never resizes a tab's viewport: a viewport change at full scroll
  * corrupts the restored list position. The bar layout keeps the same trick with its constant bar height.
  * The top of `innerPadding` is expected to be zero because `BelowTopBar` consumes the top inset.
  */
@@ -176,6 +173,7 @@ private fun ShellContent(
     innerPadding: PaddingValues,
     rail: @Composable (Modifier) -> Unit,
     profile: ProfileSlot,
+    preferences: PreferencesSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -203,6 +201,7 @@ private fun ShellContent(
             fullScreenPadding = innerPadding,
             features = features,
             profile = profile,
+            preferences = preferences,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(
@@ -222,6 +221,10 @@ private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
         is ShellChrome.Tabs -> AppTopBar(title = stringResource(chrome.tab.label))
 
         is ShellChrome.FullScreen ->
-            AppTopBar(title = stringResource(chrome.title), navigationButton = backButton)
+            AppTopBar(
+                title = stringResource(chrome.title),
+                navigationButton = backButton,
+                testTagPrefix = chrome.topBarTag,
+            )
     }
 }

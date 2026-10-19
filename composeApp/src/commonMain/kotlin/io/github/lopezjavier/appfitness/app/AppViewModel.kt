@@ -20,15 +20,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 /**
- * App-wide shell state. [isOffline] drives the "Sin conexión" banner, [rootRoute] what the root shows and
- * [avatarUrl] the photo of the top bar avatar. The default is the loading state, so Welcome never flashes
- * at cold start.
+ * App-wide shell state. [isOffline] drives the "Sin conexión" banner and [rootRoute] what the root shows. The
+ * default is the loading state, so Welcome never flashes at cold start.
  */
-data class AppUiState(
-    val isOffline: Boolean = false,
-    val rootRoute: RootRoute = RootRoute.Loading,
-    val avatarUrl: String? = null,
-)
+data class AppUiState(val isOffline: Boolean = false, val rootRoute: RootRoute = RootRoute.Loading)
 
 /** Events of the root. */
 sealed interface AppEvent {
@@ -39,12 +34,12 @@ sealed interface AppEvent {
     data object OnboardingCompleted : AppEvent
 }
 
-private data class Session(val auth: AuthState, val profile: ProfileLoad, val avatarUrl: String? = null)
+private data class Session(val auth: AuthState, val profile: ProfileLoad)
 
 /**
  * Root ViewModel: turns connectivity, the session and the profile into shell UI state. The initial value is
  * online and loading, so neither the banner nor Welcome flash at cold start; the first real emissions correct it.
- * On every [AuthState.SignedIn] the profile is read (onboarding flag and avatar).
+ * On every [AuthState.SignedIn] the profile is read (onboarding flag).
  */
 class AppViewModel(
     connectivity: ConnectivityObserver,
@@ -77,7 +72,6 @@ class AppViewModel(
             AppUiState(
                 isOffline = !online,
                 rootRoute = resolveRootRoute(session.auth, session.profile),
-                avatarUrl = session.avatarUrl,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AppUiState())
 
@@ -94,7 +88,7 @@ class AppViewModel(
         val profile = result.getOrNull()
         emit(
             if (profile != null) {
-                Session(auth, ProfileLoad.Loaded(profile.onboardingCompleted), profile.avatarUrl)
+                Session(auth, ProfileLoad.Loaded(profile.onboardingCompleted))
             } else {
                 Session(auth, ProfileLoad.Failed)
             },

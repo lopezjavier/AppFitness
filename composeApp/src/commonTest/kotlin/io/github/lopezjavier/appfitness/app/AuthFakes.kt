@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.GoogleCredentialResult
@@ -53,6 +54,14 @@ internal class FakeAuthRepository(initial: AuthState = AuthState.Loading) : Auth
     }
 }
 
+/** One recorded call of [FakeProfileRepository.savePreferences]. */
+internal data class SavedPreferences(
+    val displayName: String,
+    val biometrics: Biometrics,
+    val goals: NutritionGoals,
+    val weight: WeightEntry?,
+)
+
 /** Test double of [ProfileRepository]: each read returns the next of [results] (the last one repeats). */
 internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : ProfileRepository {
     constructor(single: Result<ProfileSummary>) : this(listOf(single))
@@ -60,8 +69,12 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
     private val queue = results.toMutableList()
     var reads = 0
 
+    /** When set, every [getOwnProfile] returns it instead of the queued results. */
+    var profileOverride: Result<ProfileSummary>? = null
+
     override suspend fun getOwnProfile(): Result<ProfileSummary> {
         reads++
+        profileOverride?.let { return it }
         return if (queue.size > 1) queue.removeAt(0) else queue.first()
     }
 
@@ -81,14 +94,33 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         return updateResult
     }
 
-    /** Result of every [saveSettings], which also records the arguments. */
+    /** Result of every [savePreferences], which also records the arguments. */
     var settingsResult: Result<Unit> = Result.success(Unit)
-    val settingsSaves = mutableListOf<Pair<Biometrics, NutritionGoals>>()
+    val preferenceSaves = mutableListOf<SavedPreferences>()
 
-    override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> {
-        settingsSaves += biometrics to goals
+    override suspend fun savePreferences(
+        displayName: String,
+        biometrics: Biometrics,
+        goals: NutritionGoals,
+        weight: WeightEntry?,
+    ): Result<Unit> {
+        preferenceSaves += SavedPreferences(displayName, biometrics, goals, weight)
         return settingsResult
     }
+
+    /** Result of every [updateDisplayName], which also records the names. */
+    var displayNameResult: Result<Unit> = Result.success(Unit)
+    val displayNameUpdates = mutableListOf<String>()
+
+    override suspend fun updateDisplayName(name: String): Result<Unit> {
+        displayNameUpdates += name
+        return displayNameResult
+    }
+
+    /** What [hasProvidedFullName] answers (true = Google gave a name). */
+    var providedFullName: Boolean = true
+
+    override fun hasProvidedFullName(): Boolean = providedFullName
 
     /** Result of every [markOnboardingCompleted], which also counts the calls. */
     var completedResult: Result<Unit> = Result.success(Unit)

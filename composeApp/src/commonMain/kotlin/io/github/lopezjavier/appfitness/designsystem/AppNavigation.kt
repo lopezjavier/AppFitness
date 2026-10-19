@@ -36,18 +36,17 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_progress
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
-import io.github.lopezjavier.appfitness.composeapp.resources.nav_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 
 /**
  * One destination of [AppNavigation]. [testTag] goes on the selectable item. [selectedIcon] is the
- * filled glyph shown while active; it defaults to [icon] for glyphs with no filled variant. With [showsAvatar]
- * the icon slot draws the user's [AppAvatar] instead of a glyph (ring in `neonLime` while selected, never tinted).
+ * filled glyph shown while active; it defaults to [icon] for glyphs with no filled variant.
  */
 @Immutable
 data class AppNavigationItem(
@@ -55,7 +54,6 @@ data class AppNavigationItem(
     val icon: DrawableResource,
     val testTag: String,
     val selectedIcon: DrawableResource = icon,
-    val showsAvatar: Boolean = false,
 ) {
     fun iconFor(selected: Boolean): DrawableResource = if (selected) selectedIcon else icon
 }
@@ -123,7 +121,6 @@ object AppNavigationDefaults {
  * @param type [AppNavigationType.Bar] or [AppNavigationType.Rail].
  * @param windowInsets insets it pads for; pass `WindowInsets(0)` when it is embedded mid-screen.
  *   The caller tags it through [modifier] (the shell uses `nav_bar` / `nav_rail`).
- * @param avatarUrl photo of the user, drawn by the items with `showsAvatar`; null shows the placeholder.
  * @param header content above the items; used only by the rail (its font scale is clamped to 130%
  *   too), ignored by the bar.
  */
@@ -136,13 +133,10 @@ fun AppNavigation(
     type: AppNavigationType = AppNavigationType.Bar,
     windowInsets: WindowInsets = AppNavigationDefaults.windowInsets(type),
     header: (@Composable ColumnScope.() -> Unit)? = null,
-    avatarUrl: String? = null,
 ) {
     when (type) {
-        AppNavigationType.Bar -> AppNavigationBar(items, selectedIndex, onItemSelect, windowInsets, avatarUrl, modifier)
-
-        AppNavigationType.Rail ->
-            AppNavigationRail(items, selectedIndex, onItemSelect, windowInsets, header, avatarUrl, modifier)
+        AppNavigationType.Bar -> AppNavigationBar(items, selectedIndex, onItemSelect, windowInsets, modifier)
+        AppNavigationType.Rail -> AppNavigationRail(items, selectedIndex, onItemSelect, windowInsets, header, modifier)
     }
 }
 
@@ -152,7 +146,6 @@ private fun AppNavigationBar(
     selectedIndex: Int,
     onItemSelect: (Int) -> Unit,
     windowInsets: WindowInsets,
-    avatarUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
@@ -175,7 +168,7 @@ private fun AppNavigationBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onItemSelect(index) },
-                icon = { NavIcon(item, selected, avatarUrl) },
+                icon = { NavIcon(item, selected) },
                 modifier = item.itemModifier(),
                 alwaysShowLabel = true,
                 label = { NavLabel(item, selected) },
@@ -185,7 +178,6 @@ private fun AppNavigationBar(
     }
 }
 
-@Suppress("LongParameterList") // Mirrors the public AppNavigation contract, split per layout.
 @Composable
 private fun AppNavigationRail(
     items: List<AppNavigationItem>,
@@ -193,7 +185,6 @@ private fun AppNavigationRail(
     onItemSelect: (Int) -> Unit,
     windowInsets: WindowInsets,
     header: (@Composable ColumnScope.() -> Unit)?,
-    avatarUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
@@ -227,7 +218,7 @@ private fun AppNavigationRail(
             NavigationRailItem(
                 selected = selected,
                 onClick = { onItemSelect(index) },
-                icon = { NavIcon(item, selected, avatarUrl) },
+                icon = { NavIcon(item, selected) },
                 modifier = item.itemModifier(),
                 alwaysShowLabel = true,
                 label = { NavLabel(item, selected) },
@@ -246,7 +237,7 @@ private fun previewItems(): List<AppNavigationItem> = listOf(
         Res.drawable.ic_nav_diary_filled,
     ),
     AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "nav_tab_workout"),
-    AppNavigationItem(Res.string.nav_progress, Res.drawable.ic_nav_progress, "nav_tab_progress"),
+    AppNavigationItem(Res.string.profile_title, Res.drawable.ic_nav_profile, "nav_tab_profile"),
 )
 
 @Preview

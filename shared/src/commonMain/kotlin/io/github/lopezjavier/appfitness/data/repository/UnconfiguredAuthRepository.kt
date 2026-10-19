@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -45,8 +46,16 @@ class UnconfiguredProfileRepository : ProfileRepository {
 
     override suspend fun markOnboardingCompleted(): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> =
-        Result.failure(AppException(AppError.Unknown))
+    override suspend fun updateDisplayName(name: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override fun hasProvidedFullName(): Boolean = false
+
+    override suspend fun savePreferences(
+        displayName: String,
+        biometrics: Biometrics,
+        goals: NutritionGoals,
+        weight: WeightEntry?,
+    ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Weight counterpart of [UnconfiguredAuthRepository]: nothing can be read or saved. */

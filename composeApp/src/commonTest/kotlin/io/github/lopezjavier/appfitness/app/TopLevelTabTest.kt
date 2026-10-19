@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import kotlinx.serialization.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,7 +20,7 @@ class TopLevelTabTest {
     @Test
     fun entries_followTheBarOrder() {
         assertEquals(
-            listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Progress, TopLevelTab.Profile),
+            listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Profile),
             TopLevelTab.entries,
         )
     }
@@ -43,7 +44,7 @@ class TopLevelTabTest {
     @Test
     fun testTags_matchTheContract() {
         val actual = TopLevelTab.entries.map { it.testTag }
-        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_progress", "nav_tab_profile"), actual)
+        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_profile"), actual)
         actual.forEach { assertTrue(tags.matches(it), it) }
     }
 
@@ -55,8 +56,9 @@ class TopLevelTabTest {
     }
 
     @Test
-    fun onlyProfile_showsTheAvatar() {
-        assertEquals(listOf(TopLevelTab.Profile), TopLevelTab.entries.filter { it.showsAvatar })
+    fun profileTab_usesThePersonGlyph_notAnAvatar() {
+        assertEquals(Res.drawable.ic_nav_profile, TopLevelTab.Profile.icon)
+        assertEquals(Res.drawable.ic_nav_profile, TopLevelTab.Profile.selectedIcon)
     }
 
     @Test
@@ -64,7 +66,7 @@ class TopLevelTabTest {
         assertEquals(Res.drawable.ic_nav_diary_filled, TopLevelTab.Diary.selectedIcon)
         assertNotEquals(TopLevelTab.Diary.icon, TopLevelTab.Diary.selectedIcon)
         assertEquals(TopLevelTab.Workout.icon, TopLevelTab.Workout.selectedIcon)
-        assertEquals(TopLevelTab.Progress.icon, TopLevelTab.Progress.selectedIcon)
+        assertEquals(TopLevelTab.Profile.icon, TopLevelTab.Profile.selectedIcon)
     }
 
     @Test
@@ -73,13 +75,11 @@ class TopLevelTabTest {
             listOf(
                 serializer<DiaryGraph>(),
                 serializer<WorkoutGraph>(),
-                serializer<ProgressGraph>(),
                 serializer<DiaryHome>(),
                 serializer<WorkoutHome>(),
-                serializer<ProgressHome>(),
                 serializer<ProfileGraph>(),
                 serializer<ProfileHome>(),
             ).map { it.descriptor.serialName }
-        assertEquals(8, names.toSet().size)
+        assertEquals(6, names.toSet().size)
     }
 }

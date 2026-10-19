@@ -11,19 +11,22 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BiometricsDto
 import io.github.lopezjavier.appfitness.data.remote.BiometricsUpdateDto
+import io.github.lopezjavier.appfitness.data.remote.DisplayNameUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.OnboardingCompletedDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
-import io.github.lopezjavier.appfitness.data.remote.SaveProfileSettingsParams
+import io.github.lopezjavier.appfitness.data.remote.SavePreferencesParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
+import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.io.IOException
+import kotlinx.serialization.json.JsonPrimitive
 
 /** Reads and updates the signed-in user's `profiles` row (RLS `profiles_select_own` / `profiles_update_own`). */
 class SupabaseProfileRepository(private val auth: Auth, private val postgrest: Postgrest) : ProfileRepository {
@@ -49,8 +52,22 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
         postgrest.from("profiles").update(OnboardingCompletedDto(true)) { filter { eq("id", userId) } }
     }.map {}
 
-    override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> = runMappingErrors {
-        postgrest.rpc("save_profile_settings", SaveProfileSettingsParams.from(biometrics, goals))
+    override suspend fun updateDisplayName(name: String): Result<Unit> = ownRow { userId ->
+        postgrest.from("profiles").update(DisplayNameUpdateDto(name)) { filter { eq("id", userId) } }
+    }.map {}
+
+    override fun hasProvidedFullName(): Boolean {
+        val fullName = auth.currentUserOrNull()?.userMetadata?.get("full_name") as? JsonPrimitive
+        return fullName?.takeIf { it.isString }?.content?.isNotBlank() == true
+    }
+
+    override suspend fun savePreferences(
+        displayName: String,
+        biometrics: Biometrics,
+        goals: NutritionGoals,
+        weight: WeightEntry?,
+    ): Result<Unit> = runMappingErrors {
+        postgrest.rpc("save_preferences", SavePreferencesParams.from(displayName, biometrics, goals, weight))
     }.map {}
 
     private suspend fun <T> ownRow(block: suspend (userId: String) -> T): Result<T> = auth.ownRow(block)

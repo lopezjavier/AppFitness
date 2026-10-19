@@ -158,7 +158,7 @@ Index: `(user_id, measured_at desc)`.
 
 Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24). The onboarding row is the user's earliest `source = 'manual'` row by `created_at` (tie-break `id`); this holds because nothing else writes `body_measurements` before onboarding completes. The composition columns (`lean_mass_kg`, `water_kg`, `bone_kg`, `bmr_kcal`) are only written by the Health Connect sync (US-26); manual entries leave them null.
 
-Weight edited in Preferencias (ADR-37): saving a changed weight upserts **one manual row per day** (the user's `source = 'manual'` row whose `measured_at` falls on today's local date is replaced; otherwise a row is inserted); earlier days stay as history. "Peso actual" is the latest row by `measured_at` from any source. The T-041 plan decides whether this is a client upsert or an RPC (a new migration, never an edit of a merged one) and covers it with pgTAP isolation if the DB changes.
+Weight edited in Preferencias (ADR-37): saving a changed weight upserts **one manual row per day** (the user's `source = 'manual'` row whose `measured_at` falls on today's local date is replaced; otherwise a row is inserted); earlier days stay as history. "Peso actual" is the latest row by `measured_at` from any source. It is done inside the `save_preferences` RPC (section 6) so the weight, the name, the biometrics and the recalculated target are saved atomically; the client sends its local-day bounds.
 
 ### `body_circumferences` (US-25)
 | Column | Type | Notes |
@@ -264,7 +264,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 
 | Function | Story | Returns |
 |---|---|---|
-| `save_profile_settings(p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct)` | US-06/07/08 (T-037, ADR-24) | `void`. One transaction: updates the caller's `profiles` biometric fields and upserts their `nutrition_goals` row, so Profile's single "Guardar" never leaves them inconsistent; raises if the caller has no profile row |
+| `save_preferences(p_display_name, p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct, p_weight_kg default null, p_measured_at default null, p_day_start default null, p_day_end default null)` | US-06/07/08 (T-041, ADR-24, ADR-37; replaces `save_profile_settings` from T-037) | `void`, security invoker. One transaction: updates the caller's `profiles` name (trimmed) and biometric fields, upserts their `nutrition_goals` row and, when `p_weight_kg` is set, replaces the latest `manual` `body_measurements` row with `measured_at` in `[p_day_start, p_day_end)` or inserts one. Weight arguments are all-or-none (`22023` otherwise); `P0002` if the caller has no profile row; table checks surface as `23514` |
 | `last_performance(p_exercise_id uuid)` | US-12 | Sets (`set_index`, `weight_kg`, `reps`) of the user's most recent completed session containing that exercise |
 | `exercise_history(p_exercise_id uuid, p_from date)` | US-15 | Per session: date, best estimated 1RM, total volume |
 | `weekly_muscle_volume(p_from date)` | US-15 | Per ISO week and muscle group: total volume |

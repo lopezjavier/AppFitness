@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
+import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import kotlinx.coroutines.test.runTest
@@ -41,7 +42,16 @@ class CompleteOnboardingTest {
             return flagResult
         }
 
-        override suspend fun saveSettings(biometrics: Biometrics, goals: NutritionGoals): Result<Unit> = error("unused")
+        override suspend fun updateDisplayName(name: String): Result<Unit> = error("unused")
+
+        override fun hasProvidedFullName(): Boolean = error("unused")
+
+        override suspend fun savePreferences(
+            displayName: String,
+            biometrics: Biometrics,
+            goals: NutritionGoals,
+            weight: WeightEntry?,
+        ): Result<Unit> = error("unused")
     }
     private val completeOnboarding = CompleteOnboarding(goalsRepository, profileRepository)
 

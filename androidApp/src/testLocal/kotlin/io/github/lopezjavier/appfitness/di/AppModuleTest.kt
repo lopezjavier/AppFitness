@@ -13,7 +13,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
-import io.github.lopezjavier.appfitness.domain.usecase.SaveProfileSettings
+import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
@@ -61,7 +61,7 @@ class AppModuleTest {
                 NutritionGoalsRepository::class,
                 CompleteOnboarding::class,
                 DeleteAccount::class,
-                SaveProfileSettings::class,
+                SavePreferences::class,
                 Clock::class,
                 SavedStateHandle::class,
                 SignInWithGoogle::class,

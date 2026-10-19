@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,40 +13,50 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_age
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_decimal_separator
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_birth_date
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_height
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_sex
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_cm
 import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_decimal_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_kg_cd
+import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WheelPicker
 import io.github.lopezjavier.appfitness.designsystem.WheelPickerDefaults
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.feature.biometrics.BirthDateWheels
 import io.github.lopezjavier.appfitness.feature.biometrics.HeightWheel
 import io.github.lopezjavier.appfitness.feature.biometrics.SexSelector
+import io.github.lopezjavier.appfitness.feature.biometrics.WeightWheels
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-private const val DECIMAL_MAX = 9
-private const val TENTHS_PER_KG = 10
-
-/** Step 1: sex and birth date, each under its own label. */
+/** Step 1: the name (only when Google gave none), sex and birth date, each under its own label. */
 @Composable
-internal fun AboutYouStep(state: OnboardingUiState, onSelectSex: (Sex) -> Unit, onBirthDate: (LocalDate) -> Unit) {
+internal fun AboutYouStep(
+    state: OnboardingUiState,
+    onName: (String) -> Unit,
+    onSelectSex: (Sex) -> Unit,
+    onBirthDate: (LocalDate) -> Unit,
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
+        if (state.needsName) {
+            AppTextField(
+                value = state.name,
+                onValueChange = onName,
+                label = stringResource(Res.string.onboarding_name_label),
+                maxLength = BiometricBounds.NAME_MAX_LENGTH,
+                enabled = state.phase == OnboardingPhase.Content,
+                testTagPrefix = "onboarding_about_name_field",
+            )
+        }
         FieldGroup(Res.string.onboarding_label_sex, "onboarding_label_sex") {
             SexSelector(state.sex, onSelectSex, tagPrefix = "onboarding")
         }
@@ -114,7 +123,7 @@ internal fun MeasuresStep(heightCm: Int, weightTenths: Int, onHeight: (Int) -> U
                 unit = stringResource(Res.string.unit_kg),
                 unitTag = "onboarding_weight_unit",
                 modifier = modifier,
-            ) { WeightWheels(weightTenths, onWeight) }
+            ) { WeightWheels(weightTenths, onWeight, tagPrefix = "onboarding") }
         }
         if (maxWidth >= WheelPickerDefaults.SideBySideMinWidth) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.screenMargin)) {
@@ -149,42 +158,6 @@ private fun MeasureField(
             maxLines = 1,
             softWrap = false,
             modifier = Modifier.padding(top = Spacing.xs).testTag(unitTag),
-        )
-    }
-}
-
-@Composable
-private fun WeightWheels(weightTenths: Int, onChange: (Int) -> Unit) {
-    val kilos = weightTenths / TENTHS_PER_KG
-    val decimal = weightTenths % TENTHS_PER_KG
-    val maxKilos = BiometricBounds.WEIGHT_TENTHS.last / TENTHS_PER_KG
-    val kg = stringResource(Res.string.unit_kg)
-    val separator = stringResource(Res.string.onboarding_decimal_separator)
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-        WheelPicker(
-            range = (BiometricBounds.WEIGHT_TENTHS.first / TENTHS_PER_KG)..maxKilos,
-            value = kilos,
-            onValueChange = { onChange(it * TENTHS_PER_KG + decimal) },
-            label = { it.toString() },
-            contentDescription = stringResource(Res.string.wheel_weight_kg_cd),
-            stateDescription = { "$it $kg" },
-            testTagPrefix = "onboarding_weight_kg_picker",
-            modifier = Modifier.width(WheelPickerDefaults.MinWidth),
-        )
-        Text(
-            text = stringResource(Res.string.onboarding_decimal_separator),
-            style = AppTheme.typography.labelNumeric,
-            color = AppTheme.colors.textPrimary,
-        )
-        WheelPicker(
-            range = 0..(if (kilos == maxKilos) 0 else DECIMAL_MAX),
-            value = decimal,
-            onValueChange = { onChange(kilos * TENTHS_PER_KG + it) },
-            label = { it.toString() },
-            contentDescription = stringResource(Res.string.wheel_weight_decimal_cd),
-            stateDescription = { "$separator$it" },
-            testTagPrefix = "onboarding_weight_decimal_picker",
-            modifier = Modifier.width(WheelPickerDefaults.CompactWidth),
         )
     }
 }

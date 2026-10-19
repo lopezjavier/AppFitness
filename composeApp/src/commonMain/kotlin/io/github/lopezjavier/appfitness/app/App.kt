@@ -23,9 +23,10 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
 
 /**
  * Root composable: theme plus the destination chosen by [rootRoute]. [modifier] reaches the root layout;
- * [isOffline] shows the "Sin conexión" banner on every destination; [avatarUrl] is the top bar photo;
- * [onRetryProfile] and [onOnboardingComplete] are the root actions. [profile], [welcome] and [onboarding] are
- * the Profile tab, Welcome and Onboarding destinations (stateful in `AppRoot`, empty or stubbed in tests).
+ * [isOffline] shows the "Sin conexión" banner on every destination;
+ * [onRetryProfile] and [onOnboardingComplete] are the root actions. [profile], [preferences], [welcome] and
+ * [onboarding] are the Perfil root, Preferencias, Welcome and Onboarding destinations (stateful in `AppRoot`, empty or
+ * stubbed in tests).
  *
  * The default [rootRoute] is [RootRoute.Main], so previews and shell tests need no session.
  */
@@ -35,10 +36,10 @@ fun App(
     features: AppFeatures = AppFeatures(),
     isOffline: Boolean = false,
     rootRoute: RootRoute = RootRoute.Main,
-    avatarUrl: String? = null,
     onRetryProfile: () -> Unit = {},
     onOnboardingComplete: () -> Unit = {},
     profile: ProfileSlot = DefaultProfileSlot,
+    preferences: PreferencesSlot = DefaultPreferencesSlot,
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
     onboarding: @Composable () -> Unit = { OnboardingRoute(onComplete = onOnboardingComplete) },
 ) {
@@ -55,8 +56,8 @@ fun App(
                         features = features,
                         navigationType = widthClass.navigationType,
                         isOffline = isOffline,
-                        avatarUrl = avatarUrl,
                         profile = profile,
+                        preferences = preferences,
                     )
 
                 else ->
