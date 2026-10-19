@@ -37,7 +37,7 @@ E3, E4, E5, E6, E7 ────────────────────�
 | US-01 | E1 | Base KMP project with flavors, quality tooling and Android CI | Backend/infra |
 | US-02 | E1 | Supabase baseline: profiles, RLS, health check, CI and keep-alive | Backend/infra |
 | US-03 | E1 | Kinetic Dark design system in Compose | UI |
-| US-04 | E1 | Navigable shell with 3 tabs + Profile, contextual FAB and adaptive layout | UI |
+| US-04 | E1 | Navigable shell with 3 tabs (Diario, Entreno, Perfil; ADR-37) and adaptive layout | UI |
 | US-05 | E2 | Sign in with Google | UI + backend |
 | US-06 | E2 | Biometric onboarding | UI + backend |
 | US-07 | E2 | Energy strategy and calorie target | UI + backend |
@@ -114,7 +114,7 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-4.7 Progress charts | US-15 |
 | FR-4.8 Training depth (set types, RPE, metrics, calculators, PRs, routine tracking, workout detail) | US-28 … US-38 |
 | FR-4.9 Statistics and reports | US-39 … US-44 |
-| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-46 (FR-5.1 4th tab: T-037, ADR-26) |
+| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-46 (FR-5.1 3 tabs with Perfil: T-041, ADR-37) |
 | FR-6 UI refinement | US-46 (E8) |
 | NFR-03 Tablet | US-04, US-46 |
 | NFR-05, NFR-06 Professional / security | US-01, US-02 (and the DoD of every story) |

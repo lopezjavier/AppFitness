@@ -38,7 +38,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### ADR-09 · Deterministic 1RM
 - **Decision:** in Phase 1 the 1RM is estimated with the Epley formula. The AI training assistant is Phase 2.
 
-### ADR-10 · 4-tab navigation (amended by ADR-22: 3 tabs + Profile from the avatar; back to 4 tabs by ADR-26)
+### ADR-10 · 4-tab navigation (amended by ADR-22 and ADR-26; tab set now Diario, Entreno, Perfil by ADR-37)
 - **Decision:** Bottom Navigation with Diario (Diary), Entreno (Workout), Progreso (Progress) and Perfil (Profile); Diary is the start tab. The Top App Bar avatar also opens Profile. On tablets (width ≥ medium) a NavigationRail is used.
 - **Contextual universal FAB:** Diary → search/scan food; Workout → start workout or create routine; Progress → log weight; Profile → hidden (Profile has its own "Guardar" (save) button). Also hidden during a live workout session.
 
@@ -111,7 +111,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** no runtime checks are needed for Health Connect availability by API level below 26. Raising `minSdk` later is cheap.
 - **Approval:** 2026-10-12, user.
 
-### ADR-22 · 3 tabs; Profile opens from the avatar (navigation part superseded by ADR-26)
+### ADR-22 · 3 tabs; Profile opens from the avatar (navigation part superseded by ADR-26; active-tab indicator kept; tab set amended by ADR-37)
 - **Context:** at Checkpoint E1-C the user tested the first APK. The Perfil tab and the Top App Bar avatar led to the same screen (redundant), and the `glowLime` pill on the active tab was not in the mockups.
 - **Decision:**
   - The bottom navigation (and the tablet NavigationRail) has 3 tabs: Diario, Entreno, Progreso. Diario stays the start tab.
@@ -130,7 +130,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** a bug can live on `main` for a task or two before its fix; UI scenarios must have host tests in the task itself. `CLAUDE.md`, `06-agent-workflow.md` and the qa-engineer, planner and pr-creator instructions are updated.
 - **Approval:** 2026-10-13, user (E1 retrospective; the user proposed the design).
 
-### ADR-24 · Onboarding resume and a single save on Profile (E2)
+### ADR-24 · Onboarding resume and a single save on Profile (E2) (read-only weight amended by ADR-37)
 - **Context:** the E2 breakdown found four product gaps in US-06…US-08: what an interrupted onboarding shows on restart, whether onboarding includes the macro sliders, how Profile saves (the Gherkin had "Guardar" and "Guardar objetivos", the mockup one button), and whether the current weight is editable on Profile before weight logging exists (E5).
 - **Decision:**
   - Resuming onboarding restarts at the first step with every step **prefilled** from the saved values. Finishing the last biometric step again **updates** the onboarding weight entry in `body_measurements`; it never adds a second row.
@@ -146,7 +146,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** `04-business-rules.md` §1.4, the US-07 "Safety floor" scenario and T-036 use the per-sex floor; recalculating on Profile (sex is editable there) applies the floor for the new sex.
 - **Approval:** 2026-10-14, user.
 
-### ADR-26 · Perfil is the 4th tab, its icon is the Google photo (E2)
+### ADR-26 · Perfil is the 4th tab, its icon is the Google photo (E2) (superseded by ADR-37)
 - **Context:** at Checkpoint E2-A (2026-10-14) the user tested the real journey on the phone. With Profile becoming the real screen in T-037 (personal data, strategy, macros, sign-out), reaching it only from the top-bar avatar hides it, and the avatar in every top bar costs space.
 - **Decision:**
   - The bottom navigation (and the tablet NavigationRail) has **4 tabs: Diario, Entreno, Progreso, Perfil**. Diario stays the start tab. This supersedes the part of ADR-22 that removed the Perfil tab and made Profile a full-screen destination opened from the avatar; ADR-22's active-tab indicator (lime icon and extra-bold lime label, filled glyph where one exists, no pill) stays.
@@ -253,6 +253,17 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** `05-design-system.md` §4–§6 and `01-phase1-scope.md` FR-5.1 no longer mention the FAB; `02-architecture.md` (module layout) drops it from the `app/` description; the per-screen actions are specified in the E3 and E5 stories.
 - **Approval:** 2026-10-18, user.
 
+### ADR-37 · 3 tabs, Perfil with photo, name and Preferencias; editable weight (E2)
+- **Context:** at Checkpoint E2-B (2026-10-19) the user tested Profile on the phone. The Progreso tab has no content of its own (weight and insights will be reached from the profile), the photo as a tab icon is not wanted, the Profile screen should be a personal root rather than a long form, and the weight should be editable.
+- **Decision:**
+  - **3 tabs: Diario, Entreno, Perfil.** The Progreso tab is removed. The Perfil tab icon is the generic Stitch `person` glyph (`design/stitch/progress/code.html`), not the Google photo; the active state follows ADR-22 (lime icon, extra-bold lime label). This supersedes ADR-26 (photo icon, 4 tabs) and amends ADR-22 and ADR-10 (tab set).
+  - **Perfil root screen:** the Google photo (placeholder fallback) shown large, the user's name below it, a button that opens a full-screen **"Preferencias"** screen (back arrow) with the current editable Profile content (personal data, weight, energy, macros, one "Guardar"), and "Cerrar sesión" and "Borrar cuenta" on the root. Later epics add statistics entry buttons on this root: content planned for the Progreso tab (E5 weight chart and history, E3/E7 strength and training insights, any analytics) becomes entries reached from Perfil, each a full-screen destination with a back arrow.
+  - **Name:** taken from Google `full_name`. If it is missing, onboarding step 1 "Sobre ti" asks "¿Cómo te llamas?" (only then). It is always editable in Preferencias.
+  - **Weight is editable in Preferencias.** Saving a changed weight records today's manual `body_measurements` weight, replacing today's manual row if one exists; earlier weights stay as history. "Peso actual" shows the latest weight from any source; a later Health Connect sync shows the newer value, which stays editable. This amends ADR-24's read-only weight.
+  - **Copy:** "TDEE: %s kcal" becomes "Gasto diario estimado: %s kcal" with the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." (onboarding and Preferencias).
+- **Consequences:** `01` FR-5.1, `02`, `03` §2/§4, `05` §5–6, `07`, the E2, E3, E5 and E1 epic notes and `tasks/` are updated; the Profile code (T-037) is reworked in T-041; the Edad/Altura display bug is fixed first in T-040.
+- **Approval:** 2026-10-19, user (Checkpoint E2-B feedback).
+
 ---
 
 ## 2. Findings from the review of the original documents
@@ -260,7 +271,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### Product and stories (original user stories and frontend features)
 | # | Issue | Resolution |
 |---|---|---|
-| 1 | 3 tabs + profile via avatar (features) vs 4 tabs (stories, mockups) | ADR-10, revised by ADR-22 (3 tabs) |
+| 1 | 3 tabs + profile via avatar (features) vs 4 tabs (stories, mockups) | ADR-10, revised by ADR-22, ADR-26 and finally ADR-37 (3 tabs: Diario, Entreno, Perfil) |
 | 2 | US-05 used `navigator.wakeLock.request('screen')`, a web API | `Modifier.keepScreenOn()` / `FLAG_KEEP_SCREEN_ON` while the live session is visible (US-11) |
 | 3 | Health Connect: manual button (requirements) vs automatic background sync (US-09) | ADR-08 |
 | 4 | Google Code Scanner cannot be shown inside a Bottom Sheet | ADR-07 |

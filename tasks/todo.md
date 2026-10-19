@@ -993,25 +993,80 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 ---
 
+## T-040: fix: Edad and Altura do not show the new value on Profile
+
+**Story:** US-06 "Editing data after onboarding" · **Flow:** UI (frontend only; no migration) · **Scenarios:** US-06 Editing data after onboarding; Edited values are shown after saving (Checkpoint E2-B bug)
+
+**Description:** At Checkpoint E2-B the user changed "Edad" (birth year) and "Altura" on Profile and the new value was not shown on the screen (the picker or the saved value is not reflected in the personal data card). The developer reproduces it with a failing test first, finds the cause (state not updated from the picker result, or the card reading the stale loaded value) and fixes it; nothing else changes. The screen is still the T-037 Profile (the restructure is T-041).
+
+**Acceptance criteria:**
+- [ ] After choosing a new birth year or height in its picker, the personal data card shows the new value immediately, before and after "Guardar", and after reopening the screen.
+- [ ] Regression test for both fields (and the same check for Actividad and sex if they share the cause); no other behaviour changes.
+
+**Host tests (per scenario):** `ProfileViewModelTest` (picking a birth year / height updates the state; save keeps it); `ProfileScreenTest` (Robolectric: the card text shows the new age and height after the picker confirms).
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-037
+**Files likely touched:** `composeApp/…/feature/profile/{ProfileViewModel,ProfileUiState,PersonalDataCard}.kt`, tests
+**Estimated scope:** S
+
+---
+
+## T-041: Perfil restructure: 3 tabs, root with photo and name, Preferencias, editable weight (ADR-37)
+
+**Story:** US-04 (navigation) + US-05 (sign-out / delete on the root) + US-06 (name, weight, onboarding copy) + US-07 (TDEE copy) · **Flow:** UI (+ a possible migration only if the weight upsert is an RPC; the planner decides) · **Scenarios:** US-04 Navigating between tabs (3 tabs); US-05 sign-out and Delete account (regression, now on the Perfil root); US-06 Editing the weight in Preferencias; Current weight shows the latest from any source; Name from Google; Name missing in Google · US-07 TDEE calculation (new copy)
+
+**Description:** Implements ADR-37 (Checkpoint E2-B feedback, 2026-10-19), superseding ADR-26.
+1. **Navigation:** remove the Progreso tab; bar and rail have 3 tabs (Diario, Entreno, Perfil). The Perfil icon is the generic Stitch `person` glyph (`design/stitch/progress/code.html`), active state per ADR-22 (lime icon, extra-bold lime label); `AppAvatar` leaves the navigation. Progreso route, screen and strings are deleted.
+2. **Perfil root:** the Google photo (`AppAvatar`, placeholder fallback) large, the name (`profiles.display_name`) below, a button "Preferencias" opening a full-screen destination (back arrow), "Cerrar sesión" and "Borrar cuenta" (moved from the T-037 Profile with their dialog and rules). Layout and sizes by ux-reviewer. The root is where later epics add statistics entry buttons (not built now).
+3. **Preferencias:** the current T-037 Profile content (personal data, energy strategy, macros, one "Guardar") in a full-screen destination, plus an editable name and an editable "Peso actual".
+4. **Weight:** saving a changed weight records today's manual `body_measurements` weight, replacing today's manual row if one exists; earlier weights stay as history; "Peso actual" shows the latest weight from any source (`03-data-model.md` §4). The recalculated target uses it.
+5. **Name:** taken from Google `full_name`; when it is missing, onboarding step 1 "Sobre ti" also asks "¿Cómo te llamas?" (only then); always editable in Preferencias.
+6. **Copy:** "TDEE: %s kcal" becomes "Gasto diario estimado: %s kcal" with the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." in onboarding and Preferencias.
+
+**Acceptance criteria:**
+- [ ] Bar and rail show exactly Diario, Entreno, Perfil; Diario is the start tab; each tab keeps its state; sign-out resets the back stacks; no Progreso route, string or catalog leftovers.
+- [ ] Perfil icon = `person` glyph, tinted like the other tabs, active = lime + extra-bold label; no photo in the navigation; no avatar in any `AppTopBar`.
+- [ ] Perfil root shows the photo (placeholder on missing/failed load), the name, "Preferencias", "Cerrar sesión" and "Borrar cuenta"; "Preferencias" opens the full-screen editor with a back arrow and back returns to the root; "Borrar cuenta" keeps the ADR-29 dialog, texts and offline rule; sign-out unchanged.
+- [ ] Editing the weight and tapping "Guardar" writes one manual row for today (replaces today's manual row; earlier rows untouched) and the displayed "Peso actual" is the latest row from any source; the target is recalculated with it; a newer non-manual row is shown and stays editable.
+- [ ] The name comes from Google; the "¿Cómo te llamas?" field appears in onboarding step 1 only when `full_name` is missing and blocks "Continuar" while blank (max 100 characters); the name is editable in Preferencias.
+- [ ] The new TDEE copy and helper line in onboarding and Preferencias; the number keeps `AppNumberFormat`.
+- [ ] If the weight write is an RPC or touches policies: new migration (never edit a merged one) + pgTAP cross-user isolation; otherwise no DB change.
+- [ ] Docs consistent with ADR-37 (already updated); `05-design-system.md` §6 records the final Perfil root layout.
+
+**Host tests (per scenario):** `AppNavigationTest` (3 tabs, no photo, `person` icon, active cue); `AppRootTest`/shell test (start tab, state kept, no Progreso); `ProfileRootScreenTest` (photo placeholder, name, buttons, Preferencias navigation and back, sign-out, delete dialog); `PreferencesViewModelTest` (weight edit → today's manual upsert, latest-any-source display, name edit, recalculated target); `PreferencesScreenTest` (Robolectric: editable weight and name, new TDEE copy); `OnboardingViewModelTest` + `OnboardingScreenTest` (name step only when `full_name` is missing; copy); repository test for the same-day manual replace (and pgTAP if SQL changes).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
+
+**Dependencies:** T-040
+**Files likely touched:** `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/designsystem/{AppNavigation,AppNavigationParts,AppAvatar}.kt`, `composeApp/…/feature/profile/*` (root + preferences split), `composeApp/…/feature/onboarding/*`, `shared/…/domain/repository/*` (weight upsert, name), strings, catalog, tests, optionally one migration
+**Estimated scope:** L
+
+---
+
 ## T-038: E2 closure
 
 **Story:** E2 Definition of Done · **Flow:** PM
 
 **Acceptance criteria:**
-- [ ] T-034…T-037 and T-039 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
+- [ ] T-034…T-037, T-039, T-040 and T-041 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
 - [ ] Host (Robolectric) tests green for every E2 UI scenario; the user has verified the delivered APK at Checkpoint E2-B.
 - [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
 
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.2.0` after approval.
 
-**Dependencies:** T-037
+**Dependencies:** T-041
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
 ### Checkpoint E2-B — E2 closure 👤
-- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries on Profile (the Perfil tab, with their Google photo as its icon; no avatar in the top bar, ADR-26):
-  - Change their height (and the other personal data) and tap the single "Guardar" → the TDEE and the daily target change; "Peso actual" shows the latest weight and is not editable.
+- Checkpoint E2-B feedback (2026-10-19, first round): "Borrar cuenta" and the new onboarding were approved (apart from the TDEE copy). Changes → bug **T-040** (Edad/Altura not shown after editing) and **T-041** (**ADR-37**): 3 tabs without Progreso and the generic `person` icon for Perfil; Perfil root with the large Google photo, the name, a "Preferencias" button (the editable Profile in a full-screen destination), "Cerrar sesión" and "Borrar cuenta"; later statistics (E3 strength, E5 weight, E7 insights) become entries from Perfil; name from Google, asked in onboarding only when missing; editable weight in Preferencias (today's manual row); TDEE copy "Gasto diario estimado". **Checkpoint E2-B is re-presented after T-041**, then T-038.
+- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries the Perfil tab (generic icon; photo and name on the root; "Preferencias"; ADR-37):
+  - In Preferencias change their height, age and weight (and the other personal data) and tap the single "Guardar" → the new values are shown, the "Gasto diario estimado" and the daily target change; "Peso actual" shows the latest weight and is editable.
   - Switch Déficit / Mantenimiento / Superávit and move the adjustment; push it to the safety floor (1200 kcal women / 1500 kcal men).
   - Move each macro slider → the other two rebalance and the badge stays "TOTAL: 100 %"; try to push one past 90 %.
   - Save, close the app and reopen it → everything persisted. Approval → `git tag -a v0.2.0 -m "Epic E2"` + retrospective (compare the per-story sizing with E1).
