@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
+import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -16,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementReposit
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BalanceMacros
+import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyStrategyRules
 import io.github.lopezjavier.appfitness.domain.usecase.SaveProfileSettings
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
@@ -50,6 +52,7 @@ class ProfileViewModel(
     private val bodyMeasurementRepository: BodyMeasurementRepository,
     private val saveProfileSettings: SaveProfileSettings,
     private val authRepository: AuthRepository,
+    private val deleteAccount: DeleteAccount,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
 ) : ViewModel() {
@@ -95,6 +98,8 @@ class ProfileViewModel(
             ProfileEvent.Retry -> if (_uiState.value == ProfileUiState.LoadFailed) load()
 
             ProfileEvent.SignOutConfirmed -> viewModelScope.launch { authRepository.signOut() }
+
+            ProfileEvent.DeleteAccountConfirmed -> confirmDelete()
         }
     }
 
@@ -169,6 +174,18 @@ class ProfileViewModel(
             split = goals?.split ?: MacroSplit.DEFAULT,
         )
         return ProfileUiState.Loaded(form = form, saved = form, weightKg = weight, today = today, isOnline = online)
+    }
+
+    private fun confirmDelete() {
+        val state = _uiState.value as? ProfileUiState.Loaded ?: return
+        if (!state.canDelete) return
+        updateLoaded { it.copy(isDeleting = true) }
+        work = viewModelScope.launch {
+            val outcome = deleteAccount()
+            if (outcome == DeleteAccountOutcome.Deleted) return@launch
+            updateLoaded { it.copy(isDeleting = false) }
+            effectChannel.send(ProfileEffect.DeleteFailed(offline = outcome == DeleteAccountOutcome.NoNetwork))
+        }
     }
 
     /** The biometrics when all four fields are saved; an interrupted onboarding leaves some missing. */

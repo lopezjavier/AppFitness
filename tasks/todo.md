@@ -976,16 +976,16 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
     And the welcome screen is shown
 ```
 
-- [ ] "Borrar cuenta" (destructive ghost) below "Cerrar sesión"; dialog with the approved texts and "Cancelar" / "Borrar"; "Cancelar" deletes nothing; disabled offline.
-- [ ] Edge Function `delete-account` (`03-data-model.md` §7): caller resolved from the JWT only, auth user deleted with the server-side secret key, `profiles`/`body_measurements`/`nutrition_goals` cascade; `verify_jwt = true` in `config.toml`; `deno check` of its entrypoint added to `supabase-ci`; deployed by `deploy-supabase`.
-- [ ] Deno tests: 405 non-POST, 401 without/with invalid token, 200 deletes exactly the token's user (a `user_id` in the body is ignored), 500 `delete_failed` without leaking details.
-- [ ] App: success or 401 → local sign-out → Welcome; other failures keep the session with a transient message (no deletion). Host tests for the dialog, the disabled-offline state and each outcome.
-- [ ] The local test user is re-creatable after the e2e deletion flow (`test-user-state.js` restore re-creates it, or `npx supabase db reset`).
+- [x] "Borrar cuenta" (destructive ghost) below "Cerrar sesión"; dialog with the approved texts and "Cancelar" / "Borrar"; "Cancelar" deletes nothing; disabled offline.
+- [x] Edge Function `delete-account` (`03-data-model.md` §7): caller resolved from the JWT only, auth user deleted with the server-side secret key, `profiles`/`body_measurements`/`nutrition_goals` cascade; `verify_jwt = true` in `config.toml`; `deno check` of its entrypoint added to `supabase-ci`; deployed by `deploy-supabase`.
+- [x] Deno tests: 405 non-POST, 401 without/with invalid token, 200 deletes exactly the token's user (a `user_id` in the body is ignored), 500 `delete_failed` without leaking details.
+- [x] App: success or 401 → local sign-out → Welcome; other failures keep the session with a transient message (no deletion). Host tests for the dialog, the disabled-offline state and each outcome.
+- [x] The local test user is re-creatable after a manual deletion: `npx supabase db reset` (Maestro removed, ADR-27).
 
 **Host tests (per scenario):** `BalanceMacrosTest` (Auto-balance, Per-macro minimum, properties); `MacroTargetsTest` (Initial display grams); `ProfileViewModelTest` with fakes (Initial display, slider move → balanced state, Persistence → upsert with the percentages, Editing data → profile update + TDEE and stored target recalculated, read-only weight, US-07 strategy changes saved by the single "Guardar"); `ProfileScreenTest` (Robolectric: badge "TOTAL: 100 %", texts per macro, sliders' `stateDescription`, save button states).
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
+- [x] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` if a migration is added).
 
 **Dependencies:** T-039
 **Files likely touched:** `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/designsystem/{AppNavigation,AppNavigationParts,AppTopBar}.kt` (ADR-26), `shared/…/domain/usecase/{BalanceMacros,CalculateMacroTargets}.kt` + tests, `shared/…/domain/repository/*` (goals with macros, profile update), `composeApp/…/feature/profile/{ProfileScreen,ProfileViewModel,ProfileUiState,PersonalDataCard,MacroSplitCard}.kt`, `composeApp/…/designsystem/MacroStackedBar.kt`, catalog section, strings, tests

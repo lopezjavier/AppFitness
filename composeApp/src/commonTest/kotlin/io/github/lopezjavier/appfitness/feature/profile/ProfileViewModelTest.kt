@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeAccountRepository
 import io.github.lopezjavier.appfitness.app.FakeAuthRepository
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
@@ -10,7 +11,9 @@ import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
@@ -20,8 +23,10 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateTdee
+import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.SaveProfileSettings
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -53,6 +58,7 @@ class ProfileViewModelTest {
     private val goals =
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
     private val auth = FakeAuthRepository()
+    private val account = FakeAccountRepository()
     private val connectivity = FakeConnectivityObserver(initial = true)
 
     @BeforeTest
@@ -74,6 +80,7 @@ class ProfileViewModelTest {
         bodyMeasurementRepository = weights,
         saveProfileSettings = SaveProfileSettings(profile),
         authRepository = auth,
+        deleteAccount = DeleteAccount(account, auth),
         connectivity = connectivity,
         clock = FakeClock(today),
     )
@@ -263,5 +270,97 @@ class ProfileViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, auth.signOutCalls)
+    }
+
+    // -- US-05 delete account ---------------------------------------------------------------------------------
+
+    @Test
+    fun deleteConfirmed_deletesAndSignsOut() = runTest {
+        val (viewModel, _) = loaded()
+
+        viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(1, account.calls)
+        assertEquals(1, auth.signOutCalls)
+    }
+
+    @Test
+    fun whileDeleting_isDeletingIsTrue_andASecondRequestIsIgnored() = runTest {
+        account.gate = CompletableDeferred()
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+        assertTrue(state().isDeleting)
+        assertFalse(state().canDelete)
+        viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(1, account.calls)
+        account.gate?.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun deleteFailure_keepsTheSession_andEmitsTheError() = runTest {
+        account.outcome = DeleteAccountOutcome.Failed
+        val (viewModel, state) = loaded()
+        viewModel.effects.test {
+            viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+            advanceUntilIdle()
+            assertEquals(ProfileEffect.DeleteFailed(offline = false), awaitItem())
+        }
+        assertEquals(0, auth.signOutCalls)
+        assertFalse(state().isDeleting)
+        assertTrue(state().canDelete)
+    }
+
+    @Test
+    fun deleteWithoutNetwork_isReportedAsOffline() = runTest {
+        account.outcome = DeleteAccountOutcome.NoNetwork
+        val (viewModel, _) = loaded()
+        viewModel.effects.test {
+            viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+            advanceUntilIdle()
+            assertEquals(ProfileEffect.DeleteFailed(offline = true), awaitItem())
+        }
+        assertEquals(0, auth.signOutCalls)
+    }
+
+    @Test
+    fun offline_disablesDelete_andIgnoresTheRequest() = runTest {
+        val (viewModel, state) = loaded()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        assertFalse(state().canDelete)
+        viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(0, account.calls)
+    }
+
+    @Test
+    fun deleted_endsTheSession_soTheRootShowsWelcome() = runTest {
+        auth.state.value = AuthState.SignedIn("user-1")
+        val (viewModel, _) = loaded()
+
+        viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(AuthState.SignedOut, auth.state.value)
+    }
+
+    @Test
+    fun deleteFailed_keepsTheUserSignedIn() = runTest {
+        account.outcome = DeleteAccountOutcome.Failed
+        auth.state.value = AuthState.SignedIn("user-1")
+        val (viewModel, _) = loaded()
+
+        viewModel.onEvent(ProfileEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(AuthState.SignedIn("user-1"), auth.state.value)
     }
 }

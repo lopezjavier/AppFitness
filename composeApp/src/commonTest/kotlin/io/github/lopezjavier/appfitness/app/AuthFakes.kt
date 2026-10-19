@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.app
 import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -12,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.GoogleCredentialResult
+import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -47,6 +49,7 @@ internal class FakeAuthRepository(initial: AuthState = AuthState.Loading) : Auth
 
     override suspend fun signOut() {
         signOutCalls++
+        state.value = AuthState.SignedOut
     }
 }
 
@@ -161,4 +164,17 @@ internal class FakeClock(
     override fun today(): LocalDate = today
 
     override fun now(): Instant = now
+}
+
+/** Test double of [AccountRepository]: every [deleteAccount] returns [outcome], optionally after [gate]. */
+internal class FakeAccountRepository(var outcome: DeleteAccountOutcome = DeleteAccountOutcome.Deleted) :
+    AccountRepository {
+    var gate: CompletableDeferred<Unit>? = null
+    var calls = 0
+
+    override suspend fun deleteAccount(): DeleteAccountOutcome {
+        calls++
+        gate?.await()
+        return outcome
+    }
 }

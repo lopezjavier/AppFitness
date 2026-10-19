@@ -2,24 +2,29 @@ package io.github.lopezjavier.appfitness.di
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.SystemClock
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
+import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.SaveProfileSettings
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import org.koin.dsl.module
@@ -62,8 +67,16 @@ val sharedModule =
                 UnconfiguredNutritionGoalsRepository()
             }
         }
+        single<AccountRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                SupabaseAccountRepository(get<SupabaseClient>().functions)
+            } else {
+                UnconfiguredAccountRepository()
+            }
+        }
         single<Clock> { SystemClock() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }
         factory { SaveProfileSettings(get()) }
+        factory { DeleteAccount(get(), get()) }
     }

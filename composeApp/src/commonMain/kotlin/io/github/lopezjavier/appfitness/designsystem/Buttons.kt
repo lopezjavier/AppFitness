@@ -124,7 +124,10 @@ fun SecondaryButton(
     interactionSource: MutableInteractionSource? = null,
 ) = AppButton(AppButtonVariant.Secondary, text, onClick, modifier, enabled, interactionSource)
 
-/** Transparent action with a label and border: cyan by default, [tone] picks a neutral or destructive treatment. */
+/**
+ * Transparent action with a label and border: cyan by default, [tone] picks a neutral or destructive treatment.
+ * [loading] shows the same end-of-button progress indicator as [PrimaryButton].
+ */
 @Composable
 fun GhostButton(
     text: String,
@@ -133,7 +136,8 @@ fun GhostButton(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
     tone: GhostTone = GhostTone.Action,
-) = AppButton(AppButtonVariant.Ghost, text, onClick, modifier, enabled, interactionSource, tone)
+    loading: Boolean = false,
+) = AppButton(AppButtonVariant.Ghost, text, onClick, modifier, enabled, interactionSource, tone, loading)
 
 // Private shared implementation: the public wrappers own the defaults.
 @Suppress("LongParameterList", "ModifierWithoutDefault")

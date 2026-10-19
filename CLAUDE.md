@@ -105,4 +105,4 @@ Windows 11 environment: `./gradlew` in Git Bash; `.\gradlew.bat` in PowerShell. 
 
 ## Current status
 
-E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done and tagged `v0.1.0` (2026-10-13): see `tasks/todo.md`. E2 (auth and profile) broken down into T-034…T-038 (2026-10-14; decisions in ADR-24): see `tasks/todo.md`. Next: T-034.
+E0 (setup) done (2026-10-12; Supabase in Paris, `eu-west-3`). E1 (infrastructure and app skeleton, T-015…T-033) done and tagged `v0.1.0` (2026-10-13): see `tasks/todo.md`. E2 (auth and profile) broken down into T-034…T-038 (2026-10-14; decisions in ADR-24): see `tasks/todo.md`. T-034…T-037 and T-039 done (T-037 = Perfil tab and Profile screen #57, account deletion ADR-29). Next: Checkpoint E2-B, then T-038 (E2 closure).
