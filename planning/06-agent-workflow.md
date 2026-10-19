@@ -86,7 +86,7 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 
 | Agent | Model | Tools | Output |
 |---|---|---|---|
-| `epic-planner` | opus | Read, Grep, Glob, Write, Edit | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, 1–3 👤 checkpoints |
+| `epic-planner` | opus | Read, Grep, Glob, Write, Edit | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, one 👤 checkpoint per functionality |
 | `planner` | sonnet | Read, Grep, Glob, Write, Edit | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
 | `ux-reviewer` | sonnet | Read, Grep, Glob, Edit | "UX notes" section in the plan + PASSED/REJECTED |
 | `kotlin-core-developer` | sonnet | Read, Grep, Glob, Write, Edit, Bash | Domain, data, DI, ViewModels + unit tests; lint/tests/build green |

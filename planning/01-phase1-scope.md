@@ -91,6 +91,7 @@ These appear in the Stitch mockups or in the original documents but not in the o
 
 ### Deferred to Phase 2 (unchanged from the original requirements)
 - Web client (Compose for Web / Wasm) and DNS on Cloudflare.
+- Rest-timer alert while the app is in the background or closed (scheduled notification with sound; Phase 1 alerts with sound and vibration in the foreground only).
 - Calorie estimation from a meal photo (AI).
 - Adaptive calorie adjustment based on weight trend (AI).
 - AI training assistant.
