@@ -11,9 +11,10 @@ Sizing (E1 retrospective): one task per story, as a vertical slice, so each task
 - **ADR-24 (user, 2026-10-14) settles the product gaps found in the breakdown:** onboarding resumes prefilled and re-saving updates the onboarding weight row; onboarding saves the default macros 30/45/25 (no sliders); Profile has one "Guardar" that stores profile, strategy, macros and the recalculated target; "Peso actual" is read-only on Profile until E4. The E2 Gherkin, `03` §4 and `04` §1.4 were updated to match.
 - **Otherwise existing ADRs cover E2.** ADR-02 (Credential Manager → ID token → `signInWith(IDToken)`), ADR-17 (publishable key), ADR-19 (`androidApp` + `composeApp` + `shared`, flavor values via `AppConfig`) and ADR-22 (Profile as a full screen from the avatar, no FAB) cover E2.
 - **ADR-26 (user, Checkpoint E2-A, 2026-10-14):** Perfil becomes the 4th tab (Diario, Entreno, Progreso, Perfil) with the user's Google photo as its icon; the top-bar avatar is removed. Supersedes ADR-22's navigation part; implemented in T-037.
+- **ADR-37 (user, Checkpoint E2-B, 2026-10-19):** 3 tabs (Diario, Entreno, Perfil; no Progreso); Perfil root with the large Google photo, the name, "Preferencias" (the editable Profile), "Cerrar sesión" and "Borrar cuenta"; weight editable in Preferencias (today's manual row; amends ADR-24's read-only weight); name from Google, asked in onboarding only when missing; "Gasto diario estimado" copy. Supersedes ADR-26. Statistics of later epics become entries from Perfil. Implemented in T-041; the Edad/Altura display bug is T-040.
 - **Checkpoint E2-A corrections → T-039 (before T-037):** onboarding regrouped into 4 steps ("N / 4", goals counted), unit-label and weight-decimal picker bugs, activity card typography, a filled non-outlined secondary button for "Atrás", and the PR #50 review follow-ups.
 - **E7 · UI refinement** (placeholder) is added as the last Phase 1 epic (`planning/07-roadmap.md` §1.1); deferred UI details from checkpoints go there.
-- **Root routing is a pure function** of (session status, `onboarding_completed`): Welcome / Onboarding / Main. Welcome and Onboarding are full-screen destinations above the tab graphs (no bottom bar, no FAB). Profile is the 4th tab since ADR-26 (T-037). A loading state avoids flashing Welcome on cold start with a persisted session.
+- **Root routing is a pure function** of (session status, `onboarding_completed`): Welcome / Onboarding / Main. Welcome and Onboarding are full-screen destinations above the tab graphs (no bottom bar, no FAB). Perfil is a tab (the 3rd of 3 since ADR-37, T-041; it was the 4th since ADR-26, T-037). A loading state avoids flashing Welcome on cold start with a persisted session.
 - **`profiles` already has the biometric columns** (T-018 created the full §2 table and column grants), so US-06 needs no `profiles` migration; its migration is `body_measurements` only. "At most one migration per story" (02 §6): T-035 `body_measurements`, T-036 `nutrition_goals` (macro columns included, defaults 30/45/25). T-037 needs no migration; if the planner wants an atomic Profile save (profile + goals), a `security invoker` RPC would be T-037's only migration.
 - **`onboarding_completed = true` only with goals saved** (US-06 note). T-036 writes the goals first and the flag second (or one RPC, planner's choice), so a failure never leaves a "completed" user without goals.
 - **"Test login" uses the existing `AppFeatures` flavor mechanism** (as the catalog entry); a `prod` unit test asserts it is absent.
@@ -40,7 +41,11 @@ Sizing (E1 retrospective): one task per story, as a vertical slice, so each task
 ### Phase 2: Profile (US-08 + US-06/US-07 on Profile)
 - [ ] T-037: Profile: edit personal data, energy strategy and macro split, one "Guardar"; Perfil as the 4th tab with the Google photo (ADR-26) — UI (backend only for an optional atomic-save RPC)
 
-### Checkpoint E2-B 👤: Epic closure
+### Checkpoint E2-B corrections (ADR-37)
+- [ ] T-040: fix: Edad and Altura do not show the new value on Profile — UI (frontend only)
+- [ ] T-041: Perfil restructure: 3 tabs, root with photo and name, Preferencias, editable weight, "Gasto diario estimado" copy — UI (+ optional weight-upsert RPC)
+
+### Checkpoint E2-B 👤: Epic closure (re-presented after T-041)
 - [ ] T-038: E2 closure — edit data and goals on Profile, auto-balanced macros, persistence across restarts; tag `v0.2.0` and retrospective.
 
 Internal milestones (not 👤): `deploy-supabase` green after T-035 and T-036; pgTAP isolation for the three tables green in `supabase-ci`.
@@ -48,7 +53,7 @@ Internal milestones (not 👤): `deploy-supabase` green after T-035 and T-036; p
 ## Dependencies
 
 ```
-E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-039 ─► T-037 ─► T-038 [E2-B 👤]
+E1 (v0.1.0) ─► T-034 ─► T-035 ─► T-036 ─► [E2-A 👤] ─► T-039 ─► T-037 ─► T-040 ─► T-041 ─► [E2-B 👤] ─► T-038
 ```
 - Strictly sequential: each task builds on the previous one's routing, repositories and screens.
 - The backend half of T-035/T-036 (migration + pgTAP) and the domain use cases are decoupled from the UI, so backend-developer and frontend-developer can work in parallel inside each task once the planner fixes the repository contract.

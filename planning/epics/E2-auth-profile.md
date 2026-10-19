@@ -80,7 +80,7 @@ Feature: Google authentication
 **Technical notes**
 - `AuthCredentialProvider` interface (domain) + `GoogleAuthCredentialProvider` (androidMain, Credential Manager with `GetGoogleIdOption`, `serverClientId = GOOGLE_WEB_CLIENT_ID`, nonce).
 - `supabase.auth.signInWith(IDToken)`; session persisted by supabase-kt; `sessionStatus` as a `Flow` to decide the root route (Welcome / Onboarding / Main).
-- Profile is reached from the 4th bottom tab "Perfil", whose icon is the user's Google photo; the top-bar avatar is removed (ADR-26, implemented in T-037).
+- Navigation has 3 tabs (Diario, Entreno, Perfil). The Perfil tab icon is the generic `person` glyph; the Perfil root shows the Google photo large, the name, a "Preferencias" button (full-screen editable Profile), "Cerrar sesión" and "Borrar cuenta" (ADR-37, implemented in T-041; supersedes ADR-26).
 - Account deletion (ADR-29): Edge Function `delete-account` (JWT; resolves the caller from the token and deletes the auth user with the server-side secret key; user data cascades). Success or `401` → local sign-out → Welcome; any other failure keeps the session and shows a transient message. "Borrar cuenta" is disabled offline.
 - The "Test login" button is shared UI, shown only when the build provides test credentials: the `local` flavor provides them (`FlavorTestLogin` source set) and `prod` provides none, so prod never shows the button nor contains the credentials.
 
@@ -133,16 +133,39 @@ Feature: Biometric data onboarding
 
   Scenario: Editing data after onboarding
     Given a user who completed onboarding
-    When on Profile they change their height to 180 cm and tap "Guardar"
+    When in Preferencias (opened from the Perfil tab) they change their height to 180 cm and tap "Guardar"
     Then their profile is updated
     And the displayed TDEE is recalculated with the new height
     And the daily calorie target is recalculated and saved in nutrition_goals
 
-  Scenario: Current weight is read-only on Profile
-    Given a user who completed onboarding
-    When they open Profile
-    Then "Peso actual" shows their latest weight
-    And it cannot be edited there (weight logging arrives with US-25 in E5)
+  Scenario: Editing the weight in Preferencias (ADR-37)
+    Given a user whose latest weight is 74.2 kg
+    When in Preferencias they change "Peso actual" to 73.8 kg and tap "Guardar"
+    Then today's manual body_measurements weight is recorded as 73.8 kg, replacing today's manual row if one exists
+    And earlier weights are kept as history
+    And "Peso actual" shows 73.8 kg
+
+  Scenario: Current weight shows the latest from any source
+    Given a Health Connect sync added a newer weight
+    When the user opens Preferencias
+    Then "Peso actual" shows that newer value and it stays editable
+
+  Scenario: Edited values are shown after saving (T-040)
+    Given a user in Preferencias
+    When they change "Edad" (birth year) or "Altura" and tap "Guardar"
+    Then the new value is shown on the screen
+
+  Scenario: Name from Google
+    Given a user who signed in with a Google account that has a full name
+    When they open the Perfil tab
+    Then their photo is shown large with their name below it
+    And onboarding step 1 does not ask for a name
+
+  Scenario: Name missing in Google
+    Given a user whose Google account has no full name
+    When they reach onboarding step 1 "Sobre ti"
+    Then it also asks "¿Cómo te llamas?"
+    And the name can be edited later in Preferencias
 ```
 
 **Technical notes**
@@ -151,7 +174,7 @@ Feature: Biometric data onboarding
 - Migration: `body_measurements` table with RLS + pgTAP (the `profiles` columns already exist since US-02).
 - `onboarding_completed = true` only after the goals are also created (US-07).
 - Resume and re-save behaviour per ADR-24: steps prefilled from the saved profile and the onboarding weight entry; redoing the last step updates that entry instead of inserting a new one.
-- Profile has a single "Guardar" button for the whole screen (personal data, strategy and macros; ADR-24). "Peso actual" is read-only in E2.
+- Preferencias (the former Profile screen) has a single "Guardar" button for the whole screen (personal data, name, weight, strategy and macros; ADR-24, ADR-37). Weight upsert: one manual `body_measurements` row per day; "Peso actual" = latest row from any source (ADR-37). Name: `profiles.display_name`, from Google `full_name`, asked in step 1 only when missing.
 
 ---
 
@@ -166,7 +189,8 @@ Feature: Energy strategy and calorie target
   Scenario: TDEE calculation
     Given a male user, 26 years old, 178 cm, 74.2 kg and activity "Moderado"
     When they open the "Estrategia energética" section
-    Then "TDEE: 2.681 kcal" is shown
+    Then "Gasto diario estimado: 2.681 kcal" is shown
+    And the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." is shown
 
   Scenario: Changing the strategy
     Given the user's TDEE is 2,800 kcal and their strategy is "Mantenimiento"

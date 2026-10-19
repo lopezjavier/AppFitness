@@ -13,8 +13,11 @@ E3 (training core, the strength charts of US-15) and E6 (training depth).
 ## Tables and RPC
 Built on `workout_sessions`/`workout_sets` and the exercise catalog. New statistics RPCs (time frames, sets per muscle group, current-vs-previous distribution) in `03-data-model.md` §6.
 
+## Navigation (ADR-37)
+There is no Progreso tab: the statistics, reports and other insights of this epic are full-screen destinations (back arrow) reached from statistics entry buttons on the Perfil root.
+
 ## Reference screen
-`design/stitch/progress/screen.png` and its statistics sections.
+`design/stitch/progress/screen.png` and its statistics sections (style reference only; the screen is not a tab).
 
 > Gherkin convention: steps in English; quoted UI texts in Spanish (the app UI language, with decimal commas). Exercise names are Spanish catalog data.
 

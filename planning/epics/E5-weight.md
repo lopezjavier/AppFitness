@@ -13,6 +13,9 @@ E2 (profile, strategy and the `body_measurements` table).
 ## Tables
 `body_measurements`, `body_circumferences`, `health_sync_state`, `profiles.target_weight_kg` (`03-data-model.md` §2, §4).
 
+## Navigation (ADR-37)
+There is no Progreso tab. The weight chart, history and metrics are a full-screen destination (back arrow) reached from a statistics entry button on the Perfil root. Preferencias already edits today's weight (T-041); this epic adds the log, history and chart. The manual-row-per-day rule of `03-data-model.md` §4 applies to both entry points.
+
 ## Reference screen
 `design/stitch/progress/screen.png` (Health Connect banner, weight panel and chart). The strength section belongs to E3; the photo log is out of scope.
 
@@ -29,7 +32,7 @@ E2 (profile, strategy and the `body_measurements` table).
 Feature: Manual weight and body measurements
 
   Scenario: Logging today's weight
-    Given the user is on the "Progreso" tab
+    Given the user is on the weight screen opened from the "Perfil" tab (button "Peso", ADR-37)
     When they tap "Registrar peso de hoy"
     Then a Bottom Sheet opens with the weight prefilled with their last value (74,2 kg) and the current date and time
     When they enter 73,9 kg and tap "Guardar"
@@ -169,7 +172,7 @@ Feature: Weight trend, goal and interpretation
     And daily weight entries for the last 90 days
 
   Scenario: Metrics panel
-    When they open the "Progreso" tab
+    When they open the weight screen from the "Perfil" tab
     Then they see the current weight "74,2 kg" with the measurement date and time
     And the most recent body fat if available
     And the pill "−0,45 kg esta semana" in green

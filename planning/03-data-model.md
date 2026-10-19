@@ -52,6 +52,7 @@ create type set_type as enum ('working', 'warm_up', 'failure', 'drop');   -- UI:
   - `avatar_url`: `avatar_url`, then `picture`; kept only if it starts with `https://` and has at most 2048 characters, otherwise null.
 - Client privileges: `SELECT` and column-level `UPDATE` on the user-editable columns only (`display_name`, `avatar_url`, `birth_date`, `sex`, `height_cm`, `activity_level`, `target_weight_kg`, `onboarding_completed`); `id`, `created_at` and `updated_at` are not client-writable (`updated_at` is set by the `set_updated_at()` trigger).
 - RLS: owner by `id = (select auth.uid())`. No delete from the client.
+- `display_name` is also the name shown on Perfil and editable in Preferencias (ADR-37). Onboarding step 1 asks "¿Cómo te llamas?" only when Google gave no `full_name` (the `Usuario`/email fallbacks above do not count); the T-041 plan decides how to detect it (e.g. from the auth user metadata).
 - Current weight is **not** stored here: it is the latest row of `body_measurements` (onboarding inserts one).
 
 ### `nutrition_goals` (US-07, US-08)
@@ -156,6 +157,8 @@ RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.u
 Index: `(user_id, measured_at desc)`.
 
 Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24). The onboarding row is the user's earliest `source = 'manual'` row by `created_at` (tie-break `id`); this holds because nothing else writes `body_measurements` before onboarding completes. The composition columns (`lean_mass_kg`, `water_kg`, `bone_kg`, `bmr_kcal`) are only written by the Health Connect sync (US-26); manual entries leave them null.
+
+Weight edited in Preferencias (ADR-37): saving a changed weight upserts **one manual row per day** (the user's `source = 'manual'` row whose `measured_at` falls on today's local date is replaced; otherwise a row is inserted); earlier days stay as history. "Peso actual" is the latest row by `measured_at` from any source. The T-041 plan decides whether this is a client upsert or an RPC (a new migration, never an edit of a merged one) and covers it with pgTAP isolation if the DB changes.
 
 ### `body_circumferences` (US-25)
 | Column | Type | Notes |

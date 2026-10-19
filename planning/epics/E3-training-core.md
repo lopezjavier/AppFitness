@@ -17,8 +17,8 @@ E2. Independent of E4 and E5.
 ## Reference screen
 `design/stitch/live-workout/screen.png` (rest bar, session header, exercise cards with a set table) and the "Fuerza y 1RM estimado" sections of `design/stitch/progress/screen.png`. Without RPE, CAL/EFEC labels or "Fase / Microciclo".
 
-## Progress tab placement
-- "Fuerza y 1RM estimado" summary card on the **Progreso** tab (the weight chart joins it in E5).
+## Statistics placement (ADR-37)
+- There is no Progreso tab. The "Fuerza y 1RM estimado" summary card lives on a full-screen "Fuerza" destination (back arrow) reached from a statistics entry button on the Perfil root (the weight screen joins the Perfil entries in E5).
 - Per-exercise detail screen reachable from that card and from an exercise's detail in Workout/History.
 
 ## Workout tab navigation
@@ -340,9 +340,9 @@ Feature: Workout history
 ```gherkin
 Feature: Strength analytics
 
-  Scenario: Summary card on Progress
+  Scenario: Summary card on the strength screen
     Given the user has trained "Press de banca con barra", "Sentadilla" and "Peso muerto" in the last 6 weeks
-    When they open the "Progreso" tab
+    When they open "Fuerza" from the "Perfil" tab
     Then the "Fuerza y 1RM estimado" card shows chips with their 3 most frequent exercises
     And "Press de banca con barra" is selected by default
 

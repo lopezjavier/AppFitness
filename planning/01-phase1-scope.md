@@ -44,7 +44,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.11 Configurable meals: rename, reorder, enable/disable and add meals.
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 
-### FR-3 · Weight tracking — Progress (E5)
+### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.
 - FR-3.2 Manual sync with Health Connect, reading and writing weight, body fat, lean mass, body water, bone mass and BMR from smart scales.
 - FR-3.3 Progress chart with daily readings and a 7-day moving average.
@@ -67,7 +67,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E7 add features without a schema migration.
 
 ### FR-5 · Cross-cutting (E1, E8)
-- FR-5.1 4-tab navigation (Diario, Entreno, Progreso, Perfil); the Perfil tab icon is the user's Google photo (ADR-10, ADR-22, ADR-26, ADR-36).
+- FR-5.1 3-tab navigation (Diario, Entreno, Perfil); the Perfil tab icon is the generic `person` glyph, and the Perfil root shows the Google photo, the name and entries to Preferencias and the statistics screens (weight, strength, insights) (ADR-10, ADR-22, ADR-36, ADR-37).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
 - FR-5.4 "Acerca de · Licencias" screen (E8, US-45): version/build, the RepDB and Open Food Facts credits and the open-source licences, opened from Profile.

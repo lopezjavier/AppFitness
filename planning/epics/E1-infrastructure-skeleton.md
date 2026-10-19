@@ -140,6 +140,8 @@ Feature: Available and verifiable design system
 **I want** to install the APK and move between all sections of the app
 **So that** I can validate navigation and style on my phone and tablet before the features exist.
 
+> Historical (E1 shipped): the shell was later changed by ADR-26, ADR-36 (no FAB) and ADR-37 (current: 3 tabs Diario, Entreno, Perfil; no Progreso tab, no avatar in the top bar). The Gherkin below describes the E1 delivery.
+
 ```gherkin
 Feature: Navigable shell with WIP sections
 
