@@ -4,7 +4,7 @@
 Turn the Phase 1 workout into a complete gym experience: typed sets and RPE, every exercise metric (duration, distance, bodyweight…), warm-up and plate calculators, the full personal-record catalogue, and routine management (folders, tracking, "Actualizar rutina").
 
 ## Scope
-- Includes: exercise detail (history and PR tabs), set types, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue and live PR, routine folders and next workout, routine tracking and "Actualizar rutina", workout detail/calendar and editing, session controls.
+- Includes: per-set routine targets (weight, reps and set type per planned set, moved from E3 by the user, 2026-10-19; first task of the epic), exercise detail (history and PR tabs), set types, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue and live PR, routine folders and next workout, routine tracking and "Actualizar rutina", workout detail/calendar and editing, session controls.
 - Out of scope: advanced statistics and reports (E7); the algorithmic program generator and trainer; social features, cardio plans and publishing/monetization limits (all out of Phase 1, `01-phase1-scope.md` §4).
 
 ## Dependencies
@@ -63,6 +63,11 @@ Feature: Set types
     Given a set of "Press de banca con barra"
     When the user chooses the type "Calentamiento"
     Then the set shows the "C" badge
+
+  Scenario: Planning sets in a routine
+    Given a routine exercise being edited
+    When the user adds sets with their own weight, repetitions and type ("Calentamiento", "Normal", "Al fallo", "Drop")
+    Then each planned set is saved with its target and the live session starts from them
 
   Scenario: Removing a type
     When the user chooses "Quitar tipo"

@@ -22,10 +22,11 @@ The PM gives you an epic ID (`E#`).
 - Each task states its flow (UI / backend), Gherkin scenarios, acceptance criteria, the host tests that cover each scenario, dependencies and files likely touched.
 
 ## Checkpoints: the balance between autonomy and user feedback
-The user wants to give feedback, but not often: the PM works autonomously between checkpoints, and every 👤 checkpoint costs the user time to install and test.
-- Place a 👤 checkpoint only where the user can **try something meaningfully new on their phone**: a complete journey they can use end to end (e.g. "log a meal and see the day's totals"), not a single screen or a component.
-- Aim for **1–3 checkpoints per epic, closure included**. A small epic may have only the closure.
-- Group the stories so that each checkpoint carries enough new behaviour to be worth testing, and order the riskiest user-visible decisions early enough that feedback can still change them.
+The PM works autonomously between checkpoints, but a checkpoint that covers a whole epic is too big to test (E3: one checkpoint, 15 findings). Plan **one 👤 checkpoint per user-visible functionality**.
+- A functionality is a complete journey the user can try end to end on their phone (e.g. "create and edit routines", "run a live session", "browse history", "see charts"), not a single screen or a component, and not a whole epic.
+- Place each checkpoint right after the last task of its functionality, before later tasks build on it, so feedback can still change it. Epic closure is one more checkpoint (final regression and approval), not the place where features are first tried.
+- Every checkpoint includes "leave the app and come back: the same tab, screen and draft are restored".
+- Never merge two functionalities into one checkpoint to reduce the count.
 - Internal milestones (backend deployed, CI green) are not 👤 checkpoints: list them as verification items in the tasks.
 - For each checkpoint, write what the user should test in a few lines, phrased as things to try on the phone.
 
