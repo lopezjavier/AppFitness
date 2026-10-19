@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
+import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,8 +15,12 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** "Mis rutinas" (US-10): lists the active routines and runs edit, duplicate and archive. */
-class RoutinesViewModel(private val repository: RoutineRepository, connectivity: ConnectivityObserver) : ViewModel() {
+/** "Mis rutinas" (US-10): lists the active routines and runs edit, duplicate, archive and starting a session. */
+class RoutinesViewModel(
+    private val repository: RoutineRepository,
+    private val sessions: WorkoutSessionRepository,
+    connectivity: ConnectivityObserver,
+) : ViewModel() {
     private val _uiState = MutableStateFlow<RoutinesUiState>(RoutinesUiState.Loading)
     val uiState: StateFlow<RoutinesUiState> = _uiState.asStateFlow()
 
@@ -34,6 +39,7 @@ class RoutinesViewModel(private val repository: RoutineRepository, connectivity:
         load(showLoading = true)
     }
 
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: RoutinesEvent) {
         when (event) {
             RoutinesEvent.Retry -> if (_uiState.value == RoutinesUiState.Error) load(showLoading = true)
@@ -61,6 +67,10 @@ class RoutinesViewModel(private val repository: RoutineRepository, connectivity:
             RoutinesEvent.ConfirmArchive -> confirmArchive()
 
             RoutinesEvent.DismissArchive -> updateContent { it.copy(archiveFor = null) }
+
+            is RoutinesEvent.StartRoutine -> start { sessions.startFromRoutine(event.id) }
+
+            RoutinesEvent.StartEmpty -> start { sessions.startEmpty() }
         }
     }
 
@@ -87,6 +97,19 @@ class RoutinesViewModel(private val repository: RoutineRepository, connectivity:
                 onSuccess = { load(showLoading = false) },
                 onFailure = { effectChannel.trySend(RoutinesEffect.ActionFailed) },
             )
+        }
+    }
+
+    private fun start(create: suspend () -> Result<String>) {
+        val content = _uiState.value as? RoutinesUiState.Content ?: return
+        if (!online || content.starting) return
+        updateContent { it.copy(starting = true) }
+        viewModelScope.launch {
+            create().fold(
+                onSuccess = { effectChannel.trySend(RoutinesEffect.OpenLiveSession) },
+                onFailure = { effectChannel.trySend(RoutinesEffect.StartFailed) },
+            )
+            updateContent { it.copy(starting = false) }
         }
     }
 

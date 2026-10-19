@@ -6,12 +6,14 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppNavigationType
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
@@ -63,6 +66,7 @@ internal fun AppScaffold(
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
+    liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -109,6 +113,7 @@ internal fun AppScaffold(
                     exerciseDetail = exerciseDetail,
                     routines = routines,
                     routineBuilder = routineBuilder,
+                    liveSession = liveSession,
                     modifier = contentModifier,
                 )
             }
@@ -198,6 +203,7 @@ private fun ShellContent(
     exerciseDetail: ExerciseDetailSlot,
     routines: RoutinesSlot,
     routineBuilder: RoutineBuilderSlot,
+    liveSession: LiveSessionSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -230,6 +236,7 @@ private fun ShellContent(
             exerciseDetail = exerciseDetail,
             routines = routines,
             routineBuilder = routineBuilder,
+            liveSession = liveSession,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(
@@ -254,5 +261,8 @@ private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
                 navigationButton = backButton,
                 testTagPrefix = chrome.topBarTag,
             )
+
+        // The destination draws its own bar; the shell reserves the status bar so the offline banner sits below it.
+        ShellChrome.Own -> Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
     }
 }

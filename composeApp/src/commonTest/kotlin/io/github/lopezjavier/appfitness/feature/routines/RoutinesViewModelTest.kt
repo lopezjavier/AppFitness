@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -22,6 +23,7 @@ class RoutinesViewModelTest {
         FakeRoutineRepository(
             listOf(routineOf("r1", "Torso", "a", "b"), routineOf("r2", "Pierna", "c")),
         )
+    private val sessions = FakeWorkoutSessionRepository()
     private val connectivity = FakeConnectivityObserver()
 
     @BeforeTest
@@ -34,7 +36,7 @@ class RoutinesViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = RoutinesViewModel(repository, connectivity)
+    private fun viewModel() = RoutinesViewModel(repository, sessions, connectivity)
 
     private fun RoutinesViewModel.content() = assertIs<RoutinesUiState.Content>(uiState.value)
 
@@ -213,5 +215,76 @@ class RoutinesViewModelTest {
             vm.onEvent(RoutinesEvent.Edit("r1"))
             assertEquals(RoutinesEffect.OpenBuilder("r1"), awaitItem())
         }
+    }
+
+    @Test
+    fun startRoutine_createsTheSession_andOpensTheLiveScreen() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.StartRoutine("r1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.OpenLiveSession, awaitItem())
+        }
+
+        assertEquals(listOf("r1"), sessions.startedRoutines)
+        assertEquals(false, vm.content().starting)
+    }
+
+    @Test
+    fun startEmpty_createsAnEmptySession_andOpensTheLiveScreen() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.StartEmpty)
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.OpenLiveSession, awaitItem())
+        }
+
+        assertEquals(1, sessions.startedEmpty)
+    }
+
+    @Test
+    fun start_isIgnoredOffline() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        vm.onEvent(RoutinesEvent.StartRoutine("r1"))
+        vm.onEvent(RoutinesEvent.StartEmpty)
+        advanceUntilIdle()
+
+        assertTrue(sessions.startedRoutines.isEmpty())
+        assertEquals(0, sessions.startedEmpty)
+    }
+
+    @Test
+    fun startFailure_reportsAMessage_andAllowsTryingAgain() = runTest {
+        sessions.startFailure = AppError.Network
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.StartRoutine("r1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.StartFailed, awaitItem())
+        }
+
+        assertEquals(false, vm.content().starting)
+    }
+
+    @Test
+    fun aSecondStartWhileOneRuns_isIgnored() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onEvent(RoutinesEvent.StartRoutine("r1"))
+        vm.onEvent(RoutinesEvent.StartRoutine("r2"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("r1"), sessions.startedRoutines)
     }
 }

@@ -17,6 +17,7 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -49,7 +50,22 @@ internal typealias ExerciseDetailSlot =
     @Composable (modifier: Modifier, exerciseId: String, selectMode: Boolean, onSelect: () -> Unit) -> Unit
 
 /** "Mis rutinas" content: its modifier (tab insets) and the opener of the builder (null id = new routine). */
-internal typealias RoutinesSlot = @Composable (modifier: Modifier, onOpenBuilder: (String?) -> Unit) -> Unit
+internal typealias RoutinesSlot =
+    @Composable (modifier: Modifier, onOpenBuilder: (String?) -> Unit, onOpenLiveSession: () -> Unit) -> Unit
+
+/**
+ * What the live workout needs from navigation: the exercise the picker returned (to be consumed with
+ * [onConsumeSelection]), how to open the picker and how to leave the screen (the session stays in progress).
+ */
+class LiveSessionHost(
+    val selectedExerciseId: String?,
+    val onConsumeSelection: () -> Unit,
+    val onAddExercise: () -> Unit,
+    val onClose: () -> Unit,
+)
+
+/** Live workout content: modifier (full-screen insets) and its [LiveSessionHost]. */
+internal typealias LiveSessionSlot = @Composable (modifier: Modifier, host: LiveSessionHost) -> Unit
 
 /**
  * What the routine builder needs from navigation: the routine to edit (null = new), the exercise the picker returned
@@ -87,13 +103,18 @@ internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _
 }
 
 /** Empty "Mis rutinas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _ ->
+internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("routines_screen"))
 }
 
 /** Empty builder for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultRoutineBuilderSlot: RoutineBuilderSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("routine_builder_screen"))
+}
+
+/** Empty live workout for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("live_screen"))
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -119,18 +140,20 @@ internal fun AppNavHost(
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
+    liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
     val openPreferences = remember(navController) { { navController.navigateToFullScreen(PreferencesRoute) } }
     val openBuilder: (String?) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineBuilderRoute(id)) } }
+    val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
-            composable<WorkoutHome> { routines(Modifier.padding(tabPadding), openBuilder) }
+            composable<WorkoutHome> { routines(Modifier.padding(tabPadding), openBuilder, openLiveSession) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -170,9 +193,31 @@ internal fun AppNavHost(
                 ),
             )
         }
+        liveSessionDestination(navController, fullScreenPadding, liveSession)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }
+    }
+}
+
+/** The live workout destination: the picker's result comes back through the entry's `savedStateHandle`. */
+private fun NavGraphBuilder.liveSessionDestination(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    liveSession: LiveSessionSlot,
+) {
+    composable<LiveSessionRoute> { entry ->
+        val handle = entry.savedStateHandle
+        val selected by handle.getStateFlow<String?>(SELECTED_EXERCISE_KEY, null).collectAsState()
+        liveSession(
+            Modifier.padding(fullScreenPadding),
+            LiveSessionHost(
+                selectedExerciseId = selected,
+                onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
+                onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },
+                onClose = { navController.popBackStack() },
+            ),
+        )
     }
 }
 

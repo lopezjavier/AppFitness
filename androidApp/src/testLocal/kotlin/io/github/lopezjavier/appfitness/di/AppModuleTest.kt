@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -67,6 +68,7 @@ class AppModuleTest {
             extraTypes =
             listOf(
                 ConnectivityObserver::class,
+                Haptics::class,
                 AuthRepository::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,

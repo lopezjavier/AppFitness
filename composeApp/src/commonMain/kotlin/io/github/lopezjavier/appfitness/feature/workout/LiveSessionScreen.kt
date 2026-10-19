@@ -1,0 +1,279 @@
+package io.github.lopezjavier.appfitness.feature.workout
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.live_action_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.live_add_exercise
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_confirm
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_message
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_title
+import io.github.lopezjavier.appfitness.composeapp.resources.live_error
+import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
+import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
+import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
+import io.github.lopezjavier.appfitness.composeapp.resources.live_title
+import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
+import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
+import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
+import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.feature.routines.ActionsSheet
+import io.github.lopezjavier.appfitness.feature.routines.SheetActionRow
+import io.github.lopezjavier.appfitness.platform.KeepScreenOn
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+private const val SKELETON_CARDS = 2
+private val SkeletonCardHeight = Spacing.xl * 6
+
+/**
+ * Stateful live session: connects [LiveSessionViewModel], hands the exercise the picker returned
+ * ([selectedExerciseId], consumed once through [onConsumeSelection]) and routes its one-off results: the picker
+ * ([onAddExercise]), leaving the flow ([onClose]) and a snackbar for a failed finish or discard.
+ */
+@Composable
+fun LiveSessionRoot(
+    selectedExerciseId: String?,
+    onConsumeSelection: () -> Unit,
+    onAddExercise: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LiveSessionViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val elapsed by viewModel.elapsedSeconds.collectAsStateWithLifecycle(initialValue = 0L)
+    val snackbarHost = remember { SnackbarHostState() }
+    val currentClose by rememberUpdatedState(onClose)
+    val currentAddExercise by rememberUpdatedState(onAddExercise)
+    val currentConsume by rememberUpdatedState(onConsumeSelection)
+    val failed = stringResource(Res.string.live_action_failed)
+    LaunchedEffect(selectedExerciseId) {
+        if (selectedExerciseId != null) {
+            viewModel.onEvent(LiveSessionEvent.ExerciseSelected(selectedExerciseId))
+            currentConsume()
+        }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                LiveSessionEffect.OpenPicker -> currentAddExercise()
+                LiveSessionEffect.Closed -> currentClose()
+                LiveSessionEffect.ActionFailed -> snackbarHost.showSnackbar(failed)
+            }
+        }
+    }
+    // The session was finished or discarded elsewhere: go back to "Mis rutinas" instead of a blank screen.
+    LaunchedEffect(state) { if (state == LiveSessionUiState.NoSession) currentClose() }
+    LiveSessionScreen(state, elapsed, viewModel::onEvent, onClose, modifier, snackbarHost)
+}
+
+/**
+ * The live workout: top bar, one card per exercise and a sticky "Finalizar entreno" bar. Loading shows skeleton
+ * cards, a failed load offers "Reintentar" and a finished session shows its summary. [onBack] leaves the screen
+ * without finishing the session.
+ */
+@Composable
+fun LiveSessionScreen(
+    state: LiveSessionUiState,
+    elapsedSeconds: Long,
+    onEvent: (LiveSessionEvent) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+) {
+    Box(modifier.fillMaxSize().background(AppTheme.colors.surfaceBase).testTag("live_screen")) {
+        when (state) {
+            LiveSessionUiState.Loading, LiveSessionUiState.NoSession ->
+                LiveMessage(elapsedSeconds, onBack) { LiveLoading() }
+
+            LiveSessionUiState.Error -> LiveMessage(elapsedSeconds, onBack) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ErrorState(
+                        message = stringResource(Res.string.live_error),
+                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                            onEvent(LiveSessionEvent.Retry)
+                        },
+                        testTagPrefix = "live_error",
+                    )
+                }
+            }
+
+            is LiveSessionUiState.Active -> LiveActive(state, elapsedSeconds, onEvent, onBack, snackbarHost)
+
+            is LiveSessionUiState.Finished ->
+                SessionSummaryScreen(state.summary, onDone = { onEvent(LiveSessionEvent.Done) })
+        }
+    }
+}
+
+@Composable
+private fun LiveMessage(elapsedSeconds: Long, onBack: () -> Unit, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        LiveSessionTopBar(elapsedSeconds, onBack, onMenu = null)
+        content()
+    }
+}
+
+@Composable
+private fun LiveLoading() {
+    Column(
+        Modifier.fillMaxSize().padding(
+            horizontal = Spacing.screenMargin,
+            vertical = Spacing.lg,
+        ).testTag("live_loading"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+    ) {
+        repeat(SKELETON_CARDS) { SkeletonBox(Modifier.fillMaxWidth().height(SkeletonCardHeight), AppShapes.lg) }
+    }
+}
+
+@Composable
+private fun LiveActive(
+    state: LiveSessionUiState.Active,
+    elapsedSeconds: Long,
+    onEvent: (LiveSessionEvent) -> Unit,
+    onBack: () -> Unit,
+    snackbarHost: SnackbarHostState,
+) {
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    KeepScreenOn()
+    Column(Modifier.fillMaxSize().imePadding()) {
+        LiveSessionTopBar(elapsedSeconds, onBack, onMenu = { menuOpen = true })
+        KeepAwakeIndicator(Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.xs))
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            LazyColumn(
+                Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+            ) {
+                items(state.exercises, key = { it.position }) { LiveExerciseCard(it, onEvent) }
+                item(key = "add_exercise") {
+                    SecondaryButton(
+                        text = stringResource(Res.string.live_add_exercise),
+                        onClick = { onEvent(LiveSessionEvent.AddExercise) },
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.blockGap - Spacing.cardGap)
+                            .testTag("live_add_exercise"),
+                    )
+                }
+            }
+        }
+        SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
+        FinishBar(state, onFinish = { onEvent(LiveSessionEvent.RequestFinish) })
+    }
+    LiveDialogs(state, menuOpen, onCloseMenu = { menuOpen = false }, onEvent)
+}
+
+@Composable
+private fun LiveDialogs(
+    state: LiveSessionUiState.Active,
+    menuOpen: Boolean,
+    onCloseMenu: () -> Unit,
+    onEvent: (LiveSessionEvent) -> Unit,
+) {
+    if (menuOpen) {
+        ActionsSheet(
+            title = stringResource(Res.string.live_title),
+            onDismiss = onCloseMenu,
+            testTagPrefix = "live_menu",
+        ) {
+            SheetActionRow(
+                label = stringResource(Res.string.live_menu_discard),
+                onClick = {
+                    onCloseMenu()
+                    onEvent(LiveSessionEvent.RequestDiscard)
+                },
+                testTag = "live_menu_discard",
+                enabled = !state.actionsBlocked,
+                destructive = true,
+            )
+            if (state.actionsBlocked) OfflineReason("live_menu_offline_reason")
+        }
+    }
+    state.finishSheet?.let {
+        FinishSessionSheet(
+            sheet = it,
+            busy = state.busy,
+            onConfirm = { onEvent(LiveSessionEvent.ConfirmFinish) },
+            onDismiss = { onEvent(LiveSessionEvent.DismissFinish) },
+        )
+    }
+    if (state.discardConfirm) {
+        AppConfirmDialog(
+            title = stringResource(Res.string.live_discard_title),
+            message = stringResource(Res.string.live_discard_message),
+            confirmLabel = stringResource(Res.string.live_discard_confirm),
+            cancelLabel = stringResource(Res.string.live_discard_cancel),
+            onConfirm = { onEvent(LiveSessionEvent.ConfirmDiscard) },
+            onDismiss = { onEvent(LiveSessionEvent.DismissDiscard) },
+            testTagPrefix = "live_discard",
+        )
+    }
+}
+
+/** Sticky bottom bar with the primary action; offline it explains why the button is disabled. */
+@Composable
+private fun FinishBar(state: LiveSessionUiState.Active, onFinish: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().background(AppTheme.colors.surfaceRaised),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth).fillMaxWidth().padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            PrimaryButton(
+                text = stringResource(Res.string.live_finish),
+                onClick = onFinish,
+                modifier = Modifier.fillMaxWidth().testTag("live_finish_button"),
+                enabled = !state.actionsBlocked && !state.busy,
+                loading = state.busy,
+            )
+            if (state.actionsBlocked) OfflineReason("live_finish_offline_reason")
+        }
+    }
+}
+
+@Composable
+private fun OfflineReason(tag: String) {
+    Text(
+        text = stringResource(Res.string.live_finish_offline_reason),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier.padding(top = Spacing.sm).testTag(tag),
+    )
+}
