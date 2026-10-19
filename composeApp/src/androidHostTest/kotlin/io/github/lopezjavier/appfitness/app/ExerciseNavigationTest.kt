@@ -26,7 +26,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The provisional Entreno button, the picker/detail destinations and the selection result hand-off. */
+/** The exercise picker/detail destinations and the selection result hand-off. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class ExerciseNavigationTest {
@@ -66,12 +66,22 @@ class ExerciseNavigationTest {
 
     private fun openLibrary() {
         rule.onNodeWithTag("nav_tab_workout").performClick()
-        rule.onNodeWithTag("workout_exercise_library_button").performClick()
+        rule.runOnUiThread { nav.navigateToFullScreen(ExercisePickerRoute()) }
         rule.waitForIdle()
     }
 
     @Test
-    fun libraryButton_opensThePickerInBrowseMode_andBackReturnsToEntreno() {
+    fun entrenoTab_showsMisRutinas_andNoLibraryButton() {
+        showShell()
+        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routines_screen").assertExists()
+        rule.onNodeWithTag("workout_exercise_library_button").assertDoesNotExist()
+    }
+
+    @Test
+    fun picker_opensInBrowseMode_andBackReturnsToEntreno() {
         showShell()
         openLibrary()
 
@@ -83,7 +93,7 @@ class ExerciseNavigationTest {
         rule.onNodeWithTag("exercise_picker_top_bar_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("exercise_picker_screen").assertDoesNotExist()
-        rule.onNodeWithTag("workout_exercise_library_button").assertExists()
+        rule.onNodeWithTag("routines_screen").assertExists()
     }
 
     @Test

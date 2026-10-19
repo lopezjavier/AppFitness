@@ -54,22 +54,22 @@ class ShellRailContentTest {
     fun switchingBarToRail_keepsActiveTabAndScroll() {
         var type by mutableStateOf(AppNavigationType.Bar)
         rule.setContent { AppTheme { AppScaffold(navigationType = type) } }
-        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.onNodeWithTag("nav_tab_diary").performClick()
         rule.waitForIdle()
         // Scrolled past the first item (the message): a reset to the top would bring it back.
-        rule.onNodeWithTag("workout_screen").performSemanticsAction(SemanticsActions.ScrollBy) {
+        rule.onNodeWithTag("diary_screen").performSemanticsAction(SemanticsActions.ScrollBy) {
             it(0f, SCROLL_BY_PX)
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("workout_wip_message").assertDoesNotExist()
+        rule.onNodeWithTag("diary_wip_message").assertDoesNotExist()
         type = AppNavigationType.Rail
         rule.waitForIdle()
-        rule.onNodeWithTag("nav_tab_workout").assertIsSelected()
-        rule.onNodeWithTag("workout_wip_message").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_diary").assertIsSelected()
+        rule.onNodeWithTag("diary_wip_message").assertDoesNotExist()
         type = AppNavigationType.Bar
         rule.waitForIdle()
-        rule.onNodeWithTag("nav_tab_workout").assertIsSelected()
-        rule.onNodeWithTag("workout_wip_message").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_diary").assertIsSelected()
+        rule.onNodeWithTag("diary_wip_message").assertDoesNotExist()
     }
 
     @Test

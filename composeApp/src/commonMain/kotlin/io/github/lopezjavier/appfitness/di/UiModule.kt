@@ -9,6 +9,8 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewMode
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
+import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
+import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -42,4 +44,15 @@ val uiModule =
             )
         }
         viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get()) }
+        viewModelOf(::RoutinesViewModel)
+        // A blank routineId means a new routine (Koin parameters cannot be null).
+        viewModel { (routineId: String) ->
+            RoutineBuilderViewModel(
+                routineId = routineId.ifBlank { null },
+                savedState = get(),
+                repository = get(),
+                loadCatalog = get(),
+                connectivity = get(),
+            )
+        }
     }

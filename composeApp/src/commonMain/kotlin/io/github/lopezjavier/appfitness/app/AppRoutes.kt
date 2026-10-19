@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
@@ -58,6 +59,10 @@ data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
 /** Detail of one exercise; in [selectMode] it offers "Seleccionar". */
 @Serializable
 data class ExerciseDetailRoute(val exerciseId: String, val selectMode: Boolean = false) : AppRoute
+
+/** Routine builder (US-10): a new routine when [routineId] is null, otherwise the edit of that routine. */
+@Serializable
+data class RoutineBuilderRoute(val routineId: String? = null) : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -135,6 +140,9 @@ val AppRoute.chrome: ShellChrome
 
             is ExerciseDetailRoute ->
                 ShellChrome.FullScreen(Res.string.exercise_detail_title, topBarTag = "exercise_detail_top_bar")
+
+            is RoutineBuilderRoute ->
+                ShellChrome.FullScreen(Res.string.routine_builder_title, topBarTag = "routine_builder_top_bar")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -144,5 +152,11 @@ object AppDestinations {
      * reachable is decided by [AppFeatures].
      */
     val fullScreenRoutes: List<AppRoute> =
-        listOf(CatalogRoute, PreferencesRoute, ExercisePickerRoute(), ExerciseDetailRoute("", false))
+        listOf(
+            CatalogRoute,
+            PreferencesRoute,
+            ExercisePickerRoute(),
+            ExerciseDetailRoute("", false),
+            RoutineBuilderRoute(),
+        )
 }

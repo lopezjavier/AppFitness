@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -22,7 +24,6 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
-import io.github.lopezjavier.appfitness.feature.workout.WorkoutScreen
 
 /**
  * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener and the catalog opener (null where
@@ -47,6 +48,24 @@ internal typealias ExercisePickerSlot =
 internal typealias ExerciseDetailSlot =
     @Composable (modifier: Modifier, exerciseId: String, selectMode: Boolean, onSelect: () -> Unit) -> Unit
 
+/** "Mis rutinas" content: its modifier (tab insets) and the opener of the builder (null id = new routine). */
+internal typealias RoutinesSlot = @Composable (modifier: Modifier, onOpenBuilder: (String?) -> Unit) -> Unit
+
+/**
+ * What the routine builder needs from navigation: the routine to edit (null = new), the exercise the picker returned
+ * (to be consumed with [onConsumeSelection]), how to open the picker and how to close the screen.
+ */
+class RoutineBuilderHost(
+    val routineId: String?,
+    val selectedExerciseId: String?,
+    val onConsumeSelection: () -> Unit,
+    val onAddExercise: () -> Unit,
+    val onClose: () -> Unit,
+)
+
+/** Routine builder content: modifier (full-screen insets) and its [RoutineBuilderHost]. */
+internal typealias RoutineBuilderSlot = @Composable (modifier: Modifier, host: RoutineBuilderHost) -> Unit
+
 /** Key under which a picker started in select mode leaves the chosen exercise id for the previous destination. */
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
@@ -65,6 +84,16 @@ internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _
 /** Empty detail for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_detail_screen"))
+}
+
+/** Empty "Mis rutinas" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("routines_screen"))
+}
+
+/** Empty builder for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultRoutineBuilderSlot: RoutineBuilderSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("routine_builder_screen"))
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -88,17 +117,20 @@ internal fun AppNavHost(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
+    routines: RoutinesSlot = DefaultRoutinesSlot,
+    routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
     val openPreferences = remember(navController) { { navController.navigateToFullScreen(PreferencesRoute) } }
-    val openExerciseLibrary = remember(navController) { { navController.navigateToFullScreen(ExercisePickerRoute()) } }
+    val openBuilder: (String?) -> Unit =
+        remember(navController) { { id -> navController.navigateToFullScreen(RoutineBuilderRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
-            composable<WorkoutHome> { WorkoutScreen(Modifier.padding(tabPadding), openExerciseLibrary) }
+            composable<WorkoutHome> { routines(Modifier.padding(tabPadding), openBuilder) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -122,6 +154,20 @@ internal fun AppNavHost(
                 route.exerciseId,
                 route.selectMode,
                 { navController.returnSelectedExercise(route.exerciseId) },
+            )
+        }
+        composable<RoutineBuilderRoute> { entry ->
+            val handle = entry.savedStateHandle
+            val selected by handle.getStateFlow<String?>(SELECTED_EXERCISE_KEY, null).collectAsState()
+            routineBuilder(
+                Modifier.padding(fullScreenPadding),
+                RoutineBuilderHost(
+                    routineId = entry.toRoute<RoutineBuilderRoute>().routineId,
+                    selectedExerciseId = selected,
+                    onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
+                    onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },
+                    onClose = { navController.popBackStack() },
+                ),
             )
         }
         if (catalogAvailable) {
