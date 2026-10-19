@@ -92,7 +92,7 @@ fun LiveSessionRoot(
     // Back from the background: the rest countdown is recomputed from the clock at once.
     LifecycleResumeEffect(viewModel) {
         viewModel.onEvent(LiveSessionEvent.Resume)
-        onPauseOrDispose {}
+        onPauseOrDispose { viewModel.onEvent(LiveSessionEvent.Pause) }
     }
     LiveSessionScreen(state, elapsed, viewModel::onEvent, onClose, modifier, snackbarHost)
 }

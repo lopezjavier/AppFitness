@@ -843,6 +843,20 @@ class LiveSessionViewModelTest {
     }
 
     @Test
+    fun restEndingInTheBackground_resolvesTheBarWithoutAlert() = runSessionTest {
+        val vm = timerVm(30, 120)
+        check(vm, 0, 1)
+        vm.onEvent(LiveSessionEvent.Pause)
+
+        clock.advance(31.seconds)
+        advanceTimeBy(1_001)
+
+        assertNull(vm.active().restTimer)
+        assertEquals(0, haptics.alerts)
+        assertEquals(0, alertSound.plays)
+    }
+
+    @Test
     fun checkingAnotherSet_restartsTheTimerWithThatExercisesRest() = runSessionTest {
         val vm = timerVm(60, 90)
         check(vm, 0, 1)

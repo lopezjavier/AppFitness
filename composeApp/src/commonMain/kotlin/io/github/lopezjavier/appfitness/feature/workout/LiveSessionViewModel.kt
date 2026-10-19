@@ -29,7 +29,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,6 +106,9 @@ class LiveSessionViewModel(
     private var ghosts: MutableMap<String, List<PreviousSet>> = mutableMapOf()
     private var restTimer: RestTimer? = null
     private var tickerJob: Job? = null
+
+    /** False while the screen is in the background: the rest still resolves, but without sound or vibration. */
+    private var visible = true
     private var names: Map<String, String> = emptyMap()
     private var online = true
     private var finishSheet: FinishSheet? = null
@@ -178,7 +184,12 @@ class LiveSessionViewModel(
 
             is LiveSessionEvent.SetExerciseRest -> setExerciseRest(event.position, event.seconds)
 
-            LiveSessionEvent.Resume -> tickRest()
+            LiveSessionEvent.Resume -> {
+                visible = true
+                tickRest()
+            }
+
+            LiveSessionEvent.Pause -> visible = false
 
             LiveSessionEvent.AddExercise -> effectChannel.trySend(LiveSessionEffect.OpenPicker)
 
@@ -213,7 +224,9 @@ class LiveSessionViewModel(
                         session = loaded.toState()
                         loadRests(loaded)
                         ghosts = mutableMapOf()
-                        loaded.exercises.map { it.exerciseId }.distinct().forEach { loadGhost(it) }
+                        coroutineScope {
+                            loaded.exercises.map { it.exerciseId }.distinct().map { async { loadGhost(it) } }.awaitAll()
+                        }
                         terminal = null
                     }
                 },
@@ -279,8 +292,10 @@ class LiveSessionViewModel(
         if (timer.isFinished(clock.now())) {
             restTimer = null
             tickerJob?.cancel()
-            haptics.alert()
-            alertSound.play()
+            if (visible) {
+                haptics.alert()
+                alertSound.play()
+            }
         }
         publish()
     }

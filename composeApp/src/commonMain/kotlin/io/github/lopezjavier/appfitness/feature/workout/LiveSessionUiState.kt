@@ -103,6 +103,9 @@ sealed interface LiveSessionEvent {
     /** The screen is visible again: the countdown is recomputed from the clock at once. */
     data object Resume : LiveSessionEvent
 
+    /** The screen went to the background: the rest end will not buzz or beep. */
+    data object Pause : LiveSessionEvent
+
     data object AddExercise : LiveSessionEvent
 
     /** The picker returned [exerciseId] (the result of [LiveSessionEffect.OpenPicker]). */
