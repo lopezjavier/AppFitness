@@ -268,6 +268,13 @@ Format: context → decision → consequences. A decision is only changed by add
 
 ## 2. Findings from the review of the original documents
 
+### ADR-38 · RepDB catalogue stays out of the repo; superset rest model (E3)
+- **Context:** the repo is public and the RepDB licence allows in-app use only (ADR-30). A superset also needs two rest values (between its exercises and between rounds).
+- **Decision:**
+  - Catalogue rows in the DB hold only `key`, `muscle_group` and `equipment`; `name` is nullable for catalogue rows and the Spanish name, instructions and images come from the bundle in the client. The bundle is gitignored; test fixtures are synthetic.
+  - Superset: per group the user sets rounds, reps per exercise, the rest between exercises of a round and the rest between rounds. Stored in `routine_exercises.rest_seconds`: non-last members hold the transition rest, the last member holds the rest between rounds. All members share the same set count.
+- **Consequences:** `03-data-model.md` §5 (`name` nullable for catalogue rows) and the US-10/US-13 superset scenarios are updated by the planner in T-042/T-043/T-046.
+
 ### Product and stories (original user stories and frontend features)
 | # | Issue | Resolution |
 |---|---|---|
