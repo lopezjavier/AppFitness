@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -66,9 +67,10 @@ internal data class NutritionGoalsUpsertDto(
     }
 }
 
-/** Arguments of the `save_profile_settings` RPC: biometrics and goals saved atomically. */
+/** Arguments of the `save_preferences` RPC: name, biometrics, goals and optionally today's weight, atomically. */
 @Serializable
-internal data class SaveProfileSettingsParams(
+internal data class SavePreferencesParams(
+    @SerialName("p_display_name") val displayName: String,
     @SerialName("p_sex") val sex: SexDto,
     @SerialName("p_birth_date") val birthDate: String,
     @SerialName("p_height_cm") val heightCm: Int,
@@ -79,11 +81,21 @@ internal data class SaveProfileSettingsParams(
     @SerialName("p_protein_pct") val proteinPct: Int,
     @SerialName("p_carbs_pct") val carbsPct: Int,
     @SerialName("p_fat_pct") val fatPct: Int,
+    @SerialName("p_weight_kg") val weightKg: Double? = null,
+    @SerialName("p_measured_at") val measuredAt: String? = null,
+    @SerialName("p_day_start") val dayStart: String? = null,
+    @SerialName("p_day_end") val dayEnd: String? = null,
 ) {
     companion object {
-        fun from(biometrics: Biometrics, goals: NutritionGoals): SaveProfileSettingsParams {
+        fun from(
+            displayName: String,
+            biometrics: Biometrics,
+            goals: NutritionGoals,
+            weight: WeightEntry?,
+        ): SavePreferencesParams {
             val profile = BiometricsUpdateDto.from(biometrics)
-            return SaveProfileSettingsParams(
+            return SavePreferencesParams(
+                displayName = displayName,
                 sex = profile.sex,
                 birthDate = profile.birthDate,
                 heightCm = profile.heightCm,
@@ -94,7 +106,15 @@ internal data class SaveProfileSettingsParams(
                 proteinPct = goals.split.proteinPct,
                 carbsPct = goals.split.carbsPct,
                 fatPct = goals.split.fatPct,
+                weightKg = weight?.weightKg,
+                measuredAt = weight?.measuredAt?.toString(),
+                dayStart = weight?.dayStart?.toString(),
+                dayEnd = weight?.dayEnd?.toString(),
             )
         }
     }
 }
+
+/** Body of the `PATCH /profiles` that saves only the display name. */
+@Serializable
+internal data class DisplayNameUpdateDto(@SerialName("display_name") val displayName: String)

@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
@@ -31,6 +32,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 private const val SESSION =
     """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
@@ -158,19 +160,19 @@ class SupabaseProfileRepositoryTest {
     }
 }
 
-class SupabaseProfileRepositorySaveSettingsTest {
+class SupabaseProfileRepositorySavePreferencesTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var fail: Throwable? = null
     private var status = HttpStatusCode.NoContent
 
-    private suspend fun repository(): SupabaseProfileRepository {
+    private suspend fun repository(session: String = SESSION): SupabaseProfileRepository {
         val engine =
             MockEngine { request ->
                 requests += request
                 fail?.let { if (!request.url.encodedPath.contains("/auth/")) throw it }
                 val headers = headersOf(HttpHeaders.ContentType, "application/json")
                 if (request.url.encodedPath.contains("/auth/")) {
-                    respond(SESSION, HttpStatusCode.OK, headers)
+                    respond(session, HttpStatusCode.OK, headers)
                 } else {
                     respond("", status, headers)
                 }
@@ -181,22 +183,50 @@ class SupabaseProfileRepositorySaveSettingsTest {
         return SupabaseProfileRepository(client.auth, client.postgrest)
     }
 
+    private fun sessionWithMetadata(metadata: String) =
+        """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
+            """"user":{"id":"user-1","aud":"authenticated","email":"a@b.c","user_metadata":$metadata}}"""
+
     private val biometrics = Biometrics(Sex.Male, LocalDate(1999, 6, 15), 180, ActivityLevel.Moderate)
     private val goals = NutritionGoals(GoalStrategy.Deficit, -400, 2292, MacroSplit(35, 42, 23))
+    private val goalsJson =
+        """"p_strategy":"deficit","p_calorie_adjustment":-400,"p_target_kcal":2292,""" +
+            """"p_protein_pct":35,"p_carbs_pct":42,"p_fat_pct":23"""
 
     @Test
-    fun callsTheRpcWithTheExactBody() = runTest {
-        val result = repository().saveSettings(biometrics, goals)
+    fun withoutWeight_callsTheRpcWithoutTheWeightArguments() = runTest {
+        val result = repository().savePreferences("Ana", biometrics, goals, null)
 
         assertTrue(result.isSuccess)
         val call = requests.last()
         assertEquals(HttpMethod.Post, call.method)
-        assertEquals("/rest/v1/rpc/save_profile_settings", call.url.encodedPath)
+        assertEquals("/rest/v1/rpc/save_preferences", call.url.encodedPath)
         val body = (call.body as TextContent).text
         assertEquals(
-            """{"p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,"p_activity_level":"moderate",""" +
-                """"p_strategy":"deficit","p_calorie_adjustment":-400,"p_target_kcal":2292,""" +
-                """"p_protein_pct":35,"p_carbs_pct":42,"p_fat_pct":23}""",
+            """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
+                """"p_activity_level":"moderate",$goalsJson}""",
+            body,
+        )
+    }
+
+    @Test
+    fun withWeight_sendsTheWeightAndTheLocalDayBounds() = runTest {
+        val weight =
+            WeightEntry(
+                weightKg = 81.5,
+                measuredAt = Instant.parse("2026-10-19T10:00:00Z"),
+                dayStart = Instant.parse("2026-10-18T22:00:00Z"),
+                dayEnd = Instant.parse("2026-10-19T22:00:00Z"),
+            )
+
+        assertTrue(repository().savePreferences("Ana", biometrics, goals, weight).isSuccess)
+
+        val body = (requests.last().body as TextContent).text
+        assertEquals(
+            """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
+                """"p_activity_level":"moderate",$goalsJson,"p_weight_kg":81.5,""" +
+                """"p_measured_at":"2026-10-19T10:00:00Z","p_day_start":"2026-10-18T22:00:00Z",""" +
+                """"p_day_end":"2026-10-19T22:00:00Z"}""",
             body,
         )
     }
@@ -206,7 +236,7 @@ class SupabaseProfileRepositorySaveSettingsTest {
         val repo = repository()
         fail = IOException("offline")
 
-        assertEquals(AppError.Network, repo.saveSettings(biometrics, goals).appErrorOrNull())
+        assertEquals(AppError.Network, repo.savePreferences("Ana", biometrics, goals, null).appErrorOrNull())
     }
 
     @Test
@@ -214,6 +244,36 @@ class SupabaseProfileRepositorySaveSettingsTest {
         val repo = repository()
         status = HttpStatusCode.BadRequest
 
-        assertEquals(AppError.Unknown, repo.saveSettings(biometrics, goals).appErrorOrNull())
+        assertEquals(AppError.Unknown, repo.savePreferences("Ana", biometrics, goals, null).appErrorOrNull())
+    }
+
+    @Test
+    fun updateDisplayName_patchesOnlyTheNameOfTheOwnRow() = runTest {
+        assertTrue(repository().updateDisplayName("Ana López").isSuccess)
+
+        val patch = requests.last()
+        assertEquals(HttpMethod.Patch, patch.method)
+        assertTrue(patch.url.toString().contains("id=eq.user-1"), patch.url.toString())
+        assertEquals("""{"display_name":"Ana López"}""", (patch.body as TextContent).text)
+    }
+
+    @Test
+    fun hasProvidedFullName_isTrueWhenGoogleGaveAName() = runTest {
+        val repo = repository(sessionWithMetadata("""{"full_name":"Ana López"}"""))
+
+        assertTrue(repo.hasProvidedFullName())
+    }
+
+    @Test
+    fun hasProvidedFullName_isFalseWhenTheNameIsBlank() = runTest {
+        val repo = repository(sessionWithMetadata("""{"full_name":"   "}"""))
+
+        assertFalse(repo.hasProvidedFullName())
+    }
+
+    @Test
+    fun hasProvidedFullName_isFalseWhenTheMetadataHasNoName() = runTest {
+        assertFalse(repository(sessionWithMetadata("""{"name":"Ana"}""")).hasProvidedFullName())
+        assertFalse(repository().hasProvidedFullName())
     }
 }
