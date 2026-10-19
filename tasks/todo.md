@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ☐ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
 
 ---
 
@@ -1052,12 +1052,12 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Story:** E2 Definition of Done · **Flow:** PM
 
 **Acceptance criteria:**
-- [ ] T-034…T-037, T-039, T-040 and T-041 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
-- [ ] Host (Robolectric) tests green for every E2 UI scenario; the user has verified the delivered APK at Checkpoint E2-B.
-- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
+- [x] T-034…T-037, T-039, T-040 and T-041 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
+- [x] Host (Robolectric) tests green for every E2 UI scenario; the user has verified the delivered APK at Checkpoint E2-B.
+- [x] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
 
 **Verification:**
-- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.2.0` after approval.
+- [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.2.0` after approval.
 
 **Dependencies:** T-041
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
@@ -1065,7 +1065,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 
 ### Checkpoint E2-B — E2 closure 👤
 - Checkpoint E2-B feedback (2026-10-19, first round): "Borrar cuenta" and the new onboarding were approved (apart from the TDEE copy). Changes → bug **T-040** (Edad/Altura not shown after editing) and **T-041** (**ADR-37**): 3 tabs without Progreso and the generic `person` icon for Perfil; Perfil root with the large Google photo, the name, a "Preferencias" button (the editable Profile in a full-screen destination), "Cerrar sesión" and "Borrar cuenta"; later statistics (E3 strength, E5 weight, E7 insights) become entries from Perfil; name from Google, asked in onboarding only when missing; editable weight in Preferencias (today's manual row); TDEE copy "Gasto diario estimado". **Checkpoint E2-B is re-presented after T-041**, then T-038.
-- [ ] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries the Perfil tab (generic icon; photo and name on the root; "Preferencias"; ADR-37):
+- [x] 👤 The user installs the `prodDebug` APK (`! python scripts/deliver-apk.py`) and tries the Perfil tab (generic icon; photo and name on the root; "Preferencias"; ADR-37):
   - In Preferencias change their height, age and weight (and the other personal data) and tap the single "Guardar" → the new values are shown, the "Gasto diario estimado" and the daily target change; "Peso actual" shows the latest weight and is editable.
   - Switch Déficit / Mantenimiento / Superávit and move the adjustment; push it to the safety floor (1200 kcal women / 1500 kcal men).
   - Move each macro slider → the other two rebalance and the badge stays "TOTAL: 100 %"; try to push one past 90 %.
