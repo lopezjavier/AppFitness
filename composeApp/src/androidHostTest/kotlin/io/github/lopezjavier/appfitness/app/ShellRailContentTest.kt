@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsNotSelected
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationType
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.WipPlaceholder
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -32,8 +34,18 @@ class ShellRailContentTest {
     @get:Rule
     val rule = createComposeRule()
 
+    /** A scrollable tab with a footer, standing in for the Diario tab that is no longer a placeholder. */
+    private val wipDiary: DiarySlot = { modifier, _ ->
+        WipPlaceholder(
+            message = "Sección en construcción",
+            footer = "Más funciones próximamente",
+            testTagPrefix = "diary",
+            modifier = modifier.testTag("diary_screen"),
+        )
+    }
+
     private fun setRailContent() = rule.setContent {
-        AppTheme { AppScaffold(navigationType = AppNavigationType.Rail) }
+        AppTheme { AppScaffold(navigationType = AppNavigationType.Rail, diary = wipDiary) }
     }
 
     @Test
@@ -53,7 +65,7 @@ class ShellRailContentTest {
     @Test
     fun switchingBarToRail_keepsActiveTabAndScroll() {
         var type by mutableStateOf(AppNavigationType.Bar)
-        rule.setContent { AppTheme { AppScaffold(navigationType = type) } }
+        rule.setContent { AppTheme { AppScaffold(navigationType = type, diary = wipDiary) } }
         rule.onNodeWithTag("nav_tab_diary").performClick()
         rule.waitForIdle()
         // Scrolled past the first item (the message): a reset to the top would bring it back.

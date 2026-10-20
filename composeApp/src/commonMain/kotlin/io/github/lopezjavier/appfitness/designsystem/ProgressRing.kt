@@ -40,7 +40,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_remai
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_remaining_spoken
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_state
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.floor
 import kotlin.math.min
+
+private fun roundHalfUp(value: Double): Int = floor(value + 0.5).toInt()
 
 /** Colours of [ProgressRing]. */
 @Immutable
@@ -65,6 +68,12 @@ object ProgressRingDefaults {
     const val START_ANGLE = -90f
     const val FULL_SWEEP = 360f
     internal const val ANIMATION_MILLIS = 700
+
+    /**
+     * Rounds [consumed] half up to whole kcal first, so the shown value, the remaining and the over-target flag
+     * always agree (1839.6 shows "1.840" and "560 restantes").
+     */
+    fun state(consumed: Double, target: Int): ProgressRingState = state(roundHalfUp(consumed), target)
 
     /** Negative consumed is treated as 0; the sweep is capped at a full turn. */
     fun state(consumed: Int, target: Int): ProgressRingState {
@@ -93,15 +102,21 @@ object ProgressRingDefaults {
  * carrying the caller's [modifier] (and its testTag).
  */
 @Composable
-fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifier) {
-    val state = ProgressRingDefaults.state(consumedKcal, targetKcal)
+fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifier) =
+    ProgressRing(consumedKcal.toDouble(), targetKcal, modifier)
+
+/** [ProgressRing] for a consumed value with decimals; it is shown rounded half up to whole kcal. */
+@Composable
+fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Modifier) {
+    val wholeKcal = roundHalfUp(consumedKcal)
+    val state = ProgressRingDefaults.state(wholeKcal, targetKcal)
     val colors = ProgressRingDefaults.colors(state.isOverTarget, AppTheme.colors)
     val sweep by animateFloatAsState(
         targetValue = state.sweepAngle,
         animationSpec = tween(ProgressRingDefaults.ANIMATION_MILLIS),
         label = "progress_ring_sweep",
     )
-    val consumedText = AppNumberFormat.integer(consumedKcal.coerceAtLeast(0))
+    val consumedText = AppNumberFormat.integer(wholeKcal.coerceAtLeast(0))
     val targetText = AppNumberFormat.integer(targetKcal)
     val statusText =
         if (state.isOverTarget) {
@@ -118,7 +133,7 @@ fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifi
     val description = stringResource(Res.string.progress_ring_cd)
     val stateDescriptionText =
         stringResource(Res.string.progress_ring_state, consumedText, targetText, spokenStatus)
-    val fraction = min(consumedKcal.coerceAtLeast(0).toFloat() / targetKcal, 1f)
+    val fraction = min(wholeKcal.coerceAtLeast(0).toFloat() / targetKcal, 1f)
     Column(
         modifier =
         modifier.semantics(mergeDescendants = true) {

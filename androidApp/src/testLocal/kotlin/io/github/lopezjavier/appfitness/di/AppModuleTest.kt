@@ -13,11 +13,14 @@ import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -76,6 +79,9 @@ class AppModuleTest {
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,
                 NutritionGoalsRepository::class,
+                MealSlotRepository::class,
+                FoodDiaryRepository::class,
+                BuildDiaryDay::class,
                 CompleteOnboarding::class,
                 DeleteAccount::class,
                 SavePreferences::class,

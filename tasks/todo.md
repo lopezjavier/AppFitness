@@ -1510,19 +1510,19 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Replaces the Diario WIP placeholder (reference `design/stitch/diary/screen.png`, without the water card). Domain (`shared`, pure, `04-business-rules.md` §2 examples as tests): `MealSlot` and `FoodLogEntry` models, a `DiaryDay` aggregate with meal and day totals (sums of snapshots), `remaining = target_kcal − consumed` ("+N kcal en exceso" when negative) and macro progress `round(consumed / target × 100)` (bar capped at 100 %, text shows the real value). Gram targets come from the existing `CalculateMacroTargets` use case (T-037), never recomputed in the Diary (consumes the E2 note). `MealSlotRepository` (enabled slots in `position` order) and `FoodDiaryRepository` (entries of one `log_date`, as a `Flow`/`StateFlow` the later write tasks update in place). `DiaryViewModel` exposes one state from which list and totals derive (no second query). Screen: date header "Hoy"/"Ayer"/"lun, 24 oct" (`04` §5) with arrows (right arrow disabled on today; the local date from the injected `Clock`); dashboard with `ProgressRing` ("1.840", "de 2.400 kcal", "560 restantes"; over target: full ring in `energyAmber` and "+150 kcal en exceso") and three `MacroProgressBar`s ("142 g / 180 g · 79 %"); `ProgressRing` and `MacroProgressBar` gain `Double` (or percent) inputs so 0.1 g snapshots are not rounded early (consumes the PR #24 note; check every caller); one section per enabled slot with its entries (name, amount + unit or portion label, kcal), its kcal and P/C/F grams; empty section "Te quedan 560 kcal" (the day's remaining) and the "Añadir a …" button with the meal's name (wording per ux-reviewer; it emits a navigation event that T-057 connects to the search); collapsible sections (local saved state); no goals → "Configura tu objetivo" linking to Perfil → Preferencias. Tablet: dashboard left column, meals right. The visible day survives leaving the app (ADR-40). Loading skeleton, `ErrorState` with "Reintentar", offline banner.
 
 **Acceptance criteria:**
-- [ ] A new user sees Desayuno, Comida, Merienda and Cena in that order, each with its "Añadir a …" button; the date reads "Hoy".
-- [ ] With target 2.400 kcal (180 / 270 / 67 g) and 1.840 kcal logged (142 / 210 / 48 g): ring "1.840", "de 2.400 kcal", "560 restantes"; "142 g / 180 g · 79 %", "210 g / 270 g · 78 %", "48 g / 67 g · 72 %"; each section shows its own kcal and P/C/F.
-- [ ] 2.550 kcal logged → full ring in `energyAmber` and "+150 kcal en exceso".
-- [ ] Empty Cena with 1.840 kcal logged shows "Te quedan 560 kcal" and its add button.
-- [ ] Left arrow → "Ayer" with yesterday's entries; the right arrow is disabled on today.
-- [ ] No `nutrition_goals` → "Configura tu objetivo" opens Preferencias.
-- [ ] Tablet (≥ 600 dp): dashboard on the left, meals on the right; phone single column.
-- [ ] Leaving the app on "Ayer" with a section collapsed and coming back (also after process death) shows the same day and state.
+- [x] A new user sees Desayuno, Comida, Merienda and Cena in that order, each with its "Añadir a …" button; the date reads "Hoy".
+- [x] With target 2.400 kcal (180 / 270 / 67 g) and 1.840 kcal logged (142 / 210 / 48 g): ring "1.840", "de 2.400 kcal", "560 restantes"; "142 g / 180 g · 79 %", "210 g / 270 g · 78 %", "48 g / 67 g · 72 %"; each section shows its own kcal and P/C/F.
+- [x] 2.550 kcal logged → full ring in `energyAmber` and "+150 kcal en exceso".
+- [x] Empty Cena with 1.840 kcal logged shows "Te quedan 560 kcal" and its add button.
+- [x] Left arrow → "Ayer" with yesterday's entries; the right arrow is disabled on today.
+- [x] No `nutrition_goals` → "Configura tu objetivo" opens Preferencias.
+- [x] Tablet (≥ 600 dp): dashboard on the left, meals on the right; phone single column.
+- [x] Leaving the app on "Ayer" with a section collapsed and coming back (also after process death) shows the same day and state.
 
 **Host tests (per scenario):** `DiaryTotalsTest` (sums, remaining, excess, macro percent with 0.1 g snapshots; `04` §2 example); `DiaryViewModelTest` with fakes, a test `Clock` and Turbine (Day structure; Empty section; Changing the day; User without goals; Default meals order); `DiaryScreenTest` (Robolectric: ring and bar texts, excess state, "Te quedan 560 kcal", disabled right arrow, two-column layout at 840 dp); `ProgressRingTest`/`MacroProgressBarTest` updates (Double input, 100.9/200 → 50 %); `StateRestorationTester` + recreated-ViewModel test (visible day).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-055
 **Files likely touched:** `shared/…/domain/model/{MealSlot,FoodLogEntry,DiaryDay}.kt`, `shared/…/domain/usecase/DiaryTotals.kt` + tests, `shared/…/domain/repository/{MealSlotRepository,FoodDiaryRepository}.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,DiaryUiState,DiaryDashboard,MealSection,DiaryDateHeader}.kt`, `composeApp/…/designsystem/{ProgressRing,MacroProgressBar}.kt` (+ callers), `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests

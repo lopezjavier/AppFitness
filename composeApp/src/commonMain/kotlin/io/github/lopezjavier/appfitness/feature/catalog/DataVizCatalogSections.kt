@@ -73,6 +73,8 @@ private const val CARBS_TARGET_G = 270
 private const val FAT_CONSUMED_G = 48
 private const val FAT_TARGET_G = 67
 private const val PROTEIN_OVER_CONSUMED_G = 200
+private const val PROTEIN_DECIMAL_CONSUMED_G = 100.9
+private const val PROTEIN_DECIMAL_TARGET_G = 200
 
 /** Catalog sections of the data visualization components (T-024). */
 internal fun LazyListScope.dataVizItems() {
@@ -143,6 +145,13 @@ private fun MacroBarsSection() {
                     PROTEIN_OVER_CONSUMED_G,
                     PROTEIN_TARGET_G,
                     Modifier.testTag("catalog_macro_bar_over"),
+                )
+                MacroProgressBar(
+                    stringResource(Res.string.macro_protein),
+                    Macro.Protein,
+                    PROTEIN_DECIMAL_CONSUMED_G,
+                    PROTEIN_DECIMAL_TARGET_G,
+                    Modifier.testTag("catalog_macro_bar_decimal"),
                 )
             }
         }
