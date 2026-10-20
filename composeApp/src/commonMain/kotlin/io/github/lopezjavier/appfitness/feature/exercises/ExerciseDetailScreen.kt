@@ -162,14 +162,16 @@ private fun DetailMedia(detail: ExerciseDetail, name: String) {
     val uris = LocalExerciseMediaUris.current
     val startUri = if (key != null && info != null) uris.start(key) else null
     if (key != null && info != null && startUri != null) {
-        ExerciseAnimation(
-            startUri = startUri,
-            peakUri = if (info.hasPeak) uris.peak(key) else null,
-            animationsEnabled = LocalAnimationsEnabled.current,
-            testTagPrefix = "exercise_detail",
-            contentDescription = stringResource(Res.string.exercise_detail_animation_cd, name),
-            modifier = Modifier.widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth),
-        )
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            ExerciseAnimation(
+                startUri = startUri,
+                peakUri = if (info.hasPeak) uris.peak(key) else null,
+                animationsEnabled = LocalAnimationsEnabled.current,
+                testTagPrefix = "exercise_detail",
+                contentDescription = stringResource(Res.string.exercise_detail_animation_cd, name),
+                modifier = Modifier.widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth),
+            )
+        }
     }
 }
 
