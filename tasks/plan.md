@@ -12,9 +12,9 @@ Out of scope (epic file): user-uploaded food images, micronutrients, composite r
 - **Default meals for existing users.** Seeding runs when `onboarding_completed` becomes true (idempotent trigger) and the migration backfills every already-onboarded user, so the E2/E3 users get Desayuno/Comida/Merienda/Cena.
 - **Open Food Facts only through Edge Functions (ADR-06).** `_shared/off-client.ts` normalizes (base unit from `nutrition_data_per`, kJ → kcal, servings → `food_portions`); `off` rows are written with the secret key (ADR-17), reusing the `delete-account` key lookup (`SUPABASE_SECRET_KEYS`, legacy fallback). `deno test` uses recorded fixtures, never the network.
 - **Snapshots in the domain.** `ScaleNutrition` (`kcal_100 × amount / 100`, 0.1) and `ResolvePortion` live in `shared` and are the only place entry values are computed (log, edit, copy, templates). Diary totals derive from one `StateFlow` (no second query); gram targets come from `CalculateMacroTargets` (T-037).
-- **Batch writes.** Copy, repeat-yesterday and template quick add are one batch insert of `food_log_entries`; "Deshacer" re-inserts (delete) or deletes the inserted rows (copy/quick add).
+- **Batch writes.** Template quick add is one batch insert of `food_log_entries`; "Deshacer" deletes the inserted rows (quick add).
 - **Platform port for the scanner.** `BarcodeScanner` (domain) + ML Kit `GmsBarcodeScanning` in `androidMain` (no camera permission, ADR-07); a fake in host tests.
-- **Local preferences.** The diary view mode is a DataStore preference (ADR-01 allows it); everything else is server data.
+- **Local preferences.** None for the Diary (the view-mode preference was removed in T-066); everything else is server data.
 - **Restoration (ADR-40).** Visible day, search query and tab, sheets and every form draft survive background and process death; each UI task ships `StateRestorationTester` + recreated-ViewModel tests.
 - **Shared components.** `ProgressRing`/`MacroProgressBar` gain `Double`/percent inputs (PR #24 note) in T-056; before changing `NumberInput`, `AppBottomSheet`, `SegmentedSelector` or `ReorderableColumn`, check every caller (T-040 lesson). New design-system components are built inside the first task that needs them, with a catalog entry.
 

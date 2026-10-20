@@ -103,7 +103,6 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `ProgressRing` | kcal ring with normal / over-target (amber) states |
 | `MacroProgressBar` | Linear bar in the macro color, "142 g / 180 g · 79 %" |
 | `MacroSlider` | Slider in the macro color, % and grams/kcal |
-| `ViewModeSelector` | Detail / List / Summary segmented control for the diary (reuses `SegmentedSelector`; the chosen mode persists) |
 | `PortionSelector` | Amount field + portion dropdown ("100 g", "1 huevo"); the unit is the food's base unit (`g`/`ml`) |
 | `FavouriteToggle` | Star icon toggle (lime when starred) in food rows and food detail |
 | `MealSlotEditor` | Rename, reorder, enable/disable and add meals (drag handle, switch, add row) |
