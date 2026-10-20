@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.Food
-import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
@@ -121,8 +120,6 @@ internal data class LoggedFoodDto(@SerialName("food_id") val foodId: String)
 /** Insert body of `food_log_entries` (the user comes from the column default). */
 @Serializable
 internal data class FoodLogEntryInsertDto(
-    /** Only set when restoring a deleted entry, so the id (and any pending undo) stays the same. */
-    val id: String? = null,
     @SerialName("log_date") val logDate: String,
     @SerialName("meal_slot_id") val mealSlotId: String,
     @SerialName("food_id") val foodId: String,
@@ -135,20 +132,6 @@ internal data class FoodLogEntryInsertDto(
     @SerialName("fat_g") val fatG: Double,
 ) {
     companion object {
-        fun restoring(entry: FoodLogEntry) = FoodLogEntryInsertDto(
-            id = entry.id,
-            logDate = entry.logDate.toString(),
-            mealSlotId = entry.mealSlotId,
-            foodId = entry.foodId,
-            foodName = entry.foodName,
-            amount = entry.amount,
-            portionLabel = entry.portionLabel,
-            kcal = entry.kcal,
-            proteinG = entry.proteinG,
-            carbsG = entry.carbsG,
-            fatG = entry.fatG,
-        )
-
         fun from(entry: NewFoodEntry) = FoodLogEntryInsertDto(
             logDate = entry.date.toString(),
             mealSlotId = entry.mealSlotId,

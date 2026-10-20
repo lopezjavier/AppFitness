@@ -48,7 +48,6 @@ class DiaryRestorationTest {
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25))),
         BuildDiaryDay(),
         MutableClock(),
-        FakeDiaryPreferences(),
         FakeConnectivityObserver(),
         state,
     )

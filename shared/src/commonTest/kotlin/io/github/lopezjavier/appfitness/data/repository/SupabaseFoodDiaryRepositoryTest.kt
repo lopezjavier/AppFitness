@@ -284,42 +284,6 @@ class SupabaseFoodDiaryRepositoryTest {
         repo.entries(day).test { assertEquals(listOf("e1"), awaitItem().map { it.id }) }
     }
 
-    private val deleted = FoodLogEntry(
-        id = "e1",
-        logDate = day,
-        mealSlotId = "s1",
-        foodId = "f1",
-        foodName = "Avena",
-        amount = 40.5,
-        portionLabel = "1 taza",
-        baseUnit = "g",
-        kcal = 151.2,
-        proteinG = 5.3,
-        carbsG = 26.8,
-        fatG = 2.7,
-    )
-
-    @Test
-    fun restoreEntry_postsTheSameIdAndValuesAndReAddsItToTheCache() = runTest {
-        var body = "[]"
-        val repo = signedInRepository { body }
-        repo.refresh(day).getOrThrow()
-
-        repo.entries(day).test {
-            assertEquals(emptyList(), awaitItem())
-            body = "[$ROW_ONE]"
-            val restored = repo.restoreEntry(deleted).getOrThrow()
-            assertEquals("e1", restored.id)
-            assertEquals(listOf("e1"), awaitItem().map { it.id })
-        }
-        val post = requests.last()
-        assertEquals(HttpMethod.Post, post.method)
-        val sent = post.body.toByteArray().decodeToString()
-        assertTrue(sent.contains("\"id\":\"e1\"") && sent.contains("\"food_id\":\"f1\""), sent)
-        assertTrue(sent.contains("\"portion_label\":\"1 taza\"") && sent.contains("\"kcal\":151.2"), sent)
-        assertTrue(sent.contains("\"log_date\":\"2026-10-19\""), sent)
-    }
-
     @Test
     fun addEntry_doesNotSendAnId() = runTest {
         val repo = signedInRepository { "[$ROW_ONE]" }

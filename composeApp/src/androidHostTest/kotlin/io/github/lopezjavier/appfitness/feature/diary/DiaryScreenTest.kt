@@ -190,6 +190,26 @@ class DiaryScreenTest {
     }
 
     @Test
+    fun removedFeatures_neitherViewMenuSelectionNorCopyNorRepeatActionsAreShown() {
+        show(content(entries = listOf(entry("a", "breakfast"))))
+
+        listOf(
+            "diary_view_menu",
+            "diary_selection_bar",
+            "diary_undo",
+            "diary_meal_menu_breakfast",
+            "diary_meal_select_breakfast",
+            "diary_meal_copy_breakfast",
+            "diary_repeat_yesterday_lunch",
+            "diary_entry_select_a",
+        ).forEach { rule.onNodeWithTag(it).assertDoesNotExist() }
+        rule.onNodeWithText("Repetir comida de ayer").assertDoesNotExist()
+        rule.onNodeWithText("Copiar alimentos").assertDoesNotExist()
+        rule.onNodeWithText("Copiar comida").assertDoesNotExist()
+        rule.onNodeWithText("Food a").assertExists()
+    }
+
+    @Test
     fun entryRow_withPortionLabel_showsThePortionInsteadOfTheAmount() {
         show(content(entries = listOf(entry("a", "lunch", "Huevo", 55.0, portion = "1 huevo"))))
 

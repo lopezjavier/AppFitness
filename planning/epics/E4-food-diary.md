@@ -4,7 +4,7 @@
 Log what you eat in fewer than 3 taps (search, scanner or template) and see the calories and macros consumed against the target at all times.
 
 ## Scope
-- Includes: food catalog with an Open Food Facts cache (base unit g or ml, named portions), text search, scanner, manual creation, favourites, daily diary with configurable meals and view modes, dashboard, meal templates, copying foods/meals, and diary history/summaries.
+- Includes: food catalog with an Open Food Facts cache (base unit g or ml, named portions), text search, scanner, manual creation, favourites, daily diary with configurable meals, dashboard, meal templates, and diary history/summaries.
 - Out of scope: user-uploaded food images, micronutrient values, composite recipes, meal planning, data export.
 
 ## Dependencies
@@ -217,17 +217,6 @@ Feature: Daily diary by meal
     Then the "Ayer" diary is shown with its entries
     And the right arrow does not allow going beyond today
 
-  Scenario: Switching the view
-    Given the "Detalle" view is active
-    When the user opens the view menu
-    Then they can pick "Detalle", "Lista" or "Resumen"
-    And the chosen view is kept the next time the Diary opens
-
-  Scenario: Summary view
-    When the "Resumen" view is active
-    Then each meal shows only its name, total kcal and macros
-    And the individual entries are hidden
-
   Scenario: Editing an entry's quantity
     Given an entry "Pechuga de pollo 220 g · 242 kcal" in Comida
     When the user taps it, changes the quantity to 150 g and taps "Guardar"
@@ -235,36 +224,17 @@ Feature: Daily diary by meal
 
   Scenario: Deleting an entry
     When the user swipes an entry to the left and taps "Eliminar"
-    Then the entry disappears and a snackbar with "Deshacer" is shown
+    Then the entry disappears immediately and the totals are recalculated
 
   Scenario: Moving an entry to another meal
     When in the edit Bottom Sheet they change the meal from "Merienda" to "Cena"
     Then the entry moves to the Cena section
-
-  Scenario: Copying foods to another meal or day
-    Given the user selects "Pechuga de pollo" in Comida
-    When they tap "Copiar alimentos" and choose the meal "Cena" or another day
-    Then copies of the selected entries are logged in the destination
-    And the destination's totals update
-
-  Scenario: Copying a whole meal
-    Given the Comida section has three foods
-    When the user copies the meal to tomorrow's Comida
-    Then the three foods are added to tomorrow with the same quantities
-
-  Scenario: Repeating yesterday's meal
-    When the user taps "Repetir comida de ayer" on an empty meal
-    Then the foods logged in that meal yesterday are added to it today
-    And a confirmation with "Deshacer" is shown
 ```
 
 **Technical notes**
-- `log_date` = the device's local date. "Deshacer" (undo) = re-insert the deleted entry.
+- `log_date` = the device's local date. Deleting is immediate, with no undo.
 - The list is grouped by meal slot (`meal_slots`, US-23); collapsible sections (local state).
-- View mode is a purely local preference (DataStore); no schema change.
-- Copy/repeat are batch inserts of `food_log_entries` (one request); no new tables.
-- Q2 (user, 2026-10-20) view modes: "Detalle" = each entry with its amount, kcal and P/C/F grams; "Lista" = one compact line per entry with name, amount and kcal; "Resumen" = each meal's name, kcal and macros only (entries hidden).
-- Q3 (user, 2026-10-20) copy destination: any past day, today or a future day. The Diary stays capped at today, so a future copy shows up when that day arrives. No new ADR.
+- Q2/Q3 withdrawn 2026-10-20 (user): view modes, copy and repeat-yesterday removed (T-066); the reusable meal is US-21.
 
 ---
 

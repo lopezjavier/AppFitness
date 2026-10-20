@@ -68,7 +68,6 @@ class DiaryEditFlowTest {
             FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25))),
             BuildDiaryDay(),
             MutableClock(),
-            FakeDiaryPreferences(),
             connectivity,
             SavedStateHandle(),
         )
@@ -195,23 +194,20 @@ class DiaryEditFlowTest {
     }
 
     @Test
-    fun swipingAnEntry_deletesItAndTheUndoSnackbarBringsItBackWithTheSameValues() {
+    fun swipingAnEntry_deletesItImmediatelyAndUpdatesTheTotals() {
         start()
 
         rule.onNodeWithTag("diary_entry_e1").performTouchInput { swipeLeft() }
         rule.waitForIdle()
 
         rule.onNodeWithTag("diary_entry_e1").assertDoesNotExist()
-        rule.onNode(hasText("Alimento eliminado")).assertExists()
-        tap("diary_undo")
-
-        rule.onNode(inEntry("220 g")).assertExists()
-        rule.onNode(inEntry("242 kcal")).assertExists()
-        assertEquals(listOf(chicken), diary.restored)
+        assertEquals(listOf("e1"), diary.deleted)
+        rule.onNode(hasText("Alimento eliminado")).assertDoesNotExist()
+        rule.onNodeWithTag("diary_undo").assertDoesNotExist()
     }
 
     @Test
-    fun deletingFromTheSheet_closesItAndTheDiaryOffersTheUndo() {
+    fun deletingFromTheSheet_closesItAndRemovesTheEntryWithNoMessage() {
         start()
         tap("diary_entry_e1")
 
@@ -220,7 +216,7 @@ class DiaryEditFlowTest {
         rule.onNodeWithTag("edit_entry_sheet").assertDoesNotExist()
         rule.onNodeWithTag("diary_entry_e1").assertDoesNotExist()
         assertEquals(listOf("e1"), diary.deleted)
-        rule.onNodeWithTag("diary_undo").assertExists()
+        rule.onNodeWithTag("diary_undo").assertDoesNotExist()
     }
 
     @Test

@@ -8,6 +8,8 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
+**Next:** T-067 (Checkpoint E4-B feedback), then re-present Checkpoint E4-B; T-061 only after the user approves it.
+
 ---
 
 # E0 · Project setup
@@ -792,7 +794,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] US-01…US-04 merged with green CI; `deploy-supabase` and `keepalive` green at least once (T-018/T-019).
 - [x] Stabilise the flaky catalog flows seen in T-028 QA (T-026 `catalog_section_state_messages` not found; T-027-catalog sheet title not visible). *(Longer `scrollUntilVisible` timeouts; the 20 s default was too short for the grown catalog.)*
 - [x] `maestro test tests/e2e/` green on the emulator against local Supabase. *(2026-10-13: 12/12 flows in 21m 18s; T-029 re-run green after fixing a packaging encoding slip in its assertion.)*
-- [x] `CLAUDE.md` "Current status" updated (E1 done, next E2); `tasks/todo.md` E1 ✅ (through a PR).
+- [x] `tasks/todo.md` (E1 ✅, next-task pointer) updated through a PR.
 - [x] `./gradlew :androidApp:assembleProdDebug` → APK path given to the user; `[PM] [E1] [COMPLETED]` logged. *(Built on the branch; path given and log written after the merge.)*
 - [x] 👤 The user validates navigation and style on phone and tablet → corrective tasks (T-031+) or approval → `git tag -a v0.1.0 -m "Epic E1"` + `git push --tags`, then the retrospective (E2 is broken down in a fresh session). *(2026-10-13: phone approved; tablet works (rail, rotation, offline banner) but the FAB in the rail feels awkward → refined in a later epic, non-blocking. Tagged `v0.1.0`.)*
 
@@ -1054,7 +1056,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **Acceptance criteria:**
 - [x] T-034…T-037, T-039, T-040 and T-041 merged with green CI; pgTAP isolation for `profiles`, `body_measurements` and `nutrition_goals` green; `deploy-supabase` green after the last migration.
 - [x] Host (Robolectric) tests green for every E2 UI scenario; the user has verified the delivered APK at Checkpoint E2-B.
-- [x] `CLAUDE.md` "Current status" and `tasks/todo.md` (E2 ✅) updated through a PR.
+- [x] `tasks/todo.md` (E2 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
 - [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.2.0` after approval.
@@ -1451,7 +1453,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 - [x] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
 - [x] T-050…T-054 merged with green CI; Checkpoints E3-C…E3-G approved (2026-10-20); `deploy-supabase` green if any of them added a migration.
 - [x] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
-- [x] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
+- [x] `tasks/todo.md` (E3 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
 - [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
@@ -1653,13 +1655,13 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 **Origin:** Checkpoint E4-B feedback, user 2026-10-20 (items 1, 5, 6, 8). **Flow:** UI + core (removals) · One task per session: plan in a fresh session; show the user the proposal before building.
 
-**Description:** (1) Deleting an entry (swipe "Eliminar" and the edit-sheet delete button) removes it at once: no "Alimento eliminado" message, no confirmation, no undo (user decision: deleting is hard to do by mistake). (5) Remove "Copiar alimentos" and its selection mode (long-press, "Seleccionar alimentos", `SelectionActionBar`, `CopyEntriesSheet`, `CopyEntries`, unused repository batch methods). (6) Remove "Copiar comida" on sections (the named, reusable whole meal the user wants is T-061). (8) Remove the view modes: keep only the "Detalle" layout (drop `ViewModeSelector`, the view-mode `DiaryPreferences`/DataStore if unused). Keep "Repetir comida de ayer" and its "Deshacer" (verify its message renders correctly). Drop obsolete strings, testTags and tests; update `E4-food-diary.md` (US-19 Q2/Q3 and scenarios) accordingly.
+**Description:** (1) Deleting an entry (swipe "Eliminar" and the edit-sheet delete button) removes it at once: no "Alimento eliminado" message, no confirmation, no undo (user decision: deleting is hard to do by mistake). (5) Remove "Copiar alimentos" and its selection mode (long-press, "Seleccionar alimentos", `SelectionActionBar`, `CopyEntriesSheet`, `CopyEntries`, unused repository batch methods). (6) Remove "Copiar comida" on sections (the named, reusable whole meal the user wants is T-061). (8) Remove the view modes: keep only the "Detalle" layout (drop `ViewModeSelector`, the view-mode `DiaryPreferences`/DataStore if unused). Also remove "Repetir comida de ayer" and its "Deshacer" (user: remove all copy functionality; T-061 replaces it with named meals saved from any day). Drop obsolete strings, testTags and tests; update `E4-food-diary.md` (US-19 Q2/Q3 and scenarios) accordingly.
 
 **Acceptance criteria:**
-- [ ] Swipe + "Eliminar" and the edit-sheet delete remove the entry immediately, with no message or dialog; totals update.
-- [ ] No "Copiar alimentos", "Copiar comida", selection mode or view selector anywhere in the Diary; the Diary shows the Detalle layout only.
-- [ ] "Repetir comida de ayer" and its undo still work and show readable text.
-- [ ] Planning docs and Gherkin updated; lint + `testLocalDebugUnitTest` green.
+- [x] Swipe + "Eliminar" and the edit-sheet delete remove the entry immediately, with no message or dialog; totals update.
+- [x] No "Copiar alimentos", "Copiar comida", selection mode or view selector anywhere in the Diary; the Diary shows the Detalle layout only.
+- [x] "Repetir comida de ayer" and its undo are removed too; no copy functionality remains in the Diary.
+- [x] Planning docs and Gherkin updated; lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** Checkpoint E4-B feedback · **Estimated scope:** M
 
@@ -1689,9 +1691,8 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
   - Manual foods: create a food from a search with no results; try an empty name or negative kcal ("Guardar" disabled).
   - Your own meals: open the meal settings from the Diary; rename "Merienda" (e.g. "Post-entreno"), add "Segundo desayuno" after Desayuno, move Cena above Merienda, save: the Diary follows. Disable an empty meal (gone from the Diary and the meal picker), re-enable it; try to disable a meal with foods on the day you are viewing (blocked, with a hint). Add a food to the custom meal; renamed meals keep their totals.
   - Tap an entry: change its grams or portion, move it to another meal, save; the totals follow.
-  - Swipe an entry left → "Eliminar" → "Deshacer".
-  - Select some foods and "Copiar alimentos" to another meal and to another day; copy a whole meal; "Repetir comida de ayer" on an empty meal, then "Deshacer".
-  - Switch "Detalle" / "Lista" / "Resumen"; close and reopen the app: the view is kept.
+  - Swipe an entry left → "Eliminar": it disappears at once (no message, no undo) and the totals follow.
+  - The Diary has no "Copiar alimentos", "Copiar comida", "Repetir comida de ayer" or view selector (removed in T-066).
   - Leave the app and come back with the food-creation form half filled, with unsaved meal settings and with the edit sheet open: the same tab, screen and draft are restored.
   - Out of scope: editing or deleting foods you created (not in Phase 1 stories); templates and history (E4-C).
 
@@ -1759,7 +1760,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 - [ ] T-055…T-062 merged with green CI; pgTAP for the 7 tables (`foods`, `food_portions`, `food_log_entries`, `meal_slots`, `meal_templates`, `meal_template_items`, `favorite_foods`) and the two RPCs green; `deno test` for `food-search` and `food-barcode` green; `deploy-supabase` green after the last migration.
 - [ ] Host tests green for every E4 Gherkin scenario.
 - [ ] Checkpoints E4-A and E4-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
-- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E4 ✅) updated through a PR.
+- [ ] `tasks/todo.md` (E4 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.

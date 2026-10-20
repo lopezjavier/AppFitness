@@ -68,19 +68,6 @@ class SupabaseFoodDiaryRepository(private val auth: Auth, private val postgrest:
         cache.update { days -> days.mapValues { (_, entries) -> entries.filterNot { it.id == id } } }
     }
 
-    override suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry> = auth.ownRow {
-        val restored = postgrest.from("food_log_entries")
-            .insert(FoodLogEntryInsertDto.restoring(entry)) { select(Columns.raw(FoodLogEntryDto.COLUMNS)) }
-            .decodeSingle<FoodLogEntryDto>()
-            .toDomain()
-        cache.update { days ->
-            days[restored.logDate]?.let { loaded ->
-                days + (restored.logDate to (loaded.filterNot { it.id == restored.id } + restored))
-            } ?: days
-        }
-        restored
-    }
-
     override suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>> = auth.ownRow {
         if (entries.isEmpty()) return@ownRow emptyList()
         val created = postgrest.from("food_log_entries")

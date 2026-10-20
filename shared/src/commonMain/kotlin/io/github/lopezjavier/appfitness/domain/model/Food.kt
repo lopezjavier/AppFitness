@@ -37,3 +37,14 @@ data class NewFoodEntry(
     val portionLabel: String?,
     val snapshot: NutritionSnapshot,
 )
+
+/**
+ * The new values of an existing diary entry: [amount] is in the food's base unit and [snapshot] the nutrition of
+ * that amount.
+ */
+data class UpdatedFoodEntry(
+    val mealSlotId: String,
+    val amount: Double,
+    val portionLabel: String?,
+    val snapshot: NutritionSnapshot,
+)

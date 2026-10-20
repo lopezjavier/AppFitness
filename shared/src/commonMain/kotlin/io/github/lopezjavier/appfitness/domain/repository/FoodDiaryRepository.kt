@@ -27,12 +27,6 @@ interface FoodDiaryRepository {
     /** Deletes entry [id]; it leaves the cache of its day. */
     suspend fun deleteEntry(id: String): Result<Unit>
 
-    /**
-     * Undoes a delete: inserts [entry] again with its original id and values, so repeating it is harmless. It may
-     * come back last in its meal (the order is by creation time).
-     */
-    suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry>
-
     /** Logs several foods in ONE request (copy, repeat); each created entry joins the cache of its day if loaded. */
     suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>>
 

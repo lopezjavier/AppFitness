@@ -2,14 +2,12 @@ package io.github.lopezjavier.appfitness.feature.diary
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.DiaryViewMode
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
-import io.github.lopezjavier.appfitness.domain.repository.DiaryPreferences
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -143,16 +141,6 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
         return Result.success(Unit)
     }
 
-    val restored = mutableListOf<FoodLogEntry>()
-    var restoreResult: Result<Unit> = Result.success(Unit)
-
-    override suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry> {
-        if (restoreResult.isFailure) return Result.failure(restoreResult.exceptionOrNull()!!)
-        restored += entry
-        cache.update { days -> days[entry.logDate]?.let { days + (entry.logDate to (it + entry)) } ?: days }
-        return Result.success(entry)
-    }
-
     /** One element per [addEntries] call, so a test can assert a copy is a single request. */
     val addedBatches = mutableListOf<List<NewFoodEntry>>()
     val deletedBatches = mutableListOf<List<String>>()
@@ -204,27 +192,11 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
         deleteResult = Result.failure(AppException(AppError.Network))
     }
 
-    fun failRestore() {
-        restoreResult = Result.failure(AppException(AppError.Network))
-    }
-
     fun failAdd() {
         addResult = Result.failure(AppException(AppError.Network))
     }
 
     fun failRefresh() {
         refreshResult = Result.failure(AppException(AppError.Network))
-    }
-}
-
-/** In-memory [DiaryPreferences]; [modes] records every value set. */
-internal class FakeDiaryPreferences(initial: DiaryViewMode = DiaryViewMode.Detail) : DiaryPreferences {
-    private val mode = MutableStateFlow(initial)
-    val modes = mutableListOf<DiaryViewMode>()
-    override val viewMode: Flow<DiaryViewMode> = mode
-
-    override suspend fun setViewMode(mode: DiaryViewMode) {
-        modes += mode
-        this.mode.value = mode
     }
 }

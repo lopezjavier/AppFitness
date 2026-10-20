@@ -42,7 +42,7 @@ private val ExpectedTags =
 
 private val ExpectedSections =
     listOf(
-        "cards", "buttons", "chips", "segmented", "view_mode", "ring", "macro_bars", "macro_sliders",
+        "cards", "buttons", "chips", "segmented", "ring", "macro_bars", "macro_sliders",
         "macro_stacked_bar",
         "metric_tiles",
         "trend_pills", "line_chart", "number_input", "text_field", "number_stepper", "set_checkbox", "set_rows",

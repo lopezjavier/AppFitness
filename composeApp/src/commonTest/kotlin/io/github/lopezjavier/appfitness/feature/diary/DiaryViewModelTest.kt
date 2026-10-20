@@ -7,7 +7,6 @@ import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
-import io.github.lopezjavier.appfitness.domain.model.DiaryViewMode
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
@@ -55,11 +54,10 @@ class DiaryViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private val preferences = FakeDiaryPreferences()
     private val connectivity = FakeConnectivityObserver()
 
     private fun viewModel(state: SavedStateHandle = savedState) =
-        DiaryViewModel(slots, diary, goals, BuildDiaryDay(), MutableClock(), preferences, connectivity, state)
+        DiaryViewModel(slots, diary, goals, BuildDiaryDay(), MutableClock(), connectivity, state)
 
     private fun DiaryViewModel.content() = assertIs<DiaryUiState.Content>(uiState.value).content
 
@@ -393,32 +391,6 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun viewMode_defaultsToDetailAndIsReadFromThePreferences() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        assertEquals(DiaryViewMode.Detail, model.content().viewMode)
-
-        val stored = FakeDiaryPreferences(DiaryViewMode.Summary)
-        val other = DiaryViewModel(slots, diary, goals, BuildDiaryDay(), MutableClock(), stored, connectivity)
-        advanceUntilIdle()
-        assertEquals(DiaryViewMode.Summary, other.content().viewMode)
-    }
-
-    @Test
-    fun setViewMode_isPersistedAndShownWithoutReloadingTheDay() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        val refreshes = diary.refreshed.size
-
-        model.onEvent(DiaryEvent.SetViewMode(DiaryViewMode.List))
-        advanceUntilIdle()
-
-        assertEquals(listOf(DiaryViewMode.List), preferences.modes)
-        assertEquals(DiaryViewMode.List, model.content().viewMode)
-        assertEquals(refreshes, diary.refreshed.size)
-    }
-
-    @Test
     fun editEntry_emitsTheEntryAndTheVisibleDay() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
@@ -430,7 +402,7 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun deleteEntry_removesItUpdatesTheTotalsAndOffersUndo() = runTest(dispatcher) {
+    fun deleteEntry_removesItAndUpdatesTheTotalsWithoutAnyEffect() = runTest(dispatcher) {
         seedPlanExample()
         val model = viewModel()
         advanceUntilIdle()
@@ -438,7 +410,7 @@ class DiaryViewModelTest {
         model.effects.test {
             model.onEvent(DiaryEvent.DeleteEntry("a"))
             advanceUntilIdle()
-            assertEquals(DiaryEffect.ShowUndo(UndoKind.Delete), awaitItem())
+            expectNoEvents()
         }
 
         assertEquals(listOf("a"), diary.deleted)
@@ -447,50 +419,7 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun undoDelete_restoresTheSameEntryWithTheSameValues() = runTest(dispatcher) {
-        seedPlanExample()
-        val original = diary.server.getValue(today).first { it.id == "a" }
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(DiaryEvent.DeleteEntry("a"))
-        advanceUntilIdle()
-
-        model.onEvent(DiaryEvent.UndoDelete)
-        advanceUntilIdle()
-
-        assertEquals(listOf(original), diary.restored)
-        assertEquals(1840.0, model.content().dayTotals.kcal)
-    }
-
-    @Test
-    fun undoDelete_withNothingDeleted_doesNothing() = runTest(dispatcher) {
-        seedPlanExample()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(DiaryEvent.UndoDelete)
-        advanceUntilIdle()
-
-        assertTrue(diary.restored.isEmpty())
-    }
-
-    @Test
-    fun undoDelete_twice_restoresOnlyOnce() = runTest(dispatcher) {
-        seedPlanExample()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(DiaryEvent.DeleteEntry("a"))
-        advanceUntilIdle()
-
-        model.onEvent(DiaryEvent.UndoDelete)
-        model.onEvent(DiaryEvent.UndoDelete)
-        advanceUntilIdle()
-
-        assertEquals(1, diary.restored.size)
-    }
-
-    @Test
-    fun aFailedDelete_keepsTheEntryReportsTheErrorAndOffersNoUndo() = runTest(dispatcher) {
+    fun aFailedDelete_keepsTheEntryAndReportsTheError() = runTest(dispatcher) {
         seedPlanExample()
         diary.failDelete()
         val model = viewModel()
@@ -503,26 +432,6 @@ class DiaryViewModelTest {
         }
 
         assertEquals(1840.0, model.content().dayTotals.kcal)
-        model.onEvent(DiaryEvent.UndoDelete)
-        advanceUntilIdle()
-        assertTrue(diary.restored.isEmpty())
-    }
-
-    @Test
-    fun aFailedUndo_reportsTheError() = runTest(dispatcher) {
-        seedPlanExample()
-        val model = viewModel()
-        advanceUntilIdle()
-        diary.failRestore()
-
-        model.effects.test {
-            model.onEvent(DiaryEvent.DeleteEntry("a"))
-            advanceUntilIdle()
-            assertEquals(DiaryEffect.ShowUndo(UndoKind.Delete), awaitItem())
-            model.onEvent(DiaryEvent.UndoDelete)
-            advanceUntilIdle()
-            assertEquals(DiaryEffect.WriteFailed(AppError.Network), awaitItem())
-        }
     }
 
     @Test
