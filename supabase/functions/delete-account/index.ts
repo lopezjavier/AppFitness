@@ -2,27 +2,10 @@
 // POST with the user's access token -> deletes that auth user; see handler.ts for the contract.
 // Serves unconditionally: tests import handler.ts, never this file.
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
+import { secretKey } from "../_shared/secret-key.ts";
 import { createDeleteAccountHandler } from "./handler.ts";
 
 const REQUEST_TIMEOUT_MS = 8000;
-
-/** Secret key injected by Supabase: SUPABASE_SECRET_KEYS (JSON map) or legacy SUPABASE_SERVICE_ROLE_KEY. */
-function secretKey(): string {
-    const multi = Deno.env.get("SUPABASE_SECRET_KEYS");
-    if (multi) {
-        try {
-            const keys = Object.values(
-                JSON.parse(multi) as Record<string, string>,
-            );
-            if (typeof keys[0] === "string") return keys[0];
-        } catch {
-            return multi; // plain, non-JSON value
-        }
-    }
-    const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!legacy) throw new Error("no secret key available");
-    return legacy;
-}
 
 function admin() {
     const url = Deno.env.get("SUPABASE_URL");

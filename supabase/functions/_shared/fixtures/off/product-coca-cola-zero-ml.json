@@ -1,0 +1,18 @@
+{
+  "code": "5449000131805",
+  "status": 1,
+  "product": {
+    "code": "5449000131805",
+    "product_name": "Coca-Cola Zero",
+    "brands": "Coca-Cola",
+    "nutrition_data_per": "100ml",
+    "serving_size": "1 lata (330 ml)",
+    "nutriments": {
+      "energy-kcal_100ml": 0.3,
+      "energy_100ml": 1,
+      "proteins_100ml": 0,
+      "carbohydrates_100ml": 0,
+      "fat_100ml": 0
+    }
+  }
+}
