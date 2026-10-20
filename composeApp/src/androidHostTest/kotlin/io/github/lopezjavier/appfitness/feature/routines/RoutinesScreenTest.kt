@@ -208,12 +208,12 @@ class RoutinesScreenTest {
     }
 
     @Test
-    fun everyRoutineHasAnEmpezarButton_andEmptyWorkoutIsOffered() {
+    fun everyRoutineHasAnEmpezarButton_andNoEmptyWorkoutIsOffered() {
         show()
 
         rule.onNodeWithTag("routines_start_r1").assertTextContains("Empezar")
         rule.onNodeWithTag("routines_start_r2").assertTextContains("Empezar")
-        rule.onNodeWithTag("routines_start_empty").assertTextContains("Empezar entreno vacío")
+        rule.onNodeWithTag("routines_start_empty").assertDoesNotExist()
         rule.onNodeWithTag("routines_start_offline_reason").assertDoesNotExist()
     }
 
@@ -229,33 +229,21 @@ class RoutinesScreenTest {
     }
 
     @Test
-    fun emptyWorkout_startsAnEmptySession() {
-        show()
-
-        rule.onNodeWithTag("routines_start_empty").performClick()
-        rule.waitForIdle()
-
-        assertEquals(1, sessions.startedEmpty)
-        assertTrue(effects.contains(RoutinesEffect.OpenLiveSession))
-    }
-
-    @Test
     fun offline_disablesEveryStartButton_andExplainsWhy() {
         show()
         connectivity.state.value = false
         rule.waitForIdle()
 
         rule.onNodeWithTag("routines_start_r1").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_start_empty").assertIsNotEnabled()
         rule.onNodeWithTag("routines_start_offline_reason").assertExists()
     }
 
     @Test
-    fun emptyList_stillOffersTheEmptyWorkout() {
+    fun emptyList_offersNoEmptyWorkout() {
         repository.routines.clear()
         show()
 
-        rule.onNodeWithTag("routines_start_empty").assertExists()
+        rule.onNodeWithTag("routines_start_empty").assertDoesNotExist()
     }
 
     @Test

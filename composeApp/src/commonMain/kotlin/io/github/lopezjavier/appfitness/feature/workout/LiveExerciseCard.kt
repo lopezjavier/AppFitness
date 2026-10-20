@@ -1,9 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,9 +16,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_add_set
@@ -35,6 +40,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun LiveExerciseCard(
     exercise: LiveExercise,
     onEvent: (LiveSessionEvent) -> Unit,
+    onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val position = exercise.position
@@ -43,19 +49,7 @@ internal fun LiveExerciseCard(
     AppCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(
-                    Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }
-                        .testTag("live_exercise_$position"),
-                ) {
-                    exercise.supersetLabel?.let {
-                        Text(
-                            text = stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number),
-                            style = AppTheme.typography.labelTechnical,
-                            color = AppTheme.colors.athleticCyan,
-                        )
-                    }
-                    Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-                }
+                ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
             SetTableHeader()
@@ -90,3 +84,35 @@ internal fun LiveExerciseCard(
 }
 
 private enum class ExerciseSheet { None, Menu, Rest }
+
+/** The heading is one tap target (min 48 dp) that opens the exercise; the menu button stays a sibling. */
+@Composable
+private fun ExerciseHeading(
+    exercise: LiveExercise,
+    name: String,
+    onOpenExercise: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val position = exercise.position
+    Box(
+        modifier.heightIn(min = Spacing.minTouchTarget)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = stringResource(Res.string.builder_exercise_open_cd, name),
+                onClick = { onOpenExercise(exercise.exerciseId) },
+            )
+            .testTag("live_exercise_${position}_open"),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Column(Modifier.semantics(mergeDescendants = true) { heading() }.testTag("live_exercise_$position")) {
+            exercise.supersetLabel?.let {
+                Text(
+                    text = stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number),
+                    style = AppTheme.typography.labelTechnical,
+                    color = AppTheme.colors.athleticCyan,
+                )
+            }
+            Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
+        }
+    }
+}

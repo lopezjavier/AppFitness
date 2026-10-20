@@ -26,7 +26,7 @@ class LiveSessionTabletTest {
     fun liveContent_isCappedAndCentred() {
         val exercise = LiveExercise(0, "e1", "Press banca", null, listOf(LiveSetRow(1, "", "", false)))
         val state = LiveSessionUiState.Active("Torso", SESSION_START, listOf(exercise))
-        rule.setContent { AppTheme { LiveSessionScreen(state, 0, {}, {}) } }
+        rule.setContent { AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) } }
 
         assertTrue(rule.onNodeWithTag("live_exercise_0_add_set").getUnclippedBoundsInRoot().width <= 640.dp)
         assertTrue(rule.onNodeWithTag("live_finish_button").getUnclippedBoundsInRoot().width <= 640.dp)
@@ -38,7 +38,9 @@ class LiveSessionTabletTest {
             SessionSummary(60, 1, listOf(ExerciseSummary(0, "e1", 100.0, false))),
             mapOf(0 to "Press banca"),
         )
-        rule.setContent { AppTheme { LiveSessionScreen(LiveSessionUiState.Finished(summary), 0, {}, {}) } }
+        rule.setContent {
+            AppTheme { LiveSessionScreen(LiveSessionUiState.Finished(summary), 0, {}, {}, onOpenExercise = {}) }
+        }
 
         assertTrue(rule.onNodeWithTag("summary_done").getUnclippedBoundsInRoot().width <= 480.dp)
     }

@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertTextEquals
@@ -49,6 +53,24 @@ class ExerciseNavigationTest {
         }
     }
 
+    // Stand-ins for the builder and the live session: a draft counter that only survives if the destination does.
+    private val builderSlot: RoutineBuilderSlot = { modifier, host ->
+        var taps by rememberSaveable { mutableIntStateOf(0) }
+        Column(modifier.fillMaxSize().testTag("routine_builder_screen")) {
+            Text("taps $taps", Modifier.testTag("builder_draft"))
+            Box(Modifier.size(48.dp).testTag("builder_edit").clickable { taps++ })
+            Box(Modifier.size(48.dp).testTag("builder_open_exercise").clickable { host.onOpenExercise("ex-1") })
+        }
+    }
+    private val liveSlot: LiveSessionSlot = { modifier, host ->
+        var taps by rememberSaveable { mutableIntStateOf(0) }
+        Column(modifier.fillMaxSize().testTag("live_screen")) {
+            Text("taps $taps", Modifier.testTag("live_draft"))
+            Box(Modifier.size(48.dp).testTag("live_edit").clickable { taps++ })
+            Box(Modifier.size(48.dp).testTag("live_open_exercise").clickable { host.onOpenExercise("ex-1") })
+        }
+    }
+
     private fun showShell() {
         rule.setContent {
             AppTheme {
@@ -61,7 +83,13 @@ class ExerciseNavigationTest {
 
     @Composable
     private fun Shell() {
-        AppScaffold(navController = nav, exercisePicker = pickerSlot, exerciseDetail = detailSlot)
+        AppScaffold(
+            navController = nav,
+            exercisePicker = pickerSlot,
+            exerciseDetail = detailSlot,
+            routineBuilder = builderSlot,
+            liveSession = liveSlot,
+        )
     }
 
     private fun openLibrary() {
@@ -141,5 +169,42 @@ class ExerciseNavigationTest {
         rule.onNodeWithTag("exercise_detail_screen").assertDoesNotExist()
         rule.onNodeWithTag("exercise_picker_screen").assertDoesNotExist()
         assertEquals("ex-1", nav.currentBackStackEntry?.savedStateHandle?.get<String>(SELECTED_EXERCISE_KEY))
+    }
+
+    @Test
+    fun builderToDetailAndBack_keepsTheDraft() {
+        showShell()
+        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.runOnUiThread { nav.navigateToFullScreen(RoutineBuilderRoute(null)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("builder_edit").performClick()
+        rule.onNodeWithTag("builder_edit").performClick()
+
+        rule.onNodeWithTag("builder_open_exercise").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("detail_args").assertTextEquals("ex-1 false")
+        rule.runOnUiThread { nav.popBackStack() }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_screen").assertExists()
+        rule.onNodeWithTag("builder_draft").assertTextEquals("taps 2")
+    }
+
+    @Test
+    fun sessionToDetailAndBack_keepsTheSession() {
+        showShell()
+        rule.onNodeWithTag("nav_tab_workout").performClick()
+        rule.runOnUiThread { nav.navigateToFullScreen(LiveSessionRoute) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("live_edit").performClick()
+
+        rule.onNodeWithTag("live_open_exercise").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("detail_args").assertTextEquals("ex-1 false")
+        rule.runOnUiThread { nav.popBackStack() }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_screen").assertExists()
+        rule.onNodeWithTag("live_draft").assertTextEquals("taps 1")
     }
 }

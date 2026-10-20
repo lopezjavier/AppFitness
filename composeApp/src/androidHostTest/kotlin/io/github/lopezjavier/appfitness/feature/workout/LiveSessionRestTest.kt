@@ -57,8 +57,12 @@ class LiveSessionRestTest {
 
     private val events = mutableListOf<LiveSessionEvent>()
 
+    private val opened = mutableListOf<String>()
+
     private fun show(state: LiveSessionUiState) {
-        rule.setContent { AppTheme { LiveSessionScreen(state, 0, { events += it }, {}) } }
+        rule.setContent {
+            AppTheme { LiveSessionScreen(state, 0, { events += it }, {}, onOpenExercise = { opened += it }) }
+        }
         rule.waitForIdle()
     }
 
@@ -111,6 +115,37 @@ class LiveSessionRestTest {
     }
 
     @Test
+    fun tappingTheExerciseName_opensItsDetail() {
+        show(session())
+
+        rule.onNodeWithTag("live_exercise_0_open").performClick()
+
+        assertEquals(listOf("e1"), opened)
+    }
+
+    @Test
+    fun exerciseNameRegion_isAtLeast48dpHigh_andTheMenuStillOpensItsOwnSheet() {
+        show(session())
+
+        rule.onNodeWithTag("live_exercise_0_open").getUnclippedBoundsInRoot().height.let { assertTrue(it >= 48.dp) }
+        rule.onNodeWithTag("live_exercise_0_menu").performClick()
+        rule.waitForIdle()
+
+        assertTrue(opened.isEmpty())
+    }
+
+    @Test
+    fun restSheet_showsMinutesAndSeconds() {
+        show(session(restSeconds = 70))
+        rule.onNodeWithTag("live_exercise_0_menu").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("live_exercise_0_menu_rest").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("1 min 10 s")
+    }
+
+    @Test
     fun restBar_isAbsentWithoutARunningRest() {
         show(session(rest = null))
 
@@ -145,12 +180,12 @@ class LiveSessionRestTest {
         rule.onNodeWithTag("live_exercise_0_menu").performClick()
         rule.onNodeWithTag("live_exercise_0_menu_rest").performClick()
         rule.onNodeWithTag("live_exercise_0_rest_sheet").assertExists()
-        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("02:00")
+        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("2 min")
         rule.onNodeWithTag("live_exercise_0_rest_increment").performClick()
-        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("02:15")
+        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("2 min 10 s")
         rule.onNodeWithTag("live_exercise_0_rest_confirm").performClick()
 
-        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.SetExerciseRest(0, 135)), events)
+        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.SetExerciseRest(0, 130)), events)
     }
 
     @Test

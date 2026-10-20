@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_state
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
@@ -94,7 +93,7 @@ internal fun ExerciseMenuSheet(position: Int, onRest: () -> Unit, onDismiss: () 
 }
 
 /**
- * Rest of one exercise for this session only: a stepper in 15 s steps within [RoutineBounds] and "Guardar".
+ * Rest of one exercise for this session only: a stepper in 10 s steps within [RoutineBounds] and "Guardar".
  * Nothing is sent until the user confirms.
  */
 @Composable
@@ -122,14 +121,14 @@ internal fun ExerciseRestSheet(
                     modifier = Modifier.fillMaxWidth().semantics { heading() },
                 )
                 NumberStepper(
-                    valueText = formatElapsed(seconds.toLong()),
+                    valueText = restDurationText(seconds),
                     onDecrement = { seconds = (seconds - RoutineBounds.REST_STEP_SECONDS).coerceAtLeast(MIN) },
                     onIncrement = { seconds = (seconds + RoutineBounds.REST_STEP_SECONDS).coerceAtMost(MAX) },
                     decrementEnabled = seconds > MIN,
                     incrementEnabled = seconds < MAX,
                     decrementContentDescription = stringResource(Res.string.builder_rest_decrease_cd),
                     incrementContentDescription = stringResource(Res.string.builder_rest_increase_cd),
-                    stateDescription = stringResource(Res.string.builder_rest_state, seconds),
+                    stateDescription = restStateDescription(seconds),
                     testTagPrefix = tag,
                 )
                 Text(

@@ -18,8 +18,6 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
 
     override suspend fun startFromRoutine(routineId: String): Result<String> = fail()
 
-    override suspend fun startEmpty(): Result<String> = fail()
-
     override suspend fun getInProgress(): Result<WorkoutSession?> = fail()
 
     override suspend fun upsertSet(

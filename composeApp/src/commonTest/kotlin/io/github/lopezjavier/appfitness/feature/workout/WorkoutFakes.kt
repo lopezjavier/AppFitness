@@ -62,7 +62,6 @@ internal class MutableClock(var current: Instant = Instant.parse("2026-10-19T10:
 internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null) : WorkoutSessionRepository {
     val upserts = mutableListOf<SetWrite>()
     val startedRoutines = mutableListOf<String>()
-    var startedEmpty = 0
     var finished = mutableListOf<String>()
     var discarded = mutableListOf<String>()
     var getCalls = 0
@@ -93,11 +92,6 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
 
     override suspend fun startFromRoutine(routineId: String): Result<String> {
         startedRoutines += routineId
-        return failing(startFailure) ?: Result.success(startedId)
-    }
-
-    override suspend fun startEmpty(): Result<String> {
-        startedEmpty++
         return failing(startFailure) ?: Result.success(startedId)
     }
 

@@ -84,7 +84,7 @@ class RoutinesViewModelTest {
 
         assertIs<RoutinesUiState.Content>(vm.uiState.value)
         advanceUntilIdle()
-        assertEquals("Empuje", vm.content().routines.first().name)
+        assertEquals(listOf("Empuje", "Pierna", "Torso"), vm.content().routines.map { it.name })
     }
 
     @Test
@@ -120,8 +120,39 @@ class RoutinesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("r1"), repository.duplicated)
-        assertEquals("Torso (copia)", vm.content().routines.first().name)
+        assertEquals(listOf("Pierna", "Torso", "Torso (copia)"), vm.content().routines.map { it.name })
         assertNull(vm.content().menuFor)
+    }
+
+    @Test
+    fun routines_areSortedAtoZ_ignoringCaseAndAccents() = runTest {
+        repository.routines.clear()
+        repository.routines += listOf(
+            routineOf("1", "Torso fuerza", "a"),
+            routineOf("2", "Énfasis pierna", "a"),
+            routineOf("3", "brazos", "a"),
+            routineOf("4", "Abdominales", "a"),
+        )
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Abdominales", "brazos", "Énfasis pierna", "Torso fuerza"),
+            vm.content().routines.map { it.name },
+        )
+    }
+
+    @Test
+    fun theOrder_isKeptAfterACreatedRoutineAppears() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        repository.routines += routineOf("r3", "Brazos", "a")
+
+        vm.onEvent(RoutinesEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Brazos", "Pierna", "Torso"), vm.content().routines.map { it.name })
     }
 
     @Test
@@ -233,20 +264,6 @@ class RoutinesViewModelTest {
     }
 
     @Test
-    fun startEmpty_createsAnEmptySession_andOpensTheLiveScreen() = runTest {
-        val vm = viewModel()
-        advanceUntilIdle()
-
-        vm.effects.test {
-            vm.onEvent(RoutinesEvent.StartEmpty)
-            advanceUntilIdle()
-            assertEquals(RoutinesEffect.OpenLiveSession, awaitItem())
-        }
-
-        assertEquals(1, sessions.startedEmpty)
-    }
-
-    @Test
     fun start_isIgnoredOffline() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
@@ -254,11 +271,9 @@ class RoutinesViewModelTest {
         advanceUntilIdle()
 
         vm.onEvent(RoutinesEvent.StartRoutine("r1"))
-        vm.onEvent(RoutinesEvent.StartEmpty)
         advanceUntilIdle()
 
         assertTrue(sessions.startedRoutines.isEmpty())
-        assertEquals(0, sessions.startedEmpty)
     }
 
     @Test

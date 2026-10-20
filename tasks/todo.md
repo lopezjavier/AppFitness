@@ -1345,17 +1345,17 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Description:** Five fixes on the routine and catalog journey. (1) A custom exercise shows the name the user entered wherever it appears (routine builder, "Mis rutinas", live session, summary, history, Fuerza); today the routine shows "Ejercicio" because names are resolved only from the RepDB bundle (catalog rows have no DB name, ADR-38); custom rows must use their DB `name`. (2) Tapping an exercise's thumbnail or name opens its detail (animation, "Cómo hacerlo"; nothing happens today) in the routine builder and the live session cards, and in the picker as answered in **Q5**; custom exercises open a detail without media (placeholder). (3) "Mis rutinas" sorted by name ascending, case- and accent-insensitive (same normalisation as the catalog search). (4) Remove "Empezar entreno vacío" completely: button, strings, ViewModel/use-case path and its tests; the DB keeps `routine_id` nullable (ADR-30, E6). (5) Rest picker (builder and the session "Descanso" menu) moves in 10 s steps within 0–600 s, and values above 60 s read "1 min 10 s" (edge cases per **Q6**). New screens/forms keep T-050's restoration rule.
 
 **Acceptance criteria:**
-- [ ] Creating custom "Press Hammer unilateral" and adding it to a routine shows "Press Hammer unilateral" in the builder, "Mis rutinas", the live session, the summary, the history detail and Fuerza; never "Ejercicio".
-- [ ] Thumbnail or name tap opens the exercise detail from the builder and the live session cards (Q5 resolved: the "Nueva rutina" picker is unchanged, a row tap still adds the exercise; elsewhere, including an opened routine, the thumbnail or name opens the detail); back returns to the same place with the draft or session intact.
-- [ ] "Mis rutinas" lists "Abdominales", "brazos", "Énfasis pierna", "Torso fuerza" in that order (case- and accent-insensitive, ascending); order kept after create, edit, duplicate and archive.
-- [ ] No "Empezar entreno vacío" anywhere (UI, strings, tests); `rg "start_empty|Empezar entreno vacío"` finds nothing in `composeApp` and `shared`.
-- [ ] Rest picker: steps of 10 s (0, 10, …, 600); 70 s shows "1 min 10 s"; 45 s shows "45 s"; Q6 resolved: 60 s → "1 min", whole minutes "2 min"; same format in the builder and the session "Descanso" menu.
-- [ ] `planning/epics/E3-training-core.md` already updated for order and removal (2026-10-20); the T-045 "Empezar entreno vacío" criterion is superseded by this task.
+- [x] Creating custom "Press Hammer unilateral" and adding it to a routine shows "Press Hammer unilateral" in the builder, "Mis rutinas", the live session, the summary, the history detail and Fuerza; never "Ejercicio".
+- [x] Thumbnail or name tap opens the exercise detail from the builder and the live session cards (Q5 resolved: the "Nueva rutina" picker is unchanged, a row tap still adds the exercise; elsewhere, including an opened routine, the thumbnail or name opens the detail); back returns to the same place with the draft or session intact.
+- [x] "Mis rutinas" lists "Abdominales", "brazos", "Énfasis pierna", "Torso fuerza" in that order (case- and accent-insensitive, ascending); order kept after create, edit, duplicate and archive.
+- [x] No "Empezar entreno vacío" anywhere (UI, strings, tests); `rg "start_empty|Empezar entreno vacío"` finds nothing in `composeApp` and `shared`.
+- [x] Rest picker: steps of 10 s (0, 10, …, 600); 70 s shows "1 min 10 s"; 45 s shows "45 s"; Q6 resolved: 60 s → "1 min", whole minutes "2 min"; same format in the builder and the session "Descanso" menu.
+- [x] `planning/epics/E3-training-core.md` already updated for order and removal (2026-10-20); the T-045 "Empezar entreno vacío" criterion is superseded by this task.
 
 **Host tests (per scenario):** `ExerciseNamesTest` (custom name vs. catalog key); `RoutinesViewModelTest` (sort order incl. accents/case); `RoutinesScreenTest` (no empty-workout button); `RestDurationFormatTest` (10 s steps, "1 min 10 s", Q6 cases); `RoutineBuilderScreenTest` and `LiveSessionScreenTest` (thumbnail/name tap → detail navigation event; custom name shown).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-050
 **Files likely touched:** `composeApp/…/feature/workout/{ExerciseNames,LiveExerciseCard,ExerciseMenu,LiveSessionFormat}.kt`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesUiState,RoutinesViewModel,RoutineBuilderRow,RoutineBuilderScreen,RoutineSheetActions}.kt`, `composeApp/…/feature/exercises/{ExercisePickerScreen,ExerciseDetailScreen,ExerciseLabels}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt` (drop start-empty), strings, tests

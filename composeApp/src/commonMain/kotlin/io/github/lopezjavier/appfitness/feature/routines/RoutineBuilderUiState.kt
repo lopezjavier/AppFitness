@@ -65,7 +65,7 @@ sealed interface RoutineBuilderEvent {
 
     data class Remove(val index: Int) : RoutineBuilderEvent
 
-    /** [delta] is -1 or +1 step of that field (rest steps are 15 s); the value stays within its bounds. */
+    /** [delta] is -1 or +1 step of that field (rest steps are 10 s); the value stays within its bounds. */
     data class StepSets(val index: Int, val delta: Int) : RoutineBuilderEvent
 
     data class StepReps(val index: Int, val delta: Int) : RoutineBuilderEvent

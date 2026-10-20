@@ -88,28 +88,19 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
-    fun startEmpty_omitsTheRoutine() = runTest {
-        val repo = signedIn()
-
-        repo.startEmpty().getOrThrow()
-
-        assertEquals("{}", bodyOf(rest().single()))
-    }
-
-    @Test
     fun start_whenASessionIsAlreadyInProgress_failsWithAnAppError() = runTest {
         val repo = signedIn()
         rpcStatus = HttpStatusCode.Conflict
         rpcBody = """{"code":"23505","message":"duplicate key value violates unique constraint"}"""
 
-        assertEquals(AppError.Unknown, repo.startEmpty().appErrorOrNull())
+        assertEquals(AppError.Unknown, repo.startFromRoutine("r1").appErrorOrNull())
     }
 
     @Test
     fun start_signedOut_isUnauthorized() = runTest {
         val repo = signedIn(signIn = false)
 
-        assertEquals(AppError.Unauthorized, repo.startEmpty().appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repo.startFromRoutine("r1").appErrorOrNull())
         assertTrue(rest().isEmpty())
     }
 

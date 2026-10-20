@@ -63,7 +63,7 @@ class LiveSessionScreenTest {
 
     private fun show(state: LiveSessionUiState, elapsed: Long = 125) {
         rule.setContent {
-            AppTheme { LiveSessionScreen(state, elapsed, { events += it }, { backs++ }) }
+            AppTheme { LiveSessionScreen(state, elapsed, { events += it }, { backs++ }, onOpenExercise = {}) }
         }
         rule.waitForIdle()
     }
@@ -311,7 +311,7 @@ class LiveSessionScreenTest {
     @Test
     fun updatingTheState_rerendersRows() {
         var state by mutableStateOf<LiveSessionUiState>(active())
-        rule.setContent { AppTheme { LiveSessionScreen(state, 0, { events += it }, { backs++ }) } }
+        rule.setContent { AppTheme { LiveSessionScreen(state, 0, { events += it }, { backs++ }, onOpenExercise = {}) } }
 
         state =
             active(

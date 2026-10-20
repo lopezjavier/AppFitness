@@ -17,6 +17,17 @@ fun formatElapsed(totalSeconds: Long): String {
     return if (hours > 0) "$hours:$mm:$ss" else "$mm:$ss"
 }
 
+/**
+ * A rest duration split for localised text: [minutes] and [seconds] (0..59). Whole minutes have no seconds part and
+ * under a minute there is no minutes part, so the UI never writes "2 min 0 s" or "60 s".
+ */
+data class RestText(val minutes: Int, val seconds: Int)
+
+fun formatRestDuration(totalSeconds: Int): RestText {
+    val value = totalSeconds.coerceAtLeast(0)
+    return RestText(minutes = value / SECONDS_PER_MINUTE.toInt(), seconds = value % SECONDS_PER_MINUTE.toInt())
+}
+
 /** The weight as the number field shows it: "60" or "87,5" (never a trailing zero). */
 internal fun weightText(weightKg: Double): String {
     if (weightKg == weightKg.toLong().toDouble()) return weightKg.toLong().toString()

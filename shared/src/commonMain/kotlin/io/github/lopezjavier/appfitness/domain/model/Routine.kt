@@ -53,7 +53,7 @@ object RoutineBounds {
     const val REPS_MAX = 50
     const val REST_MIN_SECONDS = 0
     const val REST_MAX_SECONDS = 600
-    const val REST_STEP_SECONDS = 15
+    const val REST_STEP_SECONDS = 10
     const val DEFAULT_SETS = 3
     const val DEFAULT_REPS = 8
     const val DEFAULT_REST_SECONDS = 120

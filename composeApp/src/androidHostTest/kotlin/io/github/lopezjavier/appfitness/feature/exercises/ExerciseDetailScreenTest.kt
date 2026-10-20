@@ -148,6 +148,16 @@ class ExerciseDetailScreenTest {
     }
 
     @Test
+    fun customExercise_showsItsNameAndNoMedia_withoutCrashing() {
+        val custom = ExerciseDetail(exerciseRow("c1", null, name = "Curl nordico", custom = true), "Curl nordico", null)
+        show(ExerciseDetailUiState.Loaded(custom))
+
+        rule.onNodeWithText("Curl nordico").assertExists()
+        rule.onNodeWithTag("exercise_detail_animation").assertDoesNotExist()
+        rule.onNodeWithText("Sin instrucciones disponibles.").assertExists()
+    }
+
+    @Test
     fun loadFailure_offersRetry() {
         var retries = 0
         show(ExerciseDetailUiState.Error, onRetry = { retries++ })
