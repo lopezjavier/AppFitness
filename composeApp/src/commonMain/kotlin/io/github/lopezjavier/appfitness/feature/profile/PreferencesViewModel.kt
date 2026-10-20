@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -34,6 +35,7 @@ import kotlinx.datetime.TimeZone
 import kotlin.math.roundToInt
 
 private const val TENTHS_PER_KG = 10.0
+private const val KEY_DRAFT = "preferences_draft"
 
 /** What [PreferencesViewModel] reads in parallel. */
 private class PreferencesData(
@@ -57,6 +59,7 @@ class PreferencesViewModel(
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PreferencesUiState>(PreferencesUiState.Loading)
     val uiState: StateFlow<PreferencesUiState> = _uiState.asStateFlow()
@@ -148,7 +151,7 @@ class PreferencesViewModel(
     }
 
     private fun updateLoaded(transform: (PreferencesUiState.Loaded) -> PreferencesUiState.Loaded) {
-        _uiState.update { if (it is PreferencesUiState.Loaded) transform(it) else it }
+        _uiState.update { if (it is PreferencesUiState.Loaded) transform(it).also(::persistDraft) else it }
     }
 
     private fun load() {
@@ -187,7 +190,13 @@ class PreferencesViewModel(
             adjustment = goals?.let { EnergyStrategyRules.clampAdjustment(strategy, it.calorieAdjustment) } ?: 0,
             split = goals?.split ?: MacroSplit.DEFAULT,
         )
-        return PreferencesUiState.Loaded(form = form, saved = form, today = today, isOnline = online)
+        val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
+        return PreferencesUiState.Loaded(form = draft ?: form, saved = form, today = today, isOnline = online)
+    }
+
+    /** An unsaved form is kept in the saved state (process death); equal to the saved one, the draft is cleared. */
+    private fun persistDraft(state: PreferencesUiState.Loaded) {
+        savedState[KEY_DRAFT] = if (state.form == state.saved) null else state.form.encodeDraft()
     }
 
     private fun save() {

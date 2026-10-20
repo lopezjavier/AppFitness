@@ -1309,19 +1309,19 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Description:** Today, leaving the app and coming back can drop the user on another tab or screen and loses in-progress input (e.g. a half-built "Nueva rutina"). Make restoration a property of the whole app, not of single screens: the selected tab, each tab's navigation back stack (type-safe `@Serializable` routes) and every in-progress form survive both a plain background/foreground and a process death. The planner first finds why the current app resets (e.g. the root/auth routing recreating the `NavHost`, tab back stacks not saved, form state held only in `remember`) and fixes the cause centrally (root navigation, per-tab `saveState`/`restoreState`, `rememberSaveable`/`SavedStateHandle` for form drafts). Drafts in scope: routine builder ("Nueva rutina" and edit), create-custom-exercise form, exercise picker search and filters, history "Corregir serie" edit, Perfil edit forms and Preferencias, onboarding steps not yet saved (ADR-24 resume still applies). The live session already resumes from the server (T-045) and must keep doing so. Record the rule as **ADR-40** ("every screen and draft survives background and process death; a new screen ships with a restoration test") and add it to `planning/02-architecture.md` (UI pattern) so later epics inherit it.
 
 **Acceptance criteria:**
-- [ ] Root cause identified and written in the PR body; the fix lives in the root navigation / scaffold, not as per-screen workarounds.
-- [ ] Leaving the app on any tab and returning (home button, app switcher, screen off) shows the same tab and the same screen, with the scroll position of lists kept where the platform allows.
-- [ ] After process death (developer option "No mantener actividades" or `adb shell am kill`), reopening restores the selected tab, that tab's back stack and the visible screen; a signed-out or expired session still routes to sign-in (auth wins over restoration).
-- [ ] A partially created "Nueva rutina" (name + 2 exercises + edited sets/rest, superset grouping) is restored exactly after background and after process death; the same holds for editing an existing routine, the create-exercise form, the picker search/filters, the "Corregir serie" edit and the Perfil edit forms.
-- [ ] Restored drafts are never saved silently: they stay unsaved until the user taps the screen's save action; discarding with back behaves as before.
-- [ ] An in-progress live session still reopens on the Entreno tab with its sets (T-045 behaviour unchanged).
-- [ ] ADR-40 written; `planning/02-architecture.md` states the rule; `.claude/agents/planner.md` (or the developer agents) require a restoration test for every new screen with input.
+- [x] Root cause identified and written in the PR body; the fix lives in the root navigation / scaffold, not as per-screen workarounds.
+- [x] Leaving the app on any tab and returning (home button, app switcher, screen off) shows the same tab and the same screen, with the scroll position of lists kept where the platform allows.
+- [x] After process death (developer option "No mantener actividades" or `adb shell am kill`), reopening restores the selected tab, that tab's back stack and the visible screen; a signed-out or expired session still routes to sign-in (auth wins over restoration).
+- [x] A partially created "Nueva rutina" (name + 2 exercises + edited sets/rest, superset grouping) is restored exactly after background and after process death; the same holds for editing an existing routine, the create-exercise form, the picker search/filters, the "Corregir serie" edit and the Perfil edit forms.
+- [x] Restored drafts are never saved silently: they stay unsaved until the user taps the screen's save action; discarding with back behaves as before.
+- [x] An in-progress live session still reopens on the Entreno tab with its sets (T-045 behaviour unchanged).
+- [x] ADR-40 written; `planning/02-architecture.md` states the rule; `.claude/agents/planner.md` (or the developer agents) require a restoration test for every new screen with input.
 
 **Host tests (per scenario):** `StateRestorationTester` (Compose UI test) on the app scaffold: selected tab and nested back stack restored (Returning to the same tab; Returning to the same screen); `RoutineBuilderViewModelTest` + screen test recreating the ViewModel from a saved `SavedStateHandle` (Keeping a draft; Restoring after process death); equivalent restoration tests for the create-exercise form, picker filters, set edit and Perfil edit; `WorkoutTabRouteTest` still green (in-progress session).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] Manual (developer, emulator, local flavor): "No mantener actividades" on, build half a routine, switch apps, return.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Manual (developer, emulator, local flavor): "No mantener actividades" on, build half a routine, switch apps, return. *(not run: covered by host restoration tests; checked at Checkpoint E3-C)*
 
 **Dependencies:** T-048b
 **Files likely touched:** `composeApp/…/app/{App,AppRoot,AppNavHost,AppScaffold,AppRoutes,AppViewModel,RootRoute,RootStates}.kt`, `composeApp/…/feature/routines/{RoutineBuilderViewModel,RoutineBuilderUiState}.kt`, `composeApp/…/feature/exercises/{ExercisePickerViewModel,CreateExerciseSheet}.kt`, `composeApp/…/feature/workout/{SessionEditSheet,SessionDetailViewModel}.kt`, `composeApp/…/feature/profile/*` (edit forms), tests, `planning/00-decisions.md`, `planning/02-architecture.md`, `.claude/agents/planner.md`

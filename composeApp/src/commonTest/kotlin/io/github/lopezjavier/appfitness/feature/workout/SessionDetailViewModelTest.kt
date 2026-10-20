@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -39,14 +40,16 @@ class SessionDetailViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(id: String = "s1") = SessionDetailViewModel(
-        sessionId = id,
-        repository = repository,
-        exerciseRepository = exercises,
-        exerciseLibrary = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca"))),
-        connectivity = connectivity,
-        clock = MutableClock(),
-    )
+    private fun viewModel(id: String = "s1", savedState: SavedStateHandle = SavedStateHandle()) =
+        SessionDetailViewModel(
+            sessionId = id,
+            repository = repository,
+            exerciseRepository = exercises,
+            exerciseLibrary = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca"))),
+            connectivity = connectivity,
+            clock = MutableClock(),
+            savedState = savedState,
+        )
 
     private fun SessionDetailViewModel.content() = assertIs<SessionDetailUiState.Content>(uiState.value)
 
@@ -369,5 +372,37 @@ class SessionDetailViewModelTest {
         }
         assertEquals(false, model.content().busy)
         assertEquals(false, model.content().deleteConfirm)
+    }
+
+    @Test
+    fun aTypedCorrection_survivesARecreatedViewModel_withoutWriting() = runTest(dispatcher) {
+        seed()
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle)
+        advanceUntilIdle()
+        first.onEvent(SessionDetailEvent.EditSet(0, 2))
+        first.onEvent(SessionDetailEvent.WeightChanged("92,5"))
+        first.onEvent(SessionDetailEvent.RepsChanged("6"))
+
+        val second = viewModel(savedState = handle)
+        advanceUntilIdle()
+
+        assertEquals(EditSetState(0, 2, "92,5", "6"), second.content().edit)
+        assertEquals(0, repository.upserts.size)
+    }
+
+    @Test
+    fun aDismissedCorrection_isNotRestored() = runTest(dispatcher) {
+        seed()
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle)
+        advanceUntilIdle()
+        first.onEvent(SessionDetailEvent.EditSet(0, 2))
+        first.onEvent(SessionDetailEvent.DismissEdit)
+
+        val second = viewModel(savedState = handle)
+        advanceUntilIdle()
+
+        assertEquals(null, second.content().edit)
     }
 }

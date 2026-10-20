@@ -17,8 +17,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +62,7 @@ import io.github.lopezjavier.appfitness.feature.biometrics.SexSelector
 import io.github.lopezjavier.appfitness.feature.biometrics.WeightWheels
 import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -70,6 +71,13 @@ import kotlin.math.roundToInt
 private val RowMinHeight: Dp = Spacing.minTouchTarget
 private const val TENTHS_PER_KG = 10
 private const val TAG_PREFIX = "preferences"
+
+// Savers of the sheet drafts: an edit in progress survives recreation (a draft is never applied on its own).
+private val LocalDateSaver: Saver<LocalDate, Any> =
+    Saver(save = { it.toString() }, restore = { LocalDate.parse(it as String) })
+private val IntSaver: Saver<Int, Any> = Saver(save = { it }, restore = { it as Int })
+private val ActivitySaver: Saver<ActivityLevel, Any> =
+    Saver(save = { it.name }, restore = { ActivityLevel.valueOf(it as String) })
 
 /** Which picker sheet is open. */
 private enum class PersonalSheet { BirthDate, Height, Weight, Activity }
@@ -224,6 +232,7 @@ private fun PersonalSheets(
             title = Res.string.onboarding_label_birth_date,
             contentTag = "preferences_sheet_birth_date",
             initial = form.birthDate,
+            saver = LocalDateSaver,
             onApply = { onEvent(PreferencesEvent.SetBirthDate(it)) },
             onClose = onClose,
         ) { draft, onDraft, onCentred ->
@@ -234,6 +243,7 @@ private fun PersonalSheets(
             title = Res.string.onboarding_label_height,
             contentTag = "preferences_sheet_height",
             initial = form.heightCm,
+            saver = IntSaver,
             onApply = { onEvent(PreferencesEvent.SetHeight(it)) },
             onClose = onClose,
         ) { draft, onDraft, onCentred ->
@@ -244,6 +254,7 @@ private fun PersonalSheets(
             title = Res.string.onboarding_label_weight,
             contentTag = "preferences_sheet_weight",
             initial = (form.weightKg * TENTHS_PER_KG).roundToInt(),
+            saver = IntSaver,
             onApply = { onEvent(PreferencesEvent.SetWeight(it)) },
             onClose = onClose,
         ) { draft, onDraft, onCentred ->
@@ -254,6 +265,7 @@ private fun PersonalSheets(
             title = Res.string.profile_activity_label,
             contentTag = "preferences_sheet_activity",
             initial = form.activity,
+            saver = ActivitySaver,
             onApply = { onEvent(PreferencesEvent.SelectActivity(it)) },
             onClose = onClose,
         ) { draft, onDraft, _ -> ActivityCards(draft, onDraft, tagPrefix = TAG_PREFIX) }
@@ -273,15 +285,16 @@ private fun <T> PickerSheet(
     title: StringResource,
     contentTag: String,
     initial: T,
+    saver: Saver<T, Any>,
     onApply: (T) -> Unit,
     onClose: () -> Unit,
     picker: @Composable (draft: T, onDraft: (T) -> Unit, onCentred: (T) -> Unit) -> Unit,
 ) {
-    var draft by remember { mutableStateOf(initial) }
+    var draft by rememberSaveable(stateSaver = saver) { mutableStateOf(initial) }
 
     // What the wheels show right now. It runs ahead of [draft] while a snap animation is still settling, so "Listo"
     // applies the centred item and not the value from before the swipe.
-    var centred by remember { mutableStateOf(initial) }
+    var centred by rememberSaveable(stateSaver = saver) { mutableStateOf(initial) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     AppBottomSheet(onDismissRequest = onClose, sheetState = sheetState, testTagPrefix = "preferences_sheet") {

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
@@ -26,6 +27,11 @@ import kotlinx.coroutines.launch
 
 private const val MAX_REPS = 999
 
+private const val KEY_EDIT_POSITION = "detail_edit_position"
+private const val KEY_EDIT_SET = "detail_edit_set"
+private const val KEY_EDIT_WEIGHT = "detail_edit_weight"
+private const val KEY_EDIT_REPS = "detail_edit_reps"
+
 /**
  * Detail of a completed session (US-14): sets, aggregates and personal records computed on the client, per-set
  * correction and deletion. Editing and deleting need the server and are ignored offline.
@@ -38,6 +44,7 @@ class SessionDetailViewModel(
     private val exerciseLibrary: ExerciseLibrary,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: WorkoutSession? = null
     private var names: Map<String, String> = emptyMap()
@@ -47,6 +54,10 @@ class SessionDetailViewModel(
     private var terminal: SessionDetailUiState? = SessionDetailUiState.Loading
     private var online = true
     private var edit: EditSetState? = null
+        set(value) {
+            field = value
+            persistEdit(value)
+        }
     private var deleteConfirm = false
     private var busy = false
 
@@ -118,6 +129,7 @@ class SessionDetailViewModel(
                         session = loaded
                         names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: names
                         history = loadHistory(loaded)
+                        restoreEdit(loaded)
                         terminal = null
                     }
                 },
@@ -140,6 +152,27 @@ class SessionDetailViewModel(
         val entry = set.entry as? SetEntry.WeightReps ?: return
         edit = EditSetState(position, setIndex, weightText(entry.weightKg), entry.reps.toString())
         publish()
+    }
+
+    /** A correction typed before process death comes back, still unsaved, once the session it targets is loaded. */
+    private fun restoreEdit(loaded: WorkoutSession) {
+        val position = savedState.get<Int>(KEY_EDIT_POSITION)
+        val setIndex = savedState.get<Int>(KEY_EDIT_SET)
+        val exists = loaded.exercises.firstOrNull { it.position == position }?.sets?.any { it.setIndex == setIndex }
+        if (position == null || setIndex == null || exists != true) return
+        edit = EditSetState(
+            position,
+            setIndex,
+            savedState.get<String>(KEY_EDIT_WEIGHT).orEmpty(),
+            savedState.get<String>(KEY_EDIT_REPS).orEmpty(),
+        )
+    }
+
+    private fun persistEdit(value: EditSetState?) {
+        savedState[KEY_EDIT_POSITION] = value?.position
+        savedState[KEY_EDIT_SET] = value?.setIndex
+        savedState[KEY_EDIT_WEIGHT] = value?.weight
+        savedState[KEY_EDIT_REPS] = value?.reps
     }
 
     private fun changeEdit(change: (EditSetState) -> EditSetState) {
