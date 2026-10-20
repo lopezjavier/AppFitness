@@ -114,6 +114,8 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Diario: tapping a logged food opens its details (the nutrition data Open Food Facts returns for it); to be reconciled with the entry editing of T-060 | Checkpoint E4-A, 2026-10-20 |
 | Diario: add an "Almuerzo" meal between Desayuno and Comida (product decision: default meals / ADR-?, to confirm with the user) | Checkpoint E4-A, 2026-10-20 |
 | Diario: a calendar button next to the day name (to the right of "Hoy") to jump to a given day, e.g. the same day last month; to be reconciled with the history calendar of T-063 | Checkpoint E4-A, 2026-10-20 |
+| Rest timer alert (live session): the vibration when the rest ends is too short to notice; make it longer/stronger (functional fix, may be done earlier as a `fix(T-###)`) | User report during T-059, 2026-10-20 |
+| Rest timer alert (live session): the end-of-rest sound plays but sounds odd; replace it with a different one (ask the user which) | User report during T-059, 2026-10-20 |
 
 ---
 
