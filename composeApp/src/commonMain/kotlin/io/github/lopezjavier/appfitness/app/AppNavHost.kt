@@ -44,7 +44,7 @@ internal typealias ProfileSlot =
     ) -> Unit
 
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
-internal typealias PreferencesSlot = @Composable (modifier: Modifier) -> Unit
+internal typealias PreferencesSlot = @Composable (modifier: Modifier, onOpenMeals: () -> Unit) -> Unit
 
 /** Exercise picker content: modifier, select mode, and the two ways out (open a detail, return a selection). */
 internal typealias ExercisePickerSlot =
@@ -76,15 +76,14 @@ internal typealias RoutinesSlot =
 
 /**
  * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
- * search for a day (the meal is null for the Diary-level add action), [onOpenMealSettings] the meals editor and
- * [edit] the edit sheet of an entry (and brings back an entry the sheet asked to delete).
+ * search for a day (the meal is null for the Diary-level add action) and [edit] the edit sheet of an entry
+ * (and brings back an entry the sheet asked to delete).
  */
 internal typealias DiarySlot =
     @Composable (
         modifier: Modifier,
         onOpenPreferences: () -> Unit,
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
-        onOpenMealSettings: (date: LocalDate) -> Unit,
         edit: DiaryEditHost,
     ) -> Unit
 
@@ -115,8 +114,8 @@ internal typealias FoodSearchSlot =
         onCreateFood: (barcode: String?, name: String?) -> Unit,
     ) -> Unit
 
-/** Meals editor content: modifier (full-screen insets), the ISO day viewed in the Diary and how to leave. */
-internal typealias MealSlotsSlot = @Composable (modifier: Modifier, date: String, onClose: () -> Unit) -> Unit
+/** Meals editor content: modifier (full-screen insets) and how to leave. */
+internal typealias MealSlotsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
 /** Create-food form content: modifier, the prefilled barcode and name, and [onSaved] with the new food id. */
 internal typealias CreateFoodSlot =
@@ -234,7 +233,7 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
@@ -249,7 +248,7 @@ internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _ ->
 }
 
 /** Empty meals editor for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
+internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("meals_screen"))
 }
 
@@ -285,7 +284,7 @@ internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _ -
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPreferencesSlot: PreferencesSlot = { modifier ->
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("preferences_screen"))
 }
 
@@ -330,8 +329,7 @@ internal fun AppNavHost(
         remember(navController) {
             { slotId, date -> navController.navigateToFullScreen(FoodSearchRoute(slotId, date.toString())) }
         }
-    val openMealSettings: (LocalDate) -> Unit =
-        remember(navController) { { date -> navController.navigateToFullScreen(MealSlotsRoute(date.toString())) } }
+    val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
@@ -346,7 +344,6 @@ internal fun AppNavHost(
                     Modifier.padding(tabPadding),
                     openPreferences,
                     openFoodSearch,
-                    openMealSettings,
                     DiaryEditHost(
                         onEditEntry = { id, date -> navController.navigate(EditEntryRoute(id, date.toString())) },
                         pendingDeleteEntryId = deleted,
@@ -383,7 +380,7 @@ internal fun AppNavHost(
                 )
             }
         }
-        composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding)) }
+        composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding), openMeals) }
         composable<ExercisePickerRoute> { entry ->
             val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode
             exercisePicker(
@@ -422,10 +419,8 @@ internal fun AppNavHost(
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
         foodDestinations(navController, fullScreenPadding, foodSearch, addFood, createFood)
-        composable<MealSlotsRoute> { entry ->
-            mealSlots(Modifier.padding(fullScreenPadding), entry.toRoute<MealSlotsRoute>().date) {
-                navController.popBackStack()
-            }
+        composable<MealSlotsRoute> {
+            mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
         historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)

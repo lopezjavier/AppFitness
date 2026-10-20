@@ -186,10 +186,17 @@ Feature: Barcode scanning
   Scenario: Manual creation validation
     When they leave the name empty or enter negative kcal
     Then the "Guardar" button is disabled and the field shows the error
+
+  Scenario: Creating a food without scanning
+    Given the user is in the food search (with or without a typed text)
+    When they tap the "Crear alimento" icon button next to the scanner
+    Then the creation form opens with the typed text as the name (empty if none) and no barcode
+    And the scanner is never required first
 ```
 
 **Technical notes**
-- `BarcodeScanner` (domain) + ML Kit `GmsBarcodeScanning` implementation (EAN-13, EAN-8, UPC-A, UPC-E formats) in androidMain.
+- `BarcodeScanner` (domain) + ML Kit `GmsBarcodeScanning` implementation (EAN-13, EAN-8, UPC-A, UPC-E formats, auto zoom enabled) in androidMain.
+- The search always offers "Crear alimento" (icon button next to the scanner); the empty-result button stays.
 - The manual form lets the user pick the base unit (g or ml) and define optional named portions (`food_portions`, US-22).
 
 ---
@@ -372,7 +379,7 @@ Feature: Portions and measures
 
 ## US-23 · Custom meal structure
 **As** a user
-**I want** to rename, enable/disable and add meals
+**I want** to rename, add, delete and reorder meals
 **So that** the Diary matches my routine.
 
 ```gherkin
@@ -382,21 +389,38 @@ Feature: Configurable meals
     Given a new user
     Then their Diary has Desayuno, Comida, Merienda and Cena, in that order
 
+  Scenario: Meals are edited from Perfil
+    When the user opens Perfil -> Preferencias -> "Comidas"
+    Then they see a compact list with one row per meal
+    And the Diary has no "Comidas" button
+
   Scenario: Renaming a meal
-    When the user renames "Merienda" to "Post-entreno"
+    When the user taps the pencil icon of "Merienda" and renames it to "Post-entreno"
     Then the Diary shows "Post-entreno"
     And the existing entries keep their totals
 
   Scenario: Adding a custom meal
-    When the user adds a meal "Segundo desayuno" after "Desayuno"
-    Then it appears in the Diary in that position
-    And it can receive foods like any other meal
+    When the user taps "Añadir comida" at the end of the list and names it "Segundo desayuno"
+    Then the new row is appended
+    And the user moves it after "Desayuno" with the arrows or the drag handle
+    And it appears in the Diary in that position and can receive foods like any other meal
 
-  Scenario: Disabling a meal
-    Given "Merienda" has no entries on the day being viewed
-    When the user disables it
-    Then it is hidden from the Diary and from the "add to" targets
-    And it can be re-enabled later with the same name
+  Scenario: Deleting an unused meal
+    Given "Merienda" has no logged entries on any day
+    When the user taps its trash button
+    Then it disappears at once (no dialog, no message, no undo)
+    And it disappears from the "add to" targets
+
+  Scenario: A meal with entries cannot be deleted
+    Given "Comida" has logged entries
+    When the user taps its trash button
+    Then it stays
+    And the row shows "Esta comida tiene alimentos registrados y no se puede eliminar"
+
+  Scenario: At least one meal remains
+    Given only one meal is left
+    Then its trash button is disabled
+    And the list shows "Debe quedar al menos una comida"
 
   Scenario: Reordering meals
     When the user moves "Cena" above "Merienda"
@@ -406,7 +430,7 @@ Feature: Configurable meals
 **Technical notes**
 - Model (`03-data-model.md` §3): `meal_slots` per user (`code` from the `meal_type` enum for the defaults, `label`, `position`, `enabled`); seeded with the four defaults when onboarding completes.
 - `food_log_entries` references `meal_slot_id` instead of a fixed `meal_type`.
-- A meal with entries on the day being viewed cannot be disabled (the switch is disabled with an explanatory hint); entries on other days do not block it. A meal without entries on that day can be disabled and re-enabled.
+- Meals are deleted, never disabled (ADR-41): the `enabled` column is kept but always true. Delete rules (not the only meal, no entries on any day) are enforced by the `delete_meal_slot` RPC; the editor lives in Perfil -> Preferencias -> "Comidas".
 - Custom meals have `code` null; the defaults keep their code so time-of-day suggestions still work.
 
 ---

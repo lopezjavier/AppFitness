@@ -118,7 +118,7 @@ Index: `(user_id, log_date)`.
 `no action` (checked at statement end) instead of `restrict` (checked immediately): deleting an `auth.users` row cascades to entries, slots and personal foods in one statement (ADR-29), and `restrict` could block it before the entries are gone. RLS insert/update also requires the food to be readable by the caller.
 
 ### `meal_slots` (US-23)
-Configured meals per user (rename, enable/disable, add).
+Configured meals per user (rename, reorder, add, delete; ADR-41).
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
@@ -126,9 +126,9 @@ Configured meals per user (rename, enable/disable, add).
 | code | meal_type null | default meals keep their code; custom meals are null |
 | label | text | shown in the Diary |
 | position | smallint | order within the day |
-| enabled | boolean | default true |
+| enabled | boolean | default true; deprecated (ADR-41): always true, no UI to disable |
 
-Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner, positions 0..3) when onboarding completes (trigger on `profiles`, idempotent; existing onboarded users are backfilled). `unique (user_id, position)`. RLS owner policy. Deleting is not allowed: a meal is disabled instead (an empty slot).
+Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner, positions 0..3) when onboarding completes (trigger on `profiles`, idempotent; existing onboarded users are backfilled). `unique (user_id, position)`. RLS owner policy, including DELETE (ADR-41). A meal is deleted only through `delete_meal_slot` (never the last one, never one with `food_log_entries`; the entries FK is `no action`).
 
 ### `meal_templates` (US-21)
 `user_id`, `name` (unique per user), `meal_slot_id` FK null (suggested meal; null = any).
@@ -274,7 +274,8 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `exercise_history(p_exercise_id uuid, p_from date default null)` | US-15 (T-044) | `table(session_id, session_date, best_one_rm, total_volume)` per `completed` session (UTC date of `started_at`, `>= p_from`) with completed, non-warm-up sets of the exercise, ordered by start. `best_one_rm`: Epley over sets with reps 1..12 and weight > 0 (reps 1 = weight), rounded to 0.5 kg, null if none; `total_volume = sum(weight_kg * reps)` |
 | `weekly_muscle_volume(p_from date)` | US-15 (T-048b) | `table(week_start date, muscle_group, total_volume numeric)`, security invoker. `week_start` = Monday of the UTC week of `started_at` (`>= p_from`), only `completed` sessions, completed non-warm-up sets (same filter as `exercise_history`), attributed to the exercise's primary `muscle_group`; `total_volume = sum(weight_kg * reps)`. Only weeks/groups with data; ordered by week, group |
 | `create_personal_food(p_name, p_brand, p_base_unit, p_kcal, p_protein, p_carbs, p_fat, p_barcode, p_portions jsonb)` | US-18, US-22 (T-058) | `uuid` of the new `foods` row, security invoker. One transaction: inserts a `source='user'` food owned by the caller and its portions (`p_portions` = `[{"label","amount"}]`, max 10, `position` = array order). `28000` if unauthenticated; `22023` for blank name, negative values, blank portion label, portion amount <= 0 or more than 10 portions |
-| `save_meal_slots(p_slots jsonb, p_viewed_day date)` | US-23 (T-059) | `void`, security invoker. One transaction: `p_slots` = array in final order of `{"id": uuid\|null, "label", "enabled"}`; updates label/enabled/position (0..n-1) of the caller's existing slots and inserts those with null id (`code` null; `code` is never taken from the client). Every existing slot must be present (nothing is deleted). `22023` for a non-array/empty input, null day, blank or >50-char label, duplicate ids, missing existing slot or no enabled slot; `P0002` for an id that is not the caller's; `23514` when disabling a slot that has entries on `p_viewed_day` |
+| `save_meal_slots(p_slots jsonb)` | US-23 (T-059, T-067) | `void`, security invoker. One transaction: `p_slots` = array in final order of `{"id": uuid\|null, "label"}` (`enabled` is accepted and ignored); updates label/position (0..n-1) of the caller's existing slots, always writes `enabled = true`, and inserts those with null id (`code` null; `code` is never taken from the client). Every existing slot must be present (nothing is deleted here). `22023` for a non-array/empty input, blank or >50-char label, duplicate ids or missing existing slot; `P0002` for an id that is not the caller's. Replaces the T-059 signature with `p_viewed_day` (ADR-41) |
+| `delete_meal_slot(p_id uuid)` | US-23 (T-067) | `void`, security invoker, `authenticated` only. Deletes the caller's slot and re-packs positions to 0..n-1. `28000` if unauthenticated; `P0002` if the slot is not the caller's or unknown; `23514` if it is the caller's only slot or has any `food_log_entries` row on any day |
 | `most_eaten_foods(p_limit int)` | US-17 | The user's most-logged foods (food_id, times logged), derived from `food_log_entries` |
 | `food_diary_summary(p_from date, p_to date)` | US-24 | Per day: kcal and protein/carbs/fat totals |
 

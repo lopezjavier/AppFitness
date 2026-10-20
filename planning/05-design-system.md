@@ -105,7 +105,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `MacroSlider` | Slider in the macro color, % and grams/kcal |
 | `PortionSelector` | Amount field + portion dropdown ("100 g", "1 huevo"); the unit is the food's base unit (`g`/`ml`) |
 | `FavouriteToggle` | Star icon toggle (lime when starred) in food rows and food detail |
-| `MealSlotEditor` | Rename, reorder, enable/disable and add meals (drag handle, switch, add row) |
+| `MealSlotEditor` | Rename, reorder, delete and add meals, opened from Perfil -> Preferencias (ADR-41). Compact rows, no card per meal: drag handle, label and icon buttons (edit, up, down, trash), one "Añadir comida" at the end. Rule for list rows that configure items: edit actions are icon buttons in one line, never a full button or card per item |
 | `ReorderableColumn` / `DragHandle` | Plain `Column` whose items are reordered by long-pressing and dragging their `DragHandle` (48 dp target, `drag_indicator` icon in `textSecondary`, labelled "Reordenar <item>"). Items keyed by a stable id; the dragged item follows the finger (`zIndex` above the rest), the others make room, and one `onMove(from, to)` is reported on drop. No auto-scroll and no haptics; every screen that uses it also offers a non-drag path ("Subir"/"Bajar"). First user: the routine builder (T-043); `MealSlotEditor` can reuse it |
 | `MonthCalendarGrid` | Calendar month grid with a per-day kcal indicator; tap opens that day |
 | `DiaryHistoryRow` | Date + kcal + P/C/F mini bars for a day, with a weekly/monthly summary header |

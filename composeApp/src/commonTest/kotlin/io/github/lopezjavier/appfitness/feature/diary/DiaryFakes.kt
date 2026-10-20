@@ -33,25 +33,40 @@ internal class FakeMealSlotRepository(var result: Result<List<MealSlot>> = Resul
     MealSlotRepository {
     var allResult: Result<List<MealSlot>>? = null
     var saveResult: Result<Unit> = Result.success(Unit)
-    val saved = mutableListOf<Pair<List<MealSlotDraft>, LocalDate>>()
+    var deleteResult: Result<Unit> = Result.success(Unit)
+    val saved = mutableListOf<List<MealSlotDraft>>()
+    val deleted = mutableListOf<String>()
 
     override suspend fun listEnabled(): Result<List<MealSlot>> = result
 
     override suspend fun listAll(): Result<List<MealSlot>> = allResult ?: result
 
-    override suspend fun save(slots: List<MealSlotDraft>, viewedDay: LocalDate): Result<Unit> {
+    override suspend fun save(slots: List<MealSlotDraft>): Result<Unit> {
         if (saveResult.isFailure) return saveResult
-        saved += slots to viewedDay
+        saved += slots
         val stored = slots.mapIndexed { index, draft ->
-            MealSlot(draft.id ?: "custom-${saved.size}-$index", draft.code, draft.label, index, draft.enabled)
+            MealSlot(draft.id ?: "custom-${saved.size}-$index", draft.code, draft.label, index)
         }
         allResult = Result.success(stored)
-        result = Result.success(stored.filter { it.enabled })
+        result = Result.success(stored)
         return saveResult
+    }
+
+    override suspend fun delete(id: String): Result<Unit> {
+        if (deleteResult.isFailure) return deleteResult
+        deleted += id
+        val remaining = (allResult ?: result).getOrThrow().filter { it.id != id }
+        allResult = Result.success(remaining)
+        result = Result.success(remaining)
+        return deleteResult
     }
 
     fun failSave(error: AppError) {
         saveResult = Result.failure(AppException(error))
+    }
+
+    fun failDelete(error: AppError) {
+        deleteResult = Result.failure(AppException(error))
     }
 }
 

@@ -47,7 +47,7 @@ fun AppRoot(
         },
         muscleVolume = { volumeModifier, onStartWorkout -> MuscleVolumeRoot(onStartWorkout, volumeModifier) },
         exerciseProgress = { progressModifier, exerciseId -> ExerciseProgressRoot(exerciseId, progressModifier) },
-        preferences = { preferencesModifier -> PreferencesRoute(preferencesModifier) },
+        preferences = { preferencesModifier, onOpenMeals -> PreferencesRoute(onOpenMeals, preferencesModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier)
         },
@@ -57,10 +57,10 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, onOpenMealSettings, edit ->
-            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onOpenMealSettings, edit, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood, edit ->
+            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, edit, diaryModifier)
         },
-        mealSlots = { mealsModifier, date, onClose -> MealSlotsRoot(date, onClose, mealsModifier) },
+        mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
         foodSearch = { searchModifier, onOpenFood, onCreateFood ->
             FoodSearchRoot(onOpenFood, onCreateFood, searchModifier)
         },

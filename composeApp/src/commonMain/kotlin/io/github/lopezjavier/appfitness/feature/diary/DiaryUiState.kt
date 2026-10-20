@@ -69,9 +69,6 @@ sealed interface DiaryEvent {
 
     data object OpenGoals : DiaryEvent
 
-    /** Open the meals editor for the visible day. */
-    data object OpenMealSettings : DiaryEvent
-
     /** Open the edit sheet of an entry of the visible day. */
     data class EditEntry(val entryId: String) : DiaryEvent
 
@@ -87,9 +84,6 @@ sealed interface DiaryEffect {
     data class AddFood(val date: LocalDate) : DiaryEffect
 
     data object OpenPreferences : DiaryEffect
-
-    /** Open the meals editor; [date] is the visible day (a meal with entries on it cannot be disabled). */
-    data class OpenMealSettings(val date: LocalDate) : DiaryEffect
 
     /** Open the edit sheet of [entryId], which belongs to [date]. */
     data class OpenEditEntry(val entryId: String, val date: LocalDate) : DiaryEffect

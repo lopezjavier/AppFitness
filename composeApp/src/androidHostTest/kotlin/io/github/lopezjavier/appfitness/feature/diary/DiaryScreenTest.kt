@@ -123,14 +123,11 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun mealSettingsAction_sitsBelowTheDateSelector_andEmitsOpenMealSettings() {
+    fun noMealSettingsButton_theStructureIsEditedFromPerfil() {
         show(content())
 
-        assertTrue(top("diary_date_label") < top("diary_meal_settings"))
-        assertTrue(top("diary_meal_settings") < top("diary_section_breakfast"))
-        rule.onNodeWithTag("diary_meal_settings").performClick()
-
-        assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenMealSettings), events)
+        rule.onNodeWithTag("diary_meal_settings").assertDoesNotExist()
+        assertTrue(top("diary_date_label") < top("diary_section_breakfast"))
     }
 
     @Test

@@ -28,8 +28,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_cance
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_message
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_title
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_last_meal_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_load_error
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_none_enabled
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_offline_message
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_save
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_save_failed
@@ -53,17 +53,13 @@ private const val SKELETON_ROWS = 4
 private val SkeletonRowHeight = Spacing.xl * 5
 
 /**
- * Meals editor (US-23): one card per meal (name, switch, Subir / Bajar, drag handle), "Añadir comida" at the end and
- * "Guardar" pinned at the bottom. Back with unsaved edits asks before discarding. [viewedDayIsToday] only picks the
- * wording of the "has entries" hint. The top bar belongs to the shell (`meals_back`, `meals_title`).
+ * Meals editor (US-23): one compact row per meal (drag handle, name, rename / up / down / delete icons),
+ * "Añadir comida" at the end and
+ * "Guardar" pinned at the bottom. Back with unsaved edits asks before discarding. The top bar belongs to the shell
+ * (`meals_back`, `meals_title`).
  */
 @Composable
-fun MealSlotsScreen(
-    state: MealSlotsUiState,
-    onEvent: (MealSlotsEvent) -> Unit,
-    modifier: Modifier = Modifier,
-    viewedDayIsToday: Boolean = true,
-) {
+fun MealSlotsScreen(state: MealSlotsUiState, onEvent: (MealSlotsEvent) -> Unit, modifier: Modifier = Modifier) {
     NavigationBackHandler(
         state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
         isBackEnabled = true,
@@ -76,7 +72,7 @@ fun MealSlotsScreen(
                 when (state) {
                     MealSlotsUiState.Loading -> MealsLoading()
                     MealSlotsUiState.LoadError -> MealsLoadError { onEvent(MealSlotsEvent.Retry) }
-                    is MealSlotsUiState.Editing -> MealsForm(state, viewedDayIsToday, onEvent)
+                    is MealSlotsUiState.Editing -> MealsForm(state, onEvent)
                 }
             }
             if (state is MealSlotsUiState.Editing) MealsFooter(state, onEvent)
@@ -96,14 +92,14 @@ fun MealSlotsScreen(
 }
 
 @Composable
-private fun MealsForm(state: MealSlotsUiState.Editing, viewedDayIsToday: Boolean, onEvent: (MealSlotsEvent) -> Unit) {
-    val context = MealRowContext(interactive = !state.isSaving, viewedDayIsToday = viewedDayIsToday)
+private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit) {
+    val context = MealRowContext(interactive = !state.isSaving)
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         ReorderableColumn(
             items = state.rows,
@@ -115,14 +111,14 @@ private fun MealsForm(state: MealSlotsUiState.Editing, viewedDayIsToday: Boolean
         }
         SecondaryButton(
             text = stringResource(Res.string.meals_add),
-            onClick = { onEvent(MealSlotsEvent.Add()) },
-            enabled = context.interactive,
+            onClick = { onEvent(MealSlotsEvent.Add) },
+            enabled = context.interactive && state.isOnline,
             modifier = Modifier.fillMaxWidth().testTag("meals_add"),
         )
     }
 }
 
-/** The save error or the "enable one" reason, the offline banner and "Guardar", pinned at the bottom. */
+/** The last-meal hint, the save error, the offline banner and "Guardar", pinned at the bottom. */
 @Composable
 private fun MealsFooter(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit) {
     Column {
@@ -133,12 +129,17 @@ private fun MealsFooter(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEven
                 testTagPrefix = "meals_offline_banner",
             )
         }
-        val message =
-            when {
-                state.saveError != null -> saveErrorText(state.saveError)
-                state.noneEnabled -> stringResource(Res.string.meals_none_enabled)
-                else -> null
-            }
+        if (state.onlyOneMeal) {
+            Text(
+                text = stringResource(Res.string.meals_last_meal_hint),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier
+                    .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
+                    .testTag("meals_last_meal_hint"),
+            )
+        }
+        val message = state.saveError?.let { saveErrorText(it) }
         if (message != null) {
             Text(
                 text = message,
@@ -147,7 +148,7 @@ private fun MealsFooter(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEven
                 modifier = Modifier
                     .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
                     .semantics { liveRegion = LiveRegionMode.Polite }
-                    .testTag(if (state.saveError != null) "meals_save_error" else "meals_none_enabled"),
+                    .testTag("meals_save_error"),
             )
         }
         PrimaryButton(

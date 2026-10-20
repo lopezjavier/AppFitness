@@ -221,12 +221,12 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** `03-data-model.md` §1/§3/§7, `04-business-rules.md` §2 and the E4 stories US-16, US-17, US-18 and US-22 reflect this.
 - **Approval:** 2026-10-17, user.
 
-### ADR-33 · Configurable meals via `meal_slots` (E4)
+### ADR-33 · Configurable meals via `meal_slots` (E4) — amended by ADR-41
 - **Context:** a fixed four-value meal enum cannot be renamed, reordered or extended, and the Diary is the app's hub.
 - **Decision:**
   - Meals are rows in `meal_slots` per user (`code` from the `meal_type` enum for the defaults, `label`, `position`, `enabled`), seeded with Desayuno/Comida/Merienda/Cena when onboarding completes.
   - `food_log_entries` references `meal_slot_id` instead of a fixed `meal_type`.
-  - A meal is **disabled**, never deleted; disabling requires the slot to be empty on the day being viewed.
+  - ~~A meal is **disabled**, never deleted; disabling requires the slot to be empty on the day being viewed.~~ Superseded by ADR-41.
 - **Consequences:** `03-data-model.md` §1/§3 and the E4 stories US-19 and US-23 reflect this.
 - **Approval:** 2026-10-17, user.
 
@@ -263,6 +263,15 @@ Format: context → decision → consequences. A decision is only changed by add
   - **Copy:** "TDEE: %s kcal" becomes "Gasto diario estimado: %s kcal" with the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." (onboarding and Preferencias).
 - **Consequences:** `01` FR-5.1, `02`, `03` §2/§4, `05` §5–6, `07`, the E2, E3, E5 and E1 epic notes and `tasks/` are updated; the Profile code (T-037) is reworked in T-041; the Edad/Altura display bug is fixed first in T-040.
 - **Approval:** 2026-10-19, user (Checkpoint E2-B feedback).
+
+### ADR-41 · Meals are deleted when unused, never disabled (E4, T-067)
+- **Context:** at Checkpoint E4-B the user found the enable/disable switch confusing and the meal editor too large on the Diary; a meal should simply be removed when it is not needed. Amends ADR-33.
+- **Decision:**
+  - A meal is **deleted** with a trash button, at once (no dialog, no undo), only if it has no `food_log_entries` on any day and the user keeps at least one meal. Otherwise the delete is refused and the row explains why. There is no enable/disable: the `enabled` column is kept but always true (a migration re-enables any disabled slot).
+  - Rules are enforced server-side by the `delete_meal_slot(p_id)` RPC (re-packs positions to 0..n-1); `save_meal_slots(p_slots)` no longer takes a viewed day or a disable rule.
+  - The meal structure is edited from Perfil -> Preferencias -> "Comidas" (compact icon-action rows, single "Añadir comida"), not from the Diary.
+- **Consequences:** `03-data-model.md` §3 (`meal_slots`, RPCs), US-23 in `epics/E4-food-diary.md`, `05-design-system.md` (`MealSlotEditor`), `ux-reviewer` space/icon rule. Meal templates (US-21) must handle a deleted slot (`meal_slot_id` is a suggestion, nullable).
+- **Approval:** 2026-10-20, user (E4-B feedback item 7).
 
 ---
 

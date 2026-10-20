@@ -410,6 +410,17 @@ class FoodSearchViewModelTest {
     }
 
     @Test
+    fun createIcon_withoutQuery_opensTheFormWithNoNameAndNoBarcode() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.CreateFromEmpty)
+            assertEquals(FoodSearchEffect.OpenCreateFood(barcode = null, name = null), awaitItem())
+        }
+    }
+
+    @Test
     fun typing_clearsTheNotFoundCard() = runTest(dispatcher) {
         scanner.result = ScanResult.Code("333")
         val model = viewModel()

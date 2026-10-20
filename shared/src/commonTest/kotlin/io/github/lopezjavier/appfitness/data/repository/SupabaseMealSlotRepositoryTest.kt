@@ -19,10 +19,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -101,35 +99,38 @@ class SupabaseMealSlotRepositoryTest {
     }
 
     @Test
-    fun save_callsRpcWithSlotsInOrderAndViewedDay() = runTest {
+    fun save_callsRpcWithSlotsInOrderWithoutViewedDay() = runTest {
         val repo = signedInRepository { "" }
 
         val result =
             repo.save(
                 listOf(
-                    MealSlotDraft("s1", MealCode.Breakfast, "Desayuno", true),
-                    MealSlotDraft(null, null, "Segundo desayuno", true),
-                    MealSlotDraft("s2", MealCode.Snack, "Merienda", false),
+                    MealSlotDraft("s1", MealCode.Breakfast, "Desayuno"),
+                    MealSlotDraft(null, null, "Segundo desayuno"),
+                    MealSlotDraft("s2", MealCode.Snack, "Merienda"),
                 ),
-                LocalDate(2026, 10, 20),
             )
 
         assertTrue(result.isSuccess)
         val request = requests.last()
         assertTrue(request.url.encodedPath.endsWith("/rpc/save_meal_slots"), request.url.toString())
         val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
-        assertEquals("2026-10-20", body["p_viewed_day"]?.jsonPrimitive?.content)
+        assertTrue("p_viewed_day" !in body)
         val slots = body["p_slots"]!!.jsonArray.map { it.jsonObject }
         assertEquals(listOf("s1", null, "s2"), slots.map { it["id"]?.jsonPrimitive?.contentOrNull })
         assertEquals(
             listOf("Desayuno", "Segundo desayuno", "Merienda"),
             slots.map { it["label"]?.jsonPrimitive?.content },
         )
-        assertEquals(listOf(true, true, false), slots.map { it["enabled"]?.jsonPrimitive?.boolean })
+        assertTrue(slots.none { "enabled" in it })
         assertTrue(slots.none { "code" in it })
     }
 
-    private suspend fun failingSave(status: HttpStatusCode, code: String): Result<Unit> {
+    private suspend fun failing(
+        status: HttpStatusCode,
+        code: String,
+        call: suspend (SupabaseMealSlotRepository) -> Result<Unit>,
+    ): Result<Unit> {
         val engine =
             MockEngine { request ->
                 val headers = headersOf(HttpHeaders.ContentType, "application/json")
@@ -142,12 +143,53 @@ class SupabaseMealSlotRepositoryTest {
         val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
         val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
         SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseMealSlotRepository(client.auth, client.postgrest)
-            .save(listOf(MealSlotDraft("s1", null, "A", true)), LocalDate(2026, 10, 20))
+        return call(SupabaseMealSlotRepository(client.auth, client.postgrest))
+    }
+
+    private suspend fun failingSave(status: HttpStatusCode, code: String): Result<Unit> =
+        failing(status, code) { it.save(listOf(MealSlotDraft("s1", null, "A"))) }
+
+    private suspend fun failingDelete(status: HttpStatusCode, code: String): Result<Unit> =
+        failing(status, code) { it.delete("s1") }
+
+    @Test
+    fun delete_callsRpcWithTheSlotId() = runTest {
+        val repo = signedInRepository { "" }
+
+        val result = repo.delete("s1")
+
+        assertTrue(result.isSuccess)
+        val request = requests.last()
+        assertTrue(request.url.encodedPath.endsWith("/rpc/delete_meal_slot"), request.url.toString())
+        val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
+        assertEquals("s1", body["p_id"]?.jsonPrimitive?.content)
     }
 
     @Test
-    fun save_entriesOnViewedDay_isValidationError() = runTest {
+    fun delete_lastMealOrWithEntries_isValidationError() = runTest {
+        assertEquals(AppError.Validation, failingDelete(HttpStatusCode.BadRequest, "23514").appErrorOrNull())
+    }
+
+    @Test
+    fun delete_unknownSlot_isNotFound() = runTest {
+        assertEquals(AppError.NotFound, failingDelete(HttpStatusCode.BadRequest, "P0002").appErrorOrNull())
+    }
+
+    @Test
+    fun delete_offline_isNetworkError() = runTest {
+        var fail = false
+        val repo =
+            signedInRepository {
+                if (fail) throw IOException("offline")
+                ""
+            }
+        fail = true
+
+        assertEquals(AppError.Network, repo.delete("s1").appErrorOrNull())
+    }
+
+    @Test
+    fun save_checkViolation_isValidationError() = runTest {
         assertEquals(AppError.Validation, failingSave(HttpStatusCode.BadRequest, "23514").appErrorOrNull())
     }
 

@@ -91,6 +91,32 @@ class FoodSearchScreenTest {
     }
 
     @Test
+    fun createIcon_isShownWithAndWithoutAQuery_andEmitsCreate() {
+        show(content(Chicken))
+        rule.onNodeWithTag("food_search_create_icon").assertExists()
+        rule.onNode(hasContentDescription("Crear alimento")).assertExists()
+        rule.onNodeWithTag("food_search_create_icon").performClick()
+        rule.onNodeWithTag("food_search_create_button").assertDoesNotExist()
+
+        assertEquals(listOf<FoodSearchEvent>(FoodSearchEvent.CreateFromEmpty), events)
+    }
+
+    @Test
+    fun createIcon_isShownWithAQuery_andAlongsideTheEmptyResultButton() {
+        show(FoodSearchUiState(query = "xyz", results = FoodResults.Empty))
+
+        rule.onNodeWithTag("food_search_create_icon").assertExists()
+        rule.onNodeWithTag("food_search_create_button").assertExists()
+    }
+
+    @Test
+    fun createIcon_isDisabledOffline() {
+        show(FoodSearchUiState(results = FoodResults.Error, isOffline = true))
+
+        rule.onNodeWithTag("food_search_create_icon").assertIsNotEnabled()
+    }
+
+    @Test
     fun scanButton_isDescribed_andEmitsTheScanEvent() {
         show(content(Chicken))
 

@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class ValidateMealSlotsTest {
     private val validate = ValidateMealSlots()
 
-    private fun draft(label: String, enabled: Boolean = true) = MealSlotDraft(null, null, label, enabled)
+    private fun draft(label: String) = MealSlotDraft(null, null, label)
 
     @Test
     fun validList_isValidAndLabelsAreTrimmed() {
@@ -42,14 +42,6 @@ class ValidateMealSlotsTest {
     @Test
     fun label_lengthIsMeasuredAfterTrimming() {
         assertTrue(validate(listOf(draft(" " + "a".repeat(50) + " "))).isValid)
-    }
-
-    @Test
-    fun noEnabledSlot_isInvalid() {
-        val result = validate(listOf(draft("Desayuno", enabled = false)))
-
-        assertTrue(result.noneEnabled)
-        assertFalse(result.isValid)
     }
 
     @Test

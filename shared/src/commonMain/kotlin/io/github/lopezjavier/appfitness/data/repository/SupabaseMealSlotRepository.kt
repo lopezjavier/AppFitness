@@ -7,6 +7,7 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.DeleteMealSlotParams
 import io.github.lopezjavier.appfitness.data.remote.MealSlotDraftDto
 import io.github.lopezjavier.appfitness.data.remote.MealSlotDto
 import io.github.lopezjavier.appfitness.data.remote.SaveMealSlotsParams
@@ -15,9 +16,8 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
-import kotlinx.datetime.LocalDate
 
-// Raised by `save_meal_slots`: entries on the viewed day block disabling, invalid shape, slot not the caller's.
+// Raised by `save_meal_slots` / `delete_meal_slot`: last meal or meal with entries, bad shape, foreign slot.
 private const val CHECK_VIOLATION = "23514"
 private const val INVALID_PARAMETER = "22023"
 private const val NO_DATA_FOUND = "P0002"
@@ -41,10 +41,17 @@ class SupabaseMealSlotRepository(private val auth: Auth, private val postgrest: 
             .map { it.toDomain() }
     }
 
-    override suspend fun save(slots: List<MealSlotDraft>, viewedDay: LocalDate): Result<Unit> = auth.ownRow {
-        postgrest.rpc("save_meal_slots", SaveMealSlotsParams(slots.map(MealSlotDraftDto::from), viewedDay))
+    override suspend fun save(slots: List<MealSlotDraft>): Result<Unit> = auth.ownRow {
+        postgrest.rpc("save_meal_slots", SaveMealSlotsParams(slots.map(MealSlotDraftDto::from)))
         Unit
-    }.recoverCatching { failure ->
+    }.mapRpcErrors()
+
+    override suspend fun delete(id: String): Result<Unit> = auth.ownRow {
+        postgrest.rpc("delete_meal_slot", DeleteMealSlotParams(id))
+        Unit
+    }.mapRpcErrors()
+
+    private fun Result<Unit>.mapRpcErrors(): Result<Unit> = recoverCatching { failure ->
         val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
         when (cause.code) {
             CHECK_VIOLATION, INVALID_PARAMETER -> throw AppException(AppError.Validation, cause)

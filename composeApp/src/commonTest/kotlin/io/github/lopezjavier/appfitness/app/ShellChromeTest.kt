@@ -55,11 +55,12 @@ class ShellChromeTest {
                 FoodSearchRoute::class,
                 AddFoodRoute::class,
                 CreateFoodRoute::class,
-                MealSlotsRoute::class,
+                MealSlotsRoute,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute ||
+                    it is MealSlotsRoute ||
                     it is LiveSessionRoute ||
                     it is HistoryRoute ||
                     it is StrengthRoute ||

@@ -41,7 +41,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.8 Portions and measures: each food has a base unit (`g` for solids, `ml` for drinks) and optional named portions; log by portion or amount.
 - FR-2.9 Favourites and "most eaten": star foods and see the most logged ones.
 - FR-2.10 Copy foods or a whole meal to another meal or day, and repeat yesterday's meal in one tap.
-- FR-2.11 Configurable meals: rename, reorder, enable/disable and add meals.
+- FR-2.11 Configurable meals: rename, reorder, add and delete meals (ADR-41).
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)

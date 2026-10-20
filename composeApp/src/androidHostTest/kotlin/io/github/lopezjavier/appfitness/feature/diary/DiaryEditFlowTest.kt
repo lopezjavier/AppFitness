@@ -85,7 +85,6 @@ class DiaryEditFlowTest {
                 onOpenPreferences = {},
                 onAddToMeal = { _, _ -> },
                 onAddFood = {},
-                onOpenMealSettings = {},
                 editHost = DiaryEditHost(
                     onEditEntry = { id, _ -> editing = id },
                     pendingDeleteEntryId = pendingDelete,
