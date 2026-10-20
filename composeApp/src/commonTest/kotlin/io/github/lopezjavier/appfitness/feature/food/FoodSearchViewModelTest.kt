@@ -3,6 +3,9 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +21,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,7 +40,10 @@ class FoodSearchViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(state: SavedStateHandle = savedState) = FoodSearchViewModel(repository, connectivity, state)
+    private val scanner = FakeBarcodeScanner()
+
+    private fun viewModel(state: SavedStateHandle = savedState) =
+        FoodSearchViewModel(repository, connectivity, scanner, state)
 
     private fun FoodSearchViewModel.type(text: String) = onEvent(FoodSearchEvent.QueryChanged(text))
 
@@ -271,5 +278,148 @@ class FoodSearchViewModelTest {
         assertEquals(FoodSearchTab.MostEaten, restored.uiState.value.tab)
         advanceUntilIdle()
         assertEquals(FoodResults.Content(listOf(chicken)), restored.uiState.value.results)
+    }
+
+    @Test
+    fun scan_foundProduct_opensIt() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("111")
+        repository.barcodeResults["111"] = Result.success(chicken)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ScanClicked)
+            advanceUntilIdle()
+            assertEquals(FoodSearchEffect.OpenFood(chicken), awaitItem())
+        }
+        assertNull(model.uiState.value.notFoundBarcode)
+    }
+
+    @Test
+    fun scan_drink_isPassedUntouched() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("222")
+        repository.barcodeResults["222"] = Result.success(milk)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ScanClicked)
+            advanceUntilIdle()
+            assertEquals("ml", assertIs<FoodSearchEffect.OpenFood>(awaitItem()).food.baseUnit)
+        }
+    }
+
+    @Test
+    fun scan_unknownProduct_setsTheNotFoundCode_andCreateOpensTheFormWithIt() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("333")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.ScanClicked)
+        advanceUntilIdle()
+        assertEquals("333", model.uiState.value.notFoundBarcode)
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.CreateFromNotFound)
+            assertEquals(FoodSearchEffect.OpenCreateFood(barcode = "333", name = null), awaitItem())
+        }
+    }
+
+    @Test
+    fun notFoundCode_survivesRecreation() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("333")
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(FoodSearchEvent.ScanClicked)
+        advanceUntilIdle()
+
+        val restored = viewModel(savedState)
+        advanceUntilIdle()
+
+        assertEquals("333", restored.uiState.value.notFoundBarcode)
+    }
+
+    @Test
+    fun scan_cancelled_changesNothing() = runTest(dispatcher) {
+        scanner.result = ScanResult.Cancelled
+        val model = viewModel()
+        advanceUntilIdle()
+        val before = model.uiState.value
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ScanClicked)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+        assertEquals(before, model.uiState.value)
+        assertTrue(repository.barcodeLookups.isEmpty())
+    }
+
+    @Test
+    fun scan_error_emitsTheFailureEffect() = runTest(dispatcher) {
+        scanner.result = ScanResult.Error
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ScanClicked)
+            advanceUntilIdle()
+            assertEquals(FoodSearchEffect.ScanFailed, awaitItem())
+        }
+    }
+
+    @Test
+    fun scan_lookupFailure_emitsTheFailureEffect_andKeepsNoNotFound() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("444")
+        repository.barcodeResults["444"] = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ScanClicked)
+            advanceUntilIdle()
+            assertEquals(FoodSearchEffect.ScanFailed, awaitItem())
+        }
+        assertNull(model.uiState.value.notFoundBarcode)
+    }
+
+    @Test
+    fun scan_offline_isIgnored() = runTest(dispatcher) {
+        connectivity.state.value = false
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.ScanClicked)
+        advanceUntilIdle()
+
+        assertEquals(0, scanner.scans)
+    }
+
+    @Test
+    fun emptyStateCreate_opensTheFormWithTheTrimmedQuery() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.type("  tortilla casera ")
+        advanceTimeBy(400)
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.CreateFromEmpty)
+            assertEquals(FoodSearchEffect.OpenCreateFood(barcode = null, name = "tortilla casera"), awaitItem())
+        }
+    }
+
+    @Test
+    fun typing_clearsTheNotFoundCard() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("333")
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(FoodSearchEvent.ScanClicked)
+        advanceUntilIdle()
+
+        model.type("a")
+        advanceUntilIdle()
+
+        assertNull(model.uiState.value.notFoundBarcode)
     }
 }

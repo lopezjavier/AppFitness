@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.NewFood
 import kotlinx.coroutines.flow.Flow
 
 /** The food catalogue and the signed-in user's favourites. A failure carries an `AppException`. */
@@ -24,6 +25,12 @@ interface FoodRepository {
 
     /** One food with its portions; fails with `AppError.NotFound` when it does not exist or is not readable. */
     suspend fun getById(id: String): Result<Food>
+
+    /** The product with this barcode through `food-barcode`; `Result.success(null)` when no product has it. */
+    suspend fun findByBarcode(code: String): Result<Food?>
+
+    /** Creates a personal food with its portions in one atomic call and returns it as stored. */
+    suspend fun createFood(food: NewFood): Result<Food>
 
     companion object {
         const val DEFAULT_RECENT_DAYS = 14

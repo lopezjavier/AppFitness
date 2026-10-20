@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
+import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
@@ -80,6 +81,7 @@ class AppModuleTest {
             listOf(
                 ConnectivityObserver::class,
                 Haptics::class,
+                BarcodeScanner::class,
                 AlertSound::class,
                 AuthRepository::class,
                 ProfileRepository::class,

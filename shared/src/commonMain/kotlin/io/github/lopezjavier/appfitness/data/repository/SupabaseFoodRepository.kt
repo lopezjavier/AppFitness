@@ -1,14 +1,17 @@
 package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.exceptions.NotFoundRestException
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.CreateFoodParams
 import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
+import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodDto
 import io.github.lopezjavier.appfitness.data.remote.FoodSearchResponseDto
 import io.github.lopezjavier.appfitness.data.remote.LoggedFoodDto
@@ -17,10 +20,12 @@ import io.github.lopezjavier.appfitness.data.remote.MostEatenParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -36,6 +41,7 @@ private const val RECENT_FOODS_LIMIT = 30
  * Food catalogue over `food-search` (text search), `foods` (read through RLS) and the signed-in user's
  * `favorite_foods`. The favourite ids are cached so the UI can flip a star without re-reading the list.
  */
+@Suppress("TooManyFunctions") // One function per FoodRepository operation.
 class SupabaseFoodRepository(
     private val auth: Auth,
     private val postgrest: Postgrest,
@@ -104,6 +110,38 @@ class SupabaseFoodRepository(
 
     override suspend fun getById(id: String): Result<Food> = auth.ownRow {
         known.value[id] ?: postgrest.from("foods")
+            .select(Columns.raw(FoodDto.COLUMNS)) { filter { eq("id", id) } }
+            .decodeList<FoodDto>()
+            .firstOrNull()
+            ?.toDomain()
+            ?.also { listOf(it).remembered() }
+            ?: throw AppException(AppError.NotFound)
+    }
+
+    override suspend fun findByBarcode(code: String): Result<Food?> = auth.ownRow {
+        try {
+            val response = functions.invoke("food-barcode") {
+                method = HttpMethod.Get
+                url { parameters.append("code", code) }
+            }
+            if (response.status == HttpStatusCode.NotFound) {
+                null
+            } else {
+                json.decodeFromString<FoodBarcodeResponseDto>(response.bodyAsText()).food.toDomain()
+                    .also { listOf(it).remembered() }
+            }
+        } catch (_: NotFoundRestException) {
+            null // `food-barcode` answers 404 FOOD_NOT_FOUND when no product has the code.
+        }
+    }
+
+    override suspend fun createFood(food: NewFood): Result<Food> = auth.ownRow {
+        val id = json.decodeFromString<String>(
+            postgrest.rpc("create_personal_food", CreateFoodParams.from(food)).data,
+        )
+        // Read it back so the portions carry their server ids and no stale copy is cached.
+        known.update { it - id }
+        postgrest.from("foods")
             .select(Columns.raw(FoodDto.COLUMNS)) { filter { eq("id", id) } }
             .decodeList<FoodDto>()
             .firstOrNull()

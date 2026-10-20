@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
@@ -100,6 +101,18 @@ data class ExerciseProgressRoute(val exerciseId: String) : AppRoute
  */
 @Serializable
 data class FoodSearchRoute(val slotId: String? = null, val date: String) : AppRoute
+
+/**
+ * Create-food form (US-18), opened from the search with the scanned [barcode] and/or the typed [name]; [slotId] and
+ * [date] are carried on to the add-food sheet of the new food.
+ */
+@Serializable
+data class CreateFoodRoute(
+    val barcode: String? = null,
+    val name: String? = null,
+    val slotId: String? = null,
+    val date: String,
+) : AppRoute
 
 /** The add-food sheet of [foodId], presented over the food search; [slotId] and [date] as in [FoodSearchRoute]. */
 @Serializable
@@ -205,6 +218,8 @@ val AppRoute.chrome: ShellChrome
             // The sheet shares the search chrome, so opening it does not redraw the bars.
             is FoodSearchRoute, is AddFoodRoute ->
                 ShellChrome.FullScreen(Res.string.food_search_title, topBarTag = "food_search")
+
+            is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -228,5 +243,6 @@ object AppDestinations {
             ExerciseProgressRoute(""),
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),
+            CreateFoodRoute(date = ""),
         )
 }

@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -45,4 +46,8 @@ class UnconfiguredFoodRepository : FoodRepository {
     override suspend fun setFavourite(foodId: String, favourite: Boolean): Result<Unit> = failure()
 
     override suspend fun getById(id: String): Result<Food> = failure()
+
+    override suspend fun findByBarcode(code: String): Result<Food?> = failure()
+
+    override suspend fun createFood(food: NewFood): Result<Food> = failure()
 }

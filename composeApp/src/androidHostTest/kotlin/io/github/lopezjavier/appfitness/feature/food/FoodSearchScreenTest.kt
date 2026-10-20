@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -32,8 +31,8 @@ class FoodSearchScreenTest {
 
     private val events = mutableListOf<FoodSearchEvent>()
 
-    private fun show(state: FoodSearchUiState, onCreateFood: (() -> Unit)? = null) {
-        rule.setContent { AppTheme { FoodSearchScreen(state, { events += it }, onCreateFood = onCreateFood) } }
+    private fun show(state: FoodSearchUiState, scanFailed: Boolean = false) {
+        rule.setContent { AppTheme { FoodSearchScreen(state, { events += it }, scanFailed = scanFailed) } }
         rule.waitForIdle()
     }
 
@@ -81,22 +80,59 @@ class FoodSearchScreenTest {
     }
 
     @Test
-    fun noResults_showsTheMessage_andNoCreateButtonWhileItIsNotWired() {
+    fun noResults_showsTheMessage_andOffersToCreateTheFood() {
         show(FoodSearchUiState(query = "xyzxyz", results = FoodResults.Empty))
 
         rule.onNodeWithTag("food_search_empty").assertExists()
         rule.onNodeWithText("No hemos encontrado alimentos").assertExists()
-        rule.onNode(hasText("Crear alimento")).assertDoesNotExist()
+        rule.onNodeWithTag("food_search_create_button").performClick()
+
+        assertEquals(listOf<FoodSearchEvent>(FoodSearchEvent.CreateFromEmpty), events)
     }
 
     @Test
-    fun noResults_withACreateAction_offersIt() {
-        var created = 0
-        show(FoodSearchUiState(query = "xyzxyz", results = FoodResults.Empty), onCreateFood = { created++ })
+    fun scanButton_isDescribed_andEmitsTheScanEvent() {
+        show(content(Chicken))
 
-        rule.onNodeWithText("Crear alimento").performClick()
+        rule.onNode(hasContentDescription("Escanear código de barras")).assertExists()
+        rule.onNodeWithTag("food_search_scan_button").performClick()
 
-        assertEquals(1, created)
+        assertEquals(listOf<FoodSearchEvent>(FoodSearchEvent.ScanClicked), events)
+    }
+
+    @Test
+    fun scanButton_isDisabledOffline_keepingItsDescription() {
+        show(FoodSearchUiState(results = FoodResults.Error, isOffline = true))
+
+        rule.onNodeWithTag("food_search_scan_button").assertIsNotEnabled()
+        rule.onNode(hasContentDescription("Escanear código de barras")).assertExists()
+    }
+
+    @Test
+    fun notFoundCard_showsTheCode_andOffersToCreate() {
+        show(FoodSearchUiState(results = FoodResults.Empty, notFoundBarcode = "8410000000017"))
+
+        rule.onNodeWithTag("food_search_not_found_card").assertExists()
+        rule.onNodeWithText("Producto no encontrado").assertExists()
+        rule.onNodeWithTag("food_search_not_found_create_button").performClick()
+
+        assertEquals(listOf<FoodSearchEvent>(FoodSearchEvent.CreateFromNotFound), events)
+    }
+
+    @Test
+    fun noNotFoundCard_withoutAScannedCode() {
+        show(content(Chicken))
+
+        rule.onNodeWithTag("food_search_not_found_card").assertDoesNotExist()
+        rule.onNodeWithTag("food_search_scan_error").assertDoesNotExist()
+    }
+
+    @Test
+    fun scanFailure_showsTheGenericMessage() {
+        show(content(Chicken), scanFailed = true)
+
+        rule.onNodeWithTag("food_search_scan_error").assertExists()
+        rule.onNodeWithText("No se pudo leer el código. Inténtalo de nuevo.").assertExists()
     }
 
     @Test

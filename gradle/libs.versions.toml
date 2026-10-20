@@ -46,6 +46,7 @@ androidx-compose-ui-test = "1.12.1"
 supabase-bom = "3.8.0"
 ktor = "3.5.1"
 androidx-credentials = "1.6.0"
+play-services-code-scanner = "16.1.0"
 googleid = "1.2.1"
 coil = "3.6.3"
 # Latest stable multiplatform charts (T-048); 3.3.0-next.* are pre-releases and excluded.
@@ -94,6 +95,7 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+play-services-code-scanner = { module = "com.google.android.gms:play-services-code-scanner", version.ref = "play-services-code-scanner" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }

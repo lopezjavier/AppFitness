@@ -27,6 +27,7 @@ data class FoodSearchUiState(
     val results: FoodResults = FoodResults.Loading,
     val favouriteIds: Set<String> = emptySet(),
     val isOffline: Boolean = false,
+    val notFoundBarcode: String? = null,
 )
 
 sealed interface FoodSearchEvent {
@@ -42,6 +43,15 @@ sealed interface FoodSearchEvent {
 
     /** Reload after an error. */
     data object Retry : FoodSearchEvent
+
+    /** The scan button was tapped (ignored offline). */
+    data object ScanClicked : FoodSearchEvent
+
+    /** "Crear alimento" of the not-found card: opens the form with the scanned code. */
+    data object CreateFromNotFound : FoodSearchEvent
+
+    /** "Crear alimento" of the empty state: opens the form with the typed query as the name. */
+    data object CreateFromEmpty : FoodSearchEvent
 }
 
 sealed interface FoodSearchEffect {
@@ -50,4 +60,10 @@ sealed interface FoodSearchEffect {
 
     /** A favourite change was rolled back because the server refused it. */
     data object FavouriteFailed : FoodSearchEffect
+
+    /** Open the create-food form, prefilled with [barcode] and/or [name] when not null. */
+    data class OpenCreateFood(val barcode: String?, val name: String?) : FoodSearchEffect
+
+    /** The scanner failed or the product lookup failed (generic retry message). */
+    data object ScanFailed : FoodSearchEffect
 }

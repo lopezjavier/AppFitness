@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import kotlinx.serialization.SerialName
@@ -53,6 +54,41 @@ internal data class FoodDto(
 /** Body of `food-search`. */
 @Serializable
 internal data class FoodSearchResponseDto(val results: List<FoodDto> = emptyList(), val source: String? = null)
+
+/** Body of a 200 from `food-barcode`. */
+@Serializable
+internal data class FoodBarcodeResponseDto(val food: FoodDto)
+
+@Serializable
+internal data class CreateFoodPortionParam(val label: String, val amount: Double)
+
+/** Arguments of the `create_personal_food` function; the food and its portions are stored in one transaction. */
+@Serializable
+internal data class CreateFoodParams(
+    @SerialName("p_name") val name: String,
+    @SerialName("p_brand") val brand: String?,
+    @SerialName("p_base_unit") val baseUnit: String,
+    @SerialName("p_kcal") val kcal: Double,
+    @SerialName("p_protein") val protein: Double,
+    @SerialName("p_carbs") val carbs: Double,
+    @SerialName("p_fat") val fat: Double,
+    @SerialName("p_barcode") val barcode: String?,
+    @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
+) {
+    companion object {
+        fun from(food: NewFood) = CreateFoodParams(
+            name = food.name.trim(),
+            brand = food.brand?.trim()?.takeIf { it.isNotEmpty() },
+            baseUnit = food.baseUnit,
+            kcal = food.nutrition.kcal,
+            protein = food.nutrition.proteinG,
+            carbs = food.nutrition.carbsG,
+            fat = food.nutrition.fatG,
+            barcode = food.barcode?.trim()?.takeIf { it.isNotEmpty() },
+            portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
+        )
+    }
+}
 
 /** Row of `favorite_foods` with the food embedded. */
 @Serializable

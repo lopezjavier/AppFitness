@@ -4,7 +4,10 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
+import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
+import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +33,16 @@ internal fun food(
     portions = portions,
     imageUrl = null,
 )
+
+/** Test double of [BarcodeScanner]: answers [result] and counts the scans. */
+internal class FakeBarcodeScanner(var result: ScanResult = ScanResult.Cancelled) : BarcodeScanner {
+    var scans = 0
+
+    override suspend fun scan(): ScanResult {
+        scans++
+        return result
+    }
+}
 
 /**
  * Test double of [FoodRepository]: [searchResults] answers by query (an unknown query finds nothing), the
@@ -77,6 +90,43 @@ internal class FakeFoodRepository : FoodRepository {
 
     override suspend fun getById(id: String): Result<Food> =
         known[id]?.let { Result.success(it) } ?: Result.failure(AppException(AppError.NotFound))
+
+    /** Answers of [findByBarcode] by code; an unknown code finds nothing. */
+    val barcodeResults = mutableMapOf<String, Result<Food?>>()
+    val barcodeLookups = mutableListOf<String>()
+
+    override suspend fun findByBarcode(code: String): Result<Food?> {
+        barcodeLookups += code
+        return barcodeResults[code] ?: Result.success(null)
+    }
+
+    /** The foods passed to [createFood]. */
+    val created = mutableListOf<NewFood>()
+
+    /** When set, [createFood] fails with it; otherwise it stores and returns a food with id "new-<n>". */
+    var createFailure: Throwable? = null
+
+    /** When set, [createFood] suspends until it completes. */
+    var createGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun createFood(food: NewFood): Result<Food> {
+        created += food
+        createGate?.await()
+        createFailure?.let { return Result.failure(it) }
+        val stored = Food(
+            id = "new-${created.size}",
+            name = food.name,
+            brand = food.brand,
+            baseUnit = food.baseUnit,
+            nutrition = food.nutrition,
+            servingLabel = null,
+            servingAmount = null,
+            portions = food.portions.mapIndexed { i, p -> FoodPortion("p$i", p.label, p.amount) },
+            imageUrl = null,
+        )
+        known[stored.id] = stored
+        return Result.success(stored)
+    }
 
     fun failSearch(query: String) {
         searchResults[query] = Result.failure(AppException(AppError.Network))

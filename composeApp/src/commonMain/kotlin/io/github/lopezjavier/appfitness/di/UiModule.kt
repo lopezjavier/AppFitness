@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerci
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
+import io.github.lopezjavier.appfitness.feature.food.CreateFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
@@ -69,6 +70,16 @@ val uiModule =
                 validateQuantity = get(),
                 defaultMealSlot = get(),
                 clock = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
+        // Blank barcode / name mean "not prefilled" (Koin parameters cannot be null).
+        viewModel { (barcode: String, name: String) ->
+            CreateFoodViewModel(
+                barcode = barcode.ifBlank { null },
+                name = name.ifBlank { null },
+                foodRepository = get(),
                 connectivity = get(),
                 savedState = get(),
             )

@@ -1560,8 +1560,8 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 ---
 
 ### Checkpoint E4-A — Log food by search and see the day 👤
-- [ ] T-055…T-057 merged, CI green, `deploy-supabase` applied both migrations and deployed `food-search` and `food-barcode`.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+- [x] T-055…T-057 merged, CI green, `deploy-supabase` applied both migrations and deployed `food-search` and `food-barcode`.
+- [x] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Diario: today shows Desayuno, Comida, Merienda and Cena, the ring and the three macro bars; go to "Ayer" and back; the right arrow stops at today.
   - "Añadir a la comida", search real foods ("pechuga pollo", "avena", "yogur griego"): results appear after you stop typing; add one with grams, one with a named portion ("1 huevo"), a drink in ml; check the ring, bars and section totals update at once.
   - Go past your target and read "+N kcal en exceso"; an empty meal shows "Te quedan N kcal".
@@ -1578,19 +1578,19 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** `BarcodeScanner` port (domain) with the ML Kit `GmsBarcodeScanning` implementation in `androidMain` (EAN-13, EAN-8, UPC-A, UPC-E; Google's own full-screen UI, no camera permission, ADR-07) and a fake for host tests; result: code, cancelled or error. A scanner icon in the food search; a found code (`food-barcode`) opens the T-057 food sheet with an editable quantity (ml for drinks); 404 → "Producto no encontrado" with "Crear alimento", which opens the creation form with the barcode filled in; cancelling returns to the search with no message. "Crear alimento" is also offered on the search's "No hemos encontrado alimentos" state (the search text prefilled as the name). Creation form: name, optional brand, base unit g or ml, kcal / protein / carbs / fat per 100 base units, optional named portions (label + amount in the base unit); "Guardar" disabled with a field error for an empty name or negative values; saving creates a personal food (`source = 'user'`, `created_by` = caller, barcode when it came from a scan) with its portions atomically (an RPC + pgTAP if the planner needs one transaction; then a new migration), then opens its sheet to add it to a meal. Rescanning the same code finds the user's own food (T-055 lookup). Form draft restored after background and process death (ADR-40); disabled offline.
 
 **Acceptance criteria:**
-- [ ] Scanner icon → the Google scanner; a known code opens the food sheet; "Añadir" logs it in the selected meal.
-- [ ] A drink per 100 ml shows the quantity in ml.
-- [ ] Unknown code → "Producto no encontrado" + "Crear alimento" → form with the barcode filled in; after saving, scanning it again opens that food.
-- [ ] Closing the scanner without a code returns to the search with no error.
-- [ ] "Tortilla de patatas casera", 190 kcal, 7 g P, 15 g C, 11 g F per 100 g → personal food, source "user", base unit "g", and its sheet opens; with the portion "1 ración" = 250 g, that portion is offered whenever the food is logged.
-- [ ] Empty name or negative kcal → "Guardar" disabled and the field shows the error.
-- [ ] Another user never sees the created food (covered by T-055 pgTAP; repository test that the insert carries `source = 'user'`).
+- [x] Scanner icon → the Google scanner; a known code opens the food sheet; "Añadir" logs it in the selected meal.
+- [x] A drink per 100 ml shows the quantity in ml.
+- [x] Unknown code → "Producto no encontrado" + "Crear alimento" → form with the barcode filled in; after saving, scanning it again opens that food.
+- [x] Closing the scanner without a code returns to the search with no error.
+- [x] "Tortilla de patatas casera", 190 kcal, 7 g P, 15 g C, 11 g F per 100 g → personal food, source "user", base unit "g", and its sheet opens; with the portion "1 ración" = 250 g, that portion is offered whenever the food is logged.
+- [x] Empty name or negative kcal → "Guardar" disabled and the field shows the error.
+- [x] Another user never sees the created food (covered by T-055 pgTAP; repository test that the insert carries `source = 'user'`).
 
 **Host tests (per scenario):** `ScanFoodViewModelTest` with a fake `BarcodeScanner` (Product found; Drink scanned; Product not found; Scan cancelled); `CreateFoodViewModelTest` (Manual food creation; Adding a portion; Creating a named portion; Manual creation validation; barcode prefill; search-text prefill); `CreateFoodScreenTest` and `FoodSearchScreenTest` additions (Robolectric: "Producto no encontrado", disabled "Guardar" with errors, "Crear alimento" on no results); restoration tests; pgTAP only if an RPC is added.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase test db` and `deploy-supabase` if a migration is added).
-- [ ] `assembleProdDebug` includes the code-scanner dependency (pinned, stable) and no camera permission in the merged manifest.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase test db` and `deploy-supabase` if a migration is added).
+- [x] `assembleProdDebug` includes the code-scanner dependency (pinned, stable) and no camera permission in the merged manifest.
 
 **Dependencies:** Checkpoint E4-A
 **Files likely touched:** `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `shared/…/domain/port/BarcodeScanner.kt`, `composeApp/src/androidMain/…/platform/MlKitBarcodeScanner.kt`, `shared/…/domain/repository/FoodRepository.kt` (barcode lookup, create food), `shared/…/data/repository/*`, DI, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel,ScanFoodViewModel,CreateFoodScreen,CreateFoodViewModel,CreateFoodUiState}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, optionally a migration + pgTAP, strings, tests

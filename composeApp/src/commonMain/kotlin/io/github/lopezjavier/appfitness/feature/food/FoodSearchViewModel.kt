@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -28,6 +30,7 @@ import kotlinx.coroutines.launch
 
 private const val KEY_QUERY = "food_search_query"
 private const val KEY_TAB = "food_search_tab"
+private const val KEY_NOT_FOUND = "food_search_not_found"
 private const val SEARCH_DEBOUNCE_MS = 400L
 
 /** What to load: a text search or the content of an empty-box tab; [attempt] changes on every retry. */
@@ -42,6 +45,7 @@ private data class Request(val query: String, val tab: FoodSearchTab, val attemp
 class FoodSearchViewModel(
     private val foodRepository: FoodRepository,
     connectivity: ConnectivityObserver,
+    private val barcodeScanner: BarcodeScanner,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
@@ -52,6 +56,8 @@ class FoodSearchViewModel(
     private val attempt = MutableStateFlow(0)
     private val favouriteIds = MutableStateFlow<Set<String>>(emptySet())
     private val online = MutableStateFlow(true)
+    private val notFoundBarcode = MutableStateFlow(savedState.get<String>(KEY_NOT_FOUND))
+    private var scanning = false
 
     private val effectChannel = Channel<FoodSearchEffect>(Channel.BUFFERED)
     val effects: Flow<FoodSearchEffect> = effectChannel.receiveAsFlow()
@@ -71,9 +77,16 @@ class FoodSearchViewModel(
             .flatMapLatest { request -> load(request) }
 
     val uiState: StateFlow<FoodSearchUiState> =
-        combine(query, tab, results, favouriteIds, online) { q, t, r, f, o ->
-            FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, FoodSearchUiState(query = query.value, tab = tab.value))
+        combine(
+            combine(query, tab, results, favouriteIds, online) { q, t, r, f, o ->
+                FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
+            },
+            notFoundBarcode,
+        ) { state, code -> state.copy(notFoundBarcode = code) }.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            FoodSearchUiState(query = query.value, tab = tab.value, notFoundBarcode = notFoundBarcode.value),
+        )
 
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
@@ -86,6 +99,7 @@ class FoodSearchViewModel(
             is FoodSearchEvent.QueryChanged -> {
                 query.value = event.text
                 savedState[KEY_QUERY] = event.text
+                setNotFound(null)
             }
 
             is FoodSearchEvent.TabSelected -> {
@@ -98,7 +112,47 @@ class FoodSearchViewModel(
             is FoodSearchEvent.SelectFood -> effectChannel.trySend(FoodSearchEffect.OpenFood(event.food))
 
             FoodSearchEvent.Retry -> attempt.update { it + 1 }
+
+            FoodSearchEvent.ScanClicked -> scan()
+
+            FoodSearchEvent.CreateFromNotFound ->
+                effectChannel.trySend(FoodSearchEffect.OpenCreateFood(barcode = notFoundBarcode.value, name = null))
+
+            FoodSearchEvent.CreateFromEmpty -> effectChannel.trySend(
+                FoodSearchEffect.OpenCreateFood(barcode = null, name = query.value.trim().ifEmpty { null }),
+            )
         }
+    }
+
+    private fun setNotFound(code: String?) {
+        notFoundBarcode.value = code
+        savedState[KEY_NOT_FOUND] = code
+    }
+
+    private fun scan() {
+        if (scanning || !online.value) return
+        scanning = true
+        viewModelScope.launch {
+            try {
+                when (val scanned = barcodeScanner.scan()) {
+                    is ScanResult.Code -> lookUp(scanned.value)
+                    ScanResult.Cancelled -> Unit
+                    ScanResult.Error -> effectChannel.trySend(FoodSearchEffect.ScanFailed)
+                }
+            } finally {
+                scanning = false
+            }
+        }
+    }
+
+    private suspend fun lookUp(code: String) {
+        setNotFound(null)
+        foodRepository.findByBarcode(code).fold(
+            onSuccess = { found ->
+                if (found == null) setNotFound(code) else effectChannel.trySend(FoodSearchEffect.OpenFood(found))
+            },
+            onFailure = { effectChannel.trySend(FoodSearchEffect.ScanFailed) },
+        )
     }
 
     private fun load(request: Request): Flow<FoodResults> = flow {

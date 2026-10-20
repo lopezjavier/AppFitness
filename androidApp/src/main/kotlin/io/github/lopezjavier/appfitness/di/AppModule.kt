@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
+import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.platform.AndroidAlertSound
@@ -11,6 +12,7 @@ import io.github.lopezjavier.appfitness.platform.AndroidConnectivityObserver
 import io.github.lopezjavier.appfitness.platform.AndroidHaptics
 import io.github.lopezjavier.appfitness.platform.CurrentActivityHolder
 import io.github.lopezjavier.appfitness.platform.GoogleAuthCredentialProvider
+import io.github.lopezjavier.appfitness.platform.MlKitBarcodeScanner
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -29,5 +31,6 @@ val appModule =
         single<Haptics> { AndroidHaptics(androidContext()) }
         single<AlertSound> { AndroidAlertSound(androidContext()) }
         single { CurrentActivityHolder() }
+        single<BarcodeScanner> { MlKitBarcodeScanner(get()) }
         single<AuthCredentialProvider> { GoogleAuthCredentialProvider(get(), get()) }
     }
