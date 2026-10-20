@@ -171,7 +171,7 @@ Feature: Live workout session
     Given the routine "Torso fuerza" with Press de banca (3 × 8) and Dominadas (3 × 8)
     When the user taps "Empezar" on that routine
     Then an in-progress session is created
-    And the session screen is shown with the "EN VIVO" stopwatch and the "Pantalla activa" indicator
+    And the session screen is shown with the "EN VIVO" stopwatch (the screen stays on while it is open, with no on-screen indicator)
     And its ⋮ menu offers "Finalizar entreno" above "Descartar entreno" (there is no fixed bottom button)
     And each exercise shows 3 set rows with the columns SERIE, ANTERIOR, KG, REPS and LISTO
 

@@ -1,5 +1,8 @@
 package io.github.lopezjavier.appfitness.di
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
@@ -30,6 +33,11 @@ val appModule =
         single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
         single<Haptics> { AndroidHaptics(androidContext()) }
         single<AlertSound> { AndroidAlertSound(androidContext()) }
+        single<DataStore<Preferences>> {
+            PreferenceDataStoreFactory.create {
+                androidContext().filesDir.resolve("datastore/appfitness.preferences_pb")
+            }
+        }
         single { CurrentActivityHolder() }
         single<BarcodeScanner> { MlKitBarcodeScanner(get()) }
         single<AuthCredentialProvider> { GoogleAuthCredentialProvider(get(), get()) }

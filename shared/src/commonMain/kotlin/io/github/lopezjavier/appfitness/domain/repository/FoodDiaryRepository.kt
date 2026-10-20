@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
 
@@ -19,4 +20,22 @@ interface FoodDiaryRepository {
 
     /** Logs a food; on success the entry joins the cache of its day, so [entries] re-emits without a refresh. */
     suspend fun addEntry(entry: NewFoodEntry): Result<FoodLogEntry>
+
+    /** Changes the amount, portion, meal and snapshot of entry [id]; the cache of its day is updated in place. */
+    suspend fun updateEntry(id: String, update: UpdatedFoodEntry): Result<FoodLogEntry>
+
+    /** Deletes entry [id]; it leaves the cache of its day. */
+    suspend fun deleteEntry(id: String): Result<Unit>
+
+    /**
+     * Undoes a delete: inserts [entry] again with its original id and values, so repeating it is harmless. It may
+     * come back last in its meal (the order is by creation time).
+     */
+    suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry>
+
+    /** Logs several foods in ONE request (copy, repeat); each created entry joins the cache of its day if loaded. */
+    suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>>
+
+    /** Deletes the entries [ids] in ONE request (undo of a copy); they leave the cache. */
+    suspend fun deleteEntries(ids: List<String>): Result<Unit>
 }

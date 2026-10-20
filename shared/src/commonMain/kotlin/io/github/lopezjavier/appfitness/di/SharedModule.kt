@@ -6,6 +6,7 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.SystemClock
+import io.github.lopezjavier.appfitness.data.local.DataStoreDiaryPreferences
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
@@ -35,6 +36,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiaryPreferences
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -49,6 +51,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -160,8 +163,11 @@ val sharedModule =
             }
         }
         single<Clock> { SystemClock() }
+        // The DataStore<Preferences> comes from the platform module.
+        single<DiaryPreferences> { DataStoreDiaryPreferences(get()) }
         factory { BuildDiaryDay() }
         factory { ResolvePortion() }
+        factory { RecalculateEntry(get(), get(), get()) }
         factory { ScaleNutrition() }
         factory { ValidateQuantity() }
         factory { DefaultMealSlot() }

@@ -7,8 +7,10 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryDto
 import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryInsertDto
+import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryUpdateDto
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,5 +47,59 @@ class SupabaseFoodDiaryRepository(private val auth: Auth, private val postgrest:
         // A day that was never loaded has no cache yet; its first refresh will include the entry.
         cache.update { days -> days[created.logDate]?.let { days + (created.logDate to (it + created)) } ?: days }
         created
+    }
+
+    override suspend fun updateEntry(id: String, update: UpdatedFoodEntry): Result<FoodLogEntry> = auth.ownRow {
+        val updated = postgrest.from("food_log_entries")
+            .update(FoodLogEntryUpdateDto.from(update)) {
+                select(Columns.raw(FoodLogEntryDto.COLUMNS))
+                filter { eq("id", id) }
+            }
+            .decodeSingle<FoodLogEntryDto>()
+            .toDomain()
+        cache.update { days ->
+            days.mapValues { (_, entries) -> entries.map { if (it.id == id) updated else it } }
+        }
+        updated
+    }
+
+    override suspend fun deleteEntry(id: String): Result<Unit> = auth.ownRow {
+        postgrest.from("food_log_entries").delete { filter { eq("id", id) } }
+        cache.update { days -> days.mapValues { (_, entries) -> entries.filterNot { it.id == id } } }
+    }
+
+    override suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry> = auth.ownRow {
+        val restored = postgrest.from("food_log_entries")
+            .insert(FoodLogEntryInsertDto.restoring(entry)) { select(Columns.raw(FoodLogEntryDto.COLUMNS)) }
+            .decodeSingle<FoodLogEntryDto>()
+            .toDomain()
+        cache.update { days ->
+            days[restored.logDate]?.let { loaded ->
+                days + (restored.logDate to (loaded.filterNot { it.id == restored.id } + restored))
+            } ?: days
+        }
+        restored
+    }
+
+    override suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>> = auth.ownRow {
+        if (entries.isEmpty()) return@ownRow emptyList()
+        val created = postgrest.from("food_log_entries")
+            .insert(entries.map(FoodLogEntryInsertDto::from)) { select(Columns.raw(FoodLogEntryDto.COLUMNS)) }
+            .decodeList<FoodLogEntryDto>()
+            .map { it.toDomain() }
+        cache.update { days ->
+            days.mapValues { (date, loaded) ->
+                val joining = created.filter { it.logDate == date }
+                if (joining.isEmpty()) loaded else loaded + joining
+            }
+        }
+        created
+    }
+
+    override suspend fun deleteEntries(ids: List<String>): Result<Unit> = auth.ownRow {
+        if (ids.isEmpty()) return@ownRow
+        postgrest.from("food_log_entries").delete { filter { isIn("id", ids) } }
+        val gone = ids.toSet()
+        cache.update { days -> days.mapValues { (_, entries) -> entries.filterNot { it.id in gone } } }
     }
 }

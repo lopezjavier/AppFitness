@@ -1630,18 +1630,18 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Tapping an entry opens the edit sheet (reusing `PortionSelector` and the meal selector): change the amount or portion and the meal, "Guardar" recalculates the snapshot from the food's per-100 values (`ScaleNutrition`) and moves it between sections. Swipe left → "Eliminar" → the entry disappears and a snackbar with "Deshacer" re-inserts it. Copy: select entries (selection mode, ux-reviewer) → "Copiar alimentos" → destination meal and day (Q3, user 2026-10-20: any past day, today or a future day; the Diary itself stays capped at today, so future copies show up when that day arrives) → copies logged in one batch insert; "Copiar comida" on a section copies all its entries the same way; "Repetir comida de ayer" on an empty meal adds yesterday's entries of that slot with a "Deshacer" confirmation (undo deletes the inserted rows). Copies keep amounts, portion labels and snapshots. View menu with `ViewModeSelector` (new design-system component on `SegmentedSelector`): "Detalle", "Lista", "Resumen" (Q2, user 2026-10-20: Detalle = each entry with its amount, kcal and P/C/F grams; Lista = one compact line per entry with name, amount and kcal; Resumen = each meal's name, kcal and macros only, entries hidden); the mode is a DataStore preference kept across launches. Ring, bars and section totals update in place after every write. Edit-sheet draft and selection restored after background and process death (ADR-40); writes disabled offline; failed writes keep the user's input with a message-only snackbar (02 §9).
 
 **Acceptance criteria:**
-- [ ] "Pechuga de pollo 220 g · 242 kcal" edited to 150 g → "150 g · 165 kcal"; meal and day totals recalculated without a reload.
-- [ ] Swipe + "Eliminar" removes the entry; "Deshacer" restores it with the same values.
-- [ ] Changing the meal from "Merienda" to "Cena" in the edit sheet moves the entry.
-- [ ] Copying "Pechuga de pollo" from Comida to Cena or to another day logs a copy there in one request; copying a three-food Comida to tomorrow's Comida adds the three foods with the same quantities (visible when tomorrow is today); the Diary's right arrow still stops at today.
-- [ ] "Repetir comida de ayer" on an empty meal adds yesterday's foods of that meal; "Deshacer" removes them; the button is not offered when yesterday's meal was empty (ux-reviewer: hidden or disabled).
-- [ ] Q2/Q3 recorded in the US-19 scenarios or technical notes of `planning/epics/E4-food-diary.md` (no new ADR).
-- [ ] The view menu offers "Detalle" (entries with amount, kcal and P/C/F), "Lista" (one line per entry: name, amount, kcal) and "Resumen"; "Resumen" hides entries and shows each meal's name, kcal and macros; the chosen view is kept after closing and reopening the app.
+- [x] "Pechuga de pollo 220 g · 242 kcal" edited to 150 g → "150 g · 165 kcal"; meal and day totals recalculated without a reload.
+- [x] Swipe + "Eliminar" removes the entry; "Deshacer" restores it with the same values.
+- [x] Changing the meal from "Merienda" to "Cena" in the edit sheet moves the entry.
+- [x] Copying "Pechuga de pollo" from Comida to Cena or to another day logs a copy there in one request; copying a three-food Comida to tomorrow's Comida adds the three foods with the same quantities (visible when tomorrow is today); the Diary's right arrow still stops at today.
+- [x] "Repetir comida de ayer" on an empty meal adds yesterday's foods of that meal; "Deshacer" removes them; the button is not offered when yesterday's meal was empty (ux-reviewer: hidden or disabled).
+- [x] Q2/Q3 recorded in the US-19 scenarios or technical notes of `planning/epics/E4-food-diary.md` (no new ADR).
+- [x] The view menu offers "Detalle" (entries with amount, kcal and P/C/F), "Lista" (one line per entry: name, amount, kcal) and "Resumen"; "Resumen" hides entries and shows each meal's name, kcal and macros; the chosen view is kept after closing and reopening the app.
 
 **Host tests (per scenario):** `DiaryEditViewModelTest` with fakes + Turbine (Editing an entry's quantity; Moving an entry; Immediate update); `DiaryViewModelTest` additions (Deleting + undo; Copying foods; Copying a whole meal; Repeating yesterday's meal + undo; Switching the view persisted through a fake preferences store); `FoodDiaryRepositoryTest` (batch insert is one request; undo payloads); `DiaryScreenTest` additions (Robolectric: swipe → "Eliminar", snackbar "Deshacer", Summary view hides entries, view menu); restoration tests.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-059
 **Files likely touched:** `shared/…/domain/usecase/{CopyEntries,RepeatYesterdayMeal}.kt` + tests, `shared/…/domain/repository/{FoodDiaryRepository,DiaryPreferences}.kt`, `shared/…/data/repository/*`, `shared/…/data/local/*` (DataStore), DI, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,DiaryUiState,MealSection,EditEntrySheet,EditEntryViewModel,CopyEntriesSheet}.kt`, `composeApp/…/designsystem/ViewModeSelector.kt`, catalog, strings, tests

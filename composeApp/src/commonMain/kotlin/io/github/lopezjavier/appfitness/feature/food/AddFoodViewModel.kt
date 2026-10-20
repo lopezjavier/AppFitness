@@ -214,10 +214,10 @@ class AddFoodViewModel(
 private fun defaultAmountText(food: Food, portionId: String): String =
     if (portionId.isNotEmpty()) formatNumber(SINGLE) else formatNumber(food.servingAmount ?: DEFAULT_AMOUNT)
 
-private fun portionLabel(portion: FoodPortion, count: Double?): String =
+internal fun portionLabel(portion: FoodPortion, count: Double?): String =
     if (count == null || count == SINGLE) portion.label else "${formatNumber(count)} × ${portion.label}"
 
-private fun parseAmount(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()
+internal fun parseAmount(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()
 
-private fun formatNumber(value: Double): String =
+internal fun formatNumber(value: Double): String =
     if (value == floor(value)) value.toLong().toString() else value.toString()

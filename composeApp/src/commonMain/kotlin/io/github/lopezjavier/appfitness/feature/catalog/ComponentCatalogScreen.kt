@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_but
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_cards
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_chips
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_segmented
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_view_mode
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_enabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_pressed
@@ -55,6 +56,7 @@ import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.ViewModeSelector
 import org.jetbrains.compose.resources.stringResource
 
 private const val DEFAULT_TIMEFRAME_INDEX = 1
@@ -81,6 +83,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         item { ButtonsSection() }
         item { ChipsSection() }
         item { SegmentedSection() }
+        item { ViewModeSection() }
         dataVizItems()
         workoutInputItems()
         pickerItems()
@@ -223,6 +226,19 @@ private fun SegmentedSection() {
             selectedIndex = selected,
             onSelect = { selected = it },
             modifier = Modifier.testTag("catalog_segmented"),
+        )
+    }
+}
+
+@Composable
+private fun ViewModeSection() {
+    var viewMode by rememberSaveable { mutableIntStateOf(0) }
+    CatalogSection(stringResource(Res.string.catalog_section_view_mode), "catalog_section_view_mode") {
+        ViewModeSelector(
+            selectedIndex = viewMode,
+            onSelect = { viewMode = it },
+            modifier = Modifier.testTag("catalog_view_mode"),
+            testTagPrefix = "catalog_view_mode",
         )
     }
 }

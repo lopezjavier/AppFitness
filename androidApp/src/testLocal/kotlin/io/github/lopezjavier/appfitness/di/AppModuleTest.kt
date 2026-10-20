@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
@@ -13,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiaryPreferences
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -27,6 +29,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -75,6 +78,7 @@ class AppModuleTest {
                 ConnectivityObserver::class,
                 AuthCredentialProvider::class,
                 ExerciseLibrary::class,
+                DataStore::class,
             ),
         )
         uiModule.verify(
@@ -93,6 +97,8 @@ class AppModuleTest {
                 FoodRepository::class,
                 BuildDiaryDay::class,
                 ResolvePortion::class,
+                RecalculateEntry::class,
+                DiaryPreferences::class,
                 ScaleNutrition::class,
                 ValidateQuantity::class,
                 ValidateMealSlots::class,

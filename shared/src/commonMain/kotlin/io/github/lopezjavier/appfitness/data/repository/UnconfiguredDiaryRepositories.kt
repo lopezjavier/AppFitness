@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -33,6 +34,19 @@ class UnconfiguredFoodDiaryRepository : FoodDiaryRepository {
 
     override suspend fun addEntry(entry: NewFoodEntry): Result<FoodLogEntry> =
         Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun updateEntry(id: String, update: UpdatedFoodEntry): Result<FoodLogEntry> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun deleteEntry(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun deleteEntries(ids: List<String>): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Used when Supabase is not configured: nothing is found and every write fails. */

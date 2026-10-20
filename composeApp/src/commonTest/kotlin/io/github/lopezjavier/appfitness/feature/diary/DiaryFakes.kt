@@ -2,11 +2,14 @@ package io.github.lopezjavier.appfitness.feature.diary
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DiaryViewMode
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
+import io.github.lopezjavier.appfitness.domain.repository.DiaryPreferences
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -72,8 +75,16 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
     override suspend fun refresh(date: LocalDate): Result<Unit> {
         refreshed += date
         gate?.await()
+        if (date in failingDays) return Result.failure(AppException(AppError.Network))
         if (refreshResult.isSuccess) cache.update { it + (date to server[date].orEmpty()) }
         return refreshResult
+    }
+
+    private val failingDays = mutableSetOf<LocalDate>()
+
+    /** Makes [refresh] fail for [date] only. */
+    fun failRefreshOf(date: LocalDate) {
+        failingDays += date
     }
 
     val added = mutableListOf<NewFoodEntry>()
@@ -101,7 +112,101 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
         return Result.success(created)
     }
 
+    val updated = mutableListOf<Pair<String, UpdatedFoodEntry>>()
+    var updateResult: Result<Unit> = Result.success(Unit)
+
+    /** Like the real repository: the entry is replaced in the cache of its day, which re-emits. */
+    override suspend fun updateEntry(id: String, update: UpdatedFoodEntry): Result<FoodLogEntry> {
+        if (updateResult.isFailure) return Result.failure(updateResult.exceptionOrNull()!!)
+        val current = cache.value.values.flatten().first { it.id == id }
+        updated += id to update
+        val edited = current.copy(
+            mealSlotId = update.mealSlotId,
+            amount = update.amount,
+            portionLabel = update.portionLabel,
+            kcal = update.snapshot.kcal,
+            proteinG = update.snapshot.proteinG,
+            carbsG = update.snapshot.carbsG,
+            fatG = update.snapshot.fatG,
+        )
+        cache.update { days -> days.mapValues { (_, list) -> list.map { if (it.id == id) edited else it } } }
+        return Result.success(edited)
+    }
+
+    val deleted = mutableListOf<String>()
+    var deleteResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun deleteEntry(id: String): Result<Unit> {
+        if (deleteResult.isFailure) return deleteResult
+        deleted += id
+        cache.update { days -> days.mapValues { (_, list) -> list.filterNot { it.id == id } } }
+        return Result.success(Unit)
+    }
+
+    val restored = mutableListOf<FoodLogEntry>()
+    var restoreResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry> {
+        if (restoreResult.isFailure) return Result.failure(restoreResult.exceptionOrNull()!!)
+        restored += entry
+        cache.update { days -> days[entry.logDate]?.let { days + (entry.logDate to (it + entry)) } ?: days }
+        return Result.success(entry)
+    }
+
+    /** One element per [addEntries] call, so a test can assert a copy is a single request. */
+    val addedBatches = mutableListOf<List<NewFoodEntry>>()
+    val deletedBatches = mutableListOf<List<String>>()
+    var batchResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>> {
+        if (batchResult.isFailure) return Result.failure(batchResult.exceptionOrNull()!!)
+        addedBatches += entries
+        val created = entries.mapIndexed { index, entry ->
+            FoodLogEntry(
+                id = "batch-${addedBatches.size}-$index",
+                logDate = entry.date,
+                mealSlotId = entry.mealSlotId,
+                foodId = entry.foodId,
+                foodName = entry.foodName,
+                amount = entry.amount,
+                portionLabel = entry.portionLabel,
+                baseUnit = "g",
+                kcal = entry.snapshot.kcal,
+                proteinG = entry.snapshot.proteinG,
+                carbsG = entry.snapshot.carbsG,
+                fatG = entry.snapshot.fatG,
+            )
+        }
+        cache.update { days ->
+            days.mapValues { (date, list) -> list + created.filter { it.logDate == date } }
+        }
+        return Result.success(created)
+    }
+
+    override suspend fun deleteEntries(ids: List<String>): Result<Unit> {
+        if (batchResult.isFailure) return batchResult
+        deletedBatches += ids
+        cache.update { days -> days.mapValues { (_, list) -> list.filterNot { it.id in ids } } }
+        return Result.success(Unit)
+    }
+
+    fun failBatch() {
+        batchResult = Result.failure(AppException(AppError.Network))
+    }
+
     fun push(date: LocalDate, entries: List<FoodLogEntry>) = cache.update { it + (date to entries) }
+
+    fun failUpdate() {
+        updateResult = Result.failure(AppException(AppError.Network))
+    }
+
+    fun failDelete() {
+        deleteResult = Result.failure(AppException(AppError.Network))
+    }
+
+    fun failRestore() {
+        restoreResult = Result.failure(AppException(AppError.Network))
+    }
 
     fun failAdd() {
         addResult = Result.failure(AppException(AppError.Network))
@@ -109,5 +214,17 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
 
     fun failRefresh() {
         refreshResult = Result.failure(AppException(AppError.Network))
+    }
+}
+
+/** In-memory [DiaryPreferences]; [modes] records every value set. */
+internal class FakeDiaryPreferences(initial: DiaryViewMode = DiaryViewMode.Detail) : DiaryPreferences {
+    private val mode = MutableStateFlow(initial)
+    val modes = mutableListOf<DiaryViewMode>()
+    override val viewMode: Flow<DiaryViewMode> = mode
+
+    override suspend fun setViewMode(mode: DiaryViewMode) {
+        modes += mode
+        this.mode.value = mode
     }
 }

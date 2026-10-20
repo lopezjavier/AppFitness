@@ -30,6 +30,8 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
+            // DiaryPreferences (view mode); the store itself is created per platform.
+            api(libs.androidx.datastore.preferences.core)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)

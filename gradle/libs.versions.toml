@@ -51,6 +51,8 @@ googleid = "1.2.1"
 coil = "3.6.3"
 # Latest stable multiplatform charts (T-048); 3.3.0-next.* are pre-releases and excluded.
 vico = "3.3.1"
+# Latest stable (1.2.1, T-060); multiplatform preferences store for the Diary view mode.
+datastore = "1.2.1"
 
 # Lint (T-016). Stable releases only.
 ktlint-gradle = "14.2.0"
@@ -101,6 +103,7 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vico" }
 coil-test = { module = "io.coil-kt.coil3:coil-test", version.ref = "coil" }
+androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
