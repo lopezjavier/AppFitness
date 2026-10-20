@@ -107,6 +107,13 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Preferencias: drop the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." under "Gasto diario estimado" (not needed) | Checkpoint E2-B, 2026-10-19 |
 | Preferencias: "Guardar" should close the screen and return to the Perfil root (today the user taps Guardar and then back: two actions) | Checkpoint E2-B, 2026-10-19 |
 | Perfil root: replace the full-width "Preferencias" button with a gear or pencil icon button next to the user's name, to leave room for the metrics and charts the Perfil will gain | Checkpoint E2-B, 2026-10-19 |
+| Diario: remove the redundant "restantes" label and the macro percentages (the grams "9 g / 233 g" are enough) | Checkpoint E4-A, 2026-10-20 |
+| Diario: remove the full-width "Añadir comida" button (each meal already has its "Añadir a …" button) | Checkpoint E4-A, 2026-10-20 |
+| Diario: layout with the meals first (Desayuno, Comida, Merienda, Cena) and the calorie ring at the bottom | Checkpoint E4-A, 2026-10-20 |
+| Diario: each logged food shows P / C / G (not only the meal total), besides name, grams and kcal | Checkpoint E4-A, 2026-10-20 |
+| Diario: tapping a logged food opens its details (the nutrition data Open Food Facts returns for it); to be reconciled with the entry editing of T-060 | Checkpoint E4-A, 2026-10-20 |
+| Diario: add an "Almuerzo" meal between Desayuno and Comida (product decision: default meals / ADR-?, to confirm with the user) | Checkpoint E4-A, 2026-10-20 |
+| Diario: a calendar button next to the day name (to the right of "Hoy") to jump to a given day, e.g. the same day last month; to be reconciled with the history calendar of T-063 | Checkpoint E4-A, 2026-10-20 |
 
 ---
 
