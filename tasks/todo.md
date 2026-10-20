@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ☐ · E4 ☐ · E5 ☐ · E6 ☐
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
 ---
 
@@ -1451,18 +1451,18 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 - [x] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
 - [x] T-050…T-054 merged with green CI; Checkpoints E3-C…E3-G approved (2026-10-20); `deploy-supabase` green if any of them added a migration.
 - [x] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
-- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
+- [x] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
 
 **Verification:**
-- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
+- [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.3.0` after approval.
 
 **Dependencies:** T-054 (and Checkpoints E3-C…E3-G)
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
 ### Checkpoint E3-B — E3 closure: final regression and approval 👤
-- [ ] T-050…T-054 and T-049 merged, CI green, every reported bug fixed.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and run one real workout end to end as a final regression:
+- [x] T-050…T-054 and T-049 merged, CI green, every reported bug fixed.
+- [x] 👤 *(merged into Checkpoint E3-C…G; the user's approval of 2026-10-20 counts as the final approval)* Install the APK (`! python scripts/deliver-apk.py`) and run one real workout end to end as a final regression:
   - Build a routine with a custom exercise and a superset, start it, log sets with LISTO and ANTERIOR, let a rest end (vibration + sound), finish from ⋮ and read the summary.
   - Open it in "Historial", correct a set; check Perfil → "Fuerza" and "Volumen por grupo muscular" with the new data.
   - Leave the app and come back: the same tab, screen and draft are restored.
