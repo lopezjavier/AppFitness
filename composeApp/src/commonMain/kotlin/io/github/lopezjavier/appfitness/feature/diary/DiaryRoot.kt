@@ -1,0 +1,39 @@
+package io.github.lopezjavier.appfitness.feature.diary
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.LocalDate
+import org.koin.compose.viewmodel.koinViewModel
+
+/**
+ * Stateful "Diario" tab: connects [DiaryViewModel]. [onOpenPreferences] leads the "Configura tu objetivo" prompt to
+ * Preferencias; [onAddToMeal] receives the meal and day to add food to. On resume the goals are reloaded so a goal
+ * set in Preferencias shows up.
+ */
+@Composable
+fun DiaryRoot(
+    onOpenPreferences: () -> Unit,
+    onAddToMeal: (slotId: String, date: LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: DiaryViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnAddToMeal by rememberUpdatedState(onAddToMeal)
+    val currentOnOpenPreferences by rememberUpdatedState(onOpenPreferences)
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is DiaryEffect.AddToMeal -> currentOnAddToMeal(effect.slotId, effect.date)
+                DiaryEffect.OpenPreferences -> currentOnOpenPreferences()
+            }
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(DiaryEvent.Refresh) }
+    DiaryScreen(state, viewModel::onEvent, modifier)
+}

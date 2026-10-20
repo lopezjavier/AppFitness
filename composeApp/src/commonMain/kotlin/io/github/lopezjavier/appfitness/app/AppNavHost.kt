@@ -26,7 +26,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
-import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 
 /**
  * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener, the catalog opener (null where
@@ -70,6 +69,9 @@ internal typealias RoutinesSlot =
         onOpenLiveSession: () -> Unit,
         onOpenHistory: () -> Unit,
     ) -> Unit
+
+/** The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias. */
+internal typealias DiarySlot = @Composable (modifier: Modifier, onOpenPreferences: () -> Unit) -> Unit
 
 /** History content: modifier (full-screen insets) and the opener of a session detail (by session id). */
 internal typealias HistorySlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
@@ -169,6 +171,11 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("live_screen"))
 }
 
+/** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultDiarySlot: DiarySlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("diary_screen"))
+}
+
 /** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("history_screen"))
@@ -219,6 +226,7 @@ internal fun AppNavHost(
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
+    diary: DiarySlot = DefaultDiarySlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
@@ -237,7 +245,7 @@ internal fun AppNavHost(
         remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
-            composable<DiaryHome> { DiaryScreen(Modifier.padding(tabPadding)) }
+            composable<DiaryHome> { diary(Modifier.padding(tabPadding), openPreferences) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> {

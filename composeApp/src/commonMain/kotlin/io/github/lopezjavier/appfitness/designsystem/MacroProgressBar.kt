@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_bar_state
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.floor
 
 /** Display strings of a macro bar; unit symbols are not translatable copy. */
 @Immutable
@@ -50,6 +51,8 @@ object MacroProgressBarDefaults {
     val DotSize: Dp = Spacing.sm
     val Shape = AppShapes.full
     private const val PERCENT = 100L
+    private const val TENTHS = 10L
+    private const val HALF = 0.5
 
     /** `round(consumed / target x 100)`, half up, in integer math. A negative consumed counts as 0. */
     fun percent(consumedGrams: Int, targetGrams: Int): Int {
@@ -58,6 +61,31 @@ object MacroProgressBarDefaults {
         val target = targetGrams.toLong()
         return ((consumed * PERCENT * 2 + target) / (target * 2)).toInt()
     }
+
+    /**
+     * Half-up percent of a gram value with decimals (the data keeps 0.1 g). It is rounded to tenths first, so the
+     * integer math stays exact: 100.9 / 200 -> 50.
+     */
+    fun percent(consumedGrams: Double, targetGrams: Int): Int {
+        require(targetGrams > 0) { "target must be positive but was $targetGrams" }
+        val tenths = floor(consumedGrams.coerceAtLeast(0.0) * TENTHS + HALF).toLong()
+        val target = targetGrams.toLong()
+        return ((tenths * PERCENT * 2 + TENTHS * target) / (TENTHS * target * 2)).toInt()
+    }
+
+    fun fillFraction(consumedGrams: Double, targetGrams: Int): Float {
+        require(targetGrams > 0) { "target must be positive but was $targetGrams" }
+        return (consumedGrams / targetGrams).toFloat().coerceIn(0f, 1f)
+    }
+
+    /** Whole grams (half up) for the consumed value; the percentage comes from the tenths. */
+    fun text(consumedGrams: Double, targetGrams: Int): MacroBarText = MacroBarText(
+        consumed = "${AppNumberFormat.integer(wholeGrams(consumedGrams))} g",
+        target = "${AppNumberFormat.integer(targetGrams)} g",
+        percent = "${AppNumberFormat.integer(percent(consumedGrams, targetGrams))} %",
+    )
+
+    internal fun wholeGrams(consumedGrams: Double): Int = floor(consumedGrams.coerceAtLeast(0.0) + HALF).toInt()
 
     /** Fill fraction capped to 0f..1f; the text still shows the real percentage. */
     fun fillFraction(consumedGrams: Int, targetGrams: Int): Float {
@@ -91,6 +119,16 @@ fun MacroProgressBar(
     consumedGrams: Int,
     targetGrams: Int,
     modifier: Modifier = Modifier,
+) = MacroProgressBar(label, macro, consumedGrams.toDouble(), targetGrams, modifier)
+
+/** [MacroProgressBar] for a consumed value with decimals; it is shown as whole grams, half up. */
+@Composable
+fun MacroProgressBar(
+    label: String,
+    macro: Macro,
+    consumedGrams: Double,
+    targetGrams: Int,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     val macroColor = MacroDefaults.color(macro, colors)
@@ -99,7 +137,7 @@ fun MacroProgressBar(
     val stateText =
         stringResource(
             Res.string.macro_bar_state,
-            AppNumberFormat.integer(consumedGrams.coerceAtLeast(0)),
+            AppNumberFormat.integer(MacroProgressBarDefaults.wholeGrams(consumedGrams)),
             AppNumberFormat.integer(targetGrams),
             AppNumberFormat.integer(MacroProgressBarDefaults.percent(consumedGrams, targetGrams)),
         )

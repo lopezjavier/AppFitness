@@ -512,4 +512,27 @@
     <string name="muscle_volume_chart_cd_week">semana del %1$s, %2$s</string>
     <string name="muscle_volume_empty_message">Aún no hay volumen en las últimas 8 semanas. Entrena para verlo por grupo muscular.</string>
     <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular</string>
+    <string name="diary_prev_day">Día anterior</string>
+    <string name="diary_next_day">Día siguiente</string>
+    <string name="diary_goals_prompt_title">Configura tu objetivo</string>
+    <string name="diary_goals_prompt_hint">Define tus calorías y macros para ver tu progreso diario.</string>
+    <string name="diary_error_message">No se pudo cargar tu diario</string>
+    <string name="diary_meal_kcal">%1$s kcal</string>
+    <string name="diary_meal_protein">P %1$s g</string>
+    <string name="diary_meal_carbs">C %1$s g</string>
+    <string name="diary_meal_fat">G %1$s g</string>
+    <string name="diary_remaining_hint">Te quedan %1$s kcal</string>
+    <string name="diary_section_expanded">Expandida</string>
+    <string name="diary_section_collapsed">Contraída</string>
+    <string name="diary_meal_breakfast">Desayuno</string>
+    <string name="diary_meal_lunch">Comida</string>
+    <string name="diary_meal_snack">Merienda</string>
+    <string name="diary_meal_dinner">Cena</string>
+    <string name="diary_add_breakfast">Añadir al desayuno</string>
+    <string name="diary_add_lunch">Añadir a la comida</string>
+    <string name="diary_add_snack">Añadir a la merienda</string>
+    <string name="diary_add_dinner">Añadir a la cena</string>
+    <string name="diary_add_custom">Añadir a %1$s</string>
+    <string name="diary_entry_amount">%1$s %2$s</string>
+    <string name="diary_entry_kcal">%1$s kcal</string>
 </resources>

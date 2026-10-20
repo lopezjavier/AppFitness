@@ -8,6 +8,35 @@ import kotlin.test.assertFailsWith
 
 class MacroProgressBarTest {
     @Test
+    fun percent_decimalInput_halfUp() {
+        assertEquals(50, MacroProgressBarDefaults.percent(100.9, 200))
+        assertEquals(79, MacroProgressBarDefaults.percent(142.0, 180))
+        assertEquals(13, MacroProgressBarDefaults.percent(1.0, 8))
+        assertEquals(0, MacroProgressBarDefaults.percent(-1.0, 8))
+        assertEquals(111, MacroProgressBarDefaults.percent(200.0, 180))
+    }
+
+    @Test
+    fun fillFraction_decimalInput_capped() {
+        assertEquals(0.5f, MacroProgressBarDefaults.fillFraction(90.0, 180), 0.0001f)
+        assertEquals(1f, MacroProgressBarDefaults.fillFraction(200.5, 180))
+    }
+
+    @Test
+    fun text_decimalInput_showsWholeGramsHalfUp() {
+        val text = MacroProgressBarDefaults.text(141.5, 180)
+        assertEquals("142 g", text.consumed)
+        assertEquals("79 %", text.percent)
+        assertEquals("100 g", MacroProgressBarDefaults.text(99.9, 200).consumed)
+    }
+
+    @Test
+    fun decimalInput_nonPositiveTarget_throws() {
+        assertFailsWith<IllegalArgumentException> { MacroProgressBarDefaults.percent(10.0, 0) }
+        assertFailsWith<IllegalArgumentException> { MacroProgressBarDefaults.fillFraction(10.0, 0) }
+    }
+
+    @Test
     fun percent_rulesExample() {
         assertEquals(79, MacroProgressBarDefaults.percent(142, 180))
         assertEquals(78, MacroProgressBarDefaults.percent(210, 270))

@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewMo
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
+import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
@@ -36,6 +37,16 @@ val uiModule =
                 bodyMeasurementRepository = get(),
                 savePreferences = get(),
                 connectivity = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
+        viewModel {
+            DiaryViewModel(
+                mealSlots = get(),
+                foodDiary = get(),
+                goalsRepository = get(),
+                buildDiaryDay = get(),
                 clock = get(),
                 savedState = get(),
             )

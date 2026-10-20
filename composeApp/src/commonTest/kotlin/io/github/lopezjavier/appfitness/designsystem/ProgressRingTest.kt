@@ -12,6 +12,27 @@ class ProgressRingTest {
     private val c = KineticDarkColors
 
     @Test
+    fun state_decimalConsumed_roundsHalfUpSoRemainingMatchesShownKcal() {
+        val s = ProgressRingDefaults.state(1839.6, 2400)
+        assertEquals(560, s.remaining)
+        assertFalse(s.isOverTarget)
+    }
+
+    @Test
+    fun state_decimalConsumed_justOverAfterRounding_isOver() {
+        val s = ProgressRingDefaults.state(2549.6, 2400)
+        assertTrue(s.isOverTarget)
+        assertEquals(-150, s.remaining)
+    }
+
+    @Test
+    fun state_decimalConsumed_justBelowTargetRoundsToTarget_isNotOver() {
+        val s = ProgressRingDefaults.state(2400.4, 2400)
+        assertFalse(s.isOverTarget)
+        assertEquals(0, s.remaining)
+    }
+
+    @Test
     fun state_zeroConsumed_sweep0_notOver() {
         val s = ProgressRingDefaults.state(0, 2400)
         assertEquals(0f, s.sweepAngle)

@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
+import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
@@ -49,6 +50,10 @@ fun AppRoot(
         },
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
+        },
+        diary = { diaryModifier, onOpenPreferences ->
+            // Adding food arrives with T-057; the effect is a deliberate no-op until then.
+            DiaryRoot(onOpenPreferences, { _, _ -> }, diaryModifier)
         },
         history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
         sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->
