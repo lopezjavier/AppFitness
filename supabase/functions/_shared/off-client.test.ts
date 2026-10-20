@@ -179,7 +179,7 @@ Deno.test("searchOff: retries once after a transient OFF 503 and returns the pro
         );
     };
     const foods = await searchOff(
-        { fetch: fakeFetch, userAgent: "AppFitness/test" },
+        { fetch: fakeFetch, userAgent: "AppFitness/test", sleep: noSleep },
         "cereales",
         1,
     );
@@ -187,10 +187,74 @@ Deno.test("searchOff: retries once after a transient OFF 503 and returns the pro
     assertEquals(foods.length, 2);
 });
 
+const noSleep = () => Promise.resolve();
+
+function countingDeps(respond: () => Promise<Response>) {
+    const state = { calls: 0 };
+    return {
+        state,
+        deps: {
+            fetch: () => {
+                state.calls++;
+                return respond();
+            },
+            userAgent: "AppFitness/test",
+            sleep: noSleep,
+        },
+    };
+}
+
+Deno.test("searchOff: two consecutive 503s surface OffError after exactly two calls", async () => {
+    const { state, deps } = countingDeps(() =>
+        Promise.resolve(new Response("busy", { status: 503 }))
+    );
+    const err = await assertRejects(
+        () => searchOff(deps, "avena", 1),
+        OffError,
+    );
+    assertEquals(err.status, 503);
+    assertEquals(state.calls, 2);
+});
+
+Deno.test("searchOff: a timeout is not retried", async () => {
+    const { state, deps } = countingDeps(() =>
+        Promise.reject(new DOMException("t", "TimeoutError"))
+    );
+    const err = await assertRejects(
+        () => searchOff(deps, "avena", 1),
+        OffError,
+    );
+    assertEquals(err.kind, "timeout");
+    assertEquals(state.calls, 1);
+});
+
+Deno.test("searchOff: 4xx and 429 responses are not retried", async () => {
+    for (const status of [400, 404, 429]) {
+        const { state, deps } = countingDeps(() =>
+            Promise.resolve(new Response("x", { status }))
+        );
+        const err = await assertRejects(
+            () => searchOff(deps, "avena", 1),
+            OffError,
+        );
+        assertEquals(err.status, status);
+        assertEquals(state.calls, 1);
+    }
+});
+
+Deno.test("searchOff: invalid JSON is not retried", async () => {
+    const { state, deps } = countingDeps(() =>
+        Promise.resolve(new Response("<html>", { status: 200 }))
+    );
+    await assertRejects(() => searchOff(deps, "avena", 1), OffError);
+    assertEquals(state.calls, 1);
+});
+
 Deno.test("OFF failures surface as OffError (HTTP error, network error, timeout)", async () => {
     const mk = (f: () => Promise<Response>) => ({
         fetch: f,
         userAgent: "AppFitness/test",
+        sleep: noSleep,
     });
     const http = await assertRejects(
         () =>
