@@ -90,12 +90,13 @@ internal fun EditSetSheet(edit: EditSetState, busy: Boolean, onEvent: (SessionDe
 
 @Composable
 private fun EditFields(weight: String, reps: String, onWeight: (String) -> Unit, onReps: (String) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    // NumberInput fills its width, so each field needs an equal weight or the first one takes the whole row.
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         NumberInput(
             value = weight,
             onValueChange = onWeight,
             label = stringResource(Res.string.session_edit_weight),
-            modifier = Modifier.testTag("session_edit_weight"),
+            modifier = Modifier.weight(1f).testTag("session_edit_weight"),
             maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
             maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
         )
@@ -103,7 +104,7 @@ private fun EditFields(weight: String, reps: String, onWeight: (String) -> Unit,
             value = reps,
             onValueChange = onReps,
             label = stringResource(Res.string.session_edit_reps),
-            modifier = Modifier.testTag("session_edit_reps"),
+            modifier = Modifier.weight(1f).testTag("session_edit_reps"),
             maxDecimals = SetRowDefaults.REPS_MAX_DECIMALS,
             maxIntegerDigits = SetRowDefaults.REPS_MAX_INTEGER_DIGITS,
         )
