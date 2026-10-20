@@ -1,7 +1,7 @@
 # E4 · Food diary → `v0.4.0`
 
 ## Goal
-Log what you eat in fewer than 3 taps (search, scanner or template) and see the calories and macros consumed against the target at all times.
+Log what you eat in fewer than 3 taps (search, scanner or saved meal) and see the calories and macros consumed against the target at all times.
 
 ## Scope
 - Includes: food catalog with an Open Food Facts cache (base unit g or ml, named portions), text search, scanner, manual creation, favourites, daily diary with configurable meals, dashboard, meal templates, and diary history/summaries.
@@ -284,46 +284,48 @@ Feature: Daily dashboard
 
 ---
 
-## US-21 · Meal templates
+## US-21 · Saved meals (templates)
 **As** a user with recurring meals
-**I want** to save a meal as a template and add it with one tap
+**I want** to save a meal as a named "comida" and add it to any meal from the search
 **So that** I don't log the same foods one by one every day.
 
 ```gherkin
-Feature: Meal templates
+Feature: Saved meals
 
-  Scenario: Saving a section as a template
+  Scenario: Saving a section as a comida
     Given today's Desayuno contains "Huevos revueltos 120 g" and "Batido de proteína 300 g"
-    When the user taps the "Guardar como plantilla" icon of Desayuno
+    When the user taps the "Guardar como comida" icon of Desayuno
     And names it "Desayuno A"
-    Then the template "Desayuno A" is created with those two foods and quantities
+    Then the comida "Desayuno A" is created with those two foods and quantities
 
   Scenario: Duplicate name
-    Given the template "Desayuno A" already exists
+    Given the comida "Desayuno A" already exists
     When they try to save another one with the same name
-    Then "Ya existe una plantilla con ese nombre" is shown
+    Then "Ya existe una comida con ese nombre" is shown
 
-  Scenario: Quick add
-    Given the 580 kcal template "Desayuno A"
-    When the user taps the "Añadir rápido Desayuno A" chip on the Diary
-    Then its foods are added to Desayuno of the visible day
-    And the dashboard adds 580 kcal immediately
-    And a confirmation with "Deshacer" and haptic feedback is shown
-
-  Scenario: Adding a template to another meal
-    When from "Añadir a la comida" they choose the "Plantillas" tab and select "Desayuno A"
+  Scenario: Adding a comida to a meal
+    When from "Añadir a la comida" they choose the "Comidas" tab and select "Desayuno A"
     Then its foods are added to the chosen meal
+    And the dashboard updates immediately
 
-  Scenario: Managing templates
-    Given the template list in the search
-    When the user edits "Desayuno A" (rename, change quantities, remove foods) or deletes it
-    Then the changes are saved
-    And diary entries already created from that template do not change
+  Scenario: Editing a comida
+    Given the comida "Desayuno A" in the "Comidas" tab
+    When the user edits it (change quantities, remove foods) and taps "Guardar"
+    Then they choose "Sobrescribir" or "Guardar como nueva"
+    And "Sobrescribir" replaces "Desayuno A"
+    And "Guardar como nueva" asks for a name and creates another comida, leaving "Desayuno A" unchanged
+    And diary entries already created from it do not change
+
+  Scenario: Renaming and deleting a comida
+    When the user renames or deletes "Desayuno A" from the "Comidas" tab
+    Then the change is saved
+    And diary entries already created from it do not change
 ```
 
 **Technical notes**
-- `meal_templates` + `meal_template_items` migration + RLS (items via parent) + pgTAP.
-- "Quick add": batch insert of `food_log_entries` (one request). Chips: templates whose meal matches the current time slot, at most 3.
+- Backend and code keep the name `meal_templates` / `meal_template_items` (only the UI wording is "comida", ADR-42).
+- No quick-add chips on the Diary (user decision 2026-10-21, ADR-42): the "Comidas" tab of the search is the only way to add a saved meal.
+- Adding a comida is a batch insert of `food_log_entries` (one request) with snapshots from current food values.
 
 ---
 
@@ -475,7 +477,7 @@ Feature: Diary history
 ---
 
 ## Epic Definition of Done
-- A full breakfast logged from a template in 1 tap, and a new food via search in ≤ 3 taps after opening the search.
+- A full breakfast logged from a saved comida in a few taps from the search, and a new food via search in ≤ 3 taps after opening the search.
 - A drink logged in ml and a solid logged by a named portion.
 - The Diary can be renamed/reordered and its entries copied to another meal or day.
 - `deno test` tests for the functions with fixtures; pgTAP for the 7 tables.

@@ -1,7 +1,7 @@
 # Implementation Plan: E4 · Food diary → `v0.4.0`
 
 ## Overview
-Log what you eat in fewer than 3 taps (search, scanner or template) and see the calories and macros consumed against the target at all times. The epic builds our own food catalog cached from Open Food Facts (base unit g or ml, named portions), the Diario tab with configurable meals and a dashboard, text search with recents / most eaten / favourites, barcode scanning and manual foods, editing, copying and view modes, meal templates, and the diary history with weekly and monthly summaries.
+Log what you eat in fewer than 3 taps (search, scanner or saved meal) and see the calories and macros consumed against the target at all times. The epic builds our own food catalog cached from Open Food Facts (base unit g or ml, named portions), the Diario tab with configurable meals and a dashboard, text search with recents / most eaten / favourites, barcode scanning and manual foods, editing, copying and view modes, meal templates, and the diary history with weekly and monthly summaries.
 
 Sources: `planning/epics/E4-food-diary.md` (US-16…US-24), `planning/01-phase1-scope.md` FR-2, `planning/03-data-model.md` §1/§3/§6/§7, `planning/04-business-rules.md` §2 and §5, `planning/05-design-system.md` (§5 components: `ProgressRing`, `MacroProgressBar`, `ViewModeSelector`, `PortionSelector`, `FavouriteToggle`, `MonthCalendarGrid`, `DiaryHistoryRow`), ADR-01, ADR-06, ADR-07, ADR-17, ADR-29, ADR-32, ADR-33, ADR-34, ADR-36, ADR-40. Tasks: `tasks/todo.md` (T-055…T-063). Earlier plans are in the git history.
 
@@ -12,7 +12,7 @@ Out of scope (epic file): user-uploaded food images, micronutrients, composite r
 - **Default meals for existing users.** Seeding runs when `onboarding_completed` becomes true (idempotent trigger) and the migration backfills every already-onboarded user, so the E2/E3 users get Desayuno/Comida/Merienda/Cena.
 - **Open Food Facts only through Edge Functions (ADR-06).** `_shared/off-client.ts` normalizes (base unit from `nutrition_data_per`, kJ → kcal, servings → `food_portions`); `off` rows are written with the secret key (ADR-17), reusing the `delete-account` key lookup (`SUPABASE_SECRET_KEYS`, legacy fallback). `deno test` uses recorded fixtures, never the network.
 - **Snapshots in the domain.** `ScaleNutrition` (`kcal_100 × amount / 100`, 0.1) and `ResolvePortion` live in `shared` and are the only place entry values are computed (log, edit, copy, templates). Diary totals derive from one `StateFlow` (no second query); gram targets come from `CalculateMacroTargets` (T-037).
-- **Batch writes.** Template quick add is one batch insert of `food_log_entries`; "Deshacer" deletes the inserted rows (quick add).
+- **Batch writes.** Adding a saved comida is one batch insert of `food_log_entries` (no quick add, ADR-42).
 - **Platform port for the scanner.** `BarcodeScanner` (domain) + ML Kit `GmsBarcodeScanning` in `androidMain` (no camera permission, ADR-07); a fake in host tests.
 - **Local preferences.** None for the Diary (the view-mode preference was removed in T-066); everything else is server data.
 - **Restoration (ADR-40).** Visible day, search query and tab, sheets and every form draft survive background and process death; each UI task ships `StateRestorationTester` + recreated-ViewModel tests.
@@ -36,7 +36,7 @@ Out of scope (epic file): user-uploaded food images, micronutrients, composite r
 - [ ] T-061: Meal templates (US-21) — UI + backend — L
 - [ ] T-062: Diary history and summaries (US-24) — UI + backend — M
 - [ ] T-063: E4 closure — PM — S
-  - **Checkpoint E4-C 👤:** save a section as a template, duplicate name, one-tap quick add with "Deshacer", "Plantillas" tab, edit and delete; history calendar, open a day, day / week / month summaries, "Sin registros"; final regression of one real day end to end; leave the app and come back; approval → `v0.4.0` and the retrospective.
+  - **Checkpoint E4-C 👤:** save a section as a comida, duplicate name, "Comidas" tab, edit (overwrite or save as new), rename and delete; history calendar, open a day, day / week / month summaries, "Sin registros"; final regression of one real day end to end; leave the app and come back; approval → `v0.4.0` and the retrospective.
 
 Three checkpoints by user decision (2026-10-20), overriding the one-per-functionality default for E4. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones (not 👤): pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task; `deploy-supabase` green after each migration (T-055, T-057, T-061, T-062, and T-058/T-059 if they add one).
 
@@ -70,6 +70,6 @@ v0.3.0 ─► T-055 ─► T-056 ─► T-057 ─► [E4-A 👤] ─► T-058 �
 - **Assumptions (non-blocking; the planner applies them unless the user objects at E4-A/E4-C):**
   - Default meal when none is preselected: the enabled default slot matching the time rule (before 11:00 Desayuno, 11–16 Comida, 16–20 Merienda, later Cena); if that slot is disabled, the first enabled slot of the day.
   - "Crear alimento" from an empty search prefills the name with the search text; a food created from a scan stores the barcode, so rescanning finds it.
-  - Template quick-add chips appear only for templates whose meal is the current time slot's meal (templates saved from custom meals or with no meal are reachable from the "Plantillas" tab only).
+  - No quick-add chips (user decision 2026-10-21, ADR-42): saved comidas are added only from the "Comidas" tab of the search.
   - History summaries compare against the current target (no target history is stored).
   - Where the meal settings and "Historial" are opened from the Diary is a layout choice for ux-reviewer (e.g. the Diary's menu).

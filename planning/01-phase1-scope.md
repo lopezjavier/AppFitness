@@ -37,7 +37,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.4 Logging foods with a quantity into the day's meals (configurable; Breakfast, Lunch, Snack, Dinner by default; UI: Desayuno, Comida, Merienda, Cena).
 - FR-2.5 Edit and delete entries; navigate between days.
 - FR-2.6 Daily dashboard: kcal consumed vs target and progress for each macro; totals per meal.
-- FR-2.7 Meal templates: save a meal as a template, add it with one tap, manage templates.
+- FR-2.7 Saved meals ("Comidas", templates in the backend): save a meal as a named comida, add it from the search, edit it (overwrite or save as new), manage them. No Diary quick-add chips (ADR-42).
 - FR-2.8 Portions and measures: each food has a base unit (`g` for solids, `ml` for drinks) and optional named portions; log by portion or amount.
 - FR-2.9 Favourites and "most eaten": star foods and see the most logged ones.
 - FR-2.10 Copy foods or a whole meal to another meal or day, and repeat yesterday's meal in one tap.

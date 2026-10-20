@@ -1698,28 +1698,28 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
-## T-061: Meal templates
+## T-061: Saved meals ("Comidas", templates in the backend)
 
-**Story:** US-21 · **Flow:** UI + backend · **Scenarios:** Saving a section as a template; Duplicate name; Quick add; Adding a template to another meal; Managing templates
+**Story:** US-21 · **Flow:** UI + backend · **Scenarios:** Saving a section as a comida; Duplicate name; Adding a comida to a meal; Editing a comida; Renaming and deleting a comida · **Decision:** ADR-42 (no quick add; "Comidas" wording; overwrite or save as new)
 
-**Description:** Backend: one migration with `meal_templates` (`name` unique per user, `meal_slot_id` null = any meal) and `meal_template_items` (`template_id` on delete cascade, `food_id`, `amount`, `portion_label`, `position`), owner RLS on templates and RLS via the parent on items (`03` §3), items may only reference foods the caller can read; pgTAP. Domain: template totals and the "quick add" set (templates whose meal matches the current time slot by the default codes, at most 3; see the plan's assumptions). App: a "Guardar como plantilla" icon on each section with entries → name dialog → template with the section's foods and quantities; "Ya existe una plantilla con ese nombre" on a duplicate. Quick-add chips "Añadir rápido Desayuno A" on the Diary → its foods added to the template's meal of the visible day in one batch insert (snapshots computed from the current food values), dashboard updated at once, haptic and a "Deshacer" confirmation. A "Plantillas" tab in the food search adds a template to the chosen meal; from there the user edits a template (rename, change quantities, remove foods) or deletes it; entries already logged never change. Template edit draft restored (ADR-40); writes disabled offline.
+**Description:** Backend: one migration with `meal_templates` (`name` unique per user, `meal_slot_id` null = any meal) and `meal_template_items` (`template_id` on delete cascade, `food_id`, `amount`, `portion_label`, `position`), owner RLS on templates and RLS via the parent on items (`03` §3), items may only reference foods the caller can read; pgTAP. App (UI wording "comida"): a "Guardar como comida" icon on each section with entries → name dialog → comida with the section's foods and quantities; "Ya existe una comida con ese nombre" on a duplicate. A "Comidas" tab in the food search adds a comida to the chosen meal (batch insert, snapshots from current food values, dashboard updated at once). From that tab the user edits a comida (change quantities, remove foods): "Guardar" asks "Sobrescribir" or "Guardar como nueva" (the latter asks for a name, same uniqueness rule); rename and delete are also available. Entries already logged never change. Edit draft restored (ADR-40); writes disabled offline. No quick-add chips on the Diary.
 
 **Acceptance criteria:**
 - [ ] Migration + `supabase/tests/meal_templates.test.sql`: RLS on and forced on both tables; cross-user isolation including an item inserted into B's template and an item referencing B's personal food; duplicate name rejected; deleting a template deletes its items; deleting a user with templates succeeds.
-- [ ] Desayuno with "Huevos revueltos 120 g" and "Batido de proteína 300 g" → "Guardar como plantilla" named "Desayuno A" creates the template with both foods and quantities; a second "Desayuno A" shows "Ya existe una plantilla con ese nombre".
-- [ ] The 580 kcal "Desayuno A" chip in the morning → both foods in the visible day's Desayuno, +580 kcal on the ring at once, one haptic, "Deshacer" removes them; at most 3 chips.
-- [ ] "Añadir a la comida" → "Plantillas" → "Desayuno A" adds its foods to Comida.
-- [ ] Renaming, changing quantities, removing a food and deleting "Desayuno A" are saved; entries created from it earlier keep their values.
-- [ ] DoD: a full breakfast is logged from a template in 1 tap.
+- [ ] Desayuno with "Huevos revueltos 120 g" and "Batido de proteína 300 g" → "Guardar como comida" named "Desayuno A" creates it with both foods and quantities; a second "Desayuno A" shows "Ya existe una comida con ese nombre".
+- [ ] "Añadir a la comida" → "Comidas" → "Desayuno A" adds its foods to the chosen meal and the ring updates at once.
+- [ ] Editing "Desayuno A": "Sobrescribir" replaces it; "Guardar como nueva" with a new name creates another and leaves the original unchanged; a taken name is rejected.
+- [ ] Renaming and deleting are saved; entries created from it earlier keep their values.
+- [ ] DoD: a full breakfast is logged from a saved comida in a few taps from the search.
 
-**Host tests (per scenario):** `QuickAddTemplatesTest` (time slot match, max 3, totals); `MealTemplatesViewModelTest` with fakes + Turbine (Saving a section; Duplicate name; Managing templates); `DiaryViewModelTest` additions (Quick add + undo + immediate dashboard update); `FoodSearchViewModelTest` additions (Adding a template to another meal); `TemplateEditorScreenTest` and `DiaryScreenTest` additions (Robolectric: chip label, duplicate-name error, edit/delete); restoration tests; pgTAP `meal_templates.test.sql`.
+**Host tests (per scenario):** `MealTemplatesViewModelTest` with fakes + Turbine (Saving a section; Duplicate name; Editing: overwrite / save as new; rename/delete); `FoodSearchViewModelTest` additions (Adding a comida to a meal + immediate dashboard update); `TemplateEditorScreenTest` and `DiaryScreenTest` additions (Robolectric: duplicate-name error, overwrite / save-as-new choice, edit/delete); restoration tests; pgTAP `meal_templates.test.sql`.
 
 **Verification:**
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** Checkpoint E4-B
-**Files likely touched:** `supabase/migrations/<ts>_meal_templates.sql`, `supabase/tests/meal_templates.test.sql`, `shared/…/domain/model/MealTemplate.kt`, `shared/…/domain/usecase/QuickAddTemplates.kt` + tests, `shared/…/domain/repository/MealTemplateRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/templates/{TemplatesTab,TemplateEditorScreen,TemplateEditorViewModel,SaveTemplateDialog}.kt`, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,MealSection}.kt`, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
+**Files likely touched:** `supabase/migrations/<ts>_meal_templates.sql`, `supabase/tests/meal_templates.test.sql`, `shared/…/domain/model/MealTemplate.kt`, `shared/…/domain/repository/MealTemplateRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/templates/{TemplatesTab,TemplateEditorScreen,TemplateEditorViewModel,SaveTemplateDialog}.kt`, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,MealSection}.kt`, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
 **Estimated scope:** L
 
 ---
@@ -1772,7 +1772,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 ### Checkpoint E4-C — Templates, history, final regression and approval 👤
 - [ ] T-061…T-063 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
-  - Templates: fill a breakfast and "Guardar como plantilla"; try the same name again (error). Tap a "Añadir rápido" chip for the current meal: the foods appear and the ring jumps at once; "Deshacer". From another meal's search, "Plantillas" → add the template there; edit it (rename, quantities, remove a food) and delete it: entries already logged do not change.
+  - Comidas: fill a breakfast and "Guardar como comida"; try the same name again (error). From any meal's search, "Comidas" → add it there: the foods appear and the ring jumps at once. Edit it (quantities, remove a food) and choose "Sobrescribir" or "Guardar como nueva"; rename and delete one: entries already logged do not change.
   - History: Diario → "Historial": the logged days are marked; open one (its Diary), go back; read a day's summary against your target, the week average and the month total; a day with nothing shows "Sin registros".
 - [ ] 👤 Final regression: log one real day end to end:
   - Breakfast from a template in one tap; lunch by search (≤ 3 taps after opening the search) with a named portion; a drink in ml; a scanned product.

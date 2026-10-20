@@ -341,3 +341,8 @@ Format: context → decision → consequences. A decision is only changed by add
   - A catalogue row whose key is not in the client bundle is hidden (it has no name to show); the placeholder icon is for custom exercises and for images that fail to load.
   - CI and unit tests build without the bundle; `scripts/deliver-apk.py` refuses to build without it.
 - **Consequences:** `02-architecture.md`, `03-data-model.md` §5, `05-design-system.md` §6.1, `08-environment-setup.md`, the E3 epic file and `tasks/` reflect this.
+
+### ADR-42 · Saved meals: "Comidas" wording, no quick add, overwrite or save-as-new (E4, T-061)
+- **Context:** reviewing T-061 before building (user, 2026-10-21): quick-add chips do not scale to many saved meals, and the user thinks of a saved Desayuno as a "comida".
+- **Decision:** the UI calls saved templates "comidas" ("Guardar como comida", search tab "Comidas"); backend and code keep `meal_templates`. No quick-add chips on the Diary; a comida is added only from the search tab. Editing a comida ends with a choice: "Sobrescribir" or "Guardar como nueva" (asks a name, unique per user).
+- **Consequences:** US-21 in `epics/E4-food-diary.md`, FR-2.7 in `01-phase1-scope.md`, T-061 in `tasks/todo.md` and `tasks/plan.md` reflect this.
