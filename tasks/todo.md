@@ -1427,8 +1427,8 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Estimated scope:** S
 
 ### Checkpoint E3-C…G — Corrective fixes (single checkpoint, user decision 2026-10-20) 👤
-- [ ] T-050…T-054 merged, CI green.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and re-test:
+- [x] T-050…T-054 merged, CI green.
+- [x] 👤 *(approved by the user, 2026-10-20)* Install the APK (`! python scripts/deliver-apk.py`) and re-test:
   - State restoration (T-050): on each tab open a sub-screen, leave the app and come back (same tab and screen); half-fill "Nueva rutina", "Crear ejercicio" and a Perfil edit form, leave and come back (input intact); close an in-progress session from the app switcher and reopen (Entreno opens it with its sets).
   - Routines and catalog (T-051): a custom exercise shows its own name everywhere; thumbnail or name tap opens the detail in an opened routine (the "Nueva rutina" picker still adds on a row tap); "Mis rutinas" sorted A→Z; no "Empezar entreno vacío"; rest in 10 s steps ("1 min 10 s").
   - Live session (T-052): "Finalizar entreno" in ⋮ above "Descartar entreno"; the "Tienes un entreno en curso" card has play and trash; "Empezar" during a session shows "Ya hay un entreno en curso"; rest at 00:00 gives vibration plus a ~1 s sound.
@@ -1449,8 +1449,8 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 - [x] T-042…T-048b merged with green CI; pgTAP for `exercises`, `routines`, `routine_exercises`, `routine_folders`, `workout_sessions`, `workout_sets`, `last_performance`, `exercise_history` and `weekly_muscle_volume` green; `deploy-supabase` green after the last migration.
 - [x] Host tests green for every E3 UI scenario, including the full-session test (T-046).
 - [x] Forward compatibility checked (ADR-30): every *(E6)* column and enum of `03-data-model.md` §5 exists in production.
-- [ ] T-050…T-054 merged with green CI; Checkpoints E3-C…E3-G approved; `deploy-supabase` green if any of them added a migration.
-- [ ] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
+- [x] T-050…T-054 merged with green CI; Checkpoints E3-C…E3-G approved (2026-10-20); `deploy-supabase` green if any of them added a migration.
+- [x] Every bug the user reported at the checkpoints fixed; UI-only feedback appended to the E8 backlog.
 - [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E3 ✅) updated through a PR.
 
 **Verification:**

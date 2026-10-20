@@ -81,7 +81,13 @@ Feature: Set types
   Scenario: Toggling inclusion
     When the user turns on "Incluir calentamiento"
     Then the past statistics and PRs are recalculated
+
+  Scenario: Routine asks only sets and rest (user request 2026-10-20)
+    When the user adds an exercise in the routine builder
+    Then they configure only the number of sets and the rest
+    And the reps are entered in the live session
 ```
+
 
 **Technical notes**
 - `workout_sets.set_type` and `04-business-rules.md` §4.6; the pgTAP covers the recalculation on toggle.
@@ -308,6 +314,11 @@ Feature: Workout detail
   Scenario: Save as routine
     When they tap "Guardar como rutina"
     Then a new routine is created from the workout
+
+  Scenario: Logging a past workout (user request 2026-10-20)
+    When the user creates a workout for a past date with exercises, weights and reps
+    Then it appears in the history, the calendar and the metrics on that date
+    And it never goes through the live session
 ```
 
 **Technical notes**
@@ -327,6 +338,11 @@ Feature: Session controls
     When the user pauses the workout
     Then the duration stops counting
     And resuming continues from there
+
+  Scenario: Finishing an empty workout (user request 2026-10-20)
+    Given no set of any exercise is completed
+    Then "Finalizar entreno" is disabled
+    And it is enabled once one set is completed
 
   Scenario: Deleting a set
     When the user swipes a set to delete it
