@@ -14,7 +14,6 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
-import io.github.lopezjavier.appfitness.domain.repository.DiaryPreferences
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -98,7 +97,6 @@ class AppModuleTest {
                 BuildDiaryDay::class,
                 ResolvePortion::class,
                 RecalculateEntry::class,
-                DiaryPreferences::class,
                 ScaleNutrition::class,
                 ValidateQuantity::class,
                 ValidateMealSlots::class,

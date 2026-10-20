@@ -54,7 +54,6 @@ val uiModule =
                 goalsRepository = get(),
                 buildDiaryDay = get(),
                 clock = get(),
-                preferences = get(),
                 connectivity = get(),
                 savedState = get(),
             )

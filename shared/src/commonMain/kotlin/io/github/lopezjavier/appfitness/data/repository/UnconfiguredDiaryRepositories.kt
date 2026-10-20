@@ -40,9 +40,6 @@ class UnconfiguredFoodDiaryRepository : FoodDiaryRepository {
 
     override suspend fun deleteEntry(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun restoreEntry(entry: FoodLogEntry): Result<FoodLogEntry> =
-        Result.failure(AppException(AppError.Unknown))
-
     override suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>> =
         Result.failure(AppException(AppError.Unknown))
 

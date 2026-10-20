@@ -11,26 +11,20 @@ import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_next_day
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_prev_day
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_view_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_left
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_view_list
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * Previous/next day arrows around the centred day label (next is disabled and dimmed on today), and the button that
- * opens the view-mode selector through [onViewMenu].
- */
+/** Previous/next day arrows around the centred day label (next is disabled and dimmed on today). */
 @Composable
 internal fun DiaryDateHeader(
     label: DateLabel,
     canGoNext: Boolean,
     onEvent: (DiaryEvent) -> Unit,
-    onViewMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -53,12 +47,6 @@ internal fun DiaryDateHeader(
             testTag = "diary_date_next",
             onClick = { onEvent(DiaryEvent.NextDay) },
             enabled = canGoNext,
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.diary_view_menu_cd),
-            icon = Res.drawable.ic_view_list,
-            testTag = "diary_view_menu",
-            onClick = onViewMenu,
         )
     }
 }

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,19 +18,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_food
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
@@ -41,22 +33,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.ViewModeSelector
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
-import io.github.lopezjavier.appfitness.domain.model.DiaryViewMode
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonDashboardHeight = Spacing.xl * 9
 private val SkeletonSectionHeight = Spacing.xl * 3
 private const val SKELETON_SECTIONS = 4
-private const val SELECTION_BAR_SPACE_UNITS = 3
 
 /**
  * Stateless "Diario" tab (US-19, US-20): the date header, the day's progress and one card per meal, rendered from
@@ -83,38 +71,18 @@ fun DiaryScreen(
 
             is DiaryUiState.Content -> DiaryDay(state.content, onEvent)
         }
-        Column(Modifier.align(Alignment.BottomCenter)) {
-            DiarySnackbarHost(snackbarHost, Modifier.padding(Spacing.screenMargin))
-            if (state is DiaryUiState.Content && state.content.isSelecting) {
-                SelectionActionBar(
-                    count = state.content.selectedIds.size,
-                    onCopy = { onEvent(DiaryEvent.CopySelected) },
-                    onCancel = { onEvent(DiaryEvent.ClearSelection) },
-                )
-            }
-        }
+        DiarySnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin))
     }
 }
 
-/** The undo / failure messages. The action (when any) is a ghost button, 48 dp tall, tagged `diary_undo`. */
+/** The failure messages (a failed or refused write). */
 @Composable
 private fun DiarySnackbarHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
-    SnackbarHost(state, modifier) { data ->
-        Snackbar(
-            action = data.visuals.actionLabel?.let { label ->
-                { GhostButton(label, data::performAction, Modifier.testTag("diary_undo")) }
-            },
-        ) { Text(data.visuals.message) }
-    }
+    SnackbarHost(state, modifier) { data -> Snackbar { Text(data.visuals.message) } }
 }
 
 @Composable
 private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
-    NavigationBackHandler(
-        state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
-        isBackEnabled = content.isSelecting,
-        onBackCompleted = { onEvent(DiaryEvent.ClearSelection) },
-    )
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         if (windowWidthClassFor(maxWidth) == WindowWidthClass.Wide) {
             Row(Modifier.widthIn(max = WindowWidthClassDefaults.TwoColumnContentMaxWidth).fillMaxSize()) {
@@ -133,7 +101,6 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                 ) {
                     MealSections(content, onEvent)
                     AddFoodButton(onEvent)
-                    SelectionBarSpace(content)
                 }
             }
         } else {
@@ -146,34 +113,16 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                 DiaryDashboard(content, onEvent)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
                 AddFoodButton(onEvent)
-                SelectionBarSpace(content)
             }
         }
     }
 }
 
-/** Room at the end of the scrolling content so the selection bar never covers the last button. */
-@Composable
-private fun SelectionBarSpace(content: DiaryContent) {
-    if (content.isSelecting) Spacer(Modifier.height(Spacing.xl * SELECTION_BAR_SPACE_UNITS))
-}
-
-/** The date selector with its view-mode button (opens the Detalle / Lista / Resumen selector) and "Comidas". */
+/** The date selector and the "Comidas" button. */
 @Composable
 private fun DiaryHeader(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
-    var viewMenuOpen by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-        DiaryDateHeader(content.label, content.canGoNext, onEvent, onViewMenu = { viewMenuOpen = !viewMenuOpen })
-        if (viewMenuOpen) {
-            ViewModeSelector(
-                selectedIndex = content.viewMode.ordinal,
-                onSelect = {
-                    onEvent(DiaryEvent.SetViewMode(DiaryViewMode.entries[it]))
-                    viewMenuOpen = false
-                },
-                testTagPrefix = "diary_view",
-            )
-        }
+        DiaryDateHeader(content.label, content.canGoNext, onEvent)
         MealSettingsButton(onEvent)
     }
 }
@@ -181,18 +130,9 @@ private fun DiaryHeader(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
 @Composable
 private fun MealSections(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
     val actions = EntryActions(
-        viewMode = content.viewMode,
         canDelete = !content.isOffline,
-        selecting = content.isSelecting,
-        selectedIds = content.selectedIds,
-        canRepeat = content.canRepeatYesterday,
         onEdit = { onEvent(DiaryEvent.EditEntry(it)) },
         onDelete = { onEvent(DiaryEvent.DeleteEntry(it)) },
-        onLongPress = { onEvent(DiaryEvent.EnterSelection(it)) },
-        onToggleSelected = { onEvent(DiaryEvent.ToggleSelected(it)) },
-        onSelectMeal = { onEvent(DiaryEvent.SelectMeal(it)) },
-        onCopyMeal = { onEvent(DiaryEvent.CopyMeal(it)) },
-        onRepeat = { onEvent(DiaryEvent.RepeatYesterday(it)) },
     )
     content.meals.forEach { section ->
         MealSectionCard(

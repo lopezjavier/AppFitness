@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -35,25 +31,19 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_dinner
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_lunch
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_snack
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_remaining_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_repeat_yesterday
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.domain.model.DiaryViewMode
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
@@ -90,8 +80,7 @@ private fun addButtonText(slot: MealSlot): String {
 }
 
 /**
- * One meal: a tappable header with its totals, the entries (or the remaining-kcal hint) and the add button. In the
- * Summary view only the header (name, kcal, macros) is shown, and it does not collapse.
+ * One meal: a tappable header with its totals, the entries (or the remaining-kcal hint) and the add button.
  */
 @Composable
 internal fun MealSectionCard(
@@ -102,45 +91,18 @@ internal fun MealSectionCard(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val id = section.slot.id
-    val summary = actions.viewMode == DiaryViewMode.Summary
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
-    val showMenu = !summary && !actions.selecting && section.entries.isNotEmpty()
-    AppCard(modifier.fillMaxWidth().testTag("diary_section_$id")) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionHeader(
-                section = section,
-                collapsed = collapsed,
-                onToggle = if (summary) null else onToggle,
-                modifier = Modifier.weight(1f).testTag("diary_section_${id}_toggle"),
-            )
-            if (showMenu) {
-                AppIconButton(
-                    contentDescription = stringResource(Res.string.diary_meal_menu_cd, section.slot.label),
-                    icon = Res.drawable.ic_more_vert,
-                    testTag = "diary_meal_menu_$id",
-                    onClick = { menuOpen = !menuOpen },
-                )
-            }
-        }
-        if (showMenu && menuOpen) {
-            MealSectionMenu(
-                onSelect = {
-                    menuOpen = false
-                    actions.onSelectMeal(id)
-                },
-                onCopy = {
-                    menuOpen = false
-                    actions.onCopyMeal(id)
-                },
-                slotId = id,
-            )
-        }
-        if (!collapsed && !summary) MealBody(section, actions, onAdd)
+    AppCard(modifier.fillMaxWidth().testTag("diary_section_${section.slot.id}")) {
+        SectionHeader(
+            section = section,
+            collapsed = collapsed,
+            onToggle = onToggle,
+            modifier = Modifier.testTag("diary_section_${section.slot.id}_toggle"),
+        )
+        if (!collapsed) MealBody(section, actions, onAdd)
     }
 }
 
-/** The entries of a meal (or its remaining-kcal hint), the "Repetir comida de ayer" shortcut and the add button. */
+/** The entries of a meal (or its remaining-kcal hint) and the add button. */
 @Composable
 private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () -> Unit) {
     val id = section.slot.id
@@ -148,14 +110,9 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
         section.entries.forEach {
             DiaryEntryRow(
                 entry = it,
-                viewMode = actions.viewMode,
-                canDelete = actions.canDelete && !actions.selecting,
-                selecting = actions.selecting,
-                selected = it.id in actions.selectedIds,
+                canDelete = actions.canDelete,
                 onEdit = { actions.onEdit(it.id) },
                 onDelete = { actions.onDelete(it.id) },
-                onLongPress = { actions.onLongPress(it.id) },
-                onToggle = { actions.onToggleSelected(it.id) },
             )
         }
         if (section.showRemainingHint && section.remainingKcal != null) {
@@ -167,13 +124,6 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.textSecondary,
                 modifier = Modifier.testTag("diary_section_${id}_empty_hint"),
-            )
-        }
-        if (actions.canRepeat[id] == true) {
-            GhostButton(
-                text = stringResource(Res.string.diary_repeat_yesterday),
-                onClick = { actions.onRepeat(id) },
-                modifier = Modifier.fillMaxWidth().testTag("diary_repeat_yesterday_$id"),
             )
         }
         SecondaryButton(
@@ -188,7 +138,7 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
 private fun SectionHeader(
     section: MealSectionUi,
     collapsed: Boolean,
-    onToggle: (() -> Unit)?,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state = stringResource(
@@ -198,16 +148,11 @@ private fun SectionHeader(
         modifier
             .fillMaxWidth()
             .heightIn(min = Spacing.minTouchTarget)
-            .then(
-                if (onToggle != null) {
-                    Modifier.clickable(onClick = onToggle).semantics(mergeDescendants = true) {
-                        stateDescription = state
-                        role = Role.Button
-                    }
-                } else {
-                    Modifier.semantics(mergeDescendants = true) {}
-                },
-            ),
+            .clickable(onClick = onToggle)
+            .semantics(mergeDescendants = true) {
+                stateDescription = state
+                role = Role.Button
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -227,14 +172,12 @@ private fun SectionHeader(
             }
             MacroSummary(section.totals)
         }
-        if (onToggle != null) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_expand_more),
-                contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(Spacing.xl).rotate(if (collapsed) 0f else COLLAPSED_CHEVRON_ROTATION),
-            )
-        }
+        Icon(
+            painter = painterResource(Res.drawable.ic_expand_more),
+            contentDescription = null,
+            tint = AppTheme.colors.textSecondary,
+            modifier = Modifier.size(Spacing.xl).rotate(if (collapsed) 0f else COLLAPSED_CHEVRON_ROTATION),
+        )
     }
 }
 
