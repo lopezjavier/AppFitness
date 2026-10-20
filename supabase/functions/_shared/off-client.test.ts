@@ -168,6 +168,25 @@ Deno.test("fetchOffProduct: found, not found and no-kcal", async () => {
     );
 });
 
+Deno.test("searchOff: retries once after a transient OFF 503 and returns the products", async () => {
+    let calls = 0;
+    const fakeFetch = () => {
+        calls++;
+        return Promise.resolve(
+            calls === 1
+                ? new Response("busy", { status: 503 })
+                : Response.json(fixture("search-avena")),
+        );
+    };
+    const foods = await searchOff(
+        { fetch: fakeFetch, userAgent: "AppFitness/test" },
+        "cereales",
+        1,
+    );
+    assertEquals(calls, 2);
+    assertEquals(foods.length, 2);
+});
+
 Deno.test("OFF failures surface as OffError (HTTP error, network error, timeout)", async () => {
     const mk = (f: () => Promise<Response>) => ({
         fetch: f,

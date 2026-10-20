@@ -192,7 +192,20 @@ export function normalizeProduct(raw: unknown): NormalizedFood | null {
     }
 }
 
+const RETRY_DELAY_MS = 300;
+
+/** OFF answers fast 503s now and then; one quick retry hides them. Timeouts are not retried. */
 async function offGet(deps: OffDeps, url: URL): Promise<unknown> {
+    try {
+        return await offGetOnce(deps, url);
+    } catch (err) {
+        if (!(err instanceof OffError) || err.kind !== "unavailable") throw err;
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        return await offGetOnce(deps, url);
+    }
+}
+
+async function offGetOnce(deps: OffDeps, url: URL): Promise<unknown> {
     let res: Response;
     try {
         res = await deps.fetch(url, {
