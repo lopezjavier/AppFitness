@@ -1,70 +1,75 @@
-# Implementation Plan: E3 · Training core → `v0.3.0`
+# Implementation Plan: E4 · Food diary → `v0.4.0`
 
 ## Overview
-Plan routines calmly and run them at the gym with a sweat-proof live session: a Spanish exercise catalog with the bundled RepDB assets, a routine builder with supersets, quick set logging with the screen always on, previous performance (ghost data), a non-blocking rest timer, session history and strength-progress charts reached from Perfil.
+Log what you eat in fewer than 3 taps (search, scanner or template) and see the calories and macros consumed against the target at all times. The epic builds our own food catalog cached from Open Food Facts (base unit g or ml, named portions), the Diario tab with configurable meals and a dashboard, text search with recents / most eaten / favourites, barcode scanning and manual foods, editing, copying and view modes, meal templates, and the diary history with weekly and monthly summaries.
 
-Status (2026-10-20): the build phase is done (T-042…T-048b merged). The user tested the whole epic in one go (Checkpoint E3-A was merged into the end-of-epic test by user decision) and reported findings. This plan now covers the **corrective phase**: five tasks, one 👤 checkpoint per user-visible functionality, then the final regression and approval (T-049 + Checkpoint E3-B) and the `v0.3.0` tag.
+Sources: `planning/epics/E4-food-diary.md` (US-16…US-24), `planning/01-phase1-scope.md` FR-2, `planning/03-data-model.md` §1/§3/§6/§7, `planning/04-business-rules.md` §2 and §5, `planning/05-design-system.md` (§5 components: `ProgressRing`, `MacroProgressBar`, `ViewModeSelector`, `PortionSelector`, `FavouriteToggle`, `MonthCalendarGrid`, `DiaryHistoryRow`), ADR-01, ADR-06, ADR-07, ADR-17, ADR-29, ADR-32, ADR-33, ADR-34, ADR-36, ADR-40. Tasks: `tasks/todo.md` (T-055…T-063). Earlier plans are in the git history.
 
-Sources: `planning/epics/E3-training-core.md` (US-09…US-15, updated 2026-10-20 for routine order, removal of the empty workout, "Finalizar entreno" in the ⋮ menu, the in-progress card buttons, the start-conflict message, the ~1 s rest sound, the muscle-volume start and the app state restoration feature), `planning/02-architecture.md`, `planning/04-business-rules.md` §4.4, ADR-24, ADR-30, ADR-36, ADR-37, ADR-38. Tasks: `tasks/todo.md` (T-042…T-054, T-049 last). Earlier plans are in the git history.
-
-Out of scope for the corrective phase: per-set weight/reps/set type in routines (moved to E6 US-29) and rest alerts in the background (Phase 2, `01-phase1-scope.md`).
+Out of scope (epic file): user-uploaded food images, micronutrients, composite recipes, meal planning, data export; water intake (`01` §4). Editing or deleting a created personal food is not in the stories.
 
 ## Architecture Decisions
-- **State restoration is an app-wide property (new ADR-40, written in T-050).** The selected tab, each tab's back stack and every unsaved form survive a background/foreground cycle and process death. Fixed centrally (root navigation, per-tab `saveState`/`restoreState`, `@Serializable` routes, `SavedStateHandle`/`rememberSaveable` for drafts), not per screen; auth routing wins over restoration. `02-architecture.md` and the planner agent gain the rule "every new screen with input ships with a restoration test", so later epics inherit it. T-050 runs first so T-051…T-054 build on it.
-- **Exercise names:** catalog rows have no DB name (ADR-38) and take it from the bundle; custom rows use their DB `name`. One resolver used by every screen (T-051).
-- **No empty workout:** sessions always start from a routine; the client path is removed, the DB keeps `workout_sessions.routine_id` nullable for E6 (ADR-30). No migration.
-- **Start conflict:** the partial unique index on `in_progress` (T-044) is mapped to a typed domain error in the repository and shown as "Ya hay un entreno en curso"; the UI never matches error strings.
-- **Rest alert sound:** the existing `AlertSound` port (T-046) plays ~1 s with the vibration, foreground only, silent when muted (`04` §4.4).
-- **Muscle volume range:** from the ISO week of the first completed session, capped at 8 weeks; in the client unless the planner moves it into SQL (then a new migration, never an edit of the merged one).
-- **Shared components:** before changing `NumberInput`, `AppBottomSheet` or `SetRow`, check every caller (E2 lesson, T-040).
+- **One backend foundation task (T-055).** `food_log_entries` references both `foods` and `meal_slots`, so the US-16 migration also creates `food_portions` (US-22) and `meal_slots` (US-23) with the default-meal seeding. Later tables come with the story that uses them: `favorite_foods` + `most_eaten_foods` (T-057), `meal_templates` + items (T-061), `food_diary_summary` (T-062), and an optional `save_meal_slots` RPC (T-059). At most one migration per task; never edit a merged one.
+- **Default meals for existing users.** Seeding runs when `onboarding_completed` becomes true (idempotent trigger) and the migration backfills every already-onboarded user, so the E2/E3 users get Desayuno/Comida/Merienda/Cena.
+- **Open Food Facts only through Edge Functions (ADR-06).** `_shared/off-client.ts` normalizes (base unit from `nutrition_data_per`, kJ → kcal, servings → `food_portions`); `off` rows are written with the secret key (ADR-17), reusing the `delete-account` key lookup (`SUPABASE_SECRET_KEYS`, legacy fallback). `deno test` uses recorded fixtures, never the network.
+- **Snapshots in the domain.** `ScaleNutrition` (`kcal_100 × amount / 100`, 0.1) and `ResolvePortion` live in `shared` and are the only place entry values are computed (log, edit, copy, templates). Diary totals derive from one `StateFlow` (no second query); gram targets come from `CalculateMacroTargets` (T-037).
+- **Batch writes.** Copy, repeat-yesterday and template quick add are one batch insert of `food_log_entries`; "Deshacer" re-inserts (delete) or deletes the inserted rows (copy/quick add).
+- **Platform port for the scanner.** `BarcodeScanner` (domain) + ML Kit `GmsBarcodeScanning` in `androidMain` (no camera permission, ADR-07); a fake in host tests.
+- **Local preferences.** The diary view mode is a DataStore preference (ADR-01 allows it); everything else is server data.
+- **Restoration (ADR-40).** Visible day, search query and tab, sheets and every form draft survive background and process death; each UI task ships `StateRestorationTester` + recreated-ViewModel tests.
+- **Shared components.** `ProgressRing`/`MacroProgressBar` gain `Double`/percent inputs (PR #24 note) in T-056; before changing `NumberInput`, `AppBottomSheet`, `SegmentedSelector` or `ReorderableColumn`, check every caller (T-040 lesson). New design-system components are built inside the first task that needs them, with a catalog entry.
 
 ## Task List
 
-### Phase 1 (done): Plan and run a workout (US-09…US-13)
-- [x] T-042 exercise catalog · T-043 routine builder · T-044 sessions backend · T-045 live session · T-046 ghost data and rest timer
+### Phase 1: Log food by search and see the day
+- [ ] T-055: Food catalog backend: schema and the OFF proxy (US-16 + US-22 data + US-23 table) — backend — L
+- [ ] T-056: Daily diary by meal and the calorie and macro dashboard (US-19 day + US-20) — UI — M–L
+- [ ] T-057: Food text search and logging into a meal (US-17 + US-22 logging) — UI + backend — L
+  - **Checkpoint E4-A 👤 Log by search:** the Diario day with ring and bars; search and add real foods with grams, a portion and a drink in ml; recents, "Más comidos", "Favoritos"; excess and "Te quedan"; leave the app and come back.
 
-### Phase 2 (done): Review and progress (US-14, US-15)
-- [x] T-047 session history · T-048 strength progress · T-048b weekly muscle volume
+### Phase 2: Scanner, manual foods, meal structure, correct and reuse the diary
+- [ ] T-058: Barcode scanning and manual food creation (US-18 + US-22 named portion) — UI — M–L
+- [ ] T-059: Custom meal structure (US-23) — UI (+ optional RPC) — M (Q1 resolved)
+- [ ] T-060: Diary corrections, copying and view modes (US-19 rest + US-20 immediate update) — UI — L (Q2, Q3 resolved)
+  - **Checkpoint E4-B 👤:** scan real products and a drink; unknown code → "Crear alimento" with the code, rescan finds it; validation; rename, add, reorder, disable/re-enable meals; edit, move, swipe-delete + "Deshacer", copy foods/meal to another meal or day, "Repetir comida de ayer", Detalle/Lista/Resumen kept; leave the app and come back.
 
-### Phase 3: Corrective tasks (user feedback 2026-10-20)
-- [ ] T-050: App-wide state restoration (tab, screen, drafts, process death) — UI
-  - **Checkpoint E3-C 👤 State restoration:** sub-screens on every tab and a half-built "Nueva rutina" survive leaving the app, also with "No mantener actividades"; a running session still reopens.
-- [ ] T-051: Routines and catalog fixes (custom name, detail on thumbnail/name tap, A→Z order, no "Empezar entreno vacío", 10 s rest steps "1 min 10 s") — UI
-  - **Checkpoint E3-D 👤 Routines and catalog:** re-test each of the five fixes plus a quick routine regression.
-- [ ] T-052: Live session fixes ("Finalizar entreno" in ⋮, card play/trash, "Ya hay un entreno en curso", ~1 s rest sound) — UI
-  - **Checkpoint E3-E 👤 Live session:** re-test the four fixes plus a quick gym regression.
-- [ ] T-053: Fix the "Corregir serie" dialog — UI
-  - **Checkpoint E3-F 👤 History:** edit reps in "Corregir serie", labels horizontal, volume updates.
-- [ ] T-054: Weekly muscle volume starts at the first recorded session — UI (+ optional SQL)
-  - **Checkpoint E3-G 👤 Strength:** chart starts at the week of the first session; quick Fuerza regression.
+### Phase 3: Templates, history and closure
+- [ ] T-061: Meal templates (US-21) — UI + backend — L
+- [ ] T-062: Diary history and summaries (US-24) — UI + backend — M
+- [ ] T-063: E4 closure — PM — S
+  - **Checkpoint E4-C 👤:** save a section as a template, duplicate name, one-tap quick add with "Deshacer", "Plantillas" tab, edit and delete; history calendar, open a day, day / week / month summaries, "Sin registros"; final regression of one real day end to end; leave the app and come back; approval → `v0.4.0` and the retrospective.
 
-Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored".
-
-### Closure
-- [ ] T-049: E3 closure (final regression and approval)
-  - **Checkpoint E3-B 👤 final regression:** one real workout end to end on the delivered APK; approval → `v0.3.0` tag and retrospective.
-
-Internal milestones (not 👤): lint + `testLocalDebugUnitTest` green per task; `deploy-supabase` green only if T-054 adds a migration.
+Three checkpoints by user decision (2026-10-20), overriding the one-per-functionality default for E4. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones (not 👤): pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task; `deploy-supabase` green after each migration (T-055, T-057, T-061, T-062, and T-058/T-059 if they add one).
 
 ## Dependencies
 
 ```
-T-048b ─► T-050 ─► [E3-C 👤] ─► T-051 (Q5, Q6) ─► [E3-D 👤] ─► T-052 ─► [E3-E 👤] ─► T-053 ─► [E3-F 👤] ─► T-054 ─► [E3-G 👤] ─► T-049 ─► [E3-B 👤] ─► v0.3.0
+v0.3.0 ─► T-055 ─► T-056 ─► T-057 ─► [E4-A 👤] ─► T-058 ─► T-059 ─► T-060 ─► [E4-B 👤]
+      ─► T-061 ─► T-062 ─► T-063 ─► [E4-C 👤] ─► v0.4.0
 ```
-- Strictly sequential: each checkpoint gates the next task (the user's feedback can still change it), and T-050 goes first so every later fix inherits restoration.
-- Q5 and Q6 are answered (see below).
+- Strictly sequential: E4-A gates T-058 and E4-B gates T-061; between checkpoints tasks run back to back.
+- Meal structure (T-059) comes before copying and templates so their meal targets are built on the final slot rules.
+- Q1–Q3 are resolved (2026-10-20); no task waits on an open question.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| State restoration touches the root navigation and auth routing of the whole app | High | Root cause first (in the PR body); `StateRestorationTester` tests on the scaffold; auth-wins rule tested; the planner may slice T-050 (navigation, then drafts). |
-| Restored drafts saved by accident, or stale drafts reappearing after a save | Medium | Drafts stay unsaved until the explicit save; cleared on save/discard; tested per form. |
-| Process death cannot be fully reproduced on the host | Medium | `SavedStateHandle` recreation in ViewModel tests; manual check with "No mantener actividades" at E3-C. |
-| Removing the empty-workout path breaks tests or the in-progress resume | Low | Remove with its tests; `WorkoutTabRouteTest` and resume tests stay green. |
-| Fixing the edit dialog through a shared component regresses other screens | Medium | Check every caller of `NumberInput`/`AppBottomSheet`; screen tests at 360 dp and font scale 2.0. |
-| The alert sound is inaudible or too long on real devices | Low | ~1 s asset, emulator check by the developer, re-test at E3-E. |
+| OFF rate limits (~10 search requests/min per IP) and Spanish search quality | High | Cache-first (OFF only below 10 local results), 400 ms debounce, 8 s timeout with a JSON error; fixtures in CI; real searches tried at E4-A. |
+| `on delete restrict` on `food_log_entries.meal_slot_id`/`food_id` blocks the account-deletion cascade (ADR-29) | High | pgTAP deletes a user with slots, foods and entries in T-055; switch to `no action` if needed and update `03` §3. |
+| Existing users have no meal slots | High | Backfill in the T-055 migration + idempotent seeding trigger; verified in production after the deploy. |
+| `unique (user_id, position)` breaks reorder/insert saved row by row | Medium | Atomic save (RPC or deferrable constraint) in T-059, with pgTAP. |
+| Edge Function secret key naming (new `sb_secret_` vs legacy env) | Medium | Reuse the `delete-account` lookup; if production lacks the key the PM asks the user (secrets are theirs). |
+| ML Kit scanner module download on first use / devices without Play services | Medium | Port + fake for tests; an error result shows a message, never a crash; tried on the user's phones at E4-B. |
+| Local date vs UTC (`log_date`) around midnight | Medium | `log_date` from the device's local date via the injected `Clock`; tests at 23:59/00:00. |
+| Changing `ProgressRing`/`MacroProgressBar` signatures breaks catalog or Profile callers | Low | Check every caller; overloads keep the `Int` API where used. |
+| L tasks (T-055, T-057, T-060, T-061) overflow one dev run | Medium | Planner slices them (named in each task), one dev run per slice. |
 
 ## Open Questions
-- **Q1–Q4 · RESOLVED** (ADR-38 and the user, 2026-10-19): RepDB rows without names; first session of an exercise is a "PR"; superset rest per member; "Borrar cuenta" wording unchanged.
-- **Q5 · RESOLVED 2026-10-20 (user): the "Nueva rutina" exercise picker is unchanged (tapping a row adds the exercise); in an opened routine and wherever an exercise is listed outside the picker, tapping the thumbnail or name opens the detail. No checkbox or "+" is added.** *(was BLOCKING)* — **Q5 (T-051) · Opening the exercise detail from the picker.** Today tapping a picker row selects the exercise. In the builder and the session cards a thumbnail/name tap will open the detail. In the picker, should (a) the thumbnail open the detail and the rest of the row select, (b) both thumbnail and name open the detail with a separate select control, or (c) the picker stay as it is (detail only from the builder and session)?
-- **Q6 · RESOLVED 2026-10-20 (user): under 60 s "50 s"; from 60 s "1 min", "1 min 10 s", "2 min" (never "2 min 0 s").** *(was BLOCKING)* — **Q6 (T-051) · Rest format edge cases.** With "1 min 10 s" above 60 s: does exactly 60 s read "60 s" or "1 min"? Do whole minutes read "2 min" or "2 min 0 s"?
+- **Q1 · RESOLVED 2026-10-20 (user): only entries on the day being viewed block disabling; past days are not edited.** *(was BLOCKING)* — **Q1 (T-059) · Which entries prevent disabling a meal?** US-23 says disabling a meal "with entries" is not allowed. Does that mean (a) entries on **any** day (so a meal ever used can never be hidden, e.g. you could never hide "Merienda" once you logged a snack), or (b) entries on the **day being viewed** only (the meal is hidden from then on; past days that have entries in it still show it)?
+- **Q2 · RESOLVED 2026-10-20 (user): the proposal below is accepted.** *(was BLOCKING)* — **Q2 (T-060) · "Detalle" vs "Lista".** "Resumen" is defined (meal name, kcal and macros only); the difference between "Detalle" and "Lista" is not. Proposal: "Detalle" = each entry with its amount, kcal and P/C/F grams; "Lista" = one compact line per entry with name, amount and kcal only. Confirm or describe "Lista".
+- **Q3 · RESOLVED 2026-10-20 (user): option (b), copying to future days is allowed and the Diary stays capped at today.** *(was BLOCKING)* — **Q3 (T-060) · Copying to future days.** US-19 copies a meal "to tomorrow's Comida", but the Diary's right arrow stops at today. Options: (a) allow copying to any past day, today and tomorrow, and let the Diary go one day ahead (to see and edit tomorrow); (b) allow copying to future days but keep the Diary at today (tomorrow's copy shows up when tomorrow comes); (c) only past days and today (the "tomorrow" scenario becomes "yesterday → today", which "Repetir comida de ayer" already covers).
+- **Assumptions (non-blocking; the planner applies them unless the user objects at E4-A/E4-C):**
+  - Default meal when none is preselected: the enabled default slot matching the time rule (before 11:00 Desayuno, 11–16 Comida, 16–20 Merienda, later Cena); if that slot is disabled, the first enabled slot of the day.
+  - "Crear alimento" from an empty search prefills the name with the search text; a food created from a scan stores the barcode, so rescanning finds it.
+  - Template quick-add chips appear only for templates whose meal is the current time slot's meal (templates saved from custom meals or with no meal are reachable from the "Plantillas" tab only).
+  - History summaries compare against the current target (no target history is stored).
+  - Where the meal settings and "Historial" are opened from the Diary is a layout choice for ux-reviewer (e.g. the Diary's menu).

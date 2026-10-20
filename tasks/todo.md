@@ -1470,11 +1470,290 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 
 ---
 
+# E4 · Food diary
+
+Stories: `planning/epics/E4-food-diary.md` (US-16…US-24). Plan: [tasks/plan.md](plan.md). One task per story as a vertical slice, with these merges and splits: the catalog backend (US-16) also ships the US-22 data model and the `meal_slots` table, because `food_log_entries` needs both (T-055, backend only); the day view (US-19 day structure) and the dashboard (US-20) form one task (T-056), so text search and logging (US-17 + US-22 logging) can be its own task (T-057); US-18 takes the US-22 "Creating a named portion" scenario; the rest of US-19 (edit, delete, move, copy, repeat, view modes) is T-060.
+Flow: UI tasks follow the full flow (planner → ux-reviewer → developers → PR → review → merge); T-055 is backend only (no ux-reviewer). The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`. Every new user-owned row cascades from `auth.users` (ADR-29): each migration's pgTAP deletes a user with data. Every screen with input ships a restoration test (ADR-40).
+Questions in `tasks/plan.md`: Q1 (T-059), Q2 and Q3 (T-060) resolved by the user (2026-10-20); no open blocking question.
+Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-functionality default for E4): E4-A after T-057 (diary, dashboard, search and logging) · E4-B after T-060 (scanner and manual foods, custom meals, edit/delete/copy/views) · E4-C after T-063 (templates, history, final regression and approval → `v0.4.0`). T-058…T-060 and T-061…T-063 run back to back without a checkpoint in between.
+
+## T-055: Food catalog backend: schema and the Open Food Facts proxy
+
+**Story:** US-16 + US-22 (data model and "Portion from OFF") + US-23 (table and "Default meals", data side) · **Flow:** backend (no UI, no ux-reviewer) · **Scenarios:** US-16 Search with cached results; Search that queries Open Food Facts; Barcode lookup; Base unit per food; Unknown code or missing nutrition data; Invalid input; Unauthenticated call; Personal food isolation · US-22 Portion from OFF · US-23 Default meals (seeding)
+
+**Description:** One migration per `03-data-model.md` §1/§3: the `meal_type`, `food_source` and `food_base_unit` enums; `foods` (`search_vector` generated with `unaccent` + `spanish`, GIN index; `barcode` unique when `source = 'off'`; `created_by` references `auth.users` **on delete cascade**; nutrient checks ≥ 0; consistency check: `user` ⇔ `created_by` set), `food_portions` (amount > 0, `position`), `meal_slots` (`unique (user_id, position)`, `code` null for custom meals) and `food_log_entries` (`meal_slot_id`, `food_id`, amount > 0 and ≤ 5000, `portion_label` and nutrition snapshots, index `(user_id, log_date)`), with `created_at`/`updated_at` and the `set_updated_at()` trigger. RLS enabled and forced with `(select auth.uid())`: `foods` per §3 (select `off` or own; client writes only own `user` rows; `off` rows written only by the Edge Functions with the secret key, ADR-17, reusing the `delete-account` key lookup), `food_portions` via the parent food, owner policy on `meal_slots` (no client delete) and `food_log_entries`. Default meals: Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner, positions in that order) seeded when `profiles.onboarding_completed` becomes true (trigger, idempotent) **and backfilled for users already onboarded** (every E2/E3 user). Edge Functions per `03` §7: `functions/_shared/off-client.ts` (User-Agent from `OFF_USER_AGENT`, 8 s timeout, normalization: `nutrition_data_per` → base unit, kcal from `energy-kcal_100g`/`_100ml` or kJ / 4.184, default serving from `serving_size`, OFF servings stored as `food_portions` ("1 vaso (200 ml)")), input validation and `{ "error": { "code", "message" } }` responses; `food-search` (`q` 2–60 chars, local full-text first, OFF only below 10 local results, upsert by `barcode`, at most 20 results with `base_unit`, per-100 nutrition, default serving and portions; the caller's own `user` foods included, other users' never); `food-barcode` (EAN-8/EAN-13/UPC-A/UPC-E; local lookup including the caller's own foods, OFF when missing or `fetched_at` > 30 days; `404 FOOD_NOT_FOUND` when OFF has no product or no kcal). `verify_jwt = true` for both. No Kotlin in this task.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/foods.test.sql`, `food_portions.test.sql`, `meal_slots.test.sql`, `food_log_entries.test.sql`: RLS on and forced on the four tables; A's personal food "Tortilla de mi madre" and its portions invisible to B; B cannot write `off` rows, A's foods or portions; cross-user select/insert/update/delete on `meal_slots` and `food_log_entries`; an entry pointing at B's meal slot is rejected; checks reject amount 0 and 5001 and negative nutrients; no client delete on `meal_slots`.
+- [ ] Seeding: completing onboarding creates exactly the four default slots in order (twice → still four); the migration backfills already-onboarded users; a user who has not finished onboarding has none.
+- [ ] Deleting a user with personal foods, portions, meal slots and entries succeeds (ADR-29; if `on delete restrict` on `meal_slot_id`/`food_id` blocks the cascade, the planner switches it to `no action` and updates `03-data-model.md` §3).
+- [ ] `deno test` with recorded OFF fixtures (no network in CI): "Yogur griego natural" cached + 10 local results → no OFF call; "avena" with < 10 local results → OFF queried with the User-Agent, valid products stored with `source = 'off'`, ≤ 20 normalized results; "Coca-Cola Zero" per 100 ml → `base_unit = 'ml'`; kJ-only product → kcal = kJ / 4.184; serving "1 vaso (200 ml)" → portion; barcode `8410000810004` → normalized food from cache or OFF; unknown code and no-kcal product → 404 `FOOD_NOT_FOUND`; 1-char `q` and `code=abc` → 400 `INVALID_INPUT`; no JWT → 401; OFF timeout → a JSON 5xx error, never a hang.
+- [ ] `food-search` for "tortilla" by B never returns A's personal food (Personal food isolation), asserted in pgTAP (search query) and in the function test.
+
+**Host tests (per scenario):** `deno test` `off-client.test.ts` (Base unit per food; kJ → kcal; Portion from OFF), `food-search/handler.test.ts` (Search with cached results; Search that queries OFF; Invalid input; Unauthenticated call; Personal food isolation), `food-barcode/handler.test.ts` (Barcode lookup; Unknown code or missing nutrition data; Invalid input); pgTAP files above (isolation, seeding, account deletion).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green.
+- [ ] Manual (developer, local stack): `npx supabase functions serve` + `curl` with the test user's JWT: `food-search?q=avena` returns results and a second call hits only the cache.
+- [ ] After the merge: `deploy-supabase` green (migration remote, both functions deployed); `npx supabase secrets list` still shows `OFF_USER_AGENT`; production users already onboarded have their four meal slots.
+
+**Dependencies:** E3 (`v0.3.0`)
+**Files likely touched:** `supabase/migrations/<ts>_food_diary.sql`, `supabase/tests/{foods,food_portions,meal_slots,food_log_entries}.test.sql`, `supabase/functions/_shared/{off-client,validation,errors,secret-key}.ts` + tests, `supabase/functions/_shared/fixtures/off/*.json`, `supabase/functions/food-search/{index,handler,handler.test}.ts`, `supabase/functions/food-barcode/{index,handler,handler.test}.ts`, `supabase/config.toml`, `deno.json`, `planning/03-data-model.md` (only if a FK rule changes)
+**Estimated scope:** L (backend only; if the plan passes ~15 non-trivial files, the planner may run it as two slices: schema + pgTAP, then the Edge Functions)
+
+---
+
+## T-056: Daily diary by meal and the calorie and macro dashboard
+
+**Story:** US-19 (day structure) + US-20 + US-23 "Default meals" (UI side) · **Flow:** UI · **Scenarios:** US-19 Day structure; Empty section; Changing the day · US-20 Day progress; Calorie excess; User without goals (Immediate update is completed in T-057 for adding and T-060 for edit/delete) · US-23 Default meals
+
+**Description:** Replaces the Diario WIP placeholder (reference `design/stitch/diary/screen.png`, without the water card). Domain (`shared`, pure, `04-business-rules.md` §2 examples as tests): `MealSlot` and `FoodLogEntry` models, a `DiaryDay` aggregate with meal and day totals (sums of snapshots), `remaining = target_kcal − consumed` ("+N kcal en exceso" when negative) and macro progress `round(consumed / target × 100)` (bar capped at 100 %, text shows the real value). Gram targets come from the existing `CalculateMacroTargets` use case (T-037), never recomputed in the Diary (consumes the E2 note). `MealSlotRepository` (enabled slots in `position` order) and `FoodDiaryRepository` (entries of one `log_date`, as a `Flow`/`StateFlow` the later write tasks update in place). `DiaryViewModel` exposes one state from which list and totals derive (no second query). Screen: date header "Hoy"/"Ayer"/"lun, 24 oct" (`04` §5) with arrows (right arrow disabled on today; the local date from the injected `Clock`); dashboard with `ProgressRing` ("1.840", "de 2.400 kcal", "560 restantes"; over target: full ring in `energyAmber` and "+150 kcal en exceso") and three `MacroProgressBar`s ("142 g / 180 g · 79 %"); `ProgressRing` and `MacroProgressBar` gain `Double` (or percent) inputs so 0.1 g snapshots are not rounded early (consumes the PR #24 note; check every caller); one section per enabled slot with its entries (name, amount + unit or portion label, kcal), its kcal and P/C/F grams; empty section "Te quedan 560 kcal" (the day's remaining) and the "Añadir a …" button with the meal's name (wording per ux-reviewer; it emits a navigation event that T-057 connects to the search); collapsible sections (local saved state); no goals → "Configura tu objetivo" linking to Perfil → Preferencias. Tablet: dashboard left column, meals right. The visible day survives leaving the app (ADR-40). Loading skeleton, `ErrorState` with "Reintentar", offline banner.
+
+**Acceptance criteria:**
+- [ ] A new user sees Desayuno, Comida, Merienda and Cena in that order, each with its "Añadir a …" button; the date reads "Hoy".
+- [ ] With target 2.400 kcal (180 / 270 / 67 g) and 1.840 kcal logged (142 / 210 / 48 g): ring "1.840", "de 2.400 kcal", "560 restantes"; "142 g / 180 g · 79 %", "210 g / 270 g · 78 %", "48 g / 67 g · 72 %"; each section shows its own kcal and P/C/F.
+- [ ] 2.550 kcal logged → full ring in `energyAmber` and "+150 kcal en exceso".
+- [ ] Empty Cena with 1.840 kcal logged shows "Te quedan 560 kcal" and its add button.
+- [ ] Left arrow → "Ayer" with yesterday's entries; the right arrow is disabled on today.
+- [ ] No `nutrition_goals` → "Configura tu objetivo" opens Preferencias.
+- [ ] Tablet (≥ 600 dp): dashboard on the left, meals on the right; phone single column.
+- [ ] Leaving the app on "Ayer" with a section collapsed and coming back (also after process death) shows the same day and state.
+
+**Host tests (per scenario):** `DiaryTotalsTest` (sums, remaining, excess, macro percent with 0.1 g snapshots; `04` §2 example); `DiaryViewModelTest` with fakes, a test `Clock` and Turbine (Day structure; Empty section; Changing the day; User without goals; Default meals order); `DiaryScreenTest` (Robolectric: ring and bar texts, excess state, "Te quedan 560 kcal", disabled right arrow, two-column layout at 840 dp); `ProgressRingTest`/`MacroProgressBarTest` updates (Double input, 100.9/200 → 50 %); `StateRestorationTester` + recreated-ViewModel test (visible day).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-055
+**Files likely touched:** `shared/…/domain/model/{MealSlot,FoodLogEntry,DiaryDay}.kt`, `shared/…/domain/usecase/DiaryTotals.kt` + tests, `shared/…/domain/repository/{MealSlotRepository,FoodDiaryRepository}.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,DiaryUiState,DiaryDashboard,MealSection,DiaryDateHeader}.kt`, `composeApp/…/designsystem/{ProgressRing,MacroProgressBar}.kt` (+ callers), `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests
+**Estimated scope:** M–L
+
+---
+
+## T-057: Food text search and logging into a meal
+
+**Story:** US-17 + US-22 (logging) + US-20 "Immediate update" (adding) · **Flow:** UI + backend (`favorite_foods`, `most_eaten_foods`) · **Scenarios:** US-17 Debounced search; Adding a food with a serving; Choosing a named portion; Preselected meal; No results (message; the "Crear alimento" button is wired in T-058); Recent foods; Most eaten foods; Marking a favourite · US-22 Logging a drink by millilitres; Logging with a named portion; Logging a custom amount; Scaling per-100 nutrition · US-20 Immediate update (add)
+
+**Description:** Backend: one migration with `favorite_foods` (PK `(user_id, food_id)`, food on delete cascade, owner RLS) and `most_eaten_foods(p_limit)` (`security invoker`, derived counts from `food_log_entries`, ADR-34) + pgTAP. Domain (pure): `ResolvePortion` (raw amount or portion × count → base units; "2 huevos" with "1 huevo" = 55 g → 110 g), `ScaleNutrition` (`kcal_100 × amount / 100`, rounded to 0.1), quantity validation (> 0 and ≤ 5000, 1 decimal), `DefaultMealSlot` (US-17 time rule on the default codes: before 11:00 breakfast, 11–16 lunch, 16–20 snack, later dinner, among enabled slots; see the plan's assumptions). `FoodRepository` (`food-search` through `functions-kt`, recents from the last 14 days, most eaten, favourites toggle/list) and `FoodDiaryRepository.addEntry` (snapshot computed in the domain, stored in the entry). Screens: food search reached from each section's "Añadir a …" (meal preselected) and from a Diary-level add action (ux-reviewer; default meal by time): search box with a 400 ms debounce, skeletons while loading, rows with name, brand and kcal per 100 g or 100 ml, `FavouriteToggle` star (new design-system component); tabs with no text typed: recents, "Más comidos", "Favoritos" ("Plantillas" arrives in T-061); "No hemos encontrado alimentos". Food sheet (`AppBottomSheet`): nutrition card per 100 base units, `PortionSelector` (new design-system component: amount field in the food's base unit + portion dropdown, prefilled with the default serving or 100), meal selector of enabled slots, "Añadir" → entry logged, haptic, back to the Diary with totals updated in place. Search query, tab and sheet draft survive leaving the app (ADR-40); writes and search disabled offline.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/favorite_foods.test.sql`: RLS on and forced; cross-user isolation; `most_eaten_foods` counts only the caller's entries and orders by count; deleting a user with favourites succeeds.
+- [ ] Typing "pechuga pollo" fires exactly one search 400 ms after the last keystroke, with skeletons meanwhile; rows show name, brand and "110 kcal / 100 g".
+- [ ] "Pechuga de pollo" (110 kcal/100 g) → sheet prefilled with the default serving or 100 g; 220 g in "Comida" → a 242 kcal entry in today's Comida, one haptic, back on the Diary with the ring and bars updated without a reload.
+- [ ] "1 huevo" = 55 g in Desayuno → 55 g and its kcal snapshot; "2 huevos" → 110 g; "Zumo de naranja" (45 kcal/100 ml) 250 ml → 250 stored and 113 kcal, the field labelled in ml; "Arroz cocido" 180 g → 234 kcal.
+- [ ] From "Añadir a la cena" the entry lands in Cena without choosing a meal; quantity 0 or 5001 disables "Añadir" with the field error.
+- [ ] "xyzxyz" → "No hemos encontrado alimentos".
+- [ ] With foods logged in the last 14 days, opening the search without typing lists the most recent ones; "Más comidos" lists the most logged first (from the RPC); the star adds and removes a food from "Favoritos".
+- [ ] DoD: a food found by search is logged in ≤ 3 taps after opening the search (result → "Añadir", meal preselected).
+- [ ] Draft restoration (query, tab, open sheet with its quantity) after background and process death.
+
+**Host tests (per scenario):** `ResolvePortionTest` and `ScaleNutritionTest` (US-22 Logging a drink by millilitres; Logging with a named portion; Logging a custom amount; Scaling per-100 nutrition); `DefaultMealSlotTest`; `FoodSearchViewModelTest` with fakes, a test dispatcher and Turbine (Debounced search; No results; Recent foods; Most eaten foods; Marking a favourite); `AddFoodViewModelTest` (Adding a food with a serving; Choosing a named portion; Preselected meal; validation); `DiaryViewModelTest` addition (Immediate update after add); `FoodSearchScreenTest` and `AddFoodSheetTest` (Robolectric: skeletons, row texts, star state, ml label, "Añadir" disabled); restoration tests; pgTAP `favorite_foods.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-056
+**Files likely touched:** `supabase/migrations/<ts>_favorite_foods.sql`, `supabase/tests/favorite_foods.test.sql`, `shared/…/domain/model/{Food,FoodPortion,NutritionPer100}.kt`, `shared/…/domain/usecase/{ResolvePortion,ScaleNutrition,DefaultMealSlot,ValidateQuantity}.kt` + tests, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel,FoodSearchUiState,AddFoodSheet,AddFoodViewModel}.kt`, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel}.kt`, `composeApp/…/designsystem/{PortionSelector,FavouriteToggle}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests
+**Estimated scope:** L (the planner may run it as two dev slices: domain + data, then screens)
+
+---
+
+### Checkpoint E4-A — Log food by search and see the day 👤
+- [ ] T-055…T-057 merged, CI green, `deploy-supabase` applied both migrations and deployed `food-search` and `food-barcode`.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - Diario: today shows Desayuno, Comida, Merienda and Cena, the ring and the three macro bars; go to "Ayer" and back; the right arrow stops at today.
+  - "Añadir a la comida", search real foods ("pechuga pollo", "avena", "yogur griego"): results appear after you stop typing; add one with grams, one with a named portion ("1 huevo"), a drink in ml; check the ring, bars and section totals update at once.
+  - Go past your target and read "+N kcal en exceso"; an empty meal shows "Te quedan N kcal".
+  - Open the search without typing (recents), "Más comidos" and "Favoritos"; star and unstar a food; search nonsense ("xyzxyz").
+  - Leave the app and come back (also from the app switcher): the same tab, screen, day and half-typed search or quantity are restored.
+  - Out of scope here: scanner and "Crear alimento", meal settings, editing, deleting and copying entries (all E4-B); templates and history (E4-C).
+
+---
+
+## T-058: Barcode scanning and manual food creation
+
+**Story:** US-18 + US-22 "Creating a named portion" + US-17 "No results" ("Crear alimento" option) · **Flow:** UI · **Scenarios:** US-18 Product found; Drink scanned; Product not found; Scan cancelled; Manual food creation; Adding a portion to a manual food; Manual creation validation · US-22 Creating a named portion · US-17 No results (button)
+
+**Description:** `BarcodeScanner` port (domain) with the ML Kit `GmsBarcodeScanning` implementation in `androidMain` (EAN-13, EAN-8, UPC-A, UPC-E; Google's own full-screen UI, no camera permission, ADR-07) and a fake for host tests; result: code, cancelled or error. A scanner icon in the food search; a found code (`food-barcode`) opens the T-057 food sheet with an editable quantity (ml for drinks); 404 → "Producto no encontrado" with "Crear alimento", which opens the creation form with the barcode filled in; cancelling returns to the search with no message. "Crear alimento" is also offered on the search's "No hemos encontrado alimentos" state (the search text prefilled as the name). Creation form: name, optional brand, base unit g or ml, kcal / protein / carbs / fat per 100 base units, optional named portions (label + amount in the base unit); "Guardar" disabled with a field error for an empty name or negative values; saving creates a personal food (`source = 'user'`, `created_by` = caller, barcode when it came from a scan) with its portions atomically (an RPC + pgTAP if the planner needs one transaction; then a new migration), then opens its sheet to add it to a meal. Rescanning the same code finds the user's own food (T-055 lookup). Form draft restored after background and process death (ADR-40); disabled offline.
+
+**Acceptance criteria:**
+- [ ] Scanner icon → the Google scanner; a known code opens the food sheet; "Añadir" logs it in the selected meal.
+- [ ] A drink per 100 ml shows the quantity in ml.
+- [ ] Unknown code → "Producto no encontrado" + "Crear alimento" → form with the barcode filled in; after saving, scanning it again opens that food.
+- [ ] Closing the scanner without a code returns to the search with no error.
+- [ ] "Tortilla de patatas casera", 190 kcal, 7 g P, 15 g C, 11 g F per 100 g → personal food, source "user", base unit "g", and its sheet opens; with the portion "1 ración" = 250 g, that portion is offered whenever the food is logged.
+- [ ] Empty name or negative kcal → "Guardar" disabled and the field shows the error.
+- [ ] Another user never sees the created food (covered by T-055 pgTAP; repository test that the insert carries `source = 'user'`).
+
+**Host tests (per scenario):** `ScanFoodViewModelTest` with a fake `BarcodeScanner` (Product found; Drink scanned; Product not found; Scan cancelled); `CreateFoodViewModelTest` (Manual food creation; Adding a portion; Creating a named portion; Manual creation validation; barcode prefill; search-text prefill); `CreateFoodScreenTest` and `FoodSearchScreenTest` additions (Robolectric: "Producto no encontrado", disabled "Guardar" with errors, "Crear alimento" on no results); restoration tests; pgTAP only if an RPC is added.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase test db` and `deploy-supabase` if a migration is added).
+- [ ] `assembleProdDebug` includes the code-scanner dependency (pinned, stable) and no camera permission in the merged manifest.
+
+**Dependencies:** Checkpoint E4-A
+**Files likely touched:** `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `shared/…/domain/port/BarcodeScanner.kt`, `composeApp/src/androidMain/…/platform/MlKitBarcodeScanner.kt`, `shared/…/domain/repository/FoodRepository.kt` (barcode lookup, create food), `shared/…/data/repository/*`, DI, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel,ScanFoodViewModel,CreateFoodScreen,CreateFoodViewModel,CreateFoodUiState}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, optionally a migration + pgTAP, strings, tests
+**Estimated scope:** M–L
+
+---
+
+## T-059: Custom meal structure
+
+**Story:** US-23 · **Flow:** UI + backend (if the planner needs an atomic save) · **Scenarios:** Renaming a meal; Adding a custom meal; Disabling a meal; Reordering meals
+
+**Description:** A "Comidas" settings screen reached from the Diary (entry point and layout by ux-reviewer, e.g. the Diary's menu): the user's slots in order with rename, an enable switch, "Añadir comida" at a chosen position ("after Desayuno"), and reorder by drag plus "Subir"/"Bajar" (reusing `ReorderableColumn`); one "Guardar". Because of `unique (user_id, position)`, inserting and reordering are saved in one transaction (a `security invoker` RPC such as `save_meal_slots(jsonb)` + pgTAP in a new migration, or a deferrable constraint; planner's choice). Rules: labels trimmed, not blank, length-capped (planner), custom meals have `code` null; defaults keep their code (time suggestions still work); disabling is only allowed when the slot has no entries **on the day being viewed** (Q1, user 2026-10-20: entries on past days do not block it and those past days are not edited), otherwise the switch is disabled with an explanatory hint; a disabled slot keeps its label and can be re-enabled; disabled slots are hidden from the Diary and from every "add to" target (food sheet, and later copy and templates). Renaming never changes entry snapshots or totals. Draft restored after background and process death (ADR-40); disabled offline.
+
+**Acceptance criteria:**
+- [ ] Renaming "Merienda" to "Post-entreno" shows "Post-entreno" in the Diary and the food sheet; its entries keep their totals.
+- [ ] "Segundo desayuno" added after "Desayuno" appears in that position and can receive foods.
+- [ ] Empty "Merienda" disabled → hidden from the Diary and the add targets; re-enabled later with the same name; a slot with entries on the viewed day cannot be disabled and shows the hint; a slot with entries only on past days can be disabled.
+- [ ] Q1 recorded: the US-23 technical note in `planning/epics/E4-food-diary.md` and ADR-33's "disabling requires an empty slot" read "empty on the day being viewed" (doc consistency, no new ADR).
+- [ ] Moving "Cena" above "Merienda" (drag or "Subir") shows the new order in the Diary; the order survives a reload.
+- [ ] If an RPC is added: atomic (an invalid row saves nothing), cannot touch another user's slots (pgTAP).
+
+**Host tests (per scenario):** `MealSlotsEditorViewModelTest` with fakes + Turbine (Renaming; Adding a custom meal; Disabling, incl. viewed-day entries block and past-day entries do not, and re-enabling; Reordering by drag and by Subir/Bajar; validation); `MealSlotsScreenTest` (Robolectric: disabled switch with hint, order, "Guardar"); `DiaryViewModelTest` addition (renamed, disabled and reordered slots reflected); restoration tests; pgTAP for the RPC if added.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase db reset && npx supabase test db` and `deploy-supabase` if a migration is added).
+
+**Dependencies:** T-058
+**Files likely touched:** optionally `supabase/migrations/<ts>_save_meal_slots.sql` + `supabase/tests/save_meal_slots.test.sql`, `shared/…/domain/usecase/EditMealSlots.kt` + tests, `shared/…/domain/repository/MealSlotRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/diary/{MealSlotsScreen,MealSlotsViewModel,MealSlotsUiState,DiaryScreen}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
+**Estimated scope:** M
+
+---
+
+## T-060: Diary corrections, copying and view modes
+
+**Story:** US-19 (remaining scenarios) + US-20 "Immediate update" (edit, delete) · **Flow:** UI · **Scenarios:** US-19 Switching the view; Summary view; Editing an entry's quantity; Deleting an entry; Moving an entry to another meal; Copying foods to another meal or day; Copying a whole meal; Repeating yesterday's meal · US-20 Immediate update (edit, delete)
+
+**Description:** Tapping an entry opens the edit sheet (reusing `PortionSelector` and the meal selector): change the amount or portion and the meal, "Guardar" recalculates the snapshot from the food's per-100 values (`ScaleNutrition`) and moves it between sections. Swipe left → "Eliminar" → the entry disappears and a snackbar with "Deshacer" re-inserts it. Copy: select entries (selection mode, ux-reviewer) → "Copiar alimentos" → destination meal and day (Q3, user 2026-10-20: any past day, today or a future day; the Diary itself stays capped at today, so future copies show up when that day arrives) → copies logged in one batch insert; "Copiar comida" on a section copies all its entries the same way; "Repetir comida de ayer" on an empty meal adds yesterday's entries of that slot with a "Deshacer" confirmation (undo deletes the inserted rows). Copies keep amounts, portion labels and snapshots. View menu with `ViewModeSelector` (new design-system component on `SegmentedSelector`): "Detalle", "Lista", "Resumen" (Q2, user 2026-10-20: Detalle = each entry with its amount, kcal and P/C/F grams; Lista = one compact line per entry with name, amount and kcal; Resumen = each meal's name, kcal and macros only, entries hidden); the mode is a DataStore preference kept across launches. Ring, bars and section totals update in place after every write. Edit-sheet draft and selection restored after background and process death (ADR-40); writes disabled offline; failed writes keep the user's input with a message-only snackbar (02 §9).
+
+**Acceptance criteria:**
+- [ ] "Pechuga de pollo 220 g · 242 kcal" edited to 150 g → "150 g · 165 kcal"; meal and day totals recalculated without a reload.
+- [ ] Swipe + "Eliminar" removes the entry; "Deshacer" restores it with the same values.
+- [ ] Changing the meal from "Merienda" to "Cena" in the edit sheet moves the entry.
+- [ ] Copying "Pechuga de pollo" from Comida to Cena or to another day logs a copy there in one request; copying a three-food Comida to tomorrow's Comida adds the three foods with the same quantities (visible when tomorrow is today); the Diary's right arrow still stops at today.
+- [ ] "Repetir comida de ayer" on an empty meal adds yesterday's foods of that meal; "Deshacer" removes them; the button is not offered when yesterday's meal was empty (ux-reviewer: hidden or disabled).
+- [ ] Q2/Q3 recorded in the US-19 scenarios or technical notes of `planning/epics/E4-food-diary.md` (no new ADR).
+- [ ] The view menu offers "Detalle" (entries with amount, kcal and P/C/F), "Lista" (one line per entry: name, amount, kcal) and "Resumen"; "Resumen" hides entries and shows each meal's name, kcal and macros; the chosen view is kept after closing and reopening the app.
+
+**Host tests (per scenario):** `DiaryEditViewModelTest` with fakes + Turbine (Editing an entry's quantity; Moving an entry; Immediate update); `DiaryViewModelTest` additions (Deleting + undo; Copying foods; Copying a whole meal; Repeating yesterday's meal + undo; Switching the view persisted through a fake preferences store); `FoodDiaryRepositoryTest` (batch insert is one request; undo payloads); `DiaryScreenTest` additions (Robolectric: swipe → "Eliminar", snackbar "Deshacer", Summary view hides entries, view menu); restoration tests.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-059
+**Files likely touched:** `shared/…/domain/usecase/{CopyEntries,RepeatYesterdayMeal}.kt` + tests, `shared/…/domain/repository/{FoodDiaryRepository,DiaryPreferences}.kt`, `shared/…/data/repository/*`, `shared/…/data/local/*` (DataStore), DI, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,DiaryUiState,MealSection,EditEntrySheet,EditEntryViewModel,CopyEntriesSheet}.kt`, `composeApp/…/designsystem/ViewModeSelector.kt`, catalog, strings, tests
+**Estimated scope:** L (the planner may run it as two dev slices: edit/delete/move + view modes, then copy/repeat)
+
+---
+
+### Checkpoint E4-B — Scanner, manual foods, your own meals, correct and reuse the diary 👤
+- [ ] T-058…T-060 merged, CI green (`deploy-supabase` green if T-058 or T-059 added a migration).
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - Scanner (real products at home): scan a few packaged foods and a drink: the sheet opens, the drink uses ml; add them to a meal. Scan something unknown: "Producto no encontrado" → "Crear alimento" with the code filled in; save it with a portion ("1 ración"), then scan it again: it opens your food. Close the scanner without scanning: back to the search, no error.
+  - Manual foods: create a food from a search with no results; try an empty name or negative kcal ("Guardar" disabled).
+  - Your own meals: open the meal settings from the Diary; rename "Merienda" (e.g. "Post-entreno"), add "Segundo desayuno" after Desayuno, move Cena above Merienda, save: the Diary follows. Disable an empty meal (gone from the Diary and the meal picker), re-enable it; try to disable a meal with foods on the day you are viewing (blocked, with a hint). Add a food to the custom meal; renamed meals keep their totals.
+  - Tap an entry: change its grams or portion, move it to another meal, save; the totals follow.
+  - Swipe an entry left → "Eliminar" → "Deshacer".
+  - Select some foods and "Copiar alimentos" to another meal and to another day; copy a whole meal; "Repetir comida de ayer" on an empty meal, then "Deshacer".
+  - Switch "Detalle" / "Lista" / "Resumen"; close and reopen the app: the view is kept.
+  - Leave the app and come back with the food-creation form half filled, with unsaved meal settings and with the edit sheet open: the same tab, screen and draft are restored.
+  - Out of scope: editing or deleting foods you created (not in Phase 1 stories); templates and history (E4-C).
+
+---
+
+## T-061: Meal templates
+
+**Story:** US-21 · **Flow:** UI + backend · **Scenarios:** Saving a section as a template; Duplicate name; Quick add; Adding a template to another meal; Managing templates
+
+**Description:** Backend: one migration with `meal_templates` (`name` unique per user, `meal_slot_id` null = any meal) and `meal_template_items` (`template_id` on delete cascade, `food_id`, `amount`, `portion_label`, `position`), owner RLS on templates and RLS via the parent on items (`03` §3), items may only reference foods the caller can read; pgTAP. Domain: template totals and the "quick add" set (templates whose meal matches the current time slot by the default codes, at most 3; see the plan's assumptions). App: a "Guardar como plantilla" icon on each section with entries → name dialog → template with the section's foods and quantities; "Ya existe una plantilla con ese nombre" on a duplicate. Quick-add chips "Añadir rápido Desayuno A" on the Diary → its foods added to the template's meal of the visible day in one batch insert (snapshots computed from the current food values), dashboard updated at once, haptic and a "Deshacer" confirmation. A "Plantillas" tab in the food search adds a template to the chosen meal; from there the user edits a template (rename, change quantities, remove foods) or deletes it; entries already logged never change. Template edit draft restored (ADR-40); writes disabled offline.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/meal_templates.test.sql`: RLS on and forced on both tables; cross-user isolation including an item inserted into B's template and an item referencing B's personal food; duplicate name rejected; deleting a template deletes its items; deleting a user with templates succeeds.
+- [ ] Desayuno with "Huevos revueltos 120 g" and "Batido de proteína 300 g" → "Guardar como plantilla" named "Desayuno A" creates the template with both foods and quantities; a second "Desayuno A" shows "Ya existe una plantilla con ese nombre".
+- [ ] The 580 kcal "Desayuno A" chip in the morning → both foods in the visible day's Desayuno, +580 kcal on the ring at once, one haptic, "Deshacer" removes them; at most 3 chips.
+- [ ] "Añadir a la comida" → "Plantillas" → "Desayuno A" adds its foods to Comida.
+- [ ] Renaming, changing quantities, removing a food and deleting "Desayuno A" are saved; entries created from it earlier keep their values.
+- [ ] DoD: a full breakfast is logged from a template in 1 tap.
+
+**Host tests (per scenario):** `QuickAddTemplatesTest` (time slot match, max 3, totals); `MealTemplatesViewModelTest` with fakes + Turbine (Saving a section; Duplicate name; Managing templates); `DiaryViewModelTest` additions (Quick add + undo + immediate dashboard update); `FoodSearchViewModelTest` additions (Adding a template to another meal); `TemplateEditorScreenTest` and `DiaryScreenTest` additions (Robolectric: chip label, duplicate-name error, edit/delete); restoration tests; pgTAP `meal_templates.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** Checkpoint E4-B
+**Files likely touched:** `supabase/migrations/<ts>_meal_templates.sql`, `supabase/tests/meal_templates.test.sql`, `shared/…/domain/model/MealTemplate.kt`, `shared/…/domain/usecase/QuickAddTemplates.kt` + tests, `shared/…/domain/repository/MealTemplateRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/templates/{TemplatesTab,TemplateEditorScreen,TemplateEditorViewModel,SaveTemplateDialog}.kt`, `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,MealSection}.kt`, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
+**Estimated scope:** L
+
+---
+
+## T-062: Diary history and summaries
+
+**Story:** US-24 · **Flow:** UI + backend (`food_diary_summary`) · **Scenarios:** Opening the history; Daily summary; Weekly average; Monthly total; No data
+
+**Description:** Backend: one migration with `food_diary_summary(p_from date, p_to date)` (`security invoker`; per `log_date` the caller's kcal and P/C/F totals, only days with entries) + pgTAP. Domain (`04-business-rules.md` §2.1, pure): day summary against the target, weekly average over the logged days of the last 7 days, monthly total and average per logged day. App: "Historial" from the Diary (entry point by ux-reviewer) opens a month calendar (`MonthCalendarGrid`, new design-system component) with the days that have entries marked, month navigation not past the current month; selecting a day shows its summary (`DiaryHistoryRow`, new design-system component: kcal and P/C/F against the target) and opens that day's Diary (reusing T-056's day navigation with a date argument; back returns to the history); week and month summary views; a day without entries reads "Sin registros". Read-only: no write path. Selected month and day restored (ADR-40).
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/food_diary_summary.test.sql`: per-day sums match the entries; other users' entries and days outside the range ignored.
+- [ ] The calendar marks only days with entries; tapping one opens that day's Diary.
+- [ ] 18 October with 1.840 kcal → its summary shows 1.840 kcal and P/C/F against the target.
+- [ ] Week summary: average daily kcal and macros over the logged days of the last 7 days (days without entries not counted).
+- [ ] Month summary: total kcal and the average per logged day of that month.
+- [ ] A day without entries shows "Sin registros"; loading skeleton and `ErrorState` with "Reintentar".
+
+**Host tests (per scenario):** `DiaryHistorySummaryTest` (Daily summary; Weekly average; Monthly total; logged-days-only averages); `DiaryHistoryViewModelTest` with fakes, a test `Clock` and Turbine (Opening the history; No data; month navigation); `DiaryHistoryScreenTest` (Robolectric: marked days, "Sin registros", week and month texts, tap → day navigation event); `MonthCalendarGrid` catalog entry and test; restoration tests; pgTAP `food_diary_summary.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-061
+**Files likely touched:** `supabase/migrations/<ts>_food_diary_summary.sql`, `supabase/tests/food_diary_summary.test.sql`, `shared/…/domain/usecase/DiaryHistorySummary.kt` + tests, `shared/…/domain/repository/FoodDiaryRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/diary/{DiaryHistoryScreen,DiaryHistoryViewModel,DiaryHistoryUiState,DiaryScreen}.kt`, `composeApp/…/designsystem/{MonthCalendarGrid,DiaryHistoryRow}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, catalog, strings, tests
+**Estimated scope:** M
+
+---
+
+## T-063: E4 closure
+
+**Story:** E4 Definition of Done · **Flow:** PM
+
+**Description:** Closes E4: final regression on the phone with real scanned foods, approval, tag `v0.4.0` and the retrospective.
+
+**Acceptance criteria:**
+- [ ] T-055…T-062 merged with green CI; pgTAP for the 7 tables (`foods`, `food_portions`, `food_log_entries`, `meal_slots`, `meal_templates`, `meal_template_items`, `favorite_foods`) and the two RPCs green; `deno test` for `food-search` and `food-barcode` green; `deploy-supabase` green after the last migration.
+- [ ] Host tests green for every E4 Gherkin scenario.
+- [ ] Checkpoints E4-A and E4-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [ ] `CLAUDE.md` "Current status" and `tasks/todo.md` (E4 ✅) updated through a PR.
+
+**Verification:**
+- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.
+
+**Dependencies:** T-062
+**Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
+**Estimated scope:** S
+
+### Checkpoint E4-C — Templates, history, final regression and approval 👤
+- [ ] T-061…T-063 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - Templates: fill a breakfast and "Guardar como plantilla"; try the same name again (error). Tap a "Añadir rápido" chip for the current meal: the foods appear and the ring jumps at once; "Deshacer". From another meal's search, "Plantillas" → add the template there; edit it (rename, quantities, remove a food) and delete it: entries already logged do not change.
+  - History: Diario → "Historial": the logged days are marked; open one (its Diary), go back; read a day's summary against your target, the week average and the month total; a day with nothing shows "Sin registros".
+- [ ] 👤 Final regression: log one real day end to end:
+  - Breakfast from a template in one tap; lunch by search (≤ 3 taps after opening the search) with a named portion; a drink in ml; a scanned product.
+  - Rename or reorder a meal; copy a food to another meal or day; edit and delete an entry with "Deshacer".
+  - Check the ring and bars against your target, then "Historial" for today and the week.
+  - Leave the app and come back while editing a template and on a past month in "Historial": the same tab, screen and draft are restored.
+  - Approval → `git tag -a v0.4.0 -m "Epic E4"` + `git push --tags` + retrospective.
+
+---
+
 ## Notes for later epics
 
-- **E3 (food diary), from E2 (T-037):** US-08's "And the Diary uses the new gram targets" is only verified on the Profile side in E2; the E3 Diary must read the macro gram targets from the domain use case added in T-037 (not recompute them).
+- **E3 (food diary), from E2 (T-037):** consumed by T-056 (the Diary reads gram targets from `CalculateMacroTargets`).
 - **E3 / E4 / E5 FAB question (E1 review):** resolved by ADR-36 (no universal FAB); E3's per-screen actions are in T-043 and T-045.
 - **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved. Listed in the E7 UI refinement backlog (`planning/07-roadmap.md` §1.1).
 - **E7 (UI refinement), from Checkpoint E2-A (user, 2026-10-14):** general onboarding polish, better use of space on "Sexo", a typography review. Every later checkpoint appends deferred UI details to `planning/07-roadmap.md` §1.1.
-- **E2 (food diary), from the PR #24 review:** `MacroProgressBar` and `ProgressRing` take `Int`, but snapshots are stored to 0.1 g (04 §2), so a caller that rounds first can be off by 1 % (100.9/200 → 50 %, 101/200 → 51 %). Add `Double` overloads or have the domain pass in the percent.
+- **E2 (food diary), from the PR #24 review:** consumed by T-056 (`Double`/percent inputs for `MacroProgressBar` and `ProgressRing`).
 - **E4 (weight and progress), from the PR #24 review:** `MetricTile` and `TrendPill` are both `surfaceOverlay`, so the pill's outline disappears inside a tile; add a container-colour parameter.
