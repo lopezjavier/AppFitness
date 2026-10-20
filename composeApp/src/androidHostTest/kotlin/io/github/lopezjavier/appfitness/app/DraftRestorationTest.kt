@@ -150,6 +150,7 @@ class DraftRestorationTest {
                         selectedExerciseId = pickerResult,
                         onConsumeSelection = { pickerResult = null },
                         onAddExercise = {},
+                        onOpenExercise = {},
                         onClose = {},
                         viewModel = vm,
                     )

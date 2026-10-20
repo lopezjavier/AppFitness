@@ -27,11 +27,7 @@ import kotlin.time.Instant
 @Suppress("TooManyFunctions") // One small function per repository operation.
 class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postgrest: Postgrest) :
     WorkoutSessionRepository {
-    override suspend fun startFromRoutine(routineId: String): Result<String> = start(routineId)
-
-    override suspend fun startEmpty(): Result<String> = start(null)
-
-    private suspend fun start(routineId: String?): Result<String> = auth.ownRow {
+    override suspend fun startFromRoutine(routineId: String): Result<String> = auth.ownRow {
         postgrest.rpc("start_workout_session", StartSessionParams(routineId)).decodeAs<String>()
     }
 

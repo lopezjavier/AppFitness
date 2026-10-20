@@ -61,6 +61,7 @@ fun LiveSessionRoot(
     selectedExerciseId: String?,
     onConsumeSelection: () -> Unit,
     onAddExercise: () -> Unit,
+    onOpenExercise: (String) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LiveSessionViewModel = koinViewModel(),
@@ -94,7 +95,7 @@ fun LiveSessionRoot(
         viewModel.onEvent(LiveSessionEvent.Resume)
         onPauseOrDispose { viewModel.onEvent(LiveSessionEvent.Pause) }
     }
-    LiveSessionScreen(state, elapsed, viewModel::onEvent, onClose, modifier, snackbarHost)
+    LiveSessionScreen(state, elapsed, viewModel::onEvent, onClose, modifier, snackbarHost, onOpenExercise)
 }
 
 /**
@@ -110,6 +111,7 @@ fun LiveSessionScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    onOpenExercise: (String) -> Unit = {},
 ) {
     Box(modifier.fillMaxSize().background(AppTheme.colors.surfaceBase).testTag("live_screen")) {
         when (state) {
@@ -128,7 +130,14 @@ fun LiveSessionScreen(
                 }
             }
 
-            is LiveSessionUiState.Active -> LiveActive(state, elapsedSeconds, onEvent, onBack, snackbarHost)
+            is LiveSessionUiState.Active -> LiveActive(
+                state,
+                elapsedSeconds,
+                onEvent,
+                onBack,
+                snackbarHost,
+                onOpenExercise,
+            )
 
             is LiveSessionUiState.Finished ->
                 SessionSummaryScreen(state.summary, onDone = { onEvent(LiveSessionEvent.Done) })
@@ -174,12 +183,14 @@ private fun RestBar(timer: RestTimerUi, onEvent: (LiveSessionEvent) -> Unit) {
 }
 
 @Composable
+@Suppress("LongParameterList") // State plus the screen's event and navigation hooks.
 private fun LiveActive(
     state: LiveSessionUiState.Active,
     elapsedSeconds: Long,
     onEvent: (LiveSessionEvent) -> Unit,
     onBack: () -> Unit,
     snackbarHost: SnackbarHostState,
+    onOpenExercise: (String) -> Unit,
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
@@ -193,7 +204,9 @@ private fun LiveActive(
                 contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
-                items(state.exercises, key = { it.position }) { LiveExerciseCard(it, onEvent) }
+                items(state.exercises, key = {
+                    it.position
+                }) { LiveExerciseCard(it, onEvent, onOpenExercise = { id -> onOpenExercise(id) }) }
                 item(key = "add_exercise") {
                     SecondaryButton(
                         text = stringResource(Res.string.live_add_exercise),

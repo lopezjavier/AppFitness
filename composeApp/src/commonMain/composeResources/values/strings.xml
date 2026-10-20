@@ -278,7 +278,20 @@
     <string name="builder_row_cd_superset">%1$s, %2$s</string>
     <string name="builder_sets_unit">SERIES</string>
     <string name="builder_reps_unit">REPS</string>
-    <string name="builder_rest_unit">DESCANSO s</string>
+    <string name="builder_rest_unit">DESCANSO</string>
+    <string name="builder_exercise_open_cd">Ver ejercicio %1$s</string>
+    <string name="rest_format_seconds">%1$d s</string>
+    <string name="rest_format_minutes">%1$d min</string>
+    <string name="rest_format_minutes_seconds">%1$d min %2$d s</string>
+    <string name="rest_a11y_join">%1$s %2$s</string>
+    <plurals name="rest_a11y_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <plurals name="rest_a11y_seconds">
+        <item quantity="one">%1$d segundo</item>
+        <item quantity="other">%1$d segundos</item>
+    </plurals>
     <plurals name="builder_sets_state">
         <item quantity="one">%1$d serie</item>
         <item quantity="other">%1$d series</item>
@@ -287,7 +300,7 @@
         <item quantity="one">%1$d repetición</item>
         <item quantity="other">%1$d repeticiones</item>
     </plurals>
-    <string name="builder_rest_state">Descanso: %1$d segundos</string>
+    <string name="builder_rest_state">Descanso: %1$s</string>
     <string name="builder_sets_decrease_cd">Menos series</string>
     <string name="builder_sets_increase_cd">Más series</string>
     <string name="builder_reps_decrease_cd">Menos repeticiones</string>
@@ -351,7 +364,6 @@
     <string name="equipment_other">Otro</string>
     <string name="routines_start">Empezar</string>
     <string name="routines_start_cd">Empezar %1$s</string>
-    <string name="routines_start_empty">Empezar entreno vacío</string>
     <string name="routines_start_offline_reason">Sin conexión: no puedes empezar un entreno</string>
     <string name="workout_in_progress">Tienes un entreno en curso</string>
     <string name="workout_continue">Continuar entreno</string>

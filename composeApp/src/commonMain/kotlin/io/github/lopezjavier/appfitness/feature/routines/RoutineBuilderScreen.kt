@@ -75,6 +75,7 @@ fun RoutineBuilderRoot(
     selectedExerciseId: String?,
     onConsumeSelection: () -> Unit,
     onAddExercise: () -> Unit,
+    onOpenExercise: (String) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RoutineBuilderViewModel = koinViewModel(parameters = { parametersOf(routineId.orEmpty()) }),
@@ -99,7 +100,7 @@ fun RoutineBuilderRoot(
             }
         }
     }
-    RoutineBuilderScreen(state, viewModel::onEvent, onAddExercise, modifier, snackbarHost)
+    RoutineBuilderScreen(state, viewModel::onEvent, onAddExercise, onOpenExercise, modifier, snackbarHost)
 }
 
 /**
@@ -111,6 +112,7 @@ fun RoutineBuilderScreen(
     state: RoutineBuilderUiState,
     onEvent: (RoutineBuilderEvent) -> Unit,
     onAddExercise: () -> Unit,
+    onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -126,7 +128,7 @@ fun RoutineBuilderScreen(
                 when (state) {
                     RoutineBuilderUiState.Loading -> BuilderLoading()
                     RoutineBuilderUiState.LoadError -> BuilderLoadError { onEvent(RoutineBuilderEvent.Retry) }
-                    is RoutineBuilderUiState.Editing -> BuilderForm(state, onEvent, onAddExercise)
+                    is RoutineBuilderUiState.Editing -> BuilderForm(state, onEvent, onAddExercise, onOpenExercise)
                 }
             }
             SnackbarHost(snackbarHost) { data ->
@@ -153,6 +155,7 @@ private fun BuilderForm(
     state: RoutineBuilderUiState.Editing,
     onEvent: (RoutineBuilderEvent) -> Unit,
     onAddExercise: () -> Unit,
+    onOpenExercise: (String) -> Unit,
 ) {
     // The row whose menu sheet is open, by its stable id (positions change while editing).
     var menuRowId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -191,6 +194,7 @@ private fun BuilderForm(
                     index = index,
                     onEvent = onEvent,
                     onOpenMenu = { menuRowId = row.rowId },
+                    onOpenExercise = { onOpenExercise(row.exerciseId) },
                     modifier = Modifier.padding(top = if (index > 0 && !continuesGroup) Spacing.xs else Spacing.none),
                 )
             }

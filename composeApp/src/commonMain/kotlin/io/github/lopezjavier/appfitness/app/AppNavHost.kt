@@ -103,12 +103,14 @@ internal typealias ExerciseProgressSlot = @Composable (modifier: Modifier, exerc
 
 /**
  * What the live workout needs from navigation: the exercise the picker returned (to be consumed with
- * [onConsumeSelection]), how to open the picker and how to leave the screen (the session stays in progress).
+ * [onConsumeSelection]), how to open the picker, how to open the read-only detail of an exercise ([onOpenExercise],
+ * back returns to the same session) and how to leave the screen (the session stays in progress).
  */
 class LiveSessionHost(
     val selectedExerciseId: String?,
     val onConsumeSelection: () -> Unit,
     val onAddExercise: () -> Unit,
+    val onOpenExercise: (String) -> Unit,
     val onClose: () -> Unit,
 )
 
@@ -117,13 +119,15 @@ internal typealias LiveSessionSlot = @Composable (modifier: Modifier, host: Live
 
 /**
  * What the routine builder needs from navigation: the routine to edit (null = new), the exercise the picker returned
- * (to be consumed with [onConsumeSelection]), how to open the picker and how to close the screen.
+ * (to be consumed with [onConsumeSelection]), how to open the picker, how to open the read-only detail of an exercise
+ * ([onOpenExercise], back returns to the same draft) and how to close the screen.
  */
 class RoutineBuilderHost(
     val routineId: String?,
     val selectedExerciseId: String?,
     val onConsumeSelection: () -> Unit,
     val onAddExercise: () -> Unit,
+    val onOpenExercise: (String) -> Unit,
     val onClose: () -> Unit,
 )
 
@@ -280,6 +284,9 @@ internal fun AppNavHost(
                     selectedExerciseId = selected,
                     onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
                     onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },
+                    onOpenExercise = {
+                        navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false))
+                    },
                     onClose = { navController.popBackStack() },
                 ),
             )
@@ -354,6 +361,7 @@ private fun NavGraphBuilder.liveSessionDestination(
                 selectedExerciseId = selected,
                 onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
                 onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },
+                onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
                 onClose = { navController.popBackStack() },
             ),
         )

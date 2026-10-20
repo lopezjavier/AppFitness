@@ -324,7 +324,7 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun restMovesInStepsOfFifteenSeconds() = runTest {
+    fun restMovesInStepsOfTenSeconds() = runTest {
         val vm = builder()
         vm.add("a")
 
@@ -332,7 +332,40 @@ class RoutineBuilderViewModelTest {
         vm.onEvent(RoutineBuilderEvent.StepRest(0, +1))
         vm.onEvent(RoutineBuilderEvent.StepRest(0, -1))
 
-        assertEquals(135, vm.form().rows.single().restSeconds)
+        assertEquals(130, vm.form().rows.single().restSeconds)
+    }
+
+    @Test
+    fun restOffTheTenSecondGrid_movesByTenFromItsCurrentValue() = runTest {
+        repository.routines.add(
+            Routine("r1", "Torso", null, false, listOf(RoutineExercise("a", 0, null, 3, 8, restSeconds = 45))),
+        )
+        val vm = builder("r1")
+
+        vm.onEvent(RoutineBuilderEvent.StepRest(0, +1))
+
+        assertEquals(55, vm.form().rows.single().restSeconds)
+    }
+
+    @Test
+    fun anExerciseCreatedAfterTheBuilderOpened_showsItsOwnName() = runTest {
+        val vm = builder()
+        exercises.rows += exerciseRow("new-custom", null, name = "Curl nórdico", custom = true)
+
+        vm.add("new-custom")
+        advanceUntilIdle()
+
+        assertEquals("Curl nórdico", vm.form().rows.single().name)
+    }
+
+    @Test
+    fun aRestoredDraftWithACustomExercise_resolvesItsName() = runTest {
+        val first = builder()
+        first.add("custom")
+
+        val second = builder(savedState = handle)
+
+        assertEquals("Mi ejercicio", second.form().rows.single().name)
     }
 
     @Test

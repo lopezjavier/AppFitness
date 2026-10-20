@@ -117,6 +117,8 @@ class RoutineBuilderViewModel(
             }
 
             else -> {
+                // An exercise created in the picker after this screen opened is not in the loaded catalog yet.
+                if (event is RoutineBuilderEvent.AddExercise && event.exerciseId !in catalog) loadNames()
                 listEdit(event)?.let { edit(it) }
                 targetEdit(event)?.let { (index, change) -> editRow(index, change) }
             }

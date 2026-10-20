@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_group_next
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_down
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_up
@@ -35,7 +37,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_reps_state
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_reps_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_state
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_cd_superset
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
@@ -57,6 +58,8 @@ import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.workout.restDurationText
+import io.github.lopezjavier.appfitness.feature.workout.restStateDescription
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -83,6 +86,7 @@ internal fun ReorderableItemScope.BuilderRow(
     index: Int,
     onEvent: (RoutineBuilderEvent) -> Unit,
     onOpenMenu: () -> Unit,
+    onOpenExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val name = row.displayName()
@@ -118,7 +122,7 @@ internal fun ReorderableItemScope.BuilderRow(
             .testTag("routine_builder_row_$index"),
     ) {
         AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) AccentWidth else Spacing.none)) {
-            RowHeader(row, index, name, superset, onOpenMenu)
+            RowHeader(row, index, superset, onOpenMenu, onOpenExercise)
             Steppers(row, index, onEvent)
         }
         if (superset != null) {
@@ -138,17 +142,57 @@ internal fun ReorderableItemScope.BuilderRow(
 private fun ReorderableItemScope.RowHeader(
     row: BuilderRowUi,
     index: Int,
-    name: String,
     superset: String?,
     onOpenMenu: () -> Unit,
+    onOpenExercise: () -> Unit,
 ) {
+    val name = row.displayName()
     val menuLabel = stringResource(Res.string.builder_row_menu_cd, name)
-    val key = row.imageKey
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         DragHandle(
             contentDescription = stringResource(Res.string.builder_reorder_cd, name),
             modifier = Modifier.dragHandle().testTag("routine_builder_drag_handle_$index"),
         )
+        RowIdentity(row, index, name, superset, onOpenExercise, Modifier.weight(1f))
+        Box(
+            Modifier
+                .size(Spacing.minTouchTarget)
+                .clickable(role = Role.Button, onClickLabel = menuLabel, onClick = onOpenMenu)
+                .testTag("routine_builder_menu_$index"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_more_vert),
+                contentDescription = menuLabel,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Spacing.xl),
+            )
+        }
+    }
+}
+
+/** Thumbnail and name are one tap target that opens the exercise; the handle and the menu stay siblings. */
+@Composable
+@Suppress("LongParameterList") // Row data, its position, text and tap hook.
+private fun RowIdentity(
+    row: BuilderRowUi,
+    index: Int,
+    name: String,
+    superset: String?,
+    onOpenExercise: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val openLabel = stringResource(Res.string.builder_exercise_open_cd, name)
+    val key = row.imageKey
+    // Thumbnail and name are one tap target that opens the exercise; the handle and the menu stay siblings.
+    Row(
+        modifier
+            .heightIn(min = Spacing.minTouchTarget)
+            .clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpenExercise)
+            .testTag("routine_builder_exercise_${index}_open"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
         ExerciseThumbnail(
             imageUri = key?.let { LocalExerciseMediaUris.current.start(it) },
             size = ExerciseThumbnailDefaults.RowSize,
@@ -173,20 +217,6 @@ private fun ReorderableItemScope.RowHeader(
                     modifier = Modifier.testTag("routine_builder_superset_label_$index"),
                 )
             }
-        }
-        Box(
-            Modifier
-                .size(Spacing.minTouchTarget)
-                .clickable(role = Role.Button, onClickLabel = menuLabel, onClick = onOpenMenu)
-                .testTag("routine_builder_menu_$index"),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_more_vert),
-                contentDescription = menuLabel,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(Spacing.xl),
-            )
         }
     }
 }
@@ -218,8 +248,8 @@ private fun Steppers(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEven
         )
         StepperLine(
             unit = stringResource(Res.string.builder_rest_unit),
-            valueText = row.restSeconds.toString(),
-            state = stringResource(Res.string.builder_rest_state, row.restSeconds),
+            valueText = restDurationText(row.restSeconds),
+            state = restStateDescription(row.restSeconds),
             decreaseDescription = stringResource(Res.string.builder_rest_decrease_cd),
             increaseDescription = stringResource(Res.string.builder_rest_increase_cd),
             canDecrease = row.restSeconds > RoutineBounds.REST_MIN_SECONDS,

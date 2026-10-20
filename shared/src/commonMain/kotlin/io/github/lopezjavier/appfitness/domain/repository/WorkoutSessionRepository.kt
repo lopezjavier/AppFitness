@@ -14,8 +14,6 @@ interface WorkoutSessionRepository {
     /** Starts a session with one pending set per routine target set; returns its id. */
     suspend fun startFromRoutine(routineId: String): Result<String>
 
-    suspend fun startEmpty(): Result<String>
-
     suspend fun getInProgress(): Result<WorkoutSession?>
 
     /** Creates or replaces the set at (session, exercisePosition, setIndex); [completedAt] null keeps it pending. */

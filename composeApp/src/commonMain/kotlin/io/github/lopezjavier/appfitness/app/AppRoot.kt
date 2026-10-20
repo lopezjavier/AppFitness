@@ -60,6 +60,7 @@ fun AppRoot(
                 selectedExerciseId = host.selectedExerciseId,
                 onConsumeSelection = host.onConsumeSelection,
                 onAddExercise = host.onAddExercise,
+                onOpenExercise = host.onOpenExercise,
                 onClose = host.onClose,
                 modifier = builderModifier,
             )
@@ -69,6 +70,7 @@ fun AppRoot(
                 selectedExerciseId = host.selectedExerciseId,
                 onConsumeSelection = host.onConsumeSelection,
                 onAddExercise = host.onAddExercise,
+                onOpenExercise = host.onOpenExercise,
                 onClose = host.onClose,
                 modifier = liveModifier,
             )

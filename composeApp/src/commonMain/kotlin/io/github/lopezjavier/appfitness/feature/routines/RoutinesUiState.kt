@@ -49,9 +49,6 @@ sealed interface RoutinesEvent {
 
     /** "Empezar" on a routine card. */
     data class StartRoutine(val id: String) : RoutinesEvent
-
-    /** "Empezar entreno vacío". */
-    data object StartEmpty : RoutinesEvent
 }
 
 /** One-off results of "Mis rutinas". */

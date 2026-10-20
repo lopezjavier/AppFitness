@@ -5,18 +5,25 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.lifecycle.SavedStateHandle
 import coil3.ColorImage
 import coil3.ImageLoader
@@ -66,6 +73,7 @@ class RoutineBuilderScreenTest {
     private var closes = 0
     private var pickerResult by mutableStateOf<String?>(null)
     private var addExerciseTaps = 0
+    private val opened = mutableListOf<String>()
 
     @Before
     fun installFakeImageLoader() {
@@ -97,6 +105,7 @@ class RoutineBuilderScreenTest {
                         selectedExerciseId = pickerResult,
                         onConsumeSelection = { pickerResult = null },
                         onAddExercise = { addExerciseTaps++ },
+                        onOpenExercise = { opened += it },
                         onClose = { closes++ },
                         viewModel = vm,
                     )
@@ -182,7 +191,7 @@ class RoutineBuilderScreenTest {
         rowName(0).assertContentDescriptionEquals("Press de banca")
         rule.onNodeWithTag("routine_builder_sets_0_value").assertTextEquals("3")
         rule.onNodeWithTag("routine_builder_reps_0_value").assertTextEquals("8")
-        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("120")
+        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("2 min")
     }
 
     @Test
@@ -247,9 +256,9 @@ class RoutineBuilderScreenTest {
 
         clickMenuAction(row = 0, action = "group")
 
-        rule.onNodeWithTag("routine_builder_superset_label_0").assertTextEquals("Superserie A1")
-        rule.onNodeWithTag("routine_builder_superset_label_1").assertTextEquals("Superserie A2")
-        rule.onNodeWithTag("routine_builder_superset_label_2").assertDoesNotExist()
+        rule.onNodeWithTag("routine_builder_superset_label_0", useUnmergedTree = true).assertTextEquals("Superserie A1")
+        rule.onNodeWithTag("routine_builder_superset_label_1", useUnmergedTree = true).assertTextEquals("Superserie A2")
+        rule.onNodeWithTag("routine_builder_superset_label_2", useUnmergedTree = true).assertDoesNotExist()
         rowName(0).assertContentDescriptionEquals("Press de banca, Superserie A1")
     }
 
@@ -260,8 +269,8 @@ class RoutineBuilderScreenTest {
 
         clickMenuAction(row = 1, action = "ungroup")
 
-        rule.onNodeWithTag("routine_builder_superset_label_0").assertDoesNotExist()
-        rule.onNodeWithTag("routine_builder_superset_label_1").assertDoesNotExist()
+        rule.onNodeWithTag("routine_builder_superset_label_0", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("routine_builder_superset_label_1", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -290,8 +299,80 @@ class RoutineBuilderScreenTest {
 
         rule.onNodeWithTag("routine_builder_rest_0_increment").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("135")
+        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("2 min 10 s")
     }
+
+    @Test
+    fun tappingThumbnailAndName_opensTheExercise_withoutTouchingTheOtherControls() {
+        show().add("a", "b")
+
+        rule.onNodeWithTag("routine_builder_exercise_1_open").performClick()
+
+        assertEquals(listOf("b"), opened)
+        rule.onNodeWithTag("routine_builder_exercise_0_open").getUnclippedBoundsInRoot().height
+            .let { assertTrue(it >= 48.dp) }
+    }
+
+    @Test
+    fun restText_usesMinutesAndSeconds_inTenSecondSteps() {
+        show().add("a")
+        val value = rule.onNodeWithTag("routine_builder_rest_0_value")
+
+        value.assertTextEquals("2 min")
+        repeat(7) { rule.onNodeWithTag("routine_builder_rest_0_decrement").performClick() }
+        rule.waitForIdle()
+        value.assertTextEquals("50 s")
+        repeat(2) { rule.onNodeWithTag("routine_builder_rest_0_increment").performClick() }
+        rule.waitForIdle()
+        value.assertTextEquals("1 min 10 s")
+    }
+
+    @Test
+    fun restStepper_stopsAtZeroAndAtTenMinutes() {
+        show().add("a")
+
+        repeat(MORE_THAN_MAX_REST_STEPS) { rule.onNodeWithTag("routine_builder_rest_0_decrement").performClick() }
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("0 s")
+        rule.onNodeWithTag("routine_builder_rest_0_decrement").assertIsNotEnabled()
+
+        repeat(MORE_THAN_MAX_REST_STEPS) { rule.onNodeWithTag("routine_builder_rest_0_increment").performClick() }
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("10 min")
+        rule.onNodeWithTag("routine_builder_rest_0_increment").assertIsNotEnabled()
+    }
+
+    @Test
+    fun restStepper_atFontScale2_keepsBothButtonsVisibleAndTouchSized() {
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                AppTheme {
+                    CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                        RoutineBuilderScreen(editingWithRest(70), {}, {}, {})
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("1 min 10 s")
+        listOf("decrement", "increment").forEach {
+            val button = rule.onNodeWithTag("routine_builder_rest_0_$it")
+            button.assertIsDisplayed()
+            val bounds = button.getUnclippedBoundsInRoot()
+            assertTrue(bounds.width >= 48.dp && bounds.height >= 48.dp)
+        }
+    }
+
+    private fun editingWithRest(rest: Int) = RoutineBuilderUiState.Editing(
+        isEditMode = false,
+        name = "Torso",
+        rows =
+        listOf(
+            BuilderRowUi(1L, "a", "Press de banca", null, 3, 8, rest, null, false, false, false),
+        ),
+    )
 
     @Test
     fun saveFailure_showsTheSnackbar_andKeepsTheEdits() {
@@ -352,7 +433,7 @@ class RoutineBuilderScreenTest {
     @Test
     fun loadingState_showsTheSkeleton() {
         rule.mainClock.autoAdvance = false
-        rule.setContent { AppTheme { RoutineBuilderScreen(RoutineBuilderUiState.Loading, {}, {}) } }
+        rule.setContent { AppTheme { RoutineBuilderScreen(RoutineBuilderUiState.Loading, {}, {}, {}) } }
 
         rule.onNodeWithTag("routine_builder_loading").assertExists()
     }
@@ -392,3 +473,4 @@ class RoutineBuilderScreenTest {
 }
 
 private const val MORE_THAN_MAX_SETS = 12
+private const val MORE_THAN_MAX_REST_STEPS = 70

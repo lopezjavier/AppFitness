@@ -54,7 +54,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_offline_re
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_row_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
@@ -65,7 +64,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -112,7 +110,7 @@ fun RoutinesRoot(
 
 /**
  * "Mis rutinas": the routines as cards (name, exercise count, a menu with Editar / Duplicar / Archivar) and
- * "Nueva rutina" and "Empezar entreno vacío" pinned at the bottom, and "Empezar" on every card. Loading shows
+ * "Nueva rutina" pinned at the bottom, and "Empezar" on every card. Loading shows
  * skeleton rows, an empty list offers "Nueva rutina" in place and a failed load offers "Reintentar".
  */
 @Composable
@@ -138,7 +136,7 @@ fun RoutinesScreen(
     (state as? RoutinesUiState.Content)?.let { RoutinesDialogs(it, onEvent) }
 }
 
-/** "Nueva rutina" (once there are routines) and "Empezar entreno vacío"; starting needs a connection. */
+/** "Nueva rutina" (once there are routines) and the offline reason for starting one. */
 @Composable
 private fun RoutinesBottomActions(state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
     Column(
@@ -152,12 +150,6 @@ private fun RoutinesBottomActions(state: RoutinesUiState.Content, onEvent: (Rout
                 modifier = Modifier.fillMaxWidth().testTag("routines_new_button"),
             )
         }
-        GhostButton(
-            text = stringResource(Res.string.routines_start_empty),
-            onClick = { onEvent(RoutinesEvent.StartEmpty) },
-            modifier = Modifier.fillMaxWidth().testTag("routines_start_empty"),
-            enabled = state.isOnline && !state.starting,
-        )
         if (!state.isOnline) {
             Text(
                 text = stringResource(Res.string.routines_start_offline_reason),

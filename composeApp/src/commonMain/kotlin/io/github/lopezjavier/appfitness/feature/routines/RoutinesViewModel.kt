@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.sortRoutinesByName
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,8 +70,6 @@ class RoutinesViewModel(
             RoutinesEvent.DismissArchive -> updateContent { it.copy(archiveFor = null) }
 
             is RoutinesEvent.StartRoutine -> start { sessions.startFromRoutine(event.id) }
-
-            RoutinesEvent.StartEmpty -> start { sessions.startEmpty() }
         }
     }
 
@@ -79,9 +78,10 @@ class RoutinesViewModel(
         viewModelScope.launch {
             repository.listActive().fold(
                 onSuccess = { list ->
+                    val sorted = sortRoutinesByName(list)
                     _uiState.update { current ->
-                        (current as? RoutinesUiState.Content)?.copy(routines = list)
-                            ?: RoutinesUiState.Content(list, isOnline = online)
+                        (current as? RoutinesUiState.Content)?.copy(routines = sorted)
+                            ?: RoutinesUiState.Content(sorted, isOnline = online)
                     }
                 },
                 onFailure = { if (showLoading) _uiState.value = RoutinesUiState.Error },
