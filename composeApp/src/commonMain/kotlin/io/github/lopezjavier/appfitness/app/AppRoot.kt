@@ -10,6 +10,8 @@ import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
+import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
+import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
@@ -21,6 +23,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful entry point: connects [AppViewModel], the Perfil root and Preferencias to the stateless [App]. */
 @Composable
+@Suppress("LongMethod") // One slot per destination.
 fun AppRoot(
     modifier: Modifier = Modifier,
     features: AppFeatures = AppFeatures(),
@@ -51,9 +54,12 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences ->
-            // Adding food arrives with T-057; the effect is a deliberate no-op until then.
-            DiaryRoot(onOpenPreferences, { _, _ -> }, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood ->
+            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, diaryModifier)
+        },
+        foodSearch = { searchModifier, onOpenFood -> FoodSearchRoot(onOpenFood, searchModifier) },
+        addFood = { foodId, slotId, date, onAdded, onDismiss ->
+            AddFoodRoot(foodId, slotId, date, onAdded, onDismiss)
         },
         history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
         sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->

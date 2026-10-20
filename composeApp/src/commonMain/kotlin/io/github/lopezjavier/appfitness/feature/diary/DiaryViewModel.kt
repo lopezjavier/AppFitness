@@ -107,6 +107,8 @@ class DiaryViewModel(
 
             is DiaryEvent.AddToMeal -> effectChannel.trySend(DiaryEffect.AddToMeal(event.slotId, date.value))
 
+            DiaryEvent.AddFood -> effectChannel.trySend(DiaryEffect.AddFood(date.value))
+
             DiaryEvent.OpenGoals -> effectChannel.trySend(DiaryEffect.OpenPreferences)
         }
     }

@@ -1537,20 +1537,20 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Backend: one migration with `favorite_foods` (PK `(user_id, food_id)`, food on delete cascade, owner RLS) and `most_eaten_foods(p_limit)` (`security invoker`, derived counts from `food_log_entries`, ADR-34) + pgTAP. Domain (pure): `ResolvePortion` (raw amount or portion × count → base units; "2 huevos" with "1 huevo" = 55 g → 110 g), `ScaleNutrition` (`kcal_100 × amount / 100`, rounded to 0.1), quantity validation (> 0 and ≤ 5000, 1 decimal), `DefaultMealSlot` (US-17 time rule on the default codes: before 11:00 breakfast, 11–16 lunch, 16–20 snack, later dinner, among enabled slots; see the plan's assumptions). `FoodRepository` (`food-search` through `functions-kt`, recents from the last 14 days, most eaten, favourites toggle/list) and `FoodDiaryRepository.addEntry` (snapshot computed in the domain, stored in the entry). Screens: food search reached from each section's "Añadir a …" (meal preselected) and from a Diary-level add action (ux-reviewer; default meal by time): search box with a 400 ms debounce, skeletons while loading, rows with name, brand and kcal per 100 g or 100 ml, `FavouriteToggle` star (new design-system component); tabs with no text typed: recents, "Más comidos", "Favoritos" ("Plantillas" arrives in T-061); "No hemos encontrado alimentos". Food sheet (`AppBottomSheet`): nutrition card per 100 base units, `PortionSelector` (new design-system component: amount field in the food's base unit + portion dropdown, prefilled with the default serving or 100), meal selector of enabled slots, "Añadir" → entry logged, haptic, back to the Diary with totals updated in place. Search query, tab and sheet draft survive leaving the app (ADR-40); writes and search disabled offline.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/favorite_foods.test.sql`: RLS on and forced; cross-user isolation; `most_eaten_foods` counts only the caller's entries and orders by count; deleting a user with favourites succeeds.
-- [ ] Typing "pechuga pollo" fires exactly one search 400 ms after the last keystroke, with skeletons meanwhile; rows show name, brand and "110 kcal / 100 g".
-- [ ] "Pechuga de pollo" (110 kcal/100 g) → sheet prefilled with the default serving or 100 g; 220 g in "Comida" → a 242 kcal entry in today's Comida, one haptic, back on the Diary with the ring and bars updated without a reload.
-- [ ] "1 huevo" = 55 g in Desayuno → 55 g and its kcal snapshot; "2 huevos" → 110 g; "Zumo de naranja" (45 kcal/100 ml) 250 ml → 250 stored and 113 kcal, the field labelled in ml; "Arroz cocido" 180 g → 234 kcal.
-- [ ] From "Añadir a la cena" the entry lands in Cena without choosing a meal; quantity 0 or 5001 disables "Añadir" with the field error.
-- [ ] "xyzxyz" → "No hemos encontrado alimentos".
-- [ ] With foods logged in the last 14 days, opening the search without typing lists the most recent ones; "Más comidos" lists the most logged first (from the RPC); the star adds and removes a food from "Favoritos".
-- [ ] DoD: a food found by search is logged in ≤ 3 taps after opening the search (result → "Añadir", meal preselected).
-- [ ] Draft restoration (query, tab, open sheet with its quantity) after background and process death.
+- [x] Migration + `supabase/tests/favorite_foods.test.sql`: RLS on and forced; cross-user isolation; `most_eaten_foods` counts only the caller's entries and orders by count; deleting a user with favourites succeeds.
+- [x] Typing "pechuga pollo" fires exactly one search 400 ms after the last keystroke, with skeletons meanwhile; rows show name, brand and "110 kcal / 100 g".
+- [x] "Pechuga de pollo" (110 kcal/100 g) → sheet prefilled with the default serving or 100 g; 220 g in "Comida" → a 242 kcal entry in today's Comida, one haptic, back on the Diary with the ring and bars updated without a reload.
+- [x] "1 huevo" = 55 g in Desayuno → 55 g and its kcal snapshot; "2 huevos" → 110 g; "Zumo de naranja" (45 kcal/100 ml) 250 ml → 250 stored and 113 kcal, the field labelled in ml; "Arroz cocido" 180 g → 234 kcal.
+- [x] From "Añadir a la cena" the entry lands in Cena without choosing a meal; quantity 0 or 5001 disables "Añadir" with the field error.
+- [x] "xyzxyz" → "No hemos encontrado alimentos".
+- [x] With foods logged in the last 14 days, opening the search without typing lists the most recent ones; "Más comidos" lists the most logged first (from the RPC); the star adds and removes a food from "Favoritos".
+- [x] DoD: a food found by search is logged in ≤ 3 taps after opening the search (result → "Añadir", meal preselected).
+- [x] Draft restoration (query, tab, open sheet with its quantity) after background and process death.
 
 **Host tests (per scenario):** `ResolvePortionTest` and `ScaleNutritionTest` (US-22 Logging a drink by millilitres; Logging with a named portion; Logging a custom amount; Scaling per-100 nutrition); `DefaultMealSlotTest`; `FoodSearchViewModelTest` with fakes, a test dispatcher and Turbine (Debounced search; No results; Recent foods; Most eaten foods; Marking a favourite); `AddFoodViewModelTest` (Adding a food with a serving; Choosing a named portion; Preselected meal; validation); `DiaryViewModelTest` addition (Immediate update after add); `FoodSearchScreenTest` and `AddFoodSheetTest` (Robolectric: skeletons, row texts, star state, ml label, "Añadir" disabled); restoration tests; pgTAP `favorite_foods.test.sql`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-056

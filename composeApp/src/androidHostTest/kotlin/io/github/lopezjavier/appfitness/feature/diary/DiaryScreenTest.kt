@@ -132,6 +132,16 @@ class DiaryScreenTest {
     }
 
     @Test
+    fun diaryLevelAddButton_sitsAfterTheLastSection_andEmitsAddFood() {
+        show(content())
+
+        assertTrue(top("diary_add_food") > top("diary_section_dinner"))
+        rule.onNodeWithTag("diary_add_food").performScrollTo().performClick()
+
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.AddFood), events)
+    }
+
+    @Test
     fun renamedDefaultSlot_andCustomSlot_useTheLabelInTheAddButton() {
         val slots = listOf(
             MealSlot("breakfast", MealCode.Breakfast, "Almuerzo", 0),

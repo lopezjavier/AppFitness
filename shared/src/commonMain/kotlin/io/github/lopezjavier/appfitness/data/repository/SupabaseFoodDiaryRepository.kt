@@ -6,7 +6,9 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryDto
+import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryInsertDto
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,5 +35,15 @@ class SupabaseFoodDiaryRepository(private val auth: Auth, private val postgrest:
             .decodeList<FoodLogEntryDto>()
             .map { it.toDomain() }
         cache.update { it + (date to rows) }
+    }
+
+    override suspend fun addEntry(entry: NewFoodEntry): Result<FoodLogEntry> = auth.ownRow {
+        val created = postgrest.from("food_log_entries")
+            .insert(FoodLogEntryInsertDto.from(entry)) { select(Columns.raw(FoodLogEntryDto.COLUMNS)) }
+            .decodeSingle<FoodLogEntryDto>()
+            .toDomain()
+        // A day that was never loaded has no cache yet; its first refresh will include the entry.
+        cache.update { days -> days[created.logDate]?.let { days + (created.logDate to (it + created)) } ?: days }
+        created
     }
 }

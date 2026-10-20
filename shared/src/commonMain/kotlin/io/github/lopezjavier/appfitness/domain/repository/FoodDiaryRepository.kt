@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
 
@@ -15,4 +16,7 @@ interface FoodDiaryRepository {
 
     /** Loads the entries of [date] from the server into the cache. */
     suspend fun refresh(date: LocalDate): Result<Unit>
+
+    /** Logs a food; on success the entry joins the cache of its day, so [entries] re-emits without a refresh. */
+    suspend fun addEntry(entry: NewFoodEntry): Result<FoodLogEntry>
 }

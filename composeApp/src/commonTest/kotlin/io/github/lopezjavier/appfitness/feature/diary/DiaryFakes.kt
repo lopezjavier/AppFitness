@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -50,7 +51,36 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
         return refreshResult
     }
 
+    val added = mutableListOf<NewFoodEntry>()
+    var addResult: Result<Unit> = Result.success(Unit)
+
+    /** Like the real repository: the entry joins the cache of a loaded day, which re-emits. */
+    override suspend fun addEntry(entry: NewFoodEntry): Result<FoodLogEntry> {
+        if (addResult.isFailure) return Result.failure(addResult.exceptionOrNull()!!)
+        added += entry
+        val created = FoodLogEntry(
+            id = "new-${added.size}",
+            logDate = entry.date,
+            mealSlotId = entry.mealSlotId,
+            foodId = entry.foodId,
+            foodName = entry.foodName,
+            amount = entry.amount,
+            portionLabel = entry.portionLabel,
+            baseUnit = "g",
+            kcal = entry.snapshot.kcal,
+            proteinG = entry.snapshot.proteinG,
+            carbsG = entry.snapshot.carbsG,
+            fatG = entry.snapshot.fatG,
+        )
+        cache.update { days -> days[entry.date]?.let { days + (entry.date to (it + created)) } ?: days }
+        return Result.success(created)
+    }
+
     fun push(date: LocalDate, entries: List<FoodLogEntry>) = cache.update { it + (date to entries) }
+
+    fun failAdd() {
+        addResult = Result.failure(AppException(AppError.Network))
+    }
 
     fun failRefresh() {
         refreshResult = Result.failure(AppException(AppError.Network))

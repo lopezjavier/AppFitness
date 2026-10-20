@@ -54,6 +54,7 @@ import org.jetbrains.compose.resources.stringResource
  * layout it spans the full width above the rail.
  */
 @Composable
+@Suppress("LongMethod") // One slot per destination.
 internal fun AppScaffold(
     modifier: Modifier = Modifier,
     features: AppFeatures = AppFeatures(),
@@ -68,6 +69,8 @@ internal fun AppScaffold(
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     diary: DiarySlot = DefaultDiarySlot,
+    foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
+    addFood: AddFoodSlot = DefaultAddFoodSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
@@ -121,6 +124,8 @@ internal fun AppScaffold(
                     routineBuilder = routineBuilder,
                     liveSession = liveSession,
                     diary = diary,
+                    foodSearch = foodSearch,
+                    addFood = addFood,
                     history = history,
                     sessionDetail = sessionDetail,
                     strength = strength,
@@ -217,6 +222,8 @@ private fun ShellContent(
     routineBuilder: RoutineBuilderSlot,
     liveSession: LiveSessionSlot,
     diary: DiarySlot,
+    foodSearch: FoodSearchSlot,
+    addFood: AddFoodSlot,
     history: HistorySlot,
     sessionDetail: SessionDetailSlot,
     strength: StrengthSlot,
@@ -256,6 +263,8 @@ private fun ShellContent(
             routineBuilder = routineBuilder,
             liveSession = liveSession,
             diary = diary,
+            foodSearch = foodSearch,
+            addFood = addFood,
             history = history,
             sessionDetail = sessionDetail,
             strength = strength,

@@ -1,0 +1,116 @@
+package io.github.lopezjavier.appfitness.designsystem
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
+
+/** A named amount offered by [PortionSelector]; [label] is already formatted ("1 huevo (55 g)"). */
+@Immutable
+data class PortionOption(val id: String, val label: String)
+
+/** Limits of the amount field of [PortionSelector]. */
+object PortionSelectorDefaults {
+    const val MAX_DECIMALS = 1
+
+    /** Enough for 5000 and a count of portions. */
+    const val MAX_INTEGER_DIGITS = 4
+}
+
+/**
+ * Quantity input of a food: an amount field (1 decimal) and, when the food has named portions, a chip row that
+ * switches between the raw base unit ([baseLabel], selected when [selectedPortionId] is null) and each of
+ * [portions]; then [amountText] is a count of that portion. [errorText] shows below the field as a live region and
+ * marks it as an error (text, not colour only).
+ *
+ * Tags derive from [testTagPrefix]: `<prefix>_amount`, `<prefix>_portion`, `<prefix>_portion_option_<id>` (`base` for
+ * the raw unit) and `<prefix>_error`. The typed text is mirrored locally so every keystroke is applied at once;
+ * switching the portion takes the new [amountText].
+ */
+@Suppress("LongParameterList") // Amount, portion and presentation inputs of one control.
+@Composable
+fun PortionSelector(
+    amountText: String,
+    onAmountChange: (String) -> Unit,
+    amountLabel: String,
+    baseLabel: String,
+    portions: List<PortionOption>,
+    selectedPortionId: String?,
+    onPortionSelect: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+    errorText: String? = null,
+    testTagPrefix: String = "portion",
+) {
+    var typed by remember(selectedPortionId) { mutableStateOf(amountText.toDisplay()) }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        if (portions.isNotEmpty()) {
+            val options =
+                listOf(AppOption(baseLabel, "${testTagPrefix}_portion_option_base")) +
+                    portions.map { AppOption(it.label, "${testTagPrefix}_portion_option_${it.id}") }
+            val selected = portions.indexOfFirst { it.id == selectedPortionId }.let { if (it < 0) 0 else it + 1 }
+            FilterChipRow(
+                options = options,
+                selectedIndex = selected,
+                onSelect = { index -> onPortionSelect(portions.getOrNull(index - 1)?.id) },
+                modifier = Modifier.testTag("${testTagPrefix}_portion"),
+            )
+        }
+        NumberInput(
+            value = typed,
+            onValueChange = {
+                typed = it
+                onAmountChange(it)
+            },
+            label = amountLabel,
+            modifier = Modifier.fillMaxWidth().testTag("${testTagPrefix}_amount"),
+            maxDecimals = PortionSelectorDefaults.MAX_DECIMALS,
+            maxIntegerDigits = PortionSelectorDefaults.MAX_INTEGER_DIGITS,
+            imeAction = ImeAction.Done,
+        )
+        if (errorText != null) {
+            Text(
+                text = errorText,
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.error,
+                modifier = Modifier
+                    .semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        error(errorText)
+                    }
+                    .testTag("${testTagPrefix}_error"),
+            )
+        }
+    }
+}
+
+private fun String.toDisplay(): String = replace('.', NumberInputDefaults.DECIMAL_SEPARATOR)
+
+@Preview
+@Composable
+private fun PortionSelectorPreview() {
+    AppTheme {
+        PortionSelector(
+            amountText = "2",
+            onAmountChange = {},
+            amountLabel = "Número de porciones",
+            baseLabel = "Gramos",
+            portions = listOf(PortionOption("egg", "1 huevo (55 g)")),
+            selectedPortionId = "egg",
+            onPortionSelect = {},
+        )
+    }
+}

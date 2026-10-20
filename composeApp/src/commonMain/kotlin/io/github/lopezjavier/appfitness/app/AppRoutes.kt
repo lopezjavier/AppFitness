@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
+import io.github.lopezjavier.appfitness.composeapp.resources.food_search_title
 import io.github.lopezjavier.appfitness.composeapp.resources.history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
@@ -92,6 +93,17 @@ data object MuscleVolumeRoute : AppRoute
 /** Progress charts of one exercise (US-15), opened from Fuerza, the exercise detail and the session detail. */
 @Serializable
 data class ExerciseProgressRoute(val exerciseId: String) : AppRoute
+
+/**
+ * Food search (US-17), opened from the Diary. [slotId] is the meal tapped there (null = the Diary-level add action)
+ * and [date] the ISO day the food is logged to.
+ */
+@Serializable
+data class FoodSearchRoute(val slotId: String? = null, val date: String) : AppRoute
+
+/** The add-food sheet of [foodId], presented over the food search; [slotId] and [date] as in [FoodSearchRoute]. */
+@Serializable
+data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date: String) : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -189,6 +201,10 @@ val AppRoute.chrome: ShellChrome
 
             is ExerciseProgressRoute ->
                 ShellChrome.FullScreen(Res.string.exercise_progress_title, topBarTag = "exercise_progress")
+
+            // The sheet shares the search chrome, so opening it does not redraw the bars.
+            is FoodSearchRoute, is AddFoodRoute ->
+                ShellChrome.FullScreen(Res.string.food_search_title, topBarTag = "food_search")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -210,5 +226,7 @@ object AppDestinations {
             StrengthRoute,
             MuscleVolumeRoute,
             ExerciseProgressRoute(""),
+            FoodSearchRoute(null, ""),
+            AddFoodRoute("", null, ""),
         )
 }
