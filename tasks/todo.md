@@ -1380,17 +1380,17 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Description:** (1) "Finalizar entreno" leaves the fixed bottom bar and becomes an item of the session's ⋮ menu, placed above "Descartar entreno"; the existing confirmation sheet (with the pending-sets warning) and summary are unchanged; the freed bottom space goes to the set list. (2) The "Tienes un entreno en curso" card on "Mis rutinas" gets a play button (continuar → opens the live session) and a trash button (descartar → the existing "¿Descartar entreno?" confirmation → discarded; the card disappears). (3) Tapping "Empezar" on a routine while a session is in progress shows "Ya hay un entreno en curso" (message-only snackbar) instead of "No se pudo completar la acción"; the in-progress session is left untouched. (4) At 00:00 the rest alert plays a sound of about 1 s together with the existing vibration, through the `AlertSound` port (T-046), only with the app in the foreground, silent when the system is muted (`04-business-rules.md` §4.4); background alerts stay out of scope (Phase 2).
 
 **Acceptance criteria:**
-- [ ] No fixed "Finalizar entreno" button; the ⋮ menu lists "Finalizar entreno" directly above "Descartar entreno"; finishing with 3 pending sets still warns "Hay 3 series sin completar; no se guardarán" and shows the summary.
-- [ ] "Tienes un entreno en curso" card: play opens the session; trash asks for confirmation, then the session is `discarded`, never in the history, and the card is gone; both buttons have Spanish `contentDescription`s, snake_case `testTag`s and ≥ 48 dp targets.
-- [ ] "Empezar" with a session in progress shows "Ya hay un entreno en curso"; no second session is created (the partial unique index error is mapped to this message in the repository/use case, not by string matching in the UI).
-- [ ] Rest end: one vibration and one ~1 s sound while the app is visible; nothing when the system is muted; no sound if the user left the app.
-- [ ] `planning/epics/E3-training-core.md` scenarios match (updated 2026-10-20).
+- [x] No fixed "Finalizar entreno" button; the ⋮ menu lists "Finalizar entreno" directly above "Descartar entreno"; finishing with 3 pending sets still warns "Hay 3 series sin completar; no se guardarán" and shows the summary.
+- [x] "Tienes un entreno en curso" card: play opens the session; trash asks for confirmation, then the session is `discarded`, never in the history, and the card is gone; both buttons have Spanish `contentDescription`s, snake_case `testTag`s and ≥ 48 dp targets.
+- [x] "Empezar" with a session in progress shows "Ya hay un entreno en curso"; no second session is created (the partial unique index error is mapped to this message in the repository/use case, not by string matching in the UI).
+- [x] Rest end: one vibration and one ~1 s sound while the app is visible; nothing when the system is muted; no sound if the user left the app.
+- [x] `planning/epics/E3-training-core.md` scenarios match (updated 2026-10-20).
 
 **Host tests (per scenario):** `LiveSessionScreenTest` (menu order, no bottom button, finish from the menu → sheet → summary); `RoutinesScreenTest` + `RoutinesViewModelTest` (card play/trash, discard confirmation, "Ya hay un entreno en curso" on start conflict); `WorkoutSessionRepositoryTest` (unique-violation → `SessionAlreadyInProgress`); `RestTimerTest`/`LiveSessionViewModelTest` (alert port called once at 00:00, not when backgrounded, fake records the sound duration request).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] Manual (developer, emulator): the alert sound is audible and about 1 s.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Manual (developer, emulator): the alert sound is audible and about 1 s. *(not verified by the agents; left to the E3-E checkpoint, switched to DTMF tone for fixed duration)*
 
 **Dependencies:** T-051
 **Files likely touched:** `composeApp/…/feature/workout/{LiveSessionScreen,LiveSessionTopBar,LiveSessionDialogs,LiveSessionViewModel,LiveSessionUiState,WorkoutEntry,WorkoutEntryViewModel}.kt`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesUiState,RoutinesViewModel}.kt`, `shared/…/domain/port/AlertSound.kt`, `composeApp/src/androidMain/…/platform/AndroidAlertSound.kt` (+ a ~1 s sound resource if needed), `shared/…/data/repository/*` (error mapping), strings, tests

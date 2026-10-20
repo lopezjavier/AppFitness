@@ -1,9 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,9 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -30,11 +26,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_timer_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -67,7 +62,7 @@ internal fun LiveSessionTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        BarButton(stringResource(Res.string.topbar_back_cd), Res.drawable.ic_arrow_back, "live_back", onBack)
+        AppIconButton(stringResource(Res.string.topbar_back_cd), Res.drawable.ic_arrow_back, "live_back", onBack)
         Column(Modifier.weight(1f)) {
             Text(
                 text = stringResource(Res.string.live_title),
@@ -82,28 +77,13 @@ internal fun LiveSessionTopBar(
             )
         }
         if (onMenu != null) {
-            BarButton(stringResource(Res.string.live_menu_cd), Res.drawable.ic_more_vert, "live_menu_button", onMenu)
+            AppIconButton(
+                stringResource(Res.string.live_menu_cd),
+                Res.drawable.ic_more_vert,
+                "live_menu_button",
+                onMenu,
+            )
         }
-    }
-}
-
-@Composable
-private fun BarButton(description: String, icon: DrawableResource, tag: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(AppTopBarDefaults.NavigationTouchTarget)
-            .clip(AppShapes.full)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = description }
-            .testTag(tag),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = AppTheme.colors.textPrimary,
-            modifier = Modifier.size(AppTopBarDefaults.NavigationIconSize),
-        )
     }
 }
 

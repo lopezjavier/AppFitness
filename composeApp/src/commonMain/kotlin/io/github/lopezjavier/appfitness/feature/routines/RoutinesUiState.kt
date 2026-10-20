@@ -64,4 +64,7 @@ sealed interface RoutinesEffect {
 
     /** Starting a session failed; nothing was started. */
     data object StartFailed : RoutinesEffect
+
+    /** Another session is already in progress; nothing was started. */
+    data object SessionInProgress : RoutinesEffect
 }

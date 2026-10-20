@@ -229,6 +229,22 @@ class RoutinesScreenTest {
     }
 
     @Test
+    fun empezar_whileASessionIsInProgress_showsTheMessage_andOpensNothing() {
+        sessions.startFailure = AppError.SessionAlreadyInProgress
+        var openedLive = 0
+        val vm = RoutinesViewModel(repository, sessions, connectivity)
+        rule.setContent { AppTheme { RoutinesRoot({}, { openedLive++ }, viewModel = vm) } }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routines_start_r1").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Ya hay un entreno en curso").assertExists()
+        assertEquals(0, openedLive)
+        assertEquals(listOf("r1"), sessions.startedRoutines)
+    }
+
+    @Test
     fun offline_disablesEveryStartButton_andExplainsWhy() {
         show()
         connectivity.state.value = false

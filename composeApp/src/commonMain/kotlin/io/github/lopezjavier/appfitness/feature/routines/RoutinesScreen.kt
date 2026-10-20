@@ -57,6 +57,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_already_in_progress
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -95,11 +96,13 @@ fun RoutinesRoot(
     val currentOpenBuilder by rememberUpdatedState(onOpenBuilder)
     val currentOpenLive by rememberUpdatedState(onOpenLiveSession)
     val failed = stringResource(Res.string.routines_action_failed)
+    val inProgress = stringResource(Res.string.workout_already_in_progress)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is RoutinesEffect.OpenBuilder -> currentOpenBuilder(effect.routineId)
                 RoutinesEffect.ActionFailed, RoutinesEffect.StartFailed -> snackbarHost.showSnackbar(failed)
+                RoutinesEffect.SessionInProgress -> snackbarHost.showSnackbar(inProgress)
                 RoutinesEffect.OpenLiveSession -> currentOpenLive()
             }
         }

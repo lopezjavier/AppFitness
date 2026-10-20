@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
@@ -105,9 +107,13 @@ class RoutinesViewModel(
         if (!online || content.starting) return
         updateContent { it.copy(starting = true) }
         viewModelScope.launch {
-            create().fold(
-                onSuccess = { effectChannel.trySend(RoutinesEffect.OpenLiveSession) },
-                onFailure = { effectChannel.trySend(RoutinesEffect.StartFailed) },
+            val result = create()
+            effectChannel.trySend(
+                when {
+                    result.isSuccess -> RoutinesEffect.OpenLiveSession
+                    result.appErrorOrNull() == AppError.SessionAlreadyInProgress -> RoutinesEffect.SessionInProgress
+                    else -> RoutinesEffect.StartFailed
+                },
             )
             updateContent { it.copy(starting = false) }
         }

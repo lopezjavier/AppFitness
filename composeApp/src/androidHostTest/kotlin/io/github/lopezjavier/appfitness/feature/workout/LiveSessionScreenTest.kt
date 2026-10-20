@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
@@ -69,14 +70,14 @@ class LiveSessionScreenTest {
     }
 
     @Test
-    fun header_showsLiveTitle_timer_keepAwake_andFinishButton() {
+    fun header_showsLiveTitle_timer_keepAwake_andNoFixedFinishButton() {
         show(active())
 
         rule.onNodeWithTag("live_screen").assertExists()
         rule.onNodeWithText("EN VIVO").assertExists()
         rule.onNodeWithTag("live_timer").assertTextContains("02:05")
         rule.onNodeWithTag("live_keep_awake").assertTextContains("Pantalla activa")
-        rule.onNodeWithTag("live_finish_button").assertTextContains("Finalizar entreno")
+        rule.onNodeWithTag("live_finish_button").assertDoesNotExist()
     }
 
     @Test
@@ -170,25 +171,38 @@ class LiveSessionScreenTest {
     fun offline_blocksFinishAndDiscard_andExplainsWhy() {
         show(active(isOnline = false))
 
-        rule.onNodeWithTag("live_finish_button").assertIsNotEnabled()
-        rule.onNodeWithTag("live_finish_offline_reason").assertExists()
         rule.onNodeWithTag("live_menu_button").performClick()
+        rule.onNodeWithTag("live_menu_finish").assertIsNotEnabled()
         rule.onNodeWithTag("live_menu_discard").assertIsNotEnabled()
+        rule.onNodeWithTag("live_menu_offline_reason").assertExists()
     }
 
     @Test
     fun online_hidesTheOfflineReason_andEnablesFinish() {
         show(active())
 
-        rule.onNodeWithTag("live_finish_button").assertIsEnabled()
-        rule.onNodeWithTag("live_finish_offline_reason").assertDoesNotExist()
+        rule.onNodeWithTag("live_menu_button").performClick()
+        rule.onNodeWithTag("live_menu_finish").assertIsEnabled()
+        rule.onNodeWithTag("live_menu_offline_reason").assertDoesNotExist()
     }
 
     @Test
-    fun finishButton_requestsFinish() {
+    fun menu_offersFinishAboveDiscard() {
         show(active())
 
-        rule.onNodeWithTag("live_finish_button").performClick()
+        rule.onNodeWithTag("live_menu_button").performClick()
+
+        val finishTop = rule.onNodeWithTag("live_menu_finish").getUnclippedBoundsInRoot().top
+        val discardTop = rule.onNodeWithTag("live_menu_discard").getUnclippedBoundsInRoot().top
+        assertTrue(finishTop < discardTop)
+    }
+
+    @Test
+    fun finishMenuRow_requestsFinish() {
+        show(active())
+
+        rule.onNodeWithTag("live_menu_button").performClick()
+        rule.onNodeWithTag("live_menu_finish").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.RequestFinish), events)
     }

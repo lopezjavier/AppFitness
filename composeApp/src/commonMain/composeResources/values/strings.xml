@@ -367,6 +367,9 @@
     <string name="routines_start_offline_reason">Sin conexión: no puedes empezar un entreno</string>
     <string name="workout_in_progress">Tienes un entreno en curso</string>
     <string name="workout_continue">Continuar entreno</string>
+    <string name="workout_continue_cd">Continuar entreno</string>
+    <string name="workout_discard_cd">Descartar entreno</string>
+    <string name="workout_already_in_progress">Ya hay un entreno en curso</string>
     <string name="live_title">EN VIVO</string>
     <string name="live_keep_awake">Pantalla activa</string>
     <string name="live_timer_cd">Tiempo de entreno, %1$d minutos %2$d segundos</string>
