@@ -242,10 +242,17 @@ Feature: Folders and next workout
   Scenario: Next workout
     When the user sets "Torso fuerza" as the next workout
     Then it is highlighted in "Mis rutinas"
+
+  Scenario: Ordering routines manually (user request 2026-10-20)
+    When the user drags a routine to another position in "Mis rutinas" (or inside a folder)
+    Then the order is saved and kept after leaving the app
+    And a new or duplicated routine is added at the end
+    And until the user reorders, routines keep the A→Z order of E3
 ```
 
 **Technical notes**
 - `routine_folders` and `routines.folder_id`/`is_next` (`03-data-model.md` §5).
+- Manual order needs a new `routines.position` column (new migration + pgTAP, an exception to the forward-compatible schema of ADR-30); drag-to-reorder reuses the routine-builder pattern. Replaces the A→Z sort of T-051.
 
 ---
 
