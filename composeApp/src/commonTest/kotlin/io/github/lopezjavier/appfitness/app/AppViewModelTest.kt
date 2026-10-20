@@ -181,6 +181,68 @@ class AppViewModelTest {
     }
 
     @Test
+    fun regainingTheSubscriber_keepsMainWithoutLoadingOrRefetch() = runTest {
+        val profile = FakeProfileRepository(onboarded)
+        val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), profile = profile)
+        viewModel.uiState.test {
+            awaitItem()
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            cancelAndIgnoreRemainingEvents()
+        }
+        advanceTimeBy(10_000)
+        runCurrent()
+
+        viewModel.uiState.test {
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            runCurrent()
+            expectNoEvents()
+        }
+        assertEquals(1, profile.reads)
+    }
+
+    @Test
+    fun regainingTheSubscriber_keepsOnboardingAfterItWasCompleted() = runTest {
+        val viewModel =
+            viewModel(
+                auth = FakeAuthRepository(AuthState.SignedIn("u1")),
+                profile = FakeProfileRepository(notOnboarded),
+            )
+        viewModel.uiState.test {
+            awaitItem()
+            assertEquals(RootRoute.Onboarding, awaitItem().rootRoute)
+            viewModel.onEvent(AppEvent.OnboardingCompleted)
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            cancelAndIgnoreRemainingEvents()
+        }
+        advanceTimeBy(10_000)
+        runCurrent()
+
+        viewModel.uiState.test {
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            runCurrent()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun anotherUserSigningIn_reloadsTheProfile() = runTest {
+        val auth = FakeAuthRepository(AuthState.SignedIn("u1"))
+        val profile = FakeProfileRepository(listOf(onboarded, notOnboarded))
+        val viewModel = viewModel(auth = auth, profile = profile)
+        viewModel.uiState.test {
+            awaitItem()
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            auth.state.value = AuthState.SignedIn("u2")
+            var route: RootRoute
+            do {
+                route = awaitItem().rootRoute
+            } while (route == RootRoute.Loading)
+            assertEquals(RootRoute.Onboarding, route)
+        }
+        assertEquals(2, profile.reads)
+    }
+
+    @Test
     fun signOut_returnsToWelcome() = runTest {
         val auth = FakeAuthRepository(AuthState.SignedIn("u1"))
         val viewModel = viewModel(auth = auth)
@@ -191,5 +253,34 @@ class AppViewModelTest {
             val state = awaitItem()
             assertEquals(RootRoute.Welcome, state.rootRoute)
         }
+    }
+
+    @Test
+    fun afterProcessDeath_aFreshViewModelWithAnExpiredSession_goesLoadingThenWelcome_neverMain() = runTest {
+        val first = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")))
+        first.uiState.test {
+            awaitItem()
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val fresh = viewModel(auth = FakeAuthRepository(AuthState.SignedOut))
+        fresh.uiState.test {
+            assertEquals(RootRoute.Loading, awaitItem().rootRoute)
+            assertEquals(RootRoute.Welcome, awaitItem().rootRoute)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun afterProcessDeath_aFreshViewModelWithAValidSession_readsTheProfileOnceAndReachesMain() = runTest {
+        val profile = FakeProfileRepository(onboarded)
+        val fresh = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), profile = profile)
+        fresh.uiState.test {
+            assertEquals(RootRoute.Loading, awaitItem().rootRoute)
+            assertEquals(RootRoute.Main, awaitItem().rootRoute)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, profile.reads)
     }
 }

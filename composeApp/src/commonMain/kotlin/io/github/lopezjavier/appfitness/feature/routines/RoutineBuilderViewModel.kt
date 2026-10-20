@@ -67,12 +67,21 @@ class RoutineBuilderViewModel(
     private val restored = savedState.get<String>(KEY_DRAFT)?.let { decode(it) }
     private var draft: RoutineDraft = restored ?: RoutineDraft()
     private var baseline: RoutineDraft =
-        savedState.get<String>(KEY_BASELINE)?.let { decode(it) } ?: if (restored == null) RoutineDraft() else restored
+        savedState.get<String>(KEY_BASELINE)?.let { decode(it) }
+            ?: (if (routineId == null || restored == null) RoutineDraft() else restored)
     private var phase: Phase = if (routineId != null && restored == null) Phase.Loading else Phase.Editing
     private var catalog: Map<String, CatalogExercise> = emptyMap()
     private var online = true
     private var saving = false
     private var discardAsked = false
+
+    init {
+        // A new routine is compared against the empty draft; without a stored baseline a restored draft would
+        // become its own baseline and stop counting as unsaved.
+        if (routineId == null && savedState.get<String>(KEY_BASELINE) == null) {
+            savedState[KEY_BASELINE] = encode(RoutineDraft())
+        }
+    }
 
     private val _uiState = MutableStateFlow<RoutineBuilderUiState>(render())
     val uiState: StateFlow<RoutineBuilderUiState> = _uiState.asStateFlow()

@@ -49,6 +49,9 @@ class AppViewModel(
     private val retryTick = MutableStateFlow(0)
     private val onboardingDone = MutableStateFlow(false)
 
+    /** Last profile read for a user id (userId to onboardingCompleted); survives upstream restarts. */
+    private var loaded: Pair<String, Boolean>? = null
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val session: Flow<Session> =
         combine(authRepository.authState.distinctUntilChanged(), retryTick) { auth, _ -> auth }
@@ -56,7 +59,11 @@ class AppViewModel(
                 onboardingDone.value = false
                 when (auth) {
                     is AuthState.SignedIn -> profileSession(auth)
-                    else -> flowOf(Session(auth, ProfileLoad.Loading))
+
+                    else -> {
+                        if (auth == AuthState.SignedOut) loaded = null
+                        flowOf(Session(auth, ProfileLoad.Loading))
+                    }
                 }
             }
             .combine(onboardingDone) { session, done ->
@@ -78,14 +85,26 @@ class AppViewModel(
     fun onEvent(event: AppEvent) {
         when (event) {
             AppEvent.RetryProfile -> retryTick.update { it + 1 }
-            AppEvent.OnboardingCompleted -> onboardingDone.value = true
+
+            AppEvent.OnboardingCompleted -> {
+                loaded = loaded?.copy(second = true)
+                onboardingDone.value = true
+            }
         }
     }
 
     private fun profileSession(auth: AuthState.SignedIn): Flow<Session> = flow {
+        // The same user re-subscribing (back from the background) keeps the loaded profile: no Loading frame and
+        // no refetch, so the shell is never torn down. A retry after a failure has nothing cached and reads again.
+        val cached = loaded
+        if (cached != null && cached.first == auth.userId) {
+            emit(Session(auth, ProfileLoad.Loaded(cached.second)))
+            return@flow
+        }
         emit(Session(auth, ProfileLoad.Loading))
         val result = profileRepository.getOwnProfile()
         val profile = result.getOrNull()
+        loaded = profile?.let { auth.userId to it.onboardingCompleted }
         emit(
             if (profile != null) {
                 Session(auth, ProfileLoad.Loaded(profile.onboardingCompleted))

@@ -1,8 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -19,9 +22,18 @@ import kotlinx.coroutines.launch
 /** Longest exercise name, matching the DB check. */
 private const val NAME_MAX_LENGTH = 100
 
+private const val KEY_QUERY = "picker_query"
+private const val KEY_MUSCLE = "picker_muscle"
+private const val KEY_EQUIPMENT = "picker_equipment"
+private const val KEY_FORM_OPEN = "picker_form_open"
+private const val KEY_FORM_NAME = "picker_form_name"
+private const val KEY_FORM_MUSCLE = "picker_form_muscle"
+private const val KEY_FORM_EQUIPMENT = "picker_form_equipment"
+
 /**
  * Exercise picker (US-09): the searchable, filterable list and the "create exercise" sheet. In [selectMode] a row
- * (or a freshly created exercise) is returned to the caller; otherwise it opens the detail.
+ * (or a freshly created exercise) is returned to the caller; otherwise it opens the detail. The search, the filters
+ * and an open create form are kept in [savedState], so they survive process death (never submitted on their own).
  */
 class ExercisePickerViewModel(
     private val loadCatalog: LoadExerciseCatalog,
@@ -29,6 +41,7 @@ class ExercisePickerViewModel(
     private val repository: ExerciseRepository,
     connectivity: ConnectivityObserver,
     private val selectMode: Boolean,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ExercisePickerUiState>(ExercisePickerUiState.Loading)
     val uiState: StateFlow<ExercisePickerUiState> = _uiState.asStateFlow()
@@ -91,7 +104,7 @@ class ExercisePickerViewModel(
             loadCatalog().fold(
                 onSuccess = {
                     all = it
-                    _uiState.value = ExercisePickerUiState.Content(emptyList(), it.size, isOnline = online)
+                    _uiState.value = restoredContent(it.size)
                     filter { content -> content }
                 },
                 onFailure = { _uiState.value = ExercisePickerUiState.Error },
@@ -142,6 +155,42 @@ class ExercisePickerViewModel(
     }
 
     private fun updateContent(transform: (ExercisePickerUiState.Content) -> ExercisePickerUiState.Content) {
-        _uiState.update { if (it is ExercisePickerUiState.Content) transform(it) else it }
+        _uiState.update { if (it is ExercisePickerUiState.Content) transform(it).also(::persist) else it }
+    }
+
+    private fun restoredContent(totalCount: Int): ExercisePickerUiState.Content {
+        val formOpen = savedState.get<Boolean>(KEY_FORM_OPEN) == true
+        return ExercisePickerUiState.Content(
+            visible = emptyList(),
+            totalCount = totalCount,
+            query = savedState.get<String>(KEY_QUERY).orEmpty(),
+            muscleGroup = savedState.get<String>(KEY_MUSCLE)?.let { enumOrNull<MuscleGroup>(it) },
+            equipment = savedState.get<String>(KEY_EQUIPMENT)?.let { enumOrNull<Equipment>(it) },
+            isOnline = online,
+            createForm =
+            if (formOpen) {
+                CreateExerciseForm(
+                    name = savedState.get<String>(KEY_FORM_NAME).orEmpty(),
+                    muscleGroup = savedState.get<String>(KEY_FORM_MUSCLE)?.let { enumOrNull<MuscleGroup>(it) },
+                    equipment = savedState.get<String>(KEY_FORM_EQUIPMENT)?.let { enumOrNull<Equipment>(it) },
+                )
+            } else {
+                null
+            },
+        )
+    }
+
+    /** Keeps the draft (search, filters, open form) in the saved state; enums by name, nothing is submitted. */
+    private fun persist(content: ExercisePickerUiState.Content) {
+        savedState[KEY_QUERY] = content.query
+        savedState[KEY_MUSCLE] = content.muscleGroup?.name
+        savedState[KEY_EQUIPMENT] = content.equipment?.name
+        val form = content.createForm
+        savedState[KEY_FORM_OPEN] = form != null
+        savedState[KEY_FORM_NAME] = form?.name
+        savedState[KEY_FORM_MUSCLE] = form?.muscleGroup?.name
+        savedState[KEY_FORM_EQUIPMENT] = form?.equipment?.name
     }
 }
+
+private inline fun <reified E : Enum<E>> enumOrNull(name: String): E? = enumValues<E>().firstOrNull { it.name == name }

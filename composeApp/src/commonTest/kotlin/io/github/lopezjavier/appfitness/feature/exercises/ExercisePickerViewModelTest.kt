@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -51,13 +52,15 @@ class ExercisePickerViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(selectMode: Boolean = false) = ExercisePickerViewModel(
-        LoadExerciseCatalog(repository, library),
-        SearchExercises(),
-        repository,
-        connectivity,
-        selectMode,
-    )
+    private fun viewModel(selectMode: Boolean = false, savedState: SavedStateHandle = SavedStateHandle()) =
+        ExercisePickerViewModel(
+            LoadExerciseCatalog(repository, library),
+            SearchExercises(),
+            repository,
+            connectivity,
+            selectMode,
+            savedState,
+        )
 
     private fun TestScope.loaded(selectMode: Boolean = false): ExercisePickerViewModel =
         viewModel(selectMode).also { advanceUntilIdle() }
@@ -214,5 +217,55 @@ class ExercisePickerViewModelTest {
         vm.onEvent(ExercisePickerEvent.SelectCreateEquipment(Equipment.Machine))
         vm.onEvent(ExercisePickerEvent.SubmitCreate)
         advanceUntilIdle()
+    }
+
+    // -- T-050: drafts survive process death --------------------------------------------------------------------
+
+    @Test
+    fun searchAndFilters_surviveARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.SetQuery("press"))
+        first.onEvent(ExercisePickerEvent.SelectEquipment(Equipment.Dumbbell))
+        first.onEvent(ExercisePickerEvent.SelectMuscleGroup(MuscleGroup.Chest))
+
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        assertEquals("press", second.content().query)
+        assertEquals(Equipment.Dumbbell, second.content().equipment)
+        assertEquals(MuscleGroup.Chest, second.content().muscleGroup)
+        assertEquals(listOf("Press inclinado con mancuernas"), second.content().visible.map { it.name })
+    }
+
+    @Test
+    fun anOpenCreateForm_survivesARecreatedViewModel_andIsNotSubmitted() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.SetQuery("Curl"))
+        first.onEvent(ExercisePickerEvent.OpenCreate)
+        first.onEvent(ExercisePickerEvent.SetCreateName("Curl nórdico"))
+        first.onEvent(ExercisePickerEvent.SelectCreateMuscleGroup(MuscleGroup.Back))
+
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        val form = second.content().createForm
+        assertEquals("Curl nórdico", form?.name)
+        assertEquals(MuscleGroup.Back, form?.muscleGroup)
+        assertEquals(null, form?.equipment)
+        assertEquals(false, form?.isSubmitting)
+        assertEquals(0, repository.createCalls)
+    }
+
+    @Test
+    fun aDismissedCreateForm_isNotRestored() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.SetQuery("Curl"))
+        first.onEvent(ExercisePickerEvent.OpenCreate)
+        first.onEvent(ExercisePickerEvent.DismissCreate)
+
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        assertEquals(null, second.content().createForm)
     }
 }

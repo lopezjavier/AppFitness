@@ -12,7 +12,14 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.navigationType
@@ -56,13 +63,18 @@ fun App(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val widthClass = windowWidthClassFor(maxWidth)
         AppTheme(typeScale = widthClass.typeScale) {
-            // The branch is on the route only: leaving Main disposes the scaffold and its NavHostController, which
-            // resets every tab back stack. Inside Main there is no branch, so its NavHost and saved state survive
-            // a live resize.
+            // The controller lives above the route branch, so a transient Loading frame (or recreation) does not lose
+            // the back stack. Reaching Welcome (sign-out) starts a new epoch: the next user never inherits a stack.
+            var epoch by rememberSaveable { mutableIntStateOf(0) }
+            LaunchedEffect(rootRoute == RootRoute.Welcome) {
+                if (rootRoute == RootRoute.Welcome) epoch++
+            }
+            val navController = key(epoch) { rememberNavController() }
             when (rootRoute) {
                 RootRoute.Main ->
                     AppScaffold(
                         Modifier.fillMaxSize(),
+                        navController = navController,
                         features = features,
                         navigationType = widthClass.navigationType,
                         isOffline = isOffline,

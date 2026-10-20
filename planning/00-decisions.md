@@ -275,6 +275,14 @@ Format: context → decision → consequences. A decision is only changed by add
   - Superset: per group the user sets rounds, reps per exercise, the rest between exercises of a round and the rest between rounds. Stored in `routine_exercises.rest_seconds`: non-last members hold the transition rest, the last member holds the rest between rounds. All members share the same set count.
 - **Consequences:** `03-data-model.md` §5 (`name` nullable for catalogue rows) and the US-10/US-13 superset scenarios are updated by the planner in T-042/T-043/T-046.
 
+### ADR-40 · State restoration is a requirement of every screen with state (E3, T-050)
+- **Context:** the E3 checkpoint showed that leaving the app (home, app switcher, screen off, process death) reset the tab, the screen, the scroll and every unsaved draft. Causes: the root branched on a transient `Loading` route that disposed the shell and its `NavHostController`, and form drafts lived only in ViewModel fields or plain `remember`.
+- **Decision:**
+  - The `NavHostController` lives above the root route branch and is recreated only on sign-out; a root route already resolved never regresses to `Loading` for the same signed-in user (no profile refetch). Auth always wins over restoration.
+  - Every screen with user-editable or navigational state keeps it in `rememberSaveable`/`rememberLazyListState` or, for ViewModel state, in a `SavedStateHandle` (primitives, `@Serializable` JSON, or enums by name). Drafts are restored but never auto-saved, and a restored draft still counts as unsaved (the discard confirmation keeps working).
+  - Every UI task that adds such state ships a restoration test: a host test with `StateRestorationTester` that rebuilds the ViewModel from the same `SavedStateHandle`, plus a ViewModel test that a recreated ViewModel reads the draft back.
+- **Consequences:** `02-architecture.md` §3 records the rule; the planner lists the restoration test under "Tests" for any UI task; a new draft or form without it is a review finding.
+
 ### Product and stories (original user stories and frontend features)
 | # | Issue | Resolution |
 |---|---|---|

@@ -41,6 +41,7 @@ Tables/columns, RPC signatures, endpoints (request/response JSON), DTOs and doma
 - deno test if there are Edge Functions
 - testTags (`<screen>_<element>`) for every interactive element if there is UI
 - The host (Robolectric) test in `androidHostTest` covering each Gherkin scenario if there is UI
+- A restoration test (`StateRestorationTester` host test plus a ViewModel recreated from the same `SavedStateHandle`) for every screen, form or draft that holds state (ADR-40)
 ## Implementation order
 Small steps; each one leaves the project building and the tests green.
 ## Risks and open questions

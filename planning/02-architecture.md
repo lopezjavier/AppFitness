@@ -86,6 +86,7 @@
 - **Screen states:** `Loading` (skeleton), `Content`, `Empty`, `Error(retry)`, plus an overlaid `Offline` state (ADR-01).
 - **testTag:** every interactive component has `Modifier.testTag("<screen>_<element>")` in snake_case (e.g. `diary_fab`, `workout_set_2_done`).
 - **Code language:** identifiers, comments and logs in English; user-facing text only in string resources (Spanish).
+- **State restoration (ADR-40):** the tab, back stack, scroll and unsaved drafts survive background and process death. Navigation state lives above the root route branch; screen state uses `rememberSaveable` or a ViewModel `SavedStateHandle`; every UI task with such state ships a `StateRestorationTester` host test and a recreated-ViewModel test.
 
 ## 4. Libraries (versions pinned in `libs.versions.toml` in US-01, latest stable)
 

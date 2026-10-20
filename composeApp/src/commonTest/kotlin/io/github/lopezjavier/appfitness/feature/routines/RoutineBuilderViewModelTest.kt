@@ -454,6 +454,18 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
+    fun aRestoredDraftOfANewRoutine_staysDirty_soBackStillAsksBeforeDiscarding() = runTest {
+        val first = builder()
+        first.add("a")
+
+        val second = builder(savedState = handle)
+
+        assertTrue(second.form().isDirty)
+        second.onEvent(RoutineBuilderEvent.Back)
+        assertTrue(second.form().showDiscardConfirm)
+    }
+
+    @Test
     fun back_withoutEdits_closesAtOnce() = runTest {
         val vm = builder()
 

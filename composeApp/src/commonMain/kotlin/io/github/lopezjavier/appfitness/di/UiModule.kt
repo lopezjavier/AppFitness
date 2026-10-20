@@ -37,6 +37,7 @@ val uiModule =
                 savePreferences = get(),
                 connectivity = get(),
                 clock = get(),
+                savedState = get(),
             )
         }
         viewModelOf(::OnboardingViewModel)
@@ -48,6 +49,7 @@ val uiModule =
                 repository = get(),
                 connectivity = get(),
                 selectMode = selectMode,
+                savedState = get(),
             )
         }
         viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get()) }
@@ -58,6 +60,7 @@ val uiModule =
         viewModel { (sessionId: String) ->
             SessionDetailViewModel(
                 sessionId = sessionId,
+                savedState = get(),
                 repository = get(),
                 exerciseRepository = get(),
                 exerciseLibrary = get(),

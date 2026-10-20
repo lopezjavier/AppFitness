@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
@@ -69,7 +70,7 @@ class PreferencesViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = PreferencesViewModel(
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) = PreferencesViewModel(
         profileRepository = profile,
         goalsRepository = goals,
         bodyMeasurementRepository = weights,
@@ -77,6 +78,7 @@ class PreferencesViewModelTest {
         connectivity = connectivity,
         clock = FakeClock(today, now),
         timeZone = TimeZone.UTC,
+        savedState = savedState,
     )
 
     private fun TestScope.loaded(): Pair<PreferencesViewModel, () -> PreferencesUiState.Loaded> {
@@ -518,5 +520,43 @@ class PreferencesViewModelTest {
         viewModel.onEvent(PreferencesEvent.SetName("a".repeat(150)))
 
         assertEquals(100, state().form.name.length)
+    }
+
+    @Test
+    fun unsavedEdits_surviveARecreatedViewModel_andStayDirty() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetName("Beatriz"))
+        first.onEvent(PreferencesEvent.SetHeight(165))
+        first.onEvent(PreferencesEvent.SetWeight(755))
+        first.onEvent(PreferencesEvent.SelectActivity(ActivityLevel.Light))
+        first.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 40))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertEquals(assertIs<PreferencesUiState.Loaded>(first.uiState.value).form, restored.form)
+        assertEquals("Ana", restored.saved.name)
+        assertTrue(restored.canSave)
+        assertEquals(0, profile.preferenceSaves.size)
+    }
+
+    @Test
+    fun aSavedForm_clearsTheDraft_soTheNextLoadShowsTheServerValues() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetName("Beatriz"))
+        first.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertEquals("Ana", restored.form.name)
+        assertFalse(restored.canSave)
     }
 }
