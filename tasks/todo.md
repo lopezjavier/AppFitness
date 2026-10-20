@@ -1415,21 +1415,21 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Description:** In the session detail, "Corregir serie" is broken: the reps field cannot be edited and the label is rendered vertically (one character per line, a width/constraint problem). Fix the dialog so KG and REPS are both editable side by side with readable labels on phone and tablet widths, keeping the behaviour of T-047 (save, volume recalculated, message-only snackbar on error, disabled offline). Check every caller of any shared component touched (`NumberInput`, `AppBottomSheet`; E2 lesson T-040).
 
 **Acceptance criteria:**
-- [ ] Editing 87,5 kg × 8 to 87,5 kg × 7 works by typing in REPS; the volume updates in the detail and the list.
-- [ ] Labels render horizontally at 360 dp and 600+ dp widths and with the largest system font scale; fields ≥ 48 dp.
-- [ ] The edit survives leaving the app (T-050 rule).
+- [x] Editing 87,5 kg × 8 to 87,5 kg × 7 works by typing in REPS; the volume updates in the detail and the list.
+- [x] Labels render horizontally at 360 dp and 600+ dp widths and with the largest system font scale; fields ≥ 48 dp.
+- [x] The edit survives leaving the app (T-050 rule).
 
 **Host tests (per scenario):** `SessionDetailScreenTest` (Robolectric: type into REPS, label bounds wider than tall at 360 dp and font scale 2.0, save → volume); `SessionDetailViewModelTest` unchanged and green.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-052
 **Files likely touched:** `composeApp/…/feature/workout/{SessionEditSheet,SessionDetailScreen}.kt`, possibly `designsystem/NumberInput.kt` (check callers), tests
 **Estimated scope:** S
 
 ### Checkpoint E3-F — History 👤
-- [ ] T-053 merged, CI green.
+- [x] T-053 merged, CI green. *(2026-10-20)*
 - [ ] 👤 Install the APK and re-test the fix:
   - Entreno → "Historial" → a session → "Corregir serie": both KG and REPS are editable, labels read horizontally; change 8 reps to 7 and see the volume update in the detail and the list.
   - Quick regression: list order, "PR" marks, delete a session (gone from ANTERIOR), scroll for more.

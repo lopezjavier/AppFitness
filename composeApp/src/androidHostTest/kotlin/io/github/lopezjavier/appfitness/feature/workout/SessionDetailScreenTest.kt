@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -15,15 +18,21 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.math.abs
 
 private fun detail(
     isOnline: Boolean = true,
@@ -156,6 +165,85 @@ class SessionDetailScreenTest {
         rule.onNodeWithTag("session_edit_reps").performTextInput("7")
 
         assertEquals(SessionDetailEvent.RepsChanged("7"), events.last())
+    }
+
+    @Test
+    fun editSheet_bothFieldsHaveUsableWidth() {
+        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
+
+        assertBothFieldsUsable()
+    }
+
+    @Test
+    fun editSheet_labelsSitInsideTheirFields_at360dp() {
+        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
+
+        assertLabelsSitInsideTheirFields()
+    }
+
+    @Test
+    fun editSheet_atLargestFontScale_fieldsAndLabelsStayUsable() {
+        showScaled(2f)
+
+        assertBothFieldsUsable()
+        assertLabelsSitInsideTheirFields()
+    }
+
+    @Test
+    @Config(qualifiers = "w720dp-h1000dp-xxhdpi")
+    fun editSheet_atTabletWidth_fieldsAndLabelsStayUsable() {
+        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
+
+        assertBothFieldsUsable()
+        assertLabelsSitInsideTheirFields()
+    }
+
+    @Test
+    fun editSheet_tappingReps_thenTyping_emitsTheTypedText() {
+        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
+
+        rule.onNodeWithTag("session_edit_reps").performClick()
+        rule.onNodeWithTag("session_edit_reps").performTextClearance()
+        rule.onNodeWithTag("session_edit_reps").performTextInput("7")
+
+        assertEquals(SessionDetailEvent.RepsChanged("7"), events.last())
+    }
+
+    private fun showScaled(fontScale: Float) {
+        rule.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale)) {
+                AppTheme {
+                    SessionDetailScreen(
+                        detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")),
+                        { events += it },
+                        snackbarHost = snackbarHost,
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    private fun assertBothFieldsUsable() {
+        val weight = rule.onNodeWithTag("session_edit_weight").getBoundsInRoot()
+        val reps = rule.onNodeWithTag("session_edit_reps").getBoundsInRoot()
+        listOf(weight, reps).forEach {
+            assertTrue("field too narrow: ${it.width}", it.width >= 48.dp)
+            assertTrue("field too short: ${it.height}", it.height >= 48.dp)
+        }
+        assertTrue("fields differ in width", abs((weight.width - reps.width).value) <= 4f)
+    }
+
+    /** Robolectric measures glyphs unreliably, so the label is checked to sit inside its own, wide field. */
+    private fun assertLabelsSitInsideTheirFields() {
+        mapOf("Kilos" to "session_edit_weight", "Repeticiones" to "session_edit_reps").forEach { (label, tag) ->
+            val field = rule.onNodeWithTag(tag).getBoundsInRoot()
+            val text = rule.onNodeWithText(label, ignoreCase = true, useUnmergedTree = true).getBoundsInRoot()
+            assertTrue("label '$label' starts outside its field", text.left >= field.left)
+            assertTrue("label '$label' ends outside its field", text.right <= field.right)
+            assertTrue("label '$label' is not above the input", text.bottom <= field.bottom)
+        }
     }
 
     @Test
