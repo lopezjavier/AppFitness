@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.analytics
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
+import io.github.lopezjavier.appfitness.domain.usecase.BuildMuscleVolumeHistory
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,18 +40,35 @@ class MuscleVolumeViewModelTest {
     private fun row(group: MuscleGroup, volume: Double) = WeeklyMuscleVolumeRow(monday, group, volume)
 
     @Test
-    fun startsLoadingThenShowsEightWeeksForEveryGroupWithVolume() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 5400.0), row(MuscleGroup.Back, 3000.0))
+    fun startsLoadingThenShowsEveryGroupWithVolumeFromTheFirstSession() = runTest(dispatcher) {
+        strength.volumeRows = listOf(
+            WeeklyMuscleVolumeRow(LocalDate(2026, 10, 5), MuscleGroup.Chest, 5400.0),
+            row(MuscleGroup.Back, 3000.0),
+        )
         val model = viewModel()
         assertEquals(MuscleVolumeUiState.Loading, model.uiState.value)
 
         advanceUntilIdle()
 
         val content = model.content()
-        assertEquals(8, content.history.weeks.size)
+        assertEquals(3, content.history.weeks.size)
         assertEquals(listOf(MuscleGroup.Chest, MuscleGroup.Back), content.history.series.keys.toList())
+        assertEquals(listOf(5400.0, 0.0, 0.0), content.history.series.getValue(MuscleGroup.Chest))
         assertEquals(null, content.selected)
-        assertEquals(listOf(LocalDate(2026, 8, 31)), strength.volumeFromArgs)
+        assertEquals(listOf(BuildMuscleVolumeHistory.FIRST_QUERY_DATE), strength.volumeFromArgs)
+    }
+
+    @Test
+    fun firstSessionLongAgo_isCappedAtEightWeeks() = runTest(dispatcher) {
+        strength.volumeRows = listOf(
+            WeeklyMuscleVolumeRow(LocalDate(2026, 6, 1), MuscleGroup.Chest, 100.0),
+            row(MuscleGroup.Chest, 50.0),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(8, model.content().history.weeks.size)
     }
 
     @Test

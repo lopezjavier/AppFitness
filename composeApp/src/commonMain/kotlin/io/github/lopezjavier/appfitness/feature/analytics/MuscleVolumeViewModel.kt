@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-/** Weekly volume per muscle group over the last 8 ISO weeks (US-15), all groups or one of them. */
+/** Weekly volume per muscle group from the first session, up to 8 ISO weeks (US-15), all groups or one of them. */
 class MuscleVolumeViewModel(private val strength: StrengthRepository, private val clock: Clock) : ViewModel() {
     private var selected: MuscleGroup? = null
 
@@ -42,7 +42,7 @@ class MuscleVolumeViewModel(private val strength: StrengthRepository, private va
         viewModelScope.launch {
             // The RPC groups weeks by UTC date, so the window is computed on the UTC date too.
             val today = clock.now().toLocalDateTime(TimeZone.UTC).date
-            val rows = strength.weeklyMuscleVolume(BuildMuscleVolumeHistory.windowStart(today)).getOrNull()
+            val rows = strength.weeklyMuscleVolume(BuildMuscleVolumeHistory.FIRST_QUERY_DATE).getOrNull()
             if (rows == null) {
                 _uiState.value = MuscleVolumeUiState.Error
                 return@launch
