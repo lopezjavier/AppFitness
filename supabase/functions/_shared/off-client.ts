@@ -32,10 +32,16 @@ export type Food = Omit<NormalizedFood, "barcode" | "portions"> & {
 export type OffDeps = {
     fetch: (input: URL | string, init?: RequestInit) => Promise<Response>;
     userAgent: string;
+    /** Retry delay; injectable so tests do not wait. */
+    sleep?: (ms: number) => Promise<void>;
 };
 
 export class OffError extends Error {
-    constructor(readonly kind: "timeout" | "unavailable") {
+    constructor(
+        readonly kind: "timeout" | "unavailable",
+        readonly status?: number,
+        readonly retryable = false,
+    ) {
         super(`Open Food Facts ${kind}`);
         this.name = "OffError";
     }
@@ -192,7 +198,32 @@ export function normalizeProduct(raw: unknown): NormalizedFood | null {
     }
 }
 
+const RETRY_DELAY_MS = 300;
+
+/**
+ * OFF answers fast 5xx now and then; one quick retry hides them. Only HTTP >= 500 and thrown
+ * fetches are retried; timeouts, 4xx/429 and invalid JSON are not.
+ */
 async function offGet(deps: OffDeps, url: URL): Promise<unknown> {
+    try {
+        return await offGetOnce(deps, url);
+    } catch (err) {
+        if (!(err instanceof OffError)) throw err;
+        console.warn(
+            `off request failed: kind=${err.kind} status=${
+                err.status ?? "none"
+            } retryable=${err.retryable}`,
+        );
+        if (!err.retryable) throw err;
+        await (deps.sleep ?? defaultSleep)(RETRY_DELAY_MS);
+        return await offGetOnce(deps, url);
+    }
+}
+
+const defaultSleep = (ms: number) =>
+    new Promise<void>((r) => setTimeout(r, ms));
+
+async function offGetOnce(deps: OffDeps, url: URL): Promise<unknown> {
     let res: Response;
     try {
         res = await deps.fetch(url, {
@@ -205,11 +236,17 @@ async function offGet(deps: OffDeps, url: URL): Promise<unknown> {
     } catch (err) {
         const timeout = err instanceof DOMException &&
             (err.name === "TimeoutError" || err.name === "AbortError");
-        throw new OffError(timeout ? "timeout" : "unavailable");
+        throw new OffError(
+            timeout ? "timeout" : "unavailable",
+            undefined,
+            !timeout,
+        );
     }
     // The body can also time out while streaming.
     try {
-        if (!res.ok) throw new OffError("unavailable");
+        if (!res.ok) {
+            throw new OffError("unavailable", res.status, res.status >= 500);
+        }
         return await res.json();
     } catch (err) {
         if (err instanceof OffError) throw err;
