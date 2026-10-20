@@ -9,6 +9,8 @@ import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.MealCode
+import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
@@ -246,6 +248,19 @@ class DiaryViewModelTest {
     }
 
     @Test
+    fun openMealSettings_emitsTheVisibleDay() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(DiaryEvent.PreviousDay)
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(DiaryEvent.OpenMealSettings)
+            assertEquals(DiaryEffect.OpenMealSettings(yesterday), awaitItem())
+        }
+    }
+
+    @Test
     fun anEntryAddedThroughTheRepository_updatesTheTotalsWithoutRefresh() = runTest(dispatcher) {
         seedPlanExample()
         val model = viewModel()
@@ -368,5 +383,28 @@ class DiaryViewModelTest {
         val content = second.content()
         assertEquals(DateLabel.Yesterday, content.label)
         assertEquals(setOf("snack", "dinner"), content.collapsedSlotIds)
+    }
+
+    @Test
+    fun afterTheMealStructureChanges_refreshShowsRenamedReorderedAndHidesDisabledMeals() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        slots.save(
+            listOf(
+                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno", true),
+                MealSlotDraft("lunch", MealCode.Lunch, "Comida", false),
+                MealSlotDraft("dinner", MealCode.Dinner, "Cena", true),
+                MealSlotDraft("snack", MealCode.Snack, "Post-entreno", true),
+            ),
+            today,
+        )
+        model.onEvent(DiaryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Desayuno", "Cena", "Post-entreno"),
+            model.content().meals.map { it.slot.label },
+        )
     }
 }

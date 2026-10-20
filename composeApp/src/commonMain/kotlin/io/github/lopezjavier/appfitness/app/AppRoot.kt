@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
+import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
@@ -55,9 +56,10 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood ->
-            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onOpenMealSettings ->
+            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onOpenMealSettings, diaryModifier)
         },
+        mealSlots = { mealsModifier, date, onClose -> MealSlotsRoot(date, onClose, mealsModifier) },
         foodSearch = { searchModifier, onOpenFood, onCreateFood ->
             FoodSearchRoot(onOpenFood, onCreateFood, searchModifier)
         },

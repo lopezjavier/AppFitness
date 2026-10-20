@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -23,10 +24,34 @@ internal val DefaultMealSlots = listOf(
     MealSlot("dinner", MealCode.Dinner, "Cena", 3),
 )
 
-/** Test double of [MealSlotRepository]: [result] answers every call. */
+/**
+ * Test double of [MealSlotRepository]: [result] answers [listEnabled] (and [listAll] unless [allResult] is set). A
+ * successful [save] stores the new structure, so later reads reflect it; a failing one ([saveResult]) changes nothing.
+ */
 internal class FakeMealSlotRepository(var result: Result<List<MealSlot>> = Result.success(DefaultMealSlots)) :
     MealSlotRepository {
+    var allResult: Result<List<MealSlot>>? = null
+    var saveResult: Result<Unit> = Result.success(Unit)
+    val saved = mutableListOf<Pair<List<MealSlotDraft>, LocalDate>>()
+
     override suspend fun listEnabled(): Result<List<MealSlot>> = result
+
+    override suspend fun listAll(): Result<List<MealSlot>> = allResult ?: result
+
+    override suspend fun save(slots: List<MealSlotDraft>, viewedDay: LocalDate): Result<Unit> {
+        if (saveResult.isFailure) return saveResult
+        saved += slots to viewedDay
+        val stored = slots.mapIndexed { index, draft ->
+            MealSlot(draft.id ?: "custom-${saved.size}-$index", draft.code, draft.label, index, draft.enabled)
+        }
+        allResult = Result.success(stored)
+        result = Result.success(stored.filter { it.enabled })
+        return saveResult
+    }
+
+    fun failSave(error: AppError) {
+        saveResult = Result.failure(AppException(error))
+    }
 }
 
 /**

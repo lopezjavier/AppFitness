@@ -74,14 +74,15 @@ internal typealias RoutinesSlot =
     ) -> Unit
 
 /**
- * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias and [onAddFood] opens the food
- * search for a day (the meal is null for the Diary-level add action).
+ * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
+ * search for a day (the meal is null for the Diary-level add action) and [onOpenMealSettings] the meals editor.
  */
 internal typealias DiarySlot =
     @Composable (
         modifier: Modifier,
         onOpenPreferences: () -> Unit,
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
+        onOpenMealSettings: (date: LocalDate) -> Unit,
     ) -> Unit
 
 /**
@@ -94,6 +95,9 @@ internal typealias FoodSearchSlot =
         onOpenFood: (String) -> Unit,
         onCreateFood: (barcode: String?, name: String?) -> Unit,
     ) -> Unit
+
+/** Meals editor content: modifier (full-screen insets), the ISO day viewed in the Diary and how to leave. */
+internal typealias MealSlotsSlot = @Composable (modifier: Modifier, date: String, onClose: () -> Unit) -> Unit
 
 /** Create-food form content: modifier, the prefilled barcode and name, and [onSaved] with the new food id. */
 internal typealias CreateFoodSlot =
@@ -211,7 +215,7 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
@@ -223,6 +227,11 @@ internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _ ->
 /** Empty create-food form for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("create_food_screen"))
+}
+
+/** Empty meals editor for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("meals_screen"))
 }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -282,6 +291,7 @@ internal fun AppNavHost(
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
+    mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
@@ -297,6 +307,8 @@ internal fun AppNavHost(
         remember(navController) {
             { slotId, date -> navController.navigateToFullScreen(FoodSearchRoute(slotId, date.toString())) }
         }
+    val openMealSettings: (LocalDate) -> Unit =
+        remember(navController) { { date -> navController.navigateToFullScreen(MealSlotsRoute(date.toString())) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
@@ -304,7 +316,9 @@ internal fun AppNavHost(
         remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
-            composable<DiaryHome> { diary(Modifier.padding(tabPadding), openPreferences, openFoodSearch) }
+            composable<DiaryHome> {
+                diary(Modifier.padding(tabPadding), openPreferences, openFoodSearch, openMealSettings)
+            }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> {
@@ -360,6 +374,11 @@ internal fun AppNavHost(
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
         foodDestinations(navController, fullScreenPadding, foodSearch, addFood, createFood)
+        composable<MealSlotsRoute> { entry ->
+            mealSlots(Modifier.padding(fullScreenPadding), entry.toRoute<MealSlotsRoute>().date) {
+                navController.popBackStack()
+            }
+        }
         historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {

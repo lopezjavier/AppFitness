@@ -1605,17 +1605,17 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** A "Comidas" settings screen reached from the Diary (entry point and layout by ux-reviewer, e.g. the Diary's menu): the user's slots in order with rename, an enable switch, "Añadir comida" at a chosen position ("after Desayuno"), and reorder by drag plus "Subir"/"Bajar" (reusing `ReorderableColumn`); one "Guardar". Because of `unique (user_id, position)`, inserting and reordering are saved in one transaction (a `security invoker` RPC such as `save_meal_slots(jsonb)` + pgTAP in a new migration, or a deferrable constraint; planner's choice). Rules: labels trimmed, not blank, length-capped (planner), custom meals have `code` null; defaults keep their code (time suggestions still work); disabling is only allowed when the slot has no entries **on the day being viewed** (Q1, user 2026-10-20: entries on past days do not block it and those past days are not edited), otherwise the switch is disabled with an explanatory hint; a disabled slot keeps its label and can be re-enabled; disabled slots are hidden from the Diary and from every "add to" target (food sheet, and later copy and templates). Renaming never changes entry snapshots or totals. Draft restored after background and process death (ADR-40); disabled offline.
 
 **Acceptance criteria:**
-- [ ] Renaming "Merienda" to "Post-entreno" shows "Post-entreno" in the Diary and the food sheet; its entries keep their totals.
-- [ ] "Segundo desayuno" added after "Desayuno" appears in that position and can receive foods.
-- [ ] Empty "Merienda" disabled → hidden from the Diary and the add targets; re-enabled later with the same name; a slot with entries on the viewed day cannot be disabled and shows the hint; a slot with entries only on past days can be disabled.
-- [ ] Q1 recorded: the US-23 technical note in `planning/epics/E4-food-diary.md` and ADR-33's "disabling requires an empty slot" read "empty on the day being viewed" (doc consistency, no new ADR).
-- [ ] Moving "Cena" above "Merienda" (drag or "Subir") shows the new order in the Diary; the order survives a reload.
-- [ ] If an RPC is added: atomic (an invalid row saves nothing), cannot touch another user's slots (pgTAP).
+- [x] Renaming "Merienda" to "Post-entreno" shows "Post-entreno" in the Diary and the food sheet; its entries keep their totals.
+- [x] "Segundo desayuno" added after "Desayuno" appears in that position and can receive foods.
+- [x] Empty "Merienda" disabled → hidden from the Diary and the add targets; re-enabled later with the same name; a slot with entries on the viewed day cannot be disabled and shows the hint; a slot with entries only on past days can be disabled.
+- [x] Q1 recorded: the US-23 technical note in `planning/epics/E4-food-diary.md` and ADR-33's "disabling requires an empty slot" read "empty on the day being viewed" (doc consistency, no new ADR).
+- [x] Moving "Cena" above "Merienda" (drag or "Subir") shows the new order in the Diary; the order survives a reload.
+- [x] If an RPC is added: atomic (an invalid row saves nothing), cannot touch another user's slots (pgTAP).
 
 **Host tests (per scenario):** `MealSlotsEditorViewModelTest` with fakes + Turbine (Renaming; Adding a custom meal; Disabling, incl. viewed-day entries block and past-day entries do not, and re-enabling; Reordering by drag and by Subir/Bajar; validation); `MealSlotsScreenTest` (Robolectric: disabled switch with hint, order, "Guardar"); `DiaryViewModelTest` addition (renamed, disabled and reordered slots reflected); restoration tests; pgTAP for the RPC if added.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase db reset && npx supabase test db` and `deploy-supabase` if a migration is added).
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ `npx supabase db reset && npx supabase test db` and `deploy-supabase` if a migration is added).
 
 **Dependencies:** T-058
 **Files likely touched:** optionally `supabase/migrations/<ts>_save_meal_slots.sql` + `supabase/tests/save_meal_slots.test.sql`, `shared/…/domain/usecase/EditMealSlots.kt` + tests, `shared/…/domain/repository/MealSlotRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/diary/{MealSlotsScreen,MealSlotsViewModel,MealSlotsUiState,DiaryScreen}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests

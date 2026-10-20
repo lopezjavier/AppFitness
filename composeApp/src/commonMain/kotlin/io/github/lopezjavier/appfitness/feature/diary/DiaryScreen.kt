@@ -17,14 +17,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_food
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_settings
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_settings_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
@@ -70,6 +75,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
                 ) {
                     DiaryDateHeader(content.label, content.canGoNext, onEvent)
+                    MealSettingsButton(onEvent)
                     DiaryDashboard(content, onEvent)
                 }
                 Column(
@@ -88,6 +94,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
             ) {
                 DiaryDateHeader(content.label, content.canGoNext, onEvent)
+                MealSettingsButton(onEvent)
                 DiaryDashboard(content, onEvent)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
                 AddFoodButton(onEvent)
@@ -106,6 +113,19 @@ private fun MealSections(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
             onAdd = { onEvent(DiaryEvent.AddToMeal(section.slot.id)) },
         )
     }
+}
+
+/** Opens the meals editor ("Comidas") for the visible day. */
+@Composable
+private fun MealSettingsButton(onEvent: (DiaryEvent) -> Unit) {
+    val description = stringResource(Res.string.diary_meal_settings_cd)
+    SecondaryButton(
+        text = stringResource(Res.string.diary_meal_settings),
+        onClick = { onEvent(DiaryEvent.OpenMealSettings) },
+        modifier = Modifier.fillMaxWidth().semantics {
+            contentDescription = description
+        }.testTag("diary_meal_settings"),
+    )
 }
 
 /** The Diary-level add action: opens the food search with no meal preselected. */

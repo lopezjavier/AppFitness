@@ -421,7 +421,7 @@ Feature: Configurable meals
     And it can receive foods like any other meal
 
   Scenario: Disabling a meal
-    Given "Merienda" has no entries
+    Given "Merienda" has no entries on the day being viewed
     When the user disables it
     Then it is hidden from the Diary and from the "add to" targets
     And it can be re-enabled later with the same name
@@ -434,7 +434,7 @@ Feature: Configurable meals
 **Technical notes**
 - Model (`03-data-model.md` §3): `meal_slots` per user (`code` from the `meal_type` enum for the defaults, `label`, `position`, `enabled`); seeded with the four defaults when onboarding completes.
 - `food_log_entries` references `meal_slot_id` instead of a fixed `meal_type`.
-- Disabling a meal with entries is not allowed (the button is disabled with an explanatory hint); an empty meal can be disabled and re-enabled.
+- A meal with entries on the day being viewed cannot be disabled (the switch is disabled with an explanatory hint); entries on other days do not block it. A meal without entries on that day can be disabled and re-enabled.
 - Custom meals have `code` null; the defaults keep their code so time-of-day suggestions still work.
 
 ---

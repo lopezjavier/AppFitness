@@ -226,7 +226,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Decision:**
   - Meals are rows in `meal_slots` per user (`code` from the `meal_type` enum for the defaults, `label`, `position`, `enabled`), seeded with Desayuno/Comida/Merienda/Cena when onboarding completes.
   - `food_log_entries` references `meal_slot_id` instead of a fixed `meal_type`.
-  - A meal is **disabled**, never deleted; disabling requires an empty slot.
+  - A meal is **disabled**, never deleted; disabling requires the slot to be empty on the day being viewed.
 - **Consequences:** `03-data-model.md` §1/§3 and the E4 stories US-19 and US-23 reflect this.
 - **Approval:** 2026-10-17, user.
 

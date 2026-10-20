@@ -11,3 +11,11 @@ data class MealSlot(
     val position: Int,
     val enabled: Boolean = true,
 )
+
+/** Limits of a meal label (matches the `meal_slots.label` check). */
+object MealSlotBounds {
+    const val LABEL_MAX_LENGTH = 50
+}
+
+/** One row of the meals editor; the list order is the final position. A null [id] is a new custom meal. */
+data class MealSlotDraft(val id: String?, val code: MealCode?, val label: String, val enabled: Boolean)

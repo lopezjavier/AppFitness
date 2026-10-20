@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import kotlinx.datetime.LocalDate
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -94,6 +95,7 @@ class AppModuleTest {
                 ResolvePortion::class,
                 ScaleNutrition::class,
                 ValidateQuantity::class,
+                ValidateMealSlots::class,
                 DefaultMealSlot::class,
                 LocalDate::class,
                 CompleteOnboarding::class,

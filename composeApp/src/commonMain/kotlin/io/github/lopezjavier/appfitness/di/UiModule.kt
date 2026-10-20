@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewMode
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
+import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
@@ -53,6 +54,17 @@ val uiModule =
                 buildDiaryDay = get(),
                 clock = get(),
                 savedState = get(),
+            )
+        }
+        // The viewed Diary day travels as an ISO yyyy-MM-dd string.
+        viewModel { (date: String) ->
+            MealSlotsEditorViewModel(
+                viewedDay = LocalDate.parse(date),
+                savedState = get(),
+                mealSlots = get(),
+                foodDiary = get(),
+                validate = get(),
+                connectivity = get(),
             )
         }
         viewModelOf(::FoodSearchViewModel)

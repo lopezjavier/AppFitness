@@ -63,6 +63,9 @@ sealed interface DiaryEvent {
     data object AddFood : DiaryEvent
 
     data object OpenGoals : DiaryEvent
+
+    /** Open the meals editor for the visible day. */
+    data object OpenMealSettings : DiaryEvent
 }
 
 /** One-off effects. */
@@ -73,4 +76,7 @@ sealed interface DiaryEffect {
     data class AddFood(val date: LocalDate) : DiaryEffect
 
     data object OpenPreferences : DiaryEffect
+
+    /** Open the meals editor; [date] is the visible day (a meal with entries on it cannot be disabled). */
+    data class OpenMealSettings(val date: LocalDate) : DiaryEffect
 }
