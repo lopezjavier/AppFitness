@@ -11,6 +11,8 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.NewFood
+import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -56,6 +58,7 @@ private class FixedClock : Clock {
 class SupabaseFoodRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private val bodies = mutableListOf<String>()
+    private var status = HttpStatusCode.OK
 
     private suspend fun signedIn(response: (HttpRequestData) -> String): SupabaseFoodRepository {
         val engine =
@@ -66,7 +69,7 @@ class SupabaseFoodRepositoryTest {
                     respond(FOOD_SESSION, HttpStatusCode.OK, headers)
                 } else {
                     bodies += request.body.toByteArray().decodeToString()
-                    respond(response(request), HttpStatusCode.OK, headers)
+                    respond(response(request), status, headers)
                 }
             }
         val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
@@ -195,6 +198,103 @@ class SupabaseFoodRepositoryTest {
         assertEquals("Huevo", repo.getById("f1").getOrThrow().name)
 
         assertEquals(before, requests.size)
+    }
+
+    @Test
+    fun findByBarcode_found_callsTheFunctionWithTheCode() = runTest {
+        val repo = signedIn { """{"food":$MILK}""" }
+
+        val food = repo.findByBarcode("8410000000001").getOrThrow()
+
+        val request = requests.last()
+        assertEquals(HttpMethod.Get, request.method)
+        assertTrue(request.url.encodedPath.endsWith("/functions/v1/food-barcode"), request.url.toString())
+        assertEquals("8410000000001", request.url.parameters["code"])
+        assertEquals("ml", food?.baseUnit)
+        assertEquals("f3", food?.id)
+    }
+
+    @Test
+    fun findByBarcode_404_isSuccessWithNull() = runTest {
+        status = HttpStatusCode.NotFound
+        val repo = signedIn { """{"error":{"code":"FOOD_NOT_FOUND","message":"x"}}""" }
+
+        assertEquals(Result.success(null), repo.findByBarcode("8410000000001"))
+    }
+
+    @Test
+    fun findByBarcode_serverError_isAFailure() = runTest {
+        status = HttpStatusCode.InternalServerError
+        val repo = signedIn { """{"error":{"code":"INTERNAL"}}""" }
+
+        assertTrue(repo.findByBarcode("8410000000001").isFailure)
+    }
+
+    @Test
+    fun findByBarcode_networkError_isNetwork() = runTest {
+        var fail = false
+        val repo = signedIn { if (fail) throw IOException("offline") else "[]" }
+        fail = true
+
+        assertEquals(AppError.Network, repo.findByBarcode("8410000000001").appErrorOrNull())
+    }
+
+    @Test
+    fun findByBarcode_remembersTheFood() = runTest {
+        val repo = signedIn { """{"food":$EGG}""" }
+        repo.findByBarcode("123").getOrThrow()
+        val before = requests.size
+
+        assertEquals("f1", repo.getById("f1").getOrThrow().id)
+
+        assertEquals(before, requests.size)
+    }
+
+    @Test
+    fun createFood_sendsTheRpcAndReturnsTheStoredFood() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
+        }
+
+        val created = repo.createFood(
+            NewFood(
+                name = " Tortilla ",
+                brand = null,
+                baseUnit = "g",
+                nutrition = NutritionPer100(190.0, 7.0, 15.0, 11.0),
+                barcode = "8410000000001",
+                portions = listOf(NewPortion("1 ración", 250.0), NewPortion("mitad", 125.0)),
+            ),
+        ).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_name") }
+        assertTrue(rpcBody.contains("\"p_name\":\"Tortilla\""), rpcBody)
+        assertTrue(rpcBody.contains("\"p_base_unit\":\"g\""), rpcBody)
+        assertTrue(rpcBody.contains("\"p_barcode\":\"8410000000001\""), rpcBody)
+        assertTrue(rpcBody.contains("\"p_kcal\":190.0"), rpcBody)
+        assertTrue(
+            rpcBody.indexOf("1 ración") in 0 until rpcBody.indexOf("mitad"),
+            "portions keep their order: $rpcBody",
+        )
+        assertEquals("f1", created.id)
+        assertEquals("eq.f1", requests.last().url.parameters["id"])
+    }
+
+    @Test
+    fun createFood_failure_propagatesAndRemembersNothing() = runTest {
+        var fail = true
+        val repo = signedIn { request ->
+            if (fail && request.url.encodedPath.endsWith("/rpc/create_personal_food")) throw IOException("offline")
+            if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
+        }
+        val food = NewFood("x", null, "g", NutritionPer100(1.0, 0.0, 0.0, 0.0), null, emptyList())
+
+        assertEquals(AppError.Network, repo.createFood(food).appErrorOrNull())
+
+        fail = false
+        val before = requests.size
+        repo.getById("f1").getOrThrow()
+        assertTrue(requests.size > before, "the food was not cached by the failed call")
     }
 
     @Test

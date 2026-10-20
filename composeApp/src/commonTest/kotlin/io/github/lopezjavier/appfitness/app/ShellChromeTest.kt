@@ -48,6 +48,7 @@ class ShellChromeTest {
                 ExerciseProgressRoute::class,
                 FoodSearchRoute::class,
                 AddFoodRoute::class,
+                CreateFoodRoute::class,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||

@@ -76,7 +76,7 @@ class FoodLoggingFlowTest {
             MutableClock(),
             SavedStateHandle(),
         )
-        val searchModel = FoodSearchViewModel(foods, connectivity, SavedStateHandle())
+        val searchModel = FoodSearchViewModel(foods, connectivity, FakeBarcodeScanner(), SavedStateHandle())
         rule.setContent { Flow(diaryModel, searchModel, slotId) }
         rule.waitForIdle()
     }

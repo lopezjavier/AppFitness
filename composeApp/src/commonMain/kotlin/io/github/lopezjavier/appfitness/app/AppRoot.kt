@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
+import io.github.lopezjavier.appfitness.feature.food.CreateFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
@@ -57,7 +58,10 @@ fun AppRoot(
         diary = { diaryModifier, onOpenPreferences, onAddFood ->
             DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, diaryModifier)
         },
-        foodSearch = { searchModifier, onOpenFood -> FoodSearchRoot(onOpenFood, searchModifier) },
+        foodSearch = { searchModifier, onOpenFood, onCreateFood ->
+            FoodSearchRoot(onOpenFood, onCreateFood, searchModifier)
+        },
+        createFood = { formModifier, barcode, name, onSaved -> CreateFoodRoot(barcode, name, onSaved, formModifier) },
         addFood = { foodId, slotId, date, onAdded, onDismiss ->
             AddFoodRoot(foodId, slotId, date, onAdded, onDismiss)
         },

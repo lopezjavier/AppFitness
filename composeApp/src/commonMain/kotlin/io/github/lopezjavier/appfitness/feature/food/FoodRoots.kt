@@ -15,26 +15,71 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Stateful food search: connects [FoodSearchViewModel]. [onOpenFood] receives the id of the food whose row was tapped
- * (the add-food sheet is opened by navigation, so it survives process death).
+ * Stateful food search: connects [FoodSearchViewModel]. [onOpenFood] receives the id of the food to log (a tapped row
+ * or a scanned product; the add-food sheet is opened by navigation, so it survives process death). [onCreateFood]
+ * opens the create-food form with the scanned barcode and/or the typed name.
  */
 @Composable
 fun FoodSearchRoot(
     onOpenFood: (foodId: String) -> Unit,
+    onCreateFood: (barcode: String?, name: String?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FoodSearchViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var scanFailed by remember { mutableStateOf(false) }
     val currentOpenFood by rememberUpdatedState(onOpenFood)
+    val currentCreateFood by rememberUpdatedState(onCreateFood)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is FoodSearchEffect.OpenFood -> currentOpenFood(effect.food.id)
-                FoodSearchEffect.FavouriteFailed -> Unit // The star already rolled back.
+
+                is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name)
+
+                FoodSearchEffect.ScanFailed -> scanFailed = true
+
+                // The star already rolled back.
+                FoodSearchEffect.FavouriteFailed -> Unit
             }
         }
     }
-    FoodSearchScreen(state, viewModel::onEvent, modifier)
+    FoodSearchScreen(
+        state = state,
+        onEvent = {
+            scanFailed = false
+            viewModel.onEvent(it)
+        },
+        modifier = modifier,
+        scanFailed = scanFailed,
+    )
+}
+
+/**
+ * Stateful create-food form: connects [CreateFoodViewModel], prefilled with [barcode] and/or [name] the first time.
+ * [onSave] receives the id of the new food (the add-food sheet opens for it).
+ */
+@Composable
+fun CreateFoodRoot(
+    barcode: String?,
+    name: String?,
+    onSave: (foodId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: CreateFoodViewModel = koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty()) }),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnSaved by rememberUpdatedState(onSave)
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is CreateFoodEffect.Saved -> currentOnSaved(effect.foodId)
+
+                // The state already shows the inline error.
+                CreateFoodEffect.SaveFailed -> Unit
+            }
+        }
+    }
+    CreateFoodScreen(state, viewModel::onEvent, modifier)
 }
 
 /**

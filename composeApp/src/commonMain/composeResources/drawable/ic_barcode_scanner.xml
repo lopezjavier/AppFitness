@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Barcode scan glyph: four corner brackets and three bars (24px). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M3,3h5v2H5v3H3V3ZM16,3h5v5h-2V5h-3V3ZM3,16h2v3h3v2H3v-5ZM19,16h2v5h-5v-2h3v-3ZM7,7h2v10H7V7ZM11,7h1v10h-1V7ZM14,7h3v10h-3V7Z" />
+</vector>

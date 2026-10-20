@@ -42,7 +42,8 @@ class FoodRestorationTest {
     private val chicken = food("chicken", "Pechuga de pollo", kcal = 110.0)
     private val egg = food("egg", "Huevo", kcal = 200.0, portions = listOf(FoodPortion("p1", "huevo", 55.0)))
 
-    private fun searchModel(state: SavedStateHandle) = FoodSearchViewModel(foods, connectivity, state)
+    private fun searchModel(state: SavedStateHandle) =
+        FoodSearchViewModel(foods, connectivity, FakeBarcodeScanner(), state)
 
     private fun addModel(state: SavedStateHandle) = AddFoodViewModel(
         foodId = "egg",

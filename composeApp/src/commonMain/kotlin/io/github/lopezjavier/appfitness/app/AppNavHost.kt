@@ -84,8 +84,20 @@ internal typealias DiarySlot =
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
     ) -> Unit
 
-/** Food search content: modifier (full-screen insets) and the opener of the add-food sheet (by food id). */
-internal typealias FoodSearchSlot = @Composable (modifier: Modifier, onOpenFood: (String) -> Unit) -> Unit
+/**
+ * Food search content: modifier (full-screen insets), the opener of the add-food sheet (by food id) and the opener
+ * of the create-food form (scanned barcode and/or typed name).
+ */
+internal typealias FoodSearchSlot =
+    @Composable (
+        modifier: Modifier,
+        onOpenFood: (String) -> Unit,
+        onCreateFood: (barcode: String?, name: String?) -> Unit,
+    ) -> Unit
+
+/** Create-food form content: modifier, the prefilled barcode and name, and [onSaved] with the new food id. */
+internal typealias CreateFoodSlot =
+    @Composable (modifier: Modifier, barcode: String?, name: String?, onSaved: (String) -> Unit) -> Unit
 
 /**
  * Add-food sheet content for a food, the meal tapped in the Diary (or null) and the ISO day; [onAdded] runs once the
@@ -204,8 +216,13 @@ internal val DefaultDiarySlot: DiarySlot = { modifier, _, _ ->
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _ ->
+internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("food_search_screen"))
+}
+
+/** Empty create-food form for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("create_food_screen"))
 }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -264,6 +281,7 @@ internal fun AppNavHost(
     diary: DiarySlot = DefaultDiarySlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
+    createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
@@ -341,7 +359,7 @@ internal fun AppNavHost(
             )
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
-        foodDestinations(navController, fullScreenPadding, foodSearch, addFood)
+        foodDestinations(navController, fullScreenPadding, foodSearch, addFood, createFood)
         historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
@@ -359,11 +377,28 @@ private fun NavGraphBuilder.foodDestinations(
     fullScreenPadding: PaddingValues,
     foodSearch: FoodSearchSlot,
     addFood: AddFoodSlot,
+    createFood: CreateFoodSlot,
 ) {
     composable<FoodSearchRoute> { entry ->
         val route = entry.toRoute<FoodSearchRoute>()
-        foodSearch(Modifier.padding(fullScreenPadding)) {
-            navController.navigate(AddFoodRoute(it, route.slotId, route.date)) { launchSingleTop = true }
+        foodSearch(
+            Modifier.padding(fullScreenPadding),
+            { navController.navigate(AddFoodRoute(it, route.slotId, route.date)) { launchSingleTop = true } },
+            { barcode, name ->
+                navController.navigate(CreateFoodRoute(barcode, name, route.slotId, route.date)) {
+                    launchSingleTop = true
+                }
+            },
+        )
+    }
+    composable<CreateFoodRoute> { entry ->
+        val route = entry.toRoute<CreateFoodRoute>()
+        createFood(Modifier.padding(fullScreenPadding), route.barcode, route.name) { foodId ->
+            // The form is replaced by the sheet: "Añadir" then pops back to the Diary like the normal flow.
+            navController.navigate(AddFoodRoute(foodId, route.slotId, route.date)) {
+                popUpTo<CreateFoodRoute> { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
     dialog<AddFoodRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->

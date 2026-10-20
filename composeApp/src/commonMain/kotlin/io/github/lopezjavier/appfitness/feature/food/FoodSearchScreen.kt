@@ -36,14 +36,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remo
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_g
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
+import io.github.lopezjavier.appfitness.composeapp.resources.food_scan_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_clear_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -52,6 +55,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -67,15 +71,16 @@ private const val DETAIL_FRACTION = 0.35f
 
 /**
  * Food search (US-17): the search box, the three empty-box tabs (hidden while a query is typed) and the results. The
- * top bar belongs to the shell. [onCreateFood] adds a "Crear alimento" button to the empty result; null (the default)
- * shows none, so there is never a dead button.
+ * top bar belongs to the shell. [scanFailed] shows the generic "could not read the code" message under the box; the
+ * not-found card of a scanned [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of the empty result
+ * emit their events.
  */
 @Composable
 fun FoodSearchScreen(
     state: FoodSearchUiState,
     onEvent: (FoodSearchEvent) -> Unit,
     modifier: Modifier = Modifier,
-    onCreateFood: (() -> Unit)? = null,
+    scanFailed: Boolean = false,
 ) {
     Box(modifier.fillMaxSize().testTag("food_search_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
@@ -84,17 +89,38 @@ fun FoodSearchScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
                 SearchField(state, onEvent)
+                if (scanFailed) ScanError()
+                state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
                 if (state.query.isBlank()) Tabs(state, onEvent)
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) { Results(state, onEvent, onCreateFood) }
+            Box(Modifier.weight(1f).fillMaxWidth()) { Results(state, onEvent) }
         }
     }
 }
 
-/** Search box with a clear button; the box is disabled offline because searching needs the server. */
+/** Search box with a clear button and the scan button; both are disabled offline because they need the server. */
 @Composable
 private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
-    Box(Modifier.fillMaxWidth()) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        SearchBox(state, onEvent, Modifier.weight(1f))
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_scan_cd),
+            icon = Res.drawable.ic_barcode_scanner,
+            testTag = "food_search_scan_button",
+            onClick = { onEvent(FoodSearchEvent.ScanClicked) },
+            enabled = !state.isOffline,
+            modifier = Modifier.padding(bottom = Spacing.xs),
+        )
+    }
+}
+
+@Composable
+private fun SearchBox(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier) {
         AppTextField(
             value = state.query,
             onValueChange = { onEvent(FoodSearchEvent.QueryChanged(it)) },
@@ -142,13 +168,13 @@ private fun Tabs(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
 }
 
 @Composable
-private fun Results(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onCreateFood: (() -> Unit)?) {
+private fun Results(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
     when (val results = state.results) {
         FoodResults.Loading -> ResultsLoading()
 
         is FoodResults.Content -> ResultsList(results.foods, state.favouriteIds, state.isOffline, onEvent)
 
-        FoodResults.Empty -> EmptyResults(state, onCreateFood)
+        FoodResults.Empty -> EmptyResults(state, onEvent)
 
         FoodResults.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             ErrorState(
@@ -163,7 +189,7 @@ private fun Results(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit
 }
 
 @Composable
-private fun EmptyResults(state: FoodSearchUiState, onCreateFood: (() -> Unit)?) {
+private fun EmptyResults(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
     val searching = state.query.isNotBlank()
     val message = stringResource(
         when {
@@ -173,14 +199,23 @@ private fun EmptyResults(state: FoodSearchUiState, onCreateFood: (() -> Unit)?) 
             else -> Res.string.food_empty_favourites
         },
     )
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Column(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         EmptyState(
             message = if (searching) stringResource(Res.string.food_empty_search_hint) else message,
             title = if (searching) message else null,
-            action = onCreateFood?.takeIf { searching }
-                ?.let { AppStateAction(stringResource(Res.string.food_create_action), it) },
             testTagPrefix = "food_search_empty",
         )
+        if (searching) {
+            PrimaryButton(
+                text = stringResource(Res.string.food_create_action),
+                onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
+                modifier = Modifier.testTag("food_search_create_button"),
+            )
+        }
     }
 }
 
