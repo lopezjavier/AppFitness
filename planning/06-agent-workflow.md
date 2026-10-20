@@ -1,6 +1,6 @@
 # Claude Code workflow and subagents
 
-Supersedes the original orchestrator and workflow documents (kept outside the repository). The operational summary lives in `CLAUDE.md`; the subagents are defined in `.claude/agents/*.md`. If this document and `CLAUDE.md` disagree, `CLAUDE.md` wins.
+Supersedes the original orchestrator and workflow documents (kept outside the repository). `CLAUDE.md` holds the PM's always-on rules; this document holds the detail; the subagents are defined in `.claude/agents/*.md`. If this document and `CLAUDE.md` disagree, `CLAUDE.md` wins.
 
 ## 1. Principles
 
@@ -38,6 +38,8 @@ pr-reviewer is skipped for PRs that only touch docs or task files; it always run
   → [PM] mark task → pr-creator → pr-reviewer → [PM] green CI → merge
 ```
 
+A bug the user reports becomes the next task (`fix(T-###)`). L tasks run as slices, one developer run each.
+
 ### 2.3 Minor corrective task (epic feedback, < ~50 lines)
 Planner optional (short plan in the PR itself); the rest follows the applicable flow.
 
@@ -51,6 +53,8 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 ```
 - `AGENT`: PM, EPIC_PLANNER, PLANNER, UX, DEV_CORE, DEV_UI, DEV_BE, PR_CREATOR, PR_REVIEWER.
 - `STATUS`: STARTED, IN_PROGRESS, PASSED, REJECTED, BLOCKED, COMPLETED.
+- The `[PM] [T-###] [COMPLETED]` line ends with the task duration since `STARTED` (e.g. `… CI green · 52 min`).
+- Working files in `.workflow/` (not versioned): `current_task.md` (plan, written by the planner), `pr-body.md` (pr-creator), `execution.log` (PM only).
 - The active log holds only the current epic; a closed epic's lines move to `.workflow/archive/execution-E#.log`. Read it with `grep` (`[T-###]`, `[E#]`, timestamp), never in full.
 - Example:
 ```
@@ -66,13 +70,13 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 
 | Action | Command |
 |---|---|
-| Lint | `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` |
-| Text guard | `bash scripts/check-text-encoding.sh` (UTF-8 without BOM/CRLF/mojibake) |
+| Lint | `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` (the tokens guard is the first step of `android-ci`) |
+| Text guard | `bash scripts/check-text-encoding.sh` (UTF-8 without BOM/CRLF/mojibake; runs in the always-on `gitleaks` job) |
 | Unit tests (all modules) | `./gradlew testLocalDebugUnitTest` (in `composeApp`/`shared` it runs `testAndroidHostTest`, which includes `commonTest`; ADR-19) |
 | `prod` flavor unit tests | `./gradlew :androidApp:testProdDebugUnitTest` |
 | Build and install on the emulator | `./gradlew :androidApp:installLocalDebug` |
-| Delivery APK | `python scripts/deliver-apk.py`: builds `prodDebug` (`androidApp/build/outputs/apk/prod/debug/`) and installs it on every connected physical device (`--no-build`, `--serial <id>`, `--include-emulator`) |
-| Local Supabase | `npx supabase start` / `npx supabase db reset` |
+| Delivery APK | `python scripts/deliver-apk.py`: builds `prodDebug` (`androidApp/build/outputs/apk/prod/debug/`) and installs it on every connected physical device, imports the RepDB bundle when missing (`--no-build`, `--serial <id>`, `--include-emulator`, `--repdb-source <path>`, `--reimport`, `--verbose`) |
+| Local Supabase | `npx supabase start` / `npx supabase db reset` / `npx supabase stop` |
 | DB tests (RLS) | `npx supabase test db` |
 | Edge Function tests | `deno test --allow-all supabase/functions` |
 | Serve functions locally | `npx supabase functions serve --env-file supabase/.env.local` |
@@ -80,7 +84,7 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | CI status | `gh pr checks --watch` |
 | Merge | `gh pr merge --squash --delete-branch` |
 
-> On Windows, run commands from Git Bash (`./gradlew`) or PowerShell (`.\gradlew.bat`).
+> On Windows 11, run commands from Git Bash (`./gradlew`) or PowerShell (`.\gradlew.bat`). Tools and accounts: `08-environment-setup.md`.
 
 ## 5. Subagents (`.claude/agents/`)
 
@@ -101,12 +105,12 @@ Each agent carries its own rules and is self-contained. Only `pr-creator` commit
 
 ## 6. Epic closure and delivery
 
-1. All the epic's tasks are in `main` with green CI.
+1. All the epic's tasks are in `main` with green CI. The PM logs `[PM] [E#] [COMPLETED]` and waits for feedback.
 2. The user has verified the delivered APK and every bug they reported is fixed.
-3. `prodDebug` APK (pointing to production Supabase) → the user installs it on their phone/tablet.
+3. `prodDebug` APK (production Supabase): the user runs `! python scripts/deliver-apk.py` with devices connected; the PM only points to it.
 4. Feedback:
    - With changes → the PM creates corrective tasks within the epic.
-   - Approved → tag `vX.Y.0`.
-5. Retrospective with the user → `retrospectives/E#.md`; durable lessons become rules in `CLAUDE.md` or the agent files.
+   - Approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`.
+5. Retrospective with the user → `retrospectives/E#.md`; durable lessons become rules in `CLAUDE.md`, `.claude/rules/` or the agent files.
 6. Archive the epic's lines from `.workflow/execution.log` to `.workflow/archive/execution-E#.log`.
 7. Next epic: broken down by `epic-planner` in a fresh session; the user confirms the task list and checkpoints before the first task.

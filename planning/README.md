@@ -17,6 +17,7 @@ Phase 2 (web client and AI) is out of scope for this planning; only what is defe
 | [06-agent-workflow.md](06-agent-workflow.md) | Claude Code workflow, subagents and their specification |
 | [07-roadmap.md](07-roadmap.md) | Epics, order, dependencies, versions and deliverables |
 | [08-environment-setup.md](08-environment-setup.md) | Tools, accounts, secrets and local development |
+| [09-open-questions.md](09-open-questions.md) | Open product questions and their resolutions |
 | [epics/](epics/) | One file per epic with its user stories in Gherkin |
 
 ## How to use this folder
