@@ -263,6 +263,8 @@ Feature: Daily diary by meal
 - The list is grouped by meal slot (`meal_slots`, US-23); collapsible sections (local state).
 - View mode is a purely local preference (DataStore); no schema change.
 - Copy/repeat are batch inserts of `food_log_entries` (one request); no new tables.
+- Q2 (user, 2026-10-20) view modes: "Detalle" = each entry with its amount, kcal and P/C/F grams; "Lista" = one compact line per entry with name, amount and kcal; "Resumen" = each meal's name, kcal and macros only (entries hidden).
+- Q3 (user, 2026-10-20) copy destination: any past day, today or a future day. The Diary stays capped at today, so a future copy shows up when that day arrives. No new ADR.
 
 ---
 
