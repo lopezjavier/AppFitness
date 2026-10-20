@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** re-present Checkpoint E4-B (changed items from T-066/T-067); T-061 only after the user approves it.
+**Next:** T-061 (Meal templates). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
 
 ---
 
@@ -1686,7 +1686,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 ### Checkpoint E4-B — Scanner, manual foods, your own meals, correct and reuse the diary 👤
 - Feedback received 2026-10-20 and handled in T-066/T-067 (OFF lacks liquids like milk: no action, add them manually). T-061 provides the named reusable meal (replaces "Copiar comida"). After T-066 and T-067 re-present only the changed items to re-test, then release T-061.
 - [ ] T-058…T-060 merged, CI green (`deploy-supabase` green if T-058 or T-059 added a migration).
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+- [x] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try: *(2026-10-21: round 2 feedback was UI-only and postponed to E8; released T-061)*
   - Scanner (real products at home): scan a few packaged foods and a drink: the sheet opens, the drink uses ml; add them to a meal. Scan something unknown: "Producto no encontrado" → "Crear alimento" with the code filled in; save it with a portion ("1 ración"), then scan it again: it opens your food. Close the scanner without scanning: back to the search, no error.
   - Manual foods: create a food from a search with no results; try an empty name or negative kcal ("Guardar" disabled).
   - Your own meals: open the meal settings from the Diary; rename "Merienda" (e.g. "Post-entreno"), add "Segundo desayuno" after Desayuno, move Cena above Merienda, save: the Diary follows. Disable an empty meal (gone from the Diary and the meal picker), re-enable it; try to disable a meal with foods on the day you are viewing (blocked, with a hint). Add a food to the custom meal; renamed meals keep their totals.
