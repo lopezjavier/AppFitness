@@ -106,14 +106,16 @@ RLS: select when the parent food is readable (`source = 'off' or created_by = (s
 |---|---|---|
 | user_id | uuid | |
 | log_date | date | Local day |
-| meal_slot_id | uuid FK meal_slots | on delete restrict (US-23) |
-| food_id | uuid FK foods | on delete restrict |
+| meal_slot_id | uuid FK meal_slots | composite FK `(meal_slot_id, user_id)` -> `meal_slots (id, user_id)`; on delete no action (US-23) |
+| food_id | uuid FK foods | on delete no action |
 | amount | numeric(7,1) | > 0; in the food's `base_unit` |
 | portion_label | text null | snapshot of the portion used, if any |
 | food_name | text | snapshot |
 | kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes) |
 
 Index: `(user_id, log_date)`.
+
+`no action` (checked at statement end) instead of `restrict` (checked immediately): deleting an `auth.users` row cascades to entries, slots and personal foods in one statement (ADR-29), and `restrict` could block it before the entries are gone. RLS insert/update also requires the food to be readable by the caller.
 
 ### `meal_slots` (US-23)
 Configured meals per user (rename, enable/disable, add).
@@ -126,7 +128,7 @@ Configured meals per user (rename, enable/disable, add).
 | position | smallint | order within the day |
 | enabled | boolean | default true |
 
-Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner) when onboarding completes. `unique (user_id, position)`. RLS owner policy. Deleting is not allowed: a meal is disabled instead (an empty slot).
+Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner, positions 0..3) when onboarding completes (trigger on `profiles`, idempotent; existing onboarded users are backfilled). `unique (user_id, position)`. RLS owner policy. Deleting is not allowed: a meal is disabled instead (an empty slot).
 
 ### `meal_templates` (US-21)
 `user_id`, `name` (unique per user), `meal_slot_id` FK null (suggested meal; null = any).
