@@ -123,7 +123,7 @@ class FullSessionTest {
         rule.setContent {
             AppTheme {
                 val state by viewModel.uiState.collectAsState()
-                LiveSessionScreen(state, 0, viewModel::onEvent, {})
+                LiveSessionScreen(state, 0, viewModel::onEvent, {}, onOpenExercise = {})
             }
         }
         settle()

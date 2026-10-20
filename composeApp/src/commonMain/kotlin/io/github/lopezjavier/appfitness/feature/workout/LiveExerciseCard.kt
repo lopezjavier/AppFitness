@@ -40,8 +40,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun LiveExerciseCard(
     exercise: LiveExercise,
     onEvent: (LiveSessionEvent) -> Unit,
+    onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenExercise: (String) -> Unit = {},
 ) {
     val position = exercise.position
     val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)

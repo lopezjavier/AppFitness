@@ -31,7 +31,7 @@ class KeepScreenOnTest {
         rule.setContent {
             AppTheme {
                 view = LocalView.current
-                if (show) LiveSessionScreen(state, 0, {}, {})
+                if (show) LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {})
             }
         }
         rule.waitForIdle()

@@ -174,6 +174,76 @@ class DraftRestorationTest {
         rule.onNodeWithTag("routine_builder_discard").assertExists()
     }
 
+    private fun showBuilder(
+        tester: StateRestorationTester,
+        handle: SavedStateHandle,
+        repo: FakeExerciseRepository,
+        pickerResult: () -> String?,
+        onOpenExercise: (String) -> Unit,
+    ) {
+        tester.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    val vm =
+                        remember {
+                            RoutineBuilderViewModel(
+                                null,
+                                handle,
+                                FakeRoutineRepository(),
+                                LoadExerciseCatalog(repo, library),
+                                connectivity,
+                            )
+                        }
+                    RoutineBuilderRoot(
+                        routineId = null,
+                        selectedExerciseId = pickerResult(),
+                        onConsumeSelection = {},
+                        onAddExercise = {},
+                        onOpenExercise = onOpenExercise,
+                        onClose = {},
+                        viewModel = vm,
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun routineBuilder_openingADetailAndComingBack_afterRecreation_keepsTheDraft() {
+        var opened: String? = null
+        var picked by mutableStateOf<String?>(null)
+        val tester = StateRestorationTester(rule)
+        showBuilder(tester, SavedStateHandle(), exercises, { picked }, { opened = it })
+        rule.onNodeWithTag("routine_builder_name_field").performTextInput("Pierna")
+        picked = "a"
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_exercise_0_open").performClick()
+        assertEquals("a", opened)
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_name_field").assertTextContains("Pierna")
+        rule.onNodeWithTag("routine_builder_row_0").assertContentDescriptionEquals("Press de banca")
+    }
+
+    @Test
+    fun routineBuilder_customExercise_resolvesItsNameAfterRecreation() {
+        val custom = exerciseRow("c1", null, MuscleGroup.Core, Equipment.Bodyweight, "Curl nordico", custom = true)
+        var picked by mutableStateOf<String?>(null)
+        val tester = StateRestorationTester(rule)
+        showBuilder(tester, SavedStateHandle(), FakeExerciseRepository(listOf(custom)), { picked }, {})
+        picked = "c1"
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_row_0").assertContentDescriptionEquals("Curl nordico")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_row_0").assertContentDescriptionEquals("Curl nordico")
+    }
+
     // -- exercise picker and create-exercise form -----------------------------------------------------------------
 
     private fun showPicker(tester: StateRestorationTester, handle: SavedStateHandle) {
