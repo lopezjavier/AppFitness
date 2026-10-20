@@ -1691,9 +1691,8 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
   - Manual foods: create a food from a search with no results; try an empty name or negative kcal ("Guardar" disabled).
   - Your own meals: open the meal settings from the Diary; rename "Merienda" (e.g. "Post-entreno"), add "Segundo desayuno" after Desayuno, move Cena above Merienda, save: the Diary follows. Disable an empty meal (gone from the Diary and the meal picker), re-enable it; try to disable a meal with foods on the day you are viewing (blocked, with a hint). Add a food to the custom meal; renamed meals keep their totals.
   - Tap an entry: change its grams or portion, move it to another meal, save; the totals follow.
-  - Swipe an entry left → "Eliminar" → "Deshacer".
-  - Select some foods and "Copiar alimentos" to another meal and to another day; copy a whole meal; "Repetir comida de ayer" on an empty meal, then "Deshacer".
-  - Switch "Detalle" / "Lista" / "Resumen"; close and reopen the app: the view is kept.
+  - Swipe an entry left → "Eliminar": it disappears at once (no message, no undo) and the totals follow.
+  - The Diary has no "Copiar alimentos", "Copiar comida", "Repetir comida de ayer" or view selector (removed in T-066).
   - Leave the app and come back with the food-creation form half filled, with unsaved meal settings and with the edit sheet open: the same tab, screen and draft are restored.
   - Out of scope: editing or deleting foods you created (not in Phase 1 stories); templates and history (E4-C).
 
