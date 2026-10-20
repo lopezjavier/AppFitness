@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(23);
+select plan(24);
 
 -- The on_auth_user_created trigger creates each profile (onboarding_completed = false: no slots yet).
 insert into auth.users (id, email) values
@@ -21,8 +21,8 @@ select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.meal_slots'::regclass),
   'RLS is enabled and forced on meal_slots');
 select table_privs_are('public', 'meal_slots', 'anon', array[]::text[], 'anon has no privileges on meal_slots');
-select table_privs_are('public', 'meal_slots', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'authenticated cannot delete from meal_slots');
+select table_privs_are('public', 'meal_slots', 'authenticated', array['DELETE', 'SELECT', 'INSERT', 'UPDATE'],
+  'authenticated can select, insert, update and delete own meal_slots (delete only via delete_meal_slot rules)');
 
 -- ---------------------------------------------------------------------------
 -- Seeding
@@ -85,6 +85,7 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 -- RLS isolation (as user A, then B)
 -- ---------------------------------------------------------------------------
+select public.seed_default_meal_slots('22222222-2222-4222-8222-222222222222');
 set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
@@ -100,8 +101,16 @@ select throws_ok(
 select lives_ok(
   $$update public.meal_slots set enabled = false where code = 'snack'$$,
   'A disables a meal');
-select throws_ok('delete from public.meal_slots where position = 4', '42501', null,
-  'A cannot delete a meal slot (disable instead)');
+select lives_ok(
+  $$delete from public.meal_slots where user_id = '22222222-2222-4222-8222-222222222222'$$,
+  'A deleting B''s slots is a silent no-op (RLS hides them)');
+reset role;
+select is(
+  (select count(*)::int from public.meal_slots where user_id = '22222222-2222-4222-8222-222222222222'),
+  4, 'B''s meal slots are still there after A''s delete attempt');
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
 
 select set_config('request.jwt.claims',
   '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}', true);

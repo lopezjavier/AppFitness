@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
-import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -41,15 +40,16 @@ internal data class MealSlotDto(
 
 /** One element of the `p_slots` array of `save_meal_slots`; a null [id] is a new custom meal. */
 @Serializable
-internal data class MealSlotDraftDto(val id: String?, val label: String, val enabled: Boolean) {
+internal data class MealSlotDraftDto(val id: String?, val label: String) {
     companion object {
-        fun from(draft: MealSlotDraft) = MealSlotDraftDto(draft.id, draft.label, draft.enabled)
+        fun from(draft: MealSlotDraft) = MealSlotDraftDto(draft.id, draft.label)
     }
 }
 
 /** Arguments of the `save_meal_slots` RPC. */
 @Serializable
-internal data class SaveMealSlotsParams(
-    @SerialName("p_slots") val slots: List<MealSlotDraftDto>,
-    @SerialName("p_viewed_day") val viewedDay: LocalDate,
-)
+internal data class SaveMealSlotsParams(@SerialName("p_slots") val slots: List<MealSlotDraftDto>)
+
+/** Arguments of the `delete_meal_slot` RPC. */
+@Serializable
+internal data class DeleteMealSlotParams(@SerialName("p_id") val id: String)

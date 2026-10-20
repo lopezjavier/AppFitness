@@ -23,6 +23,7 @@ class MlKitBarcodeScanner(private val activityHolder: CurrentActivityHolder) : B
                 Barcode.FORMAT_UPC_A,
                 Barcode.FORMAT_UPC_E,
             )
+            .enableAutoZoom()
             .build()
         val client = GmsBarcodeScanning.getClient(activity, options)
         return suspendCancellableCoroutine { continuation ->

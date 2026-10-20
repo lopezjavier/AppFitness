@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-067 (Checkpoint E4-B feedback), then re-present Checkpoint E4-B; T-061 only after the user approves it.
+**Next:** re-present Checkpoint E4-B (changed items from T-066/T-067); T-061 only after the user approves it.
 
 ---
 
@@ -1674,10 +1674,10 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** (2) "Crear alimento" is reachable from the food search at any time (barcode optional), not only after failed scans or empty results. (3) Barcode scanner accepts a code only after a stable read (same code over several consecutive frames and/or a short settle time; check autofocus and analysis resolution); the user reports blurry early reads and up to 5 retries in low light. (7) Meal structure moves from the Diary "Comidas" button to Perfil → UI preferences, as a compact list with icon buttons: rename/reorder via icons, a trash button per meal (at least 1 meal must remain; a meal with logged entries cannot be deleted: blocked with a hint; an unused meal is deleted at once), no enable/disable toggle, no "+" button (a single "Añadir comida" action). Remove the "Comidas" button from the Diary. UX rule for ux-reviewer: optimise space and use icons for edit actions.
 
 **Acceptance criteria:**
-- [ ] A food can be created from the search without scanning or failing a scan.
-- [ ] A barcode is accepted only when read stably; the user's low-light test succeeds without repeated retries.
-- [ ] Meal structure is edited from Perfil → preferences of the UI; the Diary has no "Comidas" button; at least 1 meal remains; a used meal cannot be deleted.
-- [ ] `ux-reviewer.md` records the space/icon rule; lint + `testLocalDebugUnitTest` green.
+- [x] A food can be created from the search without scanning or failing a scan.
+- [x] Scanner: `enableAutoZoom()` added to the Google code scanner (user decision 2026-10-21: keep the Google scanner in phase 1, no CameraX); the user re-tests in low light at the checkpoint.
+- [x] Meal structure is edited from Perfil → preferences of the UI; the Diary has no "Comidas" button; at least 1 meal remains; a used meal cannot be deleted.
+- [x] `ux-reviewer.md` records the space/icon rule; lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-066 · **Estimated scope:** M-L
 

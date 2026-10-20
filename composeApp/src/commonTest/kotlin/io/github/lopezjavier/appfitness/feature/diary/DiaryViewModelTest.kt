@@ -253,19 +253,6 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun openMealSettings_emitsTheVisibleDay() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(DiaryEvent.PreviousDay)
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(DiaryEvent.OpenMealSettings)
-            assertEquals(DiaryEffect.OpenMealSettings(yesterday), awaitItem())
-        }
-    }
-
-    @Test
     fun anEntryAddedThroughTheRepository_updatesTheTotalsWithoutRefresh() = runTest(dispatcher) {
         seedPlanExample()
         val model = viewModel()
@@ -464,19 +451,19 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun afterTheMealStructureChanges_refreshShowsRenamedReorderedAndHidesDisabledMeals() = runTest(dispatcher) {
+    fun afterTheMealStructureChanges_refreshShowsRenamedReorderedMeals() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
 
         slots.save(
             listOf(
-                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno", true),
-                MealSlotDraft("lunch", MealCode.Lunch, "Comida", false),
-                MealSlotDraft("dinner", MealCode.Dinner, "Cena", true),
-                MealSlotDraft("snack", MealCode.Snack, "Post-entreno", true),
+                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno"),
+                MealSlotDraft("lunch", MealCode.Lunch, "Comida"),
+                MealSlotDraft("dinner", MealCode.Dinner, "Cena"),
+                MealSlotDraft("snack", MealCode.Snack, "Post-entreno"),
             ),
-            today,
         )
+        slots.delete("lunch")
         model.onEvent(DiaryEvent.Refresh)
         advanceUntilIdle()
 

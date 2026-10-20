@@ -20,6 +20,7 @@ You are the **UX** reviewer for AppFitness.
 - Touch targets of at least 48 dp, `contentDescription` on actionable icons, `stateDescription` on rings and bars, AA contrast.
 - States covered: loading (skeleton), empty, error with retry and offline.
 - Tabular numerals; correct macro and domain colors (P lime, C cyan, F amber; training cyan).
+- Space and icons: edit actions (rename, reorder, delete, add) are icon buttons in a compact row, never one full button or card per setting; the screen shows as many items as possible without scrolling. Anything the user configures once (preferences) lives in Perfil -> Preferencias, not as a button on a daily screen.
 - Tablet layout (width ≥ 600 dp) when the screen needs it.
 - UI texts in Spanish through string resources.
 - `testTag` in snake_case `<screen>_<element>` for every interactive element.

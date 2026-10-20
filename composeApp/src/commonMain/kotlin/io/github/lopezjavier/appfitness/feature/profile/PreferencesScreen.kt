@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -10,10 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -28,10 +31,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_meals_subtitle
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_save
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_saved
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
@@ -48,6 +56,7 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategySection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -56,13 +65,18 @@ private const val SKELETON_CARD_UNITS = 5
 
 /** Stateful Preferencias: connects [PreferencesViewModel] to the stateless [PreferencesScreen]. */
 @Composable
-fun PreferencesRoute(modifier: Modifier = Modifier, viewModel: PreferencesViewModel = koinViewModel()) {
+fun PreferencesRoute(
+    onOpenMeals: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: PreferencesViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     PreferencesScreen(
         state = state,
         onEvent = viewModel::onEvent,
         modifier = modifier,
         effects = viewModel.effects,
+        onOpenMeals = onOpenMeals,
     )
 }
 
@@ -70,7 +84,7 @@ fun PreferencesRoute(modifier: Modifier = Modifier, viewModel: PreferencesViewMo
  * Preferencias (US-06, US-07, US-08; ADR-37): the name, personal data and current weight, the energy strategy and the
  * macro split. Cards scroll above a pinned "Guardar" footer; from 600 dp the personal data and energy cards sit in
  * the left column and the macro split in the right one. [effects] feed the "Cambios guardados" / error snackbars and
- * the confirm haptic.
+ * the confirm haptic. The "Comidas" row only navigates ([onOpenMeals]); it never touches the profile draft.
  */
 @Composable
 fun PreferencesScreen(
@@ -78,6 +92,7 @@ fun PreferencesScreen(
     onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
     effects: Flow<PreferencesEffect> = emptyFlow(),
+    onOpenMeals: () -> Unit = {},
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     SaveEffects(effects, snackbarHost)
@@ -95,7 +110,7 @@ fun PreferencesScreen(
                 )
             }
 
-            is PreferencesUiState.Loaded -> PreferencesLoaded(state, onEvent, snackbarHost)
+            is PreferencesUiState.Loaded -> PreferencesLoaded(state, onEvent, snackbarHost, onOpenMeals)
         }
     }
 }
@@ -143,6 +158,7 @@ private fun PreferencesLoaded(
     state: PreferencesUiState.Loaded,
     onEvent: (PreferencesEvent) -> Unit,
     snackbarHost: SnackbarHostState,
+    onOpenMeals: () -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val wide = maxWidth >= WindowWidthClassDefaults.WideMinWidth
@@ -157,9 +173,9 @@ private fun PreferencesLoaded(
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
                 if (wide) {
-                    TwoColumns(state, onEvent)
+                    TwoColumns(state, onEvent, onOpenMeals)
                 } else {
-                    PersonalAndEnergy(state, onEvent)
+                    PersonalAndEnergy(state, onEvent, onOpenMeals)
                     MacroSplitCard(state, onEvent)
                 }
             }
@@ -170,7 +186,11 @@ private fun PreferencesLoaded(
 }
 
 @Composable
-private fun ColumnScope.PersonalAndEnergy(state: PreferencesUiState.Loaded, onEvent: (PreferencesEvent) -> Unit) {
+private fun ColumnScope.PersonalAndEnergy(
+    state: PreferencesUiState.Loaded,
+    onEvent: (PreferencesEvent) -> Unit,
+    onOpenMeals: () -> Unit,
+) {
     PersonalDataCard(state, onEvent)
     AppCard(Modifier.fillMaxWidth()) {
         EnergyStrategySection(
@@ -179,13 +199,54 @@ private fun ColumnScope.PersonalAndEnergy(state: PreferencesUiState.Loaded, onEv
             testTagPrefix = "preferences_energy",
         )
     }
+    MealsRow(onOpenMeals)
+}
+
+/** Plain navigation row to the meals editor. */
+@Composable
+private fun MealsRow(onOpenMeals: () -> Unit) {
+    AppCard(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onOpenMeals)
+            .semantics(mergeDescendants = true) {}
+            .testTag("preferences_meals_row"),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(Res.string.preferences_meals_title),
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                )
+                Text(
+                    text = stringResource(Res.string.preferences_meals_subtitle),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+            }
+            Icon(
+                painter = painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+            )
+        }
+    }
 }
 
 @Composable
-private fun TwoColumns(state: PreferencesUiState.Loaded, onEvent: (PreferencesEvent) -> Unit) {
+private fun TwoColumns(
+    state: PreferencesUiState.Loaded,
+    onEvent: (PreferencesEvent) -> Unit,
+    onOpenMeals: () -> Unit,
+) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-            PersonalAndEnergy(state, onEvent)
+            PersonalAndEnergy(state, onEvent, onOpenMeals)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             MacroSplitCard(state, onEvent)

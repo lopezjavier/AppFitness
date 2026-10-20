@@ -8,17 +8,13 @@ enum class MealSlotError { Blank, TooLong }
 
 /**
  * Outcome of [ValidateMealSlots]: [slots] are the drafts with trimmed labels, [errors] the rejected labels by list
- * index and [noneEnabled] is set when no meal is enabled (the Diary would be empty).
+ * index.
  */
-data class MealSlotsValidation(
-    val slots: List<MealSlotDraft>,
-    val errors: Map<Int, MealSlotError>,
-    val noneEnabled: Boolean,
-) {
-    val isValid: Boolean get() = slots.isNotEmpty() && errors.isEmpty() && !noneEnabled
+data class MealSlotsValidation(val slots: List<MealSlotDraft>, val errors: Map<Int, MealSlotError>) {
+    val isValid: Boolean get() = slots.isNotEmpty() && errors.isEmpty()
 }
 
-/** Checks the meals editor draft: labels of 1 to 50 characters after trimming and at least one enabled meal. */
+/** Checks the meals editor draft: labels of 1 to 50 characters after trimming and at least one meal. */
 class ValidateMealSlots {
     operator fun invoke(drafts: List<MealSlotDraft>): MealSlotsValidation {
         val trimmed = drafts.map { it.copy(label = it.label.trim()) }
@@ -30,6 +26,6 @@ class ValidateMealSlots {
                 }
             }
         }
-        return MealSlotsValidation(trimmed, errors, noneEnabled = trimmed.none { it.enabled })
+        return MealSlotsValidation(trimmed, errors)
     }
 }

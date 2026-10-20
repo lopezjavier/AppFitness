@@ -4,19 +4,19 @@ import io.github.lopezjavier.appfitness.domain.usecase.MealSlotError
 
 /**
  * One row of the meals editor. [key] is stable while editing (the slot id, or `new_<n>` for an unsaved meal).
- * [canToggle] is false when the meal cannot be disabled now; [hasEntriesInViewedDay] tells the UI to show the hint
- * (it is false when the entries could not be read, in which case the switch is still locked).
+ * [isEditing] shows the inline name field; [canDelete] is false while busy, offline or when it is the only meal;
+ * [deleteBlocked] is set when the server refused the delete because the meal has logged entries.
  */
 data class MealSlotRowUi(
     val key: String,
     val label: String,
-    val enabled: Boolean,
     val error: MealSlotError?,
     val canMoveUp: Boolean,
     val canMoveDown: Boolean,
-    val canToggle: Boolean,
-    val hasEntriesInViewedDay: Boolean,
     val isNew: Boolean,
+    val isEditing: Boolean,
+    val deleteBlocked: Boolean,
+    val canDelete: Boolean,
 )
 
 /** Why the last save failed. The draft is always kept. */
@@ -24,7 +24,7 @@ enum class MealSlotsSaveError {
     /** No connection. */
     Offline,
 
-    /** The server refused the structure (a meal gained entries on the viewed day, or the draft is invalid). */
+    /** The server refused the structure (the draft is invalid). */
     Rejected,
 
     /** Any other failure. */
@@ -39,12 +39,13 @@ sealed interface MealSlotsUiState {
     data object LoadError : MealSlotsUiState
 
     /**
-     * The editor. [canSave] needs valid labels, at least one enabled meal ([noneEnabled] explains that case), unsaved
-     * changes, a connection and no save in flight. [showDiscardConfirm] shows the "discard changes?" dialog.
+     * The editor. [canSave] needs valid labels, unsaved changes, a connection and no save or delete in flight.
+     * [onlyOneMeal] tells the UI to show the "at least one meal must remain" hint. [showDiscardConfirm] shows the
+     * "discard changes?" dialog.
      */
     data class Editing(
         val rows: List<MealSlotRowUi>,
-        val noneEnabled: Boolean = false,
+        val onlyOneMeal: Boolean = false,
         val isOnline: Boolean = true,
         val isSaving: Boolean = false,
         val isDirty: Boolean = false,
@@ -57,10 +58,16 @@ sealed interface MealSlotsUiState {
 sealed interface MealSlotsEvent {
     data class SetLabel(val key: String, val label: String) : MealSlotsEvent
 
-    data class SetEnabled(val key: String, val enabled: Boolean) : MealSlotsEvent
+    /** Opens the inline name field of the row [key]. */
+    data class Edit(val key: String) : MealSlotsEvent
 
-    /** Adds a blank custom meal right after the row at [afterIndex], or at the end when null. */
-    data class Add(val afterIndex: Int? = null) : MealSlotsEvent
+    data object StopEdit : MealSlotsEvent
+
+    /** Deletes the row: an unsaved one locally, a saved one through the server (which refuses used or last meals). */
+    data class Delete(val key: String) : MealSlotsEvent
+
+    /** Appends a blank custom meal and starts editing its name. */
+    data object Add : MealSlotsEvent
 
     /** A drag finished: the row at [from] now sits at [to]. */
     data class MoveTo(val from: Int, val to: Int) : MealSlotsEvent

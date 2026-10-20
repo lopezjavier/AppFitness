@@ -207,6 +207,28 @@ class BarcodeScanFlowTest {
         rule.onNodeWithTag("create_food_barcode_text").assertDoesNotExist()
     }
 
+    @Test
+    fun createIcon_withoutScanning_opensTheFormWithTheTypedNameAndNoBarcode() {
+        start()
+
+        type("food_search_input", "tortilla")
+        tap("food_search_create_icon")
+
+        rule.onNodeWithTag("create_food_name_field").assertTextContains("tortilla")
+        rule.onNodeWithTag("create_food_barcode_text").assertDoesNotExist()
+        assertEquals(0, scanner.scans)
+    }
+
+    @Test
+    fun createIcon_withoutQuery_opensAnEmptyForm() {
+        start()
+
+        tap("food_search_create_icon")
+
+        rule.onNodeWithTag("create_food_save_button").assertExists()
+        rule.onNodeWithTag("create_food_barcode_text").assertDoesNotExist()
+    }
+
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTagExists(tag: String) =
         onAllNodes(androidx.compose.ui.test.hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
 }

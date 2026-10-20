@@ -400,17 +400,17 @@ class AddFoodViewModelTest {
     }
 
     @Test
-    fun mealPicker_listsOnlyEnabledMealsWithTheirCurrentLabel() = runTest(dispatcher) {
+    fun mealPicker_listsMealsWithTheirCurrentLabelAndOmitsDeletedOnes() = runTest(dispatcher) {
         withFood(food("rice"))
         slots.save(
             listOf(
-                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno", true),
-                MealSlotDraft("lunch", MealCode.Lunch, "Comida", false),
-                MealSlotDraft("snack", MealCode.Snack, "Post-entreno", true),
-                MealSlotDraft("dinner", MealCode.Dinner, "Cena", true),
+                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno"),
+                MealSlotDraft("lunch", MealCode.Lunch, "Comida"),
+                MealSlotDraft("snack", MealCode.Snack, "Post-entreno"),
+                MealSlotDraft("dinner", MealCode.Dinner, "Cena"),
             ),
-            today,
         )
+        slots.delete("lunch")
 
         val model = viewModel("rice")
         advanceUntilIdle()

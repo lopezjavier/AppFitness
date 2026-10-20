@@ -126,9 +126,9 @@ data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date
 @Serializable
 data class EditEntryRoute(val entryId: String, val date: String) : AppRoute
 
-/** The meals editor (US-23), opened from the Diary; [date] is the ISO day being viewed there. */
+/** The meals editor (US-23), opened from Perfil -> Preferencias. */
 @Serializable
-data class MealSlotsRoute(val date: String) : AppRoute
+data object MealSlotsRoute : AppRoute
 
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
@@ -233,7 +233,7 @@ val AppRoute.chrome: ShellChrome
 
             is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
 
-            is MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
+            MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
             // A sheet over the Diary tab: the Diary's top and bottom bars stay.
             is EditEntryRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
@@ -261,6 +261,6 @@ object AppDestinations {
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),
             CreateFoodRoute(date = ""),
-            MealSlotsRoute(""),
+            MealSlotsRoute,
         )
 }

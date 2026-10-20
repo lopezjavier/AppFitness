@@ -6,10 +6,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.LocalBackInterceptor
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
@@ -56,7 +57,7 @@ import org.robolectric.annotation.Config
 
 private val Today = LocalDate(2026, 10, 19)
 
-/** US-23 end to end with fakes: Diary -> "Comidas" -> edit -> "Guardar" -> Diary (and the add-food meal picker). */
+/** US-23 end to end with fakes: meals editor (opened from Perfil) -> edit -> "Guardar" -> Diary and the picker. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
@@ -69,6 +70,7 @@ class MealSlotsFlowTest {
     private val connectivity = FakeConnectivityObserver()
     private val backInterceptor = BackInterceptor()
     private val sheet = mutableStateOf<AddFoodViewModel?>(null)
+    private val editorModel = mutableStateOf<MealSlotsEditorViewModel?>(null)
 
     private fun lunchEntry() =
         FoodLogEntry("e1", Today, "lunch", "f", "Lentejas", 300.0, null, "g", 420.0, 20.0, 60.0, 5.0)
@@ -89,29 +91,13 @@ class MealSlotsFlowTest {
 
     @Composable
     private fun Flow(diaryModel: DiaryViewModel) {
-        var editor by remember { mutableStateOf<MealSlotsEditorViewModel?>(null) }
+        var editor by editorModel
         val diaryState by diaryModel.uiState.collectAsState()
         CompositionLocalProvider(LocalBackInterceptor provides backInterceptor) {
             AppTheme {
                 val current = editor
                 if (current == null) {
-                    DiaryScreen(
-                        diaryState,
-                        {
-                            if (it == DiaryEvent.OpenMealSettings) {
-                                editor = MealSlotsEditorViewModel(
-                                    Today,
-                                    SavedStateHandle(),
-                                    slots,
-                                    diary,
-                                    ValidateMealSlots(),
-                                    connectivity,
-                                )
-                            } else {
-                                diaryModel.onEvent(it)
-                            }
-                        },
-                    )
+                    DiaryScreen(diaryState, diaryModel::onEvent)
                 } else {
                     val state by current.uiState.collectAsState()
                     LaunchedEffect(current) {
@@ -142,10 +128,23 @@ class MealSlotsFlowTest {
 
     private fun top(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
 
+    /** What Perfil -> Preferencias -> "Comidas" does: opens the editor over the Diary. */
+    private fun openEditor() {
+        rule.runOnUiThread {
+            editorModel.value = MealSlotsEditorViewModel(SavedStateHandle(), slots, ValidateMealSlots(), connectivity)
+        }
+        rule.waitForIdle()
+    }
+
     private fun openEditorAndEdit(edit: () -> Unit) {
-        tap("diary_meal_settings")
+        openEditor()
         edit()
         tap("meals_save")
+    }
+
+    private fun rename(key: String, name: String) {
+        tap("meals_edit_$key")
+        type("meals_label_$key", name)
     }
 
     @Test
@@ -153,30 +152,28 @@ class MealSlotsFlowTest {
         diary.server[Today] = listOf(lunchEntry())
         start()
 
-        openEditorAndEdit { type("meals_label_lunch", "Post-entreno") }
+        openEditorAndEdit { rename("lunch", "Post-entreno") }
 
         rule.onNodeWithTag("diary_screen").assertExists()
         rule.onNodeWithText("Post-entreno").assertExists()
         rule.onNodeWithText("Comida").assertDoesNotExist()
         rule.onNodeWithTag("diary_entry_e1").assertExists()
-        assertEquals("lunch", slots.saved.single().first.first { it.label == "Post-entreno" }.id)
+        assertEquals("lunch", slots.saved.single().first { it.label == "Post-entreno" }.id)
     }
 
     @Test
-    fun addingAMealAfterBreakfast_appearsInThatPositionOfTheDiary() {
+    fun addingAMeal_appendsItAtTheEndOfTheDiary() {
         start()
 
         openEditorAndEdit {
-            tap("meals_add_after_breakfast")
-            type("meals_label_new_1", "Segundo desayuno")
+            tap("meals_add")
+            type("meals_label_new_1", "Pre-entreno")
         }
 
-        val ids = slots.saved.single().first.map { it.label }
-        assertEquals(listOf("Desayuno", "Segundo desayuno", "Comida", "Merienda", "Cena"), ids)
-        rule.onNodeWithText("Segundo desayuno").assertExists()
-        val custom = slots.allResult!!.getOrThrow().first { it.label == "Segundo desayuno" }
-        assertTrue(top("diary_section_breakfast") < top("diary_section_${custom.id}"))
-        assertTrue(top("diary_section_${custom.id}") < top("diary_section_lunch"))
+        val labels = slots.saved.single().map { it.label }
+        assertEquals(listOf("Desayuno", "Comida", "Merienda", "Cena", "Pre-entreno"), labels)
+        val custom = slots.allResult!!.getOrThrow().first { it.label == "Pre-entreno" }
+        assertTrue(top("diary_section_dinner") < top("diary_section_${custom.id}"))
     }
 
     @Test
@@ -193,48 +190,13 @@ class MealSlotsFlowTest {
     }
 
     @Test
-    fun disablingAnEmptyMeal_hidesItFromTheDiaryAndTheAddTargets_andItCanBeEnabledAgain() {
-        start()
-
-        openEditorAndEdit { tap("meals_switch_snack") }
-
-        rule.onNodeWithTag("diary_section_snack").assertDoesNotExist()
-        rule.onNodeWithTag("diary_section_lunch").assertExists()
-        showFoodSheet()
-        rule.onNode(hasText("Merienda") and hasAnyAncestor(hasTestTag("add_food_meals"))).assertDoesNotExist()
-        rule.onNode(hasText("Comida") and hasAnyAncestor(hasTestTag("add_food_meals"))).assertExists()
-    }
-
-    @Test
-    fun aDisabledMeal_staysListedInTheEditor_andCanBeEnabledAgain() {
-        start()
-        openEditorAndEdit { tap("meals_switch_snack") }
-
-        openEditorAndEdit { tap("meals_switch_snack") }
-
-        rule.onNodeWithTag("diary_section_snack").assertExists()
-    }
-
-    @Test
-    fun aMealWithEntriesOnTheViewedDay_cannotBeDisabled_andShowsTheHint() {
-        diary.server[Today] = listOf(lunchEntry())
-        start()
-
-        tap("diary_meal_settings")
-
-        rule.onNodeWithTag("meals_switch_lunch").assertIsNotEnabled()
-        rule.onNodeWithTag("meals_hint_lunch").assertTextContains("Tiene alimentos hoy", substring = true)
-        rule.onNodeWithTag("meals_hint_snack").assertDoesNotExist()
-    }
-
-    @Test
     fun movingDinnerUp_showsItAboveSnackInTheDiary_andKeepsTheOrderWhenReopened() {
         start()
 
         openEditorAndEdit { tap("meals_up_dinner") }
 
         assertTrue(top("diary_section_dinner") < top("diary_section_snack"))
-        tap("diary_meal_settings")
+        openEditor()
         assertTrue(top("meals_row_dinner") < top("meals_row_snack"))
     }
 
@@ -242,7 +204,7 @@ class MealSlotsFlowTest {
     fun firstMealCannotGoUp_andLastCannotGoDown() {
         start()
 
-        tap("diary_meal_settings")
+        openEditor()
 
         rule.onNodeWithTag("meals_up_breakfast").assertIsNotEnabled()
         rule.onNodeWithTag("meals_down_dinner").assertIsNotEnabled()
@@ -256,8 +218,8 @@ class MealSlotsFlowTest {
     @Test
     fun backWithUnsavedChanges_asksBeforeDiscarding_andDiscardingKeepsTheOldMeals() {
         start()
-        tap("diary_meal_settings")
-        type("meals_label_lunch", "Almuerzo")
+        openEditor()
+        rename("lunch", "Almuerzo")
 
         pressBack()
         rule.onNodeWithTag("meals_discard_confirm").assertExists()
@@ -271,8 +233,8 @@ class MealSlotsFlowTest {
     @Test
     fun backWithUnsavedChanges_canKeepEditing() {
         start()
-        tap("diary_meal_settings")
-        type("meals_label_lunch", "Almuerzo")
+        openEditor()
+        rename("lunch", "Almuerzo")
 
         pressBack()
         tap("meals_discard_cancel")
@@ -283,11 +245,49 @@ class MealSlotsFlowTest {
     @Test
     fun backWithoutChanges_leavesAtOnce() {
         start()
-        tap("diary_meal_settings")
+        openEditor()
 
         pressBack()
 
         rule.onNodeWithTag("diary_screen").assertExists()
+    }
+
+    @Test
+    fun deletingAnUnusedMeal_removesItAtOnce_andFromTheDiaryAndThePicker() {
+        start()
+        openEditor()
+
+        tap("meals_delete_snack")
+
+        rule.onNodeWithTag("meals_row_snack").assertDoesNotExist()
+        assertEquals(listOf("snack"), slots.deleted)
+        rule.onNodeWithTag("meals_discard_confirm").assertDoesNotExist()
+        pressBack()
+        rule.onNodeWithTag("diary_screen").assertExists()
+        rule.onNodeWithTag("diary_section_snack").assertDoesNotExist()
+        showFoodSheet()
+        rule.onNode(hasText("Merienda") and hasAnyAncestor(hasTestTag("add_food_meals"))).assertDoesNotExist()
+    }
+
+    @Test
+    fun deletingAMealWithEntries_keepsItAndShowsTheReason() {
+        slots.failDelete(AppError.Validation)
+        start()
+        openEditor()
+
+        tap("meals_delete_lunch")
+
+        rule.onNodeWithTag("meals_row_lunch").assertExists()
+        rule.onNodeWithTag("meals_hint_lunch")
+            .assertTextEquals("Esta comida tiene alimentos registrados y no se puede eliminar")
+    }
+
+    @Test
+    fun theDiaryHasNoMealsButton() {
+        start()
+
+        rule.onNodeWithTag("diary_meal_settings").assertDoesNotExist()
+        rule.onNodeWithText("Comidas").assertDoesNotExist()
     }
 
     private fun showFoodSheet() {

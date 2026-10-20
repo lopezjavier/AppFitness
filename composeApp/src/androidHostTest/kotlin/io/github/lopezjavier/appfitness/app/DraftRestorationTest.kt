@@ -369,7 +369,7 @@ class DraftRestorationTest {
                             handle,
                         )
                     }
-                PreferencesRoute(viewModel = vm)
+                PreferencesRoute(onOpenMeals = {}, viewModel = vm)
             }
         }
         rule.waitForIdle()

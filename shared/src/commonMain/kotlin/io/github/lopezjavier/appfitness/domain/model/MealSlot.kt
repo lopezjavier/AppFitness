@@ -18,4 +18,4 @@ object MealSlotBounds {
 }
 
 /** One row of the meals editor; the list order is the final position. A null [id] is a new custom meal. */
-data class MealSlotDraft(val id: String?, val code: MealCode?, val label: String, val enabled: Boolean)
+data class MealSlotDraft(val id: String?, val code: MealCode?, val label: String)

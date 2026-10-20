@@ -89,6 +89,7 @@ class PreferencesScreenTest {
         state: PreferencesUiState = loaded(),
         fontScale: Float = 1f,
         effects: Channel<PreferencesEffect> = Channel(Channel.BUFFERED),
+        onOpenMeals: () -> Unit = {},
     ) {
         events.clear()
         rule.setContent {
@@ -99,11 +100,33 @@ class PreferencesScreenTest {
                         state = state,
                         onEvent = { events += it },
                         effects = effects.receiveAsFlow(),
+                        onOpenMeals = onOpenMeals,
                     )
                 }
             }
         }
         rule.waitForIdle()
+    }
+
+    @Test
+    fun mealsRow_opensTheMealsEditor_withoutTouchingTheProfileDraft() {
+        var opened = 0
+        show(onOpenMeals = { opened++ })
+
+        rule.onNodeWithTag("preferences_meals_row").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Nombre, orden y comidas del día").assertExists()
+        rule.onNodeWithTag("preferences_meals_row").performClick()
+
+        assertEquals(1, opened)
+        assertTrue(events.isEmpty())
+        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun mealsRow_hasTheTouchTarget() {
+        show()
+
+        rule.onNodeWithTag("preferences_meals_row").performScrollTo().assertHeightIsAtLeast(48.dp)
     }
 
     // -- US-08 initial display ------------------------------------------------------------------------------------

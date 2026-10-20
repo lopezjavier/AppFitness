@@ -4,12 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.usecase.MealSlotError
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
-import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -18,7 +17,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -29,9 +27,7 @@ import kotlin.test.assertTrue
 
 @Suppress("TooManyFunctions") // One method per Gherkin scenario or rule.
 class MealSlotsEditorViewModelTest {
-    private val today = LocalDate(2026, 10, 20)
     private val slots = FakeMealSlotRepository()
-    private val diary = FakeFoodDiaryRepository()
     private val connectivity = FakeConnectivityObserver()
     private val handle = SavedStateHandle()
 
@@ -46,7 +42,7 @@ class MealSlotsEditorViewModelTest {
     }
 
     private fun TestScope.editor(savedState: SavedStateHandle = handle): MealSlotsEditorViewModel {
-        val vm = MealSlotsEditorViewModel(today, savedState, slots, diary, ValidateMealSlots(), connectivity)
+        val vm = MealSlotsEditorViewModel(savedState, slots, ValidateMealSlots(), connectivity)
         advanceUntilIdle()
         return vm
     }
@@ -57,28 +53,18 @@ class MealSlotsEditorViewModelTest {
 
     private fun MealSlotsEditorViewModel.row(label: String) = form().rows.first { it.label == label }
 
-    private fun entry(slotId: String, date: LocalDate = today) =
-        FoodLogEntry("e-$slotId-$date", date, slotId, "f", "Food", 100.0, null, "g", 100.0, 0.0, 0.0, 0.0)
-
     @Test
-    fun opening_listsEveryMealIncludingDisabledOnesInOrder() = runTest {
-        slots.allResult =
-            Result.success(
-                slots.result.getOrThrow().map { it } +
-                    io.github.lopezjavier.appfitness.domain.model.MealSlot("extra", null, "Extra", 4, enabled = false),
-            )
-
+    fun opening_listsEveryMealInOrder() = runTest {
         val vm = editor()
 
-        assertEquals(listOf("Desayuno", "Comida", "Merienda", "Cena", "Extra"), vm.labels())
-        assertFalse(vm.row("Extra").enabled)
+        assertEquals(listOf("Desayuno", "Comida", "Merienda", "Cena"), vm.labels())
         assertFalse(vm.form().isDirty)
         assertFalse(vm.form().canSave)
     }
 
     @Test
     fun loadFailure_showsErrorAndRetryRecovers() = runTest {
-        slots.allResult = Result.failure(io.github.lopezjavier.appfitness.domain.AppException(AppError.Network))
+        slots.allResult = Result.failure(AppException(AppError.Network))
         val vm = editor()
         assertEquals(MealSlotsUiState.LoadError, vm.uiState.value)
 
@@ -102,16 +88,14 @@ class MealSlotsEditorViewModelTest {
             assertEquals(MealSlotsEffect.Close, awaitItem())
         }
 
-        val (saved, day) = slots.saved.single()
-        assertEquals(today, day)
         assertEquals(
             listOf(
-                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno", true),
-                MealSlotDraft("lunch", MealCode.Lunch, "Comida", true),
-                MealSlotDraft("snack", MealCode.Snack, "Post-entreno", true),
-                MealSlotDraft("dinner", MealCode.Dinner, "Cena", true),
+                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno"),
+                MealSlotDraft("lunch", MealCode.Lunch, "Comida"),
+                MealSlotDraft("snack", MealCode.Snack, "Post-entreno"),
+                MealSlotDraft("dinner", MealCode.Dinner, "Cena"),
             ),
-            saved,
+            slots.saved.single(),
         )
     }
 
@@ -123,38 +107,50 @@ class MealSlotsEditorViewModelTest {
         vm.onEvent(MealSlotsEvent.Save)
         advanceUntilIdle()
 
-        assertEquals("Post", slots.saved.single().first[2].label)
+        assertEquals("Post", slots.saved.single()[2].label)
     }
 
     @Test
-    fun addingAfterARow_insertsBlankCustomMealInThatPositionWithNullCode() = runTest {
+    fun adding_appendsABlankCustomMealWithNullCode_andSavesIt() = runTest {
         val vm = editor()
 
-        vm.onEvent(MealSlotsEvent.Add(afterIndex = 0))
-        val newKey = vm.form().rows[1].key
-        vm.onEvent(MealSlotsEvent.SetLabel(newKey, "Segundo desayuno"))
+        vm.onEvent(MealSlotsEvent.Add)
+        val newKey = vm.form().rows.last().key
+        vm.onEvent(MealSlotsEvent.SetLabel(newKey, "Pre-entreno"))
         vm.onEvent(MealSlotsEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(listOf("Desayuno", "Segundo desayuno", "Comida", "Merienda", "Cena"), vm.labels())
-        assertEquals(MealSlotDraft(null, null, "Segundo desayuno", true), slots.saved.single().first[1])
+        assertEquals(listOf("Desayuno", "Comida", "Merienda", "Cena", "Pre-entreno"), vm.labels())
+        assertEquals(MealSlotDraft(null, null, "Pre-entreno"), slots.saved.single().last())
     }
 
     @Test
-    fun adding_withoutIndex_appendsAtTheEnd() = runTest {
+    fun addedMeal_canBeMovedAfterBreakfast() = runTest {
+        val vm = editor()
+        vm.onEvent(MealSlotsEvent.Add)
+        vm.onEvent(MealSlotsEvent.SetLabel(vm.form().rows.last().key, "Segundo desayuno"))
+
+        vm.onEvent(MealSlotsEvent.MoveTo(from = 4, to = 1))
+
+        assertEquals(listOf("Desayuno", "Segundo desayuno", "Comida", "Merienda", "Cena"), vm.labels())
+    }
+
+    @Test
+    fun addedMeal_startsInEditModeAndIsNew() = runTest {
         val vm = editor()
 
-        vm.onEvent(MealSlotsEvent.Add())
+        vm.onEvent(MealSlotsEvent.Add)
 
         assertEquals(5, vm.form().rows.size)
         assertTrue(vm.form().rows.last().isNew)
+        assertTrue(vm.form().rows.last().isEditing)
     }
 
     @Test
     fun newBlankMeal_hasErrorAndBlocksSave() = runTest {
         val vm = editor()
 
-        vm.onEvent(MealSlotsEvent.Add())
+        vm.onEvent(MealSlotsEvent.Add)
 
         assertEquals(MealSlotError.Blank, vm.form().rows.last().error)
         assertFalse(vm.form().canSave)
@@ -171,72 +167,142 @@ class MealSlotsEditorViewModelTest {
     }
 
     @Test
-    fun disablingAnEmptyMeal_isAllowedAndSaved_thenReEnablingKeepsLabel() = runTest {
+    fun startingAndStoppingEdit_marksOnlyThatRow_andIsNotAnUnsavedChange() = runTest {
         val vm = editor()
 
-        vm.onEvent(MealSlotsEvent.SetEnabled("snack", false))
-        assertFalse(vm.row("Merienda").enabled)
+        vm.onEvent(MealSlotsEvent.Edit("snack"))
+        assertTrue(vm.row("Merienda").isEditing)
+        assertFalse(vm.row("Cena").isEditing)
+        assertFalse(vm.form().isDirty)
+
+        vm.onEvent(MealSlotsEvent.StopEdit)
+        assertFalse(vm.row("Merienda").isEditing)
+    }
+
+    @Test
+    fun deletingAnUnsavedRow_removesItWithoutCallingTheRepository() = runTest {
+        val vm = editor()
+        vm.onEvent(MealSlotsEvent.Add)
+        val newKey = vm.form().rows.last().key
+
+        vm.onEvent(MealSlotsEvent.Delete(newKey))
+        advanceUntilIdle()
+
+        assertEquals(4, vm.form().rows.size)
+        assertTrue(slots.deleted.isEmpty())
+        assertFalse(vm.form().isDirty)
+    }
+
+    @Test
+    fun deletingAnUnusedSavedRow_callsTheRepositoryOnce_andIsNotAnUnsavedEdit() = runTest {
+        val vm = editor()
+
+        vm.onEvent(MealSlotsEvent.Delete("snack"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("snack"), slots.deleted)
+        assertEquals(listOf("Desayuno", "Comida", "Cena"), vm.labels())
+        assertFalse(vm.form().isDirty)
+        assertFalse(vm.form().canSave)
+    }
+
+    @Test
+    fun deletingASavedRow_keepsOtherPendingEdits_andSavingSendsTheRemainingIdsInOrder() = runTest {
+        val vm = editor()
+        vm.onEvent(MealSlotsEvent.SetLabel("dinner", "Cena tarde"))
+
+        vm.onEvent(MealSlotsEvent.Delete("lunch"))
+        advanceUntilIdle()
+        assertTrue(vm.form().isDirty)
         vm.onEvent(MealSlotsEvent.Save)
         advanceUntilIdle()
-        assertFalse(slots.saved.single().first[2].enabled)
 
-        val reopened = editor(SavedStateHandle())
-        assertEquals("Merienda", reopened.row("Merienda").label)
-        reopened.onEvent(MealSlotsEvent.SetEnabled("snack", true))
-        assertTrue(reopened.row("Merienda").enabled)
-        assertTrue(reopened.form().canSave)
+        assertEquals(
+            listOf(
+                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno"),
+                MealSlotDraft("snack", MealCode.Snack, "Merienda"),
+                MealSlotDraft("dinner", MealCode.Dinner, "Cena tarde"),
+            ),
+            slots.saved.single(),
+        )
     }
 
     @Test
-    fun mealWithEntriesOnViewedDay_cannotBeDisabledAndShowsHint() = runTest {
-        diary.server[today] = listOf(entry("snack"))
-
+    fun deletedRow_doesNotComeBackWhenTheViewModelIsRebuiltFromTheSameSavedState() = runTest {
         val vm = editor()
-        vm.onEvent(MealSlotsEvent.SetEnabled("snack", false))
+        vm.onEvent(MealSlotsEvent.Delete("snack"))
+        advanceUntilIdle()
 
-        val snack = vm.row("Merienda")
-        assertFalse(snack.canToggle)
-        assertTrue(snack.hasEntriesInViewedDay)
-        assertTrue(snack.enabled)
-        assertFalse(vm.form().isDirty)
-        assertTrue(vm.row("Cena").canToggle)
+        val restored = editor(handle)
+
+        assertEquals(listOf("Desayuno", "Comida", "Cena"), restored.labels())
+        assertFalse(restored.form().isDirty)
     }
 
     @Test
-    fun mealWithEntriesOnlyOnAnotherDay_canBeDisabled() = runTest {
-        diary.server[today] = emptyList()
-        diary.server[today.minusOneDay()] = listOf(entry("snack", today.minusOneDay()))
-
+    fun deleteRefusedByServer_keepsTheRowAndFlagsItUntilItIsEdited() = runTest {
+        slots.failDelete(AppError.Validation)
         val vm = editor()
-        vm.onEvent(MealSlotsEvent.SetEnabled("snack", false))
 
-        assertTrue(vm.row("Merienda").canToggle)
-        assertFalse(vm.row("Merienda").enabled)
-        assertFalse(vm.row("Merienda").hasEntriesInViewedDay)
+        vm.onEvent(MealSlotsEvent.Delete("lunch"))
+        advanceUntilIdle()
+
+        assertEquals(4, vm.form().rows.size)
+        assertTrue(vm.row("Comida").deleteBlocked)
+        assertFalse(vm.row("Cena").deleteBlocked)
+        assertEquals(null, vm.form().saveError)
+
+        vm.onEvent(MealSlotsEvent.SetLabel("lunch", "Almuerzo"))
+        assertFalse(vm.row("Almuerzo").deleteBlocked)
     }
 
     @Test
-    fun entriesNotReadable_locksDisablingOfExistingMealsWithoutHint() = runTest {
-        diary.failRefresh()
-
+    fun deleteFailure_keepsTheRowAndShowsTheSaveError() = runTest {
+        slots.failDelete(AppError.Network)
         val vm = editor()
-        vm.onEvent(MealSlotsEvent.SetEnabled("snack", false))
 
-        assertFalse(vm.row("Merienda").canToggle)
-        assertFalse(vm.row("Merienda").hasEntriesInViewedDay)
-        assertTrue(vm.row("Merienda").enabled)
-        vm.onEvent(MealSlotsEvent.Add())
-        assertTrue(vm.form().rows.last().canToggle)
+        vm.onEvent(MealSlotsEvent.Delete("lunch"))
+        advanceUntilIdle()
+
+        assertEquals(4, vm.form().rows.size)
+        assertFalse(vm.row("Comida").deleteBlocked)
+        assertEquals(MealSlotsSaveError.Offline, vm.form().saveError)
     }
 
     @Test
-    fun disablingEveryMeal_flagsNoneEnabledAndBlocksSave() = runTest {
+    fun lastRemainingMeal_cannotBeDeleted() = runTest {
+        slots.allResult = Result.success(slots.result.getOrThrow().take(1))
         val vm = editor()
 
-        listOf("breakfast", "lunch", "snack", "dinner").forEach { vm.onEvent(MealSlotsEvent.SetEnabled(it, false)) }
+        assertTrue(vm.form().onlyOneMeal)
+        assertFalse(vm.form().rows.single().canDelete)
+        vm.onEvent(MealSlotsEvent.Delete("breakfast"))
+        advanceUntilIdle()
 
-        assertTrue(vm.form().noneEnabled)
-        assertFalse(vm.form().canSave)
+        assertEquals(1, vm.form().rows.size)
+        assertTrue(slots.deleted.isEmpty())
+    }
+
+    @Test
+    fun deleting_isDisabledWhileOffline() = runTest {
+        val vm = editor()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        assertFalse(vm.form().rows.any { it.canDelete })
+        vm.onEvent(MealSlotsEvent.Delete("snack"))
+        advanceUntilIdle()
+
+        assertEquals(4, vm.form().rows.size)
+        assertTrue(slots.deleted.isEmpty())
+    }
+
+    @Test
+    fun withSeveralMeals_everyRowCanBeDeleted() = runTest {
+        val vm = editor()
+
+        assertFalse(vm.form().onlyOneMeal)
+        assertTrue(vm.form().rows.all { it.canDelete })
     }
 
     @Test
@@ -248,7 +314,7 @@ class MealSlotsEditorViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Desayuno", "Comida", "Cena", "Merienda"), vm.labels())
-        assertEquals(listOf("breakfast", "lunch", "dinner", "snack"), slots.saved.single().first.map { it.id })
+        assertEquals(listOf("breakfast", "lunch", "dinner", "snack"), slots.saved.single().map { it.id })
     }
 
     @Test
@@ -286,7 +352,7 @@ class MealSlotsEditorViewModelTest {
     fun saveRejectedByServer_showsRejectedError() = runTest {
         slots.failSave(AppError.Validation)
         val vm = editor()
-        vm.onEvent(MealSlotsEvent.SetEnabled("snack", false))
+        vm.onEvent(MealSlotsEvent.SetLabel("snack", "Post"))
 
         vm.onEvent(MealSlotsEvent.Save)
         advanceUntilIdle()
@@ -350,22 +416,35 @@ class MealSlotsEditorViewModelTest {
     }
 
     @Test
-    fun recreatedFromSameSavedState_restoresEditsOrderAndAddedRows() = runTest {
+    fun recreatedFromSameSavedState_restoresEditsOrderAddedRowsAndEditingKey() = runTest {
         val vm = editor()
         vm.onEvent(MealSlotsEvent.SetLabel("snack", "Post"))
-        vm.onEvent(MealSlotsEvent.SetEnabled("lunch", false))
         vm.onEvent(MealSlotsEvent.MoveTo(3, 0))
-        vm.onEvent(MealSlotsEvent.Add(afterIndex = 1))
-        vm.onEvent(MealSlotsEvent.SetLabel(vm.form().rows[2].key, "Extra"))
+        vm.onEvent(MealSlotsEvent.Add)
+        vm.onEvent(MealSlotsEvent.SetLabel(vm.form().rows.last().key, "Extra"))
+        vm.onEvent(MealSlotsEvent.Edit("lunch"))
         val before = vm.form().rows
 
         val restored = editor(handle)
 
         assertEquals(before, restored.form().rows)
         assertTrue(restored.form().isDirty)
-        restored.onEvent(MealSlotsEvent.Add())
+        assertTrue(restored.row("Comida").isEditing)
+        restored.onEvent(MealSlotsEvent.Add)
         assertTrue(restored.form().rows.map { it.key }.toSet().size == 6)
     }
 
-    private fun LocalDate.minusOneDay(): LocalDate = LocalDate.fromEpochDays(toEpochDays() - 1)
+    @Test
+    fun savedDraftFromBeforeDisablingWasRemoved_stillRestores() = runTest {
+        val old =
+            """{"rows":[{"key":"breakfast","id":"breakfast","code":"Breakfast",""" +
+                """"label":"Desayuno","enabled":false}],"nextNewId":1}"""
+        handle["meals_draft"] = old
+        handle["meals_baseline"] = old
+
+        val vm = editor(handle)
+
+        assertEquals(listOf("Desayuno"), vm.labels())
+        assertFalse(vm.form().isDirty)
+    }
 }

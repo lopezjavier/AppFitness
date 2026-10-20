@@ -71,13 +71,10 @@ val uiModule =
                 savedState = get(),
             )
         }
-        // The viewed Diary day travels as an ISO yyyy-MM-dd string.
-        viewModel { (date: String) ->
+        viewModel {
             MealSlotsEditorViewModel(
-                viewedDay = LocalDate.parse(date),
                 savedState = get(),
                 mealSlots = get(),
-                foodDiary = get(),
                 validate = get(),
                 connectivity = get(),
             )

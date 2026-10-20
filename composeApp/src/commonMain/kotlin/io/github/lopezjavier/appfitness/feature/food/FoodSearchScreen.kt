@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
+import io.github.lopezjavier.appfitness.composeapp.resources.food_create_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_recent
@@ -43,6 +44,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeho
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
@@ -98,7 +100,7 @@ fun FoodSearchScreen(
     }
 }
 
-/** Search box with a clear button and the scan button; both are disabled offline because they need the server. */
+/** Search box with a clear button, the scan and the create buttons; all are disabled offline (they need the server). */
 @Composable
 private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
     Row(
@@ -112,6 +114,14 @@ private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> 
             icon = Res.drawable.ic_barcode_scanner,
             testTag = "food_search_scan_button",
             onClick = { onEvent(FoodSearchEvent.ScanClicked) },
+            enabled = !state.isOffline,
+            modifier = Modifier.padding(bottom = Spacing.xs),
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_create_cd),
+            icon = Res.drawable.ic_add,
+            testTag = "food_search_create_icon",
+            onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
             enabled = !state.isOffline,
             modifier = Modifier.padding(bottom = Spacing.xs),
         )
