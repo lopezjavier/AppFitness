@@ -9,11 +9,15 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
@@ -117,6 +121,71 @@ class SupabaseFoodDiaryRepositoryTest {
             repo.refresh(day).getOrThrow()
             expectNoEvents()
         }
+    }
+
+    private fun newEntry(date: LocalDate = day) = NewFoodEntry(
+        date = date,
+        mealSlotId = "s1",
+        foodId = "f1",
+        foodName = "Avena",
+        amount = 40.5,
+        portionLabel = null,
+        snapshot = NutritionSnapshot(151.2, 5.3, 26.8, 2.7),
+    )
+
+    @Test
+    fun addEntry_postsTheSnapshotAndReturnsTheCreatedRow() = runTest {
+        val repo = signedInRepository { "[$ROW_ONE]" }
+
+        val created = repo.addEntry(newEntry()).getOrThrow()
+
+        assertEquals("e1", created.id)
+        assertEquals("g", created.baseUnit)
+        val post = requests.last()
+        assertEquals(HttpMethod.Post, post.method)
+        assertTrue(post.url.encodedPath.endsWith("/food_log_entries"))
+        assertTrue(post.url.parameters["select"].orEmpty().contains("foods(base_unit)"))
+        val body = post.body.toByteArray().decodeToString()
+        assertTrue(body.contains("\"log_date\":\"2026-10-19\""), body)
+        assertTrue(body.contains("\"meal_slot_id\":\"s1\"") && body.contains("\"amount\":40.5"), body)
+        assertTrue(body.contains("\"kcal\":151.2") && body.contains("\"fat_g\":2.7"), body)
+    }
+
+    @Test
+    fun addEntry_reEmitsTheLoadedDayWithoutARefresh() = runTest {
+        var body = "[]"
+        val repo = signedInRepository { body }
+        repo.refresh(day).getOrThrow()
+
+        repo.entries(day).test {
+            assertEquals(emptyList(), awaitItem())
+            body = "[$ROW_ONE]"
+            repo.addEntry(newEntry()).getOrThrow()
+            assertEquals(listOf("e1"), awaitItem().map { it.id })
+        }
+    }
+
+    @Test
+    fun addEntry_toADayNeverLoaded_doesNotFabricateAPartialDay() = runTest {
+        val repo = signedInRepository { "[$ROW_ONE]" }
+
+        repo.entries(day).test {
+            repo.addEntry(newEntry()).getOrThrow()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun addEntry_networkError_isMapped() = runTest {
+        var fail = false
+        val repo =
+            signedInRepository {
+                if (fail) throw IOException("offline")
+                "[]"
+            }
+        fail = true
+
+        assertEquals(AppError.Network, repo.addEntry(newEntry()).appErrorOrNull())
     }
 
     @Test

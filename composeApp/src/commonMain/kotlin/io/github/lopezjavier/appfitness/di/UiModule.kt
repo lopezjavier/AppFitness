@@ -10,6 +10,8 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
+import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
+import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
@@ -19,6 +21,7 @@ import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryViewModel
+import kotlinx.datetime.LocalDate
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -48,6 +51,25 @@ val uiModule =
                 goalsRepository = get(),
                 buildDiaryDay = get(),
                 clock = get(),
+                savedState = get(),
+            )
+        }
+        viewModelOf(::FoodSearchViewModel)
+        // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
+        viewModel { (foodId: String, slotId: String, date: String) ->
+            AddFoodViewModel(
+                foodId = foodId,
+                initialSlotId = slotId.ifBlank { null },
+                date = LocalDate.parse(date),
+                foodRepository = get(),
+                foodDiary = get(),
+                mealSlots = get(),
+                resolvePortion = get(),
+                scaleNutrition = get(),
+                validateQuantity = get(),
+                defaultMealSlot = get(),
+                clock = get(),
+                connectivity = get(),
                 savedState = get(),
             )
         }

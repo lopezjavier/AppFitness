@@ -18,11 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_food
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
@@ -76,6 +78,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
                 ) {
                     MealSections(content, onEvent)
+                    AddFoodButton(onEvent)
                 }
             }
         } else {
@@ -87,6 +90,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                 DiaryDateHeader(content.label, content.canGoNext, onEvent)
                 DiaryDashboard(content, onEvent)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
+                AddFoodButton(onEvent)
             }
         }
     }
@@ -102,6 +106,16 @@ private fun MealSections(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
             onAdd = { onEvent(DiaryEvent.AddToMeal(section.slot.id)) },
         )
     }
+}
+
+/** The Diary-level add action: opens the food search with no meal preselected. */
+@Composable
+private fun AddFoodButton(onEvent: (DiaryEvent) -> Unit) {
+    PrimaryButton(
+        text = stringResource(Res.string.diary_add_food),
+        onClick = { onEvent(DiaryEvent.AddFood) },
+        modifier = Modifier.fillMaxWidth().testTag("diary_add_food"),
+    )
 }
 
 @Composable

@@ -59,12 +59,18 @@ sealed interface DiaryEvent {
 
     data class AddToMeal(val slotId: String) : DiaryEvent
 
+    /** The Diary-level add action: no meal is preselected. */
+    data object AddFood : DiaryEvent
+
     data object OpenGoals : DiaryEvent
 }
 
 /** One-off effects. */
 sealed interface DiaryEffect {
     data class AddToMeal(val slotId: String, val date: LocalDate) : DiaryEffect
+
+    /** Open the food search for [date] with no meal preselected. */
+    data class AddFood(val date: LocalDate) : DiaryEffect
 
     data object OpenPreferences : DiaryEffect
 }

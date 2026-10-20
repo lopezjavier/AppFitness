@@ -90,6 +90,7 @@ internal suspend fun <T> runMappingErrors(block: suspend () -> T): Result<T> = t
 }
 
 internal fun Throwable.toAppError(): AppError = when (this) {
+    is AppException -> error
     is UnauthorizedRestException -> AppError.Unauthorized
     is NotFoundRestException -> AppError.NotFound
     is RestException -> AppError.Unknown

@@ -86,6 +86,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         pickerItems()
         exerciseMediaItems()
         stateMessageItems()
+        foodItems()
         shellItems()
         themeItems()
     }

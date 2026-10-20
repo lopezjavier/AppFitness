@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -23,9 +24,11 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
+import kotlinx.datetime.LocalDate
 
 /**
  * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener, the catalog opener (null where
@@ -70,8 +73,32 @@ internal typealias RoutinesSlot =
         onOpenHistory: () -> Unit,
     ) -> Unit
 
-/** The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias. */
-internal typealias DiarySlot = @Composable (modifier: Modifier, onOpenPreferences: () -> Unit) -> Unit
+/**
+ * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias and [onAddFood] opens the food
+ * search for a day (the meal is null for the Diary-level add action).
+ */
+internal typealias DiarySlot =
+    @Composable (
+        modifier: Modifier,
+        onOpenPreferences: () -> Unit,
+        onAddFood: (slotId: String?, date: LocalDate) -> Unit,
+    ) -> Unit
+
+/** Food search content: modifier (full-screen insets) and the opener of the add-food sheet (by food id). */
+internal typealias FoodSearchSlot = @Composable (modifier: Modifier, onOpenFood: (String) -> Unit) -> Unit
+
+/**
+ * Add-food sheet content for a food, the meal tapped in the Diary (or null) and the ISO day; [onAdded] runs once the
+ * entry is logged and [onDismiss] when the sheet is dismissed.
+ */
+internal typealias AddFoodSlot =
+    @Composable (
+        foodId: String,
+        slotId: String?,
+        date: String,
+        onAdded: () -> Unit,
+        onDismiss: () -> Unit,
+    ) -> Unit
 
 /** History content: modifier (full-screen insets) and the opener of a session detail (by session id). */
 internal typealias HistorySlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
@@ -172,9 +199,17 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
+
+/** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("food_search_screen"))
+}
+
+/** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _ -> }
 
 /** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
@@ -227,6 +262,8 @@ internal fun AppNavHost(
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     diary: DiarySlot = DefaultDiarySlot,
+    foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
+    addFood: AddFoodSlot = DefaultAddFoodSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
@@ -238,6 +275,10 @@ internal fun AppNavHost(
     val openPreferences = remember(navController) { { navController.navigateToFullScreen(PreferencesRoute) } }
     val openBuilder: (String?) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineBuilderRoute(id)) } }
+    val openFoodSearch: (String?, LocalDate) -> Unit =
+        remember(navController) {
+            { slotId, date -> navController.navigateToFullScreen(FoodSearchRoute(slotId, date.toString())) }
+        }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
@@ -245,7 +286,7 @@ internal fun AppNavHost(
         remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
-            composable<DiaryHome> { diary(Modifier.padding(tabPadding), openPreferences) }
+            composable<DiaryHome> { diary(Modifier.padding(tabPadding), openPreferences, openFoodSearch) }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> {
@@ -300,11 +341,40 @@ internal fun AppNavHost(
             )
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
+        foodDestinations(navController, fullScreenPadding, foodSearch, addFood)
         historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
         }
+    }
+}
+
+/**
+ * The food search and, over it, the add-food sheet (a dialog destination, so the search stays visible behind the
+ * sheet). Logging a food pops both back to the Diary.
+ */
+private fun NavGraphBuilder.foodDestinations(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    foodSearch: FoodSearchSlot,
+    addFood: AddFoodSlot,
+) {
+    composable<FoodSearchRoute> { entry ->
+        val route = entry.toRoute<FoodSearchRoute>()
+        foodSearch(Modifier.padding(fullScreenPadding)) {
+            navController.navigate(AddFoodRoute(it, route.slotId, route.date)) { launchSingleTop = true }
+        }
+    }
+    dialog<AddFoodRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
+        val route = entry.toRoute<AddFoodRoute>()
+        addFood(
+            route.foodId,
+            route.slotId,
+            route.date,
+            { navController.popBackStack<DiaryHome>(inclusive = false) },
+            { navController.popBackStack() },
+        )
     }
 }
 

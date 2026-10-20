@@ -9,7 +9,9 @@ import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -230,6 +232,36 @@ class DiaryViewModelTest {
             model.onEvent(DiaryEvent.AddToMeal("dinner"))
             assertEquals(DiaryEffect.AddToMeal("dinner", yesterday), awaitItem())
         }
+    }
+
+    @Test
+    fun addFood_emitsTheVisibleDayWithoutAMeal() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(DiaryEvent.AddFood)
+            assertEquals(DiaryEffect.AddFood(today), awaitItem())
+        }
+    }
+
+    @Test
+    fun anEntryAddedThroughTheRepository_updatesTheTotalsWithoutRefresh() = runTest(dispatcher) {
+        seedPlanExample()
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(560, (model.content().goals as DiaryGoalsState.Set).remainingKcal)
+
+        diary.addEntry(
+            NewFoodEntry(today, "dinner", "f1", "Pechuga", 220.0, null, NutritionSnapshot(242.0, 50.0, 0.0, 5.0)),
+        )
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals(2082.0, content.dayTotals.kcal)
+        assertEquals(318, (content.goals as DiaryGoalsState.Set).remainingKcal)
+        assertEquals(1, content.meals.first { it.slot.id == "dinner" }.entries.size)
+        assertEquals(1, diary.refreshed.size)
     }
 
     @Test
