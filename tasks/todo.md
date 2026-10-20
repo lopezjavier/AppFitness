@@ -1649,7 +1649,40 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
+## T-066: E4-B feedback — remove what has no value (fix)
+
+**Origin:** Checkpoint E4-B feedback, user 2026-10-20 (items 1, 5, 6, 8). **Flow:** UI + core (removals) · One task per session: plan in a fresh session; show the user the proposal before building.
+
+**Description:** (1) Deleting an entry (swipe "Eliminar" and the edit-sheet delete button) removes it at once: no "Alimento eliminado" message, no confirmation, no undo (user decision: deleting is hard to do by mistake). (5) Remove "Copiar alimentos" and its selection mode (long-press, "Seleccionar alimentos", `SelectionActionBar`, `CopyEntriesSheet`, `CopyEntries`, unused repository batch methods). (6) Remove "Copiar comida" on sections (the named, reusable whole meal the user wants is T-061). (8) Remove the view modes: keep only the "Detalle" layout (drop `ViewModeSelector`, the view-mode `DiaryPreferences`/DataStore if unused). Keep "Repetir comida de ayer" and its "Deshacer" (verify its message renders correctly). Drop obsolete strings, testTags and tests; update `E4-food-diary.md` (US-19 Q2/Q3 and scenarios) accordingly.
+
+**Acceptance criteria:**
+- [ ] Swipe + "Eliminar" and the edit-sheet delete remove the entry immediately, with no message or dialog; totals update.
+- [ ] No "Copiar alimentos", "Copiar comida", selection mode or view selector anywhere in the Diary; the Diary shows the Detalle layout only.
+- [ ] "Repetir comida de ayer" and its undo still work and show readable text.
+- [ ] Planning docs and Gherkin updated; lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** Checkpoint E4-B feedback · **Estimated scope:** M
+
+---
+
+## T-067: E4-B feedback — manual foods, scanner and meal structure (fix)
+
+**Origin:** Checkpoint E4-B feedback, user 2026-10-20 (items 2, 3, 7). **Flow:** UI + core. Plan in a fresh session after T-066 is merged; the scanner may be split into its own task if it grows.
+
+**Description:** (2) "Crear alimento" is reachable from the food search at any time (barcode optional), not only after failed scans or empty results. (3) Barcode scanner accepts a code only after a stable read (same code over several consecutive frames and/or a short settle time; check autofocus and analysis resolution); the user reports blurry early reads and up to 5 retries in low light. (7) Meal structure moves from the Diary "Comidas" button to Perfil → UI preferences, as a compact list with icon buttons: rename/reorder via icons, a trash button per meal (at least 1 meal must remain; a meal with logged entries cannot be deleted: blocked with a hint; an unused meal is deleted at once), no enable/disable toggle, no "+" button (a single "Añadir comida" action). Remove the "Comidas" button from the Diary. UX rule for ux-reviewer: optimise space and use icons for edit actions.
+
+**Acceptance criteria:**
+- [ ] A food can be created from the search without scanning or failing a scan.
+- [ ] A barcode is accepted only when read stably; the user's low-light test succeeds without repeated retries.
+- [ ] Meal structure is edited from Perfil → preferences of the UI; the Diary has no "Comidas" button; at least 1 meal remains; a used meal cannot be deleted.
+- [ ] `ux-reviewer.md` records the space/icon rule; lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-066 · **Estimated scope:** M-L
+
+---
+
 ### Checkpoint E4-B — Scanner, manual foods, your own meals, correct and reuse the diary 👤
+- Feedback received 2026-10-20 and handled in T-066/T-067 (OFF lacks liquids like milk: no action, add them manually). T-061 provides the named reusable meal (replaces "Copiar comida"). After T-066 and T-067 re-present only the changed items to re-test, then release T-061.
 - [ ] T-058…T-060 merged, CI green (`deploy-supabase` green if T-058 or T-059 added a migration).
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Scanner (real products at home): scan a few packaged foods and a drink: the sheet opens, the drink uses ml; add them to a meal. Scan something unknown: "Producto no encontrado" → "Crear alimento" with the code filled in; save it with a portion ("1 ración"), then scan it again: it opens your food. Close the scanner without scanning: back to the search, no error.
