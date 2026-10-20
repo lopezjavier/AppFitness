@@ -54,6 +54,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import org.koin.dsl.module
 
@@ -164,6 +165,7 @@ val sharedModule =
         factory { ScaleNutrition() }
         factory { ValidateQuantity() }
         factory { DefaultMealSlot() }
+        factory { ValidateMealSlots() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }
         factory { SavePreferences(get()) }

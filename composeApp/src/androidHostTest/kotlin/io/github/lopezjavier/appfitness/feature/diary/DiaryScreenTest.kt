@@ -123,6 +123,17 @@ class DiaryScreenTest {
     }
 
     @Test
+    fun mealSettingsAction_sitsBelowTheDateSelector_andEmitsOpenMealSettings() {
+        show(content())
+
+        assertTrue(top("diary_date_label") < top("diary_meal_settings"))
+        assertTrue(top("diary_meal_settings") < top("diary_section_breakfast"))
+        rule.onNodeWithTag("diary_meal_settings").performClick()
+
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenMealSettings), events)
+    }
+
+    @Test
     fun addButton_emitsAddToMealForItsSection() {
         show(content())
 

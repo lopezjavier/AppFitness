@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -36,3 +38,18 @@ internal data class MealSlotDto(
         const val COLUMNS = "id,code,label,position,enabled"
     }
 }
+
+/** One element of the `p_slots` array of `save_meal_slots`; a null [id] is a new custom meal. */
+@Serializable
+internal data class MealSlotDraftDto(val id: String?, val label: String, val enabled: Boolean) {
+    companion object {
+        fun from(draft: MealSlotDraft) = MealSlotDraftDto(draft.id, draft.label, draft.enabled)
+    }
+}
+
+/** Arguments of the `save_meal_slots` RPC. */
+@Serializable
+internal data class SaveMealSlotsParams(
+    @SerialName("p_slots") val slots: List<MealSlotDraftDto>,
+    @SerialName("p_viewed_day") val viewedDay: LocalDate,
+)

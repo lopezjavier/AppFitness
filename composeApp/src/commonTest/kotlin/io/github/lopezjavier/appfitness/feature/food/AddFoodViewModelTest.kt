@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -396,5 +397,24 @@ class AddFoodViewModelTest {
         advanceUntilIdle()
 
         assertEquals("only", model.content().selectedSlotId)
+    }
+
+    @Test
+    fun mealPicker_listsOnlyEnabledMealsWithTheirCurrentLabel() = runTest(dispatcher) {
+        withFood(food("rice"))
+        slots.save(
+            listOf(
+                MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno", true),
+                MealSlotDraft("lunch", MealCode.Lunch, "Comida", false),
+                MealSlotDraft("snack", MealCode.Snack, "Post-entreno", true),
+                MealSlotDraft("dinner", MealCode.Dinner, "Cena", true),
+            ),
+            today,
+        )
+
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Desayuno", "Post-entreno", "Cena"), model.content().slots.map { it.label })
     }
 }

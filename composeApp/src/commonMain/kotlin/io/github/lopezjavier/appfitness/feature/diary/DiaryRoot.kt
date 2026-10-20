@@ -22,10 +22,12 @@ fun DiaryRoot(
     onOpenPreferences: () -> Unit,
     onAddToMeal: (slotId: String, date: LocalDate) -> Unit,
     onAddFood: (date: LocalDate) -> Unit,
+    onOpenMealSettings: (date: LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DiaryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnOpenMealSettings by rememberUpdatedState(onOpenMealSettings)
     val currentOnAddToMeal by rememberUpdatedState(onAddToMeal)
     val currentOnAddFood by rememberUpdatedState(onAddFood)
     val currentOnOpenPreferences by rememberUpdatedState(onOpenPreferences)
@@ -35,6 +37,7 @@ fun DiaryRoot(
                 is DiaryEffect.AddToMeal -> currentOnAddToMeal(effect.slotId, effect.date)
                 is DiaryEffect.AddFood -> currentOnAddFood(effect.date)
                 DiaryEffect.OpenPreferences -> currentOnOpenPreferences()
+                is DiaryEffect.OpenMealSettings -> currentOnOpenMealSettings(effect.date)
             }
         }
     }

@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
@@ -118,6 +119,10 @@ data class CreateFoodRoute(
 @Serializable
 data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date: String) : AppRoute
 
+/** The meals editor (US-23), opened from the Diary; [date] is the ISO day being viewed there. */
+@Serializable
+data class MealSlotsRoute(val date: String) : AppRoute
+
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
  * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon].
@@ -220,6 +225,8 @@ val AppRoute.chrome: ShellChrome
                 ShellChrome.FullScreen(Res.string.food_search_title, topBarTag = "food_search")
 
             is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
+
+            is MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
         }
 
 /** Navigation entry points shared by the shell. */
@@ -244,5 +251,6 @@ object AppDestinations {
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),
             CreateFoodRoute(date = ""),
+            MealSlotsRoute(""),
         )
 }

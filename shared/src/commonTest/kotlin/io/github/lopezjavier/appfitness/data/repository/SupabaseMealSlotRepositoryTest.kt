@@ -9,15 +9,24 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -73,6 +82,88 @@ class SupabaseMealSlotRepositoryTest {
             ),
             repo.listEnabled().getOrThrow(),
         )
+    }
+
+    @Test
+    fun listAll_doesNotFilterEnabledAndKeepsDisabledSlots() = runTest {
+        val repo =
+            signedInRepository {
+                """[{"id":"s1","code":"breakfast","label":"Desayuno","position":0,"enabled":true},""" +
+                    """{"id":"s2","code":"snack","label":"Merienda","position":1,"enabled":false}]"""
+            }
+
+        val slots = repo.listAll().getOrThrow()
+
+        val url = requests.last().url.toString()
+        assertTrue(!url.contains("enabled=eq"), url)
+        assertTrue(url.contains("order=position.asc"), url)
+        assertEquals(listOf(true, false), slots.map { it.enabled })
+    }
+
+    @Test
+    fun save_callsRpcWithSlotsInOrderAndViewedDay() = runTest {
+        val repo = signedInRepository { "" }
+
+        val result =
+            repo.save(
+                listOf(
+                    MealSlotDraft("s1", MealCode.Breakfast, "Desayuno", true),
+                    MealSlotDraft(null, null, "Segundo desayuno", true),
+                    MealSlotDraft("s2", MealCode.Snack, "Merienda", false),
+                ),
+                LocalDate(2026, 10, 20),
+            )
+
+        assertTrue(result.isSuccess)
+        val request = requests.last()
+        assertTrue(request.url.encodedPath.endsWith("/rpc/save_meal_slots"), request.url.toString())
+        val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
+        assertEquals("2026-10-20", body["p_viewed_day"]?.jsonPrimitive?.content)
+        val slots = body["p_slots"]!!.jsonArray.map { it.jsonObject }
+        assertEquals(listOf("s1", null, "s2"), slots.map { it["id"]?.jsonPrimitive?.contentOrNull })
+        assertEquals(
+            listOf("Desayuno", "Segundo desayuno", "Merienda"),
+            slots.map { it["label"]?.jsonPrimitive?.content },
+        )
+        assertEquals(listOf(true, true, false), slots.map { it["enabled"]?.jsonPrimitive?.boolean })
+        assertTrue(slots.none { "code" in it })
+    }
+
+    private suspend fun failingSave(status: HttpStatusCode, code: String): Result<Unit> {
+        val engine =
+            MockEngine { request ->
+                val headers = headersOf(HttpHeaders.ContentType, "application/json")
+                if (request.url.encodedPath.contains("/auth/")) {
+                    respond(SLOTS_SESSION, HttpStatusCode.OK, headers)
+                } else {
+                    respond("""{"code":"$code","message":"boom","details":null,"hint":null}""", status, headers)
+                }
+            }
+        val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
+        val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
+        SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
+        return SupabaseMealSlotRepository(client.auth, client.postgrest)
+            .save(listOf(MealSlotDraft("s1", null, "A", true)), LocalDate(2026, 10, 20))
+    }
+
+    @Test
+    fun save_entriesOnViewedDay_isValidationError() = runTest {
+        assertEquals(AppError.Validation, failingSave(HttpStatusCode.BadRequest, "23514").appErrorOrNull())
+    }
+
+    @Test
+    fun save_invalidShape_isValidationError() = runTest {
+        assertEquals(AppError.Validation, failingSave(HttpStatusCode.BadRequest, "22023").appErrorOrNull())
+    }
+
+    @Test
+    fun save_foreignSlot_isNotFound() = runTest {
+        assertEquals(AppError.NotFound, failingSave(HttpStatusCode.BadRequest, "P0002").appErrorOrNull())
+    }
+
+    @Test
+    fun save_otherServerError_isUnknown() = runTest {
+        assertEquals(AppError.Unknown, failingSave(HttpStatusCode.InternalServerError, "XX000").appErrorOrNull())
     }
 
     @Test

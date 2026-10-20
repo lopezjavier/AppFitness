@@ -125,6 +125,13 @@ class DefaultMealSlotTest {
     }
 
     @Test
+    fun defaultCodeDisabled_withNoLaterEnabledMeal_fallsBackToTheFirstEnabled() {
+        val dinnerDisabled = all.map { if (it.id == "d") it.copy(enabled = false) else it }
+
+        assertEquals("b", at(21, 0, dinnerDisabled))
+    }
+
+    @Test
     fun slotsWithoutCodes_pickTheFirstEnabled() {
         val custom = listOf(MealSlot("x", null, "Pre-entreno", 5), MealSlot("y", null, "Post", 6))
 
