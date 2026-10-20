@@ -504,7 +504,7 @@
     <!-- T-048b weekly muscle volume -->
     <string name="muscle_volume_open">Volumen por grupo muscular</string>
     <string name="muscle_volume_all">Todos</string>
-    <string name="muscle_volume_caption">Semanas de lunes a domingo · últimas 8</string>
+    <string name="muscle_volume_caption">Semanas de lunes a domingo · máximo 8</string>
     <string name="muscle_volume_current_value">%1$s kg</string>
     <string name="muscle_volume_card_cd">%1$s, semana actual %2$s kg</string>
     <string name="muscle_volume_chart_title">%1$s: kg por semana</string>

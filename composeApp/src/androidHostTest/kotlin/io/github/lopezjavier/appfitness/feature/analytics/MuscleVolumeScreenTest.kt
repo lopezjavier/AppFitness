@@ -124,7 +124,26 @@ class MuscleVolumeScreenTest {
     fun caption_explainsTheWeeks() {
         show(content())
 
-        rule.onNodeWithText("Semanas de lunes a domingo · últimas 8").assertExists()
+        rule.onNodeWithText("Semanas de lunes a domingo · máximo 8").assertExists()
+    }
+
+    @Test
+    fun threeWeekHistory_showsOnlyThreeWeekCellsAndStillSelectsGroups() {
+        val threeWeeks = MuscleVolumeHistory(
+            weeks = Weeks.takeLast(3),
+            series = mapOf(
+                MuscleGroup.Chest to listOf(1000.0, 0.0, 5400.0),
+                MuscleGroup.Back to listOf(0.0, 0.0, 300.0),
+            ),
+        )
+        show(MuscleVolumeUiState.Content(threeWeeks, null))
+
+        for (i in 0..2) rule.onNodeWithTag("muscle_volume_week_chest_$i", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("muscle_volume_week_chest_3", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("muscle_volume_week_chest_1", useUnmergedTree = true).assertTextEquals("0")
+        rule.onNodeWithTag("muscle_volume_current_chest", useUnmergedTree = true).assertTextEquals("5.400 kg")
+        rule.onNodeWithTag("muscle_volume_chip_back").performClick()
+        assertEquals(listOf<MuscleVolumeEvent>(MuscleVolumeEvent.SelectGroup(MuscleGroup.Back)), events)
     }
 
     @Test

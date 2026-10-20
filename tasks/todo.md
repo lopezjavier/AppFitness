@@ -1079,7 +1079,7 @@ Stories: `planning/epics/E3-training-core.md` (US-09…US-15). One task per stor
 Flow: every task with UI follows the full flow (planner → ux-reviewer → developers → PR → review → merge); T-044 is backend only (no ux-reviewer). The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
 Forward-compatible schema (ADR-30): every training table ships with its *(E6)* columns and enums; E3 renders only `weight_reps` / `working` sets. Account deletion (ADR-29) must keep working: every new user-owned row cascades from `auth.users`.
 Questions in `tasks/plan.md`: Q1, Q3 and Q4 resolved (ADR-38); Q2 resolved: the first-ever session of an exercise is a "PR". Superset rest configuration (rounds, reps, rest between exercises, rest between rounds) is part of T-043 and T-046. Q5 and Q6 (T-051) are **BLOCKING**.
-Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-054, one 👤 checkpoint per functionality (E3-C state restoration → E3-D routines and catalog → E3-E live session → E3-F history → E3-G strength), then T-049 and Checkpoint E3-B as final regression and approval. Out of scope here: per-set weight/reps/set type in routines (E6 US-29) and background rest alerts (Phase 2).
+Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-054, a single 👤 checkpoint after T-054 (E3-C…G, user decision 2026-10-20), then T-049 and Checkpoint E3-B as final regression and approval. Out of scope here: per-set weight/reps/set type in routines (E6 US-29) and background rest alerts (Phase 2).
 
 ## T-042: Exercise catalog: RepDB assets, search and filters, detail, custom exercises
 
@@ -1327,14 +1327,6 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Files likely touched:** `composeApp/…/app/{App,AppRoot,AppNavHost,AppScaffold,AppRoutes,AppViewModel,RootRoute,RootStates}.kt`, `composeApp/…/feature/routines/{RoutineBuilderViewModel,RoutineBuilderUiState}.kt`, `composeApp/…/feature/exercises/{ExercisePickerViewModel,CreateExerciseSheet}.kt`, `composeApp/…/feature/workout/{SessionEditSheet,SessionDetailViewModel}.kt`, `composeApp/…/feature/profile/*` (edit forms), tests, `planning/00-decisions.md`, `planning/02-architecture.md`, `.claude/agents/planner.md`
 **Estimated scope:** L (if the plan passes ~15 non-trivial files, the planner may slice it: navigation/tab restoration first, then form drafts, one dev run each)
 
-### Checkpoint E3-C — State restoration 👤
-- [ ] T-050 merged, CI green.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
-  - On each tab (Diario, Entreno, Perfil) open a sub-screen (e.g. Entreno → "Historial" → a session; Perfil → "Fuerza"), press home, open other apps, come back: same tab and same screen.
-  - Entreno → "Nueva rutina": type a name, add 2 exercises, change sets and rest, group a superset; leave the app (and once with "No mantener actividades" on in the developer options), come back: the draft is intact and still unsaved.
-  - Half-fill the "Crear ejercicio" form and a Perfil edit form, leave and come back: the input is still there.
-  - With a session in progress, close the app from the app switcher and reopen: Entreno opens the session with its sets.
-  - Leave the app and come back: the same tab, screen and draft are restored.
 
 ---
 
@@ -1361,15 +1353,6 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Files likely touched:** `composeApp/…/feature/workout/{ExerciseNames,LiveExerciseCard,ExerciseMenu,LiveSessionFormat}.kt`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesUiState,RoutinesViewModel,RoutineBuilderRow,RoutineBuilderScreen,RoutineSheetActions}.kt`, `composeApp/…/feature/exercises/{ExercisePickerScreen,ExerciseDetailScreen,ExerciseLabels}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt` (drop start-empty), strings, tests
 **Estimated scope:** M
 
-### Checkpoint E3-D — Routines and catalog 👤
-- [ ] T-051 merged, CI green.
-- [ ] 👤 Install the APK and re-test the fixes:
-  - Create a custom exercise, add it to a routine: its own name appears in the routine, "Mis rutinas" and later in the session (was "Ejercicio").
-  - Tap an exercise's thumbnail or name in an opened routine (the "Nueva rutina" picker still adds the exercise on a row tap): the detail opens with the animation and "Cómo hacerlo".
-  - "Mis rutinas" is sorted by name A→Z; "Empezar entreno vacío" is gone.
-  - Change a rest: it moves in 10 s steps and shows "1 min 10 s" above 60 s.
-  - Quick regression: search and filter, reorder, superset, save, edit, duplicate, archive.
-  - Leave the app and come back: the same tab, screen and draft are restored.
 
 ---
 
@@ -1396,15 +1379,6 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Files likely touched:** `composeApp/…/feature/workout/{LiveSessionScreen,LiveSessionTopBar,LiveSessionDialogs,LiveSessionViewModel,LiveSessionUiState,WorkoutEntry,WorkoutEntryViewModel}.kt`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesUiState,RoutinesViewModel}.kt`, `shared/…/domain/port/AlertSound.kt`, `composeApp/src/androidMain/…/platform/AndroidAlertSound.kt` (+ a ~1 s sound resource if needed), `shared/…/data/repository/*` (error mapping), strings, tests
 **Estimated scope:** M
 
-### Checkpoint E3-E — Live session 👤
-- [ ] T-052 merged, CI green.
-- [ ] 👤 Install the APK and re-test the fixes:
-  - Start a routine: no fixed bottom button; ⋮ shows "Finalizar entreno" above "Descartar entreno"; finish from there (pending-sets warning, summary).
-  - Start another, go back to "Mis rutinas": the "Tienes un entreno en curso" card has play (continues the session) and trash (asks, then discards).
-  - With a session running, tap "Empezar" on another routine: "Ya hay un entreno en curso".
-  - Let a rest reach 00:00 with the app open: vibration plus a ~1 s sound.
-  - Quick regression at the gym: LISTO, ANTERIOR, rest bar "+30s"/"Omitir", superset rest, "Añadir serie"/"Añadir ejercicio".
-  - Leave the app and come back: the same tab, screen and draft are restored (and the running session with its sets).
 
 ---
 
@@ -1428,12 +1402,6 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Files likely touched:** `composeApp/…/feature/workout/{SessionEditSheet,SessionDetailScreen}.kt`, possibly `designsystem/NumberInput.kt` (check callers), tests
 **Estimated scope:** S
 
-### Checkpoint E3-F — History 👤
-- [x] T-053 merged, CI green. *(2026-10-20)*
-- [ ] 👤 Install the APK and re-test the fix:
-  - Entreno → "Historial" → a session → "Corregir serie": both KG and REPS are editable, labels read horizontally; change 8 reps to 7 and see the volume update in the detail and the list.
-  - Quick regression: list order, "PR" marks, delete a session (gone from ANTERIOR), scroll for more.
-  - Leave the app and come back: the same tab, screen and draft are restored.
 
 ---
 
@@ -1444,25 +1412,29 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Description:** "Volumen por grupo muscular" currently starts at a fixed date (31 August) and shows empty weeks before the user has any data. The chart must start at the ISO week (Monday) of the user's first completed session and run to the current week, capped at the last 8 weeks; no empty weeks before the first record. A user with no completed sessions sees the existing empty state.
 
 **Acceptance criteria:**
-- [ ] First completed session on a Wednesday two weeks ago → the chart shows 3 weeks (that week, last week, this week); none before.
-- [ ] First session more than 8 weeks ago → the last 8 weeks, as before.
-- [ ] Weeks after the first session with no training still appear with 0 (only the leading empty weeks are removed).
-- [ ] Selecting a group still isolates it; empty state unchanged.
+- [x] First completed session on a Wednesday two weeks ago → the chart shows 3 weeks (that week, last week, this week); none before.
+- [x] First session more than 8 weeks ago → the last 8 weeks, as before.
+- [x] Weeks after the first session with no training still appear with 0 (only the leading empty weeks are removed).
+- [x] Selecting a group still isolates it; empty state unchanged.
 
 **Host tests (per scenario):** `MuscleVolumeViewModelTest` (first session 2 weeks ago → 3 weeks; > 8 weeks → 8; gap week → 0; no sessions → empty) with a test `Clock`; screen test for the axis start; pgTAP only if SQL changes.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` and `deploy-supabase` green if a migration is added).
+- [x] Lint + `testLocalDebugUnitTest` green (+ `npx supabase test db` and `deploy-supabase` green if a migration is added).
 
 **Dependencies:** T-053
 **Files likely touched:** `composeApp/…/feature/analytics/{MuscleVolumeViewModel,MuscleVolumeUiState,MuscleVolumeScreen,MuscleVolumeComponents}.kt`, `shared/…/domain/repository/StrengthRepository.kt`, `shared/…/data/repository/*`, optionally a migration + pgTAP, tests
 **Estimated scope:** S
 
-### Checkpoint E3-G — Strength 👤
-- [ ] T-054 merged, CI green.
-- [ ] 👤 Install the APK and re-test the fix:
-  - Perfil → "Fuerza" → "Volumen por grupo muscular": the first week shown is the week of your first recorded session (no empty weeks from 31 August); pick a group.
-  - Quick regression: chips, "Récord 1RM estimado", monthly change, an exercise's 1RM and volume charts with 1M/3M/6M/1A.
+### Checkpoint E3-C…G — Corrective fixes (single checkpoint, user decision 2026-10-20) 👤
+- [ ] T-050…T-054 merged, CI green.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and re-test:
+  - State restoration (T-050): on each tab open a sub-screen, leave the app and come back (same tab and screen); half-fill "Nueva rutina", "Crear ejercicio" and a Perfil edit form, leave and come back (input intact); close an in-progress session from the app switcher and reopen (Entreno opens it with its sets).
+  - Routines and catalog (T-051): a custom exercise shows its own name everywhere; thumbnail or name tap opens the detail in an opened routine (the "Nueva rutina" picker still adds on a row tap); "Mis rutinas" sorted A→Z; no "Empezar entreno vacío"; rest in 10 s steps ("1 min 10 s").
+  - Live session (T-052): "Finalizar entreno" in ⋮ above "Descartar entreno"; the "Tienes un entreno en curso" card has play and trash; "Empezar" during a session shows "Ya hay un entreno en curso"; rest at 00:00 gives vibration plus a ~1 s sound.
+  - History (T-053): "Corregir serie" edits KG and REPS with horizontal labels; volume updates in the detail and the list.
+  - Strength (T-054): Perfil → "Fuerza" → "Volumen por grupo muscular" starts at the week of your first session (no empty weeks); pick a group.
+  - Quick regression: search and filter, reorder, superset, save, edit, duplicate, archive; LISTO, ANTERIOR, rest bar, "Añadir serie"/"Añadir ejercicio"; history order, "PR" marks, delete a session; "Récord 1RM estimado", monthly change, 1RM and volume charts with 1M/3M/6M/1A.
   - Leave the app and come back: the same tab, screen and draft are restored.
 
 ---
