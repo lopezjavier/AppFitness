@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -14,6 +15,8 @@ import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -23,12 +26,20 @@ import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionReposito
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
+private const val UNIQUE_VIOLATION = "23505"
+
 /** Workout sessions of the signed-in user (RLS scopes every query); lifecycle changes use atomic RPCs. */
 @Suppress("TooManyFunctions") // One small function per repository operation.
 class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postgrest: Postgrest) :
     WorkoutSessionRepository {
     override suspend fun startFromRoutine(routineId: String): Result<String> = auth.ownRow {
         postgrest.rpc("start_workout_session", StartSessionParams(routineId)).decodeAs<String>()
+    }.recoverCatching { failure ->
+        val cause = (failure as? AppException)?.cause
+        if (cause is PostgrestRestException && cause.code == UNIQUE_VIOLATION) {
+            throw AppException(AppError.SessionAlreadyInProgress, cause)
+        }
+        throw failure
     }
 
     override suspend fun getInProgress(): Result<WorkoutSession?> = auth.ownRow {

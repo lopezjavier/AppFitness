@@ -54,7 +54,7 @@ val uiModule =
         }
         viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get()) }
         viewModelOf(::RoutinesViewModel)
-        viewModelOf(::WorkoutEntryViewModel)
+        viewModel { WorkoutEntryViewModel(repository = get(), connectivity = get(), savedState = get()) }
         viewModelOf(::LiveSessionViewModel)
         viewModelOf(::HistoryViewModel)
         viewModel { (sessionId: String) ->

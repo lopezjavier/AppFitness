@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -194,7 +195,7 @@ private fun LiveActive(
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
-    Column(Modifier.fillMaxSize().imePadding()) {
+    Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
         LiveSessionTopBar(elapsedSeconds, onBack, onMenu = { menuOpen = true })
         KeepAwakeIndicator(Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.xs))
         state.restTimer?.let { RestBar(it, onEvent) }
@@ -216,7 +217,6 @@ private fun LiveActive(
             }
         }
         SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
-        FinishBar(state, onFinish = { onEvent(LiveSessionEvent.RequestFinish) })
     }
     LiveDialogs(state, menuOpen, onCloseMenu = { menuOpen = false }, onEvent)
 }

@@ -29,7 +29,6 @@ class LiveSessionTabletTest {
         rule.setContent { AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) } }
 
         assertTrue(rule.onNodeWithTag("live_exercise_0_add_set").getUnclippedBoundsInRoot().width <= 640.dp)
-        assertTrue(rule.onNodeWithTag("live_finish_button").getUnclippedBoundsInRoot().width <= 640.dp)
     }
 
     @Test

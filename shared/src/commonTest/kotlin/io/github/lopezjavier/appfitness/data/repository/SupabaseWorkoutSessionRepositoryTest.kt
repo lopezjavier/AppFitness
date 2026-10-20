@@ -93,6 +93,15 @@ class SupabaseWorkoutSessionRepositoryTest {
         rpcStatus = HttpStatusCode.Conflict
         rpcBody = """{"code":"23505","message":"duplicate key value violates unique constraint"}"""
 
+        assertEquals(AppError.SessionAlreadyInProgress, repo.startFromRoutine("r1").appErrorOrNull())
+    }
+
+    @Test
+    fun start_whenTheServerFailsForAnotherReason_isUnknown() = runTest {
+        val repo = signedIn()
+        rpcStatus = HttpStatusCode.InternalServerError
+        rpcBody = """{"code":"XX000","message":"boom"}"""
+
         assertEquals(AppError.Unknown, repo.startFromRoutine("r1").appErrorOrNull())
     }
 

@@ -11,6 +11,9 @@ sealed interface AppError {
     data object Validation : AppError
 
     data object Unknown : AppError
+
+    /** Starting a workout while another one is in progress (unique violation on the in-progress session). */
+    data object SessionAlreadyInProgress : AppError
 }
 
 /** Throwable carrier of an [AppError], used as the failure of a [Result]. */

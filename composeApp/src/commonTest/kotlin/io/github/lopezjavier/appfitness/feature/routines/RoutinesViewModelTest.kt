@@ -292,6 +292,21 @@ class RoutinesViewModelTest {
     }
 
     @Test
+    fun startWhileASessionIsInProgress_reportsItInsteadOfAGenericFailure() = runTest {
+        sessions.startFailure = AppError.SessionAlreadyInProgress
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.StartRoutine("r1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.SessionInProgress, awaitItem())
+        }
+
+        assertEquals(false, vm.content().starting)
+    }
+
+    @Test
     fun aSecondStartWhileOneRuns_isIgnored() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
