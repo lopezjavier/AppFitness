@@ -1,0 +1,16 @@
+{
+  "code": "8410000820003",
+  "status": 1,
+  "product": {
+    "code": "8410000820003",
+    "product_name": "Galletas de cereales",
+    "brands": "Marca Ejemplo",
+    "nutrition_data_per": "100g",
+    "nutriments": {
+      "energy_100g": 1883,
+      "proteins_100g": 7.1,
+      "carbohydrates_100g": 70,
+      "fat_100g": 12
+    }
+  }
+}

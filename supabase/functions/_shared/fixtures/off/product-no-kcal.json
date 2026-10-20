@@ -1,0 +1,12 @@
+{
+  "code": "8410000830002",
+  "status": 1,
+  "product": {
+    "code": "8410000830002",
+    "product_name": "Producto sin datos",
+    "brands": "Marca Ejemplo",
+    "nutriments": {
+      "proteins_100g": 2
+    }
+  }
+}

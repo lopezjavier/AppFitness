@@ -1,0 +1,17 @@
+{
+  "code": "8410000840001",
+  "status": 1,
+  "product": {
+    "code": "8410000840001",
+    "product_name": "Bebida de avena",
+    "brands": "Marca Ejemplo",
+    "nutrition_data_per": "100ml",
+    "serving_size": "1 vaso (200 ml)",
+    "nutriments": {
+      "energy-kcal_100ml": 45,
+      "proteins_100ml": 1,
+      "carbohydrates_100ml": 7.5,
+      "fat_100ml": 1.5
+    }
+  }
+}
