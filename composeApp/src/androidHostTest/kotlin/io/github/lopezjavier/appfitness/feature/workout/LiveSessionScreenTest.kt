@@ -70,13 +70,14 @@ class LiveSessionScreenTest {
     }
 
     @Test
-    fun header_showsLiveTitle_timer_keepAwake_andNoFixedFinishButton() {
+    fun header_showsLiveTitle_timer_andNoKeepAwakeIndicatorNorFixedFinishButton() {
         show(active())
 
         rule.onNodeWithTag("live_screen").assertExists()
         rule.onNodeWithText("EN VIVO").assertExists()
         rule.onNodeWithTag("live_timer").assertTextContains("02:05")
-        rule.onNodeWithTag("live_keep_awake").assertTextContains("Pantalla activa")
+        rule.onNodeWithTag("live_keep_awake").assertDoesNotExist()
+        rule.onNodeWithText("Pantalla activa").assertDoesNotExist()
         rule.onNodeWithTag("live_finish_button").assertDoesNotExist()
     }
 

@@ -26,6 +26,12 @@ class ShellChromeTest {
     }
 
     @Test
+    fun editEntryRoute_chrome_keepsTheDiaryTabChrome_soTheBarsDoNotRedraw() {
+        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), EditEntryRoute("e1", "2026-10-19").chrome)
+        assertTrue(AppDestinations.fullScreenRoutes.none { it is EditEntryRoute })
+    }
+
+    @Test
     fun tabRoutes_chrome_isTabsWithTheirTab() {
         tabRoutes.forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
     }

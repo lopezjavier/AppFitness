@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
 import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
+import io.github.lopezjavier.appfitness.feature.diary.EditEntryViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
@@ -53,6 +54,21 @@ val uiModule =
                 goalsRepository = get(),
                 buildDiaryDay = get(),
                 clock = get(),
+                preferences = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
+        // The edited entry's day travels as an ISO yyyy-MM-dd string.
+        viewModel { (entryId: String, date: String) ->
+            EditEntryViewModel(
+                entryId = entryId,
+                date = LocalDate.parse(date),
+                foodRepository = get(),
+                foodDiary = get(),
+                mealSlots = get(),
+                recalculateEntry = get(),
+                connectivity = get(),
                 savedState = get(),
             )
         }

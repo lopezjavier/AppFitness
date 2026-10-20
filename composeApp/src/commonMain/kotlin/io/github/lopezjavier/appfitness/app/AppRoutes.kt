@@ -119,6 +119,13 @@ data class CreateFoodRoute(
 @Serializable
 data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date: String) : AppRoute
 
+/**
+ * The edit sheet of the diary entry [entryId] of the ISO day [date] (US-19), presented over the Diary. It keeps the
+ * Diary's chrome (it is not a full-screen destination).
+ */
+@Serializable
+data class EditEntryRoute(val entryId: String, val date: String) : AppRoute
+
 /** The meals editor (US-23), opened from the Diary; [date] is the ISO day being viewed there. */
 @Serializable
 data class MealSlotsRoute(val date: String) : AppRoute
@@ -227,6 +234,9 @@ val AppRoute.chrome: ShellChrome
             is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
 
             is MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
+
+            // A sheet over the Diary tab: the Diary's top and bottom bars stay.
+            is EditEntryRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
         }
 
 /** Navigation entry points shared by the shell. */

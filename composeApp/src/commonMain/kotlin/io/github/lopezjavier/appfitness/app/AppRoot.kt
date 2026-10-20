@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
+import io.github.lopezjavier.appfitness.feature.diary.EditEntryRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
@@ -56,8 +57,8 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, onOpenMealSettings ->
-            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onOpenMealSettings, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onOpenMealSettings, edit ->
+            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onOpenMealSettings, edit, diaryModifier)
         },
         mealSlots = { mealsModifier, date, onClose -> MealSlotsRoot(date, onClose, mealsModifier) },
         foodSearch = { searchModifier, onOpenFood, onCreateFood ->
@@ -66,6 +67,9 @@ fun AppRoot(
         createFood = { formModifier, barcode, name, onSaved -> CreateFoodRoot(barcode, name, onSaved, formModifier) },
         addFood = { foodId, slotId, date, onAdded, onDismiss ->
             AddFoodRoot(foodId, slotId, date, onAdded, onDismiss)
+        },
+        editEntry = { entryId, date, onSaved, onDeleteRequested, onDismiss ->
+            EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)
         },
         history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
         sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->

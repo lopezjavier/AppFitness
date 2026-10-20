@@ -28,6 +28,7 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
+import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
 import kotlinx.datetime.LocalDate
 
 /**
@@ -75,7 +76,8 @@ internal typealias RoutinesSlot =
 
 /**
  * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
- * search for a day (the meal is null for the Diary-level add action) and [onOpenMealSettings] the meals editor.
+ * search for a day (the meal is null for the Diary-level add action), [onOpenMealSettings] the meals editor and
+ * [edit] the edit sheet of an entry (and brings back an entry the sheet asked to delete).
  */
 internal typealias DiarySlot =
     @Composable (
@@ -83,6 +85,23 @@ internal typealias DiarySlot =
         onOpenPreferences: () -> Unit,
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
         onOpenMealSettings: (date: LocalDate) -> Unit,
+        edit: DiaryEditHost,
+    ) -> Unit
+
+/** Key under which the edit sheet leaves the id of the entry to delete for the Diary (which owns the undo). */
+const val DELETED_ENTRY_KEY = "deleted_entry_id"
+
+/**
+ * Edit-entry sheet content for an entry and its ISO day; [onSaved] runs once the entry is updated, [onDeleteRequested]
+ * when the user chose "Eliminar" and [onDismiss] when the sheet is closed without saving.
+ */
+internal typealias EditEntrySlot =
+    @Composable (
+        entryId: String,
+        date: String,
+        onSaved: () -> Unit,
+        onDeleteRequested: (entryId: String) -> Unit,
+        onDismiss: () -> Unit,
     ) -> Unit
 
 /**
@@ -215,7 +234,7 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
@@ -236,6 +255,9 @@ internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _ -> }
+
+/** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultEditEntrySlot: EditEntrySlot = { _, _, _, _, _ -> }
 
 /** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
@@ -290,6 +312,7 @@ internal fun AppNavHost(
     diary: DiarySlot = DefaultDiarySlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
+    editEntry: EditEntrySlot = DefaultEditEntrySlot,
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
     history: HistorySlot = DefaultHistorySlot,
@@ -316,8 +339,33 @@ internal fun AppNavHost(
         remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
-            composable<DiaryHome> {
-                diary(Modifier.padding(tabPadding), openPreferences, openFoodSearch, openMealSettings)
+            composable<DiaryHome> { entry ->
+                val handle = entry.savedStateHandle
+                val deleted by handle.getStateFlow<String?>(DELETED_ENTRY_KEY, null).collectAsState()
+                diary(
+                    Modifier.padding(tabPadding),
+                    openPreferences,
+                    openFoodSearch,
+                    openMealSettings,
+                    DiaryEditHost(
+                        onEditEntry = { id, date -> navController.navigate(EditEntryRoute(id, date.toString())) },
+                        pendingDeleteEntryId = deleted,
+                        onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
+                    ),
+                )
+            }
+            dialog<EditEntryRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
+                val route = entry.toRoute<EditEntryRoute>()
+                editEntry(
+                    route.entryId,
+                    route.date,
+                    { navController.popBackStack() },
+                    { id ->
+                        navController.previousBackStackEntry?.savedStateHandle?.set(DELETED_ENTRY_KEY, id)
+                        navController.popBackStack()
+                    },
+                    { navController.popBackStack() },
+                )
             }
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {

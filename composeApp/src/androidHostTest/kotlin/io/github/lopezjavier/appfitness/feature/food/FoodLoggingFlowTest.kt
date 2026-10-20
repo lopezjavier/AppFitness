@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryEvent
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryUiState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
+import io.github.lopezjavier.appfitness.feature.diary.FakeDiaryPreferences
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -74,6 +75,8 @@ class FoodLoggingFlowTest {
             FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25))),
             BuildDiaryDay(),
             MutableClock(),
+            FakeDiaryPreferences(),
+            FakeConnectivityObserver(),
             SavedStateHandle(),
         )
         val searchModel = FoodSearchViewModel(foods, connectivity, FakeBarcodeScanner(), SavedStateHandle())

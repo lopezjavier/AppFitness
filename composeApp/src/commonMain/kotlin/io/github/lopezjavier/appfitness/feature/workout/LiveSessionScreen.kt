@@ -197,7 +197,6 @@ private fun LiveActive(
     KeepScreenOn()
     Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
         LiveSessionTopBar(elapsedSeconds, onBack, onMenu = { menuOpen = true })
-        KeepAwakeIndicator(Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.xs))
         state.restTimer?.let { RestBar(it, onEvent) }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             LazyColumn(

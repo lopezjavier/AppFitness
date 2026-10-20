@@ -60,6 +60,7 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.feature.diary.amountText
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import org.jetbrains.compose.resources.stringResource
@@ -123,9 +124,24 @@ private fun SheetContent(content: AddFoodContent, onEvent: (AddFoodEvent) -> Uni
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         FoodHeader(content.food)
         NutritionPer100Card(content.food)
-        QuantityInput(content, onEvent)
-        content.preview?.let { Preview(it.kcal, it.proteinG, it.carbsG, it.fatG) }
-        MealSelector(content, onEvent)
+        QuantityInput(
+            food = content.food,
+            amountText = content.amountText,
+            selectedPortionId = content.selectedPortionId,
+            hasError = content.quantityError != null,
+            onAmountChange = { onEvent(AddFoodEvent.AmountChanged(it)) },
+            onPortionSelect = { onEvent(AddFoodEvent.PortionSelected(it)) },
+            testTagPrefix = "add_food",
+        )
+        content.preview?.let { Preview(it.kcal, it.proteinG, it.carbsG, it.fatG, "add_food_preview") }
+        MealSelector(
+            slots = content.slots,
+            selectedSlotId = content.selectedSlotId,
+            onSelect = { onEvent(AddFoodEvent.SlotSelected(it)) },
+            containerTag = "add_food_meals",
+            optionTagPrefix = "add_food_meal",
+            emptyTag = "add_food_no_meal",
+        )
         if (submitFailed) {
             Text(
                 text = stringResource(Res.string.add_food_submit_error),
@@ -184,7 +200,7 @@ private fun NutritionPer100Card(food: Food) {
 }
 
 @Composable
-private fun KcalText(kcal: Double, modifier: Modifier = Modifier) {
+internal fun KcalText(kcal: Double, modifier: Modifier = Modifier) {
     Text(
         text = stringResource(Res.string.add_food_preview_kcal, wholeHalfUp(kcal)),
         style = AppTheme.typography.labelNumeric,
@@ -194,7 +210,7 @@ private fun KcalText(kcal: Double, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun MacroTexts(proteinG: Double, carbsG: Double, fatG: Double) {
+internal fun MacroTexts(proteinG: Double, carbsG: Double, fatG: Double) {
     val colors = AppTheme.colors
     val style = AppTheme.typography.labelNumeric
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -216,73 +232,98 @@ private fun MacroTexts(proteinG: Double, carbsG: Double, fatG: Double) {
     }
 }
 
+/**
+ * The quantity field of [food]: base unit or named portion. Tags derive from [testTagPrefix] (see
+ * [PortionSelector]); shared by the add-food and edit-entry sheets.
+ */
 @Composable
-private fun QuantityInput(content: AddFoodContent, onEvent: (AddFoodEvent) -> Unit) {
-    val unit = content.food.baseUnit
+@Suppress("LongParameterList") // The field's value, its events and its tags.
+internal fun QuantityInput(
+    food: Food,
+    amountText: String,
+    selectedPortionId: String?,
+    hasError: Boolean,
+    onAmountChange: (String) -> Unit,
+    onPortionSelect: (String?) -> Unit,
+    testTagPrefix: String,
+) {
+    val unit = food.baseUnit
     val inMl = unit == "ml"
-    val portions = content.food.portions.map {
+    val portions = food.portions.map {
         PortionOption(it.id, stringResource(Res.string.add_food_portion_option, it.label, amountText(it.amount), unit))
     }
     val amountLabel = stringResource(
         when {
-            content.selectedPortionId != null -> Res.string.add_food_portion_count_label
+            selectedPortionId != null -> Res.string.add_food_portion_count_label
             inMl -> Res.string.add_food_amount_label_ml
             else -> Res.string.add_food_amount_label_g
         },
     )
     PortionSelector(
-        amountText = content.amountText,
-        onAmountChange = { onEvent(AddFoodEvent.AmountChanged(it)) },
+        amountText = amountText,
+        onAmountChange = onAmountChange,
         amountLabel = amountLabel,
         baseLabel = stringResource(if (inMl) Res.string.add_food_unit_ml else Res.string.add_food_unit_g),
         portions = portions,
-        selectedPortionId = content.selectedPortionId,
-        onPortionSelect = { onEvent(AddFoodEvent.PortionSelected(it)) },
-        errorText = content.quantityError?.let { stringResource(Res.string.add_food_quantity_error) },
-        testTagPrefix = "add_food",
+        selectedPortionId = selectedPortionId,
+        onPortionSelect = onPortionSelect,
+        errorText = if (hasError) stringResource(Res.string.add_food_quantity_error) else null,
+        testTagPrefix = testTagPrefix,
     )
 }
 
 /** The nutrition of the typed quantity; a polite live region so a screen reader announces the new total. */
 @Composable
-private fun Preview(kcal: Double, proteinG: Double, carbsG: Double, fatG: Double) {
+internal fun Preview(kcal: Double, proteinG: Double, carbsG: Double, fatG: Double, tag: String) {
     Row(
         Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-            .testTag("add_food_preview"),
+            .testTag(tag),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        KcalText(kcal, Modifier.testTag("add_food_preview_kcal"))
+        KcalText(kcal, Modifier.testTag("${tag}_kcal"))
         MacroTexts(proteinG, carbsG, fatG)
     }
 }
 
+/**
+ * The meal choice: segments up to [MAX_SEGMENTED_SLOTS] meals, chips beyond. [containerTag] tags the control,
+ * `<optionTagPrefix>_<slotId>` each option and [emptyTag] the hint shown when there is no meal.
+ */
 @Composable
-private fun MealSelector(content: AddFoodContent, onEvent: (AddFoodEvent) -> Unit) {
+@Suppress("LongParameterList") // The choice, its event and the three tags.
+internal fun MealSelector(
+    slots: List<MealSlot>,
+    selectedSlotId: String?,
+    onSelect: (String) -> Unit,
+    containerTag: String,
+    optionTagPrefix: String,
+    emptyTag: String,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             text = stringResource(Res.string.add_food_meal_label),
             style = AppTheme.typography.bodyMedium,
             color = AppTheme.colors.textSecondary,
         )
-        if (content.slots.isEmpty()) {
+        if (slots.isEmpty()) {
             Text(
                 text = stringResource(Res.string.add_food_no_meal_hint),
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.error,
-                modifier = Modifier.testTag("add_food_no_meal"),
+                modifier = Modifier.testTag(emptyTag),
             )
             return@Column
         }
-        val options = content.slots.map { AppOption(it.label, "add_food_meal_${it.id}") }
-        val selected = content.slots.indexOfFirst { it.id == content.selectedSlotId }.takeIf { it >= 0 }
-        val select = { index: Int -> onEvent(AddFoodEvent.SlotSelected(content.slots[index].id)) }
-        if (content.slots.size <= MAX_SEGMENTED_SLOTS) {
-            SegmentedSelector(options, selected, select, Modifier.testTag("add_food_meals"))
+        val options = slots.map { AppOption(it.label, "${optionTagPrefix}_${it.id}") }
+        val selected = slots.indexOfFirst { it.id == selectedSlotId }.takeIf { it >= 0 }
+        val select = { index: Int -> onSelect(slots[index].id) }
+        if (slots.size <= MAX_SEGMENTED_SLOTS) {
+            SegmentedSelector(options, selected, select, Modifier.testTag(containerTag))
         } else {
-            FilterChipRow(options, selected, select, Modifier.testTag("add_food_meals"))
+            FilterChipRow(options, selected, select, Modifier.testTag(containerTag))
         }
     }
 }
