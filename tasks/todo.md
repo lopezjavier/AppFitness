@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-074 (Spain-only text search, ADR-46), then re-present Checkpoint E4-C, then T-063. (T-073 in progress.) Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
+**Next:** re-present Checkpoint E4-C (after T-074 merge), then T-063. (T-074 in PR.) Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
 
 ---
 
@@ -1813,9 +1813,9 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** The text search is poor (user, 2026-10-21). In `supabase/functions/_shared/off-client.ts`, `searchOff` adds `tagtype_0=countries`, `tag_contains_0=contains`, `tag_0=spain` (keeping `search_terms`, `json=1`, `page`, `page_size=20`, `lc=es`, `cc=es`; no `sort_by`; no `fields`, ADR-43) and filters hits with a new `isSpainSearchHit(raw)` (`countries_tags` includes `en:spain` and either `product_name_es` is non-empty or `lang === "es"` with a non-empty `product_name`) before `normalizeProduct`. `fetchOffProduct` (barcode) is unchanged. Paging must use the raw OFF count so a filtered-out page does not end the search early; stale cached search results are purged or re-keyed.
 
 **Acceptance criteria:**
-- [ ] Deno tests for the predicate (Spain + Spanish name, Spain + English name only, non-Spain, multi-country) and for paging when the filter empties a page.
-- [ ] Request parameters verified in tests; barcode lookup untouched.
-- [ ] Latency of the production search measured and reported in the PR.
+- [x] Deno tests for the predicate (Spain + Spanish name, Spain + English name only, non-Spain, multi-country) and for paging when the filter empties a page.
+- [x] Request parameters verified in tests; barcode lookup untouched.
+- [x] Latency of the production search measured and reported in the PR.
 
 **Verification:** `deno test`, supabase-ci and CI green. **Dependencies:** T-073 · **Estimated scope:** S
 

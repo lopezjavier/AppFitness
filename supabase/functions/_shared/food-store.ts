@@ -105,6 +105,17 @@ export function toFood(row: any): Food {
     };
 }
 
+/**
+ * Search visibility (ADR-46): personal foods, plus OFF foods sold in Spain with a Spanish name. Same
+ * predicate as `isSpainSearchHit`; barcode scans may have cached other OFF rows, which must not appear.
+ * `gt.` with an empty value means "non-empty text".
+ */
+export const SEARCH_VISIBLE_FILTER = [
+    "source.eq.user",
+    'and(off_data->countries_tags.cs.["en:spain"],' +
+    "or(off_data->>product_name_es.gt.,and(off_data->>lang.eq.es,off_data->>product_name.gt.)))",
+].join(",");
+
 export async function searchLocal(
     client: Client,
     q: string,
@@ -113,6 +124,7 @@ export async function searchLocal(
     const { data, error } = await client
         .from("foods")
         .select(SELECT)
+        .or(SEARCH_VISIBLE_FILTER)
         .textSearch("search_vector", unaccent(q), {
             type: "websearch",
             config: "spanish",

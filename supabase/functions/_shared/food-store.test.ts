@@ -13,11 +13,15 @@ function fullProduct() {
 
 /** Fake PostgREST client that records the select string and answers with the given rows. */
 function fakeClient(rows: unknown[]) {
-    const seen = { select: "" };
+    const seen = { select: "", or: "" };
     // deno-lint-ignore no-explicit-any
     const builder: any = {
         select(s: string) {
             seen.select = s;
+            return builder;
+        },
+        or(f: string) {
+            seen.or = f;
             return builder;
         },
         textSearch: () => builder,
@@ -73,6 +77,15 @@ Deno.test("searchLocal selects explicit columns, so off_data is not downloaded",
     assertEquals(foods.length, 1);
     assertEquals(seen.select.includes("*"), false);
     assertEquals(seen.select.includes("off_data"), false);
+});
+
+Deno.test("searchLocal keeps personal foods and only Spain OFF foods with a Spanish name", async () => {
+    const { client, seen } = fakeClient([dbRow]);
+    await searchLocal(client, "avena", 20);
+    assert(seen.or.startsWith("source.eq.user,"));
+    assert(seen.or.includes('off_data->countries_tags.cs.["en:spain"]'));
+    assert(seen.or.includes("off_data->>product_name_es.gt."));
+    assert(seen.or.includes("off_data->>lang.eq.es"));
 });
 
 Deno.test("findByBarcode reports whether the row already has off_data", async () => {

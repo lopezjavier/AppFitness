@@ -249,6 +249,26 @@ async function offGetOnce(deps: OffDeps, url: URL): Promise<unknown> {
     }
 }
 
+function nonBlank(v: unknown): boolean {
+    return typeof v === "string" && v.trim() !== "";
+}
+
+/** True for a raw OFF product sold in Spain that has a Spanish name. Never throws. */
+export function isSpainSearchHit(raw: unknown): boolean {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        return false;
+    }
+    const p = raw as Record<string, unknown>;
+    if (
+        !Array.isArray(p.countries_tags) ||
+        !p.countries_tags.includes("en:spain")
+    ) {
+        return false;
+    }
+    return nonBlank(p.product_name_es) ||
+        (p.lang === "es" && nonBlank(p.product_name));
+}
+
 /** Free-text search; unusable products are dropped. Throws OffError when OFF is unreachable. */
 export async function searchOff(
     deps: OffDeps,
@@ -262,9 +282,14 @@ export async function searchOff(
     url.searchParams.set("page_size", "20");
     url.searchParams.set("lc", "es");
     url.searchParams.set("cc", "es");
+    // Only products sold in Spain (ADR-46). The hit filter below is the authority; the tag just narrows the query.
+    url.searchParams.set("tagtype_0", "countries");
+    url.searchParams.set("tag_contains_0", "contains");
+    url.searchParams.set("tag_0", "spain");
     const body = await offGet(deps, url) as { products?: unknown };
     if (!Array.isArray(body?.products)) return [];
     return body.products
+        .filter(isSpainSearchHit)
         .map(normalizeProduct)
         .filter((f): f is NormalizedFood => f !== null);
 }

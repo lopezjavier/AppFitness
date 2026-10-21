@@ -7,6 +7,8 @@
       "code": "8410000810004",
       "product_name": "Avena integral",
       "product_name_es": "Copos de avena integral",
+      "lang": "es",
+      "countries_tags": ["en:spain"],
       "brands": "Marca Ejemplo,Otra Marca",
       "nutrition_data_per": "100g",
       "serving_size": "40 g",
@@ -20,6 +22,8 @@
     {
       "code": "8410000840001",
       "product_name": "Bebida de avena",
+      "lang": "es",
+      "countries_tags": ["en:spain"],
       "brands": "Marca Ejemplo",
       "nutrition_data_per": "100ml",
       "serving_size": "1 vaso (200 ml)",
@@ -33,11 +37,15 @@
     {
       "code": "8410000830002",
       "product_name": "Producto sin datos",
+      "lang": "es",
+      "countries_tags": ["en:spain"],
       "nutriments": { "proteins_100g": 2 }
     },
     {
       "code": "8410000850000",
       "product_name": "",
+      "lang": "es",
+      "countries_tags": ["en:spain"],
       "nutriments": { "energy-kcal_100g": 100 }
     }
   ]
