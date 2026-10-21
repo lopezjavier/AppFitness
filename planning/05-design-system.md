@@ -120,7 +120,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `RestTimerBar` | 48 dp, `surfaceOverlay`, cyan tabular countdown, bottom progress line, "+30s" and "Omitir" |
 | `MetricTile` | Technical label + `headlineMetric` value + unit |
 | `TrendPill` | Weekly rate pill (green/red/amber) |
-| `GoalCard` | Target weight and distance ("faltan 4,2 kg" / "objetivo alcanzado") with a progress bar |
+| `GoalCard` | Target weight and distance ("faltan 4,2 kg" / "objetivo alcanzado", wording by strategy, `04-business-rules.md` §3.5) with a progress bar from the first weight in the app to the target |
 | `ComparisonDeltaRow` | Two measurements compared: metric label + signed delta in color ("−1,4 kg") |
 | `MetricInterpretationRow` | Metric value + status chip (low/normal/high) + short explanation; the list ends with the non-medical disclaimer |
 | `CircumferenceRow` | Body-site label + value in cm + date, with edit/delete; the site picker is a dropdown |

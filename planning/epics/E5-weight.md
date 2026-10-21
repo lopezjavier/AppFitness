@@ -43,9 +43,16 @@ Feature: Manual weight and body measurements
     When they also enter 15,1 % body fat and save
     Then the measurement includes body_fat_pct 15.1
 
-  Scenario: Logging a past date
-    When they change the date to yesterday at 07:30 and save
-    Then the measurement appears on the chart on yesterday's date
+  Scenario: One manual weight per day
+    Given the user already logged a manual weight today
+    When they tap "Registrar peso de hoy"
+    Then today's weight opens to be edited instead of creating a second one
+
+  Scenario: Logging a weight for a past day
+    Given the weight calendar ("Historial de mediciones") with no weight yesterday
+    When they tap yesterday, set the time to 07:30, enter 74,0 kg and save
+    Then a manual measurement is stored for yesterday at 07:30
+    And yesterday is marked in the calendar and the measurement appears on the chart on yesterday's date
 
   Scenario Outline: Validation
     When they enter <field> = <value>
@@ -57,10 +64,13 @@ Feature: Manual weight and body measurements
       | weight | 401   |
       | fat    | 80    |
 
-  Scenario: History, editing and deletion
-    Given the "Historial de mediciones" list in Progress
-    When the user edits a manual measurement or deletes it (with "Deshacer")
-    Then the chart and metrics are recalculated
+  Scenario: Weight calendar, editing and deletion
+    Given the weight calendar ("Historial de mediciones") on the weight screen, with the days that have a measurement marked
+    When the user taps a day with a manual weight
+    Then they can change its weight, body fat and time, but not its date, and save with "Guardar"
+    When they delete it
+    Then it is removed at once, with no confirmation and no "Deshacer" (ADR-45)
+    And the chart and metrics are recalculated
     And Health Connect measurements are shown with their icon and can only be deleted
 
   Scenario: Logging a circumference
@@ -88,6 +98,7 @@ Feature: Manual weight and body measurements
 ```
 
 **Technical notes**
+- Weight calendar (user decision 2026-10-21): a month grid (reusing `MonthCalendarGrid`) marks the days with measurements. An empty day opens a sheet to set that day's weight; a day with a weight opens it to edit or delete. The date of a measurement is never edited (it is fixed by the day tapped), so the one-manual-weight-per-day rule (`03-data-model.md` §4) cannot be broken by an edit. A day with only Health Connect readings can still get a manual weight.
 - `body_circumferences` migration + RLS + pgTAP; the waist-to-hip ratio is derived in the domain (`04-business-rules.md` §3.9), never stored.
 - The circumference site picker offers neck, chest, waist, hip, arm, thigh and calf; value in cm with 1 decimal.
 
@@ -131,6 +142,13 @@ Feature: Health Connect sync
     When they log a weight of 73,9 kg and 15,1 % body fat manually
     Then the app writes both values to Health Connect
 
+  Scenario: Editing or deleting a written-back entry
+    Given a manual weight of 73,9 kg that was written to Health Connect
+    When the user changes it to 73,5 kg and saves
+    Then the copy in Health Connect is updated to 73,5 kg
+    When the user deletes it
+    Then the copy in Health Connect is deleted too
+
   Scenario: Writing back without permission
     Given the user denied the write permission
     When they log a weight manually
@@ -155,6 +173,7 @@ Feature: Health Connect sync
 - `HealthDataSource` (domain) + `HealthConnectDataSource` (androidMain): `readRecords` of `WeightRecord`, `BodyFatRecord`, `LeanBodyMassRecord`, `BodyWaterMassRecord`, `BoneMassRecord` and `BasalMetabolicRateRecord` since `health_sync_state.last_synced_at`, and `insertRecords` for the write-back (`04-business-rules.md` §3.7).
 - Upsert by `(user_id, external_id)` = the weight record's `metadata.id`. Weight and the composition records are paired by instant (± 2 min).
 - Manifest: `READ/WRITE_WEIGHT`, `READ/WRITE_BODY_FAT`, `READ/WRITE_LEAN_BODY_MASS`, `READ/WRITE_BODY_WATER_MASS`, `READ/WRITE_BONE_MASS`, `READ/WRITE_BASAL_METABOLIC_RATE` permissions, `<queries>` for the Health Connect package and a *privacy policy rationale* activity (`ACTION_SHOW_PERMISSIONS_RATIONALE`) with a short privacy text.
+- Manual rows keep the id of their Health Connect copy, so edits update it and deletes remove it (user decision 2026-10-21). An entry saved without the permission has no copy and is not written later. Deleting an imported reading removes it from the app only (an app can only delete its own Health Connect records), and it is not re-imported.
 - The write-back never fails the save: a denied or revoked permission skips it. The real Health Connect integration is not covered by automated tests: the ViewModel is tested with a `FakeHealthDataSource`, and the integration is tested manually on the user's phone.
 
 ---
@@ -186,10 +205,14 @@ Feature: Weight trend, goal and interpretation
     Then the pill shows "+0,30 kg esta semana" in red
 
   Scenario: Target weight and distance
-    Given a target weight of 70,0 kg and a current weight of 74,2 kg
-    Then the goal card shows "faltan 4,2 kg"
-    When the user reaches 70,0 kg
+    Given a target weight of 70,0 kg, a current weight of 74,2 kg and a first weight in the app of 78,0 kg
+    Then the goal card shows "faltan 4,2 kg" and a progress bar at 48 %
+    When the user reaches 70,0 kg or goes below it
     Then the goal card shows "objetivo alcanzado"
+
+  Scenario: Target distance on maintenance
+    Given the "Mantenimiento" strategy, a target of 70,0 kg and a current weight of 71,0 kg
+    Then the goal card shows "1,0 kg por encima del objetivo"
 
   Scenario: Setting the target weight
     Given no target weight is set
@@ -229,7 +252,7 @@ Feature: Weight trend, goal and interpretation
 
 **Technical notes**
 - `DailyWeights`, `MovingAverage`, `WeeklyRate`, `BMI`, `TargetDistance` and interpretation use cases with the examples from `04-business-rules.md` §3 (the interpretation ranges and the disclaimer are in §3.8).
-- The target weight is stored in `profiles.target_weight_kg` (E2 profile, edited from Progress).
+- The target weight is stored in `profiles.target_weight_kg` (E2 profile, edited from the weight screen). The distance wording depends on the strategy and the goal card's progress bar starts at the user's first weight in the app (the onboarding row) (`04-business-rules.md` §3.5, user decision 2026-10-21).
 - Vico: dot layer + line; the range is loaded with 6 extra days before its start to compute the MA7 of the first day.
 - Filter remembered with DataStore (local preference).
 

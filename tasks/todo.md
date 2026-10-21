@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** E5 (weight) has no tasks yet: break it down with `epic-planner` in a fresh session; the user confirms the task list and checkpoints before the first task. E4 closed (tag `v0.4.0`, retrospective pending the user).
+**Next:** T-076 (E5 broken down into T-076…T-082 with checkpoints E5-A…E5-E; Q1–Q3 resolved 2026-10-21). The user confirms the task list and checkpoints before T-076 starts. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -1752,7 +1752,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ## T-068: Full OFF product data and micronutrients in the food details
 
-**Story:** US-25 · **Flow:** backend + UI (ux-reviewer for the details section) · **Scenarios:** A product is cached with everything OFF sent; Micronutrients in the food details; Food without extra data; Search results stay light; Foods cached before this change · **Decision:** ADR-43 · Origin: user request 2026-10-21.
+**Story:** US-16b (numbered US-25 until 2026-10-21) · **Flow:** backend + UI (ux-reviewer for the details section) · **Scenarios:** A product is cached with everything OFF sent; Micronutrients in the food details; Food without extra data; Search results stay light; Foods cached before this change · **Decision:** ADR-43 · Origin: user request 2026-10-21.
 
 **Description:** Backend: one migration adds `foods.off_data jsonb null` and deletes `source = 'off'` rows with null `off_data` that nothing references (`food_log_entries`, `favorite_foods`, `meal_template_items`); referenced rows are kept. `off-client.ts` requests products without the `fields` filter (everything OFF returns is stored; if the unfiltered search exceeds the 8 s timeout the planner logs `BLOCKED` and asks the user, never narrowing `fields`) and returns the raw product; `food-store.ts` writes it to `off_data`; `food-barcode` also refreshes rows whose `off_data` is null; search responses omit it. App: the food details (the food sheet) read `off_data` for that food on demand and list the micronutrients OFF provides per 100 g / 100 ml with Spanish labels (fiber, sugars, saturated fat, salt/sodium, vitamins, minerals); absent values are hidden. Manual foods: the creation form gets optional fields for saturated fat, sugars, fiber and salt from the label (per 100 g/ml), stored in `foods.micronutrients` through a new `p_micronutrients jsonb` argument of `create_personal_food` (user decision 2026-10-21; no vitamins/minerals in the form); the details show them like OFF ones. Display only: no targets, totals or changes to how entries are computed. Show the user the proposed wording and layout of the section before building. Do not touch training data, preferences or any user-owned row.
 
@@ -1852,7 +1852,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ## T-070: Fix food details sheet and clean the food cache (E4-C feedback)
 
-**Story:** US-25 · **Flow:** backend + UI · **Type:** fix
+**Story:** US-16b · **Flow:** backend + UI · **Type:** fix
 
 **Description:** The food details sheet shows no micronutrients and its layout is broken (a horizontal line over "gramos" and "100 g (100 g)"). Drop the "100 g (100 g)" label when the portion is just 100 g. Cached OFF foods stored before T-068 lack `off_data`; user decision 2026-10-21: delete all `source = 'off'` foods and everything referencing them (`food_log_entries`, `favorite_foods`, `meal_template_items`; templates left empty are removed); food data is not stable yet. Workout data is never touched.
 
@@ -1914,6 +1914,259 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
+# E5 · Weight tracking
+
+Stories: `planning/epics/E5-weight.md` (US-25…US-27). Plan: [tasks/plan.md](plan.md). One task per story as a vertical slice, with splits for size. US-25 → the manual weight backend (T-076), the weight screen with the weight calendar (T-077; added with Q1, too big for one PR together with T-076) and body circumferences (T-078, its own vertical slice). US-26 (Health Connect) is T-079. US-27 → the trend chart and weekly rate (T-080) and goal, BMI, comparison and interpretation (T-081). Each migration ships with the task that needs it (at most one per task; a merged migration is never edited): T-076 the manual-measurement RPC, T-078 `body_circumferences`, T-079 the composition columns, the Health Connect copy id and `health_sync_state`, T-081 `profiles.target_weight_kg`.
+Flow: T-076 is backend only (no ux-reviewer); every other task is UI (planner → ux-reviewer → developers → PR → review → merge); the backend parts are verified with pgTAP and `deploy-supabase`. The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`. Every new user-owned table cascades from `auth.users` (ADR-29). Every screen with input ships a restoration test (ADR-40). The interaction rules of ADR-45 / `05-design-system.md` §8 apply to every task: delete at once with no "Deshacer" (the US-25 Gherkin now says so), swipe through `SwipeToDeleteRow`, one explicit "Guardar" per sheet and nothing applied on dismiss, a row opens its details.
+Story IDs: the E4 micronutrient story, numbered "US-25" before, is now US-16b (T-068, T-070), so US-25 means only the E5 story.
+Questions in `tasks/plan.md`: Q1 (weight calendar, date locked when editing), Q2 (edits and deletes follow in Health Connect) and Q3 (direction-aware target wording, progress from the first weight) resolved by the user (2026-10-21); no open blocking question.
+Checkpoints, one per functionality: E5-A after T-078 (manual weight with the calendar, and circumferences) · E5-B after T-079 (Health Connect with the real scale) · E5-C after T-080 (weight trend) · E5-D after T-081 (goal and metrics) · E5-E after T-082 (closure → `v0.5.0`).
+
+## T-076: Manual weight backend: one weight per day, locked date and the repository
+
+**Story:** US-25 (weight part, data side) · **Flow:** backend + shared domain/data (no UI, no ux-reviewer) · **Scenarios (data side):** Logging today's weight; Optional body fat; Logging a weight for a past day; Validation (weight 19,9 / 401, fat 80); Weight calendar, editing and deletion
+
+**Description:** One migration with a `security invoker` RPC (e.g. `save_body_measurement(p_id uuid default null, p_weight_kg, p_body_fat_pct, p_measured_at, p_day_start, p_day_end)`). A new save (null id) inserts the day's manual row or updates the existing manual row of that local day (one manual weight per day, `03-data-model.md` §4). An edit (id set) changes only the weight, the fat and the time within the row's own local day: a `measured_at` outside that day is rejected (`22023`), because the date is locked when editing (Q1 resolved 2026-10-21). Only the caller's `manual` rows (`P0002` otherwise); Health Connect rows are never edited but can be deleted. The per-day semantics match `save_preferences` (share the SQL logic without editing the merged migration; pgTAP covers both). Domain (pure): `ValidateBodyMeasurement` (weight 20–400 and body fat 2–75, 1 decimal, the allowed range as the error), the current-weight rule (latest row by `measured_at`, any source) and `MeasurementsByDay` (group a month's rows by local day for the calendar: manual row, Health Connect rows). `BodyMeasurementRepository` gains the rows of a date range (a calendar month), save through the RPC (local-day bounds from the injected `Clock` and time zone) and delete. No screens in this task.
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP (`supabase/tests/save_body_measurement.test.sql` or extended `body_measurements.test.sql`): a second manual save on the same local day updates the first (one row); a save on another day inserts; an edit that moves `measured_at` to another day is rejected; 19.9 kg, 401 kg and 80 % fat rejected; another user's row cannot be edited or deleted; a Health Connect row cannot be edited; `save_preferences` tests still green; deleting a user with measurements succeeds.
+- [ ] Repository tests: the RPC payload carries the local-day bounds (23:59 and 00:00 cases); a month query returns that month's rows; delete by id.
+- [ ] Q1 recorded in `03-data-model.md` §4 (done in the breakdown PR) and matched by the RPC.
+
+**Host tests (per scenario):** `ValidateBodyMeasurementTest` (Validation outline, boundaries 20/400 and 2/75); `MeasurementsByDayTest` (manual and Health Connect rows per day, local-day edges); `BodyMeasurementRepositoryTest`; pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** E4 (`v0.4.0`)
+**Files likely touched:** `supabase/migrations/<ts>_save_body_measurement.sql`, `supabase/tests/save_body_measurement.test.sql`, `shared/…/domain/model/{BodyMeasurement,WeightEntry}.kt`, `shared/…/domain/usecase/{ValidateBodyMeasurement,MeasurementsByDay}.kt` + tests, `shared/…/domain/repository/BodyMeasurementRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI, tests
+**Estimated scope:** M
+
+---
+
+## T-077: Weight screen with the weight calendar
+
+**Story:** US-25 (weight part, UI) · **Flow:** UI · **Scenarios:** Logging today's weight; Optional body fat; Logging a weight for a past day (calendar; the chart part is in T-080); Validation (weight 19,9 / 401, fat 80); Weight calendar, editing and deletion (manual rows; Health Connect rows are shown with their icon and can only be deleted, tested with fake rows until T-079)
+
+**Description:** Navigation: a "Peso" row in the Perfil root "Estadísticas" section (next to "Fuerza" and "Calorías") opens a full-screen weight destination (`AppTopBar` with a back arrow, ADR-37; reference `design/stitch/progress/screen.png`) that later tasks extend. On that screen: a current-weight panel (`MetricTile`: "73,9 kg", the measurement's date and time, the latest body fat when present). "Registrar peso de hoy" opens today's day sheet: prefilled with the latest weight when today has no manual weight, or today's manual weight to edit when it has one. "Historial de mediciones" is a weight calendar (Q1 resolved 2026-10-21, user): a month grid reusing `MonthCalendarGrid` (T-062; check its callers before changing it) with the days that have a measurement marked, month navigation not past the current month. Tapping an empty day opens a sheet to set that day's weight: the date is fixed to that day, the weight is prefilled with the latest earlier weight, optional body fat %, and a time (now for today, editable within the day, never in the future). Tapping a day with measurements opens that day: its manual weight opens the edit sheet (weight, fat and time; the date is locked; one "Guardar"; delete at once); its Health Connect readings show their icon and are delete-only (`SwipeToDeleteRow` or a delete button); a day with only Health Connect readings also offers setting that day's manual weight. "Guardar" is disabled and the allowed range is shown while a value is invalid. No "Deshacer" (ADR-45). The panel and the calendar update in place after each write. Empty state (every measurement deleted), loading skeleton, `ErrorState` with "Reintentar", writes disabled offline. The visible month, the open day and the sheet draft survive leaving the app (ADR-40).
+
+**Acceptance criteria:**
+- [ ] Perfil → "Peso" opens the weight screen; back returns to Perfil.
+- [ ] Latest weight 74,2 kg and no weight today → "Registrar peso de hoy" opens the sheet with 74,2 and today; 73,9 + "Guardar" → a manual 73.9 kg row and the panel reads "73,9 kg"; tapping it again opens today's 73,9 to edit.
+- [ ] 15,1 % body fat saved → the row stores `body_fat_pct` 15.1 and the panel shows it.
+- [ ] Calendar: days with a measurement are marked; the next-month arrow stops at the current month; tapping empty yesterday → a sheet for yesterday, time set to 07:30, saved at that instant and the day becomes marked.
+- [ ] Tapping a day with a manual weight → edit weight, fat or time (no date field) and save; delete at once (no message, no "Deshacer"); a Health Connect reading (fake) shows its icon, offers no edit and can be deleted.
+- [ ] Weight 19,9 or 401, or fat 80 → "Guardar" disabled and the allowed range shown.
+- [ ] Leaving the app on a past month with a day's sheet half filled and coming back (also after process death) restores the screen, the month and the draft.
+- [ ] Tablet: panel on the left, calendar on the right; phone single column.
+
+**Host tests (per scenario):** `WeightViewModelTest` with fakes, a test `Clock` and Turbine (Logging today's weight incl. prefill and reopen-to-edit; Optional body fat; Logging a weight for a past day; Weight calendar month navigation, editing and deletion; Health Connect row delete-only); `MeasurementSheetViewModelTest` (Validation; locked date; time limits); `WeightScreenTest` (Robolectric: panel "73,9 kg", marked days, no date field when editing, disabled "Guardar" with the range, Health Connect icon, delete, back arrow, two columns at 840 dp); `ProfileRootScreenTest` addition ("Peso" row); restoration tests.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-076
+**Files likely touched:** `composeApp/…/feature/weight/{WeightScreen,WeightViewModel,WeightUiState,WeightCalendar,WeightDaySheet,MeasurementSheet,MeasurementSheetViewModel}.kt`, `composeApp/…/designsystem/MonthCalendarGrid.kt` (only if a parameter is needed; + callers), `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
+**Estimated scope:** M–L
+
+---
+
+## T-078: Body circumferences and the waist-to-hip ratio
+
+**Story:** US-25 (circumference part) · **Flow:** UI + backend · **Scenarios:** Logging a circumference; Waist-to-hip ratio; Editing and deleting a circumference; Circumference validation (19,9 / 251)
+
+**Description:** Backend: one migration with the `circumference_site` enum and `body_circumferences` per `03-data-model.md` §4 (`value_cm numeric(5,1)` with check 20–250, `source` `manual`, index `(user_id, site, measured_at desc)`, `set_updated_at` trigger, `user_id` on delete cascade), RLS enabled and forced with owner policies on `(select auth.uid())`, client grants as for `body_measurements`; pgTAP. Domain (pure): the site list (neck, chest, waist, hip, arm, thigh, calf; Spanish labels in string resources, wording by ux-reviewer), value validation (20–250 cm, 1 decimal), `WaistHipRatio` (`04-business-rules.md` §3.9: latest waist / latest hip, 2 decimals, "Sin datos suficientes" when either is missing). `CircumferenceRepository`. UI: a "Circunferencias" section on the weight screen. "+ Medida" opens a sheet with the site dropdown, the value in cm and the date and time (default now), and "Guardar" disabled with the allowed range shown while invalid. Each site has a history ordered by date (`CircumferenceRow`, a new design-system component with a catalog entry: site, value in cm, date). A row opens the sheet to edit it; delete is at once (swipe or the sheet), with no "Deshacer". The ratio line ("0,86") recalculates in place. The ratio's interpretation (status by sex) is in T-081. Draft restored (ADR-40); writes disabled offline.
+
+**Acceptance criteria:**
+- [ ] Migration + `supabase/tests/body_circumferences.test.sql`: RLS on and forced; cross-user select/insert/update/delete blocked; 19.9 and 251 rejected; deleting a user with circumferences succeeds.
+- [ ] "+ Medida" → "Cintura" 84,5 cm → a waist row of 84.5 cm, shown in the waist history in date order.
+- [ ] Waist 84,5 and hip 98,0 → the section shows "0,86"; only one of them → "Sin datos suficientes".
+- [ ] Editing a value or deleting a row (at once) recalculates the ratio and the history.
+- [ ] 19,9 or 251 cm → "Guardar" disabled and the allowed range shown.
+- [ ] The sheet draft survives leaving the app and process death.
+
+**Host tests (per scenario):** `WaistHipRatioTest` (84.5 / 98.0 → 0.86; a missing site → none; the latest row per site is used); `ValidateCircumferenceTest` (Circumference validation outline); `CircumferencesViewModelTest` with fakes + Turbine (Logging a circumference; Editing and deleting; ratio recalculated); `CircumferenceSectionTest` (Robolectric: "0,86", "Sin datos suficientes", disabled "Guardar" with the range, swipe delete); `CircumferenceRow` catalog entry and test; restoration tests; pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-077
+**Files likely touched:** `supabase/migrations/<ts>_body_circumferences.sql`, `supabase/tests/body_circumferences.test.sql`, `shared/…/domain/model/{BodyCircumference,CircumferenceSite}.kt`, `shared/…/domain/usecase/{WaistHipRatio,ValidateCircumference}.kt` + tests, `shared/…/domain/repository/CircumferenceRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI, `composeApp/…/feature/weight/{CircumferenceSection,CircumferenceSheet,CircumferencesViewModel,WeightScreen}.kt`, `composeApp/…/designsystem/CircumferenceRow.kt`, catalog, strings, tests
+**Estimated scope:** M
+
+---
+
+### Checkpoint E5-A — Manual weight and body measurements 👤
+- [ ] T-076, T-077 and T-078 merged, CI green, `deploy-supabase` applied both migrations (T-076, T-078).
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - Perfil → "Peso": your current weight with its date and time. "Registrar peso de hoy": prefilled with your last weight; save a new weight with body fat; try 19,9 kg, 401 kg and 80 % fat ("Guardar" disabled, range shown).
+  - "Registrar peso de hoy" again: it opens today's weight to edit (one manual weight per day); change it in Preferencias → "Peso actual": the weight screen shows the same value.
+  - Weight calendar: the days with a weight are marked; go back a month and forward (not past the current month). Tap yesterday (empty): set its weight at 07:30. Tap a day with a weight: edit the weight, fat or time (the date cannot be changed) and save; delete one (gone at once, no "Deshacer").
+  - "Circunferencias": "+ Medida" waist 84,5 and hip 98,0 → ratio "0,86"; edit and delete one and watch the ratio; try 19,9 and 251 cm.
+  - Leave the app and come back (also from the app switcher) on a past month of the calendar with a day's weight sheet half filled: the same tab, screen, month and draft are restored.
+  - Out of scope here: Health Connect (E5-B), the chart and the weekly rate (E5-C), goal, BMI, comparison and interpretation (E5-D).
+
+---
+
+## T-079: Manual Health Connect sync (read and write-back)
+
+**Story:** US-26 · **Flow:** UI + backend + platform · **Scenarios:** First sync and permissions; Incremental sync without duplicates; Weight and fat from the same weigh-in; Extra composition metrics; Writing back a manual entry; Editing or deleting a written-back entry; Writing back without permission; Permissions denied; Health Connect unavailable; Last sync status
+
+**Description:** Backend: one migration adds the nullable `lean_mass_kg numeric(5,2)`, `water_kg numeric(5,2)`, `bone_kg numeric(4,2)` and `bmr_kcal integer` columns to `body_measurements` (range checks by the planner) and creates `health_sync_state` (`user_id` PK referencing `auth.users` on delete cascade, `last_synced_at timestamptz`, owner RLS enabled and forced). The import is idempotent on `unique (user_id, external_id)` (for example an RPC `import_health_measurements(p_rows jsonb, p_synced_at timestamptz)` that inserts with `on conflict do nothing` and advances `last_synced_at` in the same transaction; planner's choice). The composition columns are only written by the import; manual saves leave them null (ADR-35). Manual rows keep the id of the copy written to Health Connect in a new nullable column (e.g. `hc_record_id`; `external_id` stays for imports), written only after a successful write-back. pgTAP. Platform: `androidx.health.connect:connect-client` (latest stable, pinned). Manifest: READ/WRITE permissions for weight, body fat, lean body mass, body water mass, bone mass and BMR; `<queries>` for the Health Connect package; the privacy-policy rationale activity (`ACTION_SHOW_PERMISSIONS_RATIONALE`, plus the Android 14+ `VIEW_PERMISSION_USAGE` activity-alias) with a short Spanish privacy text, whose wording is shown to the user before building. Domain: the `HealthDataSource` port (availability: available, not installed or update required; granted permissions; read records; write weight and fat), `HealthConnectDataSource` in `composeApp` androidMain (`02-architecture.md` §2) and a `FakeHealthDataSource` for tests. `PairHealthReadings` (pure, `04-business-rules.md` §3.7): one row per weight record, `external_id` = the weight record's `metadata.id`; fat and composition records are merged by instant (± 2 min); records whose data origin is this app (either flavor's package) are skipped, so write-backs never come back as duplicates. `SyncHealthMeasurements`: the first sync reads the last 90 days, later syncs read since `last_synced_at` (the planner picks the change-detection method; see the plan's risks). Write-back: after a successful manual save (T-077 day sheet and the Preferencias weight) and only with the write permission, weight and fat are inserted into Health Connect and the record id is stored on the row. Editing a manual entry that has a Health Connect copy updates that copy, and deleting it deletes the copy (Q2 resolved 2026-10-21, option (a); `04` §3.7). An entry without a copy (saved without permission) is not written on edit. A missing permission or a failed Health Connect call never fails the app's save or delete and shows nothing. Deleting an imported reading removes it from the app only (Health Connect lets an app delete only its own records), and it is not re-imported. UI: a Health Connect banner on the weight screen with "Sincronizar"; states "Sincronizado ahora" (green indicator), "Sincronizado hace 12 min" (relative time from the injected `Clock`), "Permiso necesario" with a shortcut to request the permissions again, syncing, and unavailable (offers to install or update Health Connect from Google Play); disabled offline. Imported rows show on their day in the weight calendar with the Health Connect icon and delete-only (T-077). The real Health Connect integration is tested by hand only (epic technical note).
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP (`health_sync_state.test.sql`, `body_measurements.test.sql` additions): new columns and their ranges; `health_sync_state` RLS on and forced with cross-user isolation; importing the same rows twice adds none (`external_id` uniqueness); deleting a user with sync state succeeds.
+- [ ] No permissions → "Sincronizar" opens the Health Connect permission screen for reading and writing; granted → the last 90 days are imported and the banner shows "Sincronizado ahora" with a green indicator.
+- [ ] Last sync 2 days ago and 2 new readings → exactly those 2 are imported; tapping again creates nothing.
+- [ ] A weight and a fat record within ± 2 min → one row with both; a weigh-in with weight, fat, lean mass, water, bone and BMR → one row with all six.
+- [ ] Manual 73,9 kg + 15,1 % with the write permission → both written to Health Connect; without it → saved in the app, nothing written, no error.
+- [ ] Denied permissions → "Permiso necesario" with the shortcut; nothing imported.
+- [ ] Health Connect not installed or needing an update → the Google Play install/update is offered.
+- [ ] Last sync 12 minutes ago → "Sincronizado hace 12 min".
+- [ ] Editing a written-back 73,9 kg entry to 73,5 updates the Health Connect copy; deleting it deletes the copy; an entry saved without permission is not written when edited later; a failing Health Connect call keeps the app's change.
+- [ ] A deleted imported reading is not re-imported by the next sync.
+- [ ] DoD: a manual read and write test on the user's phone with the real scale, documented in the PR.
+
+**Host tests (per scenario):** `PairHealthReadingsTest` (Weight and fat from the same weigh-in incl. the ± 2 min boundary; Extra composition metrics; own-origin records skipped); `SyncHealthMeasurementsTest` (First sync 90 days; Incremental sync; idempotent re-run); `HealthSyncViewModelTest` with `FakeHealthDataSource`, a test `Clock` and Turbine (First sync and permissions; Permissions denied; Health Connect unavailable; Last sync status); `MeasurementSheetViewModelTest` additions (Writing back a manual entry; Editing or deleting a written-back entry; Writing back without permission; a failing write keeps the save); `HealthConnectBannerTest` (Robolectric: every banner state and text); pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] `assembleProdDebug` merged manifest lists the twelve Health Connect permissions, the `<queries>` entry and the rationale activity.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** Checkpoint E5-A
+**Files likely touched:** `supabase/migrations/<ts>_health_sync.sql`, `supabase/tests/{health_sync_state,body_measurements}.test.sql`, `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `androidApp/src/main/AndroidManifest.xml`, a rationale activity + strings, `shared/…/domain/port/HealthDataSource.kt`, `shared/…/domain/usecase/{PairHealthReadings,SyncHealthMeasurements}.kt` + tests, `shared/…/domain/repository/{BodyMeasurementRepository,HealthSyncRepository}.kt`, `shared/…/data/repository/*`, DI, `composeApp/src/androidMain/…/platform/HealthConnectDataSource.kt`, `composeApp/…/feature/weight/{HealthConnectBanner,HealthSyncViewModel,MeasurementSheetViewModel,WeightScreen}.kt`, `composeApp/…/feature/profile/PreferencesViewModel.kt` (write-back), tests
+**Estimated scope:** L (the planner may run it as two dev slices: backend + domain + data source, then the banner and the write-back)
+
+---
+
+### Checkpoint E5-B — Health Connect with your scale 👤
+- [ ] T-079 merged, CI green, `deploy-supabase` applied the migration.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try with your real scale:
+  - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the weight calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
+  - Weigh yourself, wait until the reading reaches Health Connect, then "Sincronizar": only the new weigh-in arrives, with its fat and the extra composition values in one entry; tap again: nothing new.
+  - Set a weight and fat by hand: open Health Connect (or another app) and see them. Edit that weight in the app: Health Connect shows the new value; delete it: it is gone from Health Connect too. Revoke the write permission in Health Connect and log again: saved in the app, nothing written, no error.
+  - Revoke all permissions: "Permiso necesario" with the shortcut to grant them again. Wait a few minutes: "Sincronizado hace N min".
+  - Delete an imported weigh-in (only delete is offered for those) and sync again: it does not come back.
+  - Leave the app on the permission screen or mid-sync and come back: the same tab and screen are restored.
+  - Out of scope: background sync and other Health Connect data (steps, sleep…).
+
+---
+
+## T-080: Weight trend chart, time filters and weekly rate
+
+**Story:** US-27 (trend part) + US-25 "Logging a weight for a past day" (chart part) · **Flow:** UI · **Scenarios:** US-27 Metrics panel; Pace against the goal; Two-layer chart; Time filter; Not enough data; Point detail · US-25 Logging a weight for a past day (chart)
+
+**Description:** Domain (pure, `04-business-rules.md` §3.1–§3.4 examples as tests): `DailyWeights` (average of the measurements of each local day), `MovingAverage` (MA7 over the available daily values in `[d − 6, d]`; drawn only with at least 2 days in the window), `WeeklyRate` (`MA7(last day with data) − MA7(that day − 7)`, 2 decimals, "Sin datos suficientes" when either is missing; colour by the `nutrition_goals` strategy: deficit/surplus green or red, maintenance green within ± 0,20 else amber), and the filter ranges 1S/1M/3M/6M/1A (7/30/90/180/365 days back from today). Data: each range is loaded with 6 extra days before its start so the first day has its MA7. UI on the weight screen. The panel gains the `TrendPill` ("−0,45 kg esta semana" in the goal colour, or "Sin datos suficientes"). The pill sits inside a `MetricTile` and both are `surfaceOverlay`, so they get a container-colour parameter (consumes the E4 "Notes for later epics" item; check every caller). The chart extends `AppLineChart` (Vico, already pinned; the strength charts keep working): daily readings as low-opacity dots, a thick `athleticCyan` MA7 line and the legend "MA 7D". A `FilterChipRow` offers 1S/1M/3M/6M/1A, default 3M, with an animated transition; the chosen filter is kept in DataStore (a local preference, ADR-01) across launches. Long-pressing a point shows its date, that day's weight and that day's MA7. With a single measurement the pill reads "Sin datos suficientes" and the chart shows the dot with "Registra tu peso varios días para ver la tendencia". Chart and pill update after every write. The chart exposes a text summary as `stateDescription`. Tablet: panel and chart on the left, calendar and circumferences on the right. Restoration of the selected point (the filter is already persisted).
+
+**Acceptance criteria:**
+- [ ] Deficit with 90 days of entries → the pill shows "−0,45 kg esta semana" in green (fixture); MA7 up 0,30 kg → "+0,30 kg esta semana" in red; maintenance ± 0,15 → green, 0,25 → amber; surplus mirrored.
+- [ ] The panel shows the current weight "74,2 kg" with its date and time and the latest body fat when present.
+- [ ] Dots + MA7 line + "MA 7D"; the weight set from the calendar for yesterday at 07:30 sits on yesterday's date; the MA7 of the first visible day uses the 6 days before the range.
+- [ ] Default 3M; "1M" shows the last 30 days with an animated transition; leaving the screen and relaunching the app keeps "1M".
+- [ ] One measurement → "Sin datos suficientes" and the dot with "Registra tu peso varios días para ver la tendencia".
+- [ ] Long-pressing a point shows its date, weight and MA7.
+- [ ] `MetricTile` and `TrendPill` take a container colour; the pill's outline is visible inside the tile; existing callers unchanged.
+
+**Host tests (per scenario):** `DailyWeightsTest`, `MovingAverageTest`, `WeeklyRateTest` (`04` §3 examples; colour per strategy; missing MA7 → not enough data); `WeightChartRangeTest` (filter days and the 6-day lead-in); `WeightTrendViewModelTest` with a fake preferences store, a test `Clock` and Turbine (Metrics panel; Pace against the goal; Time filter persisted; Not enough data; Point detail; Logging a weight for a past day, on the chart); `WeightChartTest`, `TrendPillTest`, `MetricTileTest` (Robolectric: legend, pill text and colour state, empty message, container colour, `stateDescription`); restoration tests.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** Checkpoint E5-B
+**Files likely touched:** `shared/…/domain/usecase/{DailyWeights,MovingAverage,WeeklyRate,WeightChartRange}.kt` + tests, `shared/…/domain/repository/{BodyMeasurementRepository,WeightPreferences}.kt`, `shared/…/data/repository/*`, `shared/…/data/local/*` (DataStore), DI, `composeApp/…/feature/weight/{WeightChart,WeightTrendViewModel,WeightUiState,WeightScreen}.kt`, `composeApp/…/designsystem/{AppLineChart,MetricTile,TrendPill}.kt` (+ callers), catalog, strings, tests
+**Estimated scope:** M–L
+
+---
+
+### Checkpoint E5-C — Weight trend 👤
+- [ ] T-080 merged, CI green.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try with your real history (manual and scale):
+  - The chart shows the daily dots and the cyan "MA 7D" line; long-press a point: its date, weight and that day's average.
+  - Switch 1S, 1M, 3M, 6M and 1A; leave the screen, close the app and reopen it: the last filter is kept.
+  - The weekly pill: its sign and colour match your strategy (Déficit: green while the average goes down).
+  - Set yesterday's weight from the calendar: it appears on yesterday's date and the line and pill update.
+  - If you can, with another account that has a single weight: "Sin datos suficientes" and the "Registra tu peso varios días…" message.
+  - Leave the app and come back on 1M with a point selected: the same tab, screen, filter and selection are restored.
+  - Out of scope here: target weight, BMI, comparison and interpretation (E5-D).
+
+---
+
+## T-081: Target weight, BMI, measurement comparison and metric interpretation
+
+**Story:** US-27 (goal and metrics part) · **Flow:** UI + backend · **Scenarios:** BMI; Target weight and distance; Setting the target weight; Compare two measurements; Metric interpretation
+
+**Description:** Backend: one migration adds `profiles.target_weight_kg numeric(5,1) null` with a 20–400 check and adds it to the client column-level `UPDATE` grant (`03-data-model.md` §2); pgTAP. Domain (pure, `04-business-rules.md` §3.5, §3.6, §3.8 examples as tests): `Bmi` (178 cm and 74,2 kg → 23,4; no height → not shown), `TargetDistance` (direction-aware by strategy, Q3 resolved 2026-10-21, `04` §3.5: Déficit above the target / Superávit below it → "faltan X kg", otherwise "objetivo alcanzado"; Mantenimiento → "objetivo alcanzado" at 0,0, else "X kg por encima/por debajo del objetivo"), `GoalProgress` (from the user's first weight in the app, the onboarding row, to the target; 0–100 %), `InterpretMetric` for BMI, body fat % by sex and the waist-to-hip ratio by sex (§3.8 ranges), and `CompareMeasurements` (the latest measurement against the selected one: signed weight and fat differences). UI on the weight screen. A `GoalCard` (new design-system component: target, distance and a progress bar from the first weight in the app to the target) with "Fijar objetivo" → a sheet (target 20–400, one "Guardar"; editable later). A BMI tile "IMC 23,4" with its status "Normal". Tapping an interpreted metric (BMI, body fat, waist-to-hip ratio from T-078) opens its detail: value, status chip and a short explanation (`MetricInterpretationRow`, new), and the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico". Compare: from an older day of the weight calendar (T-077) the user opens a measurement → "Comparar" → `ComparisonDeltaRow`s with "−1,4 kg" and the body fat difference (that row is hidden when either measurement has no fat). The Health Connect composition values (lean mass, water, bone, BMR) are shown as plain values in the panel or the measurement detail, without a status (plan assumption: `04` §3.8 has no ranges for them). The selection, the open detail and the target draft are restored (ADR-40); writes are disabled offline. New components get catalog entries.
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP: `target_weight_kg` range 20–400; the owner can update it; another user cannot; other profile columns' grants unchanged.
+- [ ] Height 178 cm and weight 74,2 kg → "IMC 23,4" with "Normal"; no height → no BMI.
+- [ ] Déficit, target 70,0 kg and current 74,2 kg → the goal card shows "faltan 4,2 kg"; at 70,0 or 69,5 kg → "objetivo alcanzado"; Superávit mirrored; Mantenimiento 71,0 vs 70,0 → "1,0 kg por encima del objetivo" (`04` §3.5).
+- [ ] Progress bar: first weight in the app 78,0 kg, target 70,0, current 74,2 → 48 %; reached → 100 %; no target → no bar.
+- [ ] No target → "Fijar objetivo" 70,0 → saved in `profiles.target_weight_kg` and the distance shown; out-of-range values disable "Guardar".
+- [ ] 74,2 kg today vs 75,6 kg a month ago → selecting the older one and "Comparar" shows "−1,4 kg" and the body fat difference.
+- [ ] A metric detail shows the value, a status, a short explanation and the disclaimer; the §3.8 boundaries map to the right status for each sex.
+- [ ] Composition values from Health Connect are visible when present.
+- [ ] Target draft, comparison selection and open detail survive leaving the app and process death.
+
+**Host tests (per scenario):** `BmiTest`, `TargetDistanceTest` (every strategy and direction), `GoalProgressTest`, `InterpretMetricTest` (every §3.8 boundary, both sexes), `CompareMeasurementsTest`; `WeightGoalViewModelTest` with fakes + Turbine (BMI; Target weight and distance; Setting the target weight; Compare two measurements; Metric interpretation); Robolectric tests for `GoalCard`, the interpretation detail (disclaimer text), the comparison and the target sheet; catalog entries for `GoalCard`, `ComparisonDeltaRow` and `MetricInterpretationRow`; restoration tests; pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** Checkpoint E5-C
+**Files likely touched:** `supabase/migrations/<ts>_profiles_target_weight.sql`, `supabase/tests/profiles_target_weight.test.sql`, `shared/…/domain/model/{Profile,MetricInterpretation}.kt`, `shared/…/domain/usecase/{Bmi,TargetDistance,GoalProgress,InterpretMetric,CompareMeasurements}.kt` + tests, `shared/…/domain/repository/ProfileRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/weight/{GoalSection,TargetWeightSheet,MetricDetailSheet,CompareMeasurements,WeightGoalViewModel,WeightScreen}.kt`, `composeApp/…/designsystem/{GoalCard,ComparisonDeltaRow,MetricInterpretationRow}.kt`, catalog, strings, tests
+**Estimated scope:** L (the planner may run it as two dev slices: backend + domain + goal card, then comparison + interpretation)
+
+---
+
+### Checkpoint E5-D — Goal and metrics 👤
+- [ ] T-081 merged, CI green, `deploy-supabase` applied the migration.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - "Fijar objetivo": enter your target weight; the goal card shows "faltan X kg" and the progress since your first weight in the app; set a target on the other side of your weight (e.g. above it while in Déficit): "objetivo alcanzado"; change it and see the card follow.
+  - "IMC" with its status; open the BMI, body fat and waist-to-hip ratio details: value, status, a short explanation and the disclaimer "Este producto no es un dispositivo médico…".
+  - The extra values from your scale (lean mass, water, bone, BMR) are visible.
+  - In the weight calendar, open an older day's measurement → "Comparar": the weight and fat differences with their sign.
+  - Leave the app and come back with the target sheet half filled and with a comparison open: the same tab, screen and draft are restored.
+  - Out of scope: a target date or estimated time to reach it (not in Phase 1).
+
+---
+
+## T-082: E5 closure
+
+**Story:** E5 Definition of Done · **Flow:** PM
+
+**Description:** Closes E5: final regression on the phone with the real scale, approval, tag `v0.5.0` and the retrospective.
+
+**Acceptance criteria:**
+- [ ] T-076…T-081 (and any fix tasks) merged with green CI; pgTAP green for `body_measurements` (incl. `external_id` uniqueness and the manual-row-per-day RPC), `body_circumferences`, `health_sync_state` and `profiles.target_weight_kg`; `deploy-supabase` green after the last migration.
+- [ ] Host tests green for every E5 Gherkin scenario; the weekly rate, BMI, target distance and waist-to-hip ratio match the `04-business-rules.md` §3 examples.
+- [ ] Health Connect read and write manual test documented in the T-079 PR.
+- [ ] Checkpoints E5-A…E5-D approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [ ] `tasks/todo.md` (E5 ✅, next-task pointer) updated through a PR.
+
+**Verification:**
+- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.5.0` after approval.
+
+**Dependencies:** T-081 (Checkpoint E5-D approved)
+**Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
+**Estimated scope:** S
+
+### Checkpoint E5-E — E5 closure: final regression and approval 👤
+- [ ] T-076…T-082 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] 👤 Install the `prodDebug` APK (`! python scripts/deliver-apk.py`) and run a final regression over a few real days:
+  - Weigh yourself on the scale and "Sincronizar"; on a day without the scale set the weight from the calendar (with fat) and check it reaches Health Connect; edit it and then delete it, and check Health Connect follows.
+  - Log a waist and a hip measurement; the ratio and its interpretation update.
+  - Chart: the new points and the MA 7D line; the weekly pill against your strategy; the goal card distance; BMI.
+  - Change the weight in Preferencias: the weight screen shows the same value (one manual weight per day).
+  - Leave the app and come back with the weight sheet open and on a non-default chart filter: the same tab, screen and draft are restored.
+  - Approval → `git tag -a v0.5.0 -m "Epic E5"` + `git push --tags` + retrospective.
+
+---
+
 ## Notes for later epics
 
 - **E3 (food diary), from E2 (T-037):** consumed by T-056 (the Diary reads gram targets from `CalculateMacroTargets`).
@@ -1921,4 +2174,4 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 - **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved. Listed in the E7 UI refinement backlog (`planning/07-roadmap.md` §1.1).
 - **E7 (UI refinement), from Checkpoint E2-A (user, 2026-10-14):** general onboarding polish, better use of space on "Sexo", a typography review. Every later checkpoint appends deferred UI details to `planning/07-roadmap.md` §1.1.
 - **E2 (food diary), from the PR #24 review:** consumed by T-056 (`Double`/percent inputs for `MacroProgressBar` and `ProgressRing`).
-- **E4 (weight and progress), from the PR #24 review:** `MetricTile` and `TrendPill` are both `surfaceOverlay`, so the pill's outline disappears inside a tile; add a container-colour parameter.
+- **E4 (weight and progress), from the PR #24 review:** moved to T-080 (`MetricTile`/`TrendPill` container-colour parameter).
