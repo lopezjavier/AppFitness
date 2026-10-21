@@ -17,6 +17,10 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.Micronutrient
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -145,6 +149,19 @@ class BarcodeScanFlowTest {
         tap("add_food_submit")
         assertEquals("yogur", diary.added.single().foodId)
         assertEquals(listOf(CODE), foods.barcodeLookups)
+    }
+
+    @Test
+    fun productFound_showsItsMicronutrientsInTheSheet() {
+        scanned(food("yogur", "Yogur natural", kcal = 60.0))
+        foods.micronutrientResults["yogur"] = Result.success(
+            Micronutrients(listOf(Micronutrient(MicronutrientKind.Fiber, 2.5, MicronutrientUnit.G))),
+        )
+        start()
+
+        tap("food_search_scan_button")
+
+        rule.onNodeWithTag("add_food_micronutrient_fiber").assertExists()
     }
 
     @Test

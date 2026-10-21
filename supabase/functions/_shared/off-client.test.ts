@@ -286,3 +286,68 @@ Deno.test("OFF failures surface as OffError (HTTP error, network error, timeout)
     );
     assertEquals(timeout.kind, "timeout");
 });
+
+Deno.test("searchOff and fetchOffProduct do not narrow the response with a fields parameter", async () => {
+    const urls: URL[] = [];
+    const fakeFetch = (input: Request | URL | string) => {
+        urls.push(new URL(String(input)));
+        return Promise.resolve(
+            Response.json(
+                urls.length === 1
+                    ? fixture("search-avena")
+                    : fixture("product-full"),
+            ),
+        );
+    };
+    const deps = { fetch: fakeFetch, userAgent: "AppFitness/test" };
+    await searchOff(deps, "avena", 1);
+    await fetchOffProduct(deps, "8410000810004");
+    assertEquals(urls.length, 2);
+    for (const url of urls) assertEquals(url.searchParams.has("fields"), false);
+});
+
+Deno.test("normalizeProduct: the whole OFF product lands untouched in off_data", () => {
+    const raw = fixture("product-full").product as Record<string, unknown>;
+    const food = normalizeProduct(raw)!;
+    assertEquals(food.off_data, raw);
+    for (
+        const key of [
+            "ingredients_text",
+            "nutriscore_grade",
+            "nova_group",
+            "additives_tags",
+            "allergens_tags",
+        ]
+    ) {
+        assert(key in food.off_data, key);
+    }
+    assertEquals(food.name, "Copos de avena integral");
+    assertEquals(
+        [food.kcal_100, food.protein_100, food.carbs_100, food.fat_100],
+        [372, 13.5, 58.7, 7],
+    );
+});
+
+Deno.test("fetchOffProduct and searchOff keep off_data on every usable product and still drop unusable ones", async () => {
+    const found = await fetchOffProduct(
+        {
+            fetch: () =>
+                Promise.resolve(Response.json(fixture("product-full"))),
+            userAgent: "AppFitness/test",
+        },
+        "8410000810004",
+    );
+    assert(found?.off_data.ingredients_text);
+    const foods = await searchOff(
+        {
+            fetch: () =>
+                Promise.resolve(Response.json(fixture("search-avena"))),
+            userAgent: "AppFitness/test",
+        },
+        "avena",
+        1,
+    );
+    assertEquals(foods.length, 2);
+    for (const f of foods) assert(typeof f.off_data.code === "string");
+    assertEquals(normalizeProduct({ code: "1", product_name: "x" }), null);
+});

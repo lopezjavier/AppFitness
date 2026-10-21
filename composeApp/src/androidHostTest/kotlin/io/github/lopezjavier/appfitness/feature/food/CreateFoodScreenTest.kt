@@ -104,6 +104,53 @@ class CreateFoodScreenTest {
     }
 
     @Test
+    fun labelGroup_offersTheFourOptionalFields_andSavingWithoutThemStaysEnabled() {
+        show()
+        rule.onNodeWithTag("create_food_label_title").assertTextContains("Información de la etiqueta (opcional)")
+        listOf("saturated_fat", "sugars", "fiber", "salt").forEach {
+            rule.onNodeWithTag("create_food_$it").assertExists()
+        }
+
+        fillTortilla()
+
+        rule.onNodeWithTag("create_food_save_button").assertIsEnabled()
+    }
+
+    @Test
+    fun labelValues_reachTheCreatedFood_withCommaOrPoint() {
+        show()
+        fillTortilla()
+        type("create_food_fiber", "2,5")
+        type("create_food_salt", "0.5")
+        tap("create_food_save_button")
+
+        val micro = foods.created.single().micronutrients
+        assertEquals(2.5, micro.fiber)
+        assertEquals(0.5, micro.salt)
+        assertEquals(null, micro.sugars)
+    }
+
+    @Test
+    fun negativeLabelValue_showsTheErrorAndDisablesSave() {
+        rule.setContent {
+            AppTheme {
+                CreateFoodScreen(
+                    CreateFoodUiState(
+                        name = "Pan",
+                        sugars = "-3",
+                        errors = NewFoodErrors(sugars = NewFoodError.Negative),
+                    ),
+                    {},
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_sugars_error").assertTextContains("No puede ser negativo")
+        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
+    }
+
+    @Test
     fun removingAPortion_dropsItsRow() {
         show()
         tap("create_food_add_portion_button")

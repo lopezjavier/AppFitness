@@ -4,10 +4,15 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
+import io.github.lopezjavier.appfitness.domain.model.Micronutrient
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -16,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -342,6 +348,62 @@ class AddFoodViewModelTest {
 
         assertTrue(model.content().isOffline)
         assertFalse(model.content().canSubmit)
+    }
+
+    private val fiberOnly = Micronutrients(listOf(Micronutrient(MicronutrientKind.Fiber, 2.5, MicronutrientUnit.G)))
+
+    @Test
+    fun micronutrients_areLoadingWhileFetched_andNeverBlockTheSheet() = runTest(dispatcher) {
+        withFood(food("rice"))
+        foods.micronutrientsGate = CompletableDeferred()
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        assertEquals(MicronutrientsState.Loading, model.content().micronutrients)
+        assertTrue(model.content().canSubmit)
+    }
+
+    @Test
+    fun micronutrients_withData_areShown() = runTest(dispatcher) {
+        withFood(food("rice"))
+        foods.micronutrientResults["rice"] = Result.success(fiberOnly)
+        val model = viewModel("rice")
+
+        advanceUntilIdle()
+
+        assertEquals(MicronutrientsState.Shown(fiberOnly), model.content().micronutrients)
+    }
+
+    @Test
+    fun micronutrients_empty_areHidden() = runTest(dispatcher) {
+        withFood(food("rice"))
+        val model = viewModel("rice")
+
+        advanceUntilIdle()
+
+        assertEquals(MicronutrientsState.Hidden, model.content().micronutrients)
+    }
+
+    @Test
+    fun micronutrients_failure_isSilentAndCanSubmitIsUnaffected() = runTest(dispatcher) {
+        withFood(food("rice"))
+        foods.micronutrientResults["rice"] = Result.failure(AppException(AppError.Network))
+        val model = viewModel("rice")
+
+        advanceUntilIdle()
+
+        assertEquals(MicronutrientsState.Hidden, model.content().micronutrients)
+        assertTrue(model.content().canSubmit)
+    }
+
+    @Test
+    fun micronutrients_doNotChangeTheLoggedSnapshot() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        foods.micronutrientResults["rice"] = Result.success(fiberOnly)
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        assertEquals(130.0, model.content().preview?.kcal)
     }
 
     @Test

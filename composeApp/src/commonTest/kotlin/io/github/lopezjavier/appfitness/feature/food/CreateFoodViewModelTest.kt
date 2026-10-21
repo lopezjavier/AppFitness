@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
+import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.PortionError
@@ -262,6 +263,75 @@ class CreateFoodViewModelTest {
         model.onEvent(CreateFoodEvent.Save)
         advanceUntilIdle()
         assertTrue(repository.created.isEmpty())
+    }
+
+    @Test
+    fun labelFields_typedValuesReachTheNewFood_commaAccepted() = runTest(dispatcher) {
+        val model = viewModel()
+        model.fillTortilla()
+        model.type(CreateFoodField.SaturatedFat, "1,2")
+        model.type(CreateFoodField.Sugars, "4.1")
+        model.type(CreateFoodField.Fiber, "2.5")
+        model.type(CreateFoodField.Salt, "0,5")
+        advanceUntilIdle()
+        assertTrue(model.uiState.value.canSave)
+
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(NewMicronutrients(1.2, 4.1, 2.5, 0.5), repository.created.single().micronutrients)
+    }
+
+    @Test
+    fun labelFields_emptyAreAllowedAndSentAsNotTyped() = runTest(dispatcher) {
+        val model = viewModel()
+        model.fillTortilla()
+        model.type(CreateFoodField.Fiber, "")
+        advanceUntilIdle()
+
+        assertTrue(model.uiState.value.canSave)
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(NewMicronutrients(), repository.created.single().micronutrients)
+    }
+
+    @Test
+    fun labelFields_negativeShowsTheErrorAndDisablesSave() = runTest(dispatcher) {
+        val model = viewModel()
+        model.fillTortilla()
+
+        model.type(CreateFoodField.Sugars, "-1")
+        advanceUntilIdle()
+
+        assertEquals(NewFoodError.Negative, model.uiState.value.errors.sugars)
+        assertFalse(model.uiState.value.canSave)
+    }
+
+    @Test
+    fun labelFields_notANumberShowsTheErrorAndDisablesSave() = runTest(dispatcher) {
+        val model = viewModel()
+        model.fillTortilla()
+
+        model.type(CreateFoodField.Salt, "abc")
+        advanceUntilIdle()
+
+        assertEquals(NewFoodError.NotANumber, model.uiState.value.errors.salt)
+        assertFalse(model.uiState.value.canSave)
+    }
+
+    @Test
+    fun labelFields_areRestoredFromTheSavedState() = runTest(dispatcher) {
+        val model = viewModel()
+        model.type(CreateFoodField.SaturatedFat, "1,2")
+        model.type(CreateFoodField.Fiber, "3")
+        advanceUntilIdle()
+
+        val restored = viewModel(state = savedState)
+        advanceUntilIdle()
+
+        assertEquals("1,2", restored.uiState.value.saturatedFat)
+        assertEquals("3", restored.uiState.value.fiber)
     }
 
     @Test

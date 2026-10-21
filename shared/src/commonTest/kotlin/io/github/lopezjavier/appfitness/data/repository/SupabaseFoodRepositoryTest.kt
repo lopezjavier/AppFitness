@@ -11,7 +11,11 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.Micronutrient
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.NewFood
+import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
@@ -278,6 +282,121 @@ class SupabaseFoodRepositoryTest {
         )
         assertEquals("f1", created.id)
         assertEquals("eq.f1", requests.last().url.parameters["id"])
+    }
+
+    private val milkFood = Food(
+        id = "f3",
+        name = "Leche",
+        brand = null,
+        baseUnit = "ml",
+        nutrition = NutritionPer100(45.0, 0.0, 0.0, 0.0),
+        servingLabel = null,
+        servingAmount = null,
+        portions = emptyList(),
+        imageUrl = null,
+    )
+
+    @Test
+    fun micronutrients_ofAnOffFood_readsOnlyTheNutrimentsPathAndMapsPer100ml() = runTest {
+        val repo = signedIn {
+            """[{"source":"off","micronutrients":null,"nutriments":{"sugars_100ml":4.8,"vitamin-c_100g":0.012}}]"""
+        }
+
+        val result = repo.micronutrients(milkFood).getOrThrow()
+
+        val request = requests.last()
+        assertTrue(request.url.encodedPath.endsWith("/foods"), request.url.toString())
+        assertEquals("eq.f3", request.url.parameters["id"])
+        assertEquals("source,micronutrients,nutriments:off_data->nutriments", request.url.parameters["select"])
+        assertEquals(
+            listOf(
+                Micronutrient(MicronutrientKind.Sugars, 4.8, MicronutrientUnit.G),
+                Micronutrient(MicronutrientKind.VitaminC, 12.0, MicronutrientUnit.MG),
+            ),
+            result.items,
+        )
+    }
+
+    @Test
+    fun micronutrients_ofAPersonalFood_mapsTheTypedValues() = runTest {
+        val repo = signedIn {
+            """[{"source":"user","micronutrients":{"fiber_100g":3.0,"salt_100g":0.4},"nutriments":null}]"""
+        }
+
+        val result = repo.micronutrients(milkFood.copy(baseUnit = "g")).getOrThrow()
+
+        assertEquals(listOf(MicronutrientKind.Fiber, MicronutrientKind.Salt), result.items.map { it.kind })
+    }
+
+    @Test
+    fun micronutrients_ofAFoodWithoutData_isEmpty() = runTest {
+        val repo = signedIn { """[{"source":"off","micronutrients":null,"nutriments":null}]""" }
+
+        assertTrue(repo.micronutrients(milkFood).getOrThrow().isEmpty)
+    }
+
+    @Test
+    fun micronutrients_foodNotFound_isNotFound() = runTest {
+        val repo = signedIn { "[]" }
+
+        assertEquals(AppError.NotFound, repo.micronutrients(milkFood).appErrorOrNull())
+    }
+
+    @Test
+    fun micronutrients_areCachedPerFood() = runTest {
+        val repo = signedIn { """[{"source":"off","nutriments":{"fiber_100g":2.0}}]""" }
+        repo.micronutrients(milkFood).getOrThrow()
+        val before = requests.size
+
+        repo.micronutrients(milkFood).getOrThrow()
+
+        assertEquals(before, requests.size)
+    }
+
+    @Test
+    fun listAndSearchRequests_stayLean() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/food_log_entries")) """[{"food_id":"f1"}]""" else "[$EGG]"
+        }
+
+        repo.recent().getOrThrow()
+
+        val select = requests.last().url.parameters["select"].orEmpty()
+        assertTrue(!select.contains("off_data") && !select.contains("micronutrients"), select)
+    }
+
+    @Test
+    fun createFood_sendsOnlyTheTypedMicronutrients() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
+        }
+
+        repo.createFood(
+            NewFood(
+                "x",
+                null,
+                "g",
+                NutritionPer100(1.0, 0.0, 0.0, 0.0),
+                null,
+                emptyList(),
+                NewMicronutrients(sugars = 4.5, fiber = 2.0),
+            ),
+        ).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_name") }
+        assertTrue(rpcBody.contains("\"p_micronutrients\":{\"sugars_100g\":4.5,\"fiber_100g\":2.0}"), rpcBody)
+    }
+
+    @Test
+    fun createFood_withoutTypedMicronutrients_sendsNone() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
+        }
+
+        repo.createFood(NewFood("x", null, "g", NutritionPer100(1.0, 0.0, 0.0, 0.0), null, emptyList())).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_name") }
+        assertTrue(!rpcBody.contains("p_micronutrients\":{"), rpcBody)
     }
 
     @Test

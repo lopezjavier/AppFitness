@@ -85,7 +85,7 @@ function setup(opts: {
         upsertOff: (foods) => {
             calls.upserted.push(foods);
             return Promise.resolve(
-                foods.map((f, i) => ({
+                foods.map(({ off_data: _raw, ...f }, i) => ({
                     ...f,
                     id: `off-${f.barcode}-${i}`,
                     source: "off" as const,
@@ -209,4 +209,25 @@ Deno.test("a user never sees another user's personal food", async () => {
     const forB = await (await call("?q=tortilla", {}, "token-b")).json();
     assertEquals(forA.results.some((f: Food) => f.id === "mine"), true);
     assertEquals(forB.results.some((f: Food) => f.id === "mine"), false);
+});
+
+Deno.test("search responses never carry off_data or micronutrients", async () => {
+    const { call } = setup({
+        store: [
+            food(
+                "local-1",
+                "Avena en copos",
+                "off",
+                undefined,
+                "8410000810004",
+            ),
+        ],
+    });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.source, "off");
+    assertEquals(Object.keys(body).sort(), ["results", "source"]);
+    for (const f of body.results) {
+        assertEquals("off_data" in f, false);
+        assertEquals("micronutrients" in f, false);
+    }
 });

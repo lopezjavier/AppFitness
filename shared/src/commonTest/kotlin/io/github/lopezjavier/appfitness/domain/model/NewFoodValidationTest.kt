@@ -88,6 +88,36 @@ class NewFoodValidationTest {
     }
 
     @Test
+    fun untypedMicronutrients_areValid() {
+        assertTrue(NewFoodValidation.validate(food()).isValid)
+    }
+
+    @Test
+    fun typedMicronutrients_zeroAndMaximumAreValid() {
+        val errors = NewFoodValidation.validate(food().copy(micronutrients = NewMicronutrients(0.0, 9999.99, 2.5, 0.4)))
+        assertTrue(errors.isValid)
+    }
+
+    @Test
+    fun micronutrients_negativeNanAndTooLargeAreRejectedPerField() {
+        val errors = NewFoodValidation.validate(
+            food().copy(
+                micronutrients = NewMicronutrients(
+                    saturatedFat = -0.1,
+                    sugars = Double.NaN,
+                    fiber = 10000.0,
+                    salt = null,
+                ),
+            ),
+        )
+        assertEquals(NewFoodError.Negative, errors.saturatedFat)
+        assertEquals(NewFoodError.NotANumber, errors.sugars)
+        assertEquals(NewFoodError.TooLarge, errors.fiber)
+        assertNull(errors.salt)
+        assertEquals(false, errors.isValid)
+    }
+
+    @Test
     fun tenPortionsAllowed_elevenNot() {
         val ten = List(10) { NewPortion("p$it", 10.0) }
         assertTrue(NewFoodValidation.validate(food(portions = ten)).isValid)

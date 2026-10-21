@@ -7,7 +7,11 @@ import type { Food, NormalizedFood } from "./off-client.ts";
 import { secretKey } from "./secret-key.ts";
 
 const REQUEST_TIMEOUT_MS = 8000;
-const SELECT = "*, food_portions(id,label,amount,position)";
+// Explicit columns: `off_data` (the full OFF product) must never travel with search results.
+const COLUMNS =
+    "id,source,barcode,name,brand,base_unit,kcal_100,protein_100,carbs_100,fat_100,serving_label,serving_amount,image_url,fetched_at";
+const PORTIONS = "food_portions(id,label,amount,position)";
+const SELECT = `${COLUMNS}, ${PORTIONS}`;
 
 // deno-lint-ignore no-explicit-any
 type Client = SupabaseClient<any, "public", any>;
@@ -121,18 +125,43 @@ export async function searchLocal(
 export async function findByBarcode(
     client: Client,
     code: string,
-): Promise<{ food: Food; fetchedAt: Date } | null> {
+): Promise<
+    { food: Food; fetchedAt: Date; hasOffData: boolean } | null
+> {
     const { data, error } = await client
         .from("foods")
-        .select(`${SELECT}`)
+        .select(`${SELECT}, off_data`)
         .eq("barcode", code);
     if (error) throw error;
     const rows = data ?? [];
     // RLS exposes OFF rows and the caller's own foods; the personal food wins.
     const row = rows.find((r) => r.source === "user") ?? rows[0];
     return row
-        ? { food: toFood(row), fetchedAt: new Date(row.fetched_at) }
+        ? {
+            food: toFood(row),
+            fetchedAt: new Date(row.fetched_at),
+            hasOffData: row.off_data != null,
+        }
         : null;
+}
+
+/** Database row for an OFF food: typed columns plus the untouched OFF product in `off_data`. */
+export function offRow(f: NormalizedFood, fetchedAt: string) {
+    return {
+        barcode: f.barcode,
+        name: f.name,
+        brand: f.brand,
+        base_unit: f.base_unit,
+        kcal_100: f.kcal_100,
+        protein_100: f.protein_100,
+        carbs_100: f.carbs_100,
+        fat_100: f.fat_100,
+        serving_label: f.serving_label,
+        serving_amount: f.serving_amount,
+        image_url: f.image_url,
+        off_data: f.off_data,
+        fetched_at: fetchedAt,
+    };
 }
 
 /**
@@ -157,20 +186,7 @@ export async function upsertOffFoods(
         (existing ?? []).map((r) => [r.barcode as string, r.id as string]),
     );
 
-    const row = (f: NormalizedFood) => ({
-        barcode: f.barcode,
-        name: f.name,
-        brand: f.brand,
-        base_unit: f.base_unit,
-        kcal_100: f.kcal_100,
-        protein_100: f.protein_100,
-        carbs_100: f.carbs_100,
-        fat_100: f.fat_100,
-        serving_label: f.serving_label,
-        serving_amount: f.serving_amount,
-        image_url: f.image_url,
-        fetched_at: now,
-    });
+    const row = (f: NormalizedFood) => offRow(f, now);
 
     for (const f of unique.filter((f) => idByBarcode.has(f.barcode))) {
         const { error } = await admin.from("foods").update(row(f)).eq(

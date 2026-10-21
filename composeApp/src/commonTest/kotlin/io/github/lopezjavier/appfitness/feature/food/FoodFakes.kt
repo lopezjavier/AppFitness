@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
@@ -112,6 +113,17 @@ internal class FakeFoodRepository : FoodRepository {
     override suspend fun findByBarcode(code: String): Result<Food?> {
         barcodeLookups += code
         return barcodeResults[code] ?: Result.success(null)
+    }
+
+    /** Answers of [micronutrients] by food id; a food without an entry has none. */
+    val micronutrientResults = mutableMapOf<String, Result<Micronutrients>>()
+
+    /** When set, [micronutrients] suspends until it completes. */
+    var micronutrientsGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun micronutrients(food: Food): Result<Micronutrients> {
+        micronutrientsGate?.await()
+        return micronutrientResults[food.id] ?: Result.success(Micronutrients.Empty)
     }
 
     /** The foods passed to [createFood]. */
