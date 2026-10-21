@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_amount
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
@@ -27,6 +28,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -64,7 +66,14 @@ internal fun DiaryEntryRow(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SwipeableEntryRow(entry, canDelete, onDelete, modifier.testTag("diary_entry_${entry.id}")) {
+    SwipeToDeleteRow(
+        deleteLabel = stringResource(Res.string.diary_entry_delete_cd, entry.foodName),
+        enabled = canDelete,
+        onDelete = onDelete,
+        backgroundTag = "diary_entry_delete_${entry.id}",
+        modifier = modifier.testTag("diary_entry_${entry.id}"),
+        containerColor = AppTheme.colors.surfaceRaised,
+    ) {
         val editLabel = stringResource(Res.string.diary_entry_edit_label)
         Row(
             Modifier

@@ -1,14 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.food
 
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -17,12 +14,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.template_deleted_snackbar
-import io.github.lopezjavier.appfitness.composeapp.resources.template_undo
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -55,10 +46,6 @@ fun FoodSearchRoot(
     val currentTemplateAdded by rememberUpdatedState(onAdd)
     val currentOpenTemplate by rememberUpdatedState(onOpenTemplate)
     val snackbarHost = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val messages =
-        UndoMessages(stringResource(Res.string.template_deleted_snackbar), stringResource(Res.string.template_undo))
-    val currentMessages by rememberUpdatedState(messages)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(FoodSearchEvent.RefreshTemplates) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -77,10 +64,6 @@ fun FoodSearchRoot(
                 is FoodSearchEffect.TemplateFailed -> templateFailed = true
 
                 is FoodSearchEffect.OpenTemplateDetails -> currentOpenTemplate(effect.templateId)
-
-                is FoodSearchEffect.TemplateDeleted -> scope.launch {
-                    showUndoSnackbar(snackbarHost, effect, currentMessages, viewModel::onEvent)
-                }
 
                 FoodSearchEffect.TemplateManageFailed -> templateManageFailed = true
 
@@ -102,33 +85,6 @@ fun FoodSearchRoot(
         templateFailed = templateFailed,
         templateManageFailed = templateManageFailed,
         snackbarHost = snackbarHost,
-    )
-}
-
-private data class UndoMessages(val deleted: String, val undo: String)
-
-/**
- * "Comida eliminada" with "Deshacer": undo brings the comida back, any other end (timeout or dismissal) commits the
- * delete. If the screen leaves while the snackbar is up, the delete is undone: the comida stays.
- */
-private suspend fun showUndoSnackbar(
-    host: SnackbarHostState,
-    effect: FoodSearchEffect.TemplateDeleted,
-    messages: UndoMessages,
-    onEvent: (FoodSearchEvent) -> Unit,
-) {
-    val result = try {
-        host.showSnackbar(messages.deleted, actionLabel = messages.undo, duration = SnackbarDuration.Long)
-    } catch (cancelled: CancellationException) {
-        onEvent(FoodSearchEvent.UndoDeleteTemplate(effect.templateId))
-        throw cancelled
-    }
-    onEvent(
-        if (result == SnackbarResult.ActionPerformed) {
-            FoodSearchEvent.UndoDeleteTemplate(effect.templateId)
-        } else {
-            FoodSearchEvent.CommitDeleteTemplate(effect.templateId)
-        },
     )
 }
 

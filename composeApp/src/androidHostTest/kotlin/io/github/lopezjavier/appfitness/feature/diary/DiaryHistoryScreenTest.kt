@@ -113,20 +113,22 @@ class DiaryHistoryScreenTest {
     }
 
     @Test
-    fun weeklyAverage_showsTheAverageKcalAndTheLoggedDays() {
+    fun weeklyAverage_showsTheDailyAverage_withoutTheLoggedDaysLine() {
         show(content(view = DiaryHistoryView.Week))
 
+        inside("diary_history_week_summary", "Media diaria").assertIsDisplayed()
         inside("diary_history_week_summary", "2.000 kcal").assertIsDisplayed()
-        inside("diary_history_week_summary", "3 de 7 días registrados").assertIsDisplayed()
+        rule.onNode(hasText("días registrados", substring = true)).assertDoesNotExist()
     }
 
     @Test
-    fun monthlyTotal_showsTheTotalAndTheAveragePerLoggedDay() {
+    fun monthlySummary_showsTheDailyAverage_withoutTheTotalOrTheLoggedDays() {
         show(content(view = DiaryHistoryView.Month))
 
-        inside("diary_history_month_summary", "38.000").assertIsDisplayed()
+        inside("diary_history_month_summary", "Media diaria").assertIsDisplayed()
         inside("diary_history_month_summary", "1.900 kcal").assertIsDisplayed()
-        inside("diary_history_month_summary", "20").assertIsDisplayed()
+        rule.onNode(hasText("Total del mes")).assertDoesNotExist()
+        rule.onNode(hasText("Días registrados")).assertDoesNotExist()
     }
 
     @Test

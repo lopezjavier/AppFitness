@@ -42,10 +42,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_l
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_button
-import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_message
-import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_error
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_no_sets
@@ -59,7 +55,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.summary_pr
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_pr_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -168,7 +163,7 @@ private fun DetailContent(
             ) {
                 GhostButton(
                     text = stringResource(Res.string.session_delete_button),
-                    onClick = { onEvent(SessionDetailEvent.RequestDelete) },
+                    onClick = { onEvent(SessionDetailEvent.Delete) },
                     modifier = Modifier.fillMaxWidth().testTag("session_detail_delete"),
                     enabled = canChange,
                     tone = GhostTone.Destructive,
@@ -318,17 +313,6 @@ private fun SetLine(position: Int, set: DetailSet, enabled: Boolean, onClick: ()
 @Composable
 private fun DetailOverlays(state: SessionDetailUiState.Content, onEvent: (SessionDetailEvent) -> Unit) {
     state.edit?.let { EditSetSheet(it, state.busy, onEvent) }
-    if (state.deleteConfirm) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.session_delete_title),
-            message = stringResource(Res.string.session_delete_message),
-            confirmLabel = stringResource(Res.string.session_delete_confirm),
-            cancelLabel = stringResource(Res.string.session_delete_cancel),
-            onConfirm = { onEvent(SessionDetailEvent.ConfirmDelete) },
-            onDismiss = { onEvent(SessionDetailEvent.DismissDelete) },
-            testTagPrefix = "session_detail_delete",
-        )
-    }
 }
 
 @Composable

@@ -51,7 +51,7 @@ sealed interface EditEntryEvent {
 
     data object Save : EditEntryEvent
 
-    /** Ask the Diary to delete this entry (it owns the undo); only while online. */
+    /** Ask the Diary to delete this entry; only while online. */
     data object Delete : EditEntryEvent
 
     data object Retry : EditEntryEvent
@@ -64,6 +64,6 @@ sealed interface EditEntryEffect {
     /** Saving failed; the sheet stays open with the user's input. */
     data class SaveFailed(val error: AppError?) : EditEntryEffect
 
-    /** The user chose to delete: close the sheet and let the Diary delete [entryId] with its undo. */
+    /** The user chose to delete: close the sheet and let the Diary delete [entryId]. */
     data class DeleteRequested(val entryId: String) : EditEntryEffect
 }

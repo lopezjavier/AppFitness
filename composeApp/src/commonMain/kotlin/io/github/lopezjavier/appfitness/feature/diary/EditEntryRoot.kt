@@ -16,8 +16,8 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * Stateful edit-entry sheet for [entryId] of the ISO day [date]: connects [EditEntryViewModel]. [onSave] runs after
- * the entry was updated (with haptic feedback), [onDelete] when the user chose "Eliminar" (the Diary owns the delete
- * and its undo) and [onDismiss] when the sheet is closed without saving.
+ * the entry was updated (with haptic feedback), [onDelete] when the user chose "Eliminar" (the Diary owns the delete)
+ * and [onDismiss] when the sheet is closed without saving.
  */
 @Composable
 fun EditEntryRoot(

@@ -58,7 +58,6 @@ class SessionDetailViewModel(
             field = value
             persistEdit(value)
         }
-    private var deleteConfirm = false
     private var busy = false
 
     private val _uiState = MutableStateFlow<SessionDetailUiState>(SessionDetailUiState.Loading)
@@ -101,18 +100,8 @@ class SessionDetailViewModel(
                 publish()
             }
 
-            SessionDetailEvent.RequestDelete -> if (online && !busy && session != null) {
-                deleteConfirm = true
-                publish()
-            }
-
-            SessionDetailEvent.ConfirmDelete -> if (!busy && deleteConfirm) {
+            SessionDetailEvent.Delete -> if (!busy && session != null) {
                 if (online) delete() else effectChannel.trySend(SessionDetailEffect.ActionFailed)
-            }
-
-            SessionDetailEvent.DismissDelete -> if (!busy) {
-                deleteConfirm = false
-                publish()
             }
         }
     }
@@ -223,7 +212,6 @@ class SessionDetailViewModel(
         viewModelScope.launch {
             val result = repository.deleteSession(sessionId)
             busy = false
-            deleteConfirm = false
             publish()
             effectChannel.trySend(
                 if (result.isSuccess) SessionDetailEffect.Deleted else SessionDetailEffect.ActionFailed,
@@ -273,7 +261,6 @@ class SessionDetailViewModel(
             },
             isOnline = online,
             edit = edit,
-            deleteConfirm = deleteConfirm,
             busy = busy,
         )
     }

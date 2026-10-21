@@ -80,14 +80,8 @@ sealed interface FoodSearchEvent {
     /** A comida row was tapped: opens its details. */
     data class OpenTemplate(val templateId: String) : FoodSearchEvent
 
-    /** A comida row was swiped away: hides it until the delete is committed or undone (ignored offline). */
-    data class SwipeDeleteTemplate(val templateId: String) : FoodSearchEvent
-
-    /** "Deshacer": the hidden comida comes back and nothing is deleted. */
-    data class UndoDeleteTemplate(val templateId: String) : FoodSearchEvent
-
-    /** The undo window ended: the hidden comida is deleted on the server. */
-    data class CommitDeleteTemplate(val templateId: String) : FoodSearchEvent
+    /** A comida row was swiped to the end: deletes it at once, no confirmation, no undo (ignored offline). */
+    data class DeleteTemplate(val templateId: String) : FoodSearchEvent
 
     /** Reloads the Comidas list, e.g. when the editor comes back with changes. */
     data object RefreshTemplates : FoodSearchEvent
@@ -114,9 +108,6 @@ sealed interface FoodSearchEffect {
 
     /** Open the details of the comida [templateId]. */
     data class OpenTemplateDetails(val templateId: String) : FoodSearchEffect
-
-    /** The comida [templateId] ([name]) was swiped away: show "Comida eliminada" with "Deshacer". */
-    data class TemplateDeleted(val templateId: String, val name: String) : FoodSearchEffect
 
     /** A delete of a comida was refused by the server (generic message); the row is back in the list. */
     data object TemplateManageFailed : FoodSearchEffect

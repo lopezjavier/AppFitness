@@ -131,7 +131,8 @@ class ProfileRootScreenTest {
     @Test
     fun diaryHistoryRow_isBelowFuerza_andOpensTheHistory() {
         show()
-        rule.onNodeWithText("Historial de comidas").assertExists()
+        rule.onNodeWithText("Calorías").assertExists()
+        rule.onNodeWithText("Historial de comidas").assertDoesNotExist()
         rule.onNodeWithTag("profile_diary_history_row").assertHeightIsAtLeast(48.dp)
         val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
         val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()

@@ -38,7 +38,6 @@ private fun detail(
     isOnline: Boolean = true,
     volumeKg: Double = 2_120.0,
     edit: EditSetState? = null,
-    deleteConfirm: Boolean = false,
     busy: Boolean = false,
     firstRecord: Boolean = true,
 ) = SessionDetailUiState.Content(
@@ -60,7 +59,6 @@ private fun detail(
     ),
     isOnline = isOnline,
     edit = edit,
-    deleteConfirm = deleteConfirm,
     busy = busy,
 )
 
@@ -290,32 +288,15 @@ class SessionDetailScreenTest {
     }
 
     @Test
-    fun deleteButton_isAtTheEndOfTheScroll_andRequestsConfirmation() {
+    fun deleteButton_isAtTheEndOfTheScroll_andDeletesAtOnceWithoutADialog() {
         show(detail())
 
         rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_delete"))
         rule.onNodeWithTag("session_detail_delete").assertTextContains("Eliminar sesión")
         rule.onNodeWithTag("session_detail_delete").performClick()
 
-        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.RequestDelete), events)
-    }
-
-    @Test
-    fun deleteDialog_confirmEmitsConfirmDelete() {
-        show(detail(deleteConfirm = true))
-
-        rule.onNodeWithTag("session_detail_delete_confirm").performClick()
-
-        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.ConfirmDelete), events)
-    }
-
-    @Test
-    fun deleteDialog_cancelEmitsDismissDelete() {
-        show(detail(deleteConfirm = true))
-
-        rule.onNodeWithTag("session_detail_delete_cancel").performClick()
-
-        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.DismissDelete), events)
+        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.Delete), events)
+        rule.onNodeWithTag("session_detail_delete_confirm").assertDoesNotExist()
     }
 
     @Test

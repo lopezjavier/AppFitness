@@ -4,7 +4,7 @@ import kotlinx.datetime.LocalDate
 
 /**
  * What the Diary needs from navigation to edit entries: [onEditEntry] opens the edit sheet of an entry of a day, and
- * the sheet's "Eliminar" comes back as [pendingDeleteEntryId] (the Diary deletes it and offers the undo), which the
+ * the sheet's "Eliminar" comes back as [pendingDeleteEntryId] (the Diary deletes it), which the
  * Diary acknowledges through [onConsumeDelete].
  */
 class DiaryEditHost(

@@ -5,9 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.centerY
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.right
 import androidx.compose.ui.test.swipeLeft
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -203,7 +206,22 @@ class DiaryEditFlowTest {
         rule.onNodeWithTag("diary_entry_e1").assertDoesNotExist()
         assertEquals(listOf("e1"), diary.deleted)
         rule.onNode(hasText("Alimento eliminado")).assertDoesNotExist()
-        rule.onNodeWithTag("diary_undo").assertDoesNotExist()
+        rule.onNode(hasText("Deshacer")).assertDoesNotExist()
+    }
+
+    @Test
+    fun aShortDragOnAnEntry_snapsBackAndDeletesNothing() {
+        start()
+
+        rule.onNodeWithTag("diary_entry_e1").performTouchInput {
+            down(Offset(right - 1f, centerY))
+            moveTo(Offset(right * 0.6f, centerY))
+            up()
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_entry_e1").assertExists()
+        assertEquals(emptyList<String>(), diary.deleted)
     }
 
     @Test

@@ -23,13 +23,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empt
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.template_add_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.feature.templates.SwipeableTemplateRow
+import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.feature.templates.TemplateRow
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -114,11 +115,13 @@ private fun TemplatesList(
             item { FailureText(Res.string.template_manage_failed, "food_search_templates_manage_failed") }
         }
         items(rows, key = { it.template.id }) { row ->
-            SwipeableTemplateRow(
-                templateId = row.template.id,
-                name = row.template.name,
+            SwipeToDeleteRow(
+                deleteLabel = stringResource(Res.string.template_swipe_delete_cd, row.template.name),
                 enabled = !isOffline,
-                onDelete = { onEvent(FoodSearchEvent.SwipeDeleteTemplate(row.template.id)) },
+                onDelete = { onEvent(FoodSearchEvent.DeleteTemplate(row.template.id)) },
+                backgroundTag = "food_search_template_${row.template.id}_delete_background",
+                modifier = Modifier.testTag("food_search_template_${row.template.id}_swipe"),
+                containerColor = AppTheme.colors.surfaceBase,
             ) {
                 TemplateRow(
                     row = row,

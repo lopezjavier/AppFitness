@@ -299,11 +299,10 @@ class SessionDetailViewModelTest {
         connectivity.state.value = true
         advanceUntilIdle()
         model.onEvent(SessionDetailEvent.DismissEdit)
-        model.onEvent(SessionDetailEvent.RequestDelete)
         connectivity.state.value = false
         advanceUntilIdle()
         model.effects.test {
-            model.onEvent(SessionDetailEvent.ConfirmDelete)
+            model.onEvent(SessionDetailEvent.Delete)
             assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
         }
         assertTrue(repository.deleted.isEmpty())
@@ -316,24 +315,20 @@ class SessionDetailViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        model.onEvent(SessionDetailEvent.RequestDelete)
-        model.onEvent(SessionDetailEvent.ConfirmDelete)
+        model.onEvent(SessionDetailEvent.Delete)
         advanceUntilIdle()
 
-        assertEquals(false, model.content().deleteConfirm)
         assertTrue(repository.deleted.isEmpty())
     }
 
     @Test
-    fun confirmingTheDeletionDeletesTheSessionAndEmitsDeleted() = runTest(dispatcher) {
+    fun deletingDeletesTheSessionAtOnceAndEmitsDeleted() = runTest(dispatcher) {
         seed()
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.RequestDelete)
-        assertTrue(model.content().deleteConfirm)
 
         model.effects.test {
-            model.onEvent(SessionDetailEvent.ConfirmDelete)
+            model.onEvent(SessionDetailEvent.Delete)
             advanceUntilIdle()
 
             assertEquals(SessionDetailEffect.Deleted, awaitItem())
@@ -342,36 +337,19 @@ class SessionDetailViewModelTest {
     }
 
     @Test
-    fun cancellingTheDeletionDeletesNothing() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.RequestDelete)
-
-        model.onEvent(SessionDetailEvent.DismissDelete)
-        model.onEvent(SessionDetailEvent.ConfirmDelete)
-        advanceUntilIdle()
-
-        assertEquals(false, model.content().deleteConfirm)
-        assertTrue(repository.deleted.isEmpty())
-    }
-
-    @Test
     fun aDeletionFailureEmitsActionFailedAndKeepsTheSession() = runTest(dispatcher) {
         seed()
         repository.deleteFailure = AppError.Network
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.RequestDelete)
 
         model.effects.test {
-            model.onEvent(SessionDetailEvent.ConfirmDelete)
+            model.onEvent(SessionDetailEvent.Delete)
             advanceUntilIdle()
 
             assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
         }
         assertEquals(false, model.content().busy)
-        assertEquals(false, model.content().deleteConfirm)
     }
 
     @Test
