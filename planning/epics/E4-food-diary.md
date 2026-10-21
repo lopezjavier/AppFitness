@@ -449,7 +449,7 @@ Feature: Configurable meals
 Feature: Diary history
 
   Scenario: Opening the history
-    When the user opens "Historial" from the Diary
+    When the user opens "Historial" from Perfil > Estadísticas
     Then they see a calendar with the days that have entries marked
     And tapping a day opens that day's Diary
 

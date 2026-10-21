@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
@@ -69,9 +71,11 @@ private fun content(
     slots: List<MealSlot> = DefaultSlots,
     canGoNext: Boolean = false,
     collapsed: Set<String> = emptySet(),
+    date: LocalDate = Today,
 ) = DiaryUiState.Content(
     DiaryContent(
-        date = Today,
+        date = date,
+        today = Today,
         label = DateLabel.Today,
         canGoNext = canGoNext,
         goals = goals,
@@ -93,11 +97,11 @@ class DiaryScreenTest {
 
     private val events = mutableListOf<DiaryEvent>()
 
-    private fun show(state: DiaryUiState, fontScale: Float = 1f, showHistory: Boolean = true) {
+    private fun show(state: DiaryUiState, fontScale: Float = 1f) {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                AppTheme { DiaryScreen(state, { events += it }, showHistory = showHistory) }
+                AppTheme { DiaryScreen(state, { events += it }) }
             }
         }
         rule.waitForIdle()
@@ -299,20 +303,51 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun historyButton_sitsAfterTheDateHeaderAndEmitsOpenHistory() {
+    fun dayPickerButton_sitsAfterTheNextArrowIsTouchSizedAndOpensTheSheet() {
         show(content(canGoNext = false))
 
-        assertTrue(left("diary_history_open") > left("diary_date_next"))
-        rule.onNodeWithTag("diary_history_open").performClick()
+        assertTrue(left("diary_day_picker_open") > left("diary_date_next"))
+        rule.onNodeWithTag("diary_day_picker_open").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("diary_day_picker_sheet").assertDoesNotExist()
 
-        assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenHistory), events)
+        rule.onNodeWithTag("diary_day_picker_open").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_day_picker_sheet").assertExists()
+        rule.onNodeWithText("Ir a un día").assertExists()
     }
 
     @Test
-    fun historyButton_isHiddenWhenTheDiaryIsAlreadyOpenedFromTheHistory() {
-        show(content(canGoNext = false), showHistory = false)
+    fun dayPickerButton_isPresentOnAPastDay() {
+        show(content(canGoNext = true, date = LocalDate(2026, 10, 12)))
 
-        rule.onNodeWithTag("diary_history_open").assertDoesNotExist()
+        rule.onNodeWithTag("diary_day_picker_open").assertExists()
+    }
+
+    @Test
+    fun dayPicker_pickingADayEmitsGoToDayAndClosesTheSheet() {
+        show(content(canGoNext = false))
+        rule.onNodeWithTag("diary_day_picker_open").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("month_calendar_day_2026-10-12").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.GoToDay(LocalDate(2026, 10, 12))), events)
+        rule.onNodeWithTag("diary_day_picker_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun dayPicker_aFutureDayDoesNothing() {
+        show(content(canGoNext = false))
+        rule.onNodeWithTag("diary_day_picker_open").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("month_calendar_day_2026-10-20").performClick()
+        rule.waitForIdle()
+
+        assertTrue(events.isEmpty())
+        rule.onNodeWithTag("diary_day_picker_sheet").assertExists()
     }
 
     @Test

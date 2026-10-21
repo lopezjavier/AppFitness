@@ -41,8 +41,14 @@ fun AppRoot(
         isOffline = state.isOffline,
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
-        profile = { profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength ->
-            ProfileRootRoute(profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength)
+        profile = { profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength, onOpenDiaryHistory ->
+            ProfileRootRoute(
+                profileModifier,
+                onOpenPreferences,
+                onOpenCatalog,
+                onOpenStrength,
+                onOpenDiaryHistory,
+            )
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, strengthModifier)
@@ -59,16 +65,8 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onOpenHistory ->
-            DiaryRoot(
-                onOpenPreferences,
-                onAddFood,
-                { onAddFood(null, it) },
-                onSaveTemplate,
-                edit,
-                diaryModifier,
-                onOpenHistory,
-            )
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit ->
+            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onSaveTemplate, edit, diaryModifier)
         },
         diaryHistory = { historyModifier, onOpenDay -> DiaryHistoryRoot(onOpenDay, historyModifier) },
         mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },

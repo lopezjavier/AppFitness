@@ -38,7 +38,7 @@ class FoodNavigationTest {
     private lateinit var nav: NavHostController
     private var dismissed = 0
 
-    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, _, _ ->
+    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, _ ->
         Column(modifier.fillMaxSize().testTag("diary_screen")) {
             Box(Modifier.size(48.dp).testTag("diary_add_food").clickable { onAddFood(null, Day) })
             Box(Modifier.size(48.dp).testTag("diary_add_dinner").clickable { onAddFood("dinner", Day) })

@@ -467,6 +467,7 @@
     <!-- T-048 strength progress -->
     <string name="profile_statistics_section">Estadísticas</string>
     <string name="profile_strength_row">Fuerza</string>
+    <string name="profile_diary_history_row">Historial de comidas</string>
     <string name="strength_title">Fuerza</string>
     <string name="muscle_volume_title">Volumen por grupo muscular</string>
     <string name="strength_card_title">Fuerza y 1RM estimado</string>
@@ -739,7 +740,8 @@
     <string name="template_editor_new_name_label">Nombre de la nueva comida</string>
     <string name="template_editor_new_name_submit">Guardar</string>
     <string name="diary_history_title">Historial</string>
-    <string name="diary_history_open_cd">Historial</string>
+    <string name="diary_day_picker_open_cd">Elegir día</string>
+    <string name="diary_day_picker_title">Ir a un día</string>
     <string name="diary_history_error_message">No se pudo cargar el historial</string>
     <string name="diary_history_empty">Sin registros</string>
     <string name="diary_history_view_day">Día</string>

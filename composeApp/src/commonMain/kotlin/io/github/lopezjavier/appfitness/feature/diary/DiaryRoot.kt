@@ -26,7 +26,7 @@ private class DiaryMessages(val failed: String, val offline: String)
 /**
  * Stateful "Diario" tab: connects [DiaryViewModel]. [onOpenPreferences] leads the "Configura tu objetivo" prompt to
  * Preferencias; [onAddToMeal] receives the meal and day to add food to and [onAddFood] the day for the Diary-level
- * add action (no meal preselected). [onOpenHistory] opens the diary history (null hides its button).
+ * add action (no meal preselected).
  * [onSaveTemplate] receives the meal and day whose entries are saved as a comida.
  * On resume the goals are reloaded so a goal set in Preferencias shows up. Deleting
  * an entry is immediate and silent; a failed write shows a message.
@@ -40,7 +40,6 @@ fun DiaryRoot(
     onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
     editHost: DiaryEditHost,
     modifier: Modifier = Modifier,
-    onOpenHistory: (() -> Unit)? = null,
     viewModel: DiaryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -49,7 +48,6 @@ fun DiaryRoot(
     val currentOnSaveTemplate by rememberUpdatedState(onSaveTemplate)
     val currentOnOpenPreferences by rememberUpdatedState(onOpenPreferences)
     val currentEditHost by rememberUpdatedState(editHost)
-    val currentOnOpenHistory by rememberUpdatedState(onOpenHistory)
     val snackbarHost = remember { SnackbarHostState() }
     val messages = DiaryMessages(
         failed = stringResource(Res.string.diary_write_failed),
@@ -63,7 +61,6 @@ fun DiaryRoot(
                 is DiaryEffect.AddFood -> currentOnAddFood(effect.date)
                 is DiaryEffect.OpenSaveTemplate -> currentOnSaveTemplate(effect.slotId, effect.date)
                 DiaryEffect.OpenPreferences -> currentOnOpenPreferences()
-                DiaryEffect.OpenHistory -> currentOnOpenHistory?.invoke()
                 is DiaryEffect.OpenEditEntry -> currentEditHost.onEditEntry(effect.entryId, effect.date)
                 is DiaryEffect.WriteFailed -> showFailure(snackbarHost, currentMessages, effect.error)
             }
@@ -76,7 +73,7 @@ fun DiaryRoot(
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(DiaryEvent.Refresh) }
-    DiaryScreen(state, viewModel::onEvent, modifier, snackbarHost, showHistory = onOpenHistory != null)
+    DiaryScreen(state, viewModel::onEvent, modifier, snackbarHost)
 }
 
 private fun CoroutineScope.showFailure(host: SnackbarHostState, messages: DiaryMessages, error: AppError?) {

@@ -35,7 +35,7 @@ import kotlinx.datetime.LocalDate
 
 /**
  * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener, the catalog opener (null where
- * it is unavailable) and the "Fuerza" opener.
+ * it is unavailable), the "Fuerza" opener and the "Historial de comidas" opener.
  */
 internal typealias ProfileSlot =
     @Composable (
@@ -43,6 +43,7 @@ internal typealias ProfileSlot =
         onOpenPreferences: () -> Unit,
         onOpenCatalog: (() -> Unit)?,
         onOpenStrength: () -> Unit,
+        onOpenDiaryHistory: () -> Unit,
     ) -> Unit
 
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
@@ -79,8 +80,7 @@ internal typealias RoutinesSlot =
 /**
  * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
  * search for a day (the meal is null for the Diary-level add action), [edit] the edit sheet of an entry
- * (and brings back an entry the sheet asked to delete) and [onOpenHistory] the diary history (null on a past day
- * opened from the history, where the button is hidden). The same slot renders a past day ([DiaryDayRoute]).
+ * (and brings back an entry the sheet asked to delete). The same slot renders a past day ([DiaryDayRoute]).
  */
 internal typealias DiarySlot =
     @Composable (
@@ -89,7 +89,6 @@ internal typealias DiarySlot =
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
         onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
         edit: DiaryEditHost,
-        onOpenHistory: (() -> Unit)?,
     ) -> Unit
 
 /** Diary history content: modifier (full-screen insets) and the opener of the Diary of a day. */
@@ -227,7 +226,7 @@ internal typealias RoutineBuilderSlot = @Composable (modifier: Modifier, host: R
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
@@ -259,7 +258,7 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
@@ -386,7 +385,6 @@ internal fun AppNavHost(
                     openPreferences,
                     openFoodSearch,
                     openSaveTemplate,
-                    openDiaryHistory,
                     destinationModifier,
                 )
             }
@@ -400,7 +398,6 @@ internal fun AppNavHost(
                 openPreferences,
                 openFoodSearch,
                 openSaveTemplate,
-                null,
                 destinationModifier,
             )
         }
@@ -441,6 +438,7 @@ internal fun AppNavHost(
                     openPreferences,
                     if (catalogAvailable) openCatalog else null,
                     openStrength,
+                    openDiaryHistory,
                 )
             }
         }
@@ -496,7 +494,7 @@ internal fun AppNavHost(
 
 /**
  * The Diary of the tab ([DiaryHome]) or of a past day ([DiaryDayRoute]): the edit sheet's deletion request comes back
- * through the entry's `savedStateHandle`. [onOpenHistory] is null on a past day.
+ * through the entry's `savedStateHandle`.
  */
 @Composable
 @Suppress("LongParameterList") // The Diary's callbacks plus its entry.
@@ -507,7 +505,6 @@ private fun DiaryDestination(
     openPreferences: () -> Unit,
     openFoodSearch: (String?, LocalDate) -> Unit,
     openSaveTemplate: (String, LocalDate) -> Unit,
-    onOpenHistory: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val handle = entry.savedStateHandle
@@ -522,7 +519,6 @@ private fun DiaryDestination(
             pendingDeleteEntryId = deleted,
             onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
         ),
-        onOpenHistory,
     )
 }
 
