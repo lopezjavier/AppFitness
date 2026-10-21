@@ -366,6 +366,19 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
+    fun micronutrients_realAliasedOffNutrimentsWithMixedValueTypes_areMapped() = runTest {
+        val repo = signedIn {
+            """[{"source":"off","micronutrients":null,"nutriments":{"energy-kcal_100g":45,""" +
+                """"sugars_100ml":"4.8","fiber_100ml":null,"salt_100ml":0.1,"nova-group":4,"vitamin-c_100g":0.012}}]"""
+        }
+
+        val kinds = repo.micronutrients(milkFood).getOrThrow().items.map { it.kind }
+
+        assertTrue(MicronutrientKind.Sugars in kinds && MicronutrientKind.Salt in kinds, kinds.toString())
+        assertTrue(MicronutrientKind.Fiber !in kinds, kinds.toString())
+    }
+
+    @Test
     fun micronutrients_nutrimentsArrivingAsAJsonString_areStillRead() = runTest {
         val repo = signedIn {
             """[{"source":"off","micronutrients":null,"nutriments":"{\"fiber_100ml\":1.5}"}]"""

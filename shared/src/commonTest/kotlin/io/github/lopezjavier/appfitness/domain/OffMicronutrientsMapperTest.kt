@@ -150,26 +150,4 @@ class OffMicronutrientsMapperTest {
         assertTrue(OffMicronutrientsMapper.fromNutriments(null, "g").isEmpty)
         assertTrue(OffMicronutrientsMapper.fromNutriments(JsonObject(emptyMap()), "g").isEmpty)
     }
-
-    @Test
-    fun `typed values map like OFF values`() {
-        val result = OffMicronutrientsMapper.fromTyped(
-            mapOf("salt_100g" to 0.4, "fiber_100g" to 3.0, "sugars_100g" to 0.0),
-            "g",
-        )
-        assertEquals(
-            listOf(
-                Micronutrient(MicronutrientKind.Fiber, 3.0, MicronutrientUnit.G),
-                Micronutrient(MicronutrientKind.Sugars, 0.0, MicronutrientUnit.G),
-                Micronutrient(MicronutrientKind.Salt, 0.4, MicronutrientUnit.G),
-            ),
-            result.items,
-        )
-    }
-
-    @Test
-    fun `typed values of a drink are read through the per 100 g fallback`() {
-        val result = OffMicronutrientsMapper.fromTyped(mapOf("sugars_100g" to 5.0), "ml")
-        assertEquals(listOf(MicronutrientKind.Sugars), result.items.map { it.kind })
-    }
 }

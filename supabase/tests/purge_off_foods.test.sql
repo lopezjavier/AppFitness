@@ -63,8 +63,6 @@ select (select count(*) from public.exercises) as exercises,
 -- ---------------------------------------------------------------------------
 -- Purge (same statements as the migration), run twice to check idempotency
 -- ---------------------------------------------------------------------------
-create temp table run_log (run int, deleted bigint);
-
 create temporary table purge_off_templates as
 select distinct i.template_id
 from public.meal_template_items i

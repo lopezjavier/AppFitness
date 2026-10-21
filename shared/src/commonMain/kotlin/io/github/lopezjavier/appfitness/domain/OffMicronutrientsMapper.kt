@@ -13,16 +13,13 @@ private const val UG_PER_G = 1_000_000.0
 private const val ONE_MG_IN_G = 0.001
 private const val ROUND_FACTOR = 100.0
 
-/** Maps Open Food Facts `nutriments` (or the typed values of a personal food) to the displayable [Micronutrients]. */
+/** Maps Open Food Facts `nutriments` to the displayable [Micronutrients]. */
 object OffMicronutrientsMapper {
     /** [nutriments] is the `nutriments` object of an OFF product; values are grams per 100 g / 100 ml. */
     fun fromNutriments(nutriments: JsonObject?, baseUnit: String): Micronutrients {
         if (nutriments == null) return Micronutrients.Empty
         return map(baseUnit) { key -> (nutriments[key] as? JsonPrimitive)?.content?.toDoubleOrNull() }
     }
-
-    /** [values] holds grams per 100 g keyed like the `foods.micronutrients` column (`fiber_100g`). */
-    fun fromTyped(values: Map<String, Double>, baseUnit: String): Micronutrients = map(baseUnit) { key -> values[key] }
 
     private fun map(baseUnit: String, read: (String) -> Double?): Micronutrients {
         val primary = if (baseUnit == "ml") "_100ml" else "_100g"
