@@ -6,11 +6,13 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 internal data class FoodPortionDto(val id: String, val label: String, val amount: Double, val position: Int = 0)
@@ -78,6 +80,7 @@ internal data class CreateFoodParams(
     @SerialName("p_fat") val fat: Double,
     @SerialName("p_barcode") val barcode: String?,
     @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
+    @SerialName("p_micronutrients") val micronutrients: Map<String, Double>? = null,
 ) {
     companion object {
         fun from(food: NewFood) = CreateFoodParams(
@@ -90,7 +93,31 @@ internal data class CreateFoodParams(
             fat = food.nutrition.fatG,
             barcode = food.barcode?.trim()?.takeIf { it.isNotEmpty() },
             portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
+            micronutrients = food.micronutrients.toParam(),
         )
+
+        /** Only the typed values, keyed like the `foods.micronutrients` column; null when none was typed. */
+        private fun NewMicronutrients.toParam(): Map<String, Double>? = buildMap {
+            saturatedFat?.let { put("saturated-fat_100g", it) }
+            sugars?.let { put("sugars_100g", it) }
+            fiber?.let { put("fiber_100g", it) }
+            salt?.let { put("salt_100g", it) }
+        }.ifEmpty { null }
+    }
+}
+
+/**
+ * The nutrient columns of one `foods` row read for the details: `micronutrients` (personal foods) and the
+ * `nutriments` object of `off_data` (OFF foods), never the whole OFF blob.
+ */
+@Serializable
+internal data class FoodMicronutrientsDto(
+    val source: String,
+    val micronutrients: Map<String, Double>? = null,
+    val nutriments: JsonObject? = null,
+) {
+    companion object {
+        const val COLUMNS = "source,micronutrients,nutriments:off_data->nutriments"
     }
 }
 

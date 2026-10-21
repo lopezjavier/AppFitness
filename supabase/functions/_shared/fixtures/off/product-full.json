@@ -1,0 +1,32 @@
+{
+  "code": "8410000810004",
+  "status": 1,
+  "status_verbose": "product found",
+  "product": {
+    "code": "8410000810004",
+    "product_name": "Avena integral",
+    "product_name_es": "Copos de avena integral",
+    "brands": "Marca Ejemplo,Otra Marca",
+    "nutrition_data_per": "100g",
+    "serving_size": "40 g",
+    "image_front_small_url": "https://images.openfoodfacts.org/images/products/841/000/081/0004/front_es.100.200.jpg",
+    "ingredients_text": "Avena integral 100%",
+    "nutriscore_grade": "a",
+    "nova_group": 1,
+    "additives_tags": [],
+    "allergens_tags": [
+      "en:gluten"
+    ],
+    "nutriments": {
+      "energy-kcal_100g": 372,
+      "energy_100g": 1556,
+      "proteins_100g": 13.5,
+      "carbohydrates_100g": 58.7,
+      "fat_100g": 7,
+      "fiber_100g": 10,
+      "sugars_100g": 1.1,
+      "salt_100g": 0.01,
+      "vitamin-b1_100g": 0.00046
+    }
+  }
+}

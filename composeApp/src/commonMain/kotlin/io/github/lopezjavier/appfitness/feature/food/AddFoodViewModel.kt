@@ -81,12 +81,13 @@ class AddFoodViewModel(
     private val draft = MutableStateFlow<Draft?>(null)
     private val online = MutableStateFlow(true)
     private val submitting = MutableStateFlow(false)
+    private val micronutrients = MutableStateFlow<MicronutrientsState>(MicronutrientsState.Loading)
 
     private val effectChannel = Channel<AddFoodEffect>(Channel.BUFFERED)
     val effects: Flow<AddFoodEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<AddFoodUiState> =
-        combine(loaded, draft, online, submitting, ::buildState)
+        combine(loaded, draft, online, submitting, micronutrients, ::buildState)
             .stateIn(viewModelScope, SharingStarted.Eagerly, AddFoodUiState.Loading)
 
     init {
@@ -106,6 +107,7 @@ class AddFoodViewModel(
 
     private fun load() {
         loaded.value = Loaded.Loading
+        micronutrients.value = MicronutrientsState.Loading
         viewModelScope.launch {
             val (food, slots) = coroutineScope {
                 val food = async { foodRepository.getById(foodId) }
@@ -120,7 +122,16 @@ class AddFoodViewModel(
             }
             if (draft.value == null) draft.value = initialDraft(loadedFood, loadedSlots)
             loaded.value = Loaded.Ready(Setup(loadedFood, loadedSlots))
+            loadMicronutrients(loadedFood)
         }
+    }
+
+    /** Optional info: an empty result or any failure hides the section and never blocks the sheet. */
+    private suspend fun loadMicronutrients(food: Food) {
+        micronutrients.value = foodRepository.micronutrients(food).getOrNull()
+            ?.takeIf { !it.isEmpty }
+            ?.let { MicronutrientsState.Shown(it) }
+            ?: MicronutrientsState.Hidden
     }
 
     private fun initialDraft(food: Food, slots: List<MealSlot>): Draft {
@@ -183,13 +194,25 @@ class AddFoodViewModel(
         }
     }
 
-    private fun buildState(loaded: Loaded, draft: Draft?, online: Boolean, submitting: Boolean): AddFoodUiState = when {
+    private fun buildState(
+        loaded: Loaded,
+        draft: Draft?,
+        online: Boolean,
+        submitting: Boolean,
+        micronutrients: MicronutrientsState,
+    ): AddFoodUiState = when {
         loaded == Loaded.Failed -> AddFoodUiState.Error
         loaded !is Loaded.Ready || draft == null -> AddFoodUiState.Loading
-        else -> AddFoodUiState.Content(buildContent(loaded.setup, draft, online, submitting))
+        else -> AddFoodUiState.Content(buildContent(loaded.setup, draft, online, submitting, micronutrients))
     }
 
-    private fun buildContent(setup: Setup, draft: Draft, online: Boolean, submitting: Boolean): AddFoodContent {
+    private fun buildContent(
+        setup: Setup,
+        draft: Draft,
+        online: Boolean,
+        submitting: Boolean,
+        micronutrients: MicronutrientsState = MicronutrientsState.Hidden,
+    ): AddFoodContent {
         val portion = setup.food.portions.firstOrNull { it.id == draft.portionId }
         val typed = parseAmount(draft.amountText)
         val typedCheck = typed?.let(validateQuantity::invoke) ?: QuantityCheck.TooLow
@@ -207,6 +230,7 @@ class AddFoodViewModel(
             quantityError = check.takeIf { it != QuantityCheck.Valid },
             isOffline = !online,
             submitting = submitting,
+            micronutrients = micronutrients,
         )
     }
 }

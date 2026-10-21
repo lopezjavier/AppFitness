@@ -30,7 +30,7 @@ function stored(source: "off" | "user" = "off"): Food {
 }
 
 function setup(opts: {
-    local?: { food: Food; fetchedAt: Date } | null;
+    local?: { food: Food; fetchedAt: Date; hasOffData?: boolean } | null;
     off?: "found" | "none" | "fail";
     validToken?: boolean;
 } = {}) {
@@ -198,4 +198,74 @@ Deno.test("local lookup runs on behalf of the authenticated user", async () => {
     const { call, calls } = setup({ off: "none" });
     await call("?code=8410000810004");
     assertEquals(calls.findLocal, ["user-a:8410000810004"]);
+});
+
+Deno.test("a cached OFF food without off_data is refetched even when it is recent", async () => {
+    const { call, calls } = setup({
+        off: "found",
+        local: {
+            food: stored(),
+            fetchedAt: new Date(NOW.getTime() - DAY),
+            hasOffData: false,
+        },
+    });
+    const res = await call("?code=8410000810004");
+    assertEquals((await res.json()).food.id, "food-new");
+    assertEquals([calls.off, calls.upsert], [1, 1]);
+});
+
+Deno.test("a cached OFF food without off_data is returned as is when OFF fails", async () => {
+    const { call, calls } = setup({
+        off: "fail",
+        local: {
+            food: stored(),
+            fetchedAt: new Date(NOW.getTime() - DAY),
+            hasOffData: false,
+        },
+    });
+    const res = await call("?code=8410000810004");
+    assertEquals(res.status, 200);
+    assertEquals((await res.json()).food.id, "food-1");
+    assertEquals(calls.upsert, 0);
+});
+
+Deno.test("a cached OFF food without off_data is returned as is when OFF has no usable product", async () => {
+    const { call } = setup({
+        off: "none",
+        local: {
+            food: stored(),
+            fetchedAt: new Date(NOW.getTime() - DAY),
+            hasOffData: false,
+        },
+    });
+    assertEquals(
+        (await (await call("?code=8410000810004")).json()).food.id,
+        "food-1",
+    );
+});
+
+Deno.test("a fresh cached OFF food with off_data is not refetched", async () => {
+    const { call, calls } = setup({
+        off: "found",
+        local: {
+            food: stored(),
+            fetchedAt: new Date(NOW.getTime() - DAY),
+            hasOffData: true,
+        },
+    });
+    await call("?code=8410000810004");
+    assertEquals(calls.off, 0);
+});
+
+Deno.test("a personal food without off_data is never refetched", async () => {
+    const { call, calls } = setup({
+        off: "found",
+        local: {
+            food: stored("user"),
+            fetchedAt: new Date(NOW.getTime() - DAY),
+            hasOffData: false,
+        },
+    });
+    await call("?code=8410000810004");
+    assertEquals(calls.off, 0);
 });

@@ -19,10 +19,12 @@ export type NormalizedFood = {
     serving_amount: number | null;
     image_url: string | null;
     portions: Portion[];
+    /** The raw OFF product, untouched (stored in `foods.off_data`, never sent to clients). */
+    off_data: Record<string, unknown>;
 };
 
 /** A persisted food as returned to clients by the food functions. */
-export type Food = Omit<NormalizedFood, "barcode" | "portions"> & {
+export type Food = Omit<NormalizedFood, "barcode" | "portions" | "off_data"> & {
     id: string;
     source: "off" | "user";
     barcode: string | null;
@@ -49,16 +51,6 @@ export class OffError extends Error {
 
 const OFF_BASE = "https://world.openfoodfacts.org";
 const TIMEOUT_MS = 8000;
-const FIELDS = [
-    "code",
-    "product_name",
-    "product_name_es",
-    "brands",
-    "nutriments",
-    "nutrition_data_per",
-    "serving_size",
-    "image_front_small_url",
-].join(",");
 
 const MAX_NUTRIENT = 9999.99; // numeric(6,2)
 const MAX_AMOUNT = 99999.9; // numeric(7,1)
@@ -192,6 +184,7 @@ export function normalizeProduct(raw: unknown): NormalizedFood | null {
                     position: 0,
                 }]
                 : [],
+            off_data: p,
         };
     } catch {
         return null;
@@ -269,7 +262,6 @@ export async function searchOff(
     url.searchParams.set("page_size", "20");
     url.searchParams.set("lc", "es");
     url.searchParams.set("cc", "es");
-    url.searchParams.set("fields", FIELDS);
     const body = await offGet(deps, url) as { products?: unknown };
     if (!Array.isArray(body?.products)) return [];
     return body.products
@@ -287,7 +279,6 @@ export async function fetchOffProduct(
     );
     url.searchParams.set("lc", "es");
     url.searchParams.set("cc", "es");
-    url.searchParams.set("fields", FIELDS);
     const body = await offGet(deps, url) as {
         status?: unknown;
         product?: unknown;

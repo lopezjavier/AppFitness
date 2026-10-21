@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewFoodValidation
+import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -180,6 +181,10 @@ class CreateFoodViewModel(
             carbs = all.carbs.takeIf { CreateFoodField.Carbs in value.touched },
             fat = all.fat.takeIf { CreateFoodField.Fat in value.touched },
             portions = all.portions.filterKeys { value.portions[it].touched },
+            saturatedFat = all.saturatedFat.takeIf { CreateFoodField.SaturatedFat in value.touched },
+            sugars = all.sugars.takeIf { CreateFoodField.Sugars in value.touched },
+            fiber = all.fiber.takeIf { CreateFoodField.Fiber in value.touched },
+            salt = all.salt.takeIf { CreateFoodField.Salt in value.touched },
         )
         return CreateFoodUiState(
             name = value.fields.getValue(CreateFoodField.Name),
@@ -189,6 +194,10 @@ class CreateFoodViewModel(
             protein = value.fields.getValue(CreateFoodField.Protein),
             carbs = value.fields.getValue(CreateFoodField.Carbs),
             fat = value.fields.getValue(CreateFoodField.Fat),
+            saturatedFat = value.fields.getValue(CreateFoodField.SaturatedFat),
+            sugars = value.fields.getValue(CreateFoodField.Sugars),
+            fiber = value.fields.getValue(CreateFoodField.Fiber),
+            salt = value.fields.getValue(CreateFoodField.Salt),
             barcode = value.barcode,
             portions = value.portions.map { PortionDraft(it.label, it.amount) },
             errors = shown,
@@ -220,6 +229,10 @@ class CreateFoodViewModel(
             val text = value.fields.getValue(field).trim().replace(',', '.')
             return if (text.isEmpty() && blankIsZero) 0.0 else text.toDoubleOrNull() ?: Double.NaN
         }
+
+        /** Blank is "not typed" (null); anything else that is not a number becomes NaN so validation flags it. */
+        fun optional(field: CreateFoodField): Double? =
+            if (value.fields.getValue(field).isBlank()) null else number(field, blankIsZero = false)
         return NewFood(
             name = value.fields.getValue(CreateFoodField.Name).trim(),
             brand = value.fields.getValue(CreateFoodField.Brand).trim().ifEmpty { null },
@@ -234,6 +247,12 @@ class CreateFoodViewModel(
             portions = value.portions.map {
                 NewPortion(it.label.trim(), it.amount.trim().replace(',', '.').toDoubleOrNull() ?: Double.NaN)
             },
+            micronutrients = NewMicronutrients(
+                saturatedFat = optional(CreateFoodField.SaturatedFat),
+                sugars = optional(CreateFoodField.Sugars),
+                fiber = optional(CreateFoodField.Fiber),
+                salt = optional(CreateFoodField.Salt),
+            ),
         )
     }
 }

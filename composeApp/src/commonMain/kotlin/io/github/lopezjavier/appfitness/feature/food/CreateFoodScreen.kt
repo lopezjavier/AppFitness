@@ -16,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_g
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_brand
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_carbs
@@ -28,13 +31,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_r
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_too_large
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_too_long
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_fat
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_fiber
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_kcal_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_kcal_ml
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_label_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_name
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_offline_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_protein
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_salt
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_saturated_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_error
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_sugars
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_ml
@@ -69,6 +77,7 @@ fun CreateFoodScreen(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Uni
             ) {
                 IdentityBlock(state, onEvent)
                 NutritionBlock(state, onEvent)
+                LabelBlock(state, onEvent)
                 PortionsBlock(state, onEvent)
             }
             SaveBar(state, onEvent)
@@ -145,6 +154,56 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
         }
         val fat = NutrientSpec(stringResource(Res.string.create_food_fat), Macro.Fat, "create_food_fat_field")
         NutrientField(fat, state.fat, errors.fat) { onEvent(CreateFoodEvent.FieldChanged(CreateFoodField.Fat, it)) }
+    }
+}
+
+/** The optional label nutrients (US-25): one column so a long label such as "Grasas saturadas" never truncates. */
+@Composable
+private fun LabelBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
+    val errors = state.errors
+    val fields = listOf(
+        Triple(CreateFoodField.SaturatedFat, stringResource(Res.string.create_food_saturated_fat), state.saturatedFat),
+        Triple(CreateFoodField.Sugars, stringResource(Res.string.create_food_sugars), state.sugars),
+        Triple(CreateFoodField.Fiber, stringResource(Res.string.create_food_fiber), state.fiber),
+        Triple(CreateFoodField.Salt, stringResource(Res.string.create_food_salt), state.salt),
+    )
+    val tags = mapOf(
+        CreateFoodField.SaturatedFat to "create_food_saturated_fat",
+        CreateFoodField.Sugars to "create_food_sugars",
+        CreateFoodField.Fiber to "create_food_fiber",
+        CreateFoodField.Salt to "create_food_salt",
+    )
+    val fieldErrors = mapOf(
+        CreateFoodField.SaturatedFat to errors.saturatedFat,
+        CreateFoodField.Sugars to errors.sugars,
+        CreateFoodField.Fiber to errors.fiber,
+        CreateFoodField.Salt to errors.salt,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Text(
+            text = stringResource(Res.string.create_food_label_title),
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.semantics { heading() }.testTag("create_food_label_title"),
+        )
+        Text(
+            text = stringResource(
+                if (state.baseUnit ==
+                    "ml"
+                ) {
+                    Res.string.add_food_nutrition_per_100_ml
+                } else {
+                    Res.string.add_food_nutrition_per_100_g
+                },
+            ),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+        )
+        fields.forEach { (field, label, value) ->
+            NutrientField(NutrientSpec(label, null, tags.getValue(field)), value, fieldErrors[field]) {
+                onEvent(CreateFoodEvent.FieldChanged(field, it))
+            }
+        }
     }
 }
 

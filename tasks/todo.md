@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-068 (Full OFF product data and micronutrients in the food details). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
+**Next:** T-063 (E4 closure). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
 
 ---
 
@@ -1757,10 +1757,10 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Backend: one migration adds `foods.off_data jsonb null` and deletes `source = 'off'` rows with null `off_data` that nothing references (`food_log_entries`, `favorite_foods`, `meal_template_items`); referenced rows are kept. `off-client.ts` requests products without the `fields` filter (everything OFF returns is stored; if the unfiltered search exceeds the 8 s timeout the planner logs `BLOCKED` and asks the user, never narrowing `fields`) and returns the raw product; `food-store.ts` writes it to `off_data`; `food-barcode` also refreshes rows whose `off_data` is null; search responses omit it. App: the food details (the food sheet) read `off_data` for that food on demand and list the micronutrients OFF provides per 100 g / 100 ml with Spanish labels (fiber, sugars, saturated fat, salt/sodium, vitamins, minerals); absent values are hidden. Manual foods: the creation form gets optional fields for saturated fat, sugars, fiber and salt from the label (per 100 g/ml), stored in `foods.micronutrients` through a new `p_micronutrients jsonb` argument of `create_personal_food` (user decision 2026-10-21; no vitamins/minerals in the form); the details show them like OFF ones. Display only: no targets, totals or changes to how entries are computed. Show the user the proposed wording and layout of the section before building. Do not touch training data, preferences or any user-owned row.
 
 **Acceptance criteria:**
-- [ ] Migration + extended pgTAP: `off_data` column; unreferenced null-`off_data` OFF foods deleted; referenced ones kept with the same id; entries, favourites and templates untouched; RLS unchanged.
-- [ ] `deno test` with a full-product fixture: the raw object lands in `off_data`, typed columns unchanged; `food-search` responses carry no `off_data`; `food-barcode` refreshes a row with null `off_data` younger than 30 days.
-- [ ] A food with fiber, sugars, salt and vitamin C shows them in its details per 100 g (ml for drinks); missing nutrients are not listed; a manual food saved with fiber 3 and salt 0,5 shows them, and one saved without them shows no section; a negative value disables "Guardar" (form draft restored, ADR-40).
-- [ ] Mapper unit tests (units, ordering, labels, malformed values ignored); details screen host test; restoration unaffected (ADR-40).
+- [x] Migration + extended pgTAP: `off_data` column; unreferenced null-`off_data` OFF foods deleted; referenced ones kept with the same id; entries, favourites and templates untouched; RLS unchanged.
+- [x] `deno test` with a full-product fixture: the raw object lands in `off_data`, typed columns unchanged; `food-search` responses carry no `off_data`; `food-barcode` refreshes a row with null `off_data` younger than 30 days.
+- [x] A food with fiber, sugars, salt and vitamin C shows them in its details per 100 g (ml for drinks); missing nutrients are not listed; a manual food saved with fiber 3 and salt 0,5 shows them, and one saved without them shows no section; a negative value disables "Guardar" (form draft restored, ADR-40).
+- [x] Mapper unit tests (units, ordering, labels, malformed values ignored); details screen host test; restoration unaffected (ADR-40).
 - [ ] Looked at by the user at Checkpoint E4-C (scan a real product, open its details).
 
 **Host tests (per scenario):** `OffMicronutrientsMapperTest`; `FoodRepositoryTest` additions (details load `off_data` on demand, search stays light); food sheet Robolectric test (section shown / hidden); pgTAP `foods_off_data.test.sql` (incl. `create_personal_food` with micronutrients: valid, unknown key, negative); food-creation form tests; `deno test` for `_shared/off-client` and `food-barcode`.

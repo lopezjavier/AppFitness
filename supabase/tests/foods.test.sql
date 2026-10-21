@@ -23,7 +23,7 @@ select enum_has_labels('public', 'food_base_unit', array['g', 'ml'], 'food_base_
 select columns_are('public', 'foods', array[
   'id', 'source', 'barcode', 'off_id', 'name', 'brand', 'base_unit', 'kcal_100', 'protein_100', 'carbs_100',
   'fat_100', 'serving_label', 'serving_amount', 'image_url', 'created_by', 'search_vector', 'fetched_at',
-  'created_at', 'updated_at'
+  'created_at', 'updated_at', 'off_data', 'micronutrients'
 ], 'foods has exactly the planned columns');
 select fk_ok('public', 'foods', 'created_by', 'auth', 'users', 'id', 'created_by references auth.users.id');
 select has_index('public', 'foods', 'foods_search_vector_idx', 'GIN index on search_vector exists');

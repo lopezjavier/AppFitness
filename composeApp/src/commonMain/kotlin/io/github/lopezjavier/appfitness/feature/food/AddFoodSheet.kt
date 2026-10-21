@@ -16,6 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -82,6 +86,8 @@ fun AddFoodSheet(
     modifier: Modifier = Modifier,
     submitFailed: Boolean = false,
 ) {
+    // Hoisted here (not in the card) so it survives the card leaving while the sheet reloads.
+    var microExpanded by rememberSaveable { mutableStateOf(false) }
     AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "add_food_sheet") {
         Column(
             Modifier
@@ -103,7 +109,8 @@ fun AddFoodSheet(
                     testTagPrefix = "add_food_error_state",
                 )
 
-                is AddFoodUiState.Content -> SheetContent(state.content, onEvent, submitFailed)
+                is AddFoodUiState.Content ->
+                    SheetContent(state.content, onEvent, submitFailed, microExpanded) { microExpanded = it }
             }
         }
     }
@@ -120,10 +127,19 @@ private fun SheetLoading() {
 }
 
 @Composable
-private fun SheetContent(content: AddFoodContent, onEvent: (AddFoodEvent) -> Unit, submitFailed: Boolean) {
+private fun SheetContent(
+    content: AddFoodContent,
+    onEvent: (AddFoodEvent) -> Unit,
+    submitFailed: Boolean,
+    microExpanded: Boolean,
+    onMicroExpandedChange: (Boolean) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         FoodHeader(content.food)
         NutritionPer100Card(content.food)
+        (content.micronutrients as? MicronutrientsState.Shown)?.let {
+            MicronutrientsCard(it.micronutrients, content.food.baseUnit, microExpanded, onMicroExpandedChange)
+        }
         QuantityInput(
             food = content.food,
             amountText = content.amountText,

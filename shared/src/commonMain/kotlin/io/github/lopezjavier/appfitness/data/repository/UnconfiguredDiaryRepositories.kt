@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
@@ -73,6 +74,7 @@ class UnconfiguredFoodDiaryRepository : FoodDiaryRepository {
 }
 
 /** Used when Supabase is not configured: nothing is found and every write fails. */
+@Suppress("TooManyFunctions") // One function per FoodRepository operation.
 class UnconfiguredFoodRepository : FoodRepository {
     private fun <T> failure(): Result<T> = Result.failure(AppException(AppError.Unknown))
 
@@ -91,6 +93,8 @@ class UnconfiguredFoodRepository : FoodRepository {
     override suspend fun getById(id: String): Result<Food> = failure()
 
     override suspend fun findByBarcode(code: String): Result<Food?> = failure()
+
+    override suspend fun micronutrients(food: Food): Result<Micronutrients> = failure()
 
     override suspend fun createFood(food: NewFood): Result<Food> = failure()
 }

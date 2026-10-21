@@ -71,6 +71,27 @@ class CreateFoodRestorationTest {
     }
 
     @Test
+    fun labelFields_surviveRecreation() {
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_saturated_fat").performTextInput("1,5")
+        rule.onNodeWithTag("create_food_sugars").performTextInput("4")
+        rule.onNodeWithTag("create_food_fiber").performTextInput("2")
+        rule.onNodeWithTag("create_food_salt").performTextInput("0,3")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_saturated_fat").assertTextContains("1,5")
+        rule.onNodeWithTag("create_food_sugars").assertTextContains("4")
+        rule.onNodeWithTag("create_food_fiber").assertTextContains("2")
+        rule.onNodeWithTag("create_food_salt").assertTextContains("0,3")
+    }
+
+    @Test
     fun notFoundCard_survivesRecreation() {
         val saved = SavedStateHandle()
         val scanner = FakeBarcodeScanner(ScanResult.Code(CODE))

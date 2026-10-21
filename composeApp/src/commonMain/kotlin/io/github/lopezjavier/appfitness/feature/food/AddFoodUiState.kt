@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.food
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 
@@ -34,10 +35,23 @@ data class AddFoodContent(
     val quantityError: QuantityCheck?,
     val isOffline: Boolean,
     val submitting: Boolean,
+    val micronutrients: MicronutrientsState = MicronutrientsState.Loading,
 ) {
     /** The add button is enabled. */
     val canSubmit: Boolean
         get() = quantityError == null && resolvedAmount != null && selectedSlotId != null && !isOffline && !submitting
+}
+
+/**
+ * The optional extra-nutrients section of the sheet. It never affects [AddFoodContent.canSubmit]: [Loading] renders
+ * nothing, [Hidden] is an empty result or a silent failure (also offline) and [Shown] carries the rows.
+ */
+sealed interface MicronutrientsState {
+    data object Loading : MicronutrientsState
+
+    data object Hidden : MicronutrientsState
+
+    data class Shown(val micronutrients: Micronutrients) : MicronutrientsState
 }
 
 sealed interface AddFoodEvent {

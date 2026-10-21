@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,6 +17,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
+import io.github.lopezjavier.appfitness.domain.model.Micronutrient
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -124,6 +129,28 @@ class FoodRestorationTest {
         rule.onNodeWithTag("food_search_input").assertTextContains("pollo")
         rule.onNodeWithTag("food_search_result_chicken").assertExists()
         assertEquals(listOf("pollo"), foods.searches)
+    }
+
+    @Test
+    fun micronutrientsSection_reappearsAfterRecreation_andTheExpandedStateIsKept() {
+        foods.known["egg"] = egg
+        val kinds = MicronutrientKind.entries.take(8)
+        foods.micronutrientResults["egg"] = Result.success(
+            Micronutrients(kinds.map { Micronutrient(it, 1.0, MicronutrientUnit.MG) }),
+        )
+        val tester = StateRestorationTester(rule)
+        tester.setContent { SheetHost(addModel(SavedStateHandle())) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("add_food_micronutrients").assertExists()
+        rule.onNodeWithTag("add_food_micronutrients_toggle").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("add_food_micronutrients").assertExists()
+        rule.onNodeWithTag("add_food_micronutrient_${micronutrientTag(kinds.last())}").assertExists()
+        rule.onNodeWithTag("add_food_micronutrients_toggle").assertTextEquals("Ver menos")
     }
 
     @Test

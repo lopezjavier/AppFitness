@@ -20,7 +20,9 @@ export type FoodBarcodeDeps = {
     findLocal: (
         code: string,
         userId: string,
-    ) => Promise<{ food: Food; fetchedAt: Date } | null>;
+    ) => Promise<
+        { food: Food; fetchedAt: Date; hasOffData?: boolean } | null
+    >;
     /** Product from OFF; null when unknown or without usable nutrition; throws OffError when unreachable. */
     fetchOff: (code: string) => Promise<NormalizedFood | null>;
     /** Stores (or refreshes) an OFF food and its portions with the secret key; returns the stored food. */
@@ -57,8 +59,9 @@ export function createFoodBarcodeHandler(
             const local = await deps.findLocal(code, userId);
             const fresh = local &&
                 (local.food.source === "user" ||
-                    deps.now().getTime() - local.fetchedAt.getTime() <=
-                        STALE_AFTER_MS);
+                    (local.hasOffData !== false &&
+                        deps.now().getTime() - local.fetchedAt.getTime() <=
+                            STALE_AFTER_MS));
             if (local && fresh) return jsonResponse(200, { food: local.food });
 
             let off: NormalizedFood | null;

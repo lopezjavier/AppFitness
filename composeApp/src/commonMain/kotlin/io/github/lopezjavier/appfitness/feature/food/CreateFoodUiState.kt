@@ -18,6 +18,10 @@ data class CreateFoodUiState(
     val protein: String = "",
     val carbs: String = "",
     val fat: String = "",
+    val saturatedFat: String = "",
+    val sugars: String = "",
+    val fiber: String = "",
+    val salt: String = "",
     val barcode: String? = null,
     val portions: List<PortionDraft> = emptyList(),
     val errors: NewFoodErrors = NewFoodErrors(),
@@ -28,7 +32,8 @@ data class CreateFoodUiState(
     val saveFailed: Boolean = false,
 )
 
-enum class CreateFoodField { Name, Brand, Kcal, Protein, Carbs, Fat }
+/** The label fields (saturated fat, sugars, fiber, salt) are optional: blank means not typed. */
+enum class CreateFoodField { Name, Brand, Kcal, Protein, Carbs, Fat, SaturatedFat, Sugars, Fiber, Salt }
 
 sealed interface CreateFoodEvent {
     data class FieldChanged(val field: CreateFoodField, val text: String) : CreateFoodEvent

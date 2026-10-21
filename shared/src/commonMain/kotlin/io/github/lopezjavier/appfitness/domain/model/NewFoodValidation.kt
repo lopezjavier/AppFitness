@@ -17,6 +17,10 @@ object NewFoodValidation {
         fat = nutrient(food.nutrition.fatG),
         portions = food.portions.withIndex().mapNotNull { (i, p) -> portion(p)?.let { i to it } }.toMap(),
         tooManyPortions = food.portions.size > MAX_PORTIONS,
+        saturatedFat = food.micronutrients.saturatedFat?.let(::nutrient),
+        sugars = food.micronutrients.sugars?.let(::nutrient),
+        fiber = food.micronutrients.fiber?.let(::nutrient),
+        salt = food.micronutrients.salt?.let(::nutrient),
     )
 
     private fun text(value: String, required: Boolean): NewFoodError? = when {

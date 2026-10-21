@@ -13,13 +13,16 @@ import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
 import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodDto
+import io.github.lopezjavier.appfitness.data.remote.FoodMicronutrientsDto
 import io.github.lopezjavier.appfitness.data.remote.FoodSearchResponseDto
 import io.github.lopezjavier.appfitness.data.remote.LoggedFoodDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.OffMicronutrientsMapper
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -53,6 +56,9 @@ class SupabaseFoodRepository(
 
     /** Foods seen in a list, so opening one from a list needs no extra request. */
     private val known = MutableStateFlow<Map<String, Food>>(emptyMap())
+
+    /** The micronutrients already read, by food id. */
+    private val micronutrientsCache = MutableStateFlow<Map<String, Micronutrients>>(emptyMap())
 
     override suspend fun search(query: String, page: Int): Result<List<Food>> = auth.ownRow {
         val response = functions.invoke("food-search") {
@@ -135,12 +141,29 @@ class SupabaseFoodRepository(
         }
     }
 
+    override suspend fun micronutrients(food: Food): Result<Micronutrients> = auth.ownRow {
+        micronutrientsCache.value[food.id] ?: run {
+            val row = postgrest.from("foods")
+                .select(Columns.raw(FoodMicronutrientsDto.COLUMNS)) { filter { eq("id", food.id) } }
+                .decodeList<FoodMicronutrientsDto>()
+                .firstOrNull()
+                ?: throw AppException(AppError.NotFound)
+            val result = if (row.source == "user") {
+                OffMicronutrientsMapper.fromTyped(row.micronutrients.orEmpty(), food.baseUnit)
+            } else {
+                OffMicronutrientsMapper.fromNutriments(row.nutriments, food.baseUnit)
+            }
+            result.also { found -> micronutrientsCache.update { it + (food.id to found) } }
+        }
+    }
+
     override suspend fun createFood(food: NewFood): Result<Food> = auth.ownRow {
         val id = json.decodeFromString<String>(
             postgrest.rpc("create_personal_food", CreateFoodParams.from(food)).data,
         )
         // Read it back so the portions carry their server ids and no stale copy is cached.
         known.update { it - id }
+        micronutrientsCache.update { it - id }
         postgrest.from("foods")
             .select(Columns.raw(FoodDto.COLUMNS)) { filter { eq("id", id) } }
             .decodeList<FoodDto>()

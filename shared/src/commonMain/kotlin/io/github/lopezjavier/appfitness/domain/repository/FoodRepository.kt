@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import kotlinx.coroutines.flow.Flow
 
@@ -28,6 +29,12 @@ interface FoodRepository {
 
     /** The product with this barcode through `food-barcode`; `Result.success(null)` when no product has it. */
     suspend fun findByBarcode(code: String): Result<Food?>
+
+    /**
+     * The extra nutrients of [food] per 100 g / 100 ml (empty when it has none); fails with `AppError.NotFound` when
+     * the food is not readable. Cached per food, so reopening a food needs no request.
+     */
+    suspend fun micronutrients(food: Food): Result<Micronutrients>
 
     /** Creates a personal food with its portions in one atomic call and returns it as stored. */
     suspend fun createFood(food: NewFood): Result<Food>
