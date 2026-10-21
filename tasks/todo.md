@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-063 (E4 closure; Checkpoint E4-C approved 2026-10-21). Round 2 feedback of E4-C (2026-10-21) became T-072…T-074; round 3 became T-075 (swipe haptics and the stray-line bug went to the E8 table).
+**Next:** E5 (weight) has no tasks yet: break it down with `epic-planner` in a fresh session; the user confirms the task list and checkpoints before the first task. E4 closed (tag `v0.4.0`, retrospective pending the user).
 
 ---
 
@@ -1887,13 +1887,13 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Closes E4: final regression on the phone with real scanned foods, approval, tag `v0.4.0` and the retrospective.
 
 **Acceptance criteria:**
-- [ ] T-055…T-062 and T-068 merged with green CI; pgTAP for the 7 tables (`foods`, `food_portions`, `food_log_entries`, `meal_slots`, `meal_templates`, `meal_template_items`, `favorite_foods`) and the two RPCs green; `deno test` for `food-search` and `food-barcode` green; `deploy-supabase` green after the last migration.
-- [ ] Host tests green for every E4 Gherkin scenario.
-- [ ] Checkpoints E4-A and E4-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
-- [ ] `tasks/todo.md` (E4 ✅, next-task pointer) updated through a PR.
+- [x] T-055…T-062 and T-068 merged with green CI; pgTAP for the 7 tables (`foods`, `food_portions`, `food_log_entries`, `meal_slots`, `meal_templates`, `meal_template_items`, `favorite_foods`) and the two RPCs green; `deno test` for `food-search` and `food-barcode` green; `deploy-supabase` green after the last migration.
+- [x] Host tests green for every E4 Gherkin scenario.
+- [x] Checkpoints E4-A and E4-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [x] `tasks/todo.md` (E4 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.
+- [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.
 
 **Dependencies:** T-073
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
