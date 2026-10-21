@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
 import androidx.activity.ComponentActivity
+import androidx.activity.ComponentDialog
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.centerY
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,6 +36,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * US-21 comida details as the editor: rows and header with nutrition, the food sheet, swipe to remove, and "Guardar"
@@ -242,8 +245,14 @@ class TemplateDetailsScreenTest {
         showDetails()
         typeInFoodSheet("180")
 
-        rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
-        rule.waitForIdle()
+        // The sheet lives in its own dialog window: back goes to the dialog, not to the activity.
+        rule.runOnUiThread {
+            val dialog = ShadowDialog.getLatestDialog() as ComponentDialog
+            dialog.onBackPressedDispatcher.onBackPressed()
+        }
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodesWithTag("template_food_sheet").fetchSemanticsNodes().isEmpty()
+        }
 
         rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
         rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
