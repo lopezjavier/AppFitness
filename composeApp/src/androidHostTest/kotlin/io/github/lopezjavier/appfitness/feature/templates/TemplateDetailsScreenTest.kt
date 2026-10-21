@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -7,7 +8,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.centerY
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -43,7 +44,7 @@ import org.robolectric.annotation.Config
 @Suppress("TooManyFunctions") // One method per scenario.
 class TemplateDetailsScreenTest {
     @get:Rule
-    val rule = createComposeRule()
+    val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val eggs = food("eggs", "Huevos revueltos", kcal = 100.0)
     private val shake = food("shake", "Batido de proteína", kcal = 50.0)
@@ -66,7 +67,13 @@ class TemplateDetailsScreenTest {
     private fun editFirstFoodTo(grams: String) {
         rule.onNodeWithTag("template_details_item_0").performClick()
         rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement(grams)
-        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.waitForIdle()
+    }
+
+    private fun typeInFoodSheet(grams: String) {
+        rule.onNodeWithTag("template_details_item_0").performClick()
+        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement(grams)
         rule.waitForIdle()
     }
 
@@ -105,7 +112,7 @@ class TemplateDetailsScreenTest {
     }
 
     @Test
-    fun tappingAFood_opensItsSheet_andTypingGramsUpdatesTheRowAndTheHeader() {
+    fun tappingAFood_opensItsSheet_andTypingGramsOnlyPreviewsThem() {
         templates.templates += desayunoA
         showDetails()
 
@@ -116,8 +123,8 @@ class TemplateDetailsScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("template_food_sheet_preview_kcal", useUnmergedTree = true).assertTextContains("180 kcal")
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("330 kcal")
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("180 kcal", substring = true)
+        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 kcal", substring = true)
         assertTrue(templates.templates.single().items.first().amount == 120.0)
     }
 
@@ -208,10 +215,55 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        editFirstFoodTo("0")
+        typeInFoodSheet("0")
 
-        rule.onNodeWithTag("template_details_item_0_error", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("template_food_sheet_save").assertIsNotEnabled()
         rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun foodSheet_closingWithTheCloseButton_discardsTheTypedQuantity() {
+        templates.templates += desayunoA
+        showDetails()
+        typeInFoodSheet("180")
+
+        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 kcal", substring = true)
+        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun foodSheet_dismissedWithBack_discardsTheTypedQuantity() {
+        templates.templates += desayunoA
+        showDetails()
+        typeInFoodSheet("180")
+
+        rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun foodSheet_guardar_appliesTheQuantityAndClosesTheSheet() {
+        templates.templates += desayunoA
+        showDetails()
+        typeInFoodSheet("180")
+
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_item_0").assertTextContains("180 g", substring = true)
+        rule.onNodeWithTag("template_details_item_0").assertTextContains("180 kcal", substring = true)
+        rule.onNodeWithTag("template_details_kcal").assertTextContains("330 kcal")
+        assertEquals(120.0, templates.templates.single().items.first().amount, 0.0)
     }
 
     @Test
@@ -304,7 +356,7 @@ class TemplateDetailsScreenTest {
         showDetails()
         rule.onNodeWithTag("template_details_item_1").performClick()
         rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("80")
-        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("template_details_save").performClick()

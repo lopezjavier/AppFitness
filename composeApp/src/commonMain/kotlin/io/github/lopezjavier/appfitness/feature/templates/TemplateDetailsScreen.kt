@@ -248,7 +248,8 @@ private fun DetailsSheets(content: TemplateDetailsUiState.Content, onEvent: (Tem
     content.openFood?.let { open ->
         TemplateFoodSheet(
             open = open,
-            onAmountChange = { onEvent(TemplateDetailsEvent.AmountChanged(open.row.index, it)) },
+            onAmountChange = { onEvent(TemplateDetailsEvent.FoodAmountChanged(it)) },
+            onSave = { onEvent(TemplateDetailsEvent.SaveFood) },
             onRemove = { onEvent(TemplateDetailsEvent.RemoveFood(open.row.index)) },
             onDismiss = { onEvent(TemplateDetailsEvent.DismissFood) },
         )

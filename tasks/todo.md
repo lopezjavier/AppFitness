@@ -1828,8 +1828,8 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** User feedback at Checkpoint E4-C (2026-10-21). In a comida's editor, opening a food shows the details sheet with its quantity, and the quantity is applied automatically when the sheet closes. This breaks ADR-45 ("Editing": one "Guardar", nothing saved per action). The sheet gets an explicit "Guardar" that applies the quantity to the comida draft; closing without it discards the change (as the X does). Remove the apply-on-dismiss. The ux-reviewer sweeps the whole app for any other edit that applies on close or per action (diary entry editing, templates, meal structure, food creation) and the plan includes them.
 
 **Acceptance criteria:**
-- [ ] Host test: change the quantity, close the sheet without "Guardar" → the comida draft is unchanged; with "Guardar" → the quantity and kcal/macros update.
-- [ ] No other screen applies an edit on dismiss; the sweep result is in the PR body.
+- [x] Host test: change the quantity, close the sheet without "Guardar" → the comida draft is unchanged; with "Guardar" → the quantity and kcal/macros update.
+- [x] No other screen applies an edit on dismiss; the sweep result is in the PR body.
 
 **Verification:** lint, host tests and CI green. **Dependencies:** T-074 · **Estimated scope:** S
 

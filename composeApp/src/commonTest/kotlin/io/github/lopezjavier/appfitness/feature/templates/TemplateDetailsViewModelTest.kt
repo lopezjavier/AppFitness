@@ -539,15 +539,139 @@ class TemplateDetailsViewModelTest {
     }
 
     @Test
-    fun anAmountTypedInTheFoodSheet_goesStraightIntoTheDraft_withNothingSaved() = runTest(dispatcher) {
+    fun anAmountTypedInTheFoodSheet_isOnlyPreviewed_theListAndTotalsKeepTheCommittedAmount() = runTest(dispatcher) {
         val model = loaded()
         model.onEvent(TemplateDetailsEvent.OpenFood(0))
 
-        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "250"))
+        model.onEvent(TemplateDetailsEvent.FoodAmountChanged("250"))
 
         val content = contentOf(model)
         assertEquals(250.0, content.openFood?.row?.kcal)
+        assertEquals("250", content.openFood?.row?.amountText)
+        assertEquals("120", content.rows.first().amountText)
+        assertEquals(120.0, content.rows.first().kcal, 0.001)
+        assertEquals(270.0, content.totalKcal, 0.001)
         assertEquals(120.0, repository.templates.single().items.first().amount, 0.0)
+    }
+
+    @Test
+    fun dismissingTheFoodSheet_discardsThePendingAmount() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+        model.onEvent(TemplateDetailsEvent.FoodAmountChanged("250"))
+
+        model.onEvent(TemplateDetailsEvent.DismissFood)
+
+        val content = contentOf(model)
+        assertNull(content.openFood)
+        assertEquals("120", content.rows.first().amountText)
+        assertEquals(270.0, content.totalKcal, 0.001)
+        assertFalse(content.isDirty)
+        assertFalse(content.canSave)
+    }
+
+    @Test
+    fun savingTheFoodSheet_commitsTheAmount_closesTheSheet_andClearsThePortionLabel() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.OpenFood(1))
+        model.onEvent(TemplateDetailsEvent.FoodAmountChanged("200"))
+
+        model.onEvent(TemplateDetailsEvent.SaveFood)
+
+        val content = contentOf(model)
+        assertNull(content.openFood)
+        val row = content.rows[1]
+        assertEquals("200", row.amountText)
+        assertEquals(100.0, row.kcal, 0.001)
+        assertNull(row.portionLabel)
+        assertEquals(220.0, content.totalKcal, 0.001)
+        assertTrue(content.isDirty)
+        assertTrue(content.canSave)
+    }
+
+    @Test
+    fun anInvalidPendingAmount_cannotBeSaved_andShowsItsError() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+
+        listOf("" to QuantityCheck.TooLow, "0" to QuantityCheck.TooLow, "5001" to QuantityCheck.TooHigh).forEach {
+            model.onEvent(TemplateDetailsEvent.FoodAmountChanged(it.first))
+            val open = assertNotNull(contentOf(model).openFood)
+            assertFalse(open.canSave, it.first)
+            assertEquals(it.second, open.row.quantityError, it.first)
+
+            model.onEvent(TemplateDetailsEvent.SaveFood)
+            val content = contentOf(model)
+            assertNotNull(content.openFood, it.first)
+            assertEquals("120", content.rows.first().amountText)
+        }
+    }
+
+    @Test
+    fun aValidPendingAmount_canBeSaved() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+
+        model.onEvent(TemplateDetailsEvent.FoodAmountChanged("5000"))
+
+        assertTrue(assertNotNull(contentOf(model).openFood).canSave)
+    }
+
+    @Test
+    fun reopeningAFood_startsFromItsCommittedAmount_notAStalePendingOne() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+        model.onEvent(TemplateDetailsEvent.FoodAmountChanged("250"))
+        model.onEvent(TemplateDetailsEvent.DismissFood)
+
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+
+        assertEquals("120", contentOf(model).openFood?.row?.amountText)
+    }
+
+    @Test
+    fun removingTheOpenFood_clearsItsPendingAmount() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.OpenFood(1))
+        model.onEvent(TemplateDetailsEvent.FoodAmountChanged("999"))
+        model.onEvent(TemplateDetailsEvent.RemoveFood(1))
+
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+
+        assertEquals("120", contentOf(model).openFood?.row?.amountText)
+        assertEquals(120.0, contentOf(model).totalKcal, 0.001)
+    }
+
+    @Test
+    fun thePendingAmount_survivesRecreation_whileTheCommittedDraftKeepsTheOldValue() = runTest(dispatcher) {
+        repository.templates += desayunoA
+        val state = SavedStateHandle()
+        val first = viewModel(state)
+        advanceUntilIdle()
+        first.onEvent(TemplateDetailsEvent.OpenFood(0))
+        first.onEvent(TemplateDetailsEvent.FoodAmountChanged("250"))
+
+        val content = contentOf(viewModel(state))
+
+        assertEquals("250", content.openFood?.row?.amountText)
+        assertEquals("120", content.rows.first().amountText)
+        assertFalse(content.isDirty)
+    }
+
+    @Test
+    fun aSavedFoodAmount_survivesRecreation() = runTest(dispatcher) {
+        repository.templates += desayunoA
+        val state = SavedStateHandle()
+        val first = viewModel(state)
+        advanceUntilIdle()
+        first.onEvent(TemplateDetailsEvent.OpenFood(0))
+        first.onEvent(TemplateDetailsEvent.FoodAmountChanged("250"))
+        first.onEvent(TemplateDetailsEvent.SaveFood)
+
+        val content = contentOf(viewModel(state))
+
+        assertNull(content.openFood)
+        assertEquals("250", content.rows.first().amountText)
     }
 
     // --- Restoration (ADR-40) ---

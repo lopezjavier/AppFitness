@@ -38,6 +38,7 @@ private const val KEY_RENAME_TAKEN = "template_details_rename_taken"
 private const val KEY_NEW_NAME = "template_details_new_name"
 private const val KEY_NEW_TAKEN = "template_details_new_taken"
 private const val KEY_OPEN_FOOD = "template_details_open_food"
+private const val KEY_OPEN_FOOD_AMOUNT = "template_details_open_food_amount"
 private const val NO_FOOD = -1
 
 private sealed interface DetailsLoaded {
@@ -62,6 +63,7 @@ private data class DetailsDraft(
     val newNameText: String,
     val newNameTaken: Boolean,
     val openFood: Int?,
+    val openFoodAmount: String?,
 )
 
 private fun amountKey(index: Int) = "$KEY_AMOUNT$index"
@@ -114,7 +116,12 @@ class TemplateDetailsViewModel(
         when (event) {
             is TemplateDetailsEvent.OpenFood -> openFood(event.index)
 
-            TemplateDetailsEvent.DismissFood -> updateDraft { it.copy(openFood = null) }
+            TemplateDetailsEvent.DismissFood -> updateDraft { it.copy(openFood = null, openFoodAmount = null) }
+
+            is TemplateDetailsEvent.FoodAmountChanged ->
+                updateDraft { if (it.openFood == null) it else it.copy(openFoodAmount = event.text) }
+
+            TemplateDetailsEvent.SaveFood -> saveFood()
 
             is TemplateDetailsEvent.AmountChanged ->
                 updateDraft { it.copy(amounts = it.amounts + (event.index to event.text)) }
@@ -186,9 +193,15 @@ class TemplateDetailsViewModel(
         }
         savedState.remove<String>(KEY_NAME)
         savedState.remove<Int>(KEY_OPEN_FOOD)
+        savedState.remove<String>(KEY_OPEN_FOOD_AMOUNT)
     }
 
-    private fun initialDraft(template: MealTemplate) = DetailsDraft(
+    private fun initialDraft(template: MealTemplate): DetailsDraft {
+        val restoredOpenFood = restoredOpenFood(template)
+        return restoredDraft(template, restoredOpenFood)
+    }
+
+    private fun restoredDraft(template: MealTemplate, restoredOpenFood: Int?) = DetailsDraft(
         amounts = template.items.indices
             .mapNotNull { index -> savedState.get<String>(amountKey(index))?.let { index to it } }
             .toMap(),
@@ -201,8 +214,12 @@ class TemplateDetailsViewModel(
         renameTaken = savedState.get<Boolean>(KEY_RENAME_TAKEN) == true,
         newNameText = savedState.get<String>(KEY_NEW_NAME).orEmpty(),
         newNameTaken = savedState.get<Boolean>(KEY_NEW_TAKEN) == true,
-        openFood = savedState.get<Int>(KEY_OPEN_FOOD)?.takeIf { it in template.items.indices && it != NO_FOOD },
+        openFood = restoredOpenFood,
+        openFoodAmount = savedState.get<String>(KEY_OPEN_FOOD_AMOUNT)?.takeIf { restoredOpenFood != null },
     )
+
+    private fun restoredOpenFood(template: MealTemplate): Int? =
+        savedState.get<Int>(KEY_OPEN_FOOD)?.takeIf { it in template.items.indices && it != NO_FOOD }
 
     private fun updateDraft(change: (DetailsDraft) -> DetailsDraft) {
         val updated = change(draft.value ?: return)
@@ -221,14 +238,30 @@ class TemplateDetailsViewModel(
         savedState[KEY_NEW_NAME] = current.newNameText
         savedState[KEY_NEW_TAKEN] = current.newNameTaken
         savedState[KEY_OPEN_FOOD] = current.openFood ?: NO_FOOD
+        if (current.openFoodAmount == null) {
+            savedState.remove<String>(KEY_OPEN_FOOD_AMOUNT)
+        } else {
+            savedState[KEY_OPEN_FOOD_AMOUNT] = current.openFoodAmount
+        }
     }
 
     private fun openFood(index: Int) {
         val template = readyTemplate() ?: return
         val current = draft.value ?: return
         if (remainingItems(template, current).any { it.index == index }) {
-            updateDraft { it.copy(openFood = index) }
+            val committed = amountText(current, index, template.items[index])
+            updateDraft { it.copy(openFood = index, openFoodAmount = committed) }
             loadMicronutrients(template, index)
+        }
+    }
+
+    /** Applies the pending food-sheet amount to the draft and closes the sheet; an invalid amount does nothing. */
+    private fun saveFood() {
+        val current = draft.value
+        val index = current?.openFood
+        val text = current?.openFoodAmount
+        if (index != null && text != null && currentContent()?.openFood?.canSave == true) {
+            updateDraft { it.copy(amounts = it.amounts + (index to text), openFood = null, openFoodAmount = null) }
         }
     }
 
@@ -250,7 +283,12 @@ class TemplateDetailsViewModel(
         val remaining = remainingItems(template, current)
         if (remaining.size > 1 && remaining.any { it.index == index }) {
             updateDraft {
-                it.copy(removed = it.removed + index, openFood = it.openFood.takeIf { open -> open != index })
+                val stillOpen = it.openFood != index
+                it.copy(
+                    removed = it.removed + index,
+                    openFood = it.openFood.takeIf { stillOpen },
+                    openFoodAmount = it.openFoodAmount.takeIf { stillOpen },
+                )
             }
         }
     }
@@ -400,7 +438,12 @@ class TemplateDetailsViewModel(
             template.items.withIndex().any { (index, item) ->
                 parseAmount(amountText(current, index, item)) != item.amount
             }
-        val open = current.openFood?.let { index -> rows.firstOrNull { it.index == index } }
+        val open = current.openFood?.let { index ->
+            remaining.firstOrNull { it.index == index }?.let { (_, item) ->
+                // Live preview: the open row follows the amount typed in the sheet, not the committed one.
+                buildRow(index, item, current, remaining.size > 1, current.openFoodAmount)
+            }
+        }
         return TemplateDetailsUiState.Content(
             name = name,
             totalKcal = rows.sumOf { it.kcal },
@@ -415,7 +458,7 @@ class TemplateDetailsViewModel(
             sheet = current.sheet,
             openFood = open?.let {
                 val food = template.items[it.index].food
-                OpenFood(it, food, micronutrients[food.id])
+                OpenFood(it, food, micronutrients[food.id], canSave = it.quantityError == null)
             },
             rename = nameDraft(current.renameText, current.renameTaken).takeIf { current.sheet == DetailsSheet.Rename },
             newName = nameDraft(current.newNameText, current.newNameTaken).takeIf {
@@ -426,8 +469,14 @@ class TemplateDetailsViewModel(
 
     private fun nameDraft(text: String, taken: Boolean) = RenameDraft(text, taken, validateTemplateName(text))
 
-    private fun buildRow(index: Int, item: MealTemplateItem, current: DetailsDraft, removable: Boolean): DetailsRow {
-        val text = amountText(current, index, item)
+    private fun buildRow(
+        index: Int,
+        item: MealTemplateItem,
+        current: DetailsDraft,
+        removable: Boolean,
+        pendingText: String? = null,
+    ): DetailsRow {
+        val text = pendingText ?: amountText(current, index, item)
         val amount = parseAmount(text)
         val check = amount?.let { validateQuantity(it) } ?: QuantityCheck.TooLow
         val error = check.takeUnless { it == QuantityCheck.Valid }

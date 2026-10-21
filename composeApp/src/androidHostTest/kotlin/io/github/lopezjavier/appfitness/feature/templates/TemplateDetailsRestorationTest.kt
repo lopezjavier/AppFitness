@@ -73,7 +73,7 @@ class TemplateDetailsRestorationTest {
         val tester = restorable(saved)
         rule.onNodeWithTag("template_details_item_0").performClick()
         rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("180")
-        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
         rule.onNodeWithTag("template_details_rename").performClick()
         rule.onNodeWithTag("rename_template_name").performTextReplacement("Desayuno B")
         rule.onNodeWithTag("rename_template_submit").performClick()
@@ -109,6 +109,24 @@ class TemplateDetailsRestorationTest {
         recreate(tester)
 
         rule.onNodeWithTag("template_food_sheet_amount").assertTextContains("175")
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("template_details_item_0").assertTextContains("175 g")
+    }
+
+    @Test
+    fun typedFoodGramsNotYetSaved_survivesRecreation_andTheDraftKeepsTheOldValue() {
+        val tester = restorable(SavedStateHandle())
+        rule.onNodeWithTag("template_details_item_0").performClick()
+        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("175")
+        rule.waitForIdle()
+
+        recreate(tester)
+
+        rule.onNodeWithTag("template_food_sheet_amount").assertTextContains("175")
+        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 g")
     }
 
     @Test
@@ -116,7 +134,7 @@ class TemplateDetailsRestorationTest {
         val tester = restorable(SavedStateHandle())
         rule.onNodeWithTag("template_details_item_0").performClick()
         rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("150")
-        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
         rule.onNodeWithTag("template_details_save").performClick()
         rule.waitForIdle()
 

@@ -45,8 +45,12 @@ data class DetailsRow(
     val removable: Boolean,
 )
 
-/** The food sheet: the tapped [row], its catalogue [food] and its [micronutrients] once known (null: none to show). */
-data class OpenFood(val row: DetailsRow, val food: Food, val micronutrients: Micronutrients?)
+/**
+ * The food sheet: the tapped [row] as previewed with the amount typed in the sheet (not yet applied to the comida),
+ * its catalogue [food] and its [micronutrients] once known (null: none to show). [canSave] says the typed amount is
+ * valid, so the sheet's "Guardar" is enabled.
+ */
+data class OpenFood(val row: DetailsRow, val food: Food, val micronutrients: Micronutrients?, val canSave: Boolean)
 
 /** Which sheet over the details is open: none, the rename sheet, the "Guardar" choice, or the name of a new comida. */
 enum class DetailsSheet { None, Rename, Choose, NewName }
@@ -90,8 +94,16 @@ sealed interface TemplateDetailsEvent {
     /** A tap on a food: opens its sheet. */
     data class OpenFood(val index: Int) : TemplateDetailsEvent
 
+    /** Closes the food sheet; the amount typed in it is discarded. */
     data object DismissFood : TemplateDetailsEvent
 
+    /** The amount typed in the food sheet: a pending value only, applied by [SaveFood]. */
+    data class FoodAmountChanged(val text: String) : TemplateDetailsEvent
+
+    /** The food sheet's "Guardar": applies the pending amount to the comida draft and closes the sheet. */
+    data object SaveFood : TemplateDetailsEvent
+
+    /** Sets the committed amount of a food in the draft. */
     data class AmountChanged(val index: Int, val text: String) : TemplateDetailsEvent
 
     /** Removes a food from the draft (swipe or food sheet); ignored for the last food. */
