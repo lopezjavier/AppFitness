@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-077 (weight screen with the weight calendar; E5 checkpoints E5-A and E5-B). T-076 done. E4 closed (tag `v0.4.0`).
+**Next:** T-078 (body circumferences; E5 checkpoints E5-A and E5-B). T-076 and T-077 done. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -1952,19 +1952,19 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 **Description:** Navigation: a "Peso" row in the Perfil root "Estadísticas" section (next to "Fuerza" and "Calorías") opens a full-screen weight destination (`AppTopBar` with a back arrow, ADR-37; reference `design/stitch/progress/screen.png`) that later tasks extend. On that screen: a current-weight panel (`MetricTile`: "73,9 kg", the measurement's date and time, the latest body fat when present). "Registrar peso de hoy" opens today's day sheet: prefilled with the latest weight when today has no manual weight, or today's manual weight to edit when it has one. "Historial de mediciones" is a weight calendar (Q1 resolved 2026-10-21, user): a month grid reusing `MonthCalendarGrid` (T-062; check its callers before changing it) with the days that have a measurement marked, month navigation not past the current month. Tapping an empty day opens a sheet to set that day's weight: the date is fixed to that day, the weight is prefilled with the latest earlier weight, optional body fat %, and a time (now for today, editable within the day, never in the future). Tapping a day with measurements opens that day: its manual weight opens the edit sheet (weight, fat and time; the date is locked; one "Guardar"; delete at once); its Health Connect readings show their icon and are delete-only (`SwipeToDeleteRow` or a delete button); a day with only Health Connect readings also offers setting that day's manual weight. "Guardar" is disabled and the allowed range is shown while a value is invalid. No "Deshacer" (ADR-45). The panel and the calendar update in place after each write. Empty state (every measurement deleted), loading skeleton, `ErrorState` with "Reintentar", writes disabled offline. The visible month, the open day and the sheet draft survive leaving the app (ADR-40).
 
 **Acceptance criteria:**
-- [ ] Perfil → "Peso" opens the weight screen; back returns to Perfil.
-- [ ] Latest weight 74,2 kg and no weight today → "Registrar peso de hoy" opens the sheet with 74,2 and today; 73,9 + "Guardar" → a manual 73.9 kg row and the panel reads "73,9 kg"; tapping it again opens today's 73,9 to edit.
-- [ ] 15,1 % body fat saved → the row stores `body_fat_pct` 15.1 and the panel shows it.
-- [ ] Calendar: days with a measurement are marked; the next-month arrow stops at the current month; tapping empty yesterday → a sheet for yesterday, time set to 07:30, saved at that instant and the day becomes marked.
-- [ ] Tapping a day with a manual weight → edit weight, fat or time (no date field) and save; delete at once (no message, no "Deshacer"); a Health Connect reading (fake) shows its icon, offers no edit and can be deleted.
-- [ ] Weight 19,9 or 401, or fat 80 → "Guardar" disabled and the allowed range shown.
-- [ ] Leaving the app on a past month with a day's sheet half filled and coming back (also after process death) restores the screen, the month and the draft.
-- [ ] Tablet: panel on the left, calendar on the right; phone single column.
+- [x] Perfil → "Peso" opens the weight screen; back returns to Perfil.
+- [x] Latest weight 74,2 kg and no weight today → "Registrar peso de hoy" opens the sheet with 74,2 and today; 73,9 + "Guardar" → a manual 73.9 kg row and the panel reads "73,9 kg"; tapping it again opens today's 73,9 to edit.
+- [x] 15,1 % body fat saved → the row stores `body_fat_pct` 15.1 and the panel shows it.
+- [x] Calendar: days with a measurement are marked; the next-month arrow stops at the current month; tapping empty yesterday → a sheet for yesterday, time set to 07:30, saved at that instant and the day becomes marked.
+- [x] Tapping a day with a manual weight → edit weight, fat or time (no date field) and save; delete at once (no message, no "Deshacer"); a Health Connect reading (fake) shows its icon, offers no edit and can be deleted.
+- [x] Weight 19,9 or 401, or fat 80 → "Guardar" disabled and the allowed range shown.
+- [x] Leaving the app on a past month with a day's sheet half filled and coming back (also after process death) restores the screen, the month and the draft.
+- [x] Tablet: panel on the left, calendar on the right; phone single column.
 
 **Host tests (per scenario):** `WeightViewModelTest` with fakes, a test `Clock` and Turbine (Logging today's weight incl. prefill and reopen-to-edit; Optional body fat; Logging a weight for a past day; Weight calendar month navigation, editing and deletion; Health Connect row delete-only); `MeasurementSheetViewModelTest` (Validation; locked date; time limits); `WeightScreenTest` (Robolectric: panel "73,9 kg", marked days, no date field when editing, disabled "Guardar" with the range, Health Connect icon, delete, back arrow, two columns at 840 dp); `ProfileRootScreenTest` addition ("Peso" row); restoration tests.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-076
 **Files likely touched:** `composeApp/…/feature/weight/{WeightScreen,WeightViewModel,WeightUiState,WeightCalendar,WeightDaySheet,MeasurementSheet,MeasurementSheetViewModel}.kt`, `composeApp/…/designsystem/MonthCalendarGrid.kt` (only if a parameter is needed; + callers), `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
