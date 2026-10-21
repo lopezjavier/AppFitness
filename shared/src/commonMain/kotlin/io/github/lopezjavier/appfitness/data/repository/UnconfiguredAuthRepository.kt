@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -74,6 +75,14 @@ class UnconfiguredBodyMeasurementRepository : BodyMeasurementRepository {
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun deleteMeasurement(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Goals counterpart of [UnconfiguredAuthRepository]: nothing can be read or saved. */

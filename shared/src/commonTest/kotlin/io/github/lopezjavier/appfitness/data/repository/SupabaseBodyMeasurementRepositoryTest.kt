@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -37,22 +38,49 @@ class SupabaseBodyMeasurementRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
 
     /** [rows] is the body of every GET; writes answer an empty success. [failing] makes every data call fail. */
-    private suspend fun signedIn(rows: () -> String = { "[]" }, failing: () -> Boolean = { false }) =
-        MockEngine { request ->
-            requests += request
-            val headers = headersOf(HttpHeaders.ContentType, "application/json")
-            when {
-                request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
-                failing() -> throw IOException("offline")
-                request.method == HttpMethod.Get -> respond(rows(), HttpStatusCode.OK, headers)
-                else -> respond("", HttpStatusCode.Created, headers)
-            }
-        }.let { engine ->
-            val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
-            val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
-            SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-            SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
+    private suspend fun signedIn(
+        rows: () -> String = { "[]" },
+        failing: () -> Boolean = { false },
+        rejectWritesWith: String? = null,
+    ) = MockEngine { request ->
+        requests += request
+        val headers = headersOf(HttpHeaders.ContentType, "application/json")
+        when {
+            request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
+
+            failing() -> throw IOException("offline")
+
+            rejectWritesWith != null && request.method != HttpMethod.Get -> respond(
+                """{"code":"$rejectWritesWith","message":"boom","details":null,"hint":null}""",
+                HttpStatusCode.BadRequest,
+                headers,
+            )
+
+            request.method == HttpMethod.Get -> respond(rows(), HttpStatusCode.OK, headers)
+
+            else -> respond("", HttpStatusCode.Created, headers)
         }
+    }.let { engine ->
+        val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
+        val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
+        SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
+        SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
+    }
+
+    private fun signedOut(): SupabaseBodyMeasurementRepository {
+        val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
+        val client = SupabaseClientFactory.create(config, MockEngine { respond("[]") }, MemorySessionManager())
+        return SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
+    }
+
+    private val newSave = ManualWeightSave(
+        id = null,
+        weightKg = 74.2,
+        bodyFatPct = null,
+        measuredAt = MEASURED_AT,
+        dayStart = Instant.parse("2026-10-13T22:00:00Z"),
+        dayEnd = Instant.parse("2026-10-14T22:00:00Z"),
+    )
 
     private fun writes() = requests.filter { it.method != HttpMethod.Get && !it.url.encodedPath.contains("/auth/") }
 
@@ -126,5 +154,95 @@ class SupabaseBodyMeasurementRepositoryTest {
         assertEquals(AppError.Network, repo.getOnboardingWeight().appErrorOrNull())
         assertEquals(AppError.Network, repo.saveOnboardingWeight(70.0, MEASURED_AT).appErrorOrNull())
         assertEquals(AppError.Network, repo.getLatestWeight().appErrorOrNull())
+    }
+
+    @Test
+    fun saveManualWeight_newSave_sendsTheRpcWithExplicitNulls() = runTest {
+        val repo = signedIn()
+
+        assertTrue(repo.saveManualWeight(newSave).isSuccess)
+
+        val rpc = writes().single()
+        assertEquals(HttpMethod.Post, rpc.method)
+        assertTrue(rpc.url.encodedPath.endsWith("/rpc/save_body_measurement"), rpc.url.toString())
+        assertEquals(
+            """{"p_id":null,"p_weight_kg":74.2,"p_body_fat_pct":null,"p_measured_at":"2026-10-14T12:30:00Z",""" +
+                """"p_day_start":"2026-10-13T22:00:00Z","p_day_end":"2026-10-14T22:00:00Z"}""",
+            (rpc.body as TextContent).text,
+        )
+    }
+
+    @Test
+    fun saveManualWeight_edit_sendsIdAndBodyFat() = runTest {
+        val repo = signedIn()
+
+        assertTrue(repo.saveManualWeight(newSave.copy(id = "row-1", bodyFatPct = 18.5)).isSuccess)
+
+        val body = (writes().single().body as TextContent).text
+        assertTrue(body.contains(""""p_id":"row-1""""), body)
+        assertTrue(body.contains(""""p_body_fat_pct":18.5"""), body)
+    }
+
+    @Test
+    fun saveManualWeight_rejectedInput_isValidation() = runTest {
+        assertEquals(
+            AppError.Validation,
+            signedIn(rejectWritesWith = "22023").saveManualWeight(newSave).appErrorOrNull(),
+        )
+        assertEquals(
+            AppError.Validation,
+            signedIn(rejectWritesWith = "23514").saveManualWeight(newSave).appErrorOrNull(),
+        )
+    }
+
+    @Test
+    fun saveManualWeight_foreignOrHealthConnectRow_isNotFound() = runTest {
+        val repo = signedIn(rejectWritesWith = "P0002")
+
+        assertEquals(AppError.NotFound, repo.saveManualWeight(newSave.copy(id = "other")).appErrorOrNull())
+    }
+
+    @Test
+    fun getMeasurements_queriesTheRangeNewestFirstAndReadsBodyFat() = runTest {
+        val repo = signedIn(
+            rows = {
+                """[{"id":"row-1","measured_at":"2026-10-14T10:00:00+00:00","weight_kg":74.2,""" +
+                    """"source":"manual","body_fat_pct":18.5}]"""
+            },
+        )
+
+        val rows = repo.getMeasurements(
+            Instant.parse("2026-09-30T22:00:00Z"),
+            Instant.parse("2026-10-31T23:00:00Z"),
+        ).getOrThrow()
+
+        assertEquals(18.5, rows.single().bodyFatPct)
+        val url = requests.last().url
+        assertEquals(
+            """(measured_at.gte."2026-09-30T22:00:00Z",measured_at.lt."2026-10-31T23:00:00Z")""",
+            url.parameters["and"],
+        )
+        assertTrue(url.toString().contains("order=measured_at.desc"), url.toString())
+        assertTrue(url.parameters["select"].orEmpty().contains("body_fat_pct"), url.toString())
+    }
+
+    @Test
+    fun deleteMeasurement_deletesById() = runTest {
+        val repo = signedIn()
+
+        assertTrue(repo.deleteMeasurement("row-1").isSuccess)
+
+        val delete = writes().single()
+        assertEquals(HttpMethod.Delete, delete.method)
+        assertTrue(delete.url.toString().contains("id=eq.row-1"), delete.url.toString())
+    }
+
+    @Test
+    fun newMethods_signedOut_areUnauthorized() = runTest {
+        val repo = signedOut()
+
+        assertEquals(AppError.Unauthorized, repo.getMeasurements(MEASURED_AT, MEASURED_AT).appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repo.saveManualWeight(newSave).appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repo.deleteMeasurement("row-1").appErrorOrNull())
     }
 }

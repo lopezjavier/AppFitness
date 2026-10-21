@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-076 (E5 broken down into T-076…T-082 with checkpoints E5-A and E5-B; Q1–Q3 resolved 2026-10-21). The user confirms the task list and checkpoints before T-076 starts. E4 closed (tag `v0.4.0`).
+**Next:** T-077 (weight screen with the weight calendar; E5 checkpoints E5-A and E5-B). T-076 done. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -1929,14 +1929,14 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 **Description:** One migration with a `security invoker` RPC (e.g. `save_body_measurement(p_id uuid default null, p_weight_kg, p_body_fat_pct, p_measured_at, p_day_start, p_day_end)`). A new save (null id) inserts the day's manual row or updates the existing manual row of that local day (one manual weight per day, `03-data-model.md` §4). An edit (id set) changes only the weight, the fat and the time within the row's own local day: a `measured_at` outside that day is rejected (`22023`), because the date is locked when editing (Q1 resolved 2026-10-21). Only the caller's `manual` rows (`P0002` otherwise); Health Connect rows are never edited but can be deleted. The per-day semantics match `save_preferences` (share the SQL logic without editing the merged migration; pgTAP covers both). Domain (pure): `ValidateBodyMeasurement` (weight 20–400 and body fat 2–75, 1 decimal, the allowed range as the error), the current-weight rule (latest row by `measured_at`, any source) and `MeasurementsByDay` (group a month's rows by local day for the calendar: manual row, Health Connect rows). `BodyMeasurementRepository` gains the rows of a date range (a calendar month), save through the RPC (local-day bounds from the injected `Clock` and time zone) and delete. No screens in this task.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP (`supabase/tests/save_body_measurement.test.sql` or extended `body_measurements.test.sql`): a second manual save on the same local day updates the first (one row); a save on another day inserts; an edit that moves `measured_at` to another day is rejected; 19.9 kg, 401 kg and 80 % fat rejected; another user's row cannot be edited or deleted; a Health Connect row cannot be edited; `save_preferences` tests still green; deleting a user with measurements succeeds.
-- [ ] Repository tests: the RPC payload carries the local-day bounds (23:59 and 00:00 cases); a month query returns that month's rows; delete by id.
-- [ ] Q1 recorded in `03-data-model.md` §4 (done in the breakdown PR) and matched by the RPC.
+- [x] Migration + pgTAP (`supabase/tests/save_body_measurement.test.sql` or extended `body_measurements.test.sql`): a second manual save on the same local day updates the first (one row); a save on another day inserts; an edit that moves `measured_at` to another day is rejected; 19.9 kg, 401 kg and 80 % fat rejected; another user's row cannot be edited or deleted; a Health Connect row cannot be edited; `save_preferences` tests still green; deleting a user with measurements succeeds.
+- [x] Repository tests: the RPC payload carries the local-day bounds (23:59 and 00:00 cases); a month query returns that month's rows; delete by id.
+- [x] Q1 recorded in `03-data-model.md` §4 (done in the breakdown PR) and matched by the RPC.
 
 **Host tests (per scenario):** `ValidateBodyMeasurementTest` (Validation outline, boundaries 20/400 and 2/75); `MeasurementsByDayTest` (manual and Health Connect rows per day, local-day edges); `BodyMeasurementRepositoryTest`; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** E4 (`v0.4.0`)
