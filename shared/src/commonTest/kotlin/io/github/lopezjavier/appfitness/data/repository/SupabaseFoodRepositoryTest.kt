@@ -354,6 +354,58 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
+    fun micronutrients_emptyResultIsNotCached_soAFoodRefilledLaterIsReread() = runTest {
+        var body = """[{"source":"off","micronutrients":null,"nutriments":null}]"""
+        val repo = signedIn { body }
+        assertTrue(repo.micronutrients(milkFood).getOrThrow().isEmpty)
+
+        body = """[{"source":"off","micronutrients":null,"nutriments":{"fiber_100ml":1.5}}]"""
+        val second = repo.micronutrients(milkFood).getOrThrow()
+
+        assertEquals(listOf(MicronutrientKind.Fiber), second.items.map { it.kind })
+    }
+
+    @Test
+    fun micronutrients_realAliasedOffNutrimentsWithMixedValueTypes_areMapped() = runTest {
+        val repo = signedIn {
+            """[{"source":"off","micronutrients":null,"nutriments":{"energy-kcal_100g":45,""" +
+                """"sugars_100ml":"4.8","fiber_100ml":null,"salt_100ml":0.1,"nova-group":4,"vitamin-c_100g":0.012}}]"""
+        }
+
+        val kinds = repo.micronutrients(milkFood).getOrThrow().items.map { it.kind }
+
+        assertTrue(MicronutrientKind.Sugars in kinds && MicronutrientKind.Salt in kinds, kinds.toString())
+        assertTrue(MicronutrientKind.Fiber !in kinds, kinds.toString())
+    }
+
+    @Test
+    fun micronutrients_nutrimentsArrivingAsAJsonString_areStillRead() = runTest {
+        val repo = signedIn {
+            """[{"source":"off","micronutrients":null,"nutriments":"{\"fiber_100ml\":1.5}"}]"""
+        }
+
+        assertEquals(listOf(MicronutrientKind.Fiber), repo.micronutrients(milkFood).getOrThrow().items.map { it.kind })
+    }
+
+    @Test
+    fun micronutrients_typedValuesAsStrings_areStillRead() = runTest {
+        val repo = signedIn {
+            """[{"source":"user","micronutrients":{"fiber_100g":"3.0"},"nutriments":null}]"""
+        }
+
+        val result = repo.micronutrients(milkFood.copy(baseUnit = "g")).getOrThrow()
+
+        assertEquals(listOf(MicronutrientKind.Fiber), result.items.map { it.kind })
+    }
+
+    @Test
+    fun micronutrients_unexpectedNutrimentsShape_isEmptyNotAFailure() = runTest {
+        val repo = signedIn { """[{"source":"off","micronutrients":null,"nutriments":[1,2]}]""" }
+
+        assertTrue(repo.micronutrients(milkFood).getOrThrow().isEmpty)
+    }
+
+    @Test
     fun listAndSearchRequests_stayLean() = runTest {
         val repo = signedIn { request ->
             if (request.url.encodedPath.endsWith("/food_log_entries")) """[{"food_id":"f1"}]""" else "[$EGG]"

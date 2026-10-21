@@ -266,7 +266,9 @@ internal fun QuantityInput(
     val unit = food.baseUnit
     val inMl = unit == "ml"
     val portions = food.portions.map {
-        PortionOption(it.id, stringResource(Res.string.add_food_portion_option, it.label, amountText(it.amount), unit))
+        val amount = amountText(it.amount)
+        val formatted = stringResource(Res.string.add_food_portion_option, it.label, amount, unit)
+        PortionOption(it.id, portionOptionLabel(it.label, amount, unit, formatted))
     }
     val amountLabel = stringResource(
         when {

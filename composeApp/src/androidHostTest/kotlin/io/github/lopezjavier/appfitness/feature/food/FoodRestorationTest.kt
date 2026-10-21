@@ -154,6 +154,26 @@ class FoodRestorationTest {
     }
 
     @Test
+    fun typedAmount_andMicronutrients_surviveRecreation_whenAViewModelIsRebuiltFromTheSameState() {
+        foods.known["egg"] = egg
+        foods.micronutrientResults["egg"] = Result.success(
+            Micronutrients(listOf(Micronutrient(MicronutrientKind.Fiber, 2.5, MicronutrientUnit.G))),
+        )
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { SheetHost(addModel(saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("add_food_amount").performTextReplacement("150")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("add_food_amount").assertTextContains("150")
+        rule.onNodeWithTag("add_food_micronutrient_fiber").assertExists()
+    }
+
+    @Test
     fun openSheet_keepsAmountPortionAndMeal_afterRecreation() {
         foods.known["egg"] = egg
         val saved = SavedStateHandle()
