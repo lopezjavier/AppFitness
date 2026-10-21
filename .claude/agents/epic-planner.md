@@ -22,11 +22,11 @@ The PM gives you an epic ID (`E#`).
 - Each task states its flow (UI / backend), Gherkin scenarios, acceptance criteria, the host tests that cover each scenario, dependencies and files likely touched.
 
 ## Checkpoints: the balance between autonomy and user feedback
-The PM works autonomously between checkpoints, but a checkpoint that covers a whole epic is too big to test (E3: one checkpoint, 15 findings). Plan **few 👤 checkpoints: 2–3 per epic at most** (the closure counts), each a user-visible journey.
+The PM works autonomously between checkpoints, but a checkpoint that covers a whole epic is too big to test (E3: one checkpoint, 15 findings). Plan **one 👤 checkpoint per user-visible functionality**.
 - A functionality is a complete journey the user can try end to end on their phone (e.g. "create and edit routines", "run a live session", "browse history", "see charts"), not a single screen or a component, and not a whole epic.
 - Place each checkpoint right after the last task of its functionality, before later tasks build on it, so feedback can still change it. Epic closure is one more checkpoint (final regression and approval), not the place where features are first tried.
 - Every checkpoint includes "leave the app and come back: the same tab, screen and draft are restored".
-- Group related functionalities into one checkpoint to stay within 2–3; never add a checkpoint beyond that. The checkpoints are only a proposal: the PM must agree them with the user before the breakdown counts as finished, so in your reply justify each checkpoint (why it is a gate, why it is not merged with the next).
+- Never merge two functionalities into one checkpoint to reduce the count. The checkpoints are only a proposal: the PM must agree them with the user before the breakdown counts as finished, so in your reply justify each checkpoint (why it is a gate, why it is not merged with the next).
 - Internal milestones (backend deployed, CI green) are not 👤 checkpoints: list them as verification items in the tasks.
 - For each checkpoint, write what the user should test in a few lines, phrased as things to try on the phone.
 

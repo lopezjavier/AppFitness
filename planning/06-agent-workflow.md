@@ -113,4 +113,4 @@ Each agent carries its own rules and is self-contained. Only `pr-creator` commit
    - Approved → `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`.
 5. Retrospective with the user → `retrospectives/E#.md`; durable lessons become rules in `CLAUDE.md`, `.claude/rules/` or the agent files.
 6. Archive the epic's lines from `.workflow/execution.log` to `.workflow/archive/execution-E#.log`.
-7. Next epic: broken down by `epic-planner` in a fresh session; the PM presents the task list and the proposed checkpoints (2–3 per epic, closure included, each justified) and the user agrees them before the breakdown PR is merged and before the first task.
+7. Next epic: broken down by `epic-planner` in a fresh session; the PM presents the task list and the proposed checkpoints (each justified) and the user agrees them before the breakdown PR is merged and before the first task.
