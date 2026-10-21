@@ -166,11 +166,26 @@ class TemplateDetailsViewModel(
                 loaded.value = DetailsLoaded.Failed
                 return@launch
             }
-            // The draft is read once: a retry or a refresh keeps what the user has changed.
+            // The draft is read once: a retry or a refresh keeps what the user has changed, unless the saved items
+            // changed on the server (the draft is keyed by index, so it would no longer match).
+            val previous = readyTemplate()
+            if (previous != null && previous.items != template.items) {
+                clearSavedDraft(previous)
+                draft.value = null
+            }
             if (draft.value == null) draft.value = initialDraft(template)
             loaded.value = DetailsLoaded.Ready(template)
             draft.value?.openFood?.let { loadMicronutrients(template, it) }
         }
+    }
+
+    private fun clearSavedDraft(template: MealTemplate) {
+        template.items.indices.forEach {
+            savedState.remove<String>(amountKey(it))
+            savedState.remove<Boolean>(removedKey(it))
+        }
+        savedState.remove<String>(KEY_NAME)
+        savedState.remove<Int>(KEY_OPEN_FOOD)
     }
 
     private fun initialDraft(template: MealTemplate) = DetailsDraft(
@@ -197,6 +212,7 @@ class TemplateDetailsViewModel(
 
     private fun persist(current: DetailsDraft) {
         current.amounts.forEach { (index, text) -> savedState[amountKey(index)] = text }
+        // Removals only grow (a removed food cannot be restored), so nothing stale is left behind.
         current.removed.forEach { savedState[removedKey(it)] = true }
         savedState[KEY_NAME] = current.name
         savedState[KEY_SHEET] = current.sheet.name
@@ -382,8 +398,7 @@ class TemplateDetailsViewModel(
         val isDirty = name.trim() != template.name ||
             current.removed.isNotEmpty() ||
             template.items.withIndex().any { (index, item) ->
-                amountText(current, index, item) !=
-                    formatNumber(item.amount)
+                parseAmount(amountText(current, index, item)) != item.amount
             }
         val open = current.openFood?.let { index -> rows.firstOrNull { it.index == index } }
         return TemplateDetailsUiState.Content(

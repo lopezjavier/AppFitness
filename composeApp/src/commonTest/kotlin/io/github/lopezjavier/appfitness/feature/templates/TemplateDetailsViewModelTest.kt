@@ -237,7 +237,33 @@ class TemplateDetailsViewModelTest {
         assertEquals("Mi desayuno", content.name)
     }
 
+    @Test
+    fun refresh_resetsTheDraft_whenTheServerItemsChanged() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "150"))
+        model.onEvent(TemplateDetailsEvent.RemoveFood(1))
+        repository.templates.clear()
+        repository.templates += desayunoA.copy(items = listOf(MealTemplateItem(shake, 200.0, null)))
+
+        model.onEvent(TemplateDetailsEvent.Refresh)
+        val content = contentOf(model)
+
+        assertEquals(listOf("200"), content.rows.map { it.amountText })
+        assertFalse(content.isDirty)
+    }
+
     // --- canSave ---
+
+    @Test
+    fun anAmountTypedInAnotherFormat_isNotDirty_whenItParsesToTheSavedValue() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "120.0"))
+
+        val content = contentOf(model)
+        assertFalse(content.isDirty)
+        assertFalse(content.canSave)
+    }
 
     @Test
     fun canSave_isTrueOnlyForAValidChangedDraft_online() = runTest(dispatcher) {
