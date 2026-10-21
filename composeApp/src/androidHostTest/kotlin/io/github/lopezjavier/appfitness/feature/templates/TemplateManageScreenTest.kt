@@ -15,7 +15,6 @@ import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.food.food
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -25,7 +24,7 @@ import org.robolectric.annotation.Config
 
 /**
  * US-21 "Renaming and deleting a comida" from the details: the pencil's rename sheet with the duplicate-name error, the
- * confirmed delete, and the entries already in the Diary keeping their values.
+ * immediate delete, and the entries already in the Diary keeping their values.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -54,7 +53,7 @@ class TemplateManageScreenTest {
     }
 
     @Test
-    fun renamingAComida_savesTheNewName_andTheDetailsShowIt() {
+    fun renamingAComida_changesOnlyTheHeader_andGuardarPersistsIt() {
         templates.templates += desayunoA
         showDetails()
 
@@ -65,53 +64,45 @@ class TemplateManageScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("template_details_name").assertTextEquals("Desayuno B")
-        assertEquals("Desayuno B", templates.templates.single().name)
         rule.onNodeWithTag("rename_template_name").assertDoesNotExist()
+        assertEquals("Desayuno A", templates.templates.single().name)
+        rule.onNodeWithTag("template_details_save").performClick()
+        rule.onNodeWithTag("template_save_overwrite").performClick()
+        rule.waitForIdle()
+        assertEquals("Desayuno B", templates.templates.single().name)
+        assertTrue(callbacks.saved)
     }
 
     @Test
-    fun renamingToATakenName_showsTheDuplicateError_andKeepsTheSheetOpen() {
+    fun renamingToATakenName_showsTheDuplicateError_whenSaving_andKeepsTheDraft() {
         templates.templates += desayunoA
         templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
         showDetails()
         rule.onNodeWithTag("template_details_rename").performClick()
         rule.waitForIdle()
-
         rule.onNodeWithTag("rename_template_name").performTextReplacement("comida 2")
         rule.onNodeWithTag("rename_template_submit").performClick()
         rule.waitForIdle()
 
+        rule.onNodeWithTag("template_details_save").performClick()
+        rule.onNodeWithTag("template_save_overwrite").performClick()
+        rule.waitForIdle()
+
         rule.onNodeWithTag("rename_template_name_error").assertTextEquals("Ya existe una comida con ese nombre")
-        rule.onNodeWithTag("rename_template_name").assertIsDisplayed()
+        assertEquals("Desayuno A", templates.templates.first { it.id == "t1" }.name)
     }
 
     @Test
-    fun deleteConfirmed_deletesTheComida_andLeavesTheDetails() {
+    fun eliminarComida_deletesAtOnce_withoutADialog_andLeavesTheDetails() {
         templates.templates += desayunoA
         showDetails()
-        rule.onNodeWithTag("template_details_delete").performClick()
-        rule.waitForIdle()
 
-        rule.onNodeWithTag("template_delete_confirm").performClick()
+        rule.onNodeWithTag("template_details_delete").performClick()
         rule.waitForIdle()
 
         assertTrue(templates.templates.isEmpty())
         assertTrue(callbacks.deleted)
-    }
-
-    @Test
-    fun deleteDismissed_keepsTheComida() {
-        templates.templates += desayunoA
-        showDetails()
-        rule.onNodeWithTag("template_details_delete").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("template_delete_cancel").performClick()
-        rule.waitForIdle()
-
-        assertEquals(1, templates.templates.size)
-        assertFalse(callbacks.deleted)
-        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_delete_confirm").assertDoesNotExist()
     }
 
     @Test
@@ -134,20 +125,18 @@ class TemplateManageScreenTest {
         diary.server[day] = listOf(logged)
         showDetails()
         rule.onNodeWithTag("template_details_delete").performClick()
-        rule.onNodeWithTag("template_delete_confirm").performClick()
         rule.waitForIdle()
 
         assertEquals(listOf(logged), diary.server[day])
     }
 
     @Test
-    fun offline_theRenameAndDeleteButtonsAreDisabled_andTheOfflineBannerShows() {
+    fun offline_theDeleteButtonIsDisabled_andTheOfflineBannerShows() {
         templates.templates += desayunoA
         showDetails()
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_rename").assertIsNotEnabled()
         rule.onNodeWithTag("template_details_delete").assertIsNotEnabled()
         rule.onNodeWithTag("template_details_offline").assertIsDisplayed()
     }

@@ -1797,10 +1797,10 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Redesign the comida details. Each food row shows its kcal and macros (not only grams) and the header shows the comida's total kcal and macros. Tapping a food opens its food details, where the grams are edited or the food is removed from the comida; swiping a food to the left removes it (T-072 component). Remove the "Editar" button and the "Editar comida" screen: the details are the editor, with a pencil to rename and a single "Guardar" that saves renames, quantities and removals together (overwrite or save as new stays). Deleting the whole comida from its details runs at once and closes the details. Entries already logged do not change.
 
 **Acceptance criteria:**
-- [ ] Rows show kcal and macros per food, the header the sum; both update with the draft.
-- [ ] Tapping a food opens its details to change grams or remove it; swipe-left removes it; neither is saved until "Guardar".
-- [ ] "Eliminar comida" deletes at once and closes; no "Editar" button or edit screen remains.
-- [ ] Draft and screen survive leaving the app (ADR-40).
+- [x] Rows show kcal and macros per food, the header the sum; both update with the draft.
+- [x] Tapping a food opens its details to change grams or remove it; swipe-left removes it; neither is saved until "Guardar".
+- [x] "Eliminar comida" deletes at once and closes; no "Editar" button or edit screen remains.
+- [x] Draft and screen survive leaving the app (ADR-40).
 
 **Verification:** lint, host tests and CI green. **Dependencies:** T-072 · **Estimated scope:** M
 

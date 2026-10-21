@@ -30,7 +30,6 @@ import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
-import io.github.lopezjavier.appfitness.feature.templates.TemplateEditorRoot
 import kotlinx.datetime.LocalDate
 
 /**
@@ -552,20 +551,10 @@ private fun NavGraphBuilder.foodDestinations(
     }
     composable<TemplateDetailsRoute> { entry ->
         val route = entry.toRoute<TemplateDetailsRoute>()
-        // Deleting pops back to the search; coming back from the editor reloads the details when they resume.
+        // Saving or deleting pops back to the search.
         TemplateDetailsRoot(
             templateId = route.templateId,
-            onEdit = { navController.navigate(TemplateEditorRoute(route.templateId)) { launchSingleTop = true } },
-            onDelete = { navController.popBackStack() },
-            modifier = Modifier.padding(fullScreenPadding),
-        )
-    }
-    composable<TemplateEditorRoute> { entry ->
-        val route = entry.toRoute<TemplateEditorRoute>()
-        // Saving pops back to the details, which reload when they resume (and so does the search later).
-        TemplateEditorRoot(
-            templateId = route.templateId,
-            onSave = { navController.popBackStack() },
+            onClose = { navController.popBackStack() },
             modifier = Modifier.padding(fullScreenPadding),
         )
     }
