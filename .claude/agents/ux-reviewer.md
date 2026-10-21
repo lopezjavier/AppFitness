@@ -21,6 +21,7 @@ You are the **UX** reviewer for AppFitness.
 - States covered: loading (skeleton), empty, error with retry and offline.
 - Tabular numerals; correct macro and domain colors (P lime, C cyan, F amber; training cyan).
 - Space and icons: edit actions (rename, reorder, delete, add) are icon buttons in a compact row, never one full button or card per setting; the screen shows as many items as possible without scrolling. Anything the user configures once (preferences) lives in Perfil -> Preferencias, not as a button on a daily screen.
+- Interaction rules of `05-design-system.md` §8 (delete, swipe, "Guardar", list → details, wording): check the plan against them and search the app for other instances of the same pattern; list them in the UX notes so the plan fixes them too.
 - Tablet layout (width ≥ 600 dp) when the screen needs it.
 - UI texts in Spanish through string resources.
 - `testTag` in snake_case `<screen>_<element>` for every interactive element.

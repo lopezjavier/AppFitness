@@ -159,3 +159,12 @@ Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vec
 - Font scaling up to 130% supported without clipping key numbers.
 - Auto-sized labels never go below 11 sp; past that they wrap to 2 lines.
 - How it is verified: Robolectric + Compose UI tests (`androidHostTest`, run by `testLocalDebugUnitTest`) assert touch targets of every interactive node of the catalog (>= 48 dp), accessible labels, and the exact `stateDescription`/`contentDescription` strings; token and geometry values stay as unit tests in `commonTest`. Only haptics and listening with TalkBack remain manual (checkpoint E1-D).
+
+## 8. Interaction rules (ADR-45)
+Generic rules for every screen; ux-reviewer rejects a plan that breaks them.
+- **Delete** runs at once: no confirmation dialog, no "Deshacer". Deleting from a details screen closes it.
+- **Swipe-to-delete** uses the shared designsystem component: slow, heavy, fires only at the end of the travel; a shorter drag snaps back.
+- **Editing** screens have one "Guardar" that saves all changes together; nothing is saved per action (delete excepted).
+- **Lists:** a row opens its details; editing starts from the details. Rows of the same kind show the same information everywhere.
+- **Wording:** the same concept has the same label on every screen and period.
+- **Sweep:** before approving, search the app for other instances of the pattern the task touches.

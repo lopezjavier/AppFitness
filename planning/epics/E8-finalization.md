@@ -117,7 +117,6 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Rest timer alert (live session): the vibration when the rest ends is too short to notice; make it longer/stronger (functional fix, may be done earlier as a `fix(T-###)`) | User report during T-059, 2026-10-20 |
 | Rest timer alert (live session): the end-of-rest sound plays but sounds odd; replace it with a different one (ask the user which) | User report during T-059, 2026-10-20 |
 | Live session: remove the eye icon and "Pantalla activa" indicator (no value; the screen still stays on). | User report |
-| Diario: swipe-to-delete triggers too easily; make it slower/heavier and require dragging to the end before the action fires (as in other apps) | Checkpoint E4-B round 2, 2026-10-21 |
 | Preferencias: place the meal-structure section below "Distribución de macros" | Checkpoint E4-B round 2, 2026-10-21 |
 | Meal structure: removing a meal must be persisted by "Guardar" like adding and reordering (today the trash button writes at once; mixed behaviour) | Checkpoint E4-B round 2, 2026-10-21 |
 | Meal structure: "Añadir comida" name field gets a tick button inside the text input to confirm (today only the keyboard tick confirms) | Checkpoint E4-B round 2, 2026-10-21 |
