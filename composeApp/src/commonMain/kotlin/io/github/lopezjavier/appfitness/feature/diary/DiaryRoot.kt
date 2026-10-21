@@ -26,7 +26,8 @@ private class DiaryMessages(val failed: String, val offline: String)
 /**
  * Stateful "Diario" tab: connects [DiaryViewModel]. [onOpenPreferences] leads the "Configura tu objetivo" prompt to
  * Preferencias; [onAddToMeal] receives the meal and day to add food to and [onAddFood] the day for the Diary-level
- * add action (no meal preselected). On resume the goals are reloaded so a goal set in Preferencias shows up. Deleting
+ * add action (no meal preselected). [onSaveTemplate] receives the meal and day whose entries are saved as a comida.
+ * On resume the goals are reloaded so a goal set in Preferencias shows up. Deleting
  * an entry is immediate and silent; a failed write shows a message.
  */
 @Composable
@@ -35,6 +36,7 @@ fun DiaryRoot(
     onOpenPreferences: () -> Unit,
     onAddToMeal: (slotId: String, date: LocalDate) -> Unit,
     onAddFood: (date: LocalDate) -> Unit,
+    onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
     editHost: DiaryEditHost,
     modifier: Modifier = Modifier,
     viewModel: DiaryViewModel = koinViewModel(),
@@ -42,6 +44,7 @@ fun DiaryRoot(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnAddToMeal by rememberUpdatedState(onAddToMeal)
     val currentOnAddFood by rememberUpdatedState(onAddFood)
+    val currentOnSaveTemplate by rememberUpdatedState(onSaveTemplate)
     val currentOnOpenPreferences by rememberUpdatedState(onOpenPreferences)
     val currentEditHost by rememberUpdatedState(editHost)
     val snackbarHost = remember { SnackbarHostState() }
@@ -55,6 +58,7 @@ fun DiaryRoot(
             when (effect) {
                 is DiaryEffect.AddToMeal -> currentOnAddToMeal(effect.slotId, effect.date)
                 is DiaryEffect.AddFood -> currentOnAddFood(effect.date)
+                is DiaryEffect.OpenSaveTemplate -> currentOnSaveTemplate(effect.slotId, effect.date)
                 DiaryEffect.OpenPreferences -> currentOnOpenPreferences()
                 is DiaryEffect.OpenEditEntry -> currentEditHost.onEditEntry(effect.entryId, effect.date)
                 is DiaryEffect.WriteFailed -> showFailure(snackbarHost, currentMessages, effect.error)

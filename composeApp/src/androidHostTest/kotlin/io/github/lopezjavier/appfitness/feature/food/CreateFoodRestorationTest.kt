@@ -75,7 +75,7 @@ class CreateFoodRestorationTest {
         val saved = SavedStateHandle()
         val scanner = FakeBarcodeScanner(ScanResult.Code(CODE))
         val tester = StateRestorationTester(rule)
-        tester.setContent { SearchHost(FoodSearchViewModel(foods, connectivity, scanner, saved)) }
+        tester.setContent { SearchHost(foodSearchModel(foods, connectivity, scanner, saved)) }
         rule.waitForIdle()
         rule.onNodeWithTag("food_search_scan_button").performClick()
         rule.waitForIdle()

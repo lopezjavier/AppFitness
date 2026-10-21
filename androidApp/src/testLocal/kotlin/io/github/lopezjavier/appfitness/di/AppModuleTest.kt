@@ -18,12 +18,15 @@ import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
+import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
@@ -36,6 +39,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import kotlinx.datetime.LocalDate
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
@@ -117,6 +121,10 @@ class AppModuleTest {
                 String::class,
                 SignInWithGoogle::class,
                 AppConfig::class,
+                MealTemplateRepository::class,
+                AddTemplateToDiary::class,
+                BuildTemplateItems::class,
+                ValidateTemplateName::class,
             ),
         )
     }

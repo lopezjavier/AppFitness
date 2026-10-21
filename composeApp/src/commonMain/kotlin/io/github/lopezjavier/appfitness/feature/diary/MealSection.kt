@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_breakfast
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_custom
@@ -34,10 +35,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_lunch
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_snack
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_remaining_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_save_template_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
@@ -80,8 +84,10 @@ private fun addButtonText(slot: MealSlot): String {
 }
 
 /**
- * One meal: a tappable header with its totals, the entries (or the remaining-kcal hint) and the add button.
+ * One meal: a header with its totals (tap to collapse), the entries (or the remaining-kcal hint) and the add button.
+ * [onSaveTemplate] saves the entries of the meal as a comida; its icon shows only while the meal has entries.
  */
+@Suppress("LongParameterList") // One callback per action of the meal: toggle, add and save, plus the entry actions.
 @Composable
 internal fun MealSectionCard(
     section: MealSectionUi,
@@ -89,6 +95,7 @@ internal fun MealSectionCard(
     actions: EntryActions,
     onToggle: () -> Unit,
     onAdd: () -> Unit,
+    onSaveTemplate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AppCard(modifier.fillMaxWidth().testTag("diary_section_${section.slot.id}")) {
@@ -96,7 +103,7 @@ internal fun MealSectionCard(
             section = section,
             collapsed = collapsed,
             onToggle = onToggle,
-            modifier = Modifier.testTag("diary_section_${section.slot.id}_toggle"),
+            onSaveTemplate = onSaveTemplate.takeIf { section.entries.isNotEmpty() },
         )
         if (!collapsed) MealBody(section, actions, onAdd)
     }
@@ -134,8 +141,43 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
     }
 }
 
+/**
+ * The header row: the toggle (name, totals and chevron, one merged button) takes the width; the save icon, when
+ * [onSaveTemplate] is set, sits outside it so each is its own 48 dp target.
+ */
 @Composable
 private fun SectionHeader(
+    section: MealSectionUi,
+    collapsed: Boolean,
+    onToggle: () -> Unit,
+    onSaveTemplate: (() -> Unit)?,
+) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        SectionToggle(
+            section = section,
+            collapsed = collapsed,
+            onToggle = onToggle,
+            modifier = Modifier.weight(1f).testTag("diary_section_${section.slot.id}_toggle"),
+        )
+        if (onSaveTemplate != null) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.diary_save_template_cd),
+                icon = Res.drawable.ic_save_meal,
+                testTag = "diary_section_${section.slot.id}_save_template",
+                onClick = onSaveTemplate,
+                tint = AppTheme.colors.textSecondary,
+            )
+        }
+    }
+}
+
+/** The merged toggle button of a meal header: name, totals and the chevron. */
+@Composable
+private fun SectionToggle(
     section: MealSectionUi,
     collapsed: Boolean,
     onToggle: () -> Unit,
@@ -146,7 +188,6 @@ private fun SectionHeader(
     )
     Row(
         modifier
-            .fillMaxWidth()
             .heightIn(min = Spacing.minTouchTarget)
             .clickable(onClick = onToggle)
             .semantics(mergeDescendants = true) {
@@ -162,6 +203,8 @@ private fun SectionHeader(
                     text = section.slot.label,
                     style = AppTheme.typography.titleMedium,
                     color = AppTheme.colors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 Text(

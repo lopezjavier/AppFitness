@@ -14,6 +14,9 @@ sealed interface AppError {
 
     /** Starting a workout while another one is in progress (unique violation on the in-progress session). */
     data object SessionAlreadyInProgress : AppError
+
+    /** A saved meal ("comida") with that name already exists (unique violation on the user's template names). */
+    data object NameAlreadyExists : AppError
 }
 
 /** Throwable carrier of an [AppError], used as the failure of a [Result]. */

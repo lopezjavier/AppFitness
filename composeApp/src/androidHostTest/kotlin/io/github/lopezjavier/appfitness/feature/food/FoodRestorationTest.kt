@@ -14,12 +14,15 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.MealTemplate
+import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
+import io.github.lopezjavier.appfitness.feature.templates.FakeMealTemplateRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -42,8 +45,10 @@ class FoodRestorationTest {
     private val chicken = food("chicken", "Pechuga de pollo", kcal = 110.0)
     private val egg = food("egg", "Huevo", kcal = 200.0, portions = listOf(FoodPortion("p1", "huevo", 55.0)))
 
+    private val templates = FakeMealTemplateRepository(mutableMapOf("chicken" to chicken))
+
     private fun searchModel(state: SavedStateHandle) =
-        FoodSearchViewModel(foods, connectivity, FakeBarcodeScanner(), state)
+        foodSearchModel(foods, connectivity, FakeBarcodeScanner(), state, templates = templates)
 
     private fun addModel(state: SavedStateHandle) = AddFoodViewModel(
         foodId = "egg",
@@ -90,6 +95,23 @@ class FoodRestorationTest {
         rule.onNodeWithTag("food_search_tab_favourites").assertIsSelected()
         rule.onNodeWithTag("food_search_result_chicken").assertExists()
         assertEquals(emptyList<String>(), foods.searches)
+    }
+
+    @Test
+    fun comidasTab_isRestoredAfterRecreation_andItsListLoads() {
+        templates.templates += MealTemplate("t1", "Desayuno A", null, listOf(MealTemplateItem(chicken, 100.0, null)))
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { SearchHost(searchModel(saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("food_search_tab_templates").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_search_tab_templates").assertIsSelected()
+        rule.onNodeWithTag("food_search_template_t1").assertExists()
     }
 
     @Test

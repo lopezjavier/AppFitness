@@ -43,7 +43,7 @@ class FoodSearchViewModelTest {
     private val scanner = FakeBarcodeScanner()
 
     private fun viewModel(state: SavedStateHandle = savedState) =
-        FoodSearchViewModel(repository, connectivity, scanner, state)
+        foodSearchModel(repository, connectivity, scanner, state)
 
     private fun FoodSearchViewModel.type(text: String) = onEvent(FoodSearchEvent.QueryChanged(text))
 

@@ -125,6 +125,7 @@ class DiaryViewModel(
             DiaryEvent.AddFood,
             DiaryEvent.OpenGoals,
             is DiaryEvent.EditEntry,
+            is DiaryEvent.SaveSection,
             -> event.openEffect(date.value)?.let(effectChannel::trySend)
 
             is DiaryEvent.DeleteEntry -> visibleEntries().firstOrNull { it.id == event.entryId }?.let {
@@ -226,5 +227,6 @@ private fun DiaryEvent.openEffect(day: LocalDate): DiaryEffect? = when (this) {
     DiaryEvent.AddFood -> DiaryEffect.AddFood(day)
     DiaryEvent.OpenGoals -> DiaryEffect.OpenPreferences
     is DiaryEvent.EditEntry -> DiaryEffect.OpenEditEntry(entryId, day)
+    is DiaryEvent.SaveSection -> DiaryEffect.OpenSaveTemplate(slotId, day)
     else -> null
 }

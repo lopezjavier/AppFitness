@@ -127,6 +127,7 @@ private fun MealSections(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
             actions = actions,
             onToggle = { onEvent(DiaryEvent.ToggleSection(section.slot.id)) },
             onAdd = { onEvent(DiaryEvent.AddToMeal(section.slot.id)) },
+            onSaveTemplate = { onEvent(DiaryEvent.SaveSection(section.slot.id)) },
         )
     }
 }

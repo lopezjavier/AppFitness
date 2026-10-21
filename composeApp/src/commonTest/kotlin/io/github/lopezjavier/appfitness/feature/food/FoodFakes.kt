@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.food
 
+import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
@@ -7,12 +8,25 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
+import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
+import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
+import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
+import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
+import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
+import io.github.lopezjavier.appfitness.feature.templates.FakeMealTemplateRepository
+import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 internal fun food(
     id: String,
@@ -132,3 +146,32 @@ internal class FakeFoodRepository : FoodRepository {
         searchResults[query] = Result.failure(AppException(AppError.Network))
     }
 }
+
+/**
+ * A [FoodSearchViewModel] with the template collaborators faked by default: no meal preselected ([slotId] null) on
+ * 2026-10-19 with an empty comidas list and a diary that accepts every write.
+ */
+internal fun foodSearchModel(
+    repository: FoodRepository,
+    connectivity: ConnectivityObserver,
+    scanner: BarcodeScanner,
+    state: SavedStateHandle = SavedStateHandle(),
+    slotId: String? = null,
+    templates: MealTemplateRepository = FakeMealTemplateRepository(),
+    diary: FoodDiaryRepository = FakeFoodDiaryRepository(),
+    clock: Clock = MutableClock(),
+) = FoodSearchViewModel(
+    foodRepository = repository,
+    connectivity = connectivity,
+    barcodeScanner = scanner,
+    slotId = slotId,
+    date = LocalDate(2026, 10, 19),
+    mealTemplates = templates,
+    addTemplateToDiary = AddTemplateToDiary(diary, ScaleNutrition()),
+    scaleNutrition = ScaleNutrition(),
+    mealSlots = FakeMealSlotRepository(),
+    defaultMealSlot = DefaultMealSlot(),
+    clock = clock,
+    savedState = state,
+    timeZone = TimeZone.UTC,
+)

@@ -3,11 +3,21 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
+import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -27,10 +37,18 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 private const val KEY_QUERY = "food_search_query"
 private const val KEY_TAB = "food_search_tab"
 private const val KEY_NOT_FOUND = "food_search_not_found"
+private const val KEY_MENU = "food_search_template_menu"
+private const val KEY_RENAME_ID = "food_search_rename_id"
+private const val KEY_RENAME_NAME = "food_search_rename_name"
+private const val KEY_RENAME_TAKEN = "food_search_rename_taken"
+private const val KEY_DELETE = "food_search_template_delete"
 private const val SEARCH_DEBOUNCE_MS = 400L
 
 /** What to load: a text search or the content of an empty-box tab; [attempt] changes on every retry. */
@@ -40,13 +58,27 @@ private data class Request(val query: String, val tab: FoodSearchTab, val attemp
  * Food search (US-17): a 400 ms debounced text search, or the recent / most eaten / favourite foods when the box is
  * empty. Query and tab live in [savedState]. The star flips optimistically and rolls back when the server refuses.
  * Searching and the tabs need the server, so offline the results are an [FoodResults.Error] and the box is disabled.
+ *
+ * The search adds to the meal [slotId] (null = no meal preselected, the meal is then chosen by the time of day) on
+ * [date]. The "Comidas" tab lists the saved meals and adds one with [addTemplateToDiary] in a single request.
  */
+@Suppress("LongParameterList", "TooManyFunctions") // One dependency per port plus the add target; search and tabs.
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class FoodSearchViewModel(
     private val foodRepository: FoodRepository,
     connectivity: ConnectivityObserver,
     private val barcodeScanner: BarcodeScanner,
+    private val slotId: String?,
+    private val date: LocalDate,
+    private val mealTemplates: MealTemplateRepository,
+    private val addTemplateToDiary: AddTemplateToDiary,
+    private val scaleNutrition: ScaleNutrition,
+    private val mealSlots: MealSlotRepository,
+    private val defaultMealSlot: DefaultMealSlot,
+    private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val validateTemplateName: ValidateTemplateName = ValidateTemplateName(),
 ) : ViewModel() {
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
     private val tab = MutableStateFlow(
@@ -57,7 +89,15 @@ class FoodSearchViewModel(
     private val favouriteIds = MutableStateFlow<Set<String>>(emptySet())
     private val online = MutableStateFlow(true)
     private val notFoundBarcode = MutableStateFlow(savedState.get<String>(KEY_NOT_FOUND))
+    private val templates = MutableStateFlow<TemplatesResults>(TemplatesResults.Loading)
+    private val menuFor = MutableStateFlow(savedState.get<String>(KEY_MENU))
+    private val renaming = MutableStateFlow(restoredRename())
+    private val deleteFor = MutableStateFlow(savedState.get<String>(KEY_DELETE))
+    private val manage: Flow<TemplateManageState> =
+        combine(menuFor, renaming, deleteFor) { menu, rename, delete -> TemplateManageState(menu, rename, delete) }
     private var scanning = false
+    private var adding = false
+    private var renameInFlight = false
 
     private val effectChannel = Channel<FoodSearchEffect>(Channel.BUFFERED)
     val effects: Flow<FoodSearchEffect> = effectChannel.receiveAsFlow()
@@ -82,16 +122,26 @@ class FoodSearchViewModel(
                 FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
             },
             notFoundBarcode,
-        ) { state, code -> state.copy(notFoundBarcode = code) }.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            FoodSearchUiState(query = query.value, tab = tab.value, notFoundBarcode = notFoundBarcode.value),
-        )
+            templates,
+            manage,
+        ) { state, code, rows, sheets -> state.copy(notFoundBarcode = code, templates = rows, manage = sheets) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                FoodSearchUiState(
+                    query = query.value,
+                    tab = tab.value,
+                    notFoundBarcode = notFoundBarcode.value,
+                    templates = templates.value,
+                    manage = TemplateManageState(menuFor.value, renaming.value, deleteFor.value),
+                ),
+            )
 
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
         viewModelScope.launch { foodRepository.favouriteIds().collect { favouriteIds.value = it } }
         viewModelScope.launch { foodRepository.favourites() }
+        if (tab.value == FoodSearchTab.Templates) loadTemplates()
     }
 
     fun onEvent(event: FoodSearchEvent) {
@@ -105,13 +155,17 @@ class FoodSearchViewModel(
             is FoodSearchEvent.TabSelected -> {
                 tab.value = event.tab
                 savedState[KEY_TAB] = event.tab.name
+                if (event.tab == FoodSearchTab.Templates) loadTemplates()
             }
 
             is FoodSearchEvent.ToggleFavourite -> toggleFavourite(event.foodId)
 
             is FoodSearchEvent.SelectFood -> effectChannel.trySend(FoodSearchEffect.OpenFood(event.food))
 
-            FoodSearchEvent.Retry -> attempt.update { it + 1 }
+            FoodSearchEvent.Retry -> {
+                attempt.update { it + 1 }
+                if (tab.value == FoodSearchTab.Templates) loadTemplates()
+            }
 
             FoodSearchEvent.ScanClicked -> scan()
 
@@ -120,6 +174,130 @@ class FoodSearchViewModel(
 
             FoodSearchEvent.CreateFromEmpty -> effectChannel.trySend(
                 FoodSearchEffect.OpenCreateFood(barcode = null, name = query.value.trim().ifEmpty { null }),
+            )
+
+            else -> onTemplateEvent(event)
+        }
+    }
+
+    /** The Comidas tab: adding a comida, its options sheet, the rename and delete sheets, and the reload. */
+    private fun onTemplateEvent(event: FoodSearchEvent) {
+        when (event) {
+            is FoodSearchEvent.AddTemplate -> addTemplate(event.templateId)
+
+            is FoodSearchEvent.OpenTemplateMenu -> setMenu(event.templateId)
+
+            FoodSearchEvent.DismissTemplateMenu -> setMenu(null)
+
+            is FoodSearchEvent.EditTemplate -> {
+                setMenu(null)
+                effectChannel.trySend(FoodSearchEffect.OpenTemplateEditor(event.templateId))
+            }
+
+            else -> onManageEvent(event)
+        }
+    }
+
+    /** The rename and delete sheets of a comida, and the reload of the list. */
+    private fun onManageEvent(event: FoodSearchEvent) {
+        when (event) {
+            is FoodSearchEvent.RenameTemplate -> openRename(event.templateId)
+
+            is FoodSearchEvent.RenameNameChanged -> renaming.value?.let { setRename(it.templateId, event.text, false) }
+
+            FoodSearchEvent.SubmitRename -> submitRename()
+
+            FoodSearchEvent.DismissRename -> setRename(null, "", false)
+
+            is FoodSearchEvent.DeleteTemplate -> {
+                setMenu(null)
+                setDelete(event.templateId)
+            }
+
+            FoodSearchEvent.ConfirmDeleteTemplate -> confirmDelete()
+
+            FoodSearchEvent.DismissDeleteTemplate -> setDelete(null)
+
+            FoodSearchEvent.RefreshTemplates -> loadTemplates()
+
+            else -> Unit
+        }
+    }
+
+    private fun restoredRename(): RenameDraft? {
+        val id = savedState.get<String>(KEY_RENAME_ID) ?: return null
+        val name = savedState.get<String>(KEY_RENAME_NAME).orEmpty()
+        return renameDraft(id, name, savedState.get<Boolean>(KEY_RENAME_TAKEN) == true)
+    }
+
+    private fun renameDraft(id: String, name: String, taken: Boolean) = RenameDraft(
+        templateId = id,
+        name = name,
+        nameTaken = taken,
+        nameCheck = validateTemplateName(name),
+    )
+
+    private fun setMenu(templateId: String?) {
+        menuFor.value = templateId
+        savedState[KEY_MENU] = templateId
+    }
+
+    private fun setDelete(templateId: String?) {
+        deleteFor.value = templateId
+        savedState[KEY_DELETE] = templateId
+    }
+
+    /** Opens the rename sheet prefilled with the row's name; a comida missing from the list keeps it closed. */
+    private fun openRename(templateId: String) {
+        val row = (templates.value as? TemplatesResults.Content)?.rows?.firstOrNull { it.template.id == templateId }
+            ?: return
+        setMenu(null)
+        setRename(templateId, row.template.name, false)
+    }
+
+    /** Stores the rename draft ([id] null closes the sheet) in the state flow and in [savedState]. */
+    private fun setRename(id: String?, name: String, taken: Boolean) {
+        val draft = id?.let { renameDraft(it, name, taken) }
+        renaming.value = draft
+        savedState[KEY_RENAME_ID] = id
+        savedState[KEY_RENAME_NAME] = draft?.name
+        savedState[KEY_RENAME_TAKEN] = taken
+    }
+
+    private fun submitRename() {
+        val draft = renaming.value ?: return
+        if (!draft.canSubmit || !online.value || renameInFlight) return
+        renameInFlight = true
+        viewModelScope.launch {
+            try {
+                val result = mealTemplates.rename(draft.templateId, draft.name.trim())
+                when {
+                    result.isSuccess -> {
+                        setRename(null, "", false)
+                        loadTemplates()
+                    }
+
+                    result.appErrorOrNull() == AppError.NameAlreadyExists ->
+                        setRename(draft.templateId, draft.name, taken = true)
+
+                    else -> effectChannel.trySend(FoodSearchEffect.TemplateManageFailed)
+                }
+            } finally {
+                renameInFlight = false
+            }
+        }
+    }
+
+    private fun confirmDelete() {
+        val id = deleteFor.value ?: return
+        if (!online.value) return
+        viewModelScope.launch {
+            mealTemplates.delete(id).fold(
+                onSuccess = {
+                    setDelete(null)
+                    loadTemplates()
+                },
+                onFailure = { effectChannel.trySend(FoodSearchEffect.TemplateManageFailed) },
             )
         }
     }
@@ -157,6 +335,8 @@ class FoodSearchViewModel(
 
     private fun load(request: Request): Flow<FoodResults> = flow {
         emit(FoodResults.Loading)
+        // The Comidas tab has its own list ([templates]): no food search runs for it.
+        if (request.tab == FoodSearchTab.Templates && request.query.isBlank()) return@flow
         if (!request.online) {
             emit(FoodResults.Error)
             return@flow
@@ -172,6 +352,62 @@ class FoodSearchViewModel(
 
     private fun contentOrEmpty(foods: List<Food>): FoodResults =
         if (foods.isEmpty()) FoodResults.Empty else FoodResults.Content(foods)
+
+    private fun loadTemplates() {
+        templates.value = TemplatesResults.Loading
+        if (!online.value) {
+            templates.value = TemplatesResults.Error
+            return
+        }
+        viewModelScope.launch {
+            templates.value = mealTemplates.list().fold(
+                onSuccess = ::templatesOrEmpty,
+                onFailure = { TemplatesResults.Error },
+            )
+        }
+    }
+
+    private fun templatesOrEmpty(list: List<MealTemplate>): TemplatesResults = if (list.isEmpty()) {
+        TemplatesResults.Empty
+    } else {
+        TemplatesResults.Content(
+            list.map { template ->
+                val kcal = template.items.sumOf { scaleNutrition(it.food.nutrition, it.amount).kcal }
+                TemplateSummary(template, kcal)
+            },
+        )
+    }
+
+    private fun addTemplate(templateId: String) {
+        val row = (templates.value as? TemplatesResults.Content)?.rows?.firstOrNull { it.template.id == templateId }
+        if (row == null || adding || !online.value) return
+        adding = true
+        viewModelScope.launch {
+            try {
+                val mealSlotId = slotId ?: defaultSlotId()
+                if (mealSlotId == null) {
+                    effectChannel.trySend(FoodSearchEffect.TemplateFailed(null))
+                    return@launch
+                }
+                val result = addTemplateToDiary(row.template, mealSlotId, date)
+                effectChannel.trySend(
+                    if (result.isSuccess) {
+                        FoodSearchEffect.TemplateAdded
+                    } else {
+                        FoodSearchEffect.TemplateFailed(result.appErrorOrNull())
+                    },
+                )
+            } finally {
+                adding = false
+            }
+        }
+    }
+
+    /** The meal chosen by the time of day when the search was opened without one; null when no meal is enabled. */
+    private suspend fun defaultSlotId(): String? {
+        val slots = mealSlots.listEnabled().getOrNull() ?: return null
+        return defaultMealSlot(clock.now().toLocalDateTime(timeZone).time, slots)?.id
+    }
 
     private fun toggleFavourite(foodId: String) {
         val wasFavourite = foodId in favouriteIds.value

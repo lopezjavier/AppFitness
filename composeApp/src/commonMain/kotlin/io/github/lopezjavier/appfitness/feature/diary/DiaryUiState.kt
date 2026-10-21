@@ -69,6 +69,9 @@ sealed interface DiaryEvent {
 
     data object OpenGoals : DiaryEvent
 
+    /** Save the entries of meal [slotId] of the visible day as a comida (US-21). */
+    data class SaveSection(val slotId: String) : DiaryEvent
+
     /** Open the edit sheet of an entry of the visible day. */
     data class EditEntry(val entryId: String) : DiaryEvent
 
@@ -82,6 +85,9 @@ sealed interface DiaryEffect {
 
     /** Open the food search for [date] with no meal preselected. */
     data class AddFood(val date: LocalDate) : DiaryEffect
+
+    /** Open the save-as-comida sheet for the section [slotId] of [date]. */
+    data class OpenSaveTemplate(val slotId: String, val date: LocalDate) : DiaryEffect
 
     data object OpenPreferences : DiaryEffect
 
