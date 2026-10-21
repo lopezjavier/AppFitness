@@ -20,11 +20,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * US-21 "Renaming and deleting a comida" from the Comidas tab: the row menu, rename, delete and the editor hand-off.
+ * US-21 Comidas tab: tapping a row opens the details; swiping a row deletes it with an undo window; the reload.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Suppress("TooManyFunctions") // One method per scenario.
@@ -70,145 +69,135 @@ class MealTemplatesManageTest {
     }
 
     @Test
-    fun renameOpensTheSheet_prefilledWithTheCurrentName() = runTest(dispatcher) {
+    fun tappingARow_opensTheDetails() = runTest(dispatcher) {
         templates.templates += desayunoA
         val model = viewModel()
         openComidas(model)
 
-        model.onEvent(FoodSearchEvent.RenameTemplate("t1"))
-        advanceUntilIdle()
-
-        val rename = model.uiState.value.manage.rename
-        assertEquals("t1", rename?.templateId)
-        assertEquals("Desayuno A", rename?.name)
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.OpenTemplate("t1"))
+            assertEquals(FoodSearchEffect.OpenTemplateDetails("t1"), awaitItem())
+        }
     }
 
     @Test
-    fun renamingSavesTheNewName_closesTheSheet_andUpdatesTheList() = runTest(dispatcher) {
-        templates.templates += desayunoA
-        val model = viewModel()
-        openComidas(model)
-        model.onEvent(FoodSearchEvent.RenameTemplate("t1"))
-
-        model.onEvent(FoodSearchEvent.RenameNameChanged("Desayuno B"))
-        model.onEvent(FoodSearchEvent.SubmitRename)
-        advanceUntilIdle()
-
-        assertNull(model.uiState.value.manage.rename)
-        assertEquals(listOf("Desayuno B"), model.names())
-    }
-
-    @Test
-    fun renamingToATakenName_keepsTheSheetOpen_withTheDuplicateError() = runTest(dispatcher) {
+    fun swipingARow_hidesIt_andAnnouncesTheDelete_withoutDeletingYet() = runTest(dispatcher) {
         templates.templates += desayunoA
         templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
         val model = viewModel()
         openComidas(model)
-        model.onEvent(FoodSearchEvent.RenameTemplate("t1"))
 
-        model.onEvent(FoodSearchEvent.RenameNameChanged("comida 2"))
-        model.onEvent(FoodSearchEvent.SubmitRename)
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
+            assertEquals(FoodSearchEffect.TemplateDeleted("t1", "Desayuno A"), awaitItem())
+        }
         advanceUntilIdle()
 
-        assertTrue(model.uiState.value.manage.rename?.nameTaken == true)
-        assertEquals(listOf("Comida 2", "Desayuno A"), model.names())
+        assertEquals(listOf("Comida 2"), model.names())
+        assertEquals(2, templates.templates.size)
     }
 
     @Test
-    fun renamingToABlankName_doesNothing() = runTest(dispatcher) {
-        templates.templates += desayunoA
-        val model = viewModel()
-        openComidas(model)
-        model.onEvent(FoodSearchEvent.RenameTemplate("t1"))
-
-        model.onEvent(FoodSearchEvent.RenameNameChanged("   "))
-        model.onEvent(FoodSearchEvent.SubmitRename)
-        advanceUntilIdle()
-
-        assertTrue(model.uiState.value.manage.rename != null)
-        assertEquals(listOf("Desayuno A"), model.names())
-    }
-
-    @Test
-    fun renamingOffline_doesNothing() = runTest(dispatcher) {
-        templates.templates += desayunoA
-        val model = viewModel()
-        openComidas(model)
-        model.onEvent(FoodSearchEvent.RenameTemplate("t1"))
-        connectivity.state.value = false
-        advanceUntilIdle()
-
-        model.onEvent(FoodSearchEvent.RenameNameChanged("Otra"))
-        model.onEvent(FoodSearchEvent.SubmitRename)
-        advanceUntilIdle()
-
-        assertTrue(model.uiState.value.manage.rename != null)
-        assertEquals("Desayuno A", templates.templates.single().name)
-    }
-
-    @Test
-    fun deleteConfirmed_removesTheComida_andClosesTheDialog() = runTest(dispatcher) {
+    fun swipingTheOnlyRow_showsTheEmptyState() = runTest(dispatcher) {
         templates.templates += desayunoA
         val model = viewModel()
         openComidas(model)
 
-        model.onEvent(FoodSearchEvent.DeleteTemplate("t1"))
-        advanceUntilIdle()
-        assertEquals("t1", model.uiState.value.manage.deleteFor)
-        model.onEvent(FoodSearchEvent.ConfirmDeleteTemplate)
+        model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
         advanceUntilIdle()
 
-        assertNull(model.uiState.value.manage.deleteFor)
         assertEquals(TemplatesResults.Empty, model.uiState.value.templates)
     }
 
     @Test
-    fun deleteDismissed_keepsTheComida() = runTest(dispatcher) {
+    fun undo_bringsTheRowBack_andNeverDeletes() = runTest(dispatcher) {
         templates.templates += desayunoA
         val model = viewModel()
         openComidas(model)
-        model.onEvent(FoodSearchEvent.DeleteTemplate("t1"))
+        model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
 
-        model.onEvent(FoodSearchEvent.DismissDeleteTemplate)
+        model.onEvent(FoodSearchEvent.UndoDeleteTemplate("t1"))
+        model.onEvent(FoodSearchEvent.CommitDeleteTemplate("t1"))
         advanceUntilIdle()
 
-        assertNull(model.uiState.value.manage.deleteFor)
         assertEquals(listOf("Desayuno A"), model.names())
+        assertEquals(1, templates.templates.size)
     }
 
     @Test
-    fun deleteFailure_emitsTemplateManageFailed_andKeepsTheComida() = runTest(dispatcher) {
+    fun commit_deletesTheComida_andTheRowStaysGone() = runTest(dispatcher) {
         templates.templates += desayunoA
+        templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
+        val model = viewModel()
+        openComidas(model)
+        model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
+
+        model.onEvent(FoodSearchEvent.CommitDeleteTemplate("t1"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("t2"), templates.templates.map { it.id })
+        assertEquals(listOf("Comida 2"), model.names())
+    }
+
+    @Test
+    fun commitFailure_bringsTheRowBack_andEmitsManageFailed() = runTest(dispatcher) {
+        templates.templates += desayunoA
+        templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
         templates.deleteFailure = AppError.Network
         val model = viewModel()
         openComidas(model)
-        model.onEvent(FoodSearchEvent.DeleteTemplate("t1"))
+        model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
+        advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(FoodSearchEvent.ConfirmDeleteTemplate)
+            assertEquals(FoodSearchEffect.TemplateDeleted("t1", "Desayuno A"), awaitItem())
+            model.onEvent(FoodSearchEvent.CommitDeleteTemplate("t1"))
             advanceUntilIdle()
             assertEquals(FoodSearchEffect.TemplateManageFailed, awaitItem())
         }
 
-        assertEquals(listOf("Desayuno A"), model.names())
+        assertEquals(listOf("Comida 2", "Desayuno A"), model.names())
     }
 
     @Test
-    fun editRequested_closesTheMenu_andOpensTheEditor() = runTest(dispatcher) {
+    fun commitWithoutASwipe_deletesNothing() = runTest(dispatcher) {
         templates.templates += desayunoA
         val model = viewModel()
         openComidas(model)
-        model.onEvent(FoodSearchEvent.OpenTemplateMenu("t1"))
+
+        model.onEvent(FoodSearchEvent.CommitDeleteTemplate("t1"))
         advanceUntilIdle()
-        assertEquals("t1", model.uiState.value.manage.menuFor)
+
+        assertEquals(1, templates.templates.size)
+    }
+
+    @Test
+    fun swipingOffline_isIgnored() = runTest(dispatcher) {
+        templates.templates += desayunoA
+        val model = viewModel()
+        openComidas(model)
+        connectivity.state.value = false
+        advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(FoodSearchEvent.EditTemplate("t1"))
-            assertEquals(FoodSearchEffect.OpenTemplateEditor("t1"), awaitItem())
+            model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
+            advanceUntilIdle()
+            expectNoEvents()
         }
+    }
+
+    @Test
+    fun aRefresh_keepsASwipedRowHidden() = runTest(dispatcher) {
+        templates.templates += desayunoA
+        templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
+        val model = viewModel()
+        openComidas(model)
+        model.onEvent(FoodSearchEvent.SwipeDeleteTemplate("t1"))
+
+        model.onEvent(FoodSearchEvent.RefreshTemplates)
         advanceUntilIdle()
 
-        assertNull(model.uiState.value.manage.menuFor)
+        assertEquals(listOf("Comida 2"), model.names())
     }
 
     @Test
@@ -222,20 +211,5 @@ class MealTemplatesManageTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Desayuno editado"), model.names())
-    }
-
-    @Test
-    fun theRenameDraft_survivesTheViewModelBeingRecreated() = runTest(dispatcher) {
-        templates.templates += desayunoA
-        val state = SavedStateHandle()
-        val first = viewModel(state)
-        openComidas(first)
-        first.onEvent(FoodSearchEvent.RenameTemplate("t1"))
-        first.onEvent(FoodSearchEvent.RenameNameChanged("Mi comida"))
-
-        val restored = viewModel(state)
-        advanceUntilIdle()
-
-        assertEquals("Mi comida", restored.uiState.value.manage.rename?.name)
     }
 }

@@ -71,15 +71,15 @@ class TemplateEditorRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { EditorHost(saved) }
         rule.waitForIdle()
-        rule.onNodeWithTag("template_editor_item_eggs_amount").performTextReplacement("150")
-        rule.onNodeWithTag("template_editor_item_shake_remove").performClick()
+        rule.onNodeWithTag("template_editor_item_0_amount").performTextReplacement("150")
+        rule.onNodeWithTag("template_editor_item_1_remove").performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_editor_item_eggs_amount").assertTextContains("150")
-        rule.onNodeWithTag("template_editor_item_shake_amount").assertDoesNotExist()
+        rule.onNodeWithTag("template_editor_item_0_amount").assertTextContains("150")
+        rule.onNodeWithTag("template_editor_item_1_amount").assertDoesNotExist()
     }
 
     @Test
@@ -98,5 +98,34 @@ class TemplateEditorRestorationTest {
 
         rule.onNodeWithTag("template_editor_new_name").assertTextContains("Mi comida")
         rule.onNodeWithTag("template_editor_new_name_submit").assertIsDisplayed()
+    }
+
+    @Test
+    fun duplicateFoodComida_typedAmountsAndRemovedRow_surviveRecreationByIndex() {
+        templates.templates.clear()
+        templates.templates += MealTemplate(
+            id = "t1",
+            name = "Doble huevo",
+            mealSlotId = null,
+            items = listOf(
+                MealTemplateItem(eggs, 100.0, null),
+                MealTemplateItem(eggs, 50.0, null),
+                MealTemplateItem(shake, 300.0, null),
+            ),
+        )
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { EditorHost(saved) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("template_editor_item_1_amount").performTextReplacement("75")
+        rule.onNodeWithTag("template_editor_item_2_remove").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_editor_item_0_amount").assertTextContains("100")
+        rule.onNodeWithTag("template_editor_item_1_amount").assertTextContains("75")
+        rule.onNodeWithTag("template_editor_item_2_amount").assertDoesNotExist()
     }
 }

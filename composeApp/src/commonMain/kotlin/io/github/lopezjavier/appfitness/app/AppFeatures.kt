@@ -27,6 +27,7 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     StrengthRoute, MuscleVolumeRoute, is ExerciseProgressRoute -> true
     is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, MealSlotsRoute, is EditEntryRoute -> true
     is SaveTemplateRoute -> true
+    is TemplateDetailsRoute -> true
     is TemplateEditorRoute -> true
     DiaryHistoryRoute, is DiaryDayRoute -> true
 }

@@ -123,7 +123,7 @@ private fun EditorContent(
             if (content.isOffline) {
                 item { OfflineBanner(Modifier.fillMaxWidth(), testTagPrefix = "template_editor_offline") }
             }
-            items(content.rows, key = { it.foodId }) { row -> EditorRowItem(row, onEvent) }
+            items(content.rows, key = { it.index }) { row -> EditorRowItem(row, onEvent) }
         }
         Column(
             Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg)
@@ -153,7 +153,7 @@ private fun EditorContent(
 /** One food: its name, the amount in the base unit, the remove button and the amount error, if any. */
 @Composable
 private fun EditorRowItem(row: EditorRow, onEvent: (TemplateEditorEvent) -> Unit) {
-    val id = row.foodId
+    val id = row.index
     Column {
         Row(
             Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),

@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
@@ -17,7 +16,6 @@ import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
-import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -44,11 +42,6 @@ import kotlinx.datetime.toLocalDateTime
 private const val KEY_QUERY = "food_search_query"
 private const val KEY_TAB = "food_search_tab"
 private const val KEY_NOT_FOUND = "food_search_not_found"
-private const val KEY_MENU = "food_search_template_menu"
-private const val KEY_RENAME_ID = "food_search_rename_id"
-private const val KEY_RENAME_NAME = "food_search_rename_name"
-private const val KEY_RENAME_TAKEN = "food_search_rename_taken"
-private const val KEY_DELETE = "food_search_template_delete"
 private const val SEARCH_DEBOUNCE_MS = 400L
 
 /** What to load: a text search or the content of an empty-box tab; [attempt] changes on every retry. */
@@ -78,7 +71,6 @@ class FoodSearchViewModel(
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    private val validateTemplateName: ValidateTemplateName = ValidateTemplateName(),
 ) : ViewModel() {
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
     private val tab = MutableStateFlow(
@@ -90,14 +82,9 @@ class FoodSearchViewModel(
     private val online = MutableStateFlow(true)
     private val notFoundBarcode = MutableStateFlow(savedState.get<String>(KEY_NOT_FOUND))
     private val templates = MutableStateFlow<TemplatesResults>(TemplatesResults.Loading)
-    private val menuFor = MutableStateFlow(savedState.get<String>(KEY_MENU))
-    private val renaming = MutableStateFlow(restoredRename())
-    private val deleteFor = MutableStateFlow(savedState.get<String>(KEY_DELETE))
-    private val manage: Flow<TemplateManageState> =
-        combine(menuFor, renaming, deleteFor) { menu, rename, delete -> TemplateManageState(menu, rename, delete) }
+    private val pendingDelete = MutableStateFlow<Set<String>>(emptySet())
     private var scanning = false
     private var adding = false
-    private var renameInFlight = false
 
     private val effectChannel = Channel<FoodSearchEffect>(Channel.BUFFERED)
     val effects: Flow<FoodSearchEffect> = effectChannel.receiveAsFlow()
@@ -122,9 +109,8 @@ class FoodSearchViewModel(
                 FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
             },
             notFoundBarcode,
-            templates,
-            manage,
-        ) { state, code, rows, sheets -> state.copy(notFoundBarcode = code, templates = rows, manage = sheets) }
+            combine(templates, pendingDelete, ::withoutPending),
+        ) { state, code, rows -> state.copy(notFoundBarcode = code, templates = rows) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -133,7 +119,6 @@ class FoodSearchViewModel(
                     tab = tab.value,
                     notFoundBarcode = notFoundBarcode.value,
                     templates = templates.value,
-                    manage = TemplateManageState(menuFor.value, renaming.value, deleteFor.value),
                 ),
             )
 
@@ -180,43 +165,20 @@ class FoodSearchViewModel(
         }
     }
 
-    /** The Comidas tab: adding a comida, its options sheet, the rename and delete sheets, and the reload. */
+    /** The Comidas tab: adding a comida, opening its details, the swipe delete with undo, and the reload. */
     private fun onTemplateEvent(event: FoodSearchEvent) {
         when (event) {
             is FoodSearchEvent.AddTemplate -> addTemplate(event.templateId)
 
-            is FoodSearchEvent.OpenTemplateMenu -> setMenu(event.templateId)
+            is FoodSearchEvent.OpenTemplate -> effectChannel.trySend(
+                FoodSearchEffect.OpenTemplateDetails(event.templateId),
+            )
 
-            FoodSearchEvent.DismissTemplateMenu -> setMenu(null)
+            is FoodSearchEvent.SwipeDeleteTemplate -> swipeDelete(event.templateId)
 
-            is FoodSearchEvent.EditTemplate -> {
-                setMenu(null)
-                effectChannel.trySend(FoodSearchEffect.OpenTemplateEditor(event.templateId))
-            }
+            is FoodSearchEvent.UndoDeleteTemplate -> pendingDelete.update { it - event.templateId }
 
-            else -> onManageEvent(event)
-        }
-    }
-
-    /** The rename and delete sheets of a comida, and the reload of the list. */
-    private fun onManageEvent(event: FoodSearchEvent) {
-        when (event) {
-            is FoodSearchEvent.RenameTemplate -> openRename(event.templateId)
-
-            is FoodSearchEvent.RenameNameChanged -> renaming.value?.let { setRename(it.templateId, event.text, false) }
-
-            FoodSearchEvent.SubmitRename -> submitRename()
-
-            FoodSearchEvent.DismissRename -> setRename(null, "", false)
-
-            is FoodSearchEvent.DeleteTemplate -> {
-                setMenu(null)
-                setDelete(event.templateId)
-            }
-
-            FoodSearchEvent.ConfirmDeleteTemplate -> confirmDelete()
-
-            FoodSearchEvent.DismissDeleteTemplate -> setDelete(null)
+            is FoodSearchEvent.CommitDeleteTemplate -> commitDelete(event.templateId)
 
             FoodSearchEvent.RefreshTemplates -> loadTemplates()
 
@@ -224,80 +186,36 @@ class FoodSearchViewModel(
         }
     }
 
-    private fun restoredRename(): RenameDraft? {
-        val id = savedState.get<String>(KEY_RENAME_ID) ?: return null
-        val name = savedState.get<String>(KEY_RENAME_NAME).orEmpty()
-        return renameDraft(id, name, savedState.get<Boolean>(KEY_RENAME_TAKEN) == true)
+    /** The rows without the comidas swiped away and not yet deleted; none left is the empty state. */
+    private fun withoutPending(results: TemplatesResults, hidden: Set<String>): TemplatesResults {
+        if (results !is TemplatesResults.Content || hidden.isEmpty()) return results
+        val visible = results.rows.filter { it.template.id !in hidden }
+        return if (visible.isEmpty()) TemplatesResults.Empty else TemplatesResults.Content(visible)
     }
 
-    private fun renameDraft(id: String, name: String, taken: Boolean) = RenameDraft(
-        templateId = id,
-        name = name,
-        nameTaken = taken,
-        nameCheck = validateTemplateName(name),
-    )
-
-    private fun setMenu(templateId: String?) {
-        menuFor.value = templateId
-        savedState[KEY_MENU] = templateId
-    }
-
-    private fun setDelete(templateId: String?) {
-        deleteFor.value = templateId
-        savedState[KEY_DELETE] = templateId
-    }
-
-    /** Opens the rename sheet prefilled with the row's name; a comida missing from the list keeps it closed. */
-    private fun openRename(templateId: String) {
+    private fun swipeDelete(templateId: String) {
         val row = (templates.value as? TemplatesResults.Content)?.rows?.firstOrNull { it.template.id == templateId }
-            ?: return
-        setMenu(null)
-        setRename(templateId, row.template.name, false)
+        if (row == null || !online.value || templateId in pendingDelete.value) return
+        pendingDelete.update { it + templateId }
+        effectChannel.trySend(FoodSearchEffect.TemplateDeleted(templateId, row.template.name))
     }
 
-    /** Stores the rename draft ([id] null closes the sheet) in the state flow and in [savedState]. */
-    private fun setRename(id: String?, name: String, taken: Boolean) {
-        val draft = id?.let { renameDraft(it, name, taken) }
-        renaming.value = draft
-        savedState[KEY_RENAME_ID] = id
-        savedState[KEY_RENAME_NAME] = draft?.name
-        savedState[KEY_RENAME_TAKEN] = taken
-    }
-
-    private fun submitRename() {
-        val draft = renaming.value ?: return
-        if (!draft.canSubmit || !online.value || renameInFlight) return
-        renameInFlight = true
+    private fun commitDelete(templateId: String) {
+        if (templateId !in pendingDelete.value) return
         viewModelScope.launch {
-            try {
-                val result = mealTemplates.rename(draft.templateId, draft.name.trim())
-                when {
-                    result.isSuccess -> {
-                        setRename(null, "", false)
-                        loadTemplates()
-                    }
-
-                    result.appErrorOrNull() == AppError.NameAlreadyExists ->
-                        setRename(draft.templateId, draft.name, taken = true)
-
-                    else -> effectChannel.trySend(FoodSearchEffect.TemplateManageFailed)
-                }
-            } finally {
-                renameInFlight = false
-            }
-        }
-    }
-
-    private fun confirmDelete() {
-        val id = deleteFor.value ?: return
-        if (!online.value) return
-        viewModelScope.launch {
-            mealTemplates.delete(id).fold(
+            mealTemplates.delete(templateId).fold(
                 onSuccess = {
-                    setDelete(null)
-                    loadTemplates()
+                    // Drop the row for good before it stops being hidden, so it never flashes back.
+                    (templates.value as? TemplatesResults.Content)?.let { content ->
+                        val rows = content.rows.filter { it.template.id != templateId }
+                        templates.value = if (rows.isEmpty()) TemplatesResults.Empty else TemplatesResults.Content(rows)
+                    }
+                    pendingDelete.update { it - templateId }
                 },
-                onFailure = { effectChannel.trySend(FoodSearchEffect.TemplateManageFailed) },
+                onFailure = {
+                    pendingDelete.update { it - templateId }
+                    effectChannel.trySend(FoodSearchEffect.TemplateManageFailed)
+                },
             )
         }
     }

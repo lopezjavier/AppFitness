@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,14 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
-import io.github.lopezjavier.appfitness.composeapp.resources.template_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.template_add_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.template_items_count
-import io.github.lopezjavier.appfitness.composeapp.resources.template_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.template_summary
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import io.github.lopezjavier.appfitness.feature.food.TemplateSummary
@@ -28,15 +27,15 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One comida: its name, "N alimentos · X kcal" (the total is neutral text, not a macro), the "Añadir" button and the
- * overflow button ([onMenu]) with the options of the comida. "Añadir" is disabled offline ([enabled] false).
+ * One comida: its name and "N alimentos · X kcal" (the total is neutral text, not a macro); tapping the text opens the
+ * details ([onOpen]) and the separate "+" button adds it ([onAdd]), disabled offline ([enabled] false).
  */
 @Composable
 internal fun TemplateRow(
     row: TemplateSummary,
     enabled: Boolean,
     onAdd: () -> Unit,
-    onMenu: () -> Unit,
+    onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val id = row.template.id
@@ -49,12 +48,17 @@ internal fun TemplateRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = Spacing.minTouchTarget)
-            .testTag("food_search_template_$id"),
+            .heightIn(min = Spacing.minTouchTarget),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(vertical = Spacing.sm)) {
+        Column(
+            Modifier
+                .weight(1f)
+                .clickable(onClick = onOpen)
+                .testTag("food_search_template_$id")
+                .padding(vertical = Spacing.sm),
+        ) {
             Text(
                 text = row.template.name,
                 style = AppTheme.typography.titleMedium,
@@ -68,17 +72,12 @@ internal fun TemplateRow(
                 color = AppTheme.colors.textSecondary,
             )
         }
-        SecondaryButton(
-            text = stringResource(Res.string.template_add),
+        AppIconButton(
+            contentDescription = stringResource(Res.string.template_add_cd, row.template.name),
+            icon = Res.drawable.ic_add,
+            testTag = "food_search_template_${id}_add",
             onClick = onAdd,
             enabled = enabled,
-            modifier = Modifier.testTag("food_search_template_${id}_add"),
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.template_menu_cd, row.template.name),
-            icon = Res.drawable.ic_more_vert,
-            testTag = "food_search_template_${id}_menu",
-            onClick = onMenu,
         )
     }
 }

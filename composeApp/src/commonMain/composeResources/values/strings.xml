@@ -707,12 +707,17 @@
         <item quantity="other">%1$d alimentos</item>
     </plurals>
     <string name="template_summary">%1$s · %2$s kcal</string>
-    <string name="template_add">Añadir</string>
+    <string name="template_add_cd">Añadir %1$s</string>
+    <string name="template_deleted_snackbar">Comida eliminada</string>
+    <string name="template_undo">Deshacer</string>
+    <string name="template_swipe_delete_cd">Eliminar %1$s</string>
+    <string name="template_details_title">Comida</string>
+    <string name="template_details_edit">Editar</string>
+    <string name="template_details_rename_cd">Renombrar %1$s</string>
+    <string name="template_details_delete_cd">Eliminar %1$s</string>
+    <string name="template_details_load_error">No se pudo leer la comida</string>
+    <string name="template_details_item_amount">%1$s %2$s</string>
     <string name="template_add_failed">No se pudo añadir la comida. Inténtalo de nuevo.</string>
-    <string name="template_menu_cd">Opciones de %1$s</string>
-    <string name="template_menu_edit">Editar</string>
-    <string name="template_menu_rename">Renombrar</string>
-    <string name="template_menu_delete">Eliminar</string>
     <string name="template_manage_failed">No se pudo completar la acción. Inténtalo de nuevo.</string>
     <string name="template_rename_title">Renombrar comida</string>
     <string name="template_rename_name_label">Nombre de la comida</string>

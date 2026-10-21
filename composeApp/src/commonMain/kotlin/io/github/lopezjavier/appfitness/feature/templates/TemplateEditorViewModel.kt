@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
+import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
@@ -39,21 +40,22 @@ private sealed interface EditorLoaded {
     data class Ready(val template: MealTemplate) : EditorLoaded
 }
 
-/** The user's input: amounts as typed (by food id), the removed foods, the open sheet and the new-name text. */
+/** The user's input: amounts as typed (by item index), the removed items, the open sheet and the new-name text. */
 private data class Draft(
-    val amounts: Map<String, String>,
-    val removed: Set<String>,
+    val amounts: Map<Int, String>,
+    val removed: Set<Int>,
     val sheet: EditorSheet,
     val newName: String,
     val newNameTaken: Boolean,
 )
 
-private fun amountKey(foodId: String) = "$KEY_AMOUNT$foodId"
+private fun amountKey(index: Int) = "$KEY_AMOUNT$index"
 
-private fun removedKey(foodId: String) = "$KEY_REMOVED$foodId"
+private fun removedKey(index: Int) = "$KEY_REMOVED$index"
 
-private fun remainingItems(template: MealTemplate, draft: Draft) =
-    template.items.filter { it.food.id !in draft.removed }
+/** The items left, each with its index in the saved comida (the identity of an item; a food may repeat). */
+private fun remainingItems(template: MealTemplate, draft: Draft): List<IndexedValue<MealTemplateItem>> =
+    template.items.withIndex().filter { it.index !in draft.removed }
 
 /**
  * Editor of a saved comida (US-21): change the amounts, remove foods, then "Guardar" overwrites the comida or saves a
@@ -90,9 +92,9 @@ class TemplateEditorViewModel(
     fun onEvent(event: TemplateEditorEvent) {
         when (event) {
             is TemplateEditorEvent.AmountChanged ->
-                updateDraft { it.copy(amounts = it.amounts + (event.foodId to event.text)) }
+                updateDraft { it.copy(amounts = it.amounts + (event.index to event.text)) }
 
-            is TemplateEditorEvent.RemoveFood -> removeFood(event.foodId)
+            is TemplateEditorEvent.RemoveFood -> removeFood(event.index)
 
             TemplateEditorEvent.SaveClicked -> openChoice()
 
@@ -125,13 +127,10 @@ class TemplateEditorViewModel(
     }
 
     private fun initialDraft(template: MealTemplate) = Draft(
-        amounts = template.items.associate { item ->
-            item.food.id to (savedState.get<String>(amountKey(item.food.id)) ?: formatNumber(item.amount))
+        amounts = template.items.withIndex().associate { (index, item) ->
+            index to (savedState.get<String>(amountKey(index)) ?: formatNumber(item.amount))
         },
-        removed = template.items
-            .map { it.food.id }
-            .filter { savedState.get<Boolean>(removedKey(it)) == true }
-            .toSet(),
+        removed = template.items.indices.filter { savedState.get<Boolean>(removedKey(it)) == true }.toSet(),
         sheet = savedState.get<String>(KEY_SHEET)
             ?.let { name -> EditorSheet.entries.firstOrNull { it.name == name } }
             ?: EditorSheet.None,
@@ -146,7 +145,7 @@ class TemplateEditorViewModel(
     }
 
     private fun persist(current: Draft) {
-        current.amounts.forEach { (foodId, text) -> savedState[amountKey(foodId)] = text }
+        current.amounts.forEach { (index, text) -> savedState[amountKey(index)] = text }
         current.removed.forEach { savedState[removedKey(it)] = true }
         savedState[KEY_SHEET] = current.sheet.name
         savedState[KEY_NEW_NAME] = current.newName
@@ -154,12 +153,12 @@ class TemplateEditorViewModel(
     }
 
     /** At least one food must remain: the last one cannot be removed. */
-    private fun removeFood(foodId: String) {
+    private fun removeFood(index: Int) {
         val template = readyTemplate() ?: return
         val current = draft.value ?: return
         val remaining = remainingItems(template, current)
-        if (remaining.size > 1 && remaining.any { it.food.id == foodId }) {
-            updateDraft { it.copy(removed = it.removed + foodId) }
+        if (remaining.size > 1 && remaining.any { it.index == index }) {
+            updateDraft { it.copy(removed = it.removed + index) }
         }
     }
 
@@ -212,8 +211,8 @@ class TemplateEditorViewModel(
         return if (!savable) {
             null
         } else {
-            remainingItems(template, current).map { item ->
-                val text = current.amounts.getValue(item.food.id)
+            remainingItems(template, current).map { (index, item) ->
+                val text = current.amounts.getValue(index)
                 NewTemplateItem(
                     foodId = item.food.id,
                     // canSave guarantees that every remaining amount parses.
@@ -249,13 +248,14 @@ class TemplateEditorViewModel(
         val remaining = remainingItems(template, current)
         return TemplateEditorContent(
             name = template.name,
-            rows = remaining.map { item ->
+            rows = remaining.map { (index, item) ->
                 EditorRow(
+                    index = index,
                     foodId = item.food.id,
                     name = item.food.name,
                     unit = item.food.baseUnit,
-                    amountText = current.amounts[item.food.id].orEmpty(),
-                    quantityError = quantityError(current.amounts[item.food.id].orEmpty()),
+                    amountText = current.amounts[index].orEmpty(),
+                    quantityError = quantityError(current.amounts[index].orEmpty()),
                     removable = remaining.size > 1,
                 )
             },

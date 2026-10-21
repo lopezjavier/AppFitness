@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -67,8 +68,8 @@ class TemplateEditorScreenTest {
         rule.setContent { EditorHost(editor()) }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_editor_item_eggs_amount").performTextReplacement("150")
-        rule.onNodeWithTag("template_editor_item_shake_remove").performClick()
+        rule.onNodeWithTag("template_editor_item_0_amount").performTextReplacement("150")
+        rule.onNodeWithTag("template_editor_item_1_remove").performClick()
         rule.onNodeWithTag("template_editor_save").performClick()
         rule.waitForIdle()
 
@@ -81,8 +82,8 @@ class TemplateEditorScreenTest {
         templates.templates += desayunoA
         rule.setContent { EditorHost(editor()) }
         rule.waitForIdle()
-        rule.onNodeWithTag("template_editor_item_eggs_amount").performTextReplacement("150")
-        rule.onNodeWithTag("template_editor_item_shake_remove").performClick()
+        rule.onNodeWithTag("template_editor_item_0_amount").performTextReplacement("150")
+        rule.onNodeWithTag("template_editor_item_1_remove").performClick()
 
         rule.onNodeWithTag("template_editor_save").performClick()
         rule.onNodeWithTag("template_editor_overwrite").performClick()
@@ -98,7 +99,7 @@ class TemplateEditorScreenTest {
         templates.templates += desayunoA
         rule.setContent { EditorHost(editor()) }
         rule.waitForIdle()
-        rule.onNodeWithTag("template_editor_item_eggs_amount").performTextReplacement("200")
+        rule.onNodeWithTag("template_editor_item_0_amount").performTextReplacement("200")
 
         rule.onNodeWithTag("template_editor_save").performClick()
         rule.onNodeWithTag("template_editor_save_as_new").performClick()
@@ -144,13 +145,45 @@ class TemplateEditorScreenTest {
         templates.templates += desayunoA
         rule.setContent { EditorHost(editor()) }
         rule.waitForIdle()
-        rule.onNodeWithTag("template_editor_item_shake_remove").performClick()
+        rule.onNodeWithTag("template_editor_item_1_remove").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_editor_item_eggs_remove").performClick()
+        rule.onNodeWithTag("template_editor_item_0_remove").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_editor_item_eggs_amount").assertIsDisplayed()
-        rule.onNodeWithTag("template_editor_item_eggs_remove").assertIsDisplayed()
+        rule.onNodeWithTag("template_editor_item_0_amount").assertIsDisplayed()
+        rule.onNodeWithTag("template_editor_item_0_remove").assertIsDisplayed()
+    }
+
+    private val twiceEggs = MealTemplate(
+        id = "t1",
+        name = "Doble huevo",
+        mealSlotId = "breakfast",
+        items = listOf(MealTemplateItem(eggs, 100.0, null), MealTemplateItem(eggs, 50.0, "1 huevo")),
+    )
+
+    @Test
+    fun editor_withTheSameFoodTwice_opensWithoutCrashing() {
+        templates.templates += twiceEggs
+        rule.setContent { EditorHost(editor()) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_editor_item_0_amount").assertTextContains("100")
+        rule.onNodeWithTag("template_editor_item_1_amount").assertTextContains("50")
+    }
+
+    @Test
+    fun sobrescribir_afterEditingOneOfTwoRowsOfTheSameFood_keepsTheOtherRowUntouched() {
+        templates.templates += twiceEggs
+        rule.setContent { EditorHost(editor()) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_editor_item_1_amount").performTextReplacement("80")
+        rule.onNodeWithTag("template_editor_save").performClick()
+        rule.onNodeWithTag("template_editor_overwrite").performClick()
+        rule.waitForIdle()
+
+        val saved = templates.templates.single()
+        assertEquals(listOf("eggs" to 100.0, "eggs" to 80.0), saved.items.map { it.food.id to it.amount })
     }
 }

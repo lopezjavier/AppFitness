@@ -3,8 +3,6 @@ package io.github.lopezjavier.appfitness.feature.food
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
-import io.github.lopezjavier.appfitness.domain.usecase.TemplateNameCheck
-import io.github.lopezjavier.appfitness.feature.templates.TemplateNameError
 
 /**
  * What the search box shows when it is empty. Hidden while a query is typed. [Templates] is the "Comidas" tab: its
@@ -39,42 +37,9 @@ sealed interface TemplatesResults {
 }
 
 /**
- * The rename sheet of a comida: the typed [name], its [nameCheck] and whether it is [nameTaken] by another comida.
- * Renaming needs the server, so the sheet is disabled offline by the screen.
- */
-data class RenameDraft(
-    val templateId: String,
-    val name: String,
-    val nameTaken: Boolean,
-    val nameCheck: TemplateNameCheck,
-) {
-    /** The inline error under the field, if any. */
-    val nameError: TemplateNameError?
-        get() = when {
-            nameTaken -> TemplateNameError.Taken
-            nameCheck == TemplateNameCheck.TooLong -> TemplateNameError.TooLong
-            else -> null
-        }
-
-    /** The name is valid and not taken: "Renombrar" is enabled (when online). */
-    val canSubmit: Boolean
-        get() = nameCheck == TemplateNameCheck.Valid && !nameTaken
-}
-
-/**
- * The open sheets and dialogs of the Comidas tab: the options sheet of [menuFor], the rename sheet [rename] and the
- * delete confirmation of [deleteFor] (each null when closed).
- */
-data class TemplateManageState(
-    val menuFor: String? = null,
-    val rename: RenameDraft? = null,
-    val deleteFor: String? = null,
-)
-
-/**
  * State of the food search. With a non-blank [query] [results] are the search results and [tab] is ignored; with a
  * blank one they are the content of [tab] (or [templates] on the Comidas tab). [favouriteIds] drives the stars;
- * [isOffline] disables the search box. [manage] holds the comida sheets opened from the Comidas rows.
+ * [isOffline] disables the search box.
  */
 data class FoodSearchUiState(
     val query: String = "",
@@ -84,7 +49,6 @@ data class FoodSearchUiState(
     val isOffline: Boolean = false,
     val notFoundBarcode: String? = null,
     val templates: TemplatesResults = TemplatesResults.Loading,
-    val manage: TemplateManageState = TemplateManageState(),
 )
 
 sealed interface FoodSearchEvent {
@@ -113,29 +77,17 @@ sealed interface FoodSearchEvent {
     /** "Añadir" of a comida of the Comidas tab: logs all its foods to the meal of this search. */
     data class AddTemplate(val templateId: String) : FoodSearchEvent
 
-    /** The overflow button of a comida row: opens its options sheet. */
-    data class OpenTemplateMenu(val templateId: String) : FoodSearchEvent
+    /** A comida row was tapped: opens its details. */
+    data class OpenTemplate(val templateId: String) : FoodSearchEvent
 
-    data object DismissTemplateMenu : FoodSearchEvent
+    /** A comida row was swiped away: hides it until the delete is committed or undone (ignored offline). */
+    data class SwipeDeleteTemplate(val templateId: String) : FoodSearchEvent
 
-    /** "Editar" of the options sheet: opens the editor of the comida. */
-    data class EditTemplate(val templateId: String) : FoodSearchEvent
+    /** "Deshacer": the hidden comida comes back and nothing is deleted. */
+    data class UndoDeleteTemplate(val templateId: String) : FoodSearchEvent
 
-    /** "Renombrar" of the options sheet: opens the rename sheet prefilled with the current name. */
-    data class RenameTemplate(val templateId: String) : FoodSearchEvent
-
-    data class RenameNameChanged(val text: String) : FoodSearchEvent
-
-    data object SubmitRename : FoodSearchEvent
-
-    data object DismissRename : FoodSearchEvent
-
-    /** "Eliminar" of the options sheet: asks for confirmation first. */
-    data class DeleteTemplate(val templateId: String) : FoodSearchEvent
-
-    data object ConfirmDeleteTemplate : FoodSearchEvent
-
-    data object DismissDeleteTemplate : FoodSearchEvent
+    /** The undo window ended: the hidden comida is deleted on the server. */
+    data class CommitDeleteTemplate(val templateId: String) : FoodSearchEvent
 
     /** Reloads the Comidas list, e.g. when the editor comes back with changes. */
     data object RefreshTemplates : FoodSearchEvent
@@ -160,9 +112,12 @@ sealed interface FoodSearchEffect {
     /** The comida could not be added (null when the cause is not known); nothing was logged. */
     data class TemplateFailed(val error: AppError?) : FoodSearchEffect
 
-    /** Open the editor of the comida [templateId]. */
-    data class OpenTemplateEditor(val templateId: String) : FoodSearchEffect
+    /** Open the details of the comida [templateId]. */
+    data class OpenTemplateDetails(val templateId: String) : FoodSearchEffect
 
-    /** A rename or delete of a comida was refused by the server (generic message; the sheet stays open). */
+    /** The comida [templateId] ([name]) was swiped away: show "Comida eliminada" with "Deshacer". */
+    data class TemplateDeleted(val templateId: String, val name: String) : FoodSearchEffect
+
+    /** A delete of a comida was refused by the server (generic message); the row is back in the list. */
     data object TemplateManageFailed : FoodSearchEffect
 }

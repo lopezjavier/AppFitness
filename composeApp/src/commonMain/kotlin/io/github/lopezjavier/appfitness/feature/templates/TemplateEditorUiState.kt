@@ -18,8 +18,12 @@ sealed interface TemplateEditorUiState {
     data class Content(val content: TemplateEditorContent) : TemplateEditorUiState
 }
 
-/** One food of the comida: its typed amount in the base [unit] and its [quantityError], if any. */
+/**
+ * One item of the comida, identified by its [index] in the saved comida (the same food may appear twice):
+ * its typed amount in the base [unit] and its [quantityError], if any.
+ */
 data class EditorRow(
+    val index: Int,
     val foodId: String,
     val name: String,
     val unit: String,
@@ -60,9 +64,9 @@ data class TemplateEditorContent(
 }
 
 sealed interface TemplateEditorEvent {
-    data class AmountChanged(val foodId: String, val text: String) : TemplateEditorEvent
+    data class AmountChanged(val index: Int, val text: String) : TemplateEditorEvent
 
-    data class RemoveFood(val foodId: String) : TemplateEditorEvent
+    data class RemoveFood(val index: Int) : TemplateEditorEvent
 
     /** "Guardar": opens the choice between overwriting and saving as a new comida. */
     data object SaveClicked : TemplateEditorEvent

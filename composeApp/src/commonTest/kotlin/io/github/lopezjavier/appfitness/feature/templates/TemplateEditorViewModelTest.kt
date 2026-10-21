@@ -77,7 +77,7 @@ class TemplateEditorViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        model.onEvent(TemplateEditorEvent.AmountChanged("eggs", "150"))
+        model.onEvent(TemplateEditorEvent.AmountChanged(0, "150"))
         model.onEvent(TemplateEditorEvent.SaveClicked)
         model.onEvent(TemplateEditorEvent.Overwrite)
         advanceUntilIdle()
@@ -94,7 +94,7 @@ class TemplateEditorViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        model.onEvent(TemplateEditorEvent.RemoveFood("shake"))
+        model.onEvent(TemplateEditorEvent.RemoveFood(1))
         model.onEvent(TemplateEditorEvent.SaveClicked)
         model.onEvent(TemplateEditorEvent.Overwrite)
         advanceUntilIdle()
@@ -107,9 +107,9 @@ class TemplateEditorViewModelTest {
         repository.templates += desayunoA
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(TemplateEditorEvent.RemoveFood("eggs"))
+        model.onEvent(TemplateEditorEvent.RemoveFood(0))
 
-        model.onEvent(TemplateEditorEvent.RemoveFood("shake"))
+        model.onEvent(TemplateEditorEvent.RemoveFood(1))
 
         val content = contentOf(model)
         assertEquals(listOf("shake"), content.rows.map { it.foodId })
@@ -121,7 +121,7 @@ class TemplateEditorViewModelTest {
         repository.templates += desayunoA
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(TemplateEditorEvent.RemoveFood("shake"))
+        model.onEvent(TemplateEditorEvent.RemoveFood(1))
 
         model.effects.test {
             model.onEvent(TemplateEditorEvent.SaveClicked)
@@ -140,9 +140,9 @@ class TemplateEditorViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        model.onEvent(TemplateEditorEvent.AmountChanged("eggs", "0"))
+        model.onEvent(TemplateEditorEvent.AmountChanged(0, "0"))
         assertFalse(contentOf(model).canSave)
-        model.onEvent(TemplateEditorEvent.AmountChanged("eggs", "5001"))
+        model.onEvent(TemplateEditorEvent.AmountChanged(0, "5001"))
         assertFalse(contentOf(model).canSave)
         assertEquals(QuantityCheck.TooHigh, contentOf(model).rows.first { it.foodId == "eggs" }.quantityError)
     }
@@ -164,7 +164,7 @@ class TemplateEditorViewModelTest {
         repository.templates += desayunoA
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(TemplateEditorEvent.AmountChanged("eggs", "200"))
+        model.onEvent(TemplateEditorEvent.AmountChanged(0, "200"))
 
         model.saveAs("Desayuno B")
         model.onEvent(TemplateEditorEvent.SubmitNewName)
@@ -210,8 +210,8 @@ class TemplateEditorViewModelTest {
         val state = SavedStateHandle()
         val first = viewModel(state)
         advanceUntilIdle()
-        first.onEvent(TemplateEditorEvent.AmountChanged("eggs", "150"))
-        first.onEvent(TemplateEditorEvent.RemoveFood("shake"))
+        first.onEvent(TemplateEditorEvent.AmountChanged(0, "150"))
+        first.onEvent(TemplateEditorEvent.RemoveFood(1))
 
         val restored = viewModel(state)
         advanceUntilIdle()
@@ -219,6 +219,71 @@ class TemplateEditorViewModelTest {
         val content = contentOf(restored)
         assertEquals(listOf("eggs"), content.rows.map { it.foodId })
         assertEquals("150", content.rows.single().amountText)
+    }
+
+    private val eggsTwice = MealTemplate(
+        id = "t1",
+        name = "Doble huevo",
+        mealSlotId = null,
+        items = listOf(MealTemplateItem(eggs, 100.0, "1 ración"), MealTemplateItem(eggs, 50.0, "1 ración")),
+    )
+
+    @Test
+    fun theSameFoodTwice_isTwoRowsWithTheirOwnIndexAndAmount() = runTest(dispatcher) {
+        repository.templates += eggsTwice
+        val model = viewModel()
+
+        val rows = contentOf(model).rows
+
+        assertEquals(listOf(0, 1), rows.map { it.index })
+        assertEquals(listOf("100", "50"), rows.map { it.amountText })
+    }
+
+    @Test
+    fun theSameFoodTwice_changingOneAmount_doesNotAlterTheOther_andSavesBothInOrder() = runTest(dispatcher) {
+        repository.templates += eggsTwice
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(TemplateEditorEvent.AmountChanged(1, "75"))
+        model.onEvent(TemplateEditorEvent.SaveClicked)
+        model.onEvent(TemplateEditorEvent.Overwrite)
+        advanceUntilIdle()
+
+        val items = repository.templates.single().items
+        assertEquals(listOf(100.0, 75.0), items.map { it.amount })
+        assertEquals(listOf("1 ración", null), items.map { it.portionLabel })
+    }
+
+    @Test
+    fun theSameFoodTwice_removingOne_keepsTheOther_andTheLastCannotBeRemoved() = runTest(dispatcher) {
+        repository.templates += eggsTwice
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(TemplateEditorEvent.RemoveFood(0))
+        model.onEvent(TemplateEditorEvent.RemoveFood(1))
+
+        val content = contentOf(model)
+        assertEquals(listOf(1), content.rows.map { it.index })
+        assertEquals("50", content.rows.single().amountText)
+        assertFalse(content.rows.single().removable)
+    }
+
+    @Test
+    fun theSameFoodTwice_draftIsRestoredByIndex() = runTest(dispatcher) {
+        repository.templates += eggsTwice
+        val state = SavedStateHandle()
+        val first = viewModel(state)
+        advanceUntilIdle()
+        first.onEvent(TemplateEditorEvent.AmountChanged(1, "80"))
+        first.onEvent(TemplateEditorEvent.RemoveFood(0))
+
+        val restored = viewModel(state)
+
+        val rows = contentOf(restored).rows
+        assertEquals(listOf(1), rows.map { it.index })
+        assertEquals("80", rows.single().amountText)
     }
 
     @Test
