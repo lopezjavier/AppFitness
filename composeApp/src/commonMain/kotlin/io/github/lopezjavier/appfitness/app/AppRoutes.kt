@@ -23,7 +23,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
-import io.github.lopezjavier.appfitness.composeapp.resources.template_editor_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -140,10 +139,6 @@ data class SaveTemplateRoute(val slotId: String, val date: String) : AppRoute
 /** The full-screen details of the comida [templateId] (US-21), opened from the Comidas tab of the food search. */
 @Serializable
 data class TemplateDetailsRoute(val templateId: String) : AppRoute
-
-/** The full-screen editor of the comida [templateId] (US-21), opened from the Comidas tab of the food search. */
-@Serializable
-data class TemplateEditorRoute(val templateId: String) : AppRoute
 
 /** The meals editor (US-23), opened from Perfil -> Preferencias. */
 @Serializable
@@ -266,9 +261,6 @@ val AppRoute.chrome: ShellChrome
             is TemplateDetailsRoute ->
                 ShellChrome.FullScreen(Res.string.template_details_title, topBarTag = "template_details")
 
-            is TemplateEditorRoute ->
-                ShellChrome.FullScreen(Res.string.template_editor_title, topBarTag = "template_editor")
-
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
             DiaryHistoryRoute ->
@@ -304,7 +296,6 @@ object AppDestinations {
             AddFoodRoute("", null, ""),
             CreateFoodRoute(date = ""),
             TemplateDetailsRoute(""),
-            TemplateEditorRoute(""),
             MealSlotsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),

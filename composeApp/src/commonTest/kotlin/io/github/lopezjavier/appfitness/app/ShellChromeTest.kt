@@ -62,7 +62,6 @@ class ShellChromeTest {
                 AddFoodRoute::class,
                 CreateFoodRoute::class,
                 TemplateDetailsRoute::class,
-                TemplateEditorRoute::class,
                 MealSlotsRoute,
                 DiaryHistoryRoute,
                 DiaryDayRoute::class,

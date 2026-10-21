@@ -23,7 +23,6 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
-import io.github.lopezjavier.appfitness.feature.templates.TemplateEditorViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
@@ -126,17 +125,9 @@ val uiModule =
                 templateId = templateId,
                 mealTemplates = get(),
                 scaleNutrition = get(),
-                validateTemplateName = get(),
-                connectivity = get(),
-                savedState = get(),
-            )
-        }
-        viewModel { (templateId: String) ->
-            TemplateEditorViewModel(
-                templateId = templateId,
-                mealTemplates = get(),
                 validateQuantity = get(),
                 validateTemplateName = get(),
+                foodRepository = get(),
                 connectivity = get(),
                 savedState = get(),
             )

@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.Micronutrients
+import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.TemplateNameCheck
 
 /**
- * The rename sheet of a comida: the typed [name], its [nameCheck] and whether it is [nameTaken] by another comida.
- * Renaming needs the server, so the sheet is disabled offline by the screen.
+ * A name being typed (the rename sheet or the new-comida name): the typed [name], its [nameCheck] and whether it is
+ * [nameTaken] by another comida (reported by the server when saving).
  */
 data class RenameDraft(val name: String, val nameTaken: Boolean, val nameCheck: TemplateNameCheck) {
     /** The inline error under the field, if any. */
@@ -16,19 +19,37 @@ data class RenameDraft(val name: String, val nameTaken: Boolean, val nameCheck: 
             else -> null
         }
 
-    /** The name is valid and not taken: "Renombrar" is enabled (when online). */
+    /** The name is valid and not taken: the submit button is enabled. */
     val canSubmit: Boolean
         get() = nameCheck == TemplateNameCheck.Valid && !nameTaken
 }
 
-/** One item of the comida: the food [name], its [amountText] in the base [unit] and the [portionLabel], if any. */
+/**
+ * One food of the comida, identified by its [index] in the saved comida (the same food may appear twice). [amountText]
+ * is the typed amount in the base [unit]; [quantityError] is set when it is not valid. [kcal] and the macros are the
+ * nutrition of that amount (0 while it is invalid). [portionLabel] is kept only while the amount is untouched.
+ * [removable] is false for the last food left.
+ */
 data class DetailsRow(
     val index: Int,
+    val foodId: String,
     val name: String,
-    val amountText: String,
     val unit: String,
+    val amountText: String,
+    val quantityError: QuantityCheck?,
     val portionLabel: String?,
+    val kcal: Double,
+    val proteinG: Double,
+    val carbsG: Double,
+    val fatG: Double,
+    val removable: Boolean,
 )
+
+/** The food sheet: the tapped [row], its catalogue [food] and its [micronutrients] once known (null: none to show). */
+data class OpenFood(val row: DetailsRow, val food: Food, val micronutrients: Micronutrients?)
+
+/** Which sheet over the details is open: none, the rename sheet, the "Guardar" choice, or the name of a new comida. */
+enum class DetailsSheet { None, Rename, Choose, NewName }
 
 /** What the details of a comida show. */
 sealed interface TemplateDetailsUiState {
@@ -38,49 +59,87 @@ sealed interface TemplateDetailsUiState {
     data object Error : TemplateDetailsUiState
 
     /**
-     * The comida with its total [kcal] and [rows]. [rename] is the open rename sheet and [confirmDelete] the open
-     * delete dialog (both survive process death, ADR-40). [isOffline] disables rename and delete; [busy] is true while
-     * one of them is running.
+     * The comida as drafted: the draft [name], the totals of the foods left and one of [rows] per food. Nothing is
+     * stored until "Guardar": [isDirty] says the draft differs from the saved comida and [canSave] that it can be
+     * saved now (valid amounts, a food left, online, not busy). [openFood] is the food sheet, [sheet] the open sheet
+     * with [rename] or [newName] as typed. Everything survives process death (ADR-40).
      */
     data class Content(
         val name: String,
-        val kcal: Double,
+        val totalKcal: Double,
+        val totalProteinG: Double,
+        val totalCarbsG: Double,
+        val totalFatG: Double,
         val rows: List<DetailsRow>,
+        val canSave: Boolean,
+        val isDirty: Boolean,
         val isOffline: Boolean,
-        val rename: RenameDraft?,
-        val confirmDelete: Boolean,
         val busy: Boolean,
-    ) : TemplateDetailsUiState
+        val sheet: DetailsSheet,
+        val openFood: OpenFood?,
+        val rename: RenameDraft?,
+        val newName: RenameDraft?,
+    ) : TemplateDetailsUiState {
+        /** The index of the food whose sheet is open, if any. */
+        val openFoodIndex: Int?
+            get() = openFood?.row?.index
+    }
 }
 
 sealed interface TemplateDetailsEvent {
-    /** The pencil: opens the rename sheet prefilled with the current name. */
+    /** A tap on a food: opens its sheet. */
+    data class OpenFood(val index: Int) : TemplateDetailsEvent
+
+    data object DismissFood : TemplateDetailsEvent
+
+    data class AmountChanged(val index: Int, val text: String) : TemplateDetailsEvent
+
+    /** Removes a food from the draft (swipe or food sheet); ignored for the last food. */
+    data class RemoveFood(val index: Int) : TemplateDetailsEvent
+
+    /** The pencil: opens the rename sheet prefilled with the draft name. */
     data object OpenRename : TemplateDetailsEvent
 
     data class RenameNameChanged(val text: String) : TemplateDetailsEvent
 
+    /** Stores the typed name in the draft only; nothing is sent to the server. */
     data object SubmitRename : TemplateDetailsEvent
 
     data object DismissRename : TemplateDetailsEvent
 
-    /** "Eliminar": asks for confirmation first. */
+    /** "Guardar": opens the choice between overwriting and saving as a new comida. */
+    data object SaveClicked : TemplateDetailsEvent
+
+    /** "Sobrescribir": replaces the name and items of this comida with the draft. */
+    data object Overwrite : TemplateDetailsEvent
+
+    /** "Guardar como nueva": asks for the name of the new comida. */
+    data object SaveAsNew : TemplateDetailsEvent
+
+    data class NewNameChanged(val text: String) : TemplateDetailsEvent
+
+    data object SubmitNewName : TemplateDetailsEvent
+
+    /** Closes the "Guardar" choice or the new-name sheet. */
+    data object DismissSheet : TemplateDetailsEvent
+
+    /** "Eliminar comida": deletes at once (online only). */
     data object Delete : TemplateDetailsEvent
 
-    data object ConfirmDelete : TemplateDetailsEvent
-
-    data object DismissDelete : TemplateDetailsEvent
-
-    /** Reload after an error (shows the loading state). */
+    /** Reload after an error (shows the loading state); the draft is kept. */
     data object Retry : TemplateDetailsEvent
 
-    /** Silent reload, e.g. when the editor comes back with changes. */
+    /** Silent reload, e.g. on resume; the draft is kept. */
     data object Refresh : TemplateDetailsEvent
 }
 
 sealed interface TemplateDetailsEffect {
+    /** The draft was saved (overwritten or as a new comida): give haptic feedback and leave the details. */
+    data object Saved : TemplateDetailsEffect
+
     /** The comida was deleted: leave the details. */
     data object Deleted : TemplateDetailsEffect
 
-    /** A rename or delete was refused by the server for another reason than a taken name. */
+    /** A save or delete was refused for another reason than a taken name; the draft is kept. */
     data class ActionFailed(val error: AppError?) : TemplateDetailsEffect
 }
