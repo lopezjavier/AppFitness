@@ -1,6 +1,7 @@
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1.0.19";
 import {
     fetchOffProduct,
+    isSpainSearchHit,
     normalizeProduct,
     OffError,
     searchOff,
@@ -350,4 +351,147 @@ Deno.test("fetchOffProduct and searchOff keep off_data on every usable product a
     assertEquals(foods.length, 2);
     for (const f of foods) assert(typeof f.off_data.code === "string");
     assertEquals(normalizeProduct({ code: "1", product_name: "x" }), null);
+});
+
+Deno.test("isSpainSearchHit: Spain plus product_name_es is a hit", () => {
+    assertEquals(
+        isSpainSearchHit({
+            countries_tags: ["en:spain"],
+            product_name_es: "Avena",
+        }),
+        true,
+    );
+});
+
+Deno.test("isSpainSearchHit: Spain plus lang es and product_name is a hit", () => {
+    assertEquals(
+        isSpainSearchHit({
+            countries_tags: ["en:spain"],
+            lang: "es",
+            product_name: "Avena",
+        }),
+        true,
+    );
+});
+
+Deno.test("isSpainSearchHit: Spain with only an English name is not a hit", () => {
+    assertEquals(
+        isSpainSearchHit({
+            countries_tags: ["en:spain"],
+            lang: "en",
+            product_name: "Oats",
+        }),
+        false,
+    );
+});
+
+Deno.test("isSpainSearchHit: a product not sold in Spain is not a hit", () => {
+    assertEquals(
+        isSpainSearchHit({
+            countries_tags: ["en:france"],
+            product_name_es: "Avena",
+        }),
+        false,
+    );
+});
+
+Deno.test("isSpainSearchHit: multi-country product including Spain is a hit", () => {
+    assertEquals(
+        isSpainSearchHit({
+            countries_tags: ["en:france", "en:spain"],
+            product_name_es: "Avena",
+        }),
+        true,
+    );
+});
+
+Deno.test("isSpainSearchHit: invalid input is false and never throws", () => {
+    const invalid: unknown[] = [
+        {},
+        { product_name_es: "Avena" },
+        { countries_tags: "en:spain", product_name_es: "Avena" },
+        { countries_tags: ["en:spain"], product_name_es: "   " },
+        { countries_tags: ["en:spain"], lang: "es", product_name: " " },
+        { countries_tags: ["en:spain"], lang: "es" },
+        null,
+        undefined,
+        [],
+        "en:spain",
+        5,
+    ];
+    for (const raw of invalid) assertEquals(isSpainSearchHit(raw), false);
+});
+
+Deno.test("searchOff: restricts OFF to Spain, keeps the other params and drops non-hits", async () => {
+    let seen: URL | undefined;
+    const fakeFetch = (input: Request | URL | string) => {
+        seen = new URL(String(input));
+        return Promise.resolve(Response.json(fixture("search-mixed")));
+    };
+    const foods = await searchOff(
+        { fetch: fakeFetch, userAgent: "AppFitness/test" },
+        "avena",
+        1,
+    );
+    assertEquals(foods.map((f) => f.barcode), [
+        "8410000810004",
+        "3000000000002",
+    ]);
+    const p = seen!.searchParams;
+    assertEquals(p.get("tagtype_0"), "countries");
+    assertEquals(p.get("tag_contains_0"), "contains");
+    assertEquals(p.get("tag_0"), "spain");
+    assertEquals(p.get("search_terms"), "avena");
+    assertEquals(p.get("json"), "1");
+    assertEquals(p.get("page"), "1");
+    assertEquals(p.get("page_size"), "20");
+    assertEquals(p.get("lc"), "es");
+    assertEquals(p.get("cc"), "es");
+    assertEquals(p.has("sort_by"), false);
+    assertEquals(p.has("fields"), false);
+});
+
+Deno.test("searchOff: a page where every product is filtered returns [] and the next page still works", async () => {
+    const pages: (string | null)[] = [];
+    const allForeign = {
+        products: [{
+            code: "3000000000001",
+            product_name_es: "Copos",
+            countries_tags: ["en:france"],
+            nutriments: { "energy-kcal_100g": 370 },
+        }],
+    };
+    const fakeFetch = (input: Request | URL | string) => {
+        const page = new URL(String(input)).searchParams.get("page");
+        pages.push(page);
+        return Promise.resolve(
+            Response.json(page === "2" ? allForeign : fixture("search-mixed")),
+        );
+    };
+    const deps = { fetch: fakeFetch, userAgent: "AppFitness/test" };
+    assertEquals(await searchOff(deps, "avena", 2), []);
+    const next = await searchOff(deps, "avena", 3);
+    assertEquals(next.length, 2);
+    assertEquals(pages, ["2", "3"]);
+});
+
+Deno.test("fetchOffProduct: barcode lookup does not apply the Spain filter", async () => {
+    const found = await fetchOffProduct(
+        {
+            fetch: () =>
+                Promise.resolve(Response.json({
+                    status: 1,
+                    product: {
+                        code: "3000000000001",
+                        product_name: "Flocons",
+                        lang: "fr",
+                        countries_tags: ["en:france"],
+                        nutriments: { "energy-kcal_100g": 370 },
+                    },
+                })),
+            userAgent: "AppFitness/test",
+        },
+        "3000000000001",
+    );
+    assertEquals(found?.name, "Flocons");
 });

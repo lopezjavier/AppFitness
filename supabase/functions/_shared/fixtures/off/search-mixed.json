@@ -1,0 +1,44 @@
+{
+  "count": 5,
+  "page": 1,
+  "page_size": 20,
+  "products": [
+    {
+      "code": "8410000810004",
+      "product_name": "Avena integral",
+      "product_name_es": "Copos de avena integral",
+      "lang": "es",
+      "countries_tags": ["en:spain"],
+      "nutriments": { "energy-kcal_100g": 372 }
+    },
+    {
+      "code": "3000000000001",
+      "product_name": "Flocons d'avoine",
+      "product_name_es": "Copos de avena",
+      "lang": "fr",
+      "countries_tags": ["en:france"],
+      "nutriments": { "energy-kcal_100g": 370 }
+    },
+    {
+      "code": "8410000840001",
+      "product_name": "Oat drink",
+      "lang": "en",
+      "countries_tags": ["en:spain"],
+      "nutriments": { "energy-kcal_100ml": 45 }
+    },
+    {
+      "code": "3000000000002",
+      "product_name": "Avoine",
+      "product_name_es": "Avena multipais",
+      "lang": "fr",
+      "countries_tags": ["en:france", "en:spain"],
+      "nutriments": { "energy-kcal_100g": 360 }
+    },
+    {
+      "code": "8410000840002",
+      "product_name": "Avena sin pais",
+      "lang": "es",
+      "nutriments": { "energy-kcal_100g": 350 }
+    }
+  ]
+}

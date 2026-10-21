@@ -13,7 +13,7 @@ function fullProduct() {
 
 /** Fake PostgREST client that records the select string and answers with the given rows. */
 function fakeClient(rows: unknown[]) {
-    const seen = { select: "" };
+    const seen = { select: "", from: "" };
     // deno-lint-ignore no-explicit-any
     const builder: any = {
         select(s: string) {
@@ -24,8 +24,16 @@ function fakeClient(rows: unknown[]) {
         limit: () => Promise.resolve({ data: rows, error: null }),
         eq: () => Promise.resolve({ data: rows, error: null }),
     };
-    // deno-lint-ignore no-explicit-any
-    return { client: { from: () => builder } as any, seen };
+    return {
+        client: {
+            from: (t: string) => {
+                seen.from = t;
+                return builder;
+            },
+            // deno-lint-ignore no-explicit-any
+        } as any,
+        seen,
+    };
 }
 
 const dbRow = {
@@ -73,6 +81,12 @@ Deno.test("searchLocal selects explicit columns, so off_data is not downloaded",
     assertEquals(foods.length, 1);
     assertEquals(seen.select.includes("*"), false);
     assertEquals(seen.select.includes("off_data"), false);
+});
+
+Deno.test("searchLocal reads the Spain-visibility view, not the foods table", async () => {
+    const { client, seen } = fakeClient([dbRow]);
+    await searchLocal(client, "avena", 20);
+    assertEquals(seen.from, "foods_searchable");
 });
 
 Deno.test("findByBarcode reports whether the row already has off_data", async () => {

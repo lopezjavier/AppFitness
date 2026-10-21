@@ -105,13 +105,17 @@ export function toFood(row: any): Food {
     };
 }
 
+/**
+ * Reads the `foods_searchable` view (ADR-46): personal foods plus OFF foods sold in Spain with a Spanish name.
+ * The rule lives in SQL (`is_spain_off_food`); barcode scans may have cached other OFF rows, which stay hidden.
+ */
 export async function searchLocal(
     client: Client,
     q: string,
     limit: number,
 ): Promise<Food[]> {
     const { data, error } = await client
-        .from("foods")
+        .from("foods_searchable")
         .select(SELECT)
         .textSearch("search_vector", unaccent(q), {
             type: "websearch",
