@@ -12,7 +12,10 @@ import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 internal data class FoodPortionDto(val id: String, val label: String, val amount: Double, val position: Int = 0)
@@ -113,9 +116,27 @@ internal data class CreateFoodParams(
 @Serializable
 internal data class FoodMicronutrientsDto(
     val source: String,
-    val micronutrients: Map<String, Double>? = null,
-    val nutriments: JsonObject? = null,
+    val micronutrients: JsonElement? = null,
+    val nutriments: JsonElement? = null,
 ) {
+    /** The typed values of a personal food; numbers sent as strings are tolerated. */
+    fun typedValues(): JsonObject? = micronutrients.asObject()
+
+    /** The OFF `nutriments`; an object, or an object serialised as a JSON string, else none. */
+    fun offNutriments(): JsonObject? = nutriments.asObject()
+
+    private fun JsonElement?.asObject(): JsonObject? = when (this) {
+        is JsonObject -> this
+
+        is JsonPrimitive -> if (isString) {
+            runCatching { Json.parseToJsonElement(content) as? JsonObject }.getOrNull()
+        } else {
+            null
+        }
+
+        else -> null
+    }
+
     companion object {
         const val COLUMNS = "source,micronutrients,nutriments:off_data->nutriments"
     }

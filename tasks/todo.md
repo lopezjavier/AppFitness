@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-070 (fix food details sheet and clean the food cache). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
+**Next:** T-071 (Diario calendar button and Perfil "Estadísticas"). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
 
 ---
 
@@ -1797,7 +1797,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** The food details sheet shows no micronutrients and its layout is broken (a horizontal line over "gramos" and "100 g (100 g)"). Drop the "100 g (100 g)" label when the portion is just 100 g. Cached OFF foods stored before T-068 lack `off_data`; user decision 2026-10-21: delete all `source = 'off'` foods and everything referencing them (`food_log_entries`, `favorite_foods`, `meal_template_items`; templates left empty are removed); food data is not stable yet. Workout data is never touched.
 
 **Acceptance criteria:**
-- [ ] Migration deletes every OFF food and its dependants; pgTAP covers it and that workout tables are untouched.
+- [x] Migration deletes every OFF food and its dependants; pgTAP covers it and that workout tables are untouched.
 - [ ] The details sheet shows the micronutrients (host test with `off_data` and with manual `micronutrients`) and has no stray line; no duplicated "100 g (100 g)".
 - [ ] After the merge: `deploy-supabase` green; a fresh search/scan fills `off_data`.
 

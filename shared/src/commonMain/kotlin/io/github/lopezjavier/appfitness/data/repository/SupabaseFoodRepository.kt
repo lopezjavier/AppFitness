@@ -148,12 +148,12 @@ class SupabaseFoodRepository(
                 .decodeList<FoodMicronutrientsDto>()
                 .firstOrNull()
                 ?: throw AppException(AppError.NotFound)
-            val result = if (row.source == "user") {
-                OffMicronutrientsMapper.fromTyped(row.micronutrients.orEmpty(), food.baseUnit)
-            } else {
-                OffMicronutrientsMapper.fromNutriments(row.nutriments, food.baseUnit)
+            // Typed values use the same `<key>_100g` names as OFF nutriments, so one mapper reads both.
+            val source = if (row.source == "user") row.typedValues() else row.offNutriments()
+            OffMicronutrientsMapper.fromNutriments(source, food.baseUnit).also { found ->
+                // An empty result may be a food whose data arrives later: never cache it as final.
+                if (!found.isEmpty) micronutrientsCache.update { it + (food.id to found) }
             }
-            result.also { found -> micronutrientsCache.update { it + (food.id to found) } }
         }
     }
 
