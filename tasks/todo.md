@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-075, then re-present Checkpoint E4-C, then T-063. Round 2 feedback of E4-C (2026-10-21) became T-072…T-074; round 3 became T-075 (swipe haptics and the stray-line bug went to the E8 table).
+**Next:** T-063 (E4 closure; Checkpoint E4-C approved 2026-10-21). Round 2 feedback of E4-C (2026-10-21) became T-072…T-074; round 3 became T-075 (swipe haptics and the stray-line bug went to the E8 table).
 
 ---
 
@@ -1900,12 +1900,12 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Estimated scope:** S
 
 ### Checkpoint E4-C — Templates, history, final regression and approval 👤
-- [ ] T-061, T-062, T-068…T-075 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+- [x] T-061, T-062, T-068…T-075 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [x] 👤 *(approved by the user, 2026-10-21)* Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Micronutrients: scan or search a real packaged food, open its details: fiber, sugars, salt and the vitamins/minerals OFF has are listed per 100 g. Create a food typing saturated fat, sugars, fiber and salt from its label: they show in its details; one created without them shows no section.
   - Comidas: fill a breakfast and "Guardar como comida"; try the same name again (error). From any meal's search, "Comidas" → add it there: the foods appear and the ring jumps at once. Edit it (quantities, remove a food) and choose "Sobrescribir" or "Guardar como nueva"; rename and delete one: entries already logged do not change.
   - History: Diario → "Historial": the logged days are marked; open one (its Diary), go back; read a day's summary against your target, the week average and the month total; a day with nothing shows "Sin registros".
-- [ ] 👤 Final regression: log one real day end to end:
+- [x] 👤 *(approved, 2026-10-21)* Final regression: log one real day end to end:
   - Breakfast from a template in one tap; lunch by search (≤ 3 taps after opening the search) with a named portion; a drink in ml; a scanned product.
   - Rename or reorder a meal; copy a food to another meal or day; edit and delete an entry with "Deshacer".
   - Check the ring and bars against your target, then "Historial" for today and the week.
