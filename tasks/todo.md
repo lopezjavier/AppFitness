@@ -1750,6 +1750,31 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
+## T-068: Full OFF product data and micronutrients in the food details
+
+**Story:** US-25 · **Flow:** backend + UI (ux-reviewer for the details section) · **Scenarios:** A product is cached with everything OFF sent; Micronutrients in the food details; Food without extra data; Search results stay light; Foods cached before this change · **Decision:** ADR-43 · Origin: user request 2026-10-21.
+
+**Description:** Backend: one migration adds `foods.off_data jsonb null` and deletes `source = 'off'` rows with null `off_data` that nothing references (`food_log_entries`, `favorite_foods`, `meal_template_items`); referenced rows are kept. `off-client.ts` requests products without the `fields` filter (everything OFF returns is stored; if the unfiltered search exceeds the 8 s timeout the planner logs `BLOCKED` and asks the user, never narrowing `fields`) and returns the raw product; `food-store.ts` writes it to `off_data`; `food-barcode` also refreshes rows whose `off_data` is null; search responses omit it. App: the food details (the food sheet) read `off_data` for that food on demand and list the micronutrients OFF provides per 100 g / 100 ml with Spanish labels (fiber, sugars, saturated fat, salt/sodium, vitamins, minerals); absent values are hidden. Manual foods: the creation form gets optional fields for saturated fat, sugars, fiber and salt from the label (per 100 g/ml), stored in `foods.micronutrients` through a new `p_micronutrients jsonb` argument of `create_personal_food` (user decision 2026-10-21; no vitamins/minerals in the form); the details show them like OFF ones. Display only: no targets, totals or changes to how entries are computed. Show the user the proposed wording and layout of the section before building. Do not touch training data, preferences or any user-owned row.
+
+**Acceptance criteria:**
+- [ ] Migration + extended pgTAP: `off_data` column; unreferenced null-`off_data` OFF foods deleted; referenced ones kept with the same id; entries, favourites and templates untouched; RLS unchanged.
+- [ ] `deno test` with a full-product fixture: the raw object lands in `off_data`, typed columns unchanged; `food-search` responses carry no `off_data`; `food-barcode` refreshes a row with null `off_data` younger than 30 days.
+- [ ] A food with fiber, sugars, salt and vitamin C shows them in its details per 100 g (ml for drinks); missing nutrients are not listed; a manual food saved with fiber 3 and salt 0,5 shows them, and one saved without them shows no section; a negative value disables "Guardar" (form draft restored, ADR-40).
+- [ ] Mapper unit tests (units, ordering, labels, malformed values ignored); details screen host test; restoration unaffected (ADR-40).
+- [ ] Looked at by the user at Checkpoint E4-C (scan a real product, open its details).
+
+**Host tests (per scenario):** `OffMicronutrientsMapperTest`; `FoodRepositoryTest` additions (details load `off_data` on demand, search stays light); food sheet Robolectric test (section shown / hidden); pgTAP `foods_off_data.test.sql` (incl. `create_personal_food` with micronutrients: valid, unknown key, negative); food-creation form tests; `deno test` for `_shared/off-client` and `food-barcode`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; `deno test` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote (the cleanup runs on production inside the migration).
+
+**Dependencies:** T-062
+**Files likely touched:** `supabase/migrations/<ts>_foods_off_data.sql`, `supabase/tests/*`, `supabase/functions/_shared/{off-client,food-store}.ts` + tests, `food-barcode/handler.ts`, `composeApp/…/feature/food/` creation form, `shared/…/domain/model/Micronutrients.kt` + mapper, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/food/*` (food sheet), strings, tests
+**Estimated scope:** M
+
+---
+
 ## T-063: E4 closure
 
 **Story:** E4 Definition of Done · **Flow:** PM
@@ -1757,7 +1782,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Closes E4: final regression on the phone with real scanned foods, approval, tag `v0.4.0` and the retrospective.
 
 **Acceptance criteria:**
-- [ ] T-055…T-062 merged with green CI; pgTAP for the 7 tables (`foods`, `food_portions`, `food_log_entries`, `meal_slots`, `meal_templates`, `meal_template_items`, `favorite_foods`) and the two RPCs green; `deno test` for `food-search` and `food-barcode` green; `deploy-supabase` green after the last migration.
+- [ ] T-055…T-062 and T-068 merged with green CI; pgTAP for the 7 tables (`foods`, `food_portions`, `food_log_entries`, `meal_slots`, `meal_templates`, `meal_template_items`, `favorite_foods`) and the two RPCs green; `deno test` for `food-search` and `food-barcode` green; `deploy-supabase` green after the last migration.
 - [ ] Host tests green for every E4 Gherkin scenario.
 - [ ] Checkpoints E4-A and E4-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
 - [ ] `tasks/todo.md` (E4 ✅, next-task pointer) updated through a PR.
@@ -1765,13 +1790,14 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.
 
-**Dependencies:** T-062
+**Dependencies:** T-068
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
 ### Checkpoint E4-C — Templates, history, final regression and approval 👤
-- [ ] T-061…T-063 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
+- [ ] T-061…T-063 and T-068 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - Micronutrients: scan or search a real packaged food, open its details: fiber, sugars, salt and the vitamins/minerals OFF has are listed per 100 g. Create a food typing saturated fat, sugars, fiber and salt from its label: they show in its details; one created without them shows no section.
   - Comidas: fill a breakfast and "Guardar como comida"; try the same name again (error). From any meal's search, "Comidas" → add it there: the foods appear and the ring jumps at once. Edit it (quantities, remove a food) and choose "Sobrescribir" or "Guardar como nueva"; rename and delete one: entries already logged do not change.
   - History: Diario → "Historial": the logged days are marked; open one (its Diary), go back; read a day's summary against your target, the week average and the month total; a day with nothing shows "Sin registros".
 - [ ] 👤 Final regression: log one real day end to end:

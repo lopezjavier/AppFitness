@@ -5,7 +5,8 @@ Log what you eat in fewer than 3 taps (search, scanner or saved meal) and see th
 
 ## Scope
 - Includes: food catalog with an Open Food Facts cache (base unit g or ml, named portions), text search, scanner, manual creation, favourites, daily diary with configurable meals, dashboard, meal templates, and diary history/summaries.
-- Out of scope: user-uploaded food images, micronutrient values, composite recipes, meal planning, data export.
+- Micronutrients are display-only from T-068 (ADR-43); no targets or totals.
+- Out of scope: user-uploaded food images, micronutrient targets or totals, composite recipes, meal planning, data export.
 
 ## Dependencies
 E2 (authenticated user and `nutrition_goals`). Inside the epic, the foundations come first: US-22 (portions/measures) and US-23 (meal structure) are consumed by US-17 and US-19; US-24 reuses the diary data of US-19.
@@ -473,6 +474,57 @@ Feature: Diary history
 - RPC `food_diary_summary(p_from date, p_to date)` returns per-day kcal and P/C/F totals (`03-data-model.md` §6); averages computed in the domain (`04-business-rules.md` §2).
 - Calendar built with the design system's month grid; days with entries marked; navigation reuses the day Diary.
 - Read-only: this story adds no write path.
+
+---
+
+## US-25 · Full Open Food Facts data and micronutrients in the food details
+**As** a user
+**I want** the foods from Open Food Facts to keep all their data and show their micronutrients
+**So that** I can see what a food contains beyond calories and macros, and the data is there for future use.
+
+```gherkin
+Feature: Full OFF product data (ADR-43)
+
+  Scenario: A product is cached with everything OFF sent
+    When food-search or food-barcode stores a product from OFF
+    Then the complete OFF product object is stored in foods.off_data
+    And the typed columns (kcal, protein, carbs, fat, serving) are filled as before
+
+  Scenario: Micronutrients in the food details
+    Given a food from OFF whose data has fiber, sugars, salt and vitamin C
+    When the user opens its details
+    Then those values appear per 100 g (per 100 ml for drinks)
+    And nutrients OFF does not provide are not listed
+
+  Scenario: Food without extra data
+    Given a personal food created without micronutrients, or an OFF food with none
+    When the user opens its details
+    Then no micronutrients section is shown
+
+  Scenario: Micronutrients typed in a manual food
+    Given the user creates a food and fills saturated fat, sugars, fiber and salt from the label
+    When the food is saved
+    Then its details show those values per 100 g (or ml)
+    And leaving them empty is allowed, but a negative value disables "Guardar"
+
+  Scenario: Search results stay light
+    When food-search returns results
+    Then the responses do not include off_data
+
+  Scenario: Foods cached before this change
+    Given a cached OFF food with null off_data that no diary entry, favourite or comida references
+    When the migration runs
+    Then it is deleted and refilled with full data on the next search or scan
+    And a referenced food with null off_data is refreshed the next time it is fetched, keeping its id
+    And diary entries, favourites, comidas, training data and preferences are unchanged
+```
+
+**Technical notes**
+- Migration: `foods.off_data jsonb null` + cleanup of unreferenced OFF rows; pgTAP: referenced rows survive with the same id, unreferenced are gone, entries/favourites/templates untouched, RLS unchanged (`off_data` readable by anyone who can read the food).
+- `off-client.ts` returns the raw product with the normalized food; `food-store.ts` writes `off_data`; `food-barcode` refreshes when `fetched_at` > 30 days **or** `off_data` is null. `deno test` with a full-product fixture.
+- Domain: a pure mapper from OFF `nutriments` (`*_100g` / `*_100ml`, with units) to an ordered list of labelled micronutrients with Spanish labels; unit tests.
+- Manual foods: optional fields for saturated fat, sugars, fiber and salt in the creation form (US-18 form), stored in `foods.micronutrients`; `create_personal_food` takes `p_micronutrients`; pgTAP covers invalid keys/negatives.
+- UI wording and layout of the section: proposed to the user before building (feedback rule), design-system tokens only.
 
 ---
 
