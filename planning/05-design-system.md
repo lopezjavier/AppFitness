@@ -127,6 +127,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `SkeletonBox` | Animated placeholder (shimmer) |
 | `EmptyState` / `ErrorState` | 48 dp decorative icon (`inbox` / `error`, Material Symbols, tinted `textSecondary` / `error`) + optional title + message + primary action (`Reintentar` is required on `ErrorState`); max width 360 dp, centred; `ErrorState` text is a polite live region |
 | `OfflineBanner` | Full-width `surfaceRaised` strip below the Top Bar, 1 dp `borderSubtle` bottom line, 20 dp decorative `cloud_off` icon in `energyAmber` + "Sin conexión" `bodyMedium`; wraps at large font scale; polite live region; shown on every destination and layout (on the rail layout it spans the full width above the rail) |
+| `SwipeToDeleteRow` | Shared slow/heavy swipe-to-delete (ADR-45): `SwipeToDismissBox` end-to-start, confirms only at >= 90% of the travel (shorter drag or fling snaps back), error background with `ic_delete` + "Eliminar", custom accessibility action "Eliminar <name>", row >= 48 dp; no undo, no dialog |
 | `WipPlaceholder` | Work-in-progress screen container (E1 only) |
 
 Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vectors, with a `contentDescription` on every actionable icon.

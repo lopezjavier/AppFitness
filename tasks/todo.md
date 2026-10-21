@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-072 (shared interaction rules and swipe-to-delete, ADR-45), then T-073, then re-present Checkpoint E4-C, then T-063. Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
+**Next:** T-073, then re-present Checkpoint E4-C, then T-063. Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
 
 ---
 
@@ -1782,9 +1782,9 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** User feedback at Checkpoint E4-C round 2 (2026-10-21). (a) ADR-45 and `05-design-system.md` §8 already hold the generic rules; ux-reviewer checks them (done in this PR's docs). (b) One shared swipe-to-delete component in `designsystem/`: slow and heavy, fires only at the end of the travel, a shorter drag snaps back; it replaces `SwipeableEntryRow` and `SwipeableTemplateRow`. (c) Delete never offers "Deshacer" (the user asked for none earlier and T-069 added it): remove the snackbar, the pending-delete state and its tests for comidas, and confirm that diary entries have none. (d) History texts: remove "Total del mes" and "Días registrados"; day/week/month all use "Media diaria" and the "Últimos 7 días · n de 7 días registrados" line goes. (e) Perfil -> Estadísticas: the diary entry reads "Calorías" (like "Fuerza"). Planner/ux-reviewer sweep the app for other swipe or delete instances.
 
 **Acceptance criteria:**
-- [ ] Swipe on a diary entry and on a comida row deletes only when dragged to the end; a short drag restores the row (host tests); no "Deshacer" anywhere.
-- [ ] History summaries use "Media diaria" for week and month and show no month total or registered-days count; Perfil entry reads "Calorías".
-- [ ] State survives leaving the app (ADR-40).
+- [x] Swipe on a diary entry and on a comida row deletes only when dragged to the end; a short drag restores the row (host tests); no "Deshacer" anywhere.
+- [x] History summaries use "Media diaria" for week and month and show no month total or registered-days count; Perfil entry reads "Calorías".
+- [x] State survives leaving the app (ADR-40).
 
 **Verification:** lint, host tests and CI green. **Dependencies:** T-071 · **Estimated scope:** M
 

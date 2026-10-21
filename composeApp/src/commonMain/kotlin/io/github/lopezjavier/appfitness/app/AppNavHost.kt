@@ -94,7 +94,7 @@ internal typealias DiarySlot =
 /** Diary history content: modifier (full-screen insets) and the opener of the Diary of a day. */
 internal typealias DiaryHistorySlot = @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit) -> Unit
 
-/** Key under which the edit sheet leaves the id of the entry to delete for the Diary (which owns the undo). */
+/** Key under which the edit sheet leaves the id of the entry to delete for the Diary. */
 const val DELETED_ENTRY_KEY = "deleted_entry_id"
 
 /**

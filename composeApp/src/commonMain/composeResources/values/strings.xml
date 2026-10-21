@@ -457,17 +457,13 @@
     <string name="session_edit_save">Guardar</string>
     <string name="session_edit_cancel">Cancelar</string>
     <string name="session_delete_button">Eliminar sesión</string>
-    <string name="session_delete_title">¿Eliminar esta sesión?</string>
-    <string name="session_delete_message">Se borrarán la sesión y todas sus series. No se puede deshacer.</string>
-    <string name="session_delete_confirm">Eliminar</string>
-    <string name="session_delete_cancel">Cancelar</string>
     <string name="session_action_failed">No se pudo completar la acción. Inténtalo de nuevo.</string>
     <string name="session_offline_reason">Sin conexión: no puedes corregir ni eliminar sesiones</string>
 
     <!-- T-048 strength progress -->
     <string name="profile_statistics_section">Estadísticas</string>
     <string name="profile_strength_row">Fuerza</string>
-    <string name="profile_diary_history_row">Historial de comidas</string>
+    <string name="profile_diary_history_row">Calorías</string>
     <string name="strength_title">Fuerza</string>
     <string name="muscle_volume_title">Volumen por grupo muscular</string>
     <string name="strength_card_title">Fuerza y 1RM estimado</string>
@@ -709,8 +705,6 @@
     </plurals>
     <string name="template_summary">%1$s · %2$s kcal</string>
     <string name="template_add_cd">Añadir %1$s</string>
-    <string name="template_deleted_snackbar">Comida eliminada</string>
-    <string name="template_undo">Deshacer</string>
     <string name="template_swipe_delete_cd">Eliminar %1$s</string>
     <string name="template_details_title">Comida</string>
     <string name="template_details_edit">Editar</string>
@@ -749,11 +743,6 @@
     <string name="diary_history_view_month">Mes</string>
     <string name="diary_history_open_day_cd">Abrir el diario de este día</string>
     <string name="diary_history_week_title">Media diaria</string>
-    <string name="diary_history_week_subtitle">Últimos 7 días · %1$d de 7 días registrados</string>
-    <string name="diary_history_month_total">Total del mes</string>
-    <string name="diary_history_month_avg_title">Media por día registrado</string>
-    <string name="diary_history_unit_kcal">kcal</string>
-    <string name="diary_history_month_days">Días registrados</string>
     <string name="diary_history_target_kcal">de %1$s kcal</string>
     <string name="month_calendar_prev">Mes anterior</string>
     <string name="month_calendar_next">Mes siguiente</string>

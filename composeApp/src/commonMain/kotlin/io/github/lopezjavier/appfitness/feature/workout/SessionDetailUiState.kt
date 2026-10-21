@@ -41,7 +41,6 @@ sealed interface SessionDetailUiState {
         val exercises: List<DetailExercise>,
         val isOnline: Boolean = true,
         val edit: EditSetState? = null,
-        val deleteConfirm: Boolean = false,
         val busy: Boolean = false,
     ) : SessionDetailUiState
 }
@@ -60,11 +59,8 @@ sealed interface SessionDetailEvent {
 
     data object DismissEdit : SessionDetailEvent
 
-    data object RequestDelete : SessionDetailEvent
-
-    data object ConfirmDelete : SessionDetailEvent
-
-    data object DismissDelete : SessionDetailEvent
+    /** "Eliminar sesión": deletes the session at once (no confirmation, ADR-45) and closes the details. */
+    data object Delete : SessionDetailEvent
 }
 
 sealed interface SessionDetailEffect {

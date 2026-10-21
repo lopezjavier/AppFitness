@@ -82,7 +82,7 @@ class FoodSearchViewModel(
     private val online = MutableStateFlow(true)
     private val notFoundBarcode = MutableStateFlow(savedState.get<String>(KEY_NOT_FOUND))
     private val templates = MutableStateFlow<TemplatesResults>(TemplatesResults.Loading)
-    private val pendingDelete = MutableStateFlow<Set<String>>(emptySet())
+    private val deleting = MutableStateFlow<Set<String>>(emptySet())
     private var scanning = false
     private var adding = false
 
@@ -109,7 +109,7 @@ class FoodSearchViewModel(
                 FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
             },
             notFoundBarcode,
-            combine(templates, pendingDelete, ::withoutPending),
+            combine(templates, deleting, ::withoutDeleting),
         ) { state, code, rows -> state.copy(notFoundBarcode = code, templates = rows) }
             .stateIn(
                 viewModelScope,
@@ -165,7 +165,7 @@ class FoodSearchViewModel(
         }
     }
 
-    /** The Comidas tab: adding a comida, opening its details, the swipe delete with undo, and the reload. */
+    /** The Comidas tab: adding a comida, opening its details, the swipe delete (no undo), and the reload. */
     private fun onTemplateEvent(event: FoodSearchEvent) {
         when (event) {
             is FoodSearchEvent.AddTemplate -> addTemplate(event.templateId)
@@ -174,11 +174,7 @@ class FoodSearchViewModel(
                 FoodSearchEffect.OpenTemplateDetails(event.templateId),
             )
 
-            is FoodSearchEvent.SwipeDeleteTemplate -> swipeDelete(event.templateId)
-
-            is FoodSearchEvent.UndoDeleteTemplate -> pendingDelete.update { it - event.templateId }
-
-            is FoodSearchEvent.CommitDeleteTemplate -> commitDelete(event.templateId)
+            is FoodSearchEvent.DeleteTemplate -> deleteTemplate(event.templateId)
 
             FoodSearchEvent.RefreshTemplates -> loadTemplates()
 
@@ -186,22 +182,17 @@ class FoodSearchViewModel(
         }
     }
 
-    /** The rows without the comidas swiped away and not yet deleted; none left is the empty state. */
-    private fun withoutPending(results: TemplatesResults, hidden: Set<String>): TemplatesResults {
+    /** The rows without the comidas whose delete is in flight; none left is the empty state. */
+    private fun withoutDeleting(results: TemplatesResults, hidden: Set<String>): TemplatesResults {
         if (results !is TemplatesResults.Content || hidden.isEmpty()) return results
         val visible = results.rows.filter { it.template.id !in hidden }
         return if (visible.isEmpty()) TemplatesResults.Empty else TemplatesResults.Content(visible)
     }
 
-    private fun swipeDelete(templateId: String) {
-        val row = (templates.value as? TemplatesResults.Content)?.rows?.firstOrNull { it.template.id == templateId }
-        if (row == null || !online.value || templateId in pendingDelete.value) return
-        pendingDelete.update { it + templateId }
-        effectChannel.trySend(FoodSearchEffect.TemplateDeleted(templateId, row.template.name))
-    }
-
-    private fun commitDelete(templateId: String) {
-        if (templateId !in pendingDelete.value) return
+    private fun deleteTemplate(templateId: String) {
+        val known = (templates.value as? TemplatesResults.Content)?.rows?.any { it.template.id == templateId } == true
+        if (!known || !online.value || templateId in deleting.value) return
+        deleting.update { it + templateId }
         viewModelScope.launch {
             mealTemplates.delete(templateId).fold(
                 onSuccess = {
@@ -210,10 +201,10 @@ class FoodSearchViewModel(
                         val rows = content.rows.filter { it.template.id != templateId }
                         templates.value = if (rows.isEmpty()) TemplatesResults.Empty else TemplatesResults.Content(rows)
                     }
-                    pendingDelete.update { it - templateId }
+                    deleting.update { it - templateId }
                 },
                 onFailure = {
-                    pendingDelete.update { it - templateId }
+                    deleting.update { it - templateId }
                     effectChannel.trySend(FoodSearchEffect.TemplateManageFailed)
                 },
             )
