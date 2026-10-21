@@ -497,9 +497,15 @@ Feature: Full OFF product data (ADR-43)
     And nutrients OFF does not provide are not listed
 
   Scenario: Food without extra data
-    Given a personal food, or an OFF food with no micronutrients
+    Given a personal food created without micronutrients, or an OFF food with none
     When the user opens its details
     Then no micronutrients section is shown
+
+  Scenario: Micronutrients typed in a manual food
+    Given the user creates a food and fills saturated fat, sugars, fiber and salt from the label
+    When the food is saved
+    Then its details show those values per 100 g (or ml)
+    And leaving them empty is allowed, but a negative value disables "Guardar"
 
   Scenario: Search results stay light
     When food-search returns results
@@ -517,6 +523,7 @@ Feature: Full OFF product data (ADR-43)
 - Migration: `foods.off_data jsonb null` + cleanup of unreferenced OFF rows; pgTAP: referenced rows survive with the same id, unreferenced are gone, entries/favourites/templates untouched, RLS unchanged (`off_data` readable by anyone who can read the food).
 - `off-client.ts` returns the raw product with the normalized food; `food-store.ts` writes `off_data`; `food-barcode` refreshes when `fetched_at` > 30 days **or** `off_data` is null. `deno test` with a full-product fixture.
 - Domain: a pure mapper from OFF `nutriments` (`*_100g` / `*_100ml`, with units) to an ordered list of labelled micronutrients with Spanish labels; unit tests.
+- Manual foods: optional fields for saturated fat, sugars, fiber and salt in the creation form (US-18 form), stored in `foods.micronutrients`; `create_personal_food` takes `p_micronutrients`; pgTAP covers invalid keys/negatives.
 - UI wording and layout of the section: proposed to the user before building (feedback rule), design-system tokens only.
 
 ---
