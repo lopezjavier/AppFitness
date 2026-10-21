@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.usecase
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
@@ -57,6 +58,8 @@ private class RecordingDiary(var failure: AppError? = null) : FoodDiaryRepositor
     }
 
     override suspend fun deleteEntries(ids: List<String>): Result<Unit> = error("not used")
+
+    override suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>> = error("not used")
 }
 
 class AddTemplateToDiaryTest {

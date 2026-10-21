@@ -93,15 +93,17 @@ class DiaryScreenTest {
 
     private val events = mutableListOf<DiaryEvent>()
 
-    private fun show(state: DiaryUiState, fontScale: Float = 1f) {
+    private fun show(state: DiaryUiState, fontScale: Float = 1f, showHistory: Boolean = true) {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                AppTheme { DiaryScreen(state, { events += it }) }
+                AppTheme { DiaryScreen(state, { events += it }, showHistory = showHistory) }
             }
         }
         rule.waitForIdle()
     }
+
+    private fun left(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().left
 
     private fun top(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
 
@@ -294,6 +296,23 @@ class DiaryScreenTest {
         rule.onNodeWithTag("diary_date_prev").assertIsEnabled().performClick()
 
         assertEquals(listOf<DiaryEvent>(DiaryEvent.PreviousDay), events)
+    }
+
+    @Test
+    fun historyButton_sitsAfterTheDateHeaderAndEmitsOpenHistory() {
+        show(content(canGoNext = false))
+
+        assertTrue(left("diary_history_open") > left("diary_date_next"))
+        rule.onNodeWithTag("diary_history_open").performClick()
+
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenHistory), events)
+    }
+
+    @Test
+    fun historyButton_isHiddenWhenTheDiaryIsAlreadyOpenedFromTheHistory() {
+        show(content(canGoNext = false), showHistory = false)
+
+        rule.onNodeWithTag("diary_history_open").assertDoesNotExist()
     }
 
     @Test

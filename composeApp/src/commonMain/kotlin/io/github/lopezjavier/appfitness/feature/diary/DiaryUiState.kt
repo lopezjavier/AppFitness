@@ -69,6 +69,9 @@ sealed interface DiaryEvent {
 
     data object OpenGoals : DiaryEvent
 
+    /** Open the diary history (calendar and summaries, US-24). */
+    data object OpenHistory : DiaryEvent
+
     /** Save the entries of meal [slotId] of the visible day as a comida (US-21). */
     data class SaveSection(val slotId: String) : DiaryEvent
 
@@ -90,6 +93,8 @@ sealed interface DiaryEffect {
     data class OpenSaveTemplate(val slotId: String, val date: LocalDate) : DiaryEffect
 
     data object OpenPreferences : DiaryEffect
+
+    data object OpenHistory : DiaryEffect
 
     /** Open the edit sheet of [entryId], which belongs to [date]. */
     data class OpenEditEntry(val entryId: String, val date: LocalDate) : DiaryEffect

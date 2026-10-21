@@ -34,7 +34,7 @@ Out of scope (epic file): user-uploaded food images, micronutrient targets or to
 
 ### Phase 3: Templates, history and closure
 - [ ] T-061: Meal templates (US-21) — UI + backend — L
-- [ ] T-062: Diary history and summaries (US-24) — UI + backend — M
+- [x] T-062: Diary history and summaries (US-24) — UI + backend — M
 - [ ] T-068: Full OFF product data and micronutrients in the food details (US-25, ADR-43) — backend + UI — M
 - [ ] T-063: E4 closure — PM — S
   - **Checkpoint E4-C 👤:** save a section as a comida, duplicate name, "Comidas" tab, edit (overwrite or save as new), rename and delete; history calendar, open a day, day / week / month summaries, "Sin registros"; final regression of one real day end to end; leave the app and come back; approval → `v0.4.0` and the retrospective.

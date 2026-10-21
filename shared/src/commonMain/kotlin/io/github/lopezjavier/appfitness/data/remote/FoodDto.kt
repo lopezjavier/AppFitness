@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -112,6 +115,21 @@ internal data class MostEatenDto(
 
 @Serializable
 internal data class MostEatenParams(@SerialName("p_limit") val limit: Int)
+
+/** Row of `food_diary_summary`: the totals of one day with entries. */
+@Serializable
+internal data class DiaryDaySummaryDto(
+    @SerialName("log_date") val logDate: String,
+    val kcal: Double,
+    @SerialName("protein_g") val proteinG: Double,
+    @SerialName("carbs_g") val carbsG: Double,
+    @SerialName("fat_g") val fatG: Double,
+) {
+    fun toDomain() = DiaryDaySummary(LocalDate.parse(logDate), MealTotals(kcal, proteinG, carbsG, fatG))
+}
+
+@Serializable
+internal data class DiaryDaySummaryParams(@SerialName("p_from") val from: String, @SerialName("p_to") val to: String)
 
 /** Row of `food_log_entries` ids only, for the recents. */
 @Serializable

@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-062 (Diary history and summaries). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
+**Next:** T-068 (Full OFF product data and micronutrients in the food details). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
 
 ---
 
@@ -438,7 +438,7 @@ Flow: **infra/backend** = planner → developer → PR (no UX, no Maestro) · **
 - [x] Merging deploys the migration to production via `deploy-supabase` (no seed).
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green locally.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green locally.
 - [x] PR checks: `gitleaks`, `android-ci` (builds: the PR also touches `.github/`, `planning/` and `tasks/`), `supabase-ci` green. The supabase-only skip from T-017 is proven with a throwaway probe PR after the merge (closed unmerged; ticked on the T-019 branch).
 - [x] After merge: `deploy-supabase` run green; `npx supabase migration list` shows the migration remote; production has no `test@appfitness.local` user.
 
@@ -869,7 +869,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-035.yaml`: Test login with a not-onboarded user → 5 steps, back, indicator → goal step; updated by T-039's QA to the 4 steps and "N / 4").
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green and the migration listed as remote.
 
 **Dependencies:** T-034
@@ -896,7 +896,7 @@ Product gaps found in the breakdown were answered by the user on 2026-10-14 (ADR
 **E2E scope:** `onboarding`, `auth` (new `tests/e2e/T-036.yaml`: full onboarding → strategy → "Guardar objetivos" → Diario; relaunch → Diario; the goal step is "4 / 4" since T-039, which updates the flow).
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-035
@@ -1104,7 +1104,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Host tests (per scenario):** `SearchExercisesTest` (Search and filter; Filter by equipment; Accent-insensitive search); `ExerciseLibraryTest` (fixture parsing, unknown key → no media); `ExercisePickerViewModelTest` (filters, create custom → selected result, offline disables create); `ExercisePickerScreenTest` (Robolectric: thumbnail vs placeholder; Attribution; "Crear ejercicio"); `ExerciseDetailScreenTest` (animation and "Cómo hacerlo"; reduced motion shows the start pose); pgTAP `exercises.test.sql` (Custom exercise privacy).
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; the production catalog row count matches the bundle.
 
 **Dependencies:** E2 (`v0.2.0`), Q1, the bundle in place
@@ -1131,7 +1131,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Host tests (per scenario):** `SupersetLabelsTest` (groups → "A1", "A2", "B1"…); `RoutineBuilderViewModelTest` with fakes + Turbine (Creating a routine; Reordering C, A, B by drag and by Subir/Bajar; Grouping into a superset; Validation; Edit, duplicate and archive); `RoutineBuilderScreenTest` (Robolectric: "Guardar" disabled state, superset labels, move-up/down menu); `RoutinesScreenTest` ("Mis rutinas" list, exercise count, empty state); repository test of the `save_routine` payload; pgTAP `routines.test.sql`.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-042
@@ -1156,7 +1156,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Host tests (per scenario):** `EstimateOneRepMaxTest`, `CalculateVolumeTest` (Finishing and summary volume), `DetectPersonalRecordsTest`, `WorkoutSessionRepositoryTest` (Starting from a routine, Completing a set, Continuing after closing, Finishing with incomplete sets, Discarding); pgTAP `workout_sessions.test.sql`.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-043
@@ -1214,7 +1214,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Host tests (per scenario):** `GhostDataTest` (Showing the previous performance; No previous performance; More sets than last time; format); `RestTimerTest` with `runTest` + `advanceTimeBy` and a test `Clock` (Automatic start; Quick adjustments; End of rest effects; Accuracy with the app in the background; Rest configurable); `SupersetRestTest` (Superset); `LiveSessionViewModelTest` additions (Using the previous performance; timer restart on another set); `LiveSessionScreenTest` (Robolectric: ghost text, placeholder semantics, bar texts, Free navigation non-overlap); `FullSessionTest` (Epic DoD); pgTAP `last_performance.test.sql`.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-045, Q3
@@ -1296,7 +1296,7 @@ Corrective phase (user feedback from the single E3 test, 2026-10-20): T-050…T-
 **Host tests:** `MuscleVolumeViewModelTest`; screen test; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-048
@@ -1495,7 +1495,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Host tests (per scenario):** `deno test` `off-client.test.ts` (Base unit per food; kJ → kcal; Portion from OFF), `food-search/handler.test.ts` (Search with cached results; Search that queries OFF; Invalid input; Unauthenticated call; Personal food isolation), `food-barcode/handler.test.ts` (Barcode lookup; Unknown code or missing nutrition data; Invalid input); pgTAP files above (isolation, seeding, account deletion).
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green.
 - [x] Manual (developer, local stack): `npx supabase functions serve` + `curl` with the test user's JWT: `food-search?q=avena` returns results and a second call hits only the cache.
 - [ ] After the merge: `deploy-supabase` green (migration remote, both functions deployed); `npx supabase secrets list` still shows `OFF_USER_AGENT`; production users already onboarded have their four meal slots.
 
@@ -1552,7 +1552,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Host tests (per scenario):** `ResolvePortionTest` and `ScaleNutritionTest` (US-22 Logging a drink by millilitres; Logging with a named portion; Logging a custom amount; Scaling per-100 nutrition); `DefaultMealSlotTest`; `FoodSearchViewModelTest` with fakes, a test dispatcher and Turbine (Debounced search; No results; Recent foods; Most eaten foods; Marking a favourite); `AddFoodViewModelTest` (Adding a food with a serving; Choosing a named portion; Preselected meal; validation); `DiaryViewModelTest` addition (Immediate update after add); `FoodSearchScreenTest` and `AddFoodSheetTest` (Robolectric: skeletons, row texts, star state, ml label, "Añadir" disabled); restoration tests; pgTAP `favorite_foods.test.sql`.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-056
@@ -1715,7 +1715,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Host tests (per scenario):** `MealTemplatesViewModelTest` with fakes + Turbine (Saving a section; Duplicate name; Editing: overwrite / save as new; rename/delete); `FoodSearchViewModelTest` additions (Adding a comida to a meal + immediate dashboard update); `TemplateEditorScreenTest` and `DiaryScreenTest` additions (Robolectric: duplicate-name error, overwrite / save-as-new choice, edit/delete); restoration tests; pgTAP `meal_templates.test.sql`.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** Checkpoint E4-B
@@ -1731,12 +1731,12 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Backend: one migration with `food_diary_summary(p_from date, p_to date)` (`security invoker`; per `log_date` the caller's kcal and P/C/F totals, only days with entries) + pgTAP. Domain (`04-business-rules.md` §2.1, pure): day summary against the target, weekly average over the logged days of the last 7 days, monthly total and average per logged day. App: "Historial" from the Diary (entry point by ux-reviewer) opens a month calendar (`MonthCalendarGrid`, new design-system component) with the days that have entries marked, month navigation not past the current month; selecting a day shows its summary (`DiaryHistoryRow`, new design-system component: kcal and P/C/F against the target) and opens that day's Diary (reusing T-056's day navigation with a date argument; back returns to the history); week and month summary views; a day without entries reads "Sin registros". Read-only: no write path. Selected month and day restored (ADR-40).
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/food_diary_summary.test.sql`: per-day sums match the entries; other users' entries and days outside the range ignored.
-- [ ] The calendar marks only days with entries; tapping one opens that day's Diary.
-- [ ] 18 October with 1.840 kcal → its summary shows 1.840 kcal and P/C/F against the target.
-- [ ] Week summary: average daily kcal and macros over the logged days of the last 7 days (days without entries not counted).
-- [ ] Month summary: total kcal and the average per logged day of that month.
-- [ ] A day without entries shows "Sin registros"; loading skeleton and `ErrorState` with "Reintentar".
+- [x] Migration + `supabase/tests/food_diary_summary.test.sql`: per-day sums match the entries; other users' entries and days outside the range ignored.
+- [x] The calendar marks only days with entries; tapping one opens that day's Diary.
+- [x] 18 October with 1.840 kcal → its summary shows 1.840 kcal and P/C/F against the target.
+- [x] Week summary: average daily kcal and macros over the logged days of the last 7 days (days without entries not counted).
+- [x] Month summary: total kcal and the average per logged day of that month.
+- [x] A day without entries shows "Sin registros"; loading skeleton and `ErrorState` with "Reintentar".
 
 **Host tests (per scenario):** `DiaryHistorySummaryTest` (Daily summary; Weekly average; Monthly total; logged-days-only averages); `DiaryHistoryViewModelTest` with fakes, a test `Clock` and Turbine (Opening the history; No data; month navigation); `DiaryHistoryScreenTest` (Robolectric: marked days, "Sin registros", week and month texts, tap → day navigation event); `MonthCalendarGrid` catalog entry and test; restoration tests; pgTAP `food_diary_summary.test.sql`.
 

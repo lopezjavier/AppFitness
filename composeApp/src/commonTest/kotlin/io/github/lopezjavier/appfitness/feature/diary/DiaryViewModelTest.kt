@@ -229,6 +229,17 @@ class DiaryViewModelTest {
     }
 
     @Test
+    fun openHistory_emitsOpenHistory() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(DiaryEvent.OpenHistory)
+            assertEquals(DiaryEffect.OpenHistory, awaitItem())
+        }
+    }
+
+    @Test
     fun addToMeal_emitsTheSlotAndTheVisibleDay() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()

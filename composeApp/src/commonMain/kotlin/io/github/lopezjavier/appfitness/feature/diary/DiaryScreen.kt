@@ -51,6 +51,7 @@ fun DiaryScreen(
     onEvent: (DiaryEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    showHistory: Boolean = true,
 ) {
     Box(modifier.fillMaxSize().testTag("diary_screen")) {
         when (state) {
@@ -64,7 +65,7 @@ fun DiaryScreen(
                 )
             }
 
-            is DiaryUiState.Content -> DiaryDay(state.content, onEvent)
+            is DiaryUiState.Content -> DiaryDay(state.content, onEvent, showHistory)
         }
         DiarySnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin))
     }
@@ -77,7 +78,7 @@ private fun DiarySnackbarHost(state: SnackbarHostState, modifier: Modifier = Mod
 }
 
 @Composable
-private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
+private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, showHistory: Boolean) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         if (windowWidthClassFor(maxWidth) == WindowWidthClass.Wide) {
             Row(Modifier.widthIn(max = WindowWidthClassDefaults.TwoColumnContentMaxWidth).fillMaxSize()) {
@@ -86,7 +87,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                         .padding(Spacing.screenMargin),
                     verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
                 ) {
-                    DiaryDateHeader(content.label, content.canGoNext, onEvent)
+                    DiaryDateHeader(content.label, content.canGoNext, onEvent, showHistory = showHistory)
                     DiaryDashboard(content, onEvent)
                 }
                 Column(
@@ -104,7 +105,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                     .verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
                 verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
             ) {
-                DiaryDateHeader(content.label, content.canGoNext, onEvent)
+                DiaryDateHeader(content.label, content.canGoNext, onEvent, showHistory = showHistory)
                 DiaryDashboard(content, onEvent)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
                 AddFoodButton(onEvent)

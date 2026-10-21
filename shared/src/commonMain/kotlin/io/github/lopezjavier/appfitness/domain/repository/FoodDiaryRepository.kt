@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
@@ -32,4 +33,10 @@ interface FoodDiaryRepository {
 
     /** Deletes the entries [ids] in ONE request (undo of a copy); they leave the cache. */
     suspend fun deleteEntries(ids: List<String>): Result<Unit>
+
+    /**
+     * Per-day totals of [from]..[to] (inclusive, at most 400 days), oldest first; only days with entries appear. Read
+     * only and not cached.
+     */
+    suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>>
 }

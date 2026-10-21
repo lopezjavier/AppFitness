@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.diary
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
@@ -191,6 +192,25 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
         deletedBatches += ids
         cache.update { days -> days.mapValues { (_, list) -> list.filterNot { it.id in ids } } }
         return Result.success(Unit)
+    }
+
+    /** Days with entries returned by [summaries] (filtered to the range); [summariesResult] can force a failure. */
+    val summaryDays = mutableListOf<DiaryDaySummary>()
+    var summariesResult: Result<Unit> = Result.success(Unit)
+    val summaryRequests = mutableListOf<Pair<LocalDate, LocalDate>>()
+
+    /** When set, [summaries] suspends until it completes. */
+    var summariesGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>> {
+        summaryRequests += from to to
+        summariesGate?.await()
+        if (summariesResult.isFailure) return Result.failure(summariesResult.exceptionOrNull()!!)
+        return Result.success(summaryDays.filter { it.date in from..to }.sortedBy { it.date })
+    }
+
+    fun failSummaries() {
+        summariesResult = Result.failure(AppException(AppError.Network))
     }
 
     fun failBatch() {

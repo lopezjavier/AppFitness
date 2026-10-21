@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.app
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
@@ -23,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_titl
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_editor_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -142,6 +144,17 @@ data class TemplateEditorRoute(val templateId: String) : AppRoute
 @Serializable
 data object MealSlotsRoute : AppRoute
 
+/** The diary history (US-24): a month calendar with the daily and period summaries, opened from the Diary. */
+@Serializable
+data object DiaryHistoryRoute : AppRoute
+
+/**
+ * The Diary of one past [date] (ISO yyyy-MM-dd), opened from the history in a full-screen chrome with a back arrow. The
+ * argument is stored as `diary_date`, the key under which the Diary's view model restores its visible day.
+ */
+@Serializable
+data class DiaryDayRoute(@SerialName("diary_date") val date: String) : AppRoute
+
 /**
  * Bottom bar tabs, in display order. Each one owns a nested graph (its own back stack).
  * [selectedIcon] is the filled variant when the glyph has one; otherwise it equals [icon].
@@ -250,7 +263,13 @@ val AppRoute.chrome: ShellChrome
 
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
-            // A sheet over the Diary tab: the Diary's top and bottom bars stay.
+            DiaryHistoryRoute ->
+                ShellChrome.FullScreen(Res.string.diary_history_title, topBarTag = "diary_history")
+
+            is DiaryDayRoute -> ShellChrome.FullScreen(Res.string.nav_diary, topBarTag = "diary_day")
+
+            // A sheet over the Diary tab or over a past day: the shell draws the chrome of the entry below it
+            // instead (see [chromeOf]); this one is the fallback for the sheet opened over the Diary tab.
             is EditEntryRoute, is SaveTemplateRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
         }
 
@@ -278,5 +297,7 @@ object AppDestinations {
             CreateFoodRoute(date = ""),
             TemplateEditorRoute(""),
             MealSlotsRoute,
+            DiaryHistoryRoute,
+            DiaryDayRoute(""),
         )
 }
