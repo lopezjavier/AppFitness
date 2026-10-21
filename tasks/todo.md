@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** re-present Checkpoint E4-C (after T-074 merge), then T-063. (T-074 in PR.) Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
+**Next:** T-075, then re-present Checkpoint E4-C, then T-063. Round 2 feedback of E4-C (2026-10-21) became T-072…T-074; round 3 became T-075 (swipe haptics and the stray-line bug went to the E8 table).
 
 ---
 
@@ -1821,6 +1821,20 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
+## T-075: Food details in a comida saved with "Guardar" (E4-C round 3, ADR-45)
+
+**Story:** US-21 · **Flow:** UI + core · **Type:** fix
+
+**Description:** User feedback at Checkpoint E4-C (2026-10-21). In a comida's editor, opening a food shows the details sheet with its quantity, and the quantity is applied automatically when the sheet closes. This breaks ADR-45 ("Editing": one "Guardar", nothing saved per action). The sheet gets an explicit "Guardar" that applies the quantity to the comida draft; closing without it discards the change (as the X does). Remove the apply-on-dismiss. The ux-reviewer sweeps the whole app for any other edit that applies on close or per action (diary entry editing, templates, meal structure, food creation) and the plan includes them.
+
+**Acceptance criteria:**
+- [ ] Host test: change the quantity, close the sheet without "Guardar" → the comida draft is unchanged; with "Guardar" → the quantity and kcal/macros update.
+- [ ] No other screen applies an edit on dismiss; the sweep result is in the PR body.
+
+**Verification:** lint, host tests and CI green. **Dependencies:** T-074 · **Estimated scope:** S
+
+---
+
 ## T-069: Fix comida edit crash and comida details (E4-C feedback)
 
 **Story:** US-21 · **Flow:** UI + core · **Type:** fix
@@ -1886,7 +1900,7 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Estimated scope:** S
 
 ### Checkpoint E4-C — Templates, history, final regression and approval 👤
-- [ ] T-061, T-062, T-068…T-073 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-061, T-062, T-068…T-075 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Micronutrients: scan or search a real packaged food, open its details: fiber, sugars, salt and the vitamins/minerals OFF has are listed per 100 g. Create a food typing saturated fat, sugars, fiber and salt from its label: they show in its details; one created without them shows no section.
   - Comidas: fill a breakfast and "Guardar como comida"; try the same name again (error). From any meal's search, "Comidas" → add it there: the foods appear and the ring jumps at once. Edit it (quantities, remove a food) and choose "Sobrescribir" or "Guardar como nueva"; rename and delete one: entries already logged do not change.

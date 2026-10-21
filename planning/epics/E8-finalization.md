@@ -124,6 +124,8 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Meal structure: "Añadir comida" is disabled while a new meal is being created (no double-add) | Checkpoint E4-B round 2, 2026-10-21 |
 | Diario/Perfil/Comidas: top bar with the section name takes too much vertical space; make it smaller (all sections) | Checkpoint E4-C round 1, 2026-10-21 |
 | Meal structure: a meal being created shows tick (save) and X (discard) buttons; discarding does not require saving then deleting | Checkpoint E4-B round 2, 2026-10-21 |
+| Swipe-to-delete still feels unlike modern apps: ux-reviewer researches how swipe works in modern apps and aligns the shared component; add haptic feedback when the drag reaches the action threshold and when the delete fires | Checkpoint E4-C round 3, 2026-10-21 |
+| Visual bug: a stray horizontal line crosses the value of text fields (seen on the quantity "30" of the food details sheet; reference `design/references/e4c-line-through-quantity-field.png`). It recurs across screens: find the cause in the shared field/sheet components and fix it app-wide | Checkpoint E4-C round 3, 2026-10-21 |
 ---
 
 ## Epic Definition of Done

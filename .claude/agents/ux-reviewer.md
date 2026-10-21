@@ -22,6 +22,7 @@ You are the **UX** reviewer for AppFitness.
 - Tabular numerals; correct macro and domain colors (P lime, C cyan, F amber; training cyan).
 - Space and icons: edit actions (rename, reorder, delete, add) are icon buttons in a compact row, never one full button or card per setting; the screen shows as many items as possible without scrolling. Anything the user configures once (preferences) lives in Perfil -> Preferencias, not as a button on a daily screen.
 - Interaction rules of `05-design-system.md` §8 (delete, swipe, "Guardar", list → details, wording): check the plan against them and search the app for other instances of the same pattern; list them in the UX notes so the plan fixes them too.
+- **"Guardar" is mandatory on every edit surface, sheets and modals included** (the user has repeated this several times). Any sheet, dialog or screen where the user can change a value has an explicit "Guardar"; closing it (X, back, swipe down, scrim) discards the change and never applies it. A plan with apply-on-dismiss, apply-on-blur or per-action saves is rejected, even if the value looks minor (e.g. a quantity in a details sheet). Only delete is immediate. "Listo" pickers that merely fill a draft are fine only when the screen they return to has its own "Guardar".
 - Tablet layout (width ≥ 600 dp) when the screen needs it.
 - UI texts in Spanish through string resources.
 - `testTag` in snake_case `<screen>_<element>` for every interactive element.
