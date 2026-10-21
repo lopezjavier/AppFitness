@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-063 (E4 closure; first re-present checkpoint E4-C). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
+**Next:** T-072 (shared interaction rules and swipe-to-delete, ADR-45), then T-073, then re-present Checkpoint E4-C, then T-063. Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
 
 ---
 
@@ -1775,6 +1775,37 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
+## T-072: Shared interaction rules, swipe-to-delete and wording (E4-C round 2, ADR-45)
+
+**Story:** US-21, US-24, US-18 · **Flow:** docs + UI · **Type:** fix
+
+**Description:** User feedback at Checkpoint E4-C round 2 (2026-10-21). (a) ADR-45 and `05-design-system.md` §8 already hold the generic rules; ux-reviewer checks them (done in this PR's docs). (b) One shared swipe-to-delete component in `designsystem/`: slow and heavy, fires only at the end of the travel, a shorter drag snaps back; it replaces `SwipeableEntryRow` and `SwipeableTemplateRow`. (c) Delete never offers "Deshacer" (the user asked for none earlier and T-069 added it): remove the snackbar, the pending-delete state and its tests for comidas, and confirm that diary entries have none. (d) History texts: remove "Total del mes" and "Días registrados"; day/week/month all use "Media diaria" and the "Últimos 7 días · n de 7 días registrados" line goes. (e) Perfil -> Estadísticas: the diary entry reads "Calorías" (like "Fuerza"). Planner/ux-reviewer sweep the app for other swipe or delete instances.
+
+**Acceptance criteria:**
+- [ ] Swipe on a diary entry and on a comida row deletes only when dragged to the end; a short drag restores the row (host tests); no "Deshacer" anywhere.
+- [ ] History summaries use "Media diaria" for week and month and show no month total or registered-days count; Perfil entry reads "Calorías".
+- [ ] State survives leaving the app (ADR-40).
+
+**Verification:** lint, host tests and CI green. **Dependencies:** T-071 · **Estimated scope:** M
+
+---
+
+## T-073: Comida details with nutrition and "Guardar" (E4-C round 2, ADR-45)
+
+**Story:** US-21 · **Flow:** UI + core · **Type:** fix
+
+**Description:** Redesign the comida details. Each food row shows its kcal and macros (not only grams) and the header shows the comida's total kcal and macros. Tapping a food opens its food details, where the grams are edited or the food is removed from the comida; swiping a food to the left removes it (T-072 component). Remove the "Editar" button and the "Editar comida" screen: the details are the editor, with a pencil to rename and a single "Guardar" that saves renames, quantities and removals together (overwrite or save as new stays). Deleting the whole comida from its details runs at once and closes the details. Entries already logged do not change.
+
+**Acceptance criteria:**
+- [ ] Rows show kcal and macros per food, the header the sum; both update with the draft.
+- [ ] Tapping a food opens its details to change grams or remove it; swipe-left removes it; neither is saved until "Guardar".
+- [ ] "Eliminar comida" deletes at once and closes; no "Editar" button or edit screen remains.
+- [ ] Draft and screen survive leaving the app (ADR-40).
+
+**Verification:** lint, host tests and CI green. **Dependencies:** T-072 · **Estimated scope:** M
+
+---
+
 ## T-069: Fix comida edit crash and comida details (E4-C feedback)
 
 **Story:** US-21 · **Flow:** UI + core · **Type:** fix
@@ -1835,12 +1866,12 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.
 
-**Dependencies:** T-071
+**Dependencies:** T-073
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
 ### Checkpoint E4-C — Templates, history, final regression and approval 👤
-- [ ] T-061, T-062, T-068, T-069, T-070 and T-071 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-061, T-062, T-068…T-073 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Micronutrients: scan or search a real packaged food, open its details: fiber, sugars, salt and the vitamins/minerals OFF has are listed per 100 g. Create a food typing saturated fat, sugars, fiber and salt from its label: they show in its details; one created without them shows no section.
   - Comidas: fill a breakfast and "Guardar como comida"; try the same name again (error). From any meal's search, "Comidas" → add it there: the foods appear and the ring jumps at once. Edit it (quantities, remove a food) and choose "Sobrescribir" or "Guardar como nueva"; rename and delete one: entries already logged do not change.

@@ -363,3 +363,14 @@ Format: context → decision → consequences. A decision is only changed by add
   - The Diario has one UI and always shows the calendar button next to the day arrows (no conditional). It jumps to a given day; the arrows stay.
   - The diary history (Día / Semana / Mes summaries and the month calendar) leaves the Diario and becomes a full-screen destination (back arrow) reached from an "Estadísticas" entry on the Perfil root (ADR-37 pattern). Tapping a day there opens the normal Diario on that day.
 - **Consequences:** US-24 in `epics/E4-food-diary.md`, `tasks/todo.md` and `tasks/plan.md` (T-071) reflect this; no data-model change.
+
+### ADR-45 · Interaction rules shared by every screen (E4, T-072)
+- **Context:** Checkpoint E4-B/E4-C (user, 2026-10-21): the same UX defects were reported on several screens (swipe fires too easily, "Deshacer" added after the user had asked for none, edits saved per action, differing texts for the same concept). Fixing them screen by screen leaves the app inconsistent.
+- **Decision:** `05-design-system.md` §8 holds generic rules, enforced by ux-reviewer on every UI task:
+  - **Delete:** runs at once, with no confirmation dialog and no "Deshacer" (a deliberate swipe or tap is the confirmation). Deleting from a details screen closes it. Confirmation dialogs stay only for account-level destructive actions ("Borrar cuenta").
+  - **Swipe-to-delete:** one shared designsystem component; the action fires only when the row is dragged to the end of its travel (heavy, slow); a shorter drag snaps back.
+  - **Editing:** an edit screen has a single "Guardar" that saves every change together; nothing is saved per action; renaming is part of that draft. Delete is the only action that is immediate.
+  - **Lists:** a row opens its details; editing happens from the details. Rows of the same kind show the same information on every screen.
+  - **Wording:** one concept, one label across screens and across periods (e.g. day, week and month averages are all "Media diaria").
+  - **Sweep:** when a task changes one of these behaviours, the ux-reviewer searches the app for every other instance and the plan includes them.
+- **Consequences:** supersedes the "Deshacer" of T-069; US-21/US-24, `tasks/todo.md` (T-072, T-073), `05-design-system.md` §8 and `.claude/agents/ux-reviewer.md` reflect this. The E8 refinement item about swipe-to-delete is consumed by T-072.
