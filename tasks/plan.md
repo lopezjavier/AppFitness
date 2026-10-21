@@ -32,36 +32,25 @@ Out of scope (epic file): background sync, other Health Connect data (steps, sle
     - circumferences with the ratio "0,86": edit, delete, validation;
     - leave the app and come back.
 
-### Phase 2: Health Connect
+### Phase 2: Health Connect and trend
 - [ ] T-079: Manual Health Connect sync, read and write-back (US-26) — UI + backend + platform — L
-  - **Checkpoint E5-B 👤 Health Connect with your scale:**
-    - first sync and permissions (90 days); incremental sync without duplicates; fat and composition values in one entry;
-    - write-back with and without permission; editing and deleting a manual entry updates or removes its Health Connect copy;
-    - "Permiso necesario"; "Sincronizado hace N min"; a deleted imported reading does not come back;
-    - leave the app and come back.
-
-### Phase 3: Trend
 - [ ] T-080: Weight trend chart, time filters and weekly rate (US-27 trend + US-25 chart) — UI — M–L
-  - **Checkpoint E5-C 👤 Weight trend:**
-    - dots + "MA 7D" line on real data; long-press detail;
-    - filters remembered after relaunch; the weekly pill's sign and colour by strategy;
-    - not enough data;
+  - **Checkpoint E5-B 👤 Health Connect with your scale and the weight trend:**
+    - first sync and permissions (90 days); incremental sync without duplicates; fat and composition values in one entry;
+    - write-back with and without permission; editing and deleting a manual entry updates or removes its Health Connect copy; "Permiso necesario"; "Sincronizado hace N min"; a deleted imported reading does not come back;
+    - dots + "MA 7D" line on the imported history; long-press detail; filters remembered after relaunch; the weekly pill's sign and colour by strategy;
     - leave the app and come back.
 
-### Phase 4: Goal, metrics and closure
+### Phase 3: Goal, metrics and closure
 - [ ] T-081: Target weight, BMI, measurement comparison and metric interpretation (US-27 goal/metrics) — UI + backend — L
-  - **Checkpoint E5-D 👤 Goal and metrics:**
-    - set and change the target; direction-aware distance and progress from the first weight;
-    - BMI with status; metric details with the disclaimer; composition values;
-    - "Comparar";
-    - leave the app and come back.
-- [ ] T-082: E5 closure — PM — S
-  - **Checkpoint E5-E 👤 Closure:**
+  - **Checkpoint E5-C 👤 Goal, metrics and final regression:**
+    - set and change the target; direction-aware distance and progress from the first weight; BMI with status; metric details with the disclaimer; composition values; "Comparar";
     - final regression over a few real days with the scale, manual entries via the calendar, Health Connect edit/delete, circumferences, chart, goal and Preferencias;
     - leave the app and come back;
-    - approval → `v0.5.0` and the retrospective.
+    - approval → T-082.
+- [ ] T-082: E5 closure — PM — S (tag `v0.5.0` and the retrospective, after E5-C is approved)
 
-There is one checkpoint per user-visible functionality (five, including closure); the user may merge some of them, as in E4. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
+There are three checkpoints (user decision 2026-10-21; the first breakdown had five): manual measurements, Health Connect with the trend, and goal and metrics with the final regression. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
 - pgTAP + lint + `testLocalDebugUnitTest` green per task;
 - `deploy-supabase` green after each migration (T-076, T-078, T-079, T-081);
 - the T-079 merged-manifest check.
@@ -69,11 +58,11 @@ There is one checkpoint per user-visible functionality (five, including closure)
 ## Dependencies
 
 ```
-v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► [E5-A 👤] ─► T-079 ─► [E5-B 👤] ─► T-080 ─► [E5-C 👤]
-       ─► T-081 ─► [E5-D 👤] ─► T-082 ─► [E5-E 👤] ─► v0.5.0
+v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► [E5-A 👤] ─► T-079 ─► T-080 ─► [E5-B 👤]
+       ─► T-081 ─► [E5-C 👤] ─► T-082 ─► v0.5.0
 ```
-- Strictly sequential; each checkpoint gates the next task.
-- Health Connect (T-079) comes before the chart (T-080) on purpose. The riskiest integration gets tried early on the user's phone, and the 90-day import gives the chart and the weekly rate real data at E5-C.
+- Strictly sequential; each checkpoint gates the next task. T-079 and T-080 run back to back (no checkpoint between).
+- Health Connect (T-079) comes before the chart (T-080) on purpose: the 90-day import gives the chart and the weekly rate real data at E5-B, and the riskiest integration is tried on the user's phone at the first checkpoint after it.
 - T-077 needs T-076's RPC and repository. T-080 needs the measurements from T-077. T-081 needs T-078's ratio (interpretation), T-077's calendar (comparison) and T-080's panel.
 - T-079 adds write-back (create, edit, delete) to T-077's sheet and write-back on save to the Preferencias weight.
 
