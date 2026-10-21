@@ -129,6 +129,13 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Comida details: no visual separation between the comida summary and its first food; add a section divider with the label "Alimentos en esta comida" | Checkpoint E4-C approval, 2026-10-21 |
 ---
 
+### UX consistency guardrails (E4 retrospective, 2026-10-21)
+
+The user found repeated UX defects and inconsistencies across screens (icons vs. text for add/remove, no "Deshacer" on swipe-delete, tapping a food or exercise must open its detail, feedback repeated at several checkpoints) and suspects `ux-reviewer` is not catching them. The fix is deliberately done here, not earlier:
+- Consolidate every convention the user has stated at checkpoints into `planning/05-design-system.md` as explicit rules.
+- Update `ux-reviewer` to check each UI plan against those rules and against the existing screens, so the same mistakes never come back.
+- Run a cross-screen consistency audit as part of the polish pass.
+
 ## Epic Definition of Done
 - All stories US-01…US-46 closed; the app is verified manually at the checkpoints.
 - The "Acerca de" screen shows version/build, the RepDB and Open Food Facts credits and the OSS licences.
