@@ -710,6 +710,7 @@
     <string name="template_details_rename_cd">Renombrar %1$s</string>
     <string name="template_details_save">Guardar</string>
     <string name="template_details_delete">Eliminar comida</string>
+    <string name="template_food_save">Guardar</string>
     <string name="template_food_remove">Quitar de la comida</string>
     <string name="template_food_close_cd">Cerrar</string>
     <string name="template_details_load_error">No se pudo leer la comida</string>

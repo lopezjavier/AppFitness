@@ -28,11 +28,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.template_food_close_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.template_food_remove
+import io.github.lopezjavier.appfitness.composeapp.resources.template_food_save
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.feature.food.MicronutrientsCard
@@ -43,14 +45,15 @@ import org.jetbrains.compose.resources.stringResource
 private const val SHEET_TAG = "template_food_sheet"
 
 /**
- * The sheet of one food of the comida: its grams (base unit only, straight into the draft; there is no per-sheet
- * save), the live nutrition preview, its micronutrients when known, and "Quitar de la comida" (hidden for the last
- * food). It closes by drag or the close button.
+ * The sheet of one food of the comida: its grams (base unit only, pending until "Guardar" applies them to the comida
+ * draft), the live nutrition preview, its micronutrients when known, "Guardar" and "Quitar de la comida" (hidden for
+ * the last food). The close button, back and drag discard the typed grams.
  */
 @Composable
 internal fun TemplateFoodSheet(
     open: OpenFood,
     onAmountChange: (String) -> Unit,
+    onSave: () -> Unit,
     onRemove: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -87,6 +90,12 @@ internal fun TemplateFoodSheet(
                     })
                 }
             }
+            PrimaryButton(
+                text = stringResource(Res.string.template_food_save),
+                onClick = onSave,
+                enabled = open.canSave,
+                modifier = Modifier.fillMaxWidth().testTag("${SHEET_TAG}_save"),
+            )
             if (row.removable) {
                 GhostButton(
                     text = stringResource(Res.string.template_food_remove),
