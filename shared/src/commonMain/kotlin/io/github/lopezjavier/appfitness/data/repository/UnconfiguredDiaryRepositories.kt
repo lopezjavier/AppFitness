@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
@@ -66,6 +67,9 @@ class UnconfiguredFoodDiaryRepository : FoodDiaryRepository {
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun deleteEntries(ids: List<String>): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>> =
+        Result.failure(AppException(AppError.Unknown))
 }
 
 /** Used when Supabase is not configured: nothing is found and every write fails. */

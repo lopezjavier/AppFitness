@@ -12,6 +12,9 @@ data class MealTotals(val kcal: Double, val proteinG: Double, val carbsG: Double
 /** Daily targets: calories and the gram target of each macro (as computed by `CalculateMacroTargets`). */
 data class DiaryGoals(val targetKcal: Int, val proteinG: Int, val carbsG: Int, val fatG: Int)
 
+/** The totals of one day that has diary entries (US-24); days without entries have no summary. */
+data class DiaryDaySummary(val date: LocalDate, val totals: MealTotals)
+
 /** An enabled meal with the entries logged in it. */
 data class MealSection(val slot: MealSlot, val entries: List<FoodLogEntry>, val totals: MealTotals)
 

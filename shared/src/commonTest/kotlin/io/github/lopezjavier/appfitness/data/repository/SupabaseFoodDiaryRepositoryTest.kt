@@ -8,7 +8,9 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
@@ -390,6 +392,37 @@ class SupabaseFoodDiaryRepositoryTest {
         fail = true
 
         assertEquals(AppError.Network, repo.refresh(day).appErrorOrNull())
+    }
+
+    @Test
+    fun summaries_callTheRpcWithTheRangeAndMapTheRows() = runTest {
+        val repo = signedInRepository {
+            """[{"log_date":"2026-10-18","kcal":1840.0,"protein_g":142.5,"carbs_g":210,"fat_g":48.0}]"""
+        }
+
+        val result = repo.summaries(LocalDate(2026, 10, 1), LocalDate(2026, 10, 31)).getOrThrow()
+
+        assertEquals(
+            listOf(DiaryDaySummary(LocalDate(2026, 10, 18), MealTotals(1840.0, 142.5, 210.0, 48.0))),
+            result,
+        )
+        val post = requests.last()
+        assertEquals(HttpMethod.Post, post.method)
+        assertTrue(post.url.encodedPath.endsWith("/rpc/food_diary_summary"), post.url.encodedPath)
+        val body = post.body.toByteArray().decodeToString()
+        assertTrue(body.contains("\"p_from\":\"2026-10-01\"") && body.contains("\"p_to\":\"2026-10-31\""), body)
+    }
+
+    @Test
+    fun summaries_networkError_isMapped() = runTest {
+        var fail = false
+        val repo = signedInRepository {
+            if (fail) throw IOException("offline")
+            "[]"
+        }
+        fail = true
+
+        assertEquals(AppError.Network, repo.summaries(day, day).appErrorOrNull())
     }
 
     @Test

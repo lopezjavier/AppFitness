@@ -69,6 +69,7 @@ internal fun AppScaffold(
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     diary: DiarySlot = DefaultDiarySlot,
+    diaryHistory: DiaryHistorySlot = DefaultDiaryHistorySlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     editEntry: EditEntrySlot = DefaultEditEntrySlot,
@@ -83,7 +84,7 @@ internal fun AppScaffold(
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
-    val chrome = entry.chrome()
+    val chrome = navController.chromeOf(entry)
     val backInterceptor = remember { BackInterceptor() }
     val backButton = rememberBackButton(navController, entry, backInterceptor)
     val isBar = navigationType == AppNavigationType.Bar
@@ -128,6 +129,7 @@ internal fun AppScaffold(
                     routineBuilder = routineBuilder,
                     liveSession = liveSession,
                     diary = diary,
+                    diaryHistory = diaryHistory,
                     foodSearch = foodSearch,
                     addFood = addFood,
                     editEntry = editEntry,
@@ -230,6 +232,7 @@ private fun ShellContent(
     routineBuilder: RoutineBuilderSlot,
     liveSession: LiveSessionSlot,
     diary: DiarySlot,
+    diaryHistory: DiaryHistorySlot,
     foodSearch: FoodSearchSlot,
     addFood: AddFoodSlot,
     editEntry: EditEntrySlot,
@@ -275,6 +278,7 @@ private fun ShellContent(
             routineBuilder = routineBuilder,
             liveSession = liveSession,
             diary = diary,
+            diaryHistory = diaryHistory,
             foodSearch = foodSearch,
             addFood = addFood,
             editEntry = editEntry,

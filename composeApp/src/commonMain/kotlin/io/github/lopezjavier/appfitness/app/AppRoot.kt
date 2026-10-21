@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
+import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.diary.EditEntryRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
@@ -58,9 +59,18 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit ->
-            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onSaveTemplate, edit, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onOpenHistory ->
+            DiaryRoot(
+                onOpenPreferences,
+                onAddFood,
+                { onAddFood(null, it) },
+                onSaveTemplate,
+                edit,
+                diaryModifier,
+                onOpenHistory,
+            )
         },
+        diaryHistory = { historyModifier, onOpenDay -> DiaryHistoryRoot(onOpenDay, historyModifier) },
         mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onEditTemplate ->
             FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onAdd, onEditTemplate, searchModifier)

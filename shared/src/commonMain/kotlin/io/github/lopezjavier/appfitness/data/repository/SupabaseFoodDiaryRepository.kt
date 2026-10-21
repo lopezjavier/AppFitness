@@ -5,9 +5,13 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.DiaryDaySummaryDto
+import io.github.lopezjavier.appfitness.data.remote.DiaryDaySummaryParams
 import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryDto
 import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryInsertDto
 import io.github.lopezjavier.appfitness.data.remote.FoodLogEntryUpdateDto
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
@@ -88,5 +92,11 @@ class SupabaseFoodDiaryRepository(private val auth: Auth, private val postgrest:
         postgrest.from("food_log_entries").delete { filter { isIn("id", ids) } }
         val gone = ids.toSet()
         cache.update { days -> days.mapValues { (_, entries) -> entries.filterNot { it.id in gone } } }
+    }
+
+    override suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>> = auth.ownRow {
+        postgrest.rpc("food_diary_summary", DiaryDaySummaryParams(from.toString(), to.toString()))
+            .decodeList<DiaryDaySummaryDto>()
+            .map { it.toDomain() }
     }
 }

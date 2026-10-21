@@ -99,4 +99,20 @@ class DiaryRestorationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("diary_entry_y").assertExists()
     }
+
+    @Test
+    fun dayRouteArgument_opensThatDay_andTheDayShownAfterNavigatingWinsOnRestoration() {
+        val savedState = SavedStateHandle(mapOf("diary_date" to Yesterday.toString()))
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_date_label").assertTextEquals("Ayer")
+
+        rule.onNodeWithTag("diary_date_next").performClick()
+        rule.waitForIdle()
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_date_label").assertTextEquals("Hoy")
+    }
 }

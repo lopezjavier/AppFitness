@@ -35,7 +35,7 @@ class ShellRailContentTest {
     val rule = createComposeRule()
 
     /** A scrollable tab with a footer, standing in for the Diario tab that is no longer a placeholder. */
-    private val wipDiary: DiarySlot = { modifier, _, _, _, _ ->
+    private val wipDiary: DiarySlot = { modifier, _, _, _, _, _ ->
         WipPlaceholder(
             message = "Sección en construcción",
             footer = "Más funciones próximamente",

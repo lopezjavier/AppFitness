@@ -77,8 +77,9 @@ internal typealias RoutinesSlot =
 
 /**
  * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
- * search for a day (the meal is null for the Diary-level add action) and [edit] the edit sheet of an entry
- * (and brings back an entry the sheet asked to delete).
+ * search for a day (the meal is null for the Diary-level add action), [edit] the edit sheet of an entry
+ * (and brings back an entry the sheet asked to delete) and [onOpenHistory] the diary history (null on a past day
+ * opened from the history, where the button is hidden). The same slot renders a past day ([DiaryDayRoute]).
  */
 internal typealias DiarySlot =
     @Composable (
@@ -87,7 +88,11 @@ internal typealias DiarySlot =
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
         onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
         edit: DiaryEditHost,
+        onOpenHistory: (() -> Unit)?,
     ) -> Unit
+
+/** Diary history content: modifier (full-screen insets) and the opener of the Diary of a day. */
+internal typealias DiaryHistorySlot = @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit) -> Unit
 
 /** Key under which the edit sheet leaves the id of the entry to delete for the Diary (which owns the undo). */
 const val DELETED_ENTRY_KEY = "deleted_entry_id"
@@ -253,8 +258,13 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
+}
+
+/** Empty diary history for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("diary_history_screen"))
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -332,6 +342,7 @@ internal fun AppNavHost(
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     diary: DiarySlot = DefaultDiarySlot,
+    diaryHistory: DiaryHistorySlot = DefaultDiaryHistorySlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     editEntry: EditEntrySlot = DefaultEditEntrySlot,
@@ -356,6 +367,7 @@ internal fun AppNavHost(
     val openSaveTemplate: (String, LocalDate) -> Unit = remember(navController) {
         { slotId, date -> navController.navigate(SaveTemplateRoute(slotId, date.toString())) }
     }
+    val openDiaryHistory = remember(navController) { { navController.navigateToFullScreen(DiaryHistoryRoute) } }
     val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
@@ -365,39 +377,56 @@ internal fun AppNavHost(
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
         navigation<DiaryGraph>(startDestination = TopLevelTab.Diary.startRoute) {
             composable<DiaryHome> { entry ->
-                val handle = entry.savedStateHandle
-                val deleted by handle.getStateFlow<String?>(DELETED_ENTRY_KEY, null).collectAsState()
-                diary(
-                    Modifier.padding(tabPadding),
+                val destinationModifier = Modifier.padding(tabPadding)
+                DiaryDestination(
+                    navController,
+                    entry,
+                    diary,
                     openPreferences,
                     openFoodSearch,
                     openSaveTemplate,
-                    DiaryEditHost(
-                        onEditEntry = { id, date -> navController.navigate(EditEntryRoute(id, date.toString())) },
-                        pendingDeleteEntryId = deleted,
-                        onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
-                    ),
+                    openDiaryHistory,
+                    destinationModifier,
                 )
             }
-            dialog<SaveTemplateRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
-                val route = entry.toRoute<SaveTemplateRoute>()
-                saveTemplate(route.slotId, route.date, {
+        }
+        composable<DiaryDayRoute> { entry ->
+            val destinationModifier = Modifier.padding(fullScreenPadding)
+            DiaryDestination(
+                navController,
+                entry,
+                diary,
+                openPreferences,
+                openFoodSearch,
+                openSaveTemplate,
+                null,
+                destinationModifier,
+            )
+        }
+        composable<DiaryHistoryRoute> {
+            diaryHistory(Modifier.padding(fullScreenPadding)) { date ->
+                navController.navigateToFullScreen(DiaryDayRoute(date.toString()))
+            }
+        }
+        // The sheets over the Diary or a past day are root destinations, so they open over whichever is below.
+        dialog<SaveTemplateRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
+            val route = entry.toRoute<SaveTemplateRoute>()
+            saveTemplate(route.slotId, route.date, {
+                navController.popBackStack()
+            }, { navController.popBackStack() })
+        }
+        dialog<EditEntryRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
+            val route = entry.toRoute<EditEntryRoute>()
+            editEntry(
+                route.entryId,
+                route.date,
+                { navController.popBackStack() },
+                { id ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(DELETED_ENTRY_KEY, id)
                     navController.popBackStack()
-                }, { navController.popBackStack() })
-            }
-            dialog<EditEntryRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
-                val route = entry.toRoute<EditEntryRoute>()
-                editEntry(
-                    route.entryId,
-                    route.date,
-                    { navController.popBackStack() },
-                    { id ->
-                        navController.previousBackStackEntry?.savedStateHandle?.set(DELETED_ENTRY_KEY, id)
-                        navController.popBackStack()
-                    },
-                    { navController.popBackStack() },
-                )
-            }
+                },
+                { navController.popBackStack() },
+            )
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> {
@@ -465,6 +494,38 @@ internal fun AppNavHost(
 }
 
 /**
+ * The Diary of the tab ([DiaryHome]) or of a past day ([DiaryDayRoute]): the edit sheet's deletion request comes back
+ * through the entry's `savedStateHandle`. [onOpenHistory] is null on a past day.
+ */
+@Composable
+@Suppress("LongParameterList") // The Diary's callbacks plus its entry.
+private fun DiaryDestination(
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+    diary: DiarySlot,
+    openPreferences: () -> Unit,
+    openFoodSearch: (String?, LocalDate) -> Unit,
+    openSaveTemplate: (String, LocalDate) -> Unit,
+    onOpenHistory: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val handle = entry.savedStateHandle
+    val deleted by handle.getStateFlow<String?>(DELETED_ENTRY_KEY, null).collectAsState()
+    diary(
+        modifier,
+        openPreferences,
+        openFoodSearch,
+        openSaveTemplate,
+        DiaryEditHost(
+            onEditEntry = { id, date -> navController.navigate(EditEntryRoute(id, date.toString())) },
+            pendingDeleteEntryId = deleted,
+            onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
+        ),
+        onOpenHistory,
+    )
+}
+
+/**
  * The food search and, over it, the add-food sheet (a dialog destination, so the search stays visible behind the
  * sheet). Logging a food pops both back to the Diary.
  */
@@ -488,7 +549,7 @@ private fun NavGraphBuilder.foodDestinations(
                 }
             },
             // A comida went to the Diary: leave the search for it.
-            { navController.popBackStack<DiaryHome>(inclusive = false) },
+            { navController.popToDiary() },
             { templateId -> navController.navigate(TemplateEditorRoute(templateId)) { launchSingleTop = true } },
         )
     }
@@ -517,7 +578,7 @@ private fun NavGraphBuilder.foodDestinations(
             route.foodId,
             route.slotId,
             route.date,
-            { navController.popBackStack<DiaryHome>(inclusive = false) },
+            { navController.popToDiary() },
             { navController.popBackStack() },
         )
     }
@@ -629,6 +690,28 @@ internal fun shouldPopFullScreen(topEntryId: String?, drawnEntryId: String?, top
 internal fun NavController.popFullScreen(drawnEntry: NavBackStackEntry?) {
     val top = currentBackStackEntry
     if (shouldPopFullScreen(top?.id, drawnEntry?.id, top?.destination.isFullScreen())) popBackStack()
+}
+
+/**
+ * Pops back to the Diary that opened the food search: the past day when it was opened from one, otherwise the tab
+ * (a food or comida was logged there, so the search and its sheets leave).
+ */
+internal fun NavController.popToDiary() {
+    val target = currentBackStack.value.lastOrNull {
+        it.destination.hasRoute(DiaryDayRoute::class) || it.destination.hasRoute(DiaryHome::class)
+    }
+    if (target != null) popBackStack(target.destination.id, inclusive = false)
+}
+
+/**
+ * Chrome to draw for [entry]. The edit and save-as-comida sheets keep the bars of the Diary below them (the tab's
+ * top and bottom bar, or the full-screen bar of a past day), so opening one never swaps the chrome.
+ */
+internal fun NavController.chromeOf(entry: NavBackStackEntry?): ShellChrome {
+    val destination = entry?.destination
+    val isSheet = destination?.hasRoute(EditEntryRoute::class) == true ||
+        destination?.hasRoute(SaveTemplateRoute::class) == true
+    return if (isSheet) previousBackStackEntry.chrome() else entry.chrome()
 }
 
 /** Chrome of an entry's destination ([TopLevelTab.Start] tabs before the first entry exists). */
