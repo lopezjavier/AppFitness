@@ -34,7 +34,7 @@ import kotlinx.datetime.LocalDate
 
 /**
  * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener, the catalog opener (null where
- * it is unavailable), the "Fuerza" opener and the "Historial de comidas" opener.
+ * it is unavailable), the "Fuerza" opener, the "Historial de comidas" opener and the "Peso" opener.
  */
 internal typealias ProfileSlot =
     @Composable (
@@ -43,6 +43,7 @@ internal typealias ProfileSlot =
         onOpenCatalog: (() -> Unit)?,
         onOpenStrength: () -> Unit,
         onOpenDiaryHistory: () -> Unit,
+        onOpenWeight: () -> Unit,
     ) -> Unit
 
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
@@ -92,6 +93,9 @@ internal typealias DiarySlot =
 
 /** Diary history content: modifier (full-screen insets) and the opener of the Diary of a day. */
 internal typealias DiaryHistorySlot = @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit) -> Unit
+
+/** Weight screen content: modifier (full-screen insets). */
+internal typealias WeightSlot = @Composable (modifier: Modifier) -> Unit
 
 /** Key under which the edit sheet leaves the id of the entry to delete for the Diary. */
 const val DELETED_ENTRY_KEY = "deleted_entry_id"
@@ -225,7 +229,7 @@ internal typealias RoutineBuilderSlot = @Composable (modifier: Modifier, host: R
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
@@ -264,6 +268,11 @@ internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
 /** Empty diary history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("diary_history_screen"))
+}
+
+/** Empty weight screen for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultWeightSlot: WeightSlot = { modifier ->
+    Box(modifier.fillMaxSize().testTag("weight_screen"))
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -353,6 +362,7 @@ internal fun AppNavHost(
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
+    weight: WeightSlot = DefaultWeightSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -367,6 +377,7 @@ internal fun AppNavHost(
         { slotId, date -> navController.navigate(SaveTemplateRoute(slotId, date.toString())) }
     }
     val openDiaryHistory = remember(navController) { { navController.navigateToFullScreen(DiaryHistoryRoute) } }
+    val openWeight = remember(navController) { { navController.navigateToFullScreen(WeightRoute) } }
     val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
@@ -438,9 +449,11 @@ internal fun AppNavHost(
                     if (catalogAvailable) openCatalog else null,
                     openStrength,
                     openDiaryHistory,
+                    openWeight,
                 )
             }
         }
+        composable<WeightRoute> { weight(Modifier.padding(fullScreenPadding)) }
         composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding), openMeals) }
         composable<ExercisePickerRoute> { entry ->
             val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode

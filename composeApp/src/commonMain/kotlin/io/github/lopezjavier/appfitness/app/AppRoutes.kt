@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -148,6 +149,10 @@ data object MealSlotsRoute : AppRoute
 @Serializable
 data object DiaryHistoryRoute : AppRoute
 
+/** The weight screen (US-25): current weight and the measurement calendar, opened from Perfil > Estadísticas. */
+@Serializable
+data object WeightRoute : AppRoute
+
 /**
  * The Diary of one past [date] (ISO yyyy-MM-dd), opened from the history in a full-screen chrome with a back arrow. The
  * argument is stored as `diary_date`, the key under which the Diary's view model restores its visible day.
@@ -268,6 +273,8 @@ val AppRoute.chrome: ShellChrome
 
             is DiaryDayRoute -> ShellChrome.FullScreen(Res.string.nav_diary, topBarTag = "diary_day")
 
+            WeightRoute -> ShellChrome.FullScreen(Res.string.weight_title, topBarTag = "weight")
+
             // A sheet over the Diary tab or over a past day: the shell draws the chrome of the entry below it
             // instead (see [chromeOf]); this one is the fallback for the sheet opened over the Diary tab.
             is EditEntryRoute, is SaveTemplateRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
@@ -299,5 +306,6 @@ object AppDestinations {
             MealSlotsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),
+            WeightRoute,
         )
 }

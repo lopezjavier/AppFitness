@@ -48,6 +48,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_histo
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_row
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
@@ -73,10 +74,12 @@ private const val NAME_MAX_LINES = 2
 private const val NAME_SKELETON_WIDTH_UNITS = 8
 
 /** The account buttons' callbacks, grouped to keep the layout composables' signatures short. */
+@Suppress("LongParameterList") // One callback per row or button.
 private class RootActions(
     val onOpenPreferences: () -> Unit,
     val onOpenCatalog: (() -> Unit)?,
     val onOpenStrength: () -> Unit,
+    val onOpenWeight: () -> Unit,
     val onOpenDiaryHistory: () -> Unit,
     val onSignOut: () -> Unit,
     val onDelete: () -> Unit,
@@ -90,6 +93,7 @@ fun ProfileRootRoute(
     onOpenCatalog: (() -> Unit)? = null,
     onOpenStrength: () -> Unit = {},
     onOpenDiaryHistory: () -> Unit = {},
+    onOpenWeight: () -> Unit = {},
     viewModel: ProfileRootViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,6 +105,7 @@ fun ProfileRootRoute(
         onOpenCatalog = onOpenCatalog,
         onOpenStrength = onOpenStrength,
         onOpenDiaryHistory = onOpenDiaryHistory,
+        onOpenWeight = onOpenWeight,
         effects = viewModel.effects,
     )
 }
@@ -119,6 +124,7 @@ fun ProfileRootScreen(
     onOpenCatalog: (() -> Unit)? = null,
     onOpenStrength: () -> Unit = {},
     onOpenDiaryHistory: () -> Unit = {},
+    onOpenWeight: () -> Unit = {},
     effects: Flow<ProfileRootEffect> = emptyFlow(),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
@@ -130,6 +136,7 @@ fun ProfileRootScreen(
             onOpenPreferences,
             onOpenCatalog,
             onOpenStrength,
+            onOpenWeight,
             onOpenDiaryHistory,
             { confirmingSignOut = true },
             { confirmingDelete = true },
@@ -182,7 +189,7 @@ fun ProfileRootScreen(
 
 /** "Estadísticas": a heading and the "Fuerza" and "Historial de comidas" rows. */
 @Composable
-private fun StatisticsSection(onOpenStrength: () -> Unit, onOpenDiaryHistory: () -> Unit) {
+private fun StatisticsSection(onOpenStrength: () -> Unit, onOpenWeight: () -> Unit, onOpenDiaryHistory: () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = stringResource(Res.string.profile_statistics_section).uppercase(),
@@ -191,6 +198,7 @@ private fun StatisticsSection(onOpenStrength: () -> Unit, onOpenDiaryHistory: ()
             modifier = Modifier.semantics { heading() },
         )
         StatisticsRow(stringResource(Res.string.profile_strength_row), "profile_strength_row", onOpenStrength)
+        StatisticsRow(stringResource(Res.string.profile_weight_row), "profile_weight_row", onOpenWeight)
         StatisticsRow(
             stringResource(Res.string.profile_diary_history_row),
             "profile_diary_history_row",
@@ -290,8 +298,8 @@ private fun HeaderSkeleton() {
 }
 
 /**
- * "Estadísticas" (the "Fuerza" row), "Preferencias", catalog (local only), a 24 dp gap, "Cerrar sesión" and
- * "Borrar cuenta" (loaded only).
+ * "Estadísticas" (the "Fuerza", "Peso" and "Calorías" rows), "Preferencias", catalog (local only), a 24 dp gap,
+ * "Cerrar sesión" and "Borrar cuenta" (loaded only).
  */
 @Composable
 private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
@@ -300,7 +308,7 @@ private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         if (state is ProfileRootUiState.Loaded) {
-            StatisticsSection(actions.onOpenStrength, actions.onOpenDiaryHistory)
+            StatisticsSection(actions.onOpenStrength, actions.onOpenWeight, actions.onOpenDiaryHistory)
             PrimaryButton(
                 text = stringResource(Res.string.preferences_title),
                 onClick = actions.onOpenPreferences,

@@ -746,4 +746,41 @@
     <string name="month_calendar_day_selected">seleccionado</string>
     <string name="catalog_section_month_calendar">Calendario mensual</string>
     <string name="catalog_section_diary_history_row">Fila de historial</string>
+
+    <!-- T-077 weight screen -->
+    <string name="profile_weight_row">Peso</string>
+    <string name="weight_title">Peso</string>
+    <string name="weight_current_label">Peso actual</string>
+    <string name="weight_current_value">%1$s kg</string>
+    <string name="weight_current_when">%1$s, %2$s</string>
+    <string name="weight_current_fat">Grasa corporal: %1$s</string>
+    <string name="weight_percent_value">%1$s %</string>
+    <string name="weight_log_today">Registrar peso de hoy</string>
+    <string name="weight_history_title">Historial de mediciones</string>
+    <string name="weight_empty_message">Aún no has registrado tu peso</string>
+    <string name="weight_error_message">No se pudieron cargar las mediciones</string>
+    <string name="weight_sheet_title_today">Registrar peso</string>
+    <string name="weight_sheet_title_day">Peso del %1$d %2$s</string>
+    <string name="weight_field_weight">Peso (kg)</string>
+    <string name="weight_field_fat">Grasa corporal (%, opcional)</string>
+    <string name="weight_range_weight">El peso debe estar entre 20 y 400 kg</string>
+    <string name="weight_range_fat">La grasa corporal debe estar entre 2 y 75 %</string>
+    <string name="weight_time_label">Hora</string>
+    <string name="weight_hour_cd">Hora</string>
+    <string name="weight_minute_cd">Minutos</string>
+    <string name="weight_hours_unit">horas</string>
+    <string name="weight_minutes_unit">minutos</string>
+    <string name="weight_save">Guardar</string>
+    <string name="weight_delete">Eliminar</string>
+    <string name="weight_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
+    <string name="weight_save_error_offline">Sin conexión: no se pudo guardar</string>
+    <string name="weight_delete_error">No se pudo eliminar la medición</string>
+    <string name="weight_delete_error_offline">Sin conexión: no se pudo eliminar</string>
+    <string name="weight_offline_reason">Sin conexión: no puedes guardar ni eliminar mediciones</string>
+    <string name="weight_hc_section">Mediciones de Health Connect</string>
+    <string name="weight_hc_icon_cd">Health Connect</string>
+    <string name="weight_hc_row_value">%1$s, %2$s kg</string>
+    <string name="weight_hc_delete_cd">Eliminar medición de %1$s</string>
+    <string name="weight_set_manual">Registrar mi peso de este día</string>
+    <string name="weight_calendar_cd">Calendario de mediciones</string>
 </resources>

@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
+import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
@@ -41,13 +42,21 @@ fun AppRoot(
         isOffline = state.isOffline,
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
-        profile = { profileModifier, onOpenPreferences, onOpenCatalog, onOpenStrength, onOpenDiaryHistory ->
+        profile = {
+                profileModifier,
+                onOpenPreferences,
+                onOpenCatalog,
+                onOpenStrength,
+                onOpenDiaryHistory,
+                onOpenWeight,
+            ->
             ProfileRootRoute(
                 profileModifier,
                 onOpenPreferences,
                 onOpenCatalog,
                 onOpenStrength,
                 onOpenDiaryHistory,
+                onOpenWeight,
             )
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
@@ -68,6 +77,7 @@ fun AppRoot(
         diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit ->
             DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onSaveTemplate, edit, diaryModifier)
         },
+        weight = { weightModifier -> WeightRoot(weightModifier) },
         diaryHistory = { historyModifier, onOpenDay -> DiaryHistoryRoot(onOpenDay, historyModifier) },
         mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate ->
