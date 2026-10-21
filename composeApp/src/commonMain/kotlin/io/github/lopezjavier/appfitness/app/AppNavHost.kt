@@ -29,6 +29,7 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
+import io.github.lopezjavier.appfitness.feature.templates.TemplateEditorRoot
 import kotlinx.datetime.LocalDate
 
 /**
@@ -84,6 +85,7 @@ internal typealias DiarySlot =
         modifier: Modifier,
         onOpenPreferences: () -> Unit,
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
+        onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
         edit: DiaryEditHost,
     ) -> Unit
 
@@ -104,14 +106,32 @@ internal typealias EditEntrySlot =
     ) -> Unit
 
 /**
- * Food search content: modifier (full-screen insets), the opener of the add-food sheet (by food id) and the opener
- * of the create-food form (scanned barcode and/or typed name).
+ * Food search content: modifier (full-screen insets), the meal and day the search adds to ([slotId] null = no meal
+ * preselected, [date] ISO), the opener of the add-food sheet (by food id), the opener of the create-food form
+ * (scanned barcode and/or typed name), [onAdd], which runs once a comida was added to the Diary, and [onEditTemplate],
+ * the opener of the editor of a comida (by id).
  */
 internal typealias FoodSearchSlot =
     @Composable (
         modifier: Modifier,
+        slotId: String?,
+        date: String,
         onOpenFood: (String) -> Unit,
         onCreateFood: (barcode: String?, name: String?) -> Unit,
+        onAdd: () -> Unit,
+        onEditTemplate: (String) -> Unit,
+    ) -> Unit
+
+/**
+ * Save-as-comida sheet content for the meal [slotId] and the ISO day [date]; [onSaved] runs once the comida was
+ * created and [onDismiss] when the sheet is closed without saving.
+ */
+internal typealias SaveTemplateSlot =
+    @Composable (
+        slotId: String,
+        date: String,
+        onSave: () -> Unit,
+        onDismiss: () -> Unit,
     ) -> Unit
 
 /** Meals editor content: modifier (full-screen insets) and how to leave. */
@@ -233,12 +253,12 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _ ->
+internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("food_search_screen"))
 }
 
@@ -257,6 +277,9 @@ internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _ -> }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultEditEntrySlot: EditEntrySlot = { _, _, _, _, _ -> }
+
+/** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultSaveTemplateSlot: SaveTemplateSlot = { _, _, _, _ -> }
 
 /** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
@@ -312,6 +335,7 @@ internal fun AppNavHost(
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     editEntry: EditEntrySlot = DefaultEditEntrySlot,
+    saveTemplate: SaveTemplateSlot = DefaultSaveTemplateSlot,
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
     history: HistorySlot = DefaultHistorySlot,
@@ -329,6 +353,9 @@ internal fun AppNavHost(
         remember(navController) {
             { slotId, date -> navController.navigateToFullScreen(FoodSearchRoute(slotId, date.toString())) }
         }
+    val openSaveTemplate: (String, LocalDate) -> Unit = remember(navController) {
+        { slotId, date -> navController.navigate(SaveTemplateRoute(slotId, date.toString())) }
+    }
     val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
@@ -344,12 +371,19 @@ internal fun AppNavHost(
                     Modifier.padding(tabPadding),
                     openPreferences,
                     openFoodSearch,
+                    openSaveTemplate,
                     DiaryEditHost(
                         onEditEntry = { id, date -> navController.navigate(EditEntryRoute(id, date.toString())) },
                         pendingDeleteEntryId = deleted,
                         onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
                     ),
                 )
+            }
+            dialog<SaveTemplateRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
+                val route = entry.toRoute<SaveTemplateRoute>()
+                saveTemplate(route.slotId, route.date, {
+                    navController.popBackStack()
+                }, { navController.popBackStack() })
             }
             dialog<EditEntryRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
                 val route = entry.toRoute<EditEntryRoute>()
@@ -445,12 +479,26 @@ private fun NavGraphBuilder.foodDestinations(
         val route = entry.toRoute<FoodSearchRoute>()
         foodSearch(
             Modifier.padding(fullScreenPadding),
+            route.slotId,
+            route.date,
             { navController.navigate(AddFoodRoute(it, route.slotId, route.date)) { launchSingleTop = true } },
             { barcode, name ->
                 navController.navigate(CreateFoodRoute(barcode, name, route.slotId, route.date)) {
                     launchSingleTop = true
                 }
             },
+            // A comida went to the Diary: leave the search for it.
+            { navController.popBackStack<DiaryHome>(inclusive = false) },
+            { templateId -> navController.navigate(TemplateEditorRoute(templateId)) { launchSingleTop = true } },
+        )
+    }
+    composable<TemplateEditorRoute> { entry ->
+        val route = entry.toRoute<TemplateEditorRoute>()
+        // Saving pops back to the search, which reloads its Comidas list when it resumes.
+        TemplateEditorRoot(
+            templateId = route.templateId,
+            onSave = { navController.popBackStack() },
+            modifier = Modifier.padding(fullScreenPadding),
         )
     }
     composable<CreateFoodRoute> { entry ->

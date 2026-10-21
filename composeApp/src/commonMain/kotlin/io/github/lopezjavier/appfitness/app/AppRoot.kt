@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
+import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
@@ -57,12 +58,12 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, edit ->
-            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, edit, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit ->
+            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onSaveTemplate, edit, diaryModifier)
         },
         mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
-        foodSearch = { searchModifier, onOpenFood, onCreateFood ->
-            FoodSearchRoot(onOpenFood, onCreateFood, searchModifier)
+        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onEditTemplate ->
+            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onAdd, onEditTemplate, searchModifier)
         },
         createFood = { formModifier, barcode, name, onSaved -> CreateFoodRoot(barcode, name, onSaved, formModifier) },
         addFood = { foodId, slotId, date, onAdded, onDismiss ->
@@ -71,6 +72,7 @@ fun AppRoot(
         editEntry = { entryId, date, onSaved, onDeleteRequested, onDismiss ->
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)
         },
+        saveTemplate = { slotId, date, onSave, onDismiss -> SaveTemplateRoot(slotId, date, onSave, onDismiss) },
         history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
         sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->
             SessionDetailRoot(sessionId, onClose, detailModifier, onOpenProgress)

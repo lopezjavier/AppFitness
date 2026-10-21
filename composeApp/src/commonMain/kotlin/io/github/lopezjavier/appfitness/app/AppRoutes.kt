@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
+import io.github.lopezjavier.appfitness.composeapp.resources.template_editor_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
@@ -125,6 +126,17 @@ data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date
  */
 @Serializable
 data class EditEntryRoute(val entryId: String, val date: String) : AppRoute
+
+/**
+ * The save-as-comida sheet of the meal [slotId] of the ISO day [date] (US-21), presented over the Diary like
+ * [EditEntryRoute] (it keeps the Diary's chrome).
+ */
+@Serializable
+data class SaveTemplateRoute(val slotId: String, val date: String) : AppRoute
+
+/** The full-screen editor of the comida [templateId] (US-21), opened from the Comidas tab of the food search. */
+@Serializable
+data class TemplateEditorRoute(val templateId: String) : AppRoute
 
 /** The meals editor (US-23), opened from Perfil -> Preferencias. */
 @Serializable
@@ -233,10 +245,13 @@ val AppRoute.chrome: ShellChrome
 
             is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
 
+            is TemplateEditorRoute ->
+                ShellChrome.FullScreen(Res.string.template_editor_title, topBarTag = "template_editor")
+
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
             // A sheet over the Diary tab: the Diary's top and bottom bars stay.
-            is EditEntryRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
+            is EditEntryRoute, is SaveTemplateRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
         }
 
 /** Navigation entry points shared by the shell. */
@@ -261,6 +276,7 @@ object AppDestinations {
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),
             CreateFoodRoute(date = ""),
+            TemplateEditorRoute(""),
             MealSlotsRoute,
         )
 }

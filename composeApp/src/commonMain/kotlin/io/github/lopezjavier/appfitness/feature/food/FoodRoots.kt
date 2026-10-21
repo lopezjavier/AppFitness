@@ -10,26 +10,41 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Stateful food search: connects [FoodSearchViewModel]. [onOpenFood] receives the id of the food to log (a tapped row
- * or a scanned product; the add-food sheet is opened by navigation, so it survives process death). [onCreateFood]
- * opens the create-food form with the scanned barcode and/or the typed name.
+ * Stateful food search: connects [FoodSearchViewModel] for the meal [slotId] (null = none preselected) and the ISO day
+ * [date]. [onOpenFood] receives the id of the food to log (a tapped row or a scanned product; the add-food sheet is
+ * opened by navigation, so it survives process death). [onCreateFood] opens the create-food form with the scanned
+ * barcode and/or the typed name. [onAdd] runs after a comida was logged (with haptic feedback). [onEditTemplate] opens
+ * the editor of a comida; the list is reloaded when the search is shown again (the editor may have changed it).
  */
+@Suppress("LongParameterList") // One callback per navigation event of the search.
 @Composable
 fun FoodSearchRoot(
+    slotId: String?,
+    date: String,
     onOpenFood: (foodId: String) -> Unit,
     onCreateFood: (barcode: String?, name: String?) -> Unit,
+    onAdd: () -> Unit,
+    onEditTemplate: (templateId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: FoodSearchViewModel = koinViewModel(),
+    viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var scanFailed by remember { mutableStateOf(false) }
+    var templateFailed by remember { mutableStateOf(false) }
+    var templateManageFailed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
     val currentOpenFood by rememberUpdatedState(onOpenFood)
     val currentCreateFood by rememberUpdatedState(onCreateFood)
+    val currentTemplateAdded by rememberUpdatedState(onAdd)
+    val currentEditTemplate by rememberUpdatedState(onEditTemplate)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(FoodSearchEvent.RefreshTemplates) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -38,6 +53,17 @@ fun FoodSearchRoot(
                 is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name)
 
                 FoodSearchEffect.ScanFailed -> scanFailed = true
+
+                FoodSearchEffect.TemplateAdded -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    currentTemplateAdded()
+                }
+
+                is FoodSearchEffect.TemplateFailed -> templateFailed = true
+
+                is FoodSearchEffect.OpenTemplateEditor -> currentEditTemplate(effect.templateId)
+
+                FoodSearchEffect.TemplateManageFailed -> templateManageFailed = true
 
                 // The star already rolled back.
                 FoodSearchEffect.FavouriteFailed -> Unit
@@ -48,10 +74,14 @@ fun FoodSearchRoot(
         state = state,
         onEvent = {
             scanFailed = false
+            templateFailed = false
+            templateManageFailed = false
             viewModel.onEvent(it)
         },
         modifier = modifier,
         scanFailed = scanFailed,
+        templateFailed = templateFailed,
+        templateManageFailed = templateManageFailed,
     )
 }
 

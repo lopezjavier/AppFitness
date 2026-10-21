@@ -20,6 +20,8 @@ import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
+import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
+import io.github.lopezjavier.appfitness.feature.templates.TemplateEditorViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
@@ -79,7 +81,46 @@ val uiModule =
                 connectivity = get(),
             )
         }
-        viewModelOf(::FoodSearchViewModel)
+        // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
+        viewModel { (slotId: String, date: String) ->
+            FoodSearchViewModel(
+                foodRepository = get(),
+                connectivity = get(),
+                barcodeScanner = get(),
+                slotId = slotId.ifBlank { null },
+                date = LocalDate.parse(date),
+                mealTemplates = get(),
+                addTemplateToDiary = get(),
+                scaleNutrition = get(),
+                mealSlots = get(),
+                defaultMealSlot = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
+        // The saved meal's day travels as an ISO yyyy-MM-dd string, like the edit sheet.
+        viewModel { (slotId: String, date: String) ->
+            SaveTemplateViewModel(
+                slotId = slotId,
+                date = LocalDate.parse(date),
+                foodDiary = get(),
+                buildTemplateItems = get(),
+                validateTemplateName = get(),
+                mealTemplates = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
+        viewModel { (templateId: String) ->
+            TemplateEditorViewModel(
+                templateId = templateId,
+                mealTemplates = get(),
+                validateQuantity = get(),
+                validateTemplateName = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
         // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
         viewModel { (foodId: String, slotId: String, date: String) ->
             AddFoodViewModel(

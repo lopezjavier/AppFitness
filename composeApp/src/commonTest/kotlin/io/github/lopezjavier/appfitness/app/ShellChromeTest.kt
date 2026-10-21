@@ -32,6 +32,12 @@ class ShellChromeTest {
     }
 
     @Test
+    fun saveTemplateRoute_chrome_keepsTheDiaryTabChrome_likeTheEditSheet() {
+        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), SaveTemplateRoute("breakfast", "2026-10-19").chrome)
+        assertTrue(AppDestinations.fullScreenRoutes.none { it is SaveTemplateRoute })
+    }
+
+    @Test
     fun tabRoutes_chrome_isTabsWithTheirTab() {
         tabRoutes.forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
     }
@@ -55,6 +61,7 @@ class ShellChromeTest {
                 FoodSearchRoute::class,
                 AddFoodRoute::class,
                 CreateFoodRoute::class,
+                TemplateEditorRoute::class,
                 MealSlotsRoute,
             ),
             AppDestinations.fullScreenRoutes.map {

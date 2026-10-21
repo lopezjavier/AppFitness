@@ -6,15 +6,36 @@ import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
+import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
+import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
+
+/** Used when Supabase is not configured: every call fails. */
+class UnconfiguredMealTemplateRepository : MealTemplateRepository {
+    private fun <T> failure(): Result<T> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun list(): Result<List<MealTemplate>> = failure()
+
+    override suspend fun save(
+        id: String?,
+        name: String,
+        mealSlotId: String?,
+        items: List<NewTemplateItem>,
+    ): Result<String> = failure()
+
+    override suspend fun rename(id: String, name: String): Result<Unit> = failure()
+
+    override suspend fun delete(id: String): Result<Unit> = failure()
+}
 
 /** Used when Supabase is not configured: every call fails. */
 class UnconfiguredMealSlotRepository : MealSlotRepository {

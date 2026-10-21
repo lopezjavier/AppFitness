@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-061 (Meal templates). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
+**Next:** T-062 (Diary history and summaries). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
 
 ---
 
@@ -1705,17 +1705,17 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Backend: one migration with `meal_templates` (`name` unique per user, `meal_slot_id` null = any meal) and `meal_template_items` (`template_id` on delete cascade, `food_id`, `amount`, `portion_label`, `position`), owner RLS on templates and RLS via the parent on items (`03` §3), items may only reference foods the caller can read; pgTAP. App (UI wording "comida"): a "Guardar como comida" icon on each section with entries → name dialog → comida with the section's foods and quantities; "Ya existe una comida con ese nombre" on a duplicate. A "Comidas" tab in the food search adds a comida to the chosen meal (batch insert, snapshots from current food values, dashboard updated at once). From that tab the user edits a comida (change quantities, remove foods): "Guardar" asks "Sobrescribir" or "Guardar como nueva" (the latter asks for a name, same uniqueness rule); rename and delete are also available. Entries already logged never change. Edit draft restored (ADR-40); writes disabled offline. No quick-add chips on the Diary.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/meal_templates.test.sql`: RLS on and forced on both tables; cross-user isolation including an item inserted into B's template and an item referencing B's personal food; duplicate name rejected; deleting a template deletes its items; deleting a user with templates succeeds.
-- [ ] Desayuno with "Huevos revueltos 120 g" and "Batido de proteína 300 g" → "Guardar como comida" named "Desayuno A" creates it with both foods and quantities; a second "Desayuno A" shows "Ya existe una comida con ese nombre".
-- [ ] "Añadir a la comida" → "Comidas" → "Desayuno A" adds its foods to the chosen meal and the ring updates at once.
-- [ ] Editing "Desayuno A": "Sobrescribir" replaces it; "Guardar como nueva" with a new name creates another and leaves the original unchanged; a taken name is rejected.
-- [ ] Renaming and deleting are saved; entries created from it earlier keep their values.
-- [ ] DoD: a full breakfast is logged from a saved comida in a few taps from the search.
+- [x] Migration + `supabase/tests/meal_templates.test.sql`: RLS on and forced on both tables; cross-user isolation including an item inserted into B's template and an item referencing B's personal food; duplicate name rejected; deleting a template deletes its items; deleting a user with templates succeeds.
+- [x] Desayuno with "Huevos revueltos 120 g" and "Batido de proteína 300 g" → "Guardar como comida" named "Desayuno A" creates it with both foods and quantities; a second "Desayuno A" shows "Ya existe una comida con ese nombre".
+- [x] "Añadir a la comida" → "Comidas" → "Desayuno A" adds its foods to the chosen meal and the ring updates at once.
+- [x] Editing "Desayuno A": "Sobrescribir" replaces it; "Guardar como nueva" with a new name creates another and leaves the original unchanged; a taken name is rejected.
+- [x] Renaming and deleting are saved; entries created from it earlier keep their values.
+- [x] DoD: a full breakfast is logged from a saved comida in a few taps from the search.
 
 **Host tests (per scenario):** `MealTemplatesViewModelTest` with fakes + Turbine (Saving a section; Duplicate name; Editing: overwrite / save as new; rename/delete); `FoodSearchViewModelTest` additions (Adding a comida to a meal + immediate dashboard update); `TemplateEditorScreenTest` and `DiaryScreenTest` additions (Robolectric: duplicate-name error, overwrite / save-as-new choice, edit/delete); restoration tests; pgTAP `meal_templates.test.sql`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** Checkpoint E4-B

@@ -133,10 +133,10 @@ Configured meals per user (rename, reorder, add, delete; ADR-41).
 Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner, positions 0..3) when onboarding completes (trigger on `profiles`, idempotent; existing onboarded users are backfilled). `unique (user_id, position)`. RLS owner policy, including DELETE (ADR-41). A meal is deleted only through `delete_meal_slot` (never the last one, never one with `food_log_entries`; the entries FK is `no action`).
 
 ### `meal_templates` (US-21)
-`user_id`, `name` (unique per user), `meal_slot_id` FK null (suggested meal; null = any).
+`id`, `user_id` (FK auth.users, cascade), `name` (1..60 chars after trim; unique per user on `lower(btrim(name))`, so "desayuno a" and "Desayuno A" collide), `meal_slot_id` null (suggested meal; null = any), `created_at`. Composite FK `(meal_slot_id, user_id) -> meal_slots (id, user_id) on delete set null (meal_slot_id)`: deleting a meal keeps the template (ADR-41). UI calls them "comidas" (ADR-42).
 
 ### `meal_template_items` (US-21)
-`template_id` FK (on delete cascade), `food_id` FK, `amount` (base unit), `portion_label` null, `position`.
+`id`, `template_id` FK (on delete cascade), `food_id` FK (no action, deferred to commit so deleting a user with personal foods works), `amount numeric(7,1)` (base unit, `> 0 and <= 5000`), `portion_label` null, `position smallint` (`unique (template_id, position)`).
 RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.user_id = (select auth.uid()))`.
 
 ### `favorite_foods` (US-17)
@@ -278,6 +278,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `create_personal_food(p_name, p_brand, p_base_unit, p_kcal, p_protein, p_carbs, p_fat, p_barcode, p_portions jsonb, p_micronutrients jsonb default null)` (`p_micronutrients` added by T-068: only the four label keys, values >= 0, else `22023`) | US-18, US-22 (T-058) | `uuid` of the new `foods` row, security invoker. One transaction: inserts a `source='user'` food owned by the caller and its portions (`p_portions` = `[{"label","amount"}]`, max 10, `position` = array order). `28000` if unauthenticated; `22023` for blank name, negative values, blank portion label, portion amount <= 0 or more than 10 portions |
 | `save_meal_slots(p_slots jsonb)` | US-23 (T-059, T-067) | `void`, security invoker. One transaction: `p_slots` = array in final order of `{"id": uuid\|null, "label"}` (`enabled` is accepted and ignored); updates label/position (0..n-1) of the caller's existing slots, always writes `enabled = true`, and inserts those with null id (`code` null; `code` is never taken from the client). Every existing slot must be present (nothing is deleted here). `22023` for a non-array/empty input, blank or >50-char label, duplicate ids or missing existing slot; `P0002` for an id that is not the caller's. Replaces the T-059 signature with `p_viewed_day` (ADR-41) |
 | `delete_meal_slot(p_id uuid)` | US-23 (T-067) | `void`, security invoker, `authenticated` only. Deletes the caller's slot and re-packs positions to 0..n-1. `28000` if unauthenticated; `P0002` if the slot is not the caller's or unknown; `23514` if it is the caller's only slot or has any `food_log_entries` row on any day |
+| `save_meal_template(p_template_id uuid, p_name text, p_meal_slot_id uuid, p_items jsonb)` | US-21 (T-061) | `uuid` (template id), security invoker, `authenticated` only. Null id creates; otherwise overwrites name/slot and replaces the items, atomically. `p_items` = `[{"food_id","amount","portion_label"}]` in order. `22023` invalid name/items/amount; `23505` name taken (case-insensitive); `P0002` template not the caller's; `42501` food not visible to the caller |
 | `most_eaten_foods(p_limit int)` | US-17 | The user's most-logged foods (food_id, times logged), derived from `food_log_entries` |
 | `food_diary_summary(p_from date, p_to date)` | US-24 | Per day: kcal and protein/carbs/fat totals |
 

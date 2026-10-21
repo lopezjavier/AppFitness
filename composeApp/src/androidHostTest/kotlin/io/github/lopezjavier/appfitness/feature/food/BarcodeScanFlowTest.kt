@@ -50,7 +50,7 @@ class BarcodeScanFlowTest {
     private val scanner = FakeBarcodeScanner()
 
     private fun start() {
-        val searchModel = FoodSearchViewModel(foods, connectivity, scanner, SavedStateHandle())
+        val searchModel = foodSearchModel(foods, connectivity, scanner, SavedStateHandle())
         rule.setContent { Flow(searchModel) }
         rule.waitForIdle()
     }

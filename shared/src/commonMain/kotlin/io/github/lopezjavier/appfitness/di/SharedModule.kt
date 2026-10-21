@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseReposito
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseMealTemplateRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepository
@@ -26,6 +27,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepo
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealTemplateRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepository
@@ -39,12 +41,15 @@ import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
+import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
@@ -57,6 +62,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import org.koin.dsl.module
 
 /**
@@ -144,6 +150,14 @@ val sharedModule =
                 UnconfiguredMealSlotRepository()
             }
         }
+        single<MealTemplateRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseMealTemplateRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredMealTemplateRepository()
+            }
+        }
         single<FoodDiaryRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
@@ -167,6 +181,9 @@ val sharedModule =
         factory { ScaleNutrition() }
         factory { ValidateQuantity() }
         factory { DefaultMealSlot() }
+        factory { ValidateTemplateName() }
+        factory { BuildTemplateItems() }
+        factory { AddTemplateToDiary(get(), get()) }
         factory { ValidateMealSlots() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }

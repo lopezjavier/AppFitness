@@ -38,13 +38,13 @@ class FoodNavigationTest {
     private lateinit var nav: NavHostController
     private var dismissed = 0
 
-    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _ ->
+    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, _ ->
         Column(modifier.fillMaxSize().testTag("diary_screen")) {
             Box(Modifier.size(48.dp).testTag("diary_add_food").clickable { onAddFood(null, Day) })
             Box(Modifier.size(48.dp).testTag("diary_add_dinner").clickable { onAddFood("dinner", Day) })
         }
     }
-    private val searchSlot: FoodSearchSlot = { modifier, onOpenFood, onCreateFood ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, onCreateFood, _, _ ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("search_pick").clickable { onOpenFood("chicken") })
             Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla") })

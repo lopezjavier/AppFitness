@@ -44,6 +44,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeho
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
+import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
@@ -57,13 +58,14 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
+import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
+import io.github.lopezjavier.appfitness.feature.templates.TemplateManageSheets
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -72,10 +74,11 @@ private const val NAME_FRACTION = 0.6f
 private const val DETAIL_FRACTION = 0.35f
 
 /**
- * Food search (US-17): the search box, the three empty-box tabs (hidden while a query is typed) and the results. The
- * top bar belongs to the shell. [scanFailed] shows the generic "could not read the code" message under the box; the
- * not-found card of a scanned [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of the empty result
- * emit their events.
+ * Food search (US-17, US-21): the search box, the four empty-box tabs (hidden while a query is typed) and the results.
+ * The top bar belongs to the shell. [scanFailed] shows the generic "could not read the code" message under the box;
+ * [templateFailed] the same for a comida that could not be added, [templateManageFailed] for a rename or delete that
+ * was refused. The not-found card of a scanned [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of
+ * the empty result emit their events.
  */
 @Composable
 fun FoodSearchScreen(
@@ -83,6 +86,8 @@ fun FoodSearchScreen(
     onEvent: (FoodSearchEvent) -> Unit,
     modifier: Modifier = Modifier,
     scanFailed: Boolean = false,
+    templateFailed: Boolean = false,
+    templateManageFailed: Boolean = false,
 ) {
     Box(modifier.fillMaxSize().testTag("food_search_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
@@ -95,8 +100,15 @@ fun FoodSearchScreen(
                 state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
                 if (state.query.isBlank()) Tabs(state, onEvent)
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) { Results(state, onEvent) }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                if (state.query.isBlank() && state.tab == FoodSearchTab.Templates) {
+                    TemplatesPane(state.templates, state.isOffline, templateFailed, templateManageFailed, onEvent)
+                } else {
+                    Results(state, onEvent)
+                }
+            }
         }
+        TemplateManageSheets(state, onEvent)
     }
 }
 
@@ -162,18 +174,19 @@ private fun SearchBox(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Un
     }
 }
 
+/** The empty-box tabs as a scrollable chip row (four chips do not fit the width of a segmented control). */
 @Composable
 private fun Tabs(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
     val options = listOf(
         AppOption(stringResource(Res.string.food_tab_recent), "food_search_tab_recent"),
         AppOption(stringResource(Res.string.food_tab_most_eaten), "food_search_tab_most_eaten"),
         AppOption(stringResource(Res.string.food_tab_favourites), "food_search_tab_favourites"),
+        AppOption(stringResource(Res.string.food_tab_templates), "food_search_tab_templates"),
     )
-    SegmentedSelector(
+    FilterChipRow(
         options = options,
         selectedIndex = state.tab.ordinal,
         onSelect = { onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.entries[it])) },
-        enabled = !state.isOffline,
     )
 }
 
