@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -113,6 +114,105 @@ class SaveBodyMeasurementTest {
             ),
             repository.saves.single(),
         )
+    }
+
+    @Test
+    fun newSaveToday_withExplicitTime_usesThatTimeOfToday() = runTest {
+        // Now is 12:30 Madrid on 2026-10-14.
+        useCase("2026-10-14T10:30:00Z")(74.2, null, time = LocalTime(7, 30))
+
+        val save = repository.saves.single()
+        assertEquals(Instant.parse("2026-10-14T05:30:00Z"), save.measuredAt)
+        assertEquals(Instant.parse("2026-10-13T22:00:00Z"), save.dayStart)
+        assertEquals(Instant.parse("2026-10-14T22:00:00Z"), save.dayEnd)
+    }
+
+    @Test
+    fun pastDay_withTime_isMeasuredAtThatTimeOfThatDay() = runTest {
+        useCase("2026-10-14T10:30:00Z")(74.0, null, day = LocalDate(2026, 10, 13), time = LocalTime(7, 30))
+
+        val save = repository.saves.single()
+        assertEquals(Instant.parse("2026-10-13T05:30:00Z"), save.measuredAt)
+        assertEquals(Instant.parse("2026-10-12T22:00:00Z"), save.dayStart)
+        assertEquals(Instant.parse("2026-10-13T22:00:00Z"), save.dayEnd)
+    }
+
+    @Test
+    fun edit_withTime_keepsIdAndDayAndChangesTheTime() = runTest {
+        val existing = BodyMeasurement("row-1", Instant.parse("2026-10-10T07:15:00Z"), 71.0, MeasurementSource.Manual)
+
+        useCase("2026-10-14T10:30:00Z")(72.5, 15.1, existing = existing, time = LocalTime(8, 45))
+
+        assertEquals(
+            ManualWeightSave(
+                id = "row-1",
+                weightKg = 72.5,
+                bodyFatPct = 15.1,
+                measuredAt = Instant.parse("2026-10-10T06:45:00Z"),
+                dayStart = Instant.parse("2026-10-09T22:00:00Z"),
+                dayEnd = Instant.parse("2026-10-10T22:00:00Z"),
+            ),
+            repository.saves.single(),
+        )
+    }
+
+    @Test
+    fun timeLaterThanNowToday_isRejectedWithoutReachingTheRepository() = runTest {
+        // Now is 12:30 Madrid.
+        val result = useCase("2026-10-14T10:30:00Z")(74.2, null, time = LocalTime(12, 31))
+
+        assertEquals(AppError.Validation, result.appErrorOrNull())
+        assertTrue(repository.saves.isEmpty())
+    }
+
+    @Test
+    fun timeEqualToNow_isAccepted() = runTest {
+        val result = useCase("2026-10-14T10:30:00Z")(74.2, null, time = LocalTime(12, 30))
+
+        assertTrue(result.isSuccess)
+        assertEquals(Instant.parse("2026-10-14T10:30:00Z"), repository.saves.single().measuredAt)
+    }
+
+    @Test
+    fun futureDay_isRejected() = runTest {
+        val result = useCase("2026-10-14T10:30:00Z")(74.2, null, day = LocalDate(2026, 10, 15))
+
+        assertEquals(AppError.Validation, result.appErrorOrNull())
+        assertTrue(repository.saves.isEmpty())
+    }
+
+    @Test
+    fun editToATimeLaterThanNowToday_isRejected() = runTest {
+        val existing = BodyMeasurement("row-1", Instant.parse("2026-10-14T05:00:00Z"), 71.0, MeasurementSource.Manual)
+
+        val result = useCase("2026-10-14T10:30:00Z")(72.5, null, existing = existing, time = LocalTime(23, 59))
+
+        assertEquals(AppError.Validation, result.appErrorOrNull())
+        assertTrue(repository.saves.isEmpty())
+    }
+
+    @Test
+    fun pastDay_midnightAndLastMinuteStayInsideTheDay() = runTest {
+        val case = useCase("2026-10-14T10:30:00Z")
+        val day = LocalDate(2026, 10, 13)
+
+        case(74.0, null, day = day, time = LocalTime(0, 0))
+        case(74.0, null, day = day, time = LocalTime(23, 59))
+
+        assertEquals(Instant.parse("2026-10-12T22:00:00Z"), repository.saves[0].measuredAt)
+        assertEquals(Instant.parse("2026-10-13T21:59:00Z"), repository.saves[1].measuredAt)
+        assertEquals(repository.saves[0].dayStart, repository.saves[1].dayStart)
+        assertEquals(repository.saves[0].dayEnd, repository.saves[1].dayEnd)
+    }
+
+    @Test
+    fun invalidInput_withTime_isStillValidation() = runTest {
+        val case = useCase("2026-10-14T10:30:00Z")
+
+        assertEquals(AppError.Validation, case(19.9, null, time = LocalTime(7, 0)).appErrorOrNull())
+        assertEquals(AppError.Validation, case(401.0, null, time = LocalTime(7, 0)).appErrorOrNull())
+        assertEquals(AppError.Validation, case(70.0, 80.0, time = LocalTime(7, 0)).appErrorOrNull())
+        assertTrue(repository.saves.isEmpty())
     }
 
     @Test
