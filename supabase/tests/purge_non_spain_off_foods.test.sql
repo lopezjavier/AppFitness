@@ -16,6 +16,8 @@ insert into public.foods (id, source, barcode, name, kcal_100, off_data) values
   ('0ff00000-0000-4000-8000-000000000001', 'off', '1000000000001', 'Francia sin referencias', 50,
    '{"countries_tags":["en:france"],"product_name_es":"Francia"}'),
   ('0ff00000-0000-4000-8000-000000000002', 'off', '1000000000002', 'Sin off_data', 50, null),
+  ('0ff00000-0000-4000-8000-000000000009', 'off', '1000000000009', 'Espana nombre en blanco', 50,
+   '{"countries_tags":["en:spain"],"product_name_es":"   "}'),
   ('0ff00000-0000-4000-8000-000000000003', 'off', '1000000000003', 'Espana nombre ingles', 50,
    '{"countries_tags":["en:spain"],"lang":"en","product_name":"Oats"}'),
   -- unreferenced, to keep
@@ -53,15 +55,7 @@ select (select count(*) from public.food_log_entries) as entries,
 -- Same statement as the migration, run twice to check idempotency.
 delete from public.foods f
 where f.source = 'off'
-  and not coalesce(
-    f.off_data is not null
-    and f.off_data -> 'countries_tags' @> '["en:spain"]'::jsonb
-    and (
-      btrim(coalesce(f.off_data ->> 'product_name_es', '')) <> ''
-      or (f.off_data ->> 'lang' = 'es' and btrim(coalesce(f.off_data ->> 'product_name', '')) <> '')
-    ),
-    false
-  )
+  and not public.is_spain_off_food(f.off_data)
   and not exists (select 1 from public.food_log_entries e where e.food_id = f.id)
   and not exists (select 1 from public.favorite_foods v where v.food_id = f.id)
   and not exists (select 1 from public.meal_template_items i where i.food_id = f.id);
@@ -70,23 +64,15 @@ create temp table after_first as select count(*) as foods from public.foods;
 
 delete from public.foods f
 where f.source = 'off'
-  and not coalesce(
-    f.off_data is not null
-    and f.off_data -> 'countries_tags' @> '["en:spain"]'::jsonb
-    and (
-      btrim(coalesce(f.off_data ->> 'product_name_es', '')) <> ''
-      or (f.off_data ->> 'lang' = 'es' and btrim(coalesce(f.off_data ->> 'product_name', '')) <> '')
-    ),
-    false
-  )
+  and not public.is_spain_off_food(f.off_data)
   and not exists (select 1 from public.food_log_entries e where e.food_id = f.id)
   and not exists (select 1 from public.favorite_foods v where v.food_id = f.id)
   and not exists (select 1 from public.meal_template_items i where i.food_id = f.id);
 
 select is((select count(*)::int from public.foods
            where id in ('0ff00000-0000-4000-8000-000000000001', '0ff00000-0000-4000-8000-000000000002',
-                        '0ff00000-0000-4000-8000-000000000003')), 0,
-  'unreferenced non-Spain, no-off_data and English-name OFF rows are deleted');
+                        '0ff00000-0000-4000-8000-000000000003', '0ff00000-0000-4000-8000-000000000009')), 0,
+  'unreferenced non-Spain, no-off_data, English-name and blank-name OFF rows are deleted');
 select is((select count(*)::int from public.food_portions where food_id = '0ff00000-0000-4000-8000-000000000001'), 0,
   'portions of a deleted food go with it');
 select is((select count(*)::int from public.foods

@@ -13,23 +13,27 @@ function fullProduct() {
 
 /** Fake PostgREST client that records the select string and answers with the given rows. */
 function fakeClient(rows: unknown[]) {
-    const seen = { select: "", or: "" };
+    const seen = { select: "", from: "" };
     // deno-lint-ignore no-explicit-any
     const builder: any = {
         select(s: string) {
             seen.select = s;
             return builder;
         },
-        or(f: string) {
-            seen.or = f;
-            return builder;
-        },
         textSearch: () => builder,
         limit: () => Promise.resolve({ data: rows, error: null }),
         eq: () => Promise.resolve({ data: rows, error: null }),
     };
-    // deno-lint-ignore no-explicit-any
-    return { client: { from: () => builder } as any, seen };
+    return {
+        client: {
+            from: (t: string) => {
+                seen.from = t;
+                return builder;
+            },
+            // deno-lint-ignore no-explicit-any
+        } as any,
+        seen,
+    };
 }
 
 const dbRow = {
@@ -79,13 +83,10 @@ Deno.test("searchLocal selects explicit columns, so off_data is not downloaded",
     assertEquals(seen.select.includes("off_data"), false);
 });
 
-Deno.test("searchLocal keeps personal foods and only Spain OFF foods with a Spanish name", async () => {
+Deno.test("searchLocal reads the Spain-visibility view, not the foods table", async () => {
     const { client, seen } = fakeClient([dbRow]);
     await searchLocal(client, "avena", 20);
-    assert(seen.or.startsWith("source.eq.user,"));
-    assert(seen.or.includes('off_data->countries_tags.cs.["en:spain"]'));
-    assert(seen.or.includes("off_data->>product_name_es.gt."));
-    assert(seen.or.includes("off_data->>lang.eq.es"));
+    assertEquals(seen.from, "foods_searchable");
 });
 
 Deno.test("findByBarcode reports whether the row already has off_data", async () => {
