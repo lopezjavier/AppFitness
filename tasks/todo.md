@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-073, then re-present Checkpoint E4-C, then T-063. Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
+**Next:** T-074 (Spain-only text search, ADR-46), then re-present Checkpoint E4-C, then T-063. (T-073 in progress.) Round 2 feedback of E4-C (2026-10-21) became T-072 and T-073.
 
 ---
 
@@ -1797,12 +1797,27 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** Redesign the comida details. Each food row shows its kcal and macros (not only grams) and the header shows the comida's total kcal and macros. Tapping a food opens its food details, where the grams are edited or the food is removed from the comida; swiping a food to the left removes it (T-072 component). Remove the "Editar" button and the "Editar comida" screen: the details are the editor, with a pencil to rename and a single "Guardar" that saves renames, quantities and removals together (overwrite or save as new stays). Deleting the whole comida from its details runs at once and closes the details. Entries already logged do not change.
 
 **Acceptance criteria:**
-- [x] Rows show kcal and macros per food, the header the sum; both update with the draft.
-- [x] Tapping a food opens its details to change grams or remove it; swipe-left removes it; neither is saved until "Guardar".
-- [x] "Eliminar comida" deletes at once and closes; no "Editar" button or edit screen remains.
-- [x] Draft and screen survive leaving the app (ADR-40).
+- [ ] Rows show kcal and macros per food, the header the sum; both update with the draft.
+- [ ] Tapping a food opens its details to change grams or remove it; swipe-left removes it; neither is saved until "Guardar".
+- [ ] "Eliminar comida" deletes at once and closes; no "Editar" button or edit screen remains.
+- [ ] Draft and screen survive leaving the app (ADR-40).
 
 **Verification:** lint, host tests and CI green. **Dependencies:** T-072 · **Estimated scope:** M
+
+---
+
+## T-074: Text food search limited to Spain (E4-C round 2, ADR-46)
+
+**Story:** US-18 · **Flow:** backend · **Type:** fix
+
+**Description:** The text search is poor (user, 2026-10-21). In `supabase/functions/_shared/off-client.ts`, `searchOff` adds `tagtype_0=countries`, `tag_contains_0=contains`, `tag_0=spain` (keeping `search_terms`, `json=1`, `page`, `page_size=20`, `lc=es`, `cc=es`; no `sort_by`; no `fields`, ADR-43) and filters hits with a new `isSpainSearchHit(raw)` (`countries_tags` includes `en:spain` and either `product_name_es` is non-empty or `lang === "es"` with a non-empty `product_name`) before `normalizeProduct`. `fetchOffProduct` (barcode) is unchanged. Paging must use the raw OFF count so a filtered-out page does not end the search early; stale cached search results are purged or re-keyed.
+
+**Acceptance criteria:**
+- [ ] Deno tests for the predicate (Spain + Spanish name, Spain + English name only, non-Spain, multi-country) and for paging when the filter empties a page.
+- [ ] Request parameters verified in tests; barcode lookup untouched.
+- [ ] Latency of the production search measured and reported in the PR.
+
+**Verification:** `deno test`, supabase-ci and CI green. **Dependencies:** T-073 · **Estimated scope:** S
 
 ---
 

@@ -374,3 +374,8 @@ Format: context → decision → consequences. A decision is only changed by add
   - **Wording:** one concept, one label across screens and across periods (e.g. day, week and month averages are all "Media diaria").
   - **Sweep:** when a task changes one of these behaviours, the ux-reviewer searches the app for every other instance and the plan includes them.
 - **Consequences:** supersedes the "Deshacer" of T-069; US-21/US-24, `tasks/todo.md` (T-072, T-073), `05-design-system.md` §8 and `.claude/agents/ux-reviewer.md` reflect this. The E8 refinement item about swipe-to-delete is consumed by T-072.
+
+### ADR-46 · Text food search is limited to Spain (E4, T-074)
+- **Context:** User feedback (2026-10-21): the text search returns poor results, many from other countries or without a Spanish name.
+- **Decision:** `searchOff` asks Open Food Facts for products sold in Spain (`tagtype_0=countries`, `tag_contains_0=contains`, `tag_0=spain`) and keeps only hits whose `countries_tags` includes `en:spain` and that have a Spanish name (`product_name_es`, or `lang = "es"` with `product_name`). The default v1 order (`unique_scans_n`) is kept; no `sort_by`. Requests stay unfiltered by `fields` (ADR-43). Barcode lookup is unchanged: a scanned product always resolves. Paging relies on the raw OFF page count, not the filtered one.
+- **Consequences:** products without a Spanish name no longer appear in text search (they remain reachable by barcode); cached search results from before the change are purged or re-keyed.
