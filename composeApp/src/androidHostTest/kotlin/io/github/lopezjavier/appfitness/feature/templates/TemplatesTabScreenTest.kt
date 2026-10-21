@@ -9,12 +9,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
@@ -34,6 +38,7 @@ import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeBarcodeScanner
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchEffect
+import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchScreen
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.food.food
@@ -45,6 +50,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+private const val SNACKBAR_TIMEOUT_MS = 11_000L
 
 private val Eggs = food("eggs", "Huevos revueltos", kcal = 100.0)
 private val Shake = food("shake", "Batido de proteína", kcal = 50.0)
@@ -103,10 +110,8 @@ class TemplatesTabScreenTest {
 
         rule.onNodeWithTag("food_search_tab_templates").assertIsSelected()
         rule.onNodeWithTag("food_search_template_t1").assertIsDisplayed()
-        rule.onNode(hasText("Desayuno A") and hasAnyAncestor(hasTestTag("food_search_template_t1")))
-            .assertIsDisplayed()
-        rule.onNode(hasText("2 alimentos · 270 kcal") and hasAnyAncestor(hasTestTag("food_search_template_t1")))
-            .assertIsDisplayed()
+        rule.onNodeWithTag("food_search_template_t1").assertTextContains("Desayuno A", substring = true)
+        rule.onNodeWithTag("food_search_template_t1").assertTextContains("2 alimentos · 270 kcal", substring = true)
     }
 
     @Test
@@ -154,6 +159,113 @@ class TemplatesTabScreenTest {
         val batch = diary.addedBatches.single()
         assertEquals(listOf("eggs" to 120.0, "shake" to 300.0), batch.map { it.foodId to it.amount })
         assertEquals(setOf("lunch"), batch.map { it.mealSlotId }.toSet())
+    }
+
+    @Suppress("ViewModelForwarding") // Test host: the Root takes the view model the test built.
+    @Composable
+    private fun RootHost(model: FoodSearchViewModel, onOpenTemplate: (String) -> Unit = {}) {
+        AppTheme {
+            FoodSearchRoot(
+                slotId = "lunch",
+                date = "2026-10-19",
+                onOpenFood = {},
+                onCreateFood = { _, _ -> },
+                onAdd = {},
+                onOpenTemplate = onOpenTemplate,
+                viewModel = model,
+            )
+        }
+    }
+
+    @Test
+    fun comidasTab_rowHasOnlyThePlusButton_noMenuOrManageButtons() {
+        templates.templates += DesayunoA
+        rule.setContent { SearchHost(search()) }
+        rule.waitForIdle()
+
+        openComidasTab()
+
+        rule.onNodeWithTag("food_search_template_t1_add").assertIsDisplayed()
+        rule.onNodeWithTag("food_search_template_t1_menu").assertDoesNotExist()
+        rule.onNodeWithTag("food_search_template_t1_edit").assertDoesNotExist()
+        rule.onNodeWithTag("food_search_template_t1_delete").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTheRow_opensTheDetailsOfTheComida() {
+        templates.templates += DesayunoA
+        var opened: String? = null
+        rule.setContent { RootHost(search()) { opened = it } }
+        rule.waitForIdle()
+        openComidasTab()
+
+        rule.onNodeWithTag("food_search_template_t1").performClick()
+        rule.waitForIdle()
+
+        assertEquals("t1", opened)
+    }
+
+    @Test
+    fun swipingARow_hidesIt_andShowsComidaEliminadaWithDeshacer() {
+        templates.templates += DesayunoA
+        rule.setContent { RootHost(search()) }
+        rule.waitForIdle()
+        openComidasTab()
+
+        rule.onNodeWithTag("food_search_template_t1_swipe").performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Comida eliminada").assertIsDisplayed()
+        rule.onNodeWithText("Deshacer").assertIsDisplayed()
+        rule.onNodeWithTag("food_search_template_t1").assertDoesNotExist()
+        assertEquals(1, templates.templates.size)
+    }
+
+    @Test
+    fun deshacer_bringsTheSwipedRowBack_andDeletesNothing() {
+        templates.templates += DesayunoA
+        rule.setContent { RootHost(search()) }
+        rule.waitForIdle()
+        openComidasTab()
+        rule.onNodeWithTag("food_search_template_t1_swipe").performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Deshacer").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_search_template_t1").assertIsDisplayed()
+        assertEquals(1, templates.templates.size)
+    }
+
+    @Test
+    fun swipedRowWithoutUndo_isDeletedWhenTheSnackbarTimesOut() {
+        templates.templates += DesayunoA
+        rule.setContent { RootHost(search()) }
+        rule.waitForIdle()
+        openComidasTab()
+        rule.onNodeWithTag("food_search_template_t1_swipe").performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+
+        rule.mainClock.advanceTimeBy(SNACKBAR_TIMEOUT_MS)
+        rule.waitForIdle()
+
+        assertEquals(0, templates.templates.size)
+    }
+
+    @Test
+    fun offline_swipingARow_doesNotDeleteIt() {
+        templates.templates += DesayunoA
+        rule.setContent { RootHost(search()) }
+        rule.waitForIdle()
+        openComidasTab()
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_search_template_t1_swipe").performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_search_template_t1").assertIsDisplayed()
+        rule.onNodeWithText("Comida eliminada").assertDoesNotExist()
     }
 
     @Composable

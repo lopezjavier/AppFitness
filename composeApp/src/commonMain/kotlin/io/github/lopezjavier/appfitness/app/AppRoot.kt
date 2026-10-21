@@ -72,8 +72,8 @@ fun AppRoot(
         },
         diaryHistory = { historyModifier, onOpenDay -> DiaryHistoryRoot(onOpenDay, historyModifier) },
         mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
-        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onEditTemplate ->
-            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onAdd, onEditTemplate, searchModifier)
+        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate ->
+            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate, searchModifier)
         },
         createFood = { formModifier, barcode, name, onSaved -> CreateFoodRoot(barcode, name, onSaved, formModifier) },
         addFood = { foodId, slotId, date, onAdded, onDismiss ->

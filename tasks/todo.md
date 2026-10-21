@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-069 (fix comida edit crash and comida details). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
+**Next:** T-070 (fix food details sheet and clean the food cache). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
 
 ---
 
@@ -1782,9 +1782,9 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** User feedback at Checkpoint E4-C (2026-10-21). Editing a comida crashes the app: reproduce with a host test and fix. Redesign the comidas list: tapping a comida opens its details (foods, quantities) with a pencil to rename it, edit and delete; swiping a comida in the list deletes it with "Deshacer"; the three row buttons are removed and "Añadir" becomes a "+". Rename is thus part of the details/edit flow.
 
 **Acceptance criteria:**
-- [ ] Editing a comida (quantities, remove a food, overwrite or save as new) no longer crashes; a regression host test covers it.
-- [ ] Tapping a comida opens its details; rename (pencil), edit and delete live there. Swipe in the list deletes with "Deshacer"; the "Añadir" action is a "+" button. Entries already logged do not change.
-- [ ] The state survives leaving the app (ADR-40).
+- [x] Editing a comida (quantities, remove a food, overwrite or save as new) no longer crashes; a regression host test covers it.
+- [x] Tapping a comida opens its details; rename (pencil), edit and delete live there. Swipe in the list deletes with "Deshacer"; the "Añadir" action is a "+" button. Entries already logged do not change.
+- [x] The state survives leaving the app (ADR-40).
 
 **Verification:** lint, host tests and CI green. **Dependencies:** T-068 · **Estimated scope:** M
 

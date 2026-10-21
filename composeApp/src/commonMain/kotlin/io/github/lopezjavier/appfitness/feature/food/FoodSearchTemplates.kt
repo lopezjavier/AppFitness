@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.feature.templates.SwipeableTemplateRow
 import io.github.lopezjavier.appfitness.feature.templates.TemplateRow
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -113,12 +114,19 @@ private fun TemplatesList(
             item { FailureText(Res.string.template_manage_failed, "food_search_templates_manage_failed") }
         }
         items(rows, key = { it.template.id }) { row ->
-            TemplateRow(
-                row = row,
+            SwipeableTemplateRow(
+                templateId = row.template.id,
+                name = row.template.name,
                 enabled = !isOffline,
-                onAdd = { onEvent(FoodSearchEvent.AddTemplate(row.template.id)) },
-                onMenu = { onEvent(FoodSearchEvent.OpenTemplateMenu(row.template.id)) },
-            )
+                onDelete = { onEvent(FoodSearchEvent.SwipeDeleteTemplate(row.template.id)) },
+            ) {
+                TemplateRow(
+                    row = row,
+                    enabled = !isOffline,
+                    onAdd = { onEvent(FoodSearchEvent.AddTemplate(row.template.id)) },
+                    onOpen = { onEvent(FoodSearchEvent.OpenTemplate(row.template.id)) },
+                )
+            }
         }
     }
 }

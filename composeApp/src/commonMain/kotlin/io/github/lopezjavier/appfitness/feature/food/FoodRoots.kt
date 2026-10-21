@@ -1,10 +1,14 @@
 package io.github.lopezjavier.appfitness.feature.food
 
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -13,6 +17,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.template_deleted_snackbar
+import io.github.lopezjavier.appfitness.composeapp.resources.template_undo
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -20,8 +30,8 @@ import org.koin.core.parameter.parametersOf
  * Stateful food search: connects [FoodSearchViewModel] for the meal [slotId] (null = none preselected) and the ISO day
  * [date]. [onOpenFood] receives the id of the food to log (a tapped row or a scanned product; the add-food sheet is
  * opened by navigation, so it survives process death). [onCreateFood] opens the create-food form with the scanned
- * barcode and/or the typed name. [onAdd] runs after a comida was logged (with haptic feedback). [onEditTemplate] opens
- * the editor of a comida; the list is reloaded when the search is shown again (the editor may have changed it).
+ * barcode and/or the typed name. [onAdd] runs after a comida was logged (with haptic feedback). [onOpenTemplate] opens
+ * the details of a comida; the list is reloaded when the search is shown again (the editor may have changed it).
  */
 @Suppress("LongParameterList") // One callback per navigation event of the search.
 @Composable
@@ -31,7 +41,7 @@ fun FoodSearchRoot(
     onOpenFood: (foodId: String) -> Unit,
     onCreateFood: (barcode: String?, name: String?) -> Unit,
     onAdd: () -> Unit,
-    onEditTemplate: (templateId: String) -> Unit,
+    onOpenTemplate: (templateId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date) }),
 ) {
@@ -43,7 +53,12 @@ fun FoodSearchRoot(
     val currentOpenFood by rememberUpdatedState(onOpenFood)
     val currentCreateFood by rememberUpdatedState(onCreateFood)
     val currentTemplateAdded by rememberUpdatedState(onAdd)
-    val currentEditTemplate by rememberUpdatedState(onEditTemplate)
+    val currentOpenTemplate by rememberUpdatedState(onOpenTemplate)
+    val snackbarHost = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val messages =
+        UndoMessages(stringResource(Res.string.template_deleted_snackbar), stringResource(Res.string.template_undo))
+    val currentMessages by rememberUpdatedState(messages)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(FoodSearchEvent.RefreshTemplates) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -61,7 +76,11 @@ fun FoodSearchRoot(
 
                 is FoodSearchEffect.TemplateFailed -> templateFailed = true
 
-                is FoodSearchEffect.OpenTemplateEditor -> currentEditTemplate(effect.templateId)
+                is FoodSearchEffect.OpenTemplateDetails -> currentOpenTemplate(effect.templateId)
+
+                is FoodSearchEffect.TemplateDeleted -> scope.launch {
+                    showUndoSnackbar(snackbarHost, effect, currentMessages, viewModel::onEvent)
+                }
 
                 FoodSearchEffect.TemplateManageFailed -> templateManageFailed = true
 
@@ -82,6 +101,34 @@ fun FoodSearchRoot(
         scanFailed = scanFailed,
         templateFailed = templateFailed,
         templateManageFailed = templateManageFailed,
+        snackbarHost = snackbarHost,
+    )
+}
+
+private data class UndoMessages(val deleted: String, val undo: String)
+
+/**
+ * "Comida eliminada" with "Deshacer": undo brings the comida back, any other end (timeout or dismissal) commits the
+ * delete. If the screen leaves while the snackbar is up, the delete is undone: the comida stays.
+ */
+private suspend fun showUndoSnackbar(
+    host: SnackbarHostState,
+    effect: FoodSearchEffect.TemplateDeleted,
+    messages: UndoMessages,
+    onEvent: (FoodSearchEvent) -> Unit,
+) {
+    val result = try {
+        host.showSnackbar(messages.deleted, actionLabel = messages.undo, duration = SnackbarDuration.Long)
+    } catch (cancelled: CancellationException) {
+        onEvent(FoodSearchEvent.UndoDeleteTemplate(effect.templateId))
+        throw cancelled
+    }
+    onEvent(
+        if (result == SnackbarResult.ActionPerformed) {
+            FoodSearchEvent.UndoDeleteTemplate(effect.templateId)
+        } else {
+            FoodSearchEvent.CommitDeleteTemplate(effect.templateId)
+        },
     )
 }
 

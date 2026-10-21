@@ -64,7 +64,11 @@ internal fun SwipeableEntryRow(
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = enabled,
         backgroundContent = {
-            if (state.dismissDirection == SwipeToDismissBoxValue.EndToStart) DeleteBackground(entry.id)
+            if (state.dismissDirection ==
+                SwipeToDismissBoxValue.EndToStart
+            ) {
+                DeleteBackground("diary_entry_delete_${entry.id}")
+            }
         },
         content = {
             Row(Modifier.background(AppTheme.colors.surfaceRaised)) { content() }
@@ -72,14 +76,15 @@ internal fun SwipeableEntryRow(
     )
 }
 
+/** The swipe-to-delete background (error colour, icon and the word "Eliminar"), tagged [testTag]. */
 @Composable
-private fun DeleteBackground(entryId: String) {
+internal fun DeleteBackground(testTag: String) {
     Row(
         Modifier
             .fillMaxSize()
             .background(AppTheme.colors.error)
             .padding(horizontal = Spacing.lg)
-            .testTag("diary_entry_delete_$entryId"),
+            .testTag(testTag),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {

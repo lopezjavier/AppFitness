@@ -29,6 +29,7 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
+import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateEditorRoot
 import kotlinx.datetime.LocalDate
 
@@ -113,8 +114,8 @@ internal typealias EditEntrySlot =
 /**
  * Food search content: modifier (full-screen insets), the meal and day the search adds to ([slotId] null = no meal
  * preselected, [date] ISO), the opener of the add-food sheet (by food id), the opener of the create-food form
- * (scanned barcode and/or typed name), [onAdd], which runs once a comida was added to the Diary, and [onEditTemplate],
- * the opener of the editor of a comida (by id).
+ * (scanned barcode and/or typed name), [onAdd], which runs once a comida was added to the Diary, and [onOpenTemplate],
+ * the opener of the details of a comida (by id).
  */
 internal typealias FoodSearchSlot =
     @Composable (
@@ -124,7 +125,7 @@ internal typealias FoodSearchSlot =
         onOpenFood: (String) -> Unit,
         onCreateFood: (barcode: String?, name: String?) -> Unit,
         onAdd: () -> Unit,
-        onEditTemplate: (String) -> Unit,
+        onOpenTemplate: (String) -> Unit,
     ) -> Unit
 
 /**
@@ -550,12 +551,22 @@ private fun NavGraphBuilder.foodDestinations(
             },
             // A comida went to the Diary: leave the search for it.
             { navController.popToDiary() },
-            { templateId -> navController.navigate(TemplateEditorRoute(templateId)) { launchSingleTop = true } },
+            { templateId -> navController.navigate(TemplateDetailsRoute(templateId)) { launchSingleTop = true } },
+        )
+    }
+    composable<TemplateDetailsRoute> { entry ->
+        val route = entry.toRoute<TemplateDetailsRoute>()
+        // Deleting pops back to the search; coming back from the editor reloads the details when they resume.
+        TemplateDetailsRoot(
+            templateId = route.templateId,
+            onEdit = { navController.navigate(TemplateEditorRoute(route.templateId)) { launchSingleTop = true } },
+            onDelete = { navController.popBackStack() },
+            modifier = Modifier.padding(fullScreenPadding),
         )
     }
     composable<TemplateEditorRoute> { entry ->
         val route = entry.toRoute<TemplateEditorRoute>()
-        // Saving pops back to the search, which reloads its Comidas list when it resumes.
+        // Saving pops back to the details, which reload when they resume (and so does the search later).
         TemplateEditorRoot(
             templateId = route.templateId,
             onSave = { navController.popBackStack() },

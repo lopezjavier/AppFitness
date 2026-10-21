@@ -15,8 +15,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,7 +70,6 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
-import io.github.lopezjavier.appfitness.feature.templates.TemplateManageSheets
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -77,8 +81,8 @@ private const val DETAIL_FRACTION = 0.35f
  * Food search (US-17, US-21): the search box, the four empty-box tabs (hidden while a query is typed) and the results.
  * The top bar belongs to the shell. [scanFailed] shows the generic "could not read the code" message under the box;
  * [templateFailed] the same for a comida that could not be added, [templateManageFailed] for a rename or delete that
- * was refused. The not-found card of a scanned [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of
- * the empty result emit their events.
+ * was refused. [snackbarHost] shows the "Comida eliminada" undo message at the bottom. The not-found card of a scanned
+ * [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of the empty result emit their events.
  */
 @Composable
 fun FoodSearchScreen(
@@ -88,6 +92,7 @@ fun FoodSearchScreen(
     scanFailed: Boolean = false,
     templateFailed: Boolean = false,
     templateManageFailed: Boolean = false,
+    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Box(modifier.fillMaxSize().testTag("food_search_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
@@ -108,7 +113,20 @@ fun FoodSearchScreen(
                 }
             }
         }
-        TemplateManageSheets(state, onEvent)
+        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin)) { data ->
+            Snackbar(
+                action = data.visuals.actionLabel?.let { label ->
+                    {
+                        TextButton(
+                            onClick = { data.performAction() },
+                            modifier = Modifier.heightIn(
+                                min = Spacing.minTouchTarget,
+                            ).testTag("food_search_templates_undo"),
+                        ) { Text(label) }
+                    }
+                },
+            ) { Text(data.visuals.message) }
+        }
     }
 }
 
