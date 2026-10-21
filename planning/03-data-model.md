@@ -82,6 +82,7 @@ Shared catalog (OFF cache) + personal foods.
 | image_url | text null | OFF URL (images are not stored) |
 | created_by | uuid null | only for `source = 'user'` |
 | search_vector | generated tsvector | GIN index; `unaccent` + `spanish` config (food names are Spanish) |
+| off_data | jsonb null | complete OFF product as received (`source = 'off'` only; ADR-43); written by Edge Functions, never used to compute entries, not returned by `food-search` |
 | fetched_at | timestamptz | cache refresh |
 
 RLS:
@@ -290,7 +291,7 @@ E6 adds the RPCs for the PR catalogue, the warm-up/plate calculators and routine
 | `health` | US-02 | public (`verify_jwt = false`) | — | `GET` → `200 {"status":"ok"}` after a `select 1`; other methods → `405` (`Allow: GET`); DB failure → `503` (`db_unavailable`) |
 | `delete-account` | US-05 (ADR-29) | JWT | `POST`, no body | Resolves the caller from the access token (never from the body) and deletes that auth user with the Auth admin API using the server-side secret key; user-owned rows cascade. `200 {"status":"deleted"}`; missing/invalid token or user already gone → `401` (`unauthorized`); other methods → `405` (`Allow: POST`); admin failure → `500` (`delete_failed`) |
 | `food-search` | US-16 | JWT | `?q=<2..60 chars>&page=1` | 1) full-text search in `foods` (OFF + the user's own); 2) if < 10 results, query OFF (`search`, minimal fields, `lc=es`, `cc=es`), normalize and upsert by `barcode`; 3) return up to 20 normalized results (each with `base_unit`, nutrition per 100 base units and the default serving) |
-| `food-barcode` | US-16 | JWT | `?code=<EAN-8/EAN-13/UPC-A>` | Look up in `foods`; if missing or `fetched_at` > 30 days, query OFF `product/<code>`; `404` if OFF does not have it or kcal is missing |
+| `food-barcode` | US-16 | JWT | `?code=<EAN-8/EAN-13/UPC-A>` | Look up in `foods`; if missing or `fetched_at` > 30 days, query OFF `product/<code>` (also when `off_data` is null; ADR-43); `404` if OFF does not have it or kcal is missing |
 
 Shared (`functions/_shared/`): OFF client with `User-Agent: AppFitness/<version> (<contact email>)`, 8 s timeout, normalization (base unit from `nutrition_data_per`: `100 g` → `g`, `100 ml` → `ml`; kcal from `energy-kcal_100g`/`energy-kcal_100ml`, or `energy_100g / 4.184` if only kJ is available; default serving from `serving_size`), input validation and JSON error responses `{ "error": { "code", "message" } }`.
 

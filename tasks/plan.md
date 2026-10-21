@@ -5,7 +5,7 @@ Log what you eat in fewer than 3 taps (search, scanner or saved meal) and see th
 
 Sources: `planning/epics/E4-food-diary.md` (US-16…US-24), `planning/01-phase1-scope.md` FR-2, `planning/03-data-model.md` §1/§3/§6/§7, `planning/04-business-rules.md` §2 and §5, `planning/05-design-system.md` (§5 components: `ProgressRing`, `MacroProgressBar`, `ViewModeSelector`, `PortionSelector`, `FavouriteToggle`, `MonthCalendarGrid`, `DiaryHistoryRow`), ADR-01, ADR-06, ADR-07, ADR-17, ADR-29, ADR-32, ADR-33, ADR-34, ADR-36, ADR-40. Tasks: `tasks/todo.md` (T-055…T-063). Earlier plans are in the git history.
 
-Out of scope (epic file): user-uploaded food images, micronutrients, composite recipes, meal planning, data export; water intake (`01` §4). Editing or deleting a created personal food is not in the stories.
+Out of scope (epic file): user-uploaded food images, micronutrient targets or totals, composite recipes, meal planning, data export; water intake (`01` §4). Editing or deleting a created personal food is not in the stories.
 
 ## Architecture Decisions
 - **One backend foundation task (T-055).** `food_log_entries` references both `foods` and `meal_slots`, so the US-16 migration also creates `food_portions` (US-22) and `meal_slots` (US-23) with the default-meal seeding. Later tables come with the story that uses them: `favorite_foods` + `most_eaten_foods` (T-057), `meal_templates` + items (T-061), `food_diary_summary` (T-062), and an optional `save_meal_slots` RPC (T-059). At most one migration per task; never edit a merged one.
@@ -35,16 +35,17 @@ Out of scope (epic file): user-uploaded food images, micronutrients, composite r
 ### Phase 3: Templates, history and closure
 - [ ] T-061: Meal templates (US-21) — UI + backend — L
 - [ ] T-062: Diary history and summaries (US-24) — UI + backend — M
+- [ ] T-068: Full OFF product data and micronutrients in the food details (US-25, ADR-43) — backend + UI — M
 - [ ] T-063: E4 closure — PM — S
   - **Checkpoint E4-C 👤:** save a section as a comida, duplicate name, "Comidas" tab, edit (overwrite or save as new), rename and delete; history calendar, open a day, day / week / month summaries, "Sin registros"; final regression of one real day end to end; leave the app and come back; approval → `v0.4.0` and the retrospective.
 
-Three checkpoints by user decision (2026-10-20), overriding the one-per-functionality default for E4. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones (not 👤): pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task; `deploy-supabase` green after each migration (T-055, T-057, T-061, T-062, and T-058/T-059 if they add one).
+Three checkpoints by user decision (2026-10-20), overriding the one-per-functionality default for E4. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones (not 👤): pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task; `deploy-supabase` green after each migration (T-055, T-057, T-061, T-062, T-068, and T-058/T-059 if they add one).
 
 ## Dependencies
 
 ```
 v0.3.0 ─► T-055 ─► T-056 ─► T-057 ─► [E4-A 👤] ─► T-058 ─► T-059 ─► T-060 ─► [E4-B 👤]
-      ─► T-061 ─► T-062 ─► T-063 ─► [E4-C 👤] ─► v0.4.0
+      ─► T-061 ─► T-062 ─► T-068 ─► T-063 ─► [E4-C 👤] ─► v0.4.0
 ```
 - Strictly sequential: E4-A gates T-058 and E4-B gates T-061; between checkpoints tasks run back to back.
 - Meal structure (T-059) comes before copying and templates so their meal targets are built on the final slot rules.

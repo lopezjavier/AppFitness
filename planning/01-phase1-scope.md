@@ -43,6 +43,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.10 Copy foods or a whole meal to another meal or day, and repeat yesterday's meal in one tap.
 - FR-2.11 Configurable meals: rename, reorder, add and delete meals (ADR-41).
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
+- FR-2.13 Full Open Food Facts product data kept in the catalog and micronutrients shown in the food details (display only; ADR-43).
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.
