@@ -35,22 +35,18 @@ Out of scope (epic file): background sync, other Health Connect data (steps, sle
 ### Phase 2: Health Connect and trend
 - [ ] T-079: Manual Health Connect sync, read and write-back (US-26) — UI + backend + platform — L
 - [ ] T-080: Weight trend chart, time filters and weekly rate (US-27 trend + US-25 chart) — UI — M–L
-  - **Checkpoint E5-B 👤 Health Connect with your scale and the weight trend:**
-    - first sync and permissions (90 days); incremental sync without duplicates; fat and composition values in one entry;
-    - write-back with and without permission; editing and deleting a manual entry updates or removes its Health Connect copy; "Permiso necesario"; "Sincronizado hace N min"; a deleted imported reading does not come back;
-    - dots + "MA 7D" line on the imported history; long-press detail; filters remembered after relaunch; the weekly pill's sign and colour by strategy;
-    - leave the app and come back.
 
 ### Phase 3: Goal, metrics and closure
 - [ ] T-081: Target weight, BMI, measurement comparison and metric interpretation (US-27 goal/metrics) — UI + backend — L
-  - **Checkpoint E5-C 👤 Goal, metrics and final regression:**
+  - **Checkpoint E5-B 👤 Health Connect, trend, goal, metrics and final regression:**
+    - first sync and permissions (90 days); incremental sync without duplicates; write-back and its edit/delete; "Permiso necesario"; dots + "MA 7D" line, filters, weekly pill;
     - set and change the target; direction-aware distance and progress from the first weight; BMI with status; metric details with the disclaimer; composition values; "Comparar";
     - final regression over a few real days with the scale, manual entries via the calendar, Health Connect edit/delete, circumferences, chart, goal and Preferencias;
     - leave the app and come back;
     - approval → T-082.
-- [ ] T-082: E5 closure — PM — S (tag `v0.5.0` and the retrospective, after E5-C is approved)
+- [ ] T-082: E5 closure — PM — S (tag `v0.5.0` and the retrospective, after E5-B is approved)
 
-There are three checkpoints (user decision 2026-10-21; the first breakdown had five): manual measurements, Health Connect with the trend, and goal and metrics with the final regression. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
+There are two checkpoints (user decision 2026-10-21; the first breakdown had five): manual measurements, then everything else (Health Connect, trend, goal, metrics) with the final regression. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
 - pgTAP + lint + `testLocalDebugUnitTest` green per task;
 - `deploy-supabase` green after each migration (T-076, T-078, T-079, T-081);
 - the T-079 merged-manifest check.
@@ -58,11 +54,11 @@ There are three checkpoints (user decision 2026-10-21; the first breakdown had f
 ## Dependencies
 
 ```
-v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► [E5-A 👤] ─► T-079 ─► T-080 ─► [E5-B 👤]
-       ─► T-081 ─► [E5-C 👤] ─► T-082 ─► v0.5.0
+v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► [E5-A 👤] ─► T-079 ─► T-080 ─► T-081 ─► [E5-B 👤]
+       ─► T-082 ─► v0.5.0
 ```
-- Strictly sequential; each checkpoint gates the next task. T-079 and T-080 run back to back (no checkpoint between).
-- Health Connect (T-079) comes before the chart (T-080) on purpose: the 90-day import gives the chart and the weekly rate real data at E5-B, and the riskiest integration is tried on the user's phone at the first checkpoint after it.
+- Strictly sequential; each checkpoint gates the next task. T-079, T-080 and T-081 run back to back (no checkpoint between).
+- Health Connect (T-079) comes before the chart (T-080) on purpose: the 90-day import gives the chart and the weekly rate real data at E5-B.
 - T-077 needs T-076's RPC and repository. T-080 needs the measurements from T-077. T-081 needs T-078's ratio (interpretation), T-077's calendar (comparison) and T-080's panel.
 - T-079 adds write-back (create, edit, delete) to T-077's sheet and write-back on save to the Preferencias weight.
 

@@ -37,5 +37,6 @@ On conflict: this file > `planning/`.
 - **Text files are UTF-8 with LF.** Scripted edits pass the encoding explicitly; nobody transcodes a file. Guard: `scripts/check-text-encoding.sh`.
 - **A finding that repeats becomes a check.** The second time pr-reviewer reports the same defect type, add a script or CI guard in the epic instead of another prose rule.
 - **Report facts:** call something done only when verified. **Lean context:** subagent replies ≤ 10 lines plus findings; no file dumps.
+- **Changes in `CLAUDE.md` and the sub-agents (`.claude/agents/`) require the user's approval.**
 - **Terse chat.** Do not summarise subagent reports: log the transition and continue. Speak to the user only to ask a decision, give 👤/epic-closure instructions, report a blocker or answer a question; otherwise one-line progress notes.
-- **Checkpoints per functionality.** One 👤 checkpoint per user-visible functionality (a coherent journey, not a screen, not one per epic), each as soon as it is merged and before building on it. After fixes, re-present it with the list of what to re-test. State and navigation must survive leaving the app.
+- **Checkpoints per functionality.** One 👤 checkpoint per user-visible functionality (a coherent journey, not a screen, not one per epic), each as soon as it is merged and before building on it. After fixes, re-present it with the list of what to re-test. State and navigation must survive leaving the app. Checkpoints must be agreed with the user to finish the epic-planner.

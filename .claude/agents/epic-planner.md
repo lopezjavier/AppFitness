@@ -42,4 +42,4 @@ The PM works autonomously between checkpoints, but a checkpoint that covers a wh
 - Do not write code or tests.
 
 ## Reply to the PM (≤ 10 lines)
-Number of tasks and checkpoints, the task list in one line each (ID, title, flow), what each checkpoint lets the user test, and any BLOCKING questions.
+Number of tasks and checkpoints (with the justification of each), the task list in one line each (ID, title, flow), what each checkpoint lets the user test, and any BLOCKING questions.

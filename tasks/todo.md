@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-076 (E5 broken down into T-076…T-082 with checkpoints E5-A…E5-C; Q1–Q3 resolved 2026-10-21). The user confirms the task list and checkpoints before T-076 starts. E4 closed (tag `v0.4.0`).
+**Next:** T-076 (E5 broken down into T-076…T-082 with checkpoints E5-A and E5-B; Q1–Q3 resolved 2026-10-21). The user confirms the task list and checkpoints before T-076 starts. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -1920,7 +1920,7 @@ Stories: `planning/epics/E5-weight.md` (US-25…US-27). Plan: [tasks/plan.md](pl
 Flow: T-076 is backend only (no ux-reviewer); every other task is UI (planner → ux-reviewer → developers → PR → review → merge); the backend parts are verified with pgTAP and `deploy-supabase`. The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`. Every new user-owned table cascades from `auth.users` (ADR-29). Every screen with input ships a restoration test (ADR-40). The interaction rules of ADR-45 / `05-design-system.md` §8 apply to every task: delete at once with no "Deshacer" (the US-25 Gherkin now says so), swipe through `SwipeToDeleteRow`, one explicit "Guardar" per sheet and nothing applied on dismiss, a row opens its details.
 Story IDs: the E4 micronutrient story, numbered "US-25" before, is now US-16b (T-068, T-070), so US-25 means only the E5 story.
 Questions in `tasks/plan.md`: Q1 (weight calendar, date locked when editing), Q2 (edits and deletes follow in Health Connect) and Q3 (direction-aware target wording, progress from the first weight) resolved by the user (2026-10-21); no open blocking question.
-Checkpoints (three, user decision 2026-10-21): E5-A after T-078 (manual weight with the calendar, and circumferences) · E5-B after T-080 (Health Connect with the real scale, and the weight trend) · E5-C after T-081 (goal, metrics and the final regression; approval releases T-082 → `v0.5.0`).
+Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight with the calendar, and circumferences) · E5-B after T-081 (Health Connect with the real scale, the weight trend, goal and metrics, and the final regression; approval releases T-082 → `v0.5.0`).
 
 ## T-076: Manual weight backend: one weight per day, locked date and the repository
 
@@ -2006,7 +2006,7 @@ Checkpoints (three, user decision 2026-10-21): E5-A after T-078 (manual weight w
   - Weight calendar: the days with a weight are marked; go back a month and forward (not past the current month). Tap yesterday (empty): set its weight at 07:30. Tap a day with a weight: edit the weight, fat or time (the date cannot be changed) and save; delete one (gone at once, no "Deshacer").
   - "Circunferencias": "+ Medida" waist 84,5 and hip 98,0 → ratio "0,86"; edit and delete one and watch the ratio; try 19,9 and 251 cm.
   - Leave the app and come back (also from the app switcher) on a past month of the calendar with a day's weight sheet half filled: the same tab, screen, month and draft are restored.
-  - Out of scope here: Health Connect, the chart and the weekly rate (E5-B), goal, BMI, comparison and interpretation (E5-C).
+  - Out of scope here: Health Connect, the chart and the weekly rate, goal, BMI, comparison and interpretation (E5-B).
 
 ---
 
@@ -2068,57 +2068,20 @@ Checkpoints (three, user decision 2026-10-21): E5-A after T-078 (manual weight w
 
 ---
 
-### Checkpoint E5-B — Health Connect with your scale and the weight trend 👤
-- [ ] T-079 and T-080 merged, CI green, `deploy-supabase` applied the T-079 migration.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try with your real scale and history:
+### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
+- [ ] T-079…T-081 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
   - Weigh yourself, wait until the reading reaches Health Connect, then "Sincronizar": only the new weigh-in arrives, with its fat and the extra composition values in one entry; tap again: nothing new.
   - Set a weight and fat by hand: see them in Health Connect; edit it in the app and Health Connect shows the new value; delete it and it is gone there too. Revoke the write permission and log again: saved in the app, nothing written, no error.
   - Revoke all permissions: "Permiso necesario" with the shortcut. Wait a few minutes: "Sincronizado hace N min". Delete an imported weigh-in and sync again: it does not come back.
   - The chart shows the daily dots and the cyan "MA 7D" line over the imported history; long-press a point: its date, weight and that day's average. Switch 1S, 1M, 3M, 6M and 1A; close the app and reopen it: the last filter is kept.
   - The weekly pill: its sign and colour match your strategy (Déficit: green while the average goes down). Set yesterday's weight from the calendar: the line and the pill update.
-  - Leave the app on the permission screen, mid-sync, or on 1M with a point selected, and come back: the same tab, screen, filter and selection are restored.
-  - Out of scope: background sync and other Health Connect data; target weight, BMI, comparison and interpretation (E5-C).
-
----
-
-## T-081: Target weight, BMI, measurement comparison and metric interpretation
-
-**Story:** US-27 (goal and metrics part) · **Flow:** UI + backend · **Scenarios:** BMI; Target weight and distance; Setting the target weight; Compare two measurements; Metric interpretation
-
-**Description:** Backend: one migration adds `profiles.target_weight_kg numeric(5,1) null` with a 20–400 check and adds it to the client column-level `UPDATE` grant (`03-data-model.md` §2); pgTAP. Domain (pure, `04-business-rules.md` §3.5, §3.6, §3.8 examples as tests): `Bmi` (178 cm and 74,2 kg → 23,4; no height → not shown), `TargetDistance` (direction-aware by strategy, Q3 resolved 2026-10-21, `04` §3.5: Déficit above the target / Superávit below it → "faltan X kg", otherwise "objetivo alcanzado"; Mantenimiento → "objetivo alcanzado" at 0,0, else "X kg por encima/por debajo del objetivo"), `GoalProgress` (from the user's first weight in the app, the onboarding row, to the target; 0–100 %), `InterpretMetric` for BMI, body fat % by sex and the waist-to-hip ratio by sex (§3.8 ranges), and `CompareMeasurements` (the latest measurement against the selected one: signed weight and fat differences). UI on the weight screen. A `GoalCard` (new design-system component: target, distance and a progress bar from the first weight in the app to the target) with "Fijar objetivo" → a sheet (target 20–400, one "Guardar"; editable later). A BMI tile "IMC 23,4" with its status "Normal". Tapping an interpreted metric (BMI, body fat, waist-to-hip ratio from T-078) opens its detail: value, status chip and a short explanation (`MetricInterpretationRow`, new), and the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico". Compare: from an older day of the weight calendar (T-077) the user opens a measurement → "Comparar" → `ComparisonDeltaRow`s with "−1,4 kg" and the body fat difference (that row is hidden when either measurement has no fat). The Health Connect composition values (lean mass, water, bone, BMR) are shown as plain values in the panel or the measurement detail, without a status (plan assumption: `04` §3.8 has no ranges for them). The selection, the open detail and the target draft are restored (ADR-40); writes are disabled offline. New components get catalog entries.
-
-**Acceptance criteria:**
-- [ ] Migration + pgTAP: `target_weight_kg` range 20–400; the owner can update it; another user cannot; other profile columns' grants unchanged.
-- [ ] Height 178 cm and weight 74,2 kg → "IMC 23,4" with "Normal"; no height → no BMI.
-- [ ] Déficit, target 70,0 kg and current 74,2 kg → the goal card shows "faltan 4,2 kg"; at 70,0 or 69,5 kg → "objetivo alcanzado"; Superávit mirrored; Mantenimiento 71,0 vs 70,0 → "1,0 kg por encima del objetivo" (`04` §3.5).
-- [ ] Progress bar: first weight in the app 78,0 kg, target 70,0, current 74,2 → 48 %; reached → 100 %; no target → no bar.
-- [ ] No target → "Fijar objetivo" 70,0 → saved in `profiles.target_weight_kg` and the distance shown; out-of-range values disable "Guardar".
-- [ ] 74,2 kg today vs 75,6 kg a month ago → selecting the older one and "Comparar" shows "−1,4 kg" and the body fat difference.
-- [ ] A metric detail shows the value, a status, a short explanation and the disclaimer; the §3.8 boundaries map to the right status for each sex.
-- [ ] Composition values from Health Connect are visible when present.
-- [ ] Target draft, comparison selection and open detail survive leaving the app and process death.
-
-**Host tests (per scenario):** `BmiTest`, `TargetDistanceTest` (every strategy and direction), `GoalProgressTest`, `InterpretMetricTest` (every §3.8 boundary, both sexes), `CompareMeasurementsTest`; `WeightGoalViewModelTest` with fakes + Turbine (BMI; Target weight and distance; Setting the target weight; Compare two measurements; Metric interpretation); Robolectric tests for `GoalCard`, the interpretation detail (disclaimer text), the comparison and the target sheet; catalog entries for `GoalCard`, `ComparisonDeltaRow` and `MetricInterpretationRow`; restoration tests; pgTAP.
-
-**Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
-
-**Dependencies:** T-080
-**Files likely touched:** `supabase/migrations/<ts>_profiles_target_weight.sql`, `supabase/tests/profiles_target_weight.test.sql`, `shared/…/domain/model/{Profile,MetricInterpretation}.kt`, `shared/…/domain/usecase/{Bmi,TargetDistance,GoalProgress,InterpretMetric,CompareMeasurements}.kt` + tests, `shared/…/domain/repository/ProfileRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/weight/{GoalSection,TargetWeightSheet,MetricDetailSheet,CompareMeasurements,WeightGoalViewModel,WeightScreen}.kt`, `composeApp/…/designsystem/{GoalCard,ComparisonDeltaRow,MetricInterpretationRow}.kt`, catalog, strings, tests
-**Estimated scope:** L (the planner may run it as two dev slices: backend + domain + goal card, then comparison + interpretation)
-
----
-
-### Checkpoint E5-C — Goal, metrics and final regression 👤
-- [ ] T-079…T-081 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - "Fijar objetivo": enter your target weight; the goal card shows "faltan X kg" and the progress since your first weight in the app; set a target on the other side of your weight (e.g. above it while in Déficit): "objetivo alcanzado"; change it and see the card follow.
   - "IMC" with its status; open the BMI, body fat and waist-to-hip ratio details: value, status, a short explanation and the disclaimer "Este producto no es un dispositivo médico…". The extra values from your scale (lean mass, water, bone, BMR) are visible.
   - In the weight calendar, open an older day's measurement → "Comparar": the weight and fat differences with their sign.
   - Final regression over a few real days: weigh yourself and "Sincronizar"; set a weight from the calendar and check Health Connect follows its edit and delete; log a waist and a hip (the ratio and its interpretation update); the chart, the weekly pill, the goal distance and the BMI move; the weight in Preferencias matches the weight screen.
-  - Leave the app and come back with the target sheet half filled, a comparison open and a non-default chart filter: the same tab, screen and draft are restored.
+  - Leave the app on the permission screen, mid-sync, with the target sheet half filled, a comparison open or a non-default chart filter: the same tab, screen and draft are restored.
   - Approval → `v0.5.0` and the retrospective (T-082).
   - Out of scope: a target date or estimated time to reach it (not in Phase 1).
 
@@ -2134,13 +2097,13 @@ Checkpoints (three, user decision 2026-10-21): E5-A after T-078 (manual weight w
 - [ ] T-076…T-081 (and any fix tasks) merged with green CI; pgTAP green for `body_measurements` (incl. `external_id` uniqueness and the manual-row-per-day RPC), `body_circumferences`, `health_sync_state` and `profiles.target_weight_kg`; `deploy-supabase` green after the last migration.
 - [ ] Host tests green for every E5 Gherkin scenario; the weekly rate, BMI, target distance and waist-to-hip ratio match the `04-business-rules.md` §3 examples.
 - [ ] Health Connect read and write manual test documented in the T-079 PR.
-- [ ] Checkpoints E5-A…E5-C approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [ ] Checkpoints E5-A and E5-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
 - [ ] `tasks/todo.md` (E5 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.5.0` after approval.
 
-**Dependencies:** T-081 (Checkpoint E5-C approved)
+**Dependencies:** T-081 (Checkpoint E5-B approved)
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
