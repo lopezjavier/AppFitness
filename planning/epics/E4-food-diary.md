@@ -443,6 +443,8 @@ Feature: Configurable meals
 **I want** to browse past days and see totals and averages
 **So that** I can review my intake over time.
 
+> Placement (ADR-44, T-071): the history is a full-screen destination reached from "Estadísticas" on the Perfil root, not from the Diario; the Diario always has its calendar button to jump to a day.
+
 ```gherkin
 Feature: Diary history
 

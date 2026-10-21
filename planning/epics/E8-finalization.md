@@ -123,6 +123,7 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Meal structure: "Añadir comida" name field gets a tick button inside the text input to confirm (today only the keyboard tick confirms) | Checkpoint E4-B round 2, 2026-10-21 |
 | Meal structure: meal names must be unique (case-insensitive); adding an existing name such as "Desayuno" is rejected with a hint | Checkpoint E4-B round 2, 2026-10-21 |
 | Meal structure: "Añadir comida" is disabled while a new meal is being created (no double-add) | Checkpoint E4-B round 2, 2026-10-21 |
+| Diario/Perfil/Comidas: top bar with the section name takes too much vertical space; make it smaller (all sections) | Checkpoint E4-C round 1, 2026-10-21 |
 | Meal structure: a meal being created shows tick (save) and X (discard) buttons; discarding does not require saving then deleting | Checkpoint E4-B round 2, 2026-10-21 |
 ---
 
