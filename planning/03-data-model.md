@@ -156,13 +156,14 @@ RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.u
 | bone_kg | numeric(4,2) null | from Health Connect |
 | bmr_kcal | integer null | from Health Connect |
 | source | measurement_source | |
-| external_id | text null | Health Connect record id; `unique (user_id, external_id)` |
+| external_id | text null | Health Connect record id of an imported reading; `unique (user_id, external_id)` |
+| hc_record_id | text null | Manual rows only: id of the copy this app wrote to Health Connect, used to update or delete it (US-26, T-079; exact name chosen by its planner) |
 
 Index: `(user_id, measured_at desc)`.
 
 Onboarding inserts one `manual` row; finishing the onboarding weight step again updates that row instead of inserting another (ADR-24). The onboarding row is the user's earliest `source = 'manual'` row by `created_at` (tie-break `id`); this holds because nothing else writes `body_measurements` before onboarding completes. The composition columns (`lean_mass_kg`, `water_kg`, `bone_kg`, `bmr_kcal`) are only written by the Health Connect sync (US-26); manual entries leave them null.
 
-Weight edited in Preferencias (ADR-37): saving a changed weight upserts **one manual row per day** (the user's `source = 'manual'` row whose `measured_at` falls on today's local date is replaced; otherwise a row is inserted); earlier days stay as history. "Peso actual" is the latest row by `measured_at` from any source. It is done inside the `save_preferences` RPC (section 6) so the weight, the name, the biometrics and the recalculated target are saved atomically; the client sends its local-day bounds.
+Weight edited in Preferencias (ADR-37): saving a changed weight upserts **one manual row per day** (the user's `source = 'manual'` row whose `measured_at` falls on today's local date is replaced; otherwise a row is inserted); earlier days stay as history. "Peso actual" is the latest row by `measured_at` from any source. The weight screen (US-25, E5) follows the same rule: weights are revisited in a calendar by day; an empty day gets its manual weight, a day with one opens it to edit. **The date of a measurement is never edited** (only the weight, body fat and the time within the same local day), so an edit can never put two manual rows on one day (user decision 2026-10-21, E5 Q1; enforced by the T-076 RPC). It is done inside the `save_preferences` RPC (section 6) so the weight, the name, the biometrics and the recalculated target are saved atomically; the client sends its local-day bounds.
 
 ### `body_circumferences` (US-25)
 | Column | Type | Notes |

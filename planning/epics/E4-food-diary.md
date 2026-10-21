@@ -479,7 +479,7 @@ Feature: Diary history
 
 ---
 
-## US-25 · Full Open Food Facts data and micronutrients in the food details
+## US-16b · Full Open Food Facts data and micronutrients in the food details
 **As** a user
 **I want** the foods from Open Food Facts to keep all their data and show their micronutrients
 **So that** I can see what a food contains beyond calories and macros, and the data is there for future use.

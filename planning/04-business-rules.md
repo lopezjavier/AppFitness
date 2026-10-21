@@ -81,8 +81,12 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 1W = 7 days · 1M = 30 · 3M = 90 (default) · 6M = 180 · 1Y = 365, counted back from today (UI labels: 1S, 1M, 3M, 6M, 1A). The MA7 of the first day in the range uses data before the range when available.
 
 ### 3.5 Target weight
-- `distance = current weight − target_weight`, in kg with 1 decimal and sign.
-- UI: positive → "X kg por encima del objetivo"; negative → "faltan X kg"; zero → "objetivo alcanzado".
+- `distance = current weight − target_weight`, in kg with 1 decimal. The wording depends on the strategy (user decision 2026-10-21, E5 Q3):
+  - Deficit: distance > 0 → "faltan X kg"; distance ≤ 0 → "objetivo alcanzado".
+  - Surplus: distance < 0 → "faltan X kg"; distance ≥ 0 → "objetivo alcanzado".
+  - Maintenance: distance = 0,0 → "objetivo alcanzado"; > 0 → "X kg por encima del objetivo"; < 0 → "X kg por debajo del objetivo".
+  - X is the absolute distance. Example: Deficit, target 70,0, current 74,2 → "faltan 4,2 kg"; current 69,5 → "objetivo alcanzado".
+- Progress bar: `progress = (start − current) / (start − target)`, clamped to 0–100 % and shown as an integer, where `start` is the user's first weight in the app (the onboarding row, `03-data-model.md` §4). 100 % once the target is reached; no bar when `start = target`. Example: start 78,0, target 70,0, current 74,2 → 48 %.
 - "Current weight" is the latest `body_measurements` row. There is no date or estimated time to reach the target.
 
 ### 3.6 BMI
@@ -93,6 +97,8 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 - Health Connect records map to `body_measurements` columns: weight → `weight_kg`, body fat → `body_fat_pct`, lean body mass → `lean_mass_kg`, body water mass → `water_kg`, bone mass → `bone_kg`, basal metabolic rate → `bmr_kcal`.
 - **Read:** a weight and a body-fat record with the same instant (± 2 min) are stored as a single measurement; the composition records are merged into the matching weight row by instant. Rows already imported (`external_id`) are never duplicated.
 - **Write:** when the user logs a measurement manually and has granted the write permission, the app writes weight and body fat (and any available composition values) to Health Connect, so other apps see the user's data. Without the permission, writing is skipped silently.
+- **Edit and delete (user decision 2026-10-21, E5 Q2):** the app stores the id of the record it wrote. Editing that manual measurement updates the Health Connect copy, and deleting it deletes the copy. A measurement saved without the permission has no copy and is not written later. A failed Health Connect call never blocks the app's change.
+- **Imported readings** deleted in the app are removed from the app only (an app can only delete its own Health Connect records) and are not re-imported. Records written by this app are skipped on import.
 - Sync is manual (the "Sincronizar" button); there is no background sync.
 
 ### 3.8 Metric interpretation (informative)
