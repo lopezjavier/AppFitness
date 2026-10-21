@@ -41,6 +41,7 @@ class ProfileRootScreenTest {
     private var catalogOpens = 0
     private var preferencesOpens = 0
     private var strengthOpens = 0
+    private var diaryHistoryOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -58,6 +59,7 @@ class ProfileRootScreenTest {
         catalogOpens = 0
         preferencesOpens = 0
         strengthOpens = 0
+        diaryHistoryOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
@@ -65,6 +67,7 @@ class ProfileRootScreenTest {
                     onEvent = { events += it },
                     onOpenPreferences = { preferencesOpens++ },
                     onOpenStrength = { strengthOpens++ },
+                    onOpenDiaryHistory = { diaryHistoryOpens++ },
                     onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
                     effects = effects.receiveAsFlow(),
                 )
@@ -123,6 +126,27 @@ class ProfileRootScreenTest {
         rule.onNodeWithTag("profile_strength_row").performClick()
 
         assertEquals(1, strengthOpens)
+    }
+
+    @Test
+    fun diaryHistoryRow_isBelowFuerza_andOpensTheHistory() {
+        show()
+        rule.onNodeWithText("Historial de comidas").assertExists()
+        rule.onNodeWithTag("profile_diary_history_row").assertHeightIsAtLeast(48.dp)
+        val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
+        val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()
+        assertTrue(history.top >= strength.bottom)
+
+        rule.onNodeWithTag("profile_diary_history_row").performClick()
+
+        assertEquals(1, diaryHistoryOpens)
+        assertEquals(0, strengthOpens)
+    }
+
+    @Test
+    fun diaryHistoryRow_isHiddenWhileTheProfileLoads() {
+        show(ProfileRootUiState.Loading)
+        rule.onNodeWithTag("profile_diary_history_row").assertDoesNotExist()
     }
 
     @Test

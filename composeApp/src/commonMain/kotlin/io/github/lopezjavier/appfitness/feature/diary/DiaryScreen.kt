@@ -18,7 +18,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -51,7 +55,6 @@ fun DiaryScreen(
     onEvent: (DiaryEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
-    showHistory: Boolean = true,
 ) {
     Box(modifier.fillMaxSize().testTag("diary_screen")) {
         when (state) {
@@ -65,7 +68,7 @@ fun DiaryScreen(
                 )
             }
 
-            is DiaryUiState.Content -> DiaryDay(state.content, onEvent, showHistory)
+            is DiaryUiState.Content -> DiaryDay(state.content, onEvent)
         }
         DiarySnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin))
     }
@@ -78,7 +81,17 @@ private fun DiarySnackbarHost(state: SnackbarHostState, modifier: Modifier = Mod
 }
 
 @Composable
-private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, showHistory: Boolean) {
+private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
+    var pickerOpen by rememberSaveable { mutableStateOf(false) }
+    val onOpenPicker = { pickerOpen = true }
+    if (pickerOpen) {
+        DiaryDayPickerSheet(
+            selected = content.date,
+            today = content.today,
+            onPickDay = { onEvent(DiaryEvent.GoToDay(it)) },
+            onDismiss = { pickerOpen = false },
+        )
+    }
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         if (windowWidthClassFor(maxWidth) == WindowWidthClass.Wide) {
             Row(Modifier.widthIn(max = WindowWidthClassDefaults.TwoColumnContentMaxWidth).fillMaxSize()) {
@@ -87,7 +100,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, showH
                         .padding(Spacing.screenMargin),
                     verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
                 ) {
-                    DiaryDateHeader(content.label, content.canGoNext, onEvent, showHistory = showHistory)
+                    DiaryDateHeader(content.label, content.canGoNext, onEvent, onOpenPicker)
                     DiaryDashboard(content, onEvent)
                 }
                 Column(
@@ -105,7 +118,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, showH
                     .verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
                 verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
             ) {
-                DiaryDateHeader(content.label, content.canGoNext, onEvent, showHistory = showHistory)
+                DiaryDateHeader(content.label, content.canGoNext, onEvent, onOpenPicker)
                 DiaryDashboard(content, onEvent)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
                 AddFoodButton(onEvent)

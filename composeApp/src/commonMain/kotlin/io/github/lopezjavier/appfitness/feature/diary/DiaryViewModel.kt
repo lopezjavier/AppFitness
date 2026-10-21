@@ -112,6 +112,8 @@ class DiaryViewModel(
 
             DiaryEvent.NextDay -> if (date.value < clock.today()) showDay(date.value.plus(1, DateTimeUnit.DAY))
 
+            is DiaryEvent.GoToDay -> if (event.date <= clock.today()) showDay(event.date)
+
             is DiaryEvent.ToggleSection -> toggle(event.slotId)
 
             DiaryEvent.Retry -> retry()
@@ -124,7 +126,6 @@ class DiaryViewModel(
             is DiaryEvent.AddToMeal,
             DiaryEvent.AddFood,
             DiaryEvent.OpenGoals,
-            DiaryEvent.OpenHistory,
             is DiaryEvent.EditEntry,
             is DiaryEvent.SaveSection,
             -> event.openEffect(date.value)?.let(effectChannel::trySend)
@@ -201,6 +202,7 @@ class DiaryViewModel(
         val today = clock.today()
         return DiaryContent(
             date = loaded.date,
+            today = today,
             label = sessionDateLabel(loaded.date, today),
             canGoNext = loaded.date < today,
             goals = day.goals?.let { DiaryGoalsState.Set(it, remaining ?: 0) } ?: DiaryGoalsState.NotSet,
@@ -227,7 +229,6 @@ private fun DiaryEvent.openEffect(day: LocalDate): DiaryEffect? = when (this) {
     is DiaryEvent.AddToMeal -> DiaryEffect.AddToMeal(slotId, day)
     DiaryEvent.AddFood -> DiaryEffect.AddFood(day)
     DiaryEvent.OpenGoals -> DiaryEffect.OpenPreferences
-    DiaryEvent.OpenHistory -> DiaryEffect.OpenHistory
     is DiaryEvent.EditEntry -> DiaryEffect.OpenEditEntry(entryId, day)
     is DiaryEvent.SaveSection -> DiaryEffect.OpenSaveTemplate(slotId, day)
     else -> null

@@ -44,6 +44,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_err
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_row
@@ -76,6 +77,7 @@ private class RootActions(
     val onOpenPreferences: () -> Unit,
     val onOpenCatalog: (() -> Unit)?,
     val onOpenStrength: () -> Unit,
+    val onOpenDiaryHistory: () -> Unit,
     val onSignOut: () -> Unit,
     val onDelete: () -> Unit,
 )
@@ -87,6 +89,7 @@ fun ProfileRootRoute(
     onOpenPreferences: () -> Unit = {},
     onOpenCatalog: (() -> Unit)? = null,
     onOpenStrength: () -> Unit = {},
+    onOpenDiaryHistory: () -> Unit = {},
     viewModel: ProfileRootViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -97,6 +100,7 @@ fun ProfileRootRoute(
         onOpenPreferences = onOpenPreferences,
         onOpenCatalog = onOpenCatalog,
         onOpenStrength = onOpenStrength,
+        onOpenDiaryHistory = onOpenDiaryHistory,
         effects = viewModel.effects,
     )
 }
@@ -114,6 +118,7 @@ fun ProfileRootScreen(
     onOpenPreferences: () -> Unit = {},
     onOpenCatalog: (() -> Unit)? = null,
     onOpenStrength: () -> Unit = {},
+    onOpenDiaryHistory: () -> Unit = {},
     effects: Flow<ProfileRootEffect> = emptyFlow(),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
@@ -125,6 +130,7 @@ fun ProfileRootScreen(
             onOpenPreferences,
             onOpenCatalog,
             onOpenStrength,
+            onOpenDiaryHistory,
             { confirmingSignOut = true },
             { confirmingDelete = true },
         )
@@ -174,9 +180,9 @@ fun ProfileRootScreen(
     }
 }
 
-/** "Estadísticas": a heading and the "Fuerza" row (48 dp, decorative chevron; the label is the accessible name). */
+/** "Estadísticas": a heading and the "Fuerza" and "Historial de comidas" rows. */
 @Composable
-private fun StatisticsSection(onOpenStrength: () -> Unit) {
+private fun StatisticsSection(onOpenStrength: () -> Unit, onOpenDiaryHistory: () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = stringResource(Res.string.profile_statistics_section).uppercase(),
@@ -184,26 +190,37 @@ private fun StatisticsSection(onOpenStrength: () -> Unit) {
             color = AppTheme.colors.textSecondary,
             modifier = Modifier.semantics { heading() },
         )
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = Spacing.minTouchTarget)
-                .clickable(role = Role.Button, onClick = onOpenStrength)
-                .testTag("profile_strength_row"),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(Res.string.profile_strength_row),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            Image(
-                imageVector = vectorResource(Res.drawable.ic_chevron_right),
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(AppTheme.colors.textSecondary),
-            )
-        }
+        StatisticsRow(stringResource(Res.string.profile_strength_row), "profile_strength_row", onOpenStrength)
+        StatisticsRow(
+            stringResource(Res.string.profile_diary_history_row),
+            "profile_diary_history_row",
+            onOpenDiaryHistory,
+        )
+    }
+}
+
+/** One 48 dp "Estadísticas" row with a decorative chevron; the label is the accessible name. */
+@Composable
+private fun StatisticsRow(label: String, tag: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = Spacing.minTouchTarget)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(tag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Image(
+            imageVector = vectorResource(Res.drawable.ic_chevron_right),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(AppTheme.colors.textSecondary),
+        )
     }
 }
 
@@ -283,7 +300,7 @@ private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         if (state is ProfileRootUiState.Loaded) {
-            StatisticsSection(actions.onOpenStrength)
+            StatisticsSection(actions.onOpenStrength, actions.onOpenDiaryHistory)
             PrimaryButton(
                 text = stringResource(Res.string.preferences_title),
                 onClick = actions.onOpenPreferences,

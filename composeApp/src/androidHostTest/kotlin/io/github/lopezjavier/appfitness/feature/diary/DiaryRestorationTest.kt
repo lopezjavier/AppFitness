@@ -115,4 +115,56 @@ class DiaryRestorationTest {
 
         rule.onNodeWithTag("diary_date_label").assertTextEquals("Hoy")
     }
+
+    @Test
+    fun dayPicker_pickingAPastDayShowsItAndItsEntries() {
+        val model = viewModel(SavedStateHandle())
+        rule.setContent { Host(model) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_day_picker_open").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_day_2026-10-18").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_day_picker_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("diary_date_label").assertTextEquals("Ayer")
+        rule.onNodeWithTag("diary_entry_y").assertExists()
+    }
+
+    @Test
+    fun dayPicker_openSheetAndShownMonth_surviveRecreation() {
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_day_picker_open").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_prev").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_day_2026-09-15").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_day_picker_sheet").assertExists()
+        rule.onNodeWithTag("month_calendar_day_2026-09-15").assertExists()
+    }
+
+    @Test
+    fun goToDay_survivesViewModelRecreationFromTheSameSavedState() {
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_day_picker_open").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_day_2026-10-18").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_date_label").assertTextEquals("Ayer")
+    }
 }

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -27,6 +28,7 @@ import io.github.lopezjavier.appfitness.app.EditEntrySlot
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FoodSearchSlot
+import io.github.lopezjavier.appfitness.app.ProfileSlot
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
@@ -44,9 +46,10 @@ import org.robolectric.annotation.Config
 
 private val Marked = LocalDate(2026, 10, 15)
 
-/** US-24 "Opening the history": Diary -> Historial -> a day -> that day's Diary -> back to the history. */
+/** US-24 "Opening the history": Perfil > Estadísticas -> Historial -> a day -> its Diary -> back to the history. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per scenario.
 class DiaryHistoryFlowTest {
     @get:Rule
     val rule = createComposeRule()
@@ -58,7 +61,7 @@ class DiaryHistoryFlowTest {
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25)))
     private val clock = MutableClock()
 
-    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, edit, onOpenHistory ->
+    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, edit ->
         val model: DiaryViewModel = viewModel(
             factory = viewModelFactory {
                 initializer {
@@ -81,7 +84,6 @@ class DiaryHistoryFlowTest {
                 onAddFood = { onAddFood(null, it) },
                 onSaveTemplate = { _, _ -> },
                 editHost = edit,
-                onOpenHistory = onOpenHistory,
                 viewModel = model,
             )
             // Reach the callbacks the real screen does not expose with a fixed day.
@@ -101,6 +103,12 @@ class DiaryHistoryFlowTest {
         DiaryHistoryRoot(onOpenDay, modifier, model)
     }
 
+    private val profileSlot: ProfileSlot = { modifier, _, _, _, onOpenDiaryHistory ->
+        Box(modifier.fillMaxSize().testTag("profile_screen")) {
+            Box(Modifier.size(48.dp).testTag("profile_diary_history_row").clickable(onClick = onOpenDiaryHistory))
+        }
+    }
+
     private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onAdd, _ ->
         Box(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("test_search_add").clickable(onClick = onAdd))
@@ -116,6 +124,7 @@ class DiaryHistoryFlowTest {
         AppTheme {
             AppScaffold(
                 navController = rememberNavController(),
+                profile = profileSlot,
                 diary = diarySlot,
                 diaryHistory = historySlot,
                 foodSearch = searchSlot,
@@ -124,8 +133,10 @@ class DiaryHistoryFlowTest {
         }
     }
 
+    private val tester = StateRestorationTester(rule)
+
     private fun start() {
-        rule.setContent { Shell() }
+        tester.setContent { Shell() }
         rule.waitForIdle()
     }
 
@@ -134,17 +145,22 @@ class DiaryHistoryFlowTest {
         rule.waitForIdle()
     }
 
+    private fun openHistory() {
+        tap("nav_tab_profile")
+        tap("profile_diary_history_row")
+    }
+
     private fun openDayFromHistory() {
-        tap("diary_history_open")
+        openHistory()
         tap("month_calendar_day_$Marked")
         tap("diary_history_row_open")
     }
 
     @Test
-    fun historyButton_opensTheHistoryInAFullScreenChrome() {
+    fun profileRow_opensTheHistoryInAFullScreenChrome() {
         start()
 
-        tap("diary_history_open")
+        openHistory()
 
         rule.onNodeWithTag("diary_history_screen").assertExists()
         rule.onNodeWithTag("diary_history_title").assertTextEquals("Historial")
@@ -153,15 +169,47 @@ class DiaryHistoryFlowTest {
     }
 
     @Test
-    fun openingADayFromTheHistory_showsThatDaysDiaryWithBackAndNoHistoryButton() {
+    fun diaryTab_hasNoHistoryEntryOfItsOwn() {
+        start()
+
+        rule.onNodeWithTag("diary_history_open").assertDoesNotExist()
+        rule.onNodeWithTag("diary_day_picker_open").assertExists()
+    }
+
+    @Test
+    fun openingADayFromTheHistory_showsThatDaysDiaryWithBackAndTheCalendarButton() {
         start()
 
         openDayFromHistory()
 
         rule.onNodeWithTag("diary_date_label").assertTextEquals("jue, 15 oct")
         rule.onNodeWithTag("diary_day_back").assertExists()
+        rule.onNodeWithTag("diary_day_picker_open").assertExists()
         rule.onNodeWithTag("diary_history_open").assertDoesNotExist()
         rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
+    }
+
+    @Test
+    fun backFromTheHistory_returnsToPerfil() {
+        start()
+        openHistory()
+
+        tap("diary_history_back")
+
+        rule.onNodeWithTag("profile_screen").assertExists()
+    }
+
+    @Test
+    fun recreationOnAPastDayOpenedFromTheHistory_keepsThatDayAndItsCalendarButton() {
+        start()
+        openDayFromHistory()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_date_label").assertTextEquals("jue, 15 oct")
+        rule.onNodeWithTag("diary_day_picker_open").assertExists()
+        rule.onNodeWithTag("diary_day_back").assertExists()
     }
 
     @Test

@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_open_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_next_day
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_prev_day
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
@@ -24,18 +24,21 @@ import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
 
-/** Previous/next day arrows around the centred day label (next is disabled and dimmed on today). */
+/**
+ * Previous/next day arrows around the centred day label (next is disabled and dimmed on today) and, at the end, the
+ * day-picker button.
+ */
 @Composable
 internal fun DiaryDateHeader(
     label: DateLabel,
     canGoNext: Boolean,
     onEvent: (DiaryEvent) -> Unit,
+    onOpenDayPicker: () -> Unit,
     modifier: Modifier = Modifier,
-    showHistory: Boolean = false,
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // Keeps the day label centred between the arrows while the history button sits at the end.
-        if (showHistory) Spacer(Modifier.size(Spacing.minTouchTarget))
+        // Keeps the day label centred between the arrows while the day-picker button sits at the end.
+        Spacer(Modifier.size(Spacing.minTouchTarget))
         AppIconButton(
             contentDescription = stringResource(Res.string.diary_prev_day),
             icon = Res.drawable.ic_chevron_left,
@@ -56,13 +59,11 @@ internal fun DiaryDateHeader(
             onClick = { onEvent(DiaryEvent.NextDay) },
             enabled = canGoNext,
         )
-        if (showHistory) {
-            AppIconButton(
-                contentDescription = stringResource(Res.string.diary_history_open_cd),
-                icon = Res.drawable.ic_calendar,
-                testTag = "diary_history_open",
-                onClick = { onEvent(DiaryEvent.OpenHistory) },
-            )
-        }
+        AppIconButton(
+            contentDescription = stringResource(Res.string.diary_day_picker_open_cd),
+            icon = Res.drawable.ic_calendar,
+            testTag = "diary_day_picker_open",
+            onClick = onOpenDayPicker,
+        )
     }
 }

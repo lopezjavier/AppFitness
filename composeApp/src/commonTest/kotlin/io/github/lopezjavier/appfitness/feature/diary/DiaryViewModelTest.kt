@@ -27,7 +27,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -229,14 +231,62 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun openHistory_emitsOpenHistory() = runTest(dispatcher) {
+    fun goToDay_showsThatDayWithItsEntries() = runTest(dispatcher) {
+        val target = LocalDate(2026, 10, 15)
+        diary.server[target] = listOf(entry("t", "lunch", 650.0, date = target))
         val model = viewModel()
         advanceUntilIdle()
 
-        model.effects.test {
-            model.onEvent(DiaryEvent.OpenHistory)
-            assertEquals(DiaryEffect.OpenHistory, awaitItem())
-        }
+        model.onEvent(DiaryEvent.GoToDay(target))
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals(target, content.date)
+        assertIs<DateLabel.Other>(content.label)
+        assertEquals(650.0, content.dayTotals.kcal)
+        assertEquals(listOf("t"), content.meals.flatMap { it.entries }.map { it.id })
+        assertTrue(content.canGoNext)
+    }
+
+    @Test
+    fun goToDay_futureDate_isIgnored() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.GoToDay(today.plus(1, DateTimeUnit.DAY)))
+        advanceUntilIdle()
+
+        assertEquals(today, model.content().date)
+        assertEquals(null, savedState.get<String>("diary_date"))
+    }
+
+    @Test
+    fun goToDay_today_keepsCanGoNextFalse() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(DiaryEvent.PreviousDay)
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.GoToDay(today))
+        advanceUntilIdle()
+
+        assertEquals(today, model.content().date)
+        assertFalse(model.content().canGoNext)
+    }
+
+    @Test
+    fun goToDay_updatesSavedStateAndSurvivesRecreation() = runTest(dispatcher) {
+        val target = LocalDate(2026, 10, 12)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.GoToDay(target))
+        advanceUntilIdle()
+        assertEquals("2026-10-12", savedState.get<String>("diary_date"))
+
+        val recreated = viewModel(savedState)
+        advanceUntilIdle()
+        assertEquals(target, recreated.content().date)
     }
 
     @Test

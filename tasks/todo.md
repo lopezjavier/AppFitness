@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-071 (Diario calendar button and Perfil "Estadísticas"). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
+**Next:** T-063 (E4 closure; first re-present checkpoint E4-C). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
 
 ---
 
@@ -1812,9 +1812,9 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Description:** One Diario UI that always shows the calendar button next to the day arrows (remove the `showHistory` conditional). Move the diary history (Día/Semana/Mes summaries and month calendar) out of the Diario to a full-screen destination reached from an "Estadísticas" entry on the Perfil root (ADR-37 pattern). Tapping a day there opens the normal Diario on that day, with its calendar button and a back path.
 
 **Acceptance criteria:**
-- [ ] The Diario shows the calendar button whether opened from its tab or from the statistics calendar; one `DiaryScreen`, no variant.
-- [ ] Perfil root has "Estadísticas"; the history screen keeps US-24 behaviour (marked days, summaries against target, week average, month total, "Sin registros").
-- [ ] The Diario no longer has its own history entry; state and navigation survive leaving the app (ADR-40).
+- [x] The Diario shows the calendar button whether opened from its tab or from the statistics calendar; one `DiaryScreen`, no variant.
+- [x] Perfil root has "Estadísticas"; the history screen keeps US-24 behaviour (marked days, summaries against target, week average, month total, "Sin registros").
+- [x] The Diario no longer has its own history entry; state and navigation survive leaving the app (ADR-40).
 
 **Verification:** lint, host tests and CI green. **Dependencies:** T-070 · **Estimated scope:** M
 

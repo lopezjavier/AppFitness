@@ -149,7 +149,7 @@ data class TemplateEditorRoute(val templateId: String) : AppRoute
 @Serializable
 data object MealSlotsRoute : AppRoute
 
-/** The diary history (US-24): a month calendar with the daily and period summaries, opened from the Diary. */
+/** The diary history (US-24): a month calendar with daily and period summaries, opened from Perfil > Estadísticas. */
 @Serializable
 data object DiaryHistoryRoute : AppRoute
 
