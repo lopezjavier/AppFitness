@@ -31,16 +31,20 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
+import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.koinApplication
 import org.koin.test.verify.verify
@@ -69,6 +73,7 @@ class AppModuleTest {
     }
 
     @OptIn(KoinExperimentalAPI::class)
+    @Suppress("LongMethod") // One list of extra types per module.
     @Test
     fun koinGraph_isConsistent() {
         appModule.verify(
@@ -82,6 +87,7 @@ class AppModuleTest {
                 AuthCredentialProvider::class,
                 ExerciseLibrary::class,
                 DataStore::class,
+                TimeZone::class,
             ),
         )
         uiModule.verify(
@@ -125,6 +131,9 @@ class AppModuleTest {
                 AddTemplateToDiary::class,
                 BuildTemplateItems::class,
                 ValidateTemplateName::class,
+                MeasurementsByDay::class,
+                SaveBodyMeasurement::class,
+                ValidateBodyMeasurement::class,
             ),
         )
     }

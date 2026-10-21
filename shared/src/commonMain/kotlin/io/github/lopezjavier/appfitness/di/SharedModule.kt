@@ -51,18 +51,23 @@ import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
+import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
+import kotlinx.datetime.TimeZone
 import org.koin.dsl.module
 
 /**
@@ -191,4 +196,9 @@ val sharedModule =
         factory { DeleteAccount(get(), get()) }
         factory { LoadExerciseCatalog(get(), get()) }
         factory { SearchExercises() }
+        factory { ValidateBodyMeasurement() }
+        factory { MeasurementsByDay() }
+        factory { CurrentWeight() }
+        // The local day boundaries follow the device time zone, which is not a Koin dependency.
+        factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get()) }
     }

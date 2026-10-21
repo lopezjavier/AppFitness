@@ -1,0 +1,366 @@
+package io.github.lopezjavier.appfitness.feature.weight
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
+import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
+import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.WeightMonth
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.yearMonth
+
+private const val KEY_MONTH = "weight_month"
+private const val KEY_SHEET_DAY = "weight_sheet_day"
+private const val KEY_EXISTING_ID = "weight_draft_existing_id"
+private const val KEY_WEIGHT = "weight_draft_weight"
+private const val KEY_FAT = "weight_draft_fat"
+private const val KEY_MINUTE = "weight_draft_minute"
+private const val NONE = ""
+private const val NO_DRAFT = -1
+private const val MINUTES_PER_HOUR = 60
+private const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
+private const val NOON_MINUTE = 12 * MINUTES_PER_HOUR
+
+/** What one month load fetched: the panel's latest row and the month's rows, also grouped by day. */
+private class WeightData(
+    val month: YearMonth,
+    val current: BodyMeasurement?,
+    val rows: List<BodyMeasurement>,
+    val days: Map<LocalDate, DayMeasurements>,
+)
+
+private sealed interface WeightLoad {
+    data object Loading : WeightLoad
+
+    data object Failed : WeightLoad
+
+    data class Ready(val data: WeightData) : WeightLoad
+}
+
+/** The open day sheet before it is joined with the data; [draft] is null for a Health Connect only day. */
+private data class SheetState(
+    val day: LocalDate,
+    val draft: MeasurementDraft?,
+    val saving: Boolean = false,
+    val error: WeightSaveError? = null,
+)
+
+/**
+ * The weight screen (US-25): the current weight, a month calendar of the days with measurements and a day sheet that
+ * creates, edits (weight, fat, time; the date is locked) or deletes the day's manual weight, and lists its Health
+ * Connect rows (delete only). Deleting is immediate (ADR-45). The visible month, the open day and the draft live in
+ * [savedState] as primitives, so they survive recreation; closing the sheet discards the draft. Writes need
+ * connectivity. Prefill rule for a new weight: today uses the latest weight; a past day uses the latest weight at or
+ * before it in the visible month, else the latest overall; none leaves the field blank.
+ */
+// One dependency per port; one small handler per event; guard clauses return early.
+@Suppress("LongParameterList", "TooManyFunctions", "ReturnCount", "CyclomaticComplexMethod")
+class WeightViewModel(
+    private val repository: BodyMeasurementRepository,
+    private val measurementsByDay: MeasurementsByDay,
+    private val saveBodyMeasurement: SaveBodyMeasurement,
+    private val validate: ValidateBodyMeasurement,
+    connectivity: ConnectivityObserver,
+    private val clock: Clock,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val savedState: SavedStateHandle = SavedStateHandle(),
+) : ViewModel() {
+    private val month = MutableStateFlow(
+        savedState.get<String>(KEY_MONTH)?.let(YearMonth::parse) ?: clock.today().yearMonth,
+    )
+    private val load = MutableStateFlow<WeightLoad>(WeightLoad.Loading)
+    private val sheet = MutableStateFlow(restoreSheet())
+    private val online = MutableStateFlow(true)
+    private var loadJob: Job? = null
+    private var openJob: Job? = null
+
+    private val effectChannel = Channel<WeightEffect>(Channel.BUFFERED)
+    val effects: Flow<WeightEffect> = effectChannel.receiveAsFlow()
+
+    val uiState: StateFlow<WeightUiState> = combine(load, sheet, online, ::buildState)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, WeightUiState.Loading)
+
+    init {
+        viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
+        reload()
+    }
+
+    fun onEvent(event: WeightEvent) {
+        when (event) {
+            WeightEvent.PreviousMonth -> showMonth(month.value.minus(1, DateTimeUnit.MONTH))
+
+            WeightEvent.NextMonth -> if (month.value < clock.today().yearMonth) {
+                showMonth(month.value.plus(1, DateTimeUnit.MONTH))
+            }
+
+            WeightEvent.LogToday -> open(clock.today(), forceForm = true)
+
+            is WeightEvent.OpenDay -> open(event.date, forceForm = false)
+
+            WeightEvent.CloseSheet -> setSheet(null)
+
+            WeightEvent.StartManual -> startManual()
+
+            is WeightEvent.SetWeight -> edit { it.copy(weightText = event.text) }
+
+            is WeightEvent.SetBodyFat -> edit { it.copy(fatText = event.text) }
+
+            is WeightEvent.SetTime -> setTime(event.hour, event.minute)
+
+            WeightEvent.Save -> save()
+
+            WeightEvent.DeleteManual -> deleteManual()
+
+            is WeightEvent.DeleteHealthConnect -> deleteHealthConnect(event.id)
+
+            WeightEvent.Retry -> if (load.value == WeightLoad.Failed) reload()
+
+            WeightEvent.Refresh -> if (load.value is WeightLoad.Ready) reload(silent = true)
+        }
+    }
+
+    // Loading
+
+    private fun showMonth(target: YearMonth) {
+        month.value = target
+        savedState[KEY_MONTH] = target.toString()
+        reload()
+    }
+
+    private fun reload(silent: Boolean = false) {
+        loadJob?.cancel()
+        if (!silent) load.value = WeightLoad.Loading
+        loadJob = viewModelScope.launch {
+            val data = fetch(month.value)
+            when {
+                data != null -> load.value = WeightLoad.Ready(data)
+                !silent -> load.value = WeightLoad.Failed
+            }
+        }
+    }
+
+    /** Null when either read fails. */
+    private suspend fun fetch(target: YearMonth): WeightData? {
+        val (from, toExclusive) = WeightMonth.bounds(target, timeZone)
+        val (latest, rows) = coroutineScope {
+            val latest = async { repository.getLatestWeight() }
+            val rows = async { repository.getMeasurements(from, toExclusive) }
+            latest.await() to rows.await()
+        }
+        if (latest.isFailure || rows.isFailure) return null
+        val monthRows = rows.getOrThrow()
+        return WeightData(target, latest.getOrNull(), monthRows, measurementsByDay(monthRows, timeZone))
+    }
+
+    private suspend fun refreshData(): WeightData? = fetch(month.value)?.also { load.value = WeightLoad.Ready(it) }
+
+    // Sheet
+
+    private fun open(day: LocalDate, forceForm: Boolean) {
+        if (day > clock.today()) return
+        openJob?.cancel()
+        openJob = viewModelScope.launch {
+            if (month.value != day.yearMonth) {
+                showMonth(day.yearMonth)
+                loadJob?.join()
+            }
+            val data = (load.value as? WeightLoad.Ready)?.data ?: return@launch
+            val dayRows = data.days[day]
+            val manual = dayRows?.manual
+            val draft = when {
+                manual != null -> editDraftOf(manual)
+                forceForm || dayRows?.healthConnect.isNullOrEmpty() -> newDraft(day, data)
+                else -> null
+            }
+            setSheet(SheetState(day, draft))
+        }
+    }
+
+    private fun startManual() {
+        val state = sheet.value ?: return
+        val data = (load.value as? WeightLoad.Ready)?.data ?: return
+        if (state.draft != null) return
+        openJob?.cancel()
+        openJob = viewModelScope.launch {
+            val draft = newDraft(state.day, data)
+            sheet.value?.takeIf { it.day == state.day }?.let { setSheet(it.copy(draft = draft)) }
+        }
+    }
+
+    private suspend fun newDraft(day: LocalDate, data: WeightData): MeasurementDraft {
+        val prefill = if (day == clock.today()) {
+            repository.getLatestWeight().getOrNull()
+        } else {
+            WeightMonth.prefill(data.rows, day, timeZone) ?: repository.getLatestWeight().getOrNull()
+        }
+        return MeasurementDraft(
+            existingId = null,
+            weightText = prefill?.let { decimalText(it.weightKg) }.orEmpty(),
+            fatText = NONE,
+            minuteOfDay = if (day == clock.today()) nowMinuteOfDay() else NOON_MINUTE,
+        )
+    }
+
+    private fun editDraftOf(row: BodyMeasurement): MeasurementDraft {
+        val local = row.measuredAt.toLocalDateTime(timeZone)
+        return editDraft(row, local.hour * MINUTES_PER_HOUR + local.minute)
+    }
+
+    private fun nowMinuteOfDay(): Int {
+        val local = clock.now().toLocalDateTime(timeZone)
+        return local.hour * MINUTES_PER_HOUR + local.minute
+    }
+
+    private fun maxMinuteOf(day: LocalDate): Int? = if (day == clock.today()) nowMinuteOfDay() else null
+
+    private fun edit(change: (MeasurementDraft) -> MeasurementDraft) {
+        val state = sheet.value ?: return
+        val draft = state.draft ?: return
+        if (state.saving) return
+        setSheet(state.copy(draft = change(draft), error = null))
+    }
+
+    private fun setTime(hour: Int, minute: Int) {
+        val state = sheet.value ?: return
+        val max = maxMinuteOf(state.day) ?: (MINUTES_PER_DAY - 1)
+        val requested = (hour * MINUTES_PER_HOUR + minute).coerceIn(0, MINUTES_PER_DAY - 1)
+        edit { it.copy(minuteOfDay = requested.coerceAtMost(max)) }
+    }
+
+    private fun setSheet(state: SheetState?) {
+        sheet.value = state
+        savedState[KEY_SHEET_DAY] = state?.day?.toString() ?: NONE
+        val draft = state?.draft
+        savedState[KEY_EXISTING_ID] = draft?.existingId ?: NONE
+        savedState[KEY_WEIGHT] = draft?.weightText ?: NONE
+        savedState[KEY_FAT] = draft?.fatText ?: NONE
+        savedState[KEY_MINUTE] = draft?.minuteOfDay ?: NO_DRAFT
+    }
+
+    private fun restoreSheet(): SheetState? {
+        val day = savedState.get<String>(KEY_SHEET_DAY)?.takeIf { it != NONE }?.let(LocalDate::parse) ?: return null
+        val minute = savedState.get<Int>(KEY_MINUTE) ?: NO_DRAFT
+        val draft = if (minute == NO_DRAFT) {
+            null
+        } else {
+            MeasurementDraft(
+                existingId = savedState.get<String>(KEY_EXISTING_ID)?.takeIf { it != NONE },
+                weightText = savedState.get<String>(KEY_WEIGHT).orEmpty(),
+                fatText = savedState.get<String>(KEY_FAT).orEmpty(),
+                minuteOfDay = minute,
+            )
+        }
+        return SheetState(day, draft)
+    }
+
+    // Writes
+
+    private fun save() {
+        val state = sheet.value ?: return
+        val draft = state.draft ?: return
+        val data = (load.value as? WeightLoad.Ready)?.data ?: return
+        val weight = draft.weightKg ?: return
+        if (!online.value || state.saving) return
+        val existing = draft.existingId?.let { id -> data.days[state.day]?.manual?.takeIf { it.id == id } }
+        setSheet(state.copy(saving = true, error = null))
+        viewModelScope.launch {
+            val result = saveBodyMeasurement(weight, draft.bodyFatPct, state.day, existing, draft.time)
+            if (result.isSuccess) {
+                refreshData()
+                setSheet(null)
+            } else {
+                val error = if (result.appErrorOrNull() == AppError.Network) {
+                    WeightSaveError.Offline
+                } else {
+                    WeightSaveError.Failed
+                }
+                sheet.value?.let { setSheet(it.copy(saving = false, error = error)) }
+            }
+        }
+    }
+
+    private fun deleteManual() {
+        val state = sheet.value ?: return
+        val id = state.draft?.existingId ?: return
+        if (state.saving) return
+        deleteRow(id) { setSheet(null) }
+    }
+
+    private fun deleteHealthConnect(id: String) {
+        val state = sheet.value ?: return
+        deleteRow(id) { data ->
+            val left = data?.days?.get(state.day)?.healthConnect.orEmpty()
+            if (left.isEmpty() && sheet.value?.draft == null) setSheet(null)
+        }
+    }
+
+    private fun deleteRow(id: String, afterReload: (WeightData?) -> Unit) {
+        if (!online.value) return
+        viewModelScope.launch {
+            val result = repository.deleteMeasurement(id)
+            if (result.isSuccess) {
+                afterReload(refreshData())
+            } else {
+                effectChannel.send(WeightEffect.DeleteFailed(offline = result.appErrorOrNull() == AppError.Network))
+            }
+        }
+    }
+
+    // State
+
+    private fun buildState(load: WeightLoad, sheet: SheetState?, online: Boolean): WeightUiState = when (load) {
+        WeightLoad.Loading -> WeightUiState.Loading
+
+        WeightLoad.Failed -> WeightUiState.Error
+
+        is WeightLoad.Ready -> {
+            val today = clock.today()
+            WeightUiState.Content(
+                WeightContent(
+                    month = load.data.month,
+                    today = today,
+                    canGoNext = load.data.month < today.yearMonth,
+                    current = load.data.current,
+                    days = load.data.days,
+                    isOnline = online,
+                    sheet = sheet?.let { sheetOf(it, load.data, online) },
+                ),
+            )
+        }
+    }
+
+    private fun sheetOf(state: SheetState, data: WeightData, online: Boolean) = WeightSheet(
+        day = state.day,
+        isToday = state.day == clock.today(),
+        healthConnect = data.days[state.day]?.healthConnect.orEmpty(),
+        form = state.draft?.let {
+            formOf(it, validate, maxMinuteOf(state.day), online, state.saving, state.error)
+        },
+    )
+}

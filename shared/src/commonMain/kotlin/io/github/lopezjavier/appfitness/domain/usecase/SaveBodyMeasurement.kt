@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.atTime
@@ -20,7 +21,8 @@ import kotlinx.datetime.toLocalDateTime
  *
  * - New save (no [existing], no [day]): today, measured now.
  * - Past day without an entry ([day] set): measured at local noon of that day.
- * - Edit ([existing] set): the entry's day and time never change, so the day is locked; only weight and fat do.
+ * - Edit ([existing] set): the entry's day is locked; weight, fat and, when [time] is given, the time of day change.
+ * - [time] (local) overrides the default time of a new save or an edit; the result must not be after now.
  */
 class SaveBodyMeasurement(
     private val repository: BodyMeasurementRepository,
@@ -28,11 +30,13 @@ class SaveBodyMeasurement(
     private val timeZone: TimeZone,
     private val validate: ValidateBodyMeasurement = ValidateBodyMeasurement(),
 ) {
+    @Suppress("ReturnCount") // Two validation guards before the save.
     suspend operator fun invoke(
         weightKg: Double,
         bodyFatPct: Double?,
         day: LocalDate? = null,
         existing: BodyMeasurement? = null,
+        time: LocalTime? = null,
     ): Result<Unit> {
         if (validate(weightKg, bodyFatPct) != BodyMeasurementCheck.Valid) {
             return Result.failure(AppException(AppError.Validation))
@@ -41,9 +45,14 @@ class SaveBodyMeasurement(
         val today = now.toLocalDateTime(timeZone).date
         val targetDay = day ?: existing?.measuredAt?.toLocalDateTime(timeZone)?.date ?: today
         val measuredAt = when {
+            time != null -> targetDay.atTime(time).toInstant(timeZone)
             existing != null -> existing.measuredAt
             targetDay == today -> now
             else -> targetDay.atTime(NOON_HOUR, 0).toInstant(timeZone)
+        }
+        // An untouched edit keeps its stored instant; anything else must not lie in the future.
+        if ((existing == null || time != null) && measuredAt > now) {
+            return Result.failure(AppException(AppError.Validation))
         }
         return repository.saveManualWeight(
             ManualWeightSave(

@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
+import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
@@ -79,6 +80,18 @@ val uiModule =
                 mealSlots = get(),
                 recalculateEntry = get(),
                 connectivity = get(),
+                savedState = get(),
+            )
+        }
+        // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.
+        viewModel {
+            WeightViewModel(
+                repository = get(),
+                measurementsByDay = get(),
+                saveBodyMeasurement = get(),
+                validate = get(),
+                connectivity = get(),
+                clock = get(),
                 savedState = get(),
             )
         }

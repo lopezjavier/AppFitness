@@ -42,6 +42,7 @@ class ProfileRootScreenTest {
     private var preferencesOpens = 0
     private var strengthOpens = 0
     private var diaryHistoryOpens = 0
+    private var weightOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -60,6 +61,7 @@ class ProfileRootScreenTest {
         preferencesOpens = 0
         strengthOpens = 0
         diaryHistoryOpens = 0
+        weightOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
@@ -68,6 +70,7 @@ class ProfileRootScreenTest {
                     onOpenPreferences = { preferencesOpens++ },
                     onOpenStrength = { strengthOpens++ },
                     onOpenDiaryHistory = { diaryHistoryOpens++ },
+                    onOpenWeight = { weightOpens++ },
                     onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
                     effects = effects.receiveAsFlow(),
                 )
@@ -142,6 +145,30 @@ class ProfileRootScreenTest {
 
         assertEquals(1, diaryHistoryOpens)
         assertEquals(0, strengthOpens)
+    }
+
+    @Test
+    fun weightRow_isBetweenFuerzaAndTheHistory_andOpensPeso() {
+        show()
+        rule.onNodeWithTag("profile_weight_row").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Peso").assertExists()
+        val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
+        val weight = rule.onNodeWithTag("profile_weight_row").getUnclippedBoundsInRoot()
+        val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()
+        assertTrue(weight.top >= strength.bottom)
+        assertTrue(history.top >= weight.bottom)
+
+        rule.onNodeWithTag("profile_weight_row").performClick()
+
+        assertEquals(1, weightOpens)
+        assertEquals(0, strengthOpens)
+        assertEquals(0, diaryHistoryOpens)
+    }
+
+    @Test
+    fun weightRow_isHiddenWhileTheProfileLoads() {
+        show(ProfileRootUiState.Loading)
+        rule.onNodeWithTag("profile_weight_row").assertDoesNotExist()
     }
 
     @Test
