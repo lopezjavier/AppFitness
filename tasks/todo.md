@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ☐ · E5 ☐ · E6 ☐
 
-**Next:** T-063 (E4 closure). Checkpoint E4-B round 2 feedback (2026-10-21, all UI, postponed by the user) is logged in the E8 refinement table.
+**Next:** T-069 (fix comida edit crash and comida details). Checkpoint E4-C round 1 feedback (2026-10-21) became T-069…T-071; E4-C is re-presented after they merge, then T-063.
 
 ---
 
@@ -1775,6 +1775,51 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 
 ---
 
+## T-069: Fix comida edit crash and comida details (E4-C feedback)
+
+**Story:** US-21 · **Flow:** UI + core · **Type:** fix
+
+**Description:** User feedback at Checkpoint E4-C (2026-10-21). Editing a comida crashes the app: reproduce with a host test and fix. Redesign the comidas list: tapping a comida opens its details (foods, quantities) with a pencil to rename it, edit and delete; swiping a comida in the list deletes it with "Deshacer"; the three row buttons are removed and "Añadir" becomes a "+". Rename is thus part of the details/edit flow.
+
+**Acceptance criteria:**
+- [ ] Editing a comida (quantities, remove a food, overwrite or save as new) no longer crashes; a regression host test covers it.
+- [ ] Tapping a comida opens its details; rename (pencil), edit and delete live there. Swipe in the list deletes with "Deshacer"; the "Añadir" action is a "+" button. Entries already logged do not change.
+- [ ] The state survives leaving the app (ADR-40).
+
+**Verification:** lint, host tests and CI green. **Dependencies:** T-068 · **Estimated scope:** M
+
+---
+
+## T-070: Fix food details sheet and clean the food cache (E4-C feedback)
+
+**Story:** US-25 · **Flow:** backend + UI · **Type:** fix
+
+**Description:** The food details sheet shows no micronutrients and its layout is broken (a horizontal line over "gramos" and "100 g (100 g)"). Drop the "100 g (100 g)" label when the portion is just 100 g. Cached OFF foods stored before T-068 lack `off_data`; user decision 2026-10-21: delete all `source = 'off'` foods and everything referencing them (`food_log_entries`, `favorite_foods`, `meal_template_items`; templates left empty are removed); food data is not stable yet. Workout data is never touched.
+
+**Acceptance criteria:**
+- [ ] Migration deletes every OFF food and its dependants; pgTAP covers it and that workout tables are untouched.
+- [ ] The details sheet shows the micronutrients (host test with `off_data` and with manual `micronutrients`) and has no stray line; no duplicated "100 g (100 g)".
+- [ ] After the merge: `deploy-supabase` green; a fresh search/scan fills `off_data`.
+
+**Verification:** lint, host tests, pgTAP and CI green. **Dependencies:** T-069 · **Estimated scope:** M
+
+---
+
+## T-071: Diario calendar button and Perfil "Estadísticas" (E4-C feedback, ADR-44)
+
+**Story:** US-24 · **Flow:** UI · **Type:** feat
+
+**Description:** One Diario UI that always shows the calendar button next to the day arrows (remove the `showHistory` conditional). Move the diary history (Día/Semana/Mes summaries and month calendar) out of the Diario to a full-screen destination reached from an "Estadísticas" entry on the Perfil root (ADR-37 pattern). Tapping a day there opens the normal Diario on that day, with its calendar button and a back path.
+
+**Acceptance criteria:**
+- [ ] The Diario shows the calendar button whether opened from its tab or from the statistics calendar; one `DiaryScreen`, no variant.
+- [ ] Perfil root has "Estadísticas"; the history screen keeps US-24 behaviour (marked days, summaries against target, week average, month total, "Sin registros").
+- [ ] The Diario no longer has its own history entry; state and navigation survive leaving the app (ADR-40).
+
+**Verification:** lint, host tests and CI green. **Dependencies:** T-070 · **Estimated scope:** M
+
+---
+
 ## T-063: E4 closure
 
 **Story:** E4 Definition of Done · **Flow:** PM
@@ -1790,12 +1835,12 @@ Checkpoints: exactly three (user decision 2026-10-20, overrides the one-per-func
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.4.0` after approval.
 
-**Dependencies:** T-068
+**Dependencies:** T-071
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
 **Estimated scope:** S
 
 ### Checkpoint E4-C — Templates, history, final regression and approval 👤
-- [ ] T-061…T-063 and T-068 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-061, T-062, T-068, T-069, T-070 and T-071 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Micronutrients: scan or search a real packaged food, open its details: fiber, sugars, salt and the vitamins/minerals OFF has are listed per 100 g. Create a food typing saturated fat, sugars, fiber and salt from its label: they show in its details; one created without them shows no section.
   - Comidas: fill a breakfast and "Guardar como comida"; try the same name again (error). From any meal's search, "Comidas" → add it there: the foods appear and the ring jumps at once. Edit it (quantities, remove a food) and choose "Sobrescribir" or "Guardar como nueva"; rename and delete one: entries already logged do not change.
