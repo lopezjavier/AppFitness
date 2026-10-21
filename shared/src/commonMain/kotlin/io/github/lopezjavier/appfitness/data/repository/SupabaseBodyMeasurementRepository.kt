@@ -2,18 +2,27 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementDto
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementInsertDto
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.MeasurementSourceDto
+import io.github.lopezjavier.appfitness.data.remote.SaveBodyMeasurementParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import kotlin.time.Instant
+
+// Raised by `save_body_measurement` and the table checks.
+private const val INVALID_PARAMETER = "22023"
+private const val CHECK_VIOLATION = "23514"
+private const val NO_DATA_FOUND = "P0002"
 
 /**
  * `body_measurements` of the signed-in user (RLS owner policies). The onboarding weight is the user's earliest
@@ -44,6 +53,42 @@ class SupabaseBodyMeasurementRepository(private val auth: Auth, private val post
             .decodeList<BodyMeasurementDto>()
             .firstOrNull()
             ?.toDomain()
+    }
+
+    override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
+        signedIn {
+            postgrest.from("body_measurements")
+                .select(Columns.raw(BodyMeasurementDto.COLUMNS)) {
+                    // Two operators on one column need `and(...)`: plain filters are keyed by column.
+                    filter {
+                        and {
+                            gte("measured_at", from.toString())
+                            lt("measured_at", toExclusive.toString())
+                        }
+                    }
+                    order("measured_at", Order.DESCENDING)
+                }
+                .decodeList<BodyMeasurementDto>()
+                .map { it.toDomain() }
+        }
+
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> = signedIn {
+        postgrest.rpc("save_body_measurement", SaveBodyMeasurementParams.from(save))
+        Unit
+    }.mapSaveErrors()
+
+    override suspend fun deleteMeasurement(id: String): Result<Unit> = signedIn {
+        postgrest.from("body_measurements").delete { filter { eq("id", id) } }
+        Unit
+    }
+
+    private fun <T> Result<T>.mapSaveErrors(): Result<T> = recoverCatching { failure ->
+        val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
+        when (cause.code) {
+            INVALID_PARAMETER, CHECK_VIOLATION -> throw AppException(AppError.Validation, cause)
+            NO_DATA_FOUND -> throw AppException(AppError.NotFound, cause)
+            else -> throw failure
+        }
     }
 
     private suspend fun findOnboardingRow(): BodyMeasurement? = postgrest.from("body_measurements")
