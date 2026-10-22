@@ -261,6 +261,27 @@ Feature: Weight trend, goal and interpretation
   Scenario: Point detail
     When the user long-presses a point on the chart
     Then they see the date, that day's weight and that day's moving average
+
+  Scenario: Metric selector
+    When the user opens the trend chart
+    Then a selector offers weight, body fat, lean mass, water, bone, BMR, waist and hip
+    And the chosen metric uses the same time filters, 7-day average and long-press readout
+    And the target weight line only appears on the weight view
+
+  Scenario: Target line
+    Given the user has set a target weight
+    Then the weight chart shows a dashed line at the target
+
+  Scenario: Composition values
+    Given a Health Connect weigh-in with body fat, lean mass, water, bone and BMR
+    When the user taps the "+" button on "Peso actual"
+    Then the "Composición corporal" sheet lists the latest value of each metric with its date
+    And the day's detail shows that day's values
+
+  Scenario: Health Connect weight takes precedence
+    Given a day has a weight from Health Connect
+    Then the weight screen offers no manual entry for that day
+    And "Peso actual" in Preferencias is read-only with the note "Sincronizado desde Health Connect"
 ```
 
 **Technical notes**
