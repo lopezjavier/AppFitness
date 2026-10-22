@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** E5-B 👤 checkpoint (T-085 done; T-079…T-081, T-084 and T-085 merged; approval releases T-082 → `v0.5.0`). T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** T-086 (crash deleting an old manual weight), then T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2146,8 +2146,46 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 
 ---
 
+## T-086: Fix crash when deleting an old manual weight
+
+**Story:** US-25 (bug reported at Checkpoint E5-B round 2, 2026-10-22) · **Flow:** fix · **Scenarios:** Delete a manual weight
+
+**Description:** Deleting an old manual weight (from the calendar / day detail) removes it but the app crashes. The developer reproduces it with a failing test first, finds the cause (logcat from the user if needed) and fixes it.
+
+**Acceptance criteria:**
+- [ ] Deleting an old manual weight removes it and the app keeps running (chart, calendar and "Peso actual" update).
+- [ ] A regression test reproduces the crash before the fix.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-085
+**Estimated scope:** S
+
+---
+
+## T-087: Fix E5-B feedback round 2 (ADR-48)
+
+**Story:** US-25, US-27 (fix from Checkpoint E5-B feedback, 2026-10-22) · **Flow:** UI + core · **Scenarios:** Health Connect weight takes precedence; Metric selector
+
+**Description:** (1) Preferencias "Peso actual" must be read-only while the latest weight is from Health Connect (ADR-47 not honoured: it was editable); audit every other entry point for the same hole. (2) "Peso actual" shows the latest weight and its date, never "Sin datos suficientes". (3) ADR-48: remove the "+"; the whole box opens "Composición corporal"; a pencil in its place opens today's weight entry; remove the green "Registrar peso de hoy" button; remove "Comparar" and its code. (4) Preload: the weight screen loads weights, measurements and circumferences once when opened and switching metric tabs reads from memory (no reload, no network on tab change).
+
+**Acceptance criteria:**
+- [ ] With a Health Connect latest weight, "Peso actual" in Preferencias cannot be edited.
+- [ ] "Peso actual" never shows "Sin datos suficientes".
+- [ ] The box opens the composition; the pencil opens today's weight entry (disabled with a Health Connect weight); no green button; no "+"; no "Comparar".
+- [ ] Switching metric tabs makes no repository call and shows the chart at once.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-086
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
-- [ ] T-079…T-081, T-084 and T-085 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-079…T-081 and T-084…T-087 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Manual weight and circumferences (from T-076…T-078 and T-083): Perfil → "Peso": "Registrar peso de hoy" (day only, no hour; weight and fat fields aligned); 19,9 kg, 401 kg and 80 % fat disable "Guardar"; a second "Registrar peso de hoy" edits today's weight; the calendar marks days, sets yesterday's weight and edits or deletes a day (gone at once). "Circunferencias" → "Añadir medida": fill waist 84,5 and hip 98,0 at once → ratio "0,86"; the "?" help; edit and delete one; 19,9 and 251 cm disabled.
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
@@ -2158,7 +2196,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
   - The weekly pill: its sign and colour match your strategy (Déficit: green while the average goes down). Set yesterday's weight from the calendar: the line and the pill update.
   - "Fijar objetivo": enter your target weight; the goal card shows "faltan X kg" and the progress since your first weight in the app; set a target on the other side of your weight (e.g. above it while in Déficit): "objetivo alcanzado"; change it and see the card follow.
   - "IMC" with its status; open the BMI, body fat and waist-to-hip ratio details: value, status, a short explanation and the disclaimer "Este producto no es un dispositivo médico…". The extra values from your scale (lean mass, water, bone, BMR) are visible.
-  - In the weight calendar, open an older day's measurement → "Comparar": the weight and fat differences with their sign.
+  - Round-2 fixes: deleting an old manual weight no longer crashes; Preferencias "Peso actual" is read-only with a Health Connect weight; the "Peso actual" box opens the composition, the pencil opens today's entry, no green button, no "Comparar"; switching metric tabs is instant.
   - Final regression over a few real days: weigh yourself and "Sincronizar"; set a weight from the calendar and check Health Connect follows its edit and delete; log a waist and a hip (the ratio and its interpretation update); the chart, the weekly pill, the goal distance and the BMI move; the weight in Preferencias matches the weight screen.
   - Leave the app on the permission screen, mid-sync, with the target sheet half filled, a comparison open or a non-default chart filter: the same tab, screen and draft are restored.
   - Approval → `v0.5.0` and the retrospective (T-082).

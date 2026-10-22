@@ -388,3 +388,11 @@ Format: context → decision → consequences. A decision is only changed by add
   - Manual entry keeps working for days without a Health Connect weight.
   - Composition values (body fat %, lean mass, water, bone, BMR) are reachable from a "+" button on "Peso actual" ("Composición corporal" sheet with the latest values and dates), in each day's detail and, from T-085, as chart metrics.
 - **Consequences:** `epics/E5-weight.md` (US-25, US-27), `tasks/todo.md` (T-084, T-085) and `tasks/plan.md` reflect this; no data-model change expected (the planner confirms).
+
+### ADR-48 · Drop "Comparar"; "Peso actual" box opens the composition; pencil replaces "Registrar peso de hoy" (E5, T-087)
+- **Context:** Checkpoint E5-B round 2 (user, 2026-10-22): "Comparar" inside a day's detail has no clear target and makes no sense; the "+" on "Peso actual" is an odd control; the green "Registrar peso de hoy" button is unwanted.
+- **Decision:**
+  - FR-3.8 (compare two measurements) is dropped from Phase 1: no "Comparar" action, `ComparisonSheet` or `ComparisonDeltaRow` use, and the scenario "Compare two measurements" is removed from US-27.
+  - The whole "Peso actual" box opens the "Composición corporal" sheet (the "+" is removed).
+  - A pencil in the place of the "+" opens today's weight entry; the green "Registrar peso de hoy" button is removed. Under ADR-47 the pencil is disabled for a day with a Health Connect weight.
+- **Consequences:** `01-phase1-scope.md`, `07-roadmap.md`, `epics/E5-weight.md` and `tasks/todo.md` reflect this; the code and tests for the comparison are removed in T-087.

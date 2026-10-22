@@ -104,7 +104,7 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-3.3 – FR-3.5 Chart, filters, rate | US-27 |
 | FR-3.6 Target weight | US-27 |
 | FR-3.7 BMI and interpretation | US-27 |
-| FR-3.8 Compare measurements | US-27 |
+| ~~FR-3.8 Compare measurements~~ (dropped, ADR-48) | — |
 | FR-4.1 Exercise catalog | US-09 |
 | FR-4.2 Routines | US-10 |
 | FR-4.3 Live session | US-11 |
