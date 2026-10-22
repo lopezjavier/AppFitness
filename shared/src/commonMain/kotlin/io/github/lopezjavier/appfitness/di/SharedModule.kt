@@ -6,6 +6,7 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.SystemClock
+import io.github.lopezjavier.appfitness.data.local.DataStoreWeightChartPreferences
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
@@ -52,6 +53,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
@@ -77,6 +79,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import kotlinx.datetime.TimeZone
 import org.koin.dsl.module
 
@@ -206,6 +209,8 @@ val sharedModule =
             }
         }
         single<Clock> { SystemClock() }
+        single<WeightChartPreferences> { DataStoreWeightChartPreferences(get()) }
+        factory { WeightTrend() }
         factory { BuildDiaryDay() }
         factory { ResolvePortion() }
         factory { RecalculateEntry(get(), get(), get()) }

@@ -18,6 +18,13 @@ class MetricTileTest {
     }
 
     @Test
+    fun colors_containerOverride_replacesOnlyTheContainer() {
+        val colors = MetricTileDefaults.colors(c, containerColor = c.surfaceRaised)
+        assertEquals(c.surfaceRaised, colors.container)
+        assertEquals(c.borderStrong, colors.border)
+    }
+
+    @Test
     fun shapeMd_padding12() {
         assertEquals(AppShapes.md, MetricTileDefaults.Shape)
         assertEquals(Spacing.md, MetricTileDefaults.Padding)

@@ -13,18 +13,24 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
+import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
+import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
@@ -42,6 +48,15 @@ private object HealthClock : Clock {
 }
 
 /** The banner inside [WeightRoot]: the permission flow, and the denied state surviving recreation (ADR-40). */
+private class InMemoryChartPreferences : WeightChartPreferences {
+    private val state = MutableStateFlow(WeightChartRange.Default)
+    override val range: Flow<WeightChartRange> = state
+
+    override suspend fun setRange(range: WeightChartRange) {
+        state.value = range
+    }
+}
+
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class HealthSyncRestorationTest {
@@ -99,10 +114,21 @@ class HealthSyncRestorationTest {
                 timeZone = TimeZone.UTC,
             )
         }
+        val trend = remember {
+            WeightTrendViewModel(
+                measurements = weights,
+                goals = FakeNutritionGoalsRepository(),
+                preferences = InMemoryChartPreferences(),
+                weightTrend = WeightTrend(),
+                clock = HealthClock,
+                timeZone = TimeZone.UTC,
+            )
+        }
         AppTheme {
             WeightRoot(
                 modifier = Modifier,
                 viewModel = weight,
+                trendViewModel = trend,
                 circumferencesViewModel = circumferences,
                 healthSyncViewModel = health,
                 launcherFor = { onResult ->

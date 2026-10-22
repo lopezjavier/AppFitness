@@ -41,6 +41,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
+import io.github.lopezjavier.appfitness.designsystem.AppLineChartDefaults
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
@@ -269,6 +271,21 @@ private fun MetricTilesSection() {
             unit = "kg",
             modifier = Modifier.fillMaxWidth().testTag("catalog_metric_tile_goal"),
         )
+        MetricTile(
+            label = stringResource(Res.string.catalog_metric_fat),
+            value = "14,8",
+            unit = "%",
+            modifier = Modifier.fillMaxWidth().testTag("catalog_metric_tile_raised"),
+            containerColor = AppTheme.colors.surfaceRaised,
+            supporting = {
+                TrendPill(
+                    stringResource(Res.string.catalog_metric_fat_trend),
+                    TrendTone.Favorable,
+                    direction = TrendDirection.Down,
+                    containerColor = AppTheme.colors.surfaceBase,
+                )
+            },
+        )
     }
 }
 
@@ -306,6 +323,7 @@ private fun TrendPillsSection() {
 }
 
 private val DemoChartValues = listOf(100.0, 104.0, 102.5, 108.0, 113.5)
+private val DemoMaValues = listOf(null, 102.0, 103.0, 104.5, 107.0)
 private val DemoChartLabels = listOf("1 oct", "8 oct", "15 oct", "22 oct", "29 oct")
 
 @Composable
@@ -318,6 +336,17 @@ private fun LineChartSection() {
                 description = stringResource(Res.string.catalog_line_chart_cd),
                 modifier = Modifier.fillMaxWidth().testTag("catalog_line_chart"),
                 valueLabel = { it.roundToInt().toString() },
+            )
+        }
+        AppCard(Modifier.fillMaxWidth()) {
+            AppLineChart(
+                values = DemoMaValues,
+                labels = DemoChartLabels,
+                description = stringResource(Res.string.catalog_line_chart_cd),
+                modifier = Modifier.fillMaxWidth().testTag("catalog_line_chart_dots"),
+                valueLabel = { it.roundToInt().toString() },
+                dots = DemoChartValues,
+                lineThickness = AppLineChartDefaults.MaLineThickness,
             )
         }
     }

@@ -836,4 +836,27 @@
     <string name="health_action_update">Actualizar</string>
     <string name="health_action_retry">Reintentar</string>
     <string name="circumference_help_calf">1. De pie, con el peso repartido en ambas piernas. 2. Pasa la cinta por la parte más ancha de la pantorrilla. 3. Mantén la cinta horizontal y sin apretar. Usa siempre la misma pierna.</string>
+
+    <!-- T-080 weight trend chart -->
+    <string name="weight_trend_title">Tendencia</string>
+    <string name="weight_trend_pill">%1$s kg esta semana</string>
+    <string name="weight_trend_error_message">No se pudo cargar la tendencia</string>
+    <string name="weight_chart_filter_1s">1S</string>
+    <string name="weight_chart_filter_1m">1M</string>
+    <string name="weight_chart_filter_3m">3M</string>
+    <string name="weight_chart_filter_6m">6M</string>
+    <string name="weight_chart_filter_1a">1A</string>
+    <string name="weight_chart_filter_1s_cd">1 semana</string>
+    <string name="weight_chart_filter_1m_cd">1 mes</string>
+    <string name="weight_chart_filter_3m_cd">3 meses</string>
+    <string name="weight_chart_filter_6m_cd">6 meses</string>
+    <string name="weight_chart_filter_1a_cd">1 año</string>
+    <string name="weight_chart_legend">MA 7D</string>
+    <string name="weight_chart_empty">Registra tu peso varios días para ver la tendencia</string>
+    <string name="weight_chart_summary">Peso, %1$s: %2$s días con datos, de %3$s kg a %4$s kg. %5$s</string>
+    <string name="weight_chart_detail_action">Ver detalle</string>
+    <string name="weight_chart_detail_close">Cerrar detalle</string>
+    <string name="weight_chart_detail_weight">Peso: %1$s kg</string>
+    <string name="weight_chart_detail_ma7">MA 7D: %1$s kg</string>
+    <string name="weight_chart_detail_ma7_none">MA 7D: sin datos</string>
 </resources>
