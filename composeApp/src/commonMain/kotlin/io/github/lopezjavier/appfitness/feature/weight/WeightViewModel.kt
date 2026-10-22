@@ -127,7 +127,6 @@ class WeightViewModel(
             WeightEvent.CloseSheet -> setSheet(null)
 
             // A day with a Health Connect weight offers no manual entry (ADR-47); any other day already has a form.
-            WeightEvent.StartManual -> Unit
 
             WeightEvent.OpenComposition -> setCompositionOpen(true)
 
@@ -269,6 +268,7 @@ class WeightViewModel(
         val draft = state.draft ?: return
         val data = (load.value as? WeightLoad.Ready)?.data ?: return
         val weight = draft.weightKg ?: return
+        if (data.days[state.day]?.hasHealthConnectWeight == true) return
         if (!online.value || state.saving) return
         val existing = draft.existingId?.let { id -> data.days[state.day]?.manual?.takeIf { it.id == id } }
         setSheet(state.copy(saving = true, error = null))
@@ -292,7 +292,9 @@ class WeightViewModel(
         val state = sheet.value ?: return
         val id = state.draft?.existingId ?: return
         if (state.saving) return
-        val row = (load.value as? WeightLoad.Ready)?.data?.days?.get(state.day)?.manual?.takeIf { it.id == id }
+        val dayRows = (load.value as? WeightLoad.Ready)?.data?.days?.get(state.day)
+        if (dayRows?.hasHealthConnectWeight == true) return
+        val row = dayRows?.manual?.takeIf { it.id == id }
         deleteRow(id, onDeleted = { row?.let { healthWriteBack?.onDeleted(it) } }) { setSheet(null) }
     }
 

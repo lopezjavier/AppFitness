@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.TrendData
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -107,8 +108,9 @@ class WeightTrendViewModel(
                 window.fetchStart.atStartOfDayIn(timeZone),
                 window.endExclusive.atStartOfDayIn(timeZone),
             )
+            val targetDeferred = async { profile.getTargetWeight().getOrNull() }
             val strategy = goals.getOwn().getOrNull()?.strategy ?: GoalStrategy.Maintenance
-            val target = profile.getTargetWeight().getOrNull()
+            val target = targetDeferred.await()
             when {
                 rows.isSuccess ->
                     load.value =

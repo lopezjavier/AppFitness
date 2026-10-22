@@ -90,7 +90,6 @@ sealed interface WeightEvent {
     data object CloseSheet : WeightEvent
 
     /** Ignored: a day with a Health Connect weight offers no manual entry (ADR-47). */
-    data object StartManual : WeightEvent
 
     data object OpenComposition : WeightEvent
 

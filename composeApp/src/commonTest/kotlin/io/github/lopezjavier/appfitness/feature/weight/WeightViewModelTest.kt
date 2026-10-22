@@ -712,18 +712,22 @@ class WeightViewModelTest {
     }
 
     @Test
-    fun startManual_isIgnoredOnAHealthConnectDay() = runTest(dispatcher) {
-        val repository = FakeWeightRepository(healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9))
+    fun saveAndDeleteManual_areIgnoredWhenHealthConnectLandsOnTheOpenDay() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("m", "2026-10-19T08:00:00Z", 74.0))
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 19)))
         advanceUntilIdle()
-
-        model.onEvent(WeightEvent.StartManual)
+        repository.rows += healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9)
+        model.onEvent(WeightEvent.Refresh)
         advanceUntilIdle()
 
-        assertNull(assertNotNull(model.content().sheet).form)
+        model.onEvent(WeightEvent.Save)
+        model.onEvent(WeightEvent.DeleteManual)
+        advanceUntilIdle()
+
         assertTrue(repository.saves.isEmpty())
+        assertTrue(repository.deletes.isEmpty())
     }
 
     @Test
