@@ -26,11 +26,8 @@ Out of scope (epic file): background sync, other Health Connect data (steps, sle
 - [ ] T-076: Manual weight backend: one weight per day, locked date and the repository (US-25 data) — backend — M
 - [ ] T-077: Weight screen with the weight calendar (US-25 weight UI) — UI — M–L
 - [ ] T-078: Body circumferences and the waist-to-hip ratio (US-25 circumferences) — UI + backend — M
-  - **Checkpoint E5-A 👤 Manual weight and body measurements:**
-    - today's weight with fat; validation; reopening today edits it; the weight in Preferencias matches;
-    - in the calendar, set an empty past day, then edit (date locked) and delete;
-    - circumferences with the ratio "0,86": edit, delete, validation;
-    - leave the app and come back.
+- [ ] T-083: User feedback: day-only forms, aligned weight sheet, all circumferences at once — UI — M
+  - No checkpoint here (user decision 2026-10-22): the manual weight and circumference tests move to Checkpoint E5-B.
 
 ### Phase 2: Health Connect and trend
 - [ ] T-079: Manual Health Connect sync, read and write-back (US-26) — UI + backend + platform — L
@@ -54,7 +51,7 @@ There are two checkpoints (user decision 2026-10-21; the first breakdown had fiv
 ## Dependencies
 
 ```
-v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► [E5-A 👤] ─► T-079 ─► T-080 ─► T-081 ─► [E5-B 👤]
+v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► T-083 ─► T-079 ─► T-080 ─► T-081 ─► [E5-B 👤]
        ─► T-082 ─► v0.5.0
 ```
 - Strictly sequential; each checkpoint gates the next task. T-079, T-080 and T-081 run back to back (no checkpoint between).
