@@ -15,11 +15,12 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
     val deletes = mutableListOf<String>()
     val hcRecordIds = mutableListOf<Pair<String, String?>>()
     var failReads = false
+    var onboarding: BodyMeasurement? = null
     var saveFailure: Throwable? = null
     var deleteFailure: Throwable? = null
     private var nextId = 1
 
-    override suspend fun getOnboardingWeight(): Result<BodyMeasurement?> = Result.success(null)
+    override suspend fun getOnboardingWeight(): Result<BodyMeasurement?> = Result.success(onboarding)
 
     override suspend fun saveOnboardingWeight(weightKg: Double, measuredAt: Instant): Result<Unit> =
         Result.success(Unit)

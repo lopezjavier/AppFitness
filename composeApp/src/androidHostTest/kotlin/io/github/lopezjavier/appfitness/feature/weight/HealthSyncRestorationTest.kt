@@ -14,14 +14,21 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
+import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
+import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
+import io.github.lopezjavier.appfitness.domain.usecase.Bmi
+import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
+import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
@@ -124,11 +131,29 @@ class HealthSyncRestorationTest {
                 timeZone = TimeZone.UTC,
             )
         }
+        val goal = remember {
+            GoalViewModel(
+                profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
+                measurements = weights,
+                goals = FakeNutritionGoalsRepository(),
+                circumferences = FakeCircumferenceRepository(),
+                bmi = Bmi(),
+                targetDistance = TargetDistance(),
+                goalProgress = GoalProgress(),
+                interpret = InterpretMetric(),
+                waistHipRatio = WaistHipRatio(),
+                compareMeasurements = CompareMeasurements(),
+                validate = ValidateBodyMeasurement(),
+                connectivity = FakeConnectivityObserver(),
+                clock = HealthClock,
+            )
+        }
         AppTheme {
             WeightRoot(
                 modifier = Modifier,
                 viewModel = weight,
                 trendViewModel = trend,
+                goalViewModel = goal,
                 circumferencesViewModel = circumferences,
                 healthSyncViewModel = health,
                 launcherFor = { onResult ->

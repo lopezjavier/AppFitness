@@ -18,7 +18,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -56,6 +59,7 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -83,9 +87,12 @@ fun WeightScreen(
     onHealthEvent: (HealthSyncEvent) -> Unit = {},
     trend: WeightTrendUiState? = null,
     onTrendEvent: (WeightTrendEvent) -> Unit = {},
+    goal: GoalUiState? = null,
+    onGoalEvent: (GoalEvent) -> Unit = {},
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
+    val goalContent = (goal as? GoalUiState.Content)?.content
     Box(modifier.fillMaxSize().testTag("weight_screen")) {
         when (state) {
             WeightUiState.Loading -> WeightLoading()
@@ -108,8 +115,10 @@ fun WeightScreen(
                     trend,
                     onTrendEvent,
                     timeZone,
+                    goal,
+                    onGoalEvent,
                 )
-                state.content.sheet?.let { WeightDaySheet(it, state.content.isOnline, timeZone, onEvent) }
+                WeightSheets(state.content, goalContent, timeZone, onEvent, onGoalEvent)
                 val circumferenceSheet = (circumferences as? CircumferencesUiState.Content)?.content
                 circumferenceSheet?.sheet?.let {
                     CircumferenceSheet(it, circumferenceSheet.isOnline, state.content.today, onCircumferenceEvent)
@@ -123,7 +132,7 @@ fun WeightScreen(
 }
 
 // Screen state plus its event sinks; the sections are separate composables.
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun WeightContentView(
     content: WeightContent,
@@ -135,7 +144,12 @@ private fun WeightContentView(
     trend: WeightTrendUiState?,
     onTrendEvent: (WeightTrendEvent) -> Unit,
     timeZone: TimeZone,
+    goal: GoalUiState?,
+    onGoalEvent: (GoalEvent) -> Unit,
 ) {
+    val whrClick: (() -> Unit)? = (goal as? GoalUiState.Content)?.content?.waistToHip?.let {
+        { onGoalEvent(GoalEvent.OpenMetric(MetricKind.WaistToHip)) }
+    }
     Column(Modifier.fillMaxSize()) {
         if (!content.isOnline) {
             OfflineBanner(Modifier.fillMaxWidth(), testTagPrefix = "weight_offline_banner")
@@ -158,28 +172,72 @@ private fun WeightContentView(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
                             WeightPanelSection(content, onEvent, timeZone, trend)
+                            goal?.let { GoalSection(it, onGoalEvent) }
                             healthSync?.let { HealthConnectBanner(it, onHealthEvent) }
                             trend?.let { WeightChart(it, onTrendEvent) }
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                             WeightCalendar(content, onEvent)
-                            CircumferenceSection(circumferences, content.today, timeZone, onCircumferenceEvent)
+                            CircumferenceSection(
+                                circumferences,
+                                content.today,
+                                timeZone,
+                                onCircumferenceEvent,
+                                onRatioClick = whrClick,
+                            )
                         }
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
                             WeightPanelSection(content, onEvent, timeZone, trend)
+                            goal?.let { GoalSection(it, onGoalEvent) }
                             healthSync?.let { HealthConnectBanner(it, onHealthEvent) }
                             trend?.let { WeightChart(it, onTrendEvent) }
                         }
                         WeightCalendar(content, onEvent)
-                        CircumferenceSection(circumferences, content.today, timeZone, onCircumferenceEvent)
+                        CircumferenceSection(
+                            circumferences,
+                            content.today,
+                            timeZone,
+                            onCircumferenceEvent,
+                            onRatioClick = whrClick,
+                        )
                     }
                 }
             }
         }
     }
+}
+
+/** The day sheet (with the comparison inside it), the target sheet and the metric detail over the screen. */
+@Composable
+private fun WeightSheets(
+    content: WeightContent,
+    goal: GoalContent?,
+    timeZone: TimeZone,
+    onEvent: (WeightEvent) -> Unit,
+    onGoalEvent: (GoalEvent) -> Unit,
+) {
+    content.sheet?.let { sheet ->
+        val daySheetGoal = goal?.let {
+            DaySheetGoal(it, content.current?.id, content.days[sheet.day]?.manual, onGoalEvent)
+        }
+        WeightDaySheet(sheet, content.isOnline, timeZone, onEvent, daySheetGoal = daySheetGoal)
+    }
+    // A comparison only lives inside the day sheet: without one it is dropped.
+    val orphanComparison = content.sheet == null && goal?.comparisonOpen == true
+    val closeComparison by rememberUpdatedState(onGoalEvent)
+    LaunchedEffect(orphanComparison) { if (orphanComparison) closeComparison(GoalEvent.CloseCompare) }
+    goal?.targetSheet?.let { TargetWeightSheet(it, content.isOnline, onGoalEvent) }
+    val metric = goal?.openMetric?.let { kind ->
+        when (kind) {
+            MetricKind.Bmi -> goal.bmi
+            MetricKind.BodyFat -> goal.bodyFat
+            MetricKind.WaistToHip -> goal.waistToHip
+        }
+    }
+    metric?.let { MetricDetailSheet(it, onGoalEvent) }
 }
 
 /** The current weight (or the empty state) and the full-width "Registrar peso de hoy" button under it. */
