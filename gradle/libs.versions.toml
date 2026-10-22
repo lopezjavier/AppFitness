@@ -30,7 +30,7 @@ kotlinx-datetime = "0.8.0"
 navigation-compose = "2.9.2"
 # JetBrains lifecycle 2.9.6 (latest stable 2.9.x) is the version navigation-compose 2.9.2 already resolves
 # (T-021), so viewmodel-compose and runtime-compose add no upgrade or downgrade (checked in T-029).
-jetbrains-lifecycle = "2.9.6"
+jetbrains-lifecycle = "2.11.0"
 # Latest stable (1.2.1, T-029); Flow assertions in commonTest.
 turbine = "1.2.1"
 junit = "4.13.2"
