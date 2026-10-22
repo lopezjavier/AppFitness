@@ -58,6 +58,9 @@ class SupabaseBodyMeasurementRepositoryTest {
 
             request.method == HttpMethod.Get -> respond(rows(), HttpStatusCode.OK, headers)
 
+            request.url.encodedPath.endsWith("/rpc/save_body_measurement") ->
+                respond("\"row-1\"", HttpStatusCode.OK, headers)
+
             else -> respond("", HttpStatusCode.Created, headers)
         }
     }.let { engine ->
@@ -160,7 +163,7 @@ class SupabaseBodyMeasurementRepositoryTest {
     fun saveManualWeight_newSave_sendsTheRpcWithExplicitNulls() = runTest {
         val repo = signedIn()
 
-        assertTrue(repo.saveManualWeight(newSave).isSuccess)
+        assertEquals("row-1", repo.saveManualWeight(newSave).getOrThrow())
 
         val rpc = writes().single()
         assertEquals(HttpMethod.Post, rpc.method)
@@ -227,14 +230,49 @@ class SupabaseBodyMeasurementRepositoryTest {
     }
 
     @Test
-    fun deleteMeasurement_deletesById() = runTest {
+    fun deleteMeasurement_callsTheDeleteRpc() = runTest {
         val repo = signedIn()
 
         assertTrue(repo.deleteMeasurement("row-1").isSuccess)
 
-        val delete = writes().single()
-        assertEquals(HttpMethod.Delete, delete.method)
-        assertTrue(delete.url.toString().contains("id=eq.row-1"), delete.url.toString())
+        val rpc = writes().single()
+        assertEquals(HttpMethod.Post, rpc.method)
+        assertTrue(rpc.url.encodedPath.endsWith("/rpc/delete_body_measurement"), rpc.url.toString())
+        assertEquals("""{"p_id":"row-1"}""", (rpc.body as TextContent).text)
+    }
+
+    @Test
+    fun setHcRecordId_patchesTheMarkerAndCanClearIt() = runTest {
+        val repo = signedIn()
+
+        assertTrue(repo.setHcRecordId("row-1", "row-1").isSuccess)
+        assertTrue(repo.setHcRecordId("row-1", null).isSuccess)
+
+        val (set, clear) = writes()
+        assertEquals(HttpMethod.Patch, set.method)
+        assertTrue(set.url.toString().contains("id=eq.row-1"), set.url.toString())
+        assertEquals("""{"hc_record_id":"row-1"}""", (set.body as TextContent).text)
+        assertEquals("""{"hc_record_id":null}""", (clear.body as TextContent).text)
+    }
+
+    @Test
+    fun getMeasurements_readsTheCompositionColumnsAndTheCopyMarker() = runTest {
+        val repo = signedIn(
+            rows = {
+                """[{"id":"row-1","measured_at":"2026-10-14T10:00:00+00:00","weight_kg":73.9,""" +
+                    """"source":"health_connect","body_fat_pct":15.1,"lean_mass_kg":62.4,"water_kg":45.0,""" +
+                    """"bone_kg":3.1,"bmr_kcal":1720,"hc_record_id":null}]"""
+            },
+        )
+
+        val row = repo.getMeasurements(MEASURED_AT, MEASURED_AT).getOrThrow().single()
+
+        assertEquals(62.4, row.leanMassKg)
+        assertEquals(45.0, row.waterKg)
+        assertEquals(3.1, row.boneKg)
+        assertEquals(1720, row.bmrKcal)
+        assertNull(row.hcRecordId)
+        assertTrue(requests.last().url.parameters["select"].orEmpty().contains("hc_record_id"))
     }
 
     @Test
@@ -244,5 +282,6 @@ class SupabaseBodyMeasurementRepositoryTest {
         assertEquals(AppError.Unauthorized, repo.getMeasurements(MEASURED_AT, MEASURED_AT).appErrorOrNull())
         assertEquals(AppError.Unauthorized, repo.saveManualWeight(newSave).appErrorOrNull())
         assertEquals(AppError.Unauthorized, repo.deleteMeasurement("row-1").appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repo.setHcRecordId("row-1", null).appErrorOrNull())
     }
 }

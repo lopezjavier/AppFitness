@@ -72,6 +72,8 @@ fun WeightScreen(
     circumferences: CircumferencesUiState,
     onCircumferenceEvent: (CircumferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
+    healthSync: HealthSyncUiState? = null,
+    onHealthEvent: (HealthSyncEvent) -> Unit = {},
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
@@ -87,7 +89,15 @@ fun WeightScreen(
             )
 
             is WeightUiState.Content -> {
-                WeightContentView(state.content, onEvent, circumferences, onCircumferenceEvent, timeZone)
+                WeightContentView(
+                    state.content,
+                    onEvent,
+                    circumferences,
+                    onCircumferenceEvent,
+                    healthSync,
+                    onHealthEvent,
+                    timeZone,
+                )
                 state.content.sheet?.let { WeightDaySheet(it, state.content.isOnline, timeZone, onEvent) }
                 val circumferenceSheet = (circumferences as? CircumferencesUiState.Content)?.content
                 circumferenceSheet?.sheet?.let {
@@ -101,12 +111,16 @@ fun WeightScreen(
     }
 }
 
+// Screen state plus its event sinks; the sections are separate composables.
+@Suppress("LongParameterList")
 @Composable
 private fun WeightContentView(
     content: WeightContent,
     onEvent: (WeightEvent) -> Unit,
     circumferences: CircumferencesUiState,
     onCircumferenceEvent: (CircumferencesEvent) -> Unit,
+    healthSync: HealthSyncUiState?,
+    onHealthEvent: (HealthSyncEvent) -> Unit,
     timeZone: TimeZone,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -129,7 +143,10 @@ private fun WeightContentView(
             ) {
                 if (wide) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-                        WeightPanelSection(content, onEvent, timeZone, Modifier.weight(1f))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+                            WeightPanelSection(content, onEvent, timeZone)
+                            healthSync?.let { HealthConnectBanner(it, onHealthEvent) }
+                        }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                             WeightCalendar(content, onEvent)
                             CircumferenceSection(circumferences, content.today, timeZone, onCircumferenceEvent)
@@ -137,7 +154,10 @@ private fun WeightContentView(
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-                        WeightPanelSection(content, onEvent, timeZone)
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+                            WeightPanelSection(content, onEvent, timeZone)
+                            healthSync?.let { HealthConnectBanner(it, onHealthEvent) }
+                        }
                         WeightCalendar(content, onEvent)
                         CircumferenceSection(circumferences, content.today, timeZone, onCircumferenceEvent)
                     }

@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -12,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
@@ -20,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateTdee
+import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +59,7 @@ class PreferencesViewModelTest {
     private val goals =
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
     private val connectivity = FakeConnectivityObserver(initial = true)
+    private val health = FakeHealthDataSource()
 
     @BeforeTest
     fun setUp() {
@@ -79,6 +83,7 @@ class PreferencesViewModelTest {
         clock = FakeClock(today, now),
         timeZone = TimeZone.UTC,
         savedState = savedState,
+        healthWriteBack = HealthWriteBack(health, weights, FakeClock(today, now)),
     )
 
     private fun TestScope.loaded(): Pair<PreferencesViewModel, () -> PreferencesUiState.Loaded> {
@@ -201,6 +206,47 @@ class PreferencesViewModelTest {
         assertEquals(tdee(180) - 400, saved.goals.targetKcal)
         assertFalse(state().isDirty)
         assertFalse(state().canSave)
+    }
+
+    @Test
+    fun aChangedWeight_isWrittenToHealthConnectKeepingTheFat() = runTest {
+        val (viewModel, _) = loaded()
+        // What save_preferences stores for today.
+        weights.row = BodyMeasurement("w2", now, 81.5, MeasurementSource.Manual, bodyFatPct = 15.1)
+
+        viewModel.onEvent(PreferencesEvent.SetWeight(815))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val write = health.writes.single()
+        assertEquals("w2", write.rowId)
+        assertEquals(81.5, write.weightKg)
+        assertEquals(15.1, write.bodyFatPct)
+    }
+
+    @Test
+    fun aChangedWeightWithoutWritePermission_isNotWritten() = runTest {
+        health.access = HealthAccess(emptySet(), canWrite = false)
+        val (viewModel, _) = loaded()
+        weights.row = BodyMeasurement("w2", now, 81.5, MeasurementSource.Manual)
+
+        viewModel.onEvent(PreferencesEvent.SetWeight(815))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(health.writes.isEmpty())
+        assertEquals(1, profile.preferenceSaves.size)
+    }
+
+    @Test
+    fun savingWithoutChangingTheWeight_writesNothing() = runTest {
+        val (viewModel, _) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetHeight(185))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(health.writes.isEmpty())
     }
 
     @Test

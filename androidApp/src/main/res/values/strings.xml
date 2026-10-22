@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">AppFitness</string>
+    <!-- Health Connect permission rationale screen (outside Compose). -->
+    <string name="health_privacy_title">Privacidad de tus datos de salud</string>
+    <string name="health_privacy_body">AppFitness lee y escribe en Health Connect solo tu peso, tu porcentaje de grasa corporal, tu masa magra, tu agua corporal, tu masa ósea y tu metabolismo basal. Los lee cuando pulsas «Sincronizar» y los escribe cuando registras tu peso a mano en la app. Estos datos se guardan en tu cuenta de AppFitness y solo tú puedes verlos. No se comparten con terceros, no se usan para publicidad y no se venden. Puedes retirar el permiso en cualquier momento desde los ajustes de Health Connect. Puedes borrar tus mediciones desde la pantalla de peso o eliminar tu cuenta para borrar todo.</string>
 </resources>

@@ -13,6 +13,7 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
     val rows = initial.toMutableList()
     val saves = mutableListOf<ManualWeightSave>()
     val deletes = mutableListOf<String>()
+    val hcRecordIds = mutableListOf<Pair<String, String?>>()
     var failReads = false
     var saveFailure: Throwable? = null
     var deleteFailure: Throwable? = null
@@ -36,7 +37,7 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
             Result.success(rows.filter { it.measuredAt >= from && it.measuredAt < toExclusive })
         }
 
-    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> {
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> {
         saveFailure?.let { return Result.failure(it) }
         saves += save
         val saved = BodyMeasurement(
@@ -53,13 +54,20 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
                 (save.id == null || it.id == save.id)
         }
         if (sameDayManual >= 0) rows[sameDayManual] = saved.copy(id = rows[sameDayManual].id) else rows += saved
-        return Result.success(Unit)
+        return Result.success(if (sameDayManual >= 0) rows[sameDayManual].id else saved.id)
     }
 
     override suspend fun deleteMeasurement(id: String): Result<Unit> {
         deleteFailure?.let { return Result.failure(it) }
         deletes += id
         rows.removeAll { it.id == id }
+        return Result.success(Unit)
+    }
+
+    override suspend fun setHcRecordId(id: String, hcRecordId: String?): Result<Unit> {
+        hcRecordIds += id to hcRecordId
+        val index = rows.indexOfFirst { it.id == id }
+        if (index >= 0) rows[index] = rows[index].copy(hcRecordId = hcRecordId)
         return Result.success(Unit)
     }
 }

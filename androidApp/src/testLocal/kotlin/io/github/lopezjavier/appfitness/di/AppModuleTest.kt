@@ -12,12 +12,14 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
+import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -31,6 +33,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
@@ -40,6 +43,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
@@ -87,6 +91,7 @@ class AppModuleTest {
             listOf(
                 AppConfig::class,
                 ConnectivityObserver::class,
+                HealthDataSource::class,
                 AuthCredentialProvider::class,
                 ExerciseLibrary::class,
                 DataStore::class,
@@ -136,6 +141,10 @@ class AppModuleTest {
                 ValidateTemplateName::class,
                 MeasurementsByDay::class,
                 SaveBodyMeasurement::class,
+                HealthWriteBack::class,
+                HealthDataSource::class,
+                SyncHealthMeasurements::class,
+                HealthSyncRepository::class,
                 ValidateBodyMeasurement::class,
                 CircumferenceRepository::class,
                 ValidateCircumference::class,

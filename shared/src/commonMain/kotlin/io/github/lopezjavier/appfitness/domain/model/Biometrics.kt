@@ -39,6 +39,12 @@ data class BodyMeasurement(
     val weightKg: Double,
     val source: MeasurementSource,
     val bodyFatPct: Double? = null,
+    val leanMassKg: Double? = null,
+    val waterKg: Double? = null,
+    val boneKg: Double? = null,
+    val bmrKcal: Int? = null,
+    /** Base id of the copy written back to Health Connect (manual rows only); null when there is no copy. */
+    val hcRecordId: String? = null,
 )
 
 /**

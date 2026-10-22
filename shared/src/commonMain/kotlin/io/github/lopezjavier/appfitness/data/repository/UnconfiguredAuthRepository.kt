@@ -79,10 +79,13 @@ class UnconfiguredBodyMeasurementRepository : BodyMeasurementRepository {
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> =
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> =
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun deleteMeasurement(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun setHcRecordId(id: String, hcRecordId: String?): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
 }
 
 /** Goals counterpart of [UnconfiguredAuthRepository]: nothing can be read or saved. */

@@ -1,0 +1,90 @@
+package io.github.lopezjavier.appfitness.app
+
+import io.github.lopezjavier.appfitness.domain.model.ChangesResult
+import io.github.lopezjavier.appfitness.domain.model.HealthAccess
+import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
+import io.github.lopezjavier.appfitness.domain.model.HealthMetric
+import io.github.lopezjavier.appfitness.domain.model.HealthReading
+import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
+import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
+import kotlinx.coroutines.CompletableDeferred
+import kotlin.time.Instant
+
+internal data class RecordedWeighIn(
+    val rowId: String,
+    val weightKg: Double,
+    val bodyFatPct: Double?,
+    val version: Long,
+)
+
+/** Scriptable [HealthDataSource] that records the write-back calls. */
+internal class FakeHealthDataSource : HealthDataSource {
+    var availability = HealthAvailability.Available
+    var access = HealthAccess(HealthMetric.entries.toSet(), canWrite = true)
+    var writeFailure: Throwable? = null
+    var deleteFailure: Throwable? = null
+    var readFailure: Throwable? = null
+    var records = RawHealthRecords()
+    val writes = mutableListOf<RecordedWeighIn>()
+    val deletedCopies = mutableListOf<String>()
+
+    override fun availability() = availability
+
+    override suspend fun access() = access
+
+    override suspend fun newChangesToken(): Result<String> = Result.success("token")
+
+    override suspend fun readRange(from: Instant, to: Instant): Result<RawHealthRecords> {
+        readFailure?.let { return Result.failure(it) }
+        return Result.success(records)
+    }
+
+    override suspend fun readChanges(token: String): Result<ChangesResult> =
+        Result.success(ChangesResult.Changed(null, null, token))
+
+    override suspend fun writeWeighIn(
+        rowId: String,
+        weightKg: Double,
+        bodyFatPct: Double?,
+        measuredAt: Instant,
+        version: Long,
+    ): Result<Unit> {
+        writeFailure?.let { return Result.failure(it) }
+        writes += RecordedWeighIn(rowId, weightKg, bodyFatPct, version)
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteCopy(rowId: String): Result<Unit> {
+        deleteFailure?.let { return Result.failure(it) }
+        deletedCopies += rowId
+        return Result.success(Unit)
+    }
+}
+
+/** In-memory [HealthSyncRepository]: stores the state of the last import and counts the new rows. */
+internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : HealthSyncRepository {
+    var stateFailure: Throwable? = null
+    var importFailure: Throwable? = null
+
+    /** When set, an import waits for it: lets a test observe the syncing state. */
+    var importGate: CompletableDeferred<Unit>? = null
+    val imports = mutableListOf<List<HealthReading>>()
+    private val known = mutableSetOf<String>()
+
+    override suspend fun getState(): Result<HealthSyncState?> =
+        stateFailure?.let { Result.failure(it) } ?: Result.success(state)
+
+    override suspend fun importReadings(
+        rows: List<HealthReading>,
+        syncedAt: Instant,
+        changesToken: String?,
+    ): Result<Int> {
+        importGate?.await()
+        importFailure?.let { return Result.failure(it) }
+        imports += rows
+        state = HealthSyncState(syncedAt, changesToken)
+        return Result.success(rows.count { known.add(it.externalId) })
+    }
+}

@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -85,6 +86,7 @@ class WeightViewModel(
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val healthWriteBack: HealthWriteBack? = null,
 ) : ViewModel() {
     private val month = MutableStateFlow(
         savedState.get<String>(KEY_MONTH)?.let(YearMonth::parse) ?: clock.today().yearMonth,
@@ -280,7 +282,8 @@ class WeightViewModel(
         val state = sheet.value ?: return
         val id = state.draft?.existingId ?: return
         if (state.saving) return
-        deleteRow(id) { setSheet(null) }
+        val row = (load.value as? WeightLoad.Ready)?.data?.days?.get(state.day)?.manual?.takeIf { it.id == id }
+        deleteRow(id, onDeleted = { row?.let { healthWriteBack?.onDeleted(it) } }) { setSheet(null) }
     }
 
     private fun deleteHealthConnect(id: String) {
@@ -291,11 +294,12 @@ class WeightViewModel(
         }
     }
 
-    private fun deleteRow(id: String, afterReload: (WeightData?) -> Unit) {
+    private fun deleteRow(id: String, onDeleted: suspend () -> Unit = {}, afterReload: (WeightData?) -> Unit) {
         if (!online.value) return
         viewModelScope.launch {
             val result = repository.deleteMeasurement(id)
             if (result.isSuccess) {
+                onDeleted()
                 afterReload(refreshData())
             } else {
                 effectChannel.send(WeightEffect.DeleteFailed(offline = result.appErrorOrNull() == AppError.Network))

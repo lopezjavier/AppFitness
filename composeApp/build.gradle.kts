@@ -50,6 +50,8 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services.auth)
             implementation(libs.googleid)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.health.connect.client)
             implementation(libs.play.services.code.scanner)
             implementation(libs.ktor.client.okhttp)
         }

@@ -191,9 +191,11 @@ internal class FakeBodyMeasurementRepository(var row: BodyMeasurement? = null) :
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.success(listOfNotNull(row))
 
-    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> = Result.success(Unit)
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> = Result.success("row-1")
 
     override suspend fun deleteMeasurement(id: String): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setHcRecordId(id: String, hcRecordId: String?): Result<Unit> = Result.success(Unit)
 }
 
 /** Fixed [Clock]. */

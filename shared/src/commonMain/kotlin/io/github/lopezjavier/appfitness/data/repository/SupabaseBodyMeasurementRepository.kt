@@ -10,6 +10,8 @@ import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementDto
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementInsertDto
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementUpdateDto
+import io.github.lopezjavier.appfitness.data.remote.DeleteBodyMeasurementParams
+import io.github.lopezjavier.appfitness.data.remote.HcRecordIdUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.MeasurementSourceDto
 import io.github.lopezjavier.appfitness.data.remote.SaveBodyMeasurementParams
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -72,13 +74,19 @@ class SupabaseBodyMeasurementRepository(private val auth: Auth, private val post
                 .map { it.toDomain() }
         }
 
-    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> = signedIn {
-        postgrest.rpc("save_body_measurement", SaveBodyMeasurementParams.from(save))
-        Unit
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> = signedIn {
+        postgrest.rpc("save_body_measurement", SaveBodyMeasurementParams.from(save)).decodeAs<String>()
     }.mapSaveErrors()
 
     override suspend fun deleteMeasurement(id: String): Result<Unit> = signedIn {
-        postgrest.from("body_measurements").delete { filter { eq("id", id) } }
+        postgrest.rpc("delete_body_measurement", DeleteBodyMeasurementParams(id))
+        Unit
+    }
+
+    override suspend fun setHcRecordId(id: String, hcRecordId: String?): Result<Unit> = signedIn {
+        postgrest.from("body_measurements").update(HcRecordIdUpdateDto(hcRecordId)) {
+            filter { eq("id", id) }
+        }
         Unit
     }
 

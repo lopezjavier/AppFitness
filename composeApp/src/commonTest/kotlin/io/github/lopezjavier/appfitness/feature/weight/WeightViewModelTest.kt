@@ -3,12 +3,15 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
+import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -34,7 +37,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("TooManyFunctions") // One method per Gherkin scenario and rule.
+@Suppress("TooManyFunctions", "LargeClass") // One method per Gherkin scenario and rule.
 class WeightViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val zone = TimeZone.UTC
@@ -54,22 +57,28 @@ class WeightViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun manual(id: String, at: String, kg: Double, fat: Double? = null) =
-        BodyMeasurement(id, Instant.parse(at), kg, MeasurementSource.Manual, fat)
+    private val health = FakeHealthDataSource()
+
+    private fun manual(id: String, at: String, kg: Double, fat: Double? = null, hcRecordId: String? = null) =
+        BodyMeasurement(id, Instant.parse(at), kg, MeasurementSource.Manual, fat, hcRecordId = hcRecordId)
 
     private fun healthConnect(id: String, at: String, kg: Double) =
         BodyMeasurement(id, Instant.parse(at), kg, MeasurementSource.HealthConnect)
 
-    private fun viewModel(repository: FakeWeightRepository, state: SavedStateHandle = savedState) = WeightViewModel(
-        repository = repository,
-        measurementsByDay = MeasurementsByDay(),
-        saveBodyMeasurement = SaveBodyMeasurement(repository, clock, zone),
-        validate = ValidateBodyMeasurement(),
-        connectivity = connectivity,
-        clock = clock,
-        timeZone = zone,
-        savedState = state,
-    )
+    private fun viewModel(repository: FakeWeightRepository, state: SavedStateHandle = savedState): WeightViewModel {
+        val writeBack = HealthWriteBack(health, repository, clock)
+        return WeightViewModel(
+            repository = repository,
+            measurementsByDay = MeasurementsByDay(),
+            saveBodyMeasurement = SaveBodyMeasurement(repository, clock, zone, healthWriteBack = writeBack),
+            validate = ValidateBodyMeasurement(),
+            connectivity = connectivity,
+            clock = clock,
+            timeZone = zone,
+            savedState = state,
+            healthWriteBack = writeBack,
+        )
+    }
 
     // The state is combined on the test dispatcher, so let pending work run before reading it.
     private fun WeightViewModel.content(): WeightContent {
@@ -544,6 +553,105 @@ class WeightViewModelTest {
             assertEquals(WeightEffect.DeleteFailed(offline = true), awaitItem())
         }
         assertNotNull(model.content().sheet)
+    }
+
+    // Health Connect write-back (US-26)
+
+    @Test
+    fun savingAWeight_isWrittenToHealthConnect_andTheCopyIsMarked() = runTest(dispatcher) {
+        val repository = FakeWeightRepository()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.LogToday)
+        advanceUntilIdle()
+
+        model.type("73,9", "15,1")
+        model.onEvent(WeightEvent.Save)
+        advanceUntilIdle()
+
+        val write = health.writes.single()
+        assertEquals(73.9, write.weightKg)
+        assertEquals(15.1, write.bodyFatPct)
+        assertEquals(listOf<Pair<String, String?>>(write.rowId to write.rowId), repository.hcRecordIds)
+    }
+
+    @Test
+    fun savingWithoutWritePermission_writesNothingButStillSaves() = runTest(dispatcher) {
+        health.access = HealthAccess(emptySet(), canWrite = false)
+        val repository = FakeWeightRepository()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.LogToday)
+        advanceUntilIdle()
+
+        model.type("73,9")
+        model.onEvent(WeightEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(health.writes.isEmpty())
+        assertTrue(repository.hcRecordIds.isEmpty())
+        assertEquals(1, repository.saves.size)
+    }
+
+    @Test
+    fun aFailingHealthConnectWrite_keepsTheSave() = runTest(dispatcher) {
+        health.writeFailure = IllegalStateException("denied")
+        val repository = FakeWeightRepository()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.LogToday)
+        advanceUntilIdle()
+
+        model.type("73,9")
+        model.onEvent(WeightEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.saves.size)
+        assertNull(model.content().sheet)
+    }
+
+    @Test
+    fun deletingAWrittenBackManualRow_removesItsHealthConnectCopy() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("m", "2026-10-18T08:00:00Z", 74.2, hcRecordId = "m"))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 18)))
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.DeleteManual)
+        advanceUntilIdle()
+
+        assertEquals(listOf("m"), health.deletedCopies)
+    }
+
+    @Test
+    fun deletingAManualRowWithoutACopy_leavesHealthConnectAlone() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("m", "2026-10-18T08:00:00Z", 74.2))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 18)))
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.DeleteManual)
+        advanceUntilIdle()
+
+        assertTrue(health.deletedCopies.isEmpty())
+    }
+
+    @Test
+    fun aFailingHealthConnectDelete_keepsTheDelete() = runTest(dispatcher) {
+        health.deleteFailure = IllegalStateException("denied")
+        val repository = FakeWeightRepository(manual("m", "2026-10-18T08:00:00Z", 74.2, hcRecordId = "m"))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 18)))
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.DeleteManual)
+        advanceUntilIdle()
+
+        assertEquals(listOf("m"), repository.deletes)
+        assertNull(model.content().sheet)
     }
 
     // Health Connect rows
