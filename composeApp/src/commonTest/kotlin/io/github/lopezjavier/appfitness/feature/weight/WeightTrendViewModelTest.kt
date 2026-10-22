@@ -6,7 +6,10 @@ import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -44,6 +47,13 @@ private class FakeWeightChartPreferences(initial: WeightChartRange = WeightChart
     override suspend fun setRange(range: WeightChartRange) {
         state.value = range
     }
+
+    val metricState = MutableStateFlow(BodyMetric.Weight)
+    override val metric: Flow<BodyMetric> = metricState
+
+    override suspend fun setMetric(metric: BodyMetric) {
+        metricState.value = metric
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -76,9 +86,22 @@ class WeightTrendViewModelTest {
         measurement(LocalDate.fromEpochDays(lastDay.toEpochDays() - back), start + perDay * (19 - back))
     }
 
+    private val circumferences = FakeCircumferenceRepository()
+
+    private fun fatMeasurement(date: LocalDate, kg: Double, fat: Double) = measurement(date, kg).copy(bodyFatPct = fat)
+
+    private fun circumference(date: LocalDate, cm: Double) = BodyCircumference(
+        id = "c-$date",
+        site = CircumferenceSite.Waist,
+        valueCm = cm,
+        measuredAt = Instant.parse("${date}T09:00:00Z"),
+        createdAt = Instant.parse("${date}T09:00:00Z"),
+    )
+
     private fun viewModel(repository: FakeWeightRepository, savedState: SavedStateHandle = SavedStateHandle()) =
         WeightTrendViewModel(
             measurements = repository,
+            circumferences = circumferences,
             goals = goals,
             profile = profile,
             preferences = prefs,
@@ -298,6 +321,165 @@ class WeightTrendViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.uiState.value is WeightTrendUiState.Content)
+    }
+
+    @Test
+    fun defaultMetric_isWeightWithTarget() = runTest(dispatcher) {
+        profile.targetWeight = Result.success(72.5)
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        assertEquals(BodyMetric.Weight, vm.content().metric)
+        assertEquals(72.5, vm.content().targetKg)
+    }
+
+    @Test
+    fun selectingBodyFat_savesItAndShowsItsSeriesWithoutTarget() = runTest(dispatcher) {
+        profile.targetWeight = Result.success(72.5)
+        val rows = (0..9).map { fatMeasurement(LocalDate.fromEpochDays(today.toEpochDays() - it), 80.0, 20.0 + it) }
+        val vm = viewModel(FakeWeightRepository(*rows.toTypedArray()))
+        advanceUntilIdle()
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        advanceUntilIdle()
+
+        assertEquals(BodyMetric.BodyFat, prefs.metricState.value)
+        val content = vm.content()
+        assertEquals(BodyMetric.BodyFat, content.metric)
+        assertEquals(29.0, content.trend.points.first().dailyKg)
+        assertEquals(20.0, content.trend.points.last().dailyKg)
+        assertNull(content.targetKg)
+    }
+
+    @Test
+    fun weeklyRate_staysWeightBasedWhenAnotherMetricIsSelected() = runTest(dispatcher) {
+        val rows = series(80.0, -0.1).map { it.copy(bodyFatPct = 20.0) }
+        val vm = viewModel(FakeWeightRepository(*rows.toTypedArray()))
+        advanceUntilIdle()
+        val weightRate = vm.content().weeklyRate
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        advanceUntilIdle()
+
+        assertEquals(weightRate, vm.content().weeklyRate)
+        assertEquals(RateTone.Favorable, vm.content().weeklyRate.tone)
+    }
+
+    @Test
+    fun selectingAMetric_clearsTheSelectedPoint() = runTest(dispatcher) {
+        val state = SavedStateHandle()
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()), state)
+        advanceUntilIdle()
+        vm.onEvent(WeightTrendEvent.SelectPoint(LocalDate(2026, 10, 15)))
+        advanceUntilIdle()
+        assertEquals(LocalDate(2026, 10, 15), vm.content().selectedPoint?.date)
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.Weight))
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        advanceUntilIdle()
+
+        assertNull(vm.content().selectedPoint)
+        assertEquals("", state.get<String>("weight_trend_selected"))
+    }
+
+    @Test
+    fun circumferences_areFetchedOnlyForWaistAndHip() = runTest(dispatcher) {
+        circumferences.rows += circumference(today, 90.0)
+        circumferences.rows += circumference(LocalDate(2026, 10, 18), 92.0)
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        advanceUntilIdle()
+        assertEquals(0, circumferences.getAllCalls)
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.Waist))
+        advanceUntilIdle()
+
+        assertEquals(1, circumferences.getAllCalls)
+        assertEquals(listOf(92.0, 90.0), vm.content().trend.points.map { it.dailyKg })
+        assertTrue(vm.content().trend.hasEnoughData)
+    }
+
+    @Test
+    fun metricWithoutData_isNotEnoughData() = runTest(dispatcher) {
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.Bone))
+        advanceUntilIdle()
+
+        val content = vm.content()
+        assertTrue(content.trend.points.isEmpty())
+        assertFalse(content.trend.hasEnoughData)
+    }
+
+    @Test
+    fun sparseMetric_withASingleReading_stillHasAPlotButNoAverage() = runTest(dispatcher) {
+        circumferences.rows += circumference(today, 90.0)
+        prefs.metricState.value = BodyMetric.Waist
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        val content = vm.content()
+        assertEquals(listOf(90.0), content.trend.points.map { it.dailyKg })
+        assertNull(content.trend.points.single().ma7Kg)
+        assertTrue(content.hasPlot)
+    }
+
+    @Test
+    fun metricWithoutData_hasNoPlot() = runTest(dispatcher) {
+        prefs.metricState.value = BodyMetric.Hip
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        assertFalse(vm.content().hasPlot)
+    }
+
+    @Test
+    fun circumferenceFailure_showsError_andRetryRecovers() = runTest(dispatcher) {
+        prefs.metricState.value = BodyMetric.Hip
+        circumferences.failReads = true
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+        assertEquals(WeightTrendUiState.Error, vm.uiState.value)
+
+        circumferences.failReads = false
+        vm.onEvent(WeightTrendEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(BodyMetric.Hip, vm.content().metric)
+    }
+
+    @Test
+    fun rangeChange_keepsTheMetric() = runTest(dispatcher) {
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.LeanMass))
+        advanceUntilIdle()
+
+        vm.onEvent(WeightTrendEvent.SelectRange(WeightChartRange.Month))
+        advanceUntilIdle()
+
+        assertEquals(BodyMetric.LeanMass, vm.content().metric)
+        assertEquals(WeightChartRange.Month, vm.content().range)
+    }
+
+    @Test
+    fun recreatedViewModel_keepsMetricAndSelectedDate() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(*series(80.0, 0.0).map { it.copy(waterKg = 40.0) }.toTypedArray())
+        val state = SavedStateHandle()
+        val first = viewModel(repository, state)
+        advanceUntilIdle()
+        first.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.Water))
+        advanceUntilIdle()
+        first.onEvent(WeightTrendEvent.SelectPoint(LocalDate(2026, 10, 15)))
+        advanceUntilIdle()
+
+        val recreated = viewModel(repository, state)
+        advanceUntilIdle()
+
+        assertEquals(BodyMetric.Water, recreated.content().metric)
+        assertEquals(LocalDate(2026, 10, 15), recreated.content().selectedPoint?.date)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
 import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
 import kotlinx.datetime.LocalDate
@@ -19,6 +20,25 @@ class WeightTrendFormatTest {
 
     @Test
     fun rateText_keepsTrailingZeros() = assertEquals("−1,20", rateText(-1.2))
+
+    @Test
+    fun metricValueText_kilogramsCentimetresAndPercentHaveOneDecimalAndTheirUnit() {
+        assertEquals("74,2 kg", metricValueText(74.2, BodyMetric.Weight))
+        assertEquals("3,1 kg", metricValueText(3.14, BodyMetric.Bone))
+        assertEquals("82,5 cm", metricValueText(82.5, BodyMetric.Waist))
+        assertEquals("18,3 %", metricValueText(18.3, BodyMetric.BodyFat))
+    }
+
+    @Test
+    fun metricValueText_kilocaloriesAreAnInteger() {
+        assertEquals("1650 kcal", metricValueText(1649.6, BodyMetric.Bmr))
+    }
+
+    @Test
+    fun metricAxisText_dropsTheUnitAndKeepsTheMetricPrecision() {
+        assertEquals("74,2", metricAxisText(74.2, BodyMetric.Weight))
+        assertEquals("1650", metricAxisText(1649.6, BodyMetric.Bmr))
+    }
 
     @Test
     fun toneMapping_coversEveryRateTone() {
