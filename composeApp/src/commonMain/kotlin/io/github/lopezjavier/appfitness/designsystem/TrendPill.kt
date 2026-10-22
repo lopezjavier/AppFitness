@@ -53,7 +53,9 @@ object TrendPillDefaults {
         TrendTone.Neutral -> appColors.textSecondary
     }
 
-    fun containerColor(appColors: AppColors): Color = PillDefaults.containerColor(appColors)
+    /** [override] is the fill to use instead of the default, e.g. `surfaceRaised` inside an overlay tile. */
+    fun containerColor(appColors: AppColors, override: Color? = null): Color =
+        override ?: PillDefaults.containerColor(appColors)
 
     /** Sign of the signed rate: > 0 Up, < 0 Down, 0 Flat, null (not enough data) None. */
     fun direction(rate: Double?): TrendDirection = when {
@@ -91,6 +93,7 @@ fun TrendPill(
     tone: TrendTone,
     modifier: Modifier = Modifier,
     direction: TrendDirection = TrendDirection.None,
+    containerColor: Color? = null,
 ) {
     val color = TrendPillDefaults.contentColor(tone, AppTheme.colors)
     val toneDescription =
@@ -102,6 +105,7 @@ fun TrendPill(
         }
     PillContainer(
         modifier = modifier.semantics(mergeDescendants = true) { toneDescription?.let { stateDescription = it } },
+        containerColor = TrendPillDefaults.containerColor(AppTheme.colors, containerColor),
     ) {
         TrendPillDefaults.toneIcon(tone)?.let { PillIcon(it, color) }
         TrendPillDefaults.directionIcon(direction)?.let { PillIcon(it, color) }

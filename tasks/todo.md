@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-080 (weight trend chart); no checkpoint in between (E5-A folded into E5-B). T-076, T-077, T-078, T-079 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
+**Next:** T-081 (goal, BMI, comparison and interpretation; its section is still to be written in this file); the E5-B 👤 checkpoint follows it (E5-A folded into E5-B). T-076, T-077, T-078, T-079, T-080 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2070,7 +2070,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Host tests (per scenario):** `DailyWeightsTest`, `MovingAverageTest`, `WeeklyRateTest` (`04` §3 examples; colour per strategy; missing MA7 → not enough data); `WeightChartRangeTest` (filter days and the 6-day lead-in); `WeightTrendViewModelTest` with a fake preferences store, a test `Clock` and Turbine (Metrics panel; Pace against the goal; Time filter persisted; Not enough data; Point detail; Logging a weight for a past day, on the chart); `WeightChartTest`, `TrendPillTest`, `MetricTileTest` (Robolectric: legend, pill text and colour state, empty message, container colour, `stateDescription`); restoration tests.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-079
 **Files likely touched:** `shared/…/domain/usecase/{DailyWeights,MovingAverage,WeeklyRate,WeightChartRange}.kt` + tests, `shared/…/domain/repository/{BodyMeasurementRepository,WeightPreferences}.kt`, `shared/…/data/repository/*`, `shared/…/data/local/*` (DataStore), DI, `composeApp/…/feature/weight/{WeightChart,WeightTrendViewModel,WeightUiState,WeightScreen}.kt`, `composeApp/…/designsystem/{AppLineChart,MetricTile,TrendPill}.kt` (+ callers), catalog, strings, tests

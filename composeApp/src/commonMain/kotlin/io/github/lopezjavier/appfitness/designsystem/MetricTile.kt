@@ -36,8 +36,9 @@ object MetricTileDefaults {
     val Padding: Dp = Spacing.md
     val BorderWidth: Dp = AppBorder.thin
 
-    fun colors(appColors: AppColors): MetricTileColors = MetricTileColors(
-        container = appColors.surfaceOverlay,
+    /** [containerColor] replaces the overlay fill, e.g. a raised tile; null keeps the default. */
+    fun colors(appColors: AppColors, containerColor: Color? = null): MetricTileColors = MetricTileColors(
+        container = containerColor ?: appColors.surfaceOverlay,
         border = appColors.borderStrong,
         label = appColors.textSecondary,
         value = appColors.textPrimary,
@@ -63,8 +64,9 @@ fun MetricTile(
     modifier: Modifier = Modifier,
     unit: String? = null,
     supporting: (@Composable () -> Unit)? = null,
+    containerColor: Color? = null,
 ) {
-    val colors = MetricTileDefaults.colors(AppTheme.colors)
+    val colors = MetricTileDefaults.colors(AppTheme.colors, containerColor)
     Column(
         modifier =
         modifier

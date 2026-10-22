@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncViewModel
+import io.github.lopezjavier.appfitness.feature.weight.WeightTrendViewModel
 import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
@@ -97,6 +98,16 @@ val uiModule =
                 clock = get(),
                 savedState = get(),
                 healthWriteBack = get(),
+            )
+        }
+        viewModel {
+            WeightTrendViewModel(
+                measurements = get(),
+                goals = get(),
+                preferences = get(),
+                weightTrend = get(),
+                clock = get(),
+                savedState = get(),
             )
         }
         viewModel {

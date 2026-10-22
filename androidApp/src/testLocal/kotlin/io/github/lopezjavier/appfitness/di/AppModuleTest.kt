@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
@@ -50,6 +51,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -149,6 +151,8 @@ class AppModuleTest {
                 CircumferenceRepository::class,
                 ValidateCircumference::class,
                 WaistHipRatio::class,
+                WeightChartPreferences::class,
+                WeightTrend::class,
             ),
         )
     }
