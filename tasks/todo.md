@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** the E5-B 👤 checkpoint (present it once T-081's PR is merged and `deploy-supabase` is green; E5-A folded into E5-B). T-076…T-081 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
+**Next:** T-084 (E5-B feedback round 1, 2026-10-22), then T-085, then the E5-B 👤 checkpoint again (re-test the points listed there plus the feedback items). T-076…T-081 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2105,8 +2105,49 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 
 ---
 
+## T-084: Fix E5-B feedback: Health Connect precedence, composition values, chart target line (ADR-47)
+
+**Story:** US-25, US-27 (fix from Checkpoint E5-B feedback, 2026-10-22) · **Flow:** UI (+ small data change) · **Scenarios:** Composition values; Target line; Health Connect weight takes precedence
+
+**Description:** (1) ADR-47: a day with a Health Connect weight offers no manual entry/edit (note "Sincronizado desde Health Connect"); "Peso actual" in Preferencias is read-only while the most recent weight comes from Health Connect. (2) "+" button on "Peso actual" opens a "Composición corporal" sheet with the latest body fat, lean mass, water, bone and BMR and their dates ("—" when absent); the day's detail shows the same values for that day. (3) Dashed target-weight line on the weight chart. (4) Rename "MA 7D" to "Media 7 días" with a "?" help: "Promedio de tu peso en ese día y los 6 anteriores. Suaviza las oscilaciones diarias." (5) Goal card: replace the percentage with plain text "Desde tu primer peso: X kg" (the visual progress is deferred to E8).
+
+**Acceptance criteria:**
+- [ ] A day with a Health Connect weight has no manual entry or edit; the note is shown; days without one are unchanged.
+- [ ] Preferencias "Peso actual" is read-only while the latest weight is from Health Connect, editable otherwise.
+- [ ] The "+" sheet and the day's detail show the composition values with dates.
+- [ ] The chart shows the target line; the average line is labelled "Media 7 días" with its "?" help.
+- [ ] The goal card shows no percentage.
+- [ ] Restoration tests for the new sheet (ADR-40).
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if a migration is needed.
+
+**Dependencies:** T-081
+**Estimated scope:** M
+
+---
+
+## T-085: Trend chart for every body metric (metric selector)
+
+**Story:** US-27 (new scenario from Checkpoint E5-B feedback, 2026-10-22) · **Flow:** UI · **Scenarios:** Metric selector
+
+**Description:** A selector above the trend chart switches between weight, body fat %, lean mass, water, bone, BMR, waist and hip. It reuses the time filters (1S…1A, remembered), the 7-day average and the long-press readout; the target line only appears on the weight view. Metrics without data show the "not enough data" message.
+
+**Acceptance criteria:**
+- [ ] Each metric charts its own series with the shared filters, average and point detail.
+- [ ] The chosen metric and filter survive leaving the app (ADR-40).
+- [ ] The target line shows only for weight.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-084
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
-- [ ] T-079…T-081 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-079…T-081, T-084 and T-085 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Manual weight and circumferences (from T-076…T-078 and T-083): Perfil → "Peso": "Registrar peso de hoy" (day only, no hour; weight and fat fields aligned); 19,9 kg, 401 kg and 80 % fat disable "Guardar"; a second "Registrar peso de hoy" edits today's weight; the calendar marks days, sets yesterday's weight and edits or deletes a day (gone at once). "Circunferencias" → "Añadir medida": fill waist 84,5 and hip 98,0 at once → ratio "0,86"; the "?" help; edit and delete one; 19,9 and 251 cm disabled.
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
