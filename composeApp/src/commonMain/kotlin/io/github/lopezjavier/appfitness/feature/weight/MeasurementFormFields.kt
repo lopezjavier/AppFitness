@@ -114,12 +114,31 @@ private fun RangeHint(form: MeasurementForm) {
 
 /** Hour and minute wheels; on today they stop at the current minute (the view model clamps what is requested). */
 @Composable
-private fun TimeWheels(form: MeasurementForm, onEvent: (WeightEvent) -> Unit) {
-    val maxMinute = form.maxMinuteOfDay
+private fun TimeWheels(form: MeasurementForm, onEvent: (WeightEvent) -> Unit) = TimeWheelFields(
+    hour = form.hour,
+    minute = form.minute,
+    maxMinuteOfDay = form.maxMinuteOfDay,
+    testTagPrefix = "weight_sheet",
+    onTimeChange = { hour, minute -> onEvent(WeightEvent.SetTime(hour, minute)) },
+)
+
+/**
+ * Hour and minute wheels with the time label. Tags: "[testTagPrefix]_time", "_time_value", "_hour" and "_minute".
+ * [maxMinuteOfDay] (today) stops the wheels at the current minute; null leaves the whole day.
+ */
+@Composable
+internal fun TimeWheelFields(
+    hour: Int,
+    minute: Int,
+    maxMinuteOfDay: Int?,
+    testTagPrefix: String,
+    onTimeChange: (hour: Int, minute: Int) -> Unit,
+) {
+    val maxMinute = maxMinuteOfDay
     val maxHour = maxMinute?.div(MINUTES_PER_HOUR) ?: LAST_HOUR
     val hourRange = 0..maxHour
     val minuteRange = if (maxMinute != null &&
-        form.hour >= maxHour
+        hour >= maxHour
     ) {
         0..(maxMinute % MINUTES_PER_HOUR)
     } else {
@@ -135,35 +154,35 @@ private fun TimeWheels(form: MeasurementForm, onEvent: (WeightEvent) -> Unit) {
                 color = AppTheme.colors.textSecondary,
             )
             Text(
-                text = timeText(form.hour, form.minute),
+                text = timeText(hour, minute),
                 style = AppTheme.typography.labelNumeric,
                 color = AppTheme.colors.textPrimary,
-                modifier = Modifier.testTag("weight_sheet_time_value"),
+                modifier = Modifier.testTag("${testTagPrefix}_time_value"),
             )
         }
         Row(
-            Modifier.fillMaxWidth().testTag("weight_sheet_time"),
+            Modifier.fillMaxWidth().testTag("${testTagPrefix}_time"),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             WheelPicker(
                 range = hourRange,
-                value = form.hour,
-                onValueChange = { onEvent(WeightEvent.SetTime(it, form.minute)) },
+                value = hour,
+                onValueChange = { onTimeChange(it, minute) },
                 label = ::twoDigits,
                 contentDescription = stringResource(Res.string.weight_hour_cd),
                 stateDescription = { "${twoDigits(it)} $hoursUnit" },
-                testTagPrefix = "weight_sheet_hour",
+                testTagPrefix = "${testTagPrefix}_hour",
             )
             Text(text = ":", style = AppTheme.typography.labelNumeric, color = AppTheme.colors.textPrimary)
             WheelPicker(
                 range = minuteRange,
-                value = form.minute,
-                onValueChange = { onEvent(WeightEvent.SetTime(form.hour, it)) },
+                value = minute,
+                onValueChange = { onTimeChange(hour, it) },
                 label = ::twoDigits,
                 contentDescription = stringResource(Res.string.weight_minute_cd),
                 stateDescription = { "${twoDigits(it)} $minutesUnit" },
-                testTagPrefix = "weight_sheet_minute",
+                testTagPrefix = "${testTagPrefix}_minute",
             )
         }
     }

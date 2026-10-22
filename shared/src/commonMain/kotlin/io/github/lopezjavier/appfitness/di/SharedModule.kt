@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
@@ -23,6 +24,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseWorkoutSessionRe
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
@@ -37,6 +39,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -64,9 +67,11 @@ import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
+import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import kotlinx.datetime.TimeZone
 import org.koin.dsl.module
 
@@ -98,6 +103,14 @@ val sharedModule =
                 SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredBodyMeasurementRepository()
+            }
+        }
+        single<CircumferenceRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCircumferenceRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredCircumferenceRepository()
             }
         }
         single<NutritionGoalsRepository> {
@@ -197,6 +210,8 @@ val sharedModule =
         factory { LoadExerciseCatalog(get(), get()) }
         factory { SearchExercises() }
         factory { ValidateBodyMeasurement() }
+        factory { ValidateCircumference() }
+        factory { WaistHipRatio() }
         factory { MeasurementsByDay() }
         factory { CurrentWeight() }
         // The local day boundaries follow the device time zone, which is not a Koin dependency.

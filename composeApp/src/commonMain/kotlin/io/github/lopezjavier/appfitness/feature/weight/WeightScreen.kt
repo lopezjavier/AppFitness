@@ -67,6 +67,8 @@ private val SkeletonCalendarHeight = Spacing.xl * 11
 fun WeightScreen(
     state: WeightUiState,
     onEvent: (WeightEvent) -> Unit,
+    circumferences: CircumferencesUiState,
+    onCircumferenceEvent: (CircumferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -83,8 +85,12 @@ fun WeightScreen(
             )
 
             is WeightUiState.Content -> {
-                WeightContentView(state.content, onEvent, timeZone)
+                WeightContentView(state.content, onEvent, circumferences, onCircumferenceEvent, timeZone)
                 state.content.sheet?.let { WeightDaySheet(it, state.content.isOnline, timeZone, onEvent) }
+                val circumferenceSheet = (circumferences as? CircumferencesUiState.Content)?.content
+                circumferenceSheet?.sheet?.let {
+                    CircumferenceSheet(it, circumferenceSheet.isOnline, state.content.today, onCircumferenceEvent)
+                }
             }
         }
         SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter)) { data ->
@@ -94,7 +100,13 @@ fun WeightScreen(
 }
 
 @Composable
-private fun WeightContentView(content: WeightContent, onEvent: (WeightEvent) -> Unit, timeZone: TimeZone) {
+private fun WeightContentView(
+    content: WeightContent,
+    onEvent: (WeightEvent) -> Unit,
+    circumferences: CircumferencesUiState,
+    onCircumferenceEvent: (CircumferencesEvent) -> Unit,
+    timeZone: TimeZone,
+) {
     Column(Modifier.fillMaxSize()) {
         if (!content.isOnline) {
             OfflineBanner(Modifier.fillMaxWidth(), testTagPrefix = "weight_offline_banner")
@@ -116,12 +128,16 @@ private fun WeightContentView(content: WeightContent, onEvent: (WeightEvent) -> 
                 if (wide) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                         WeightPanelSection(content, onEvent, timeZone, Modifier.weight(1f))
-                        WeightCalendar(content, onEvent, Modifier.weight(1f))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
+                            WeightCalendar(content, onEvent)
+                            CircumferenceSection(circumferences, content.today, timeZone, onCircumferenceEvent)
+                        }
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                         WeightPanelSection(content, onEvent, timeZone)
                         WeightCalendar(content, onEvent)
+                        CircumferenceSection(circumferences, content.today, timeZone, onCircumferenceEvent)
                     }
                 }
             }

@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
+import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
@@ -90,6 +91,16 @@ val uiModule =
                 measurementsByDay = get(),
                 saveBodyMeasurement = get(),
                 validate = get(),
+                connectivity = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
+        viewModel {
+            CircumferencesViewModel(
+                repository = get(),
+                validate = get(),
+                waistHipRatio = get(),
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),

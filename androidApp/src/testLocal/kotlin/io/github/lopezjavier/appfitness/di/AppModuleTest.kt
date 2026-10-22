@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -40,9 +41,11 @@ import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
+import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -134,6 +137,9 @@ class AppModuleTest {
                 MeasurementsByDay::class,
                 SaveBodyMeasurement::class,
                 ValidateBodyMeasurement::class,
+                CircumferenceRepository::class,
+                ValidateCircumference::class,
+                WaistHipRatio::class,
             ),
         )
     }
