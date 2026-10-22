@@ -140,6 +140,7 @@ The user found repeated UX defects and inconsistencies across screens (icons vs.
 - Consolidate every convention the user has stated at checkpoints into `planning/05-design-system.md` as explicit rules.
 - Update `ux-reviewer` to check each UI plan against those rules and against the existing screens, so the same mistakes never come back.
 - Run a cross-screen consistency audit as part of the polish pass.
+- Success criterion (E5 retrospective, 2026-10-22): after E8 the user must not see new screens follow a different approach than existing ones. The `ux-reviewer` refinement is part of the epic's Definition of Done, not optional polish.
 
 ## Epic Definition of Done
 - All stories US-01…US-46 closed; the app is verified manually at the checkpoints.
