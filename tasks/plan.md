@@ -23,27 +23,30 @@ Out of scope (epic file): background sync, other Health Connect data (steps, sle
 ## Task List
 
 ### Phase 1: Manual weight and body measurements
-- [ ] T-076: Manual weight backend: one weight per day, locked date and the repository (US-25 data) — backend — M
-- [ ] T-077: Weight screen with the weight calendar (US-25 weight UI) — UI — M–L
-- [ ] T-078: Body circumferences and the waist-to-hip ratio (US-25 circumferences) — UI + backend — M
-- [ ] T-083: User feedback: day-only forms, aligned weight sheet, all circumferences at once — UI — M
+- [x] T-076: Manual weight backend: one weight per day, locked date and the repository (US-25 data) — backend — M
+- [x] T-077: Weight screen with the weight calendar (US-25 weight UI) — UI — M–L
+- [x] T-078: Body circumferences and the waist-to-hip ratio (US-25 circumferences) — UI + backend — M
+- [x] T-083: User feedback: day-only forms, aligned weight sheet, all circumferences at once — UI — M
   - No checkpoint here (user decision 2026-10-22): the manual weight and circumference tests move to Checkpoint E5-B.
 
 ### Phase 2: Health Connect and trend
-- [ ] T-079: Manual Health Connect sync, read and write-back (US-26) — UI + backend + platform — L
-- [ ] T-080: Weight trend chart, time filters and weekly rate (US-27 trend + US-25 chart) — UI — M–L
+- [x] T-079: Manual Health Connect sync, read and write-back (US-26) — UI + backend + platform — L
+- [x] T-080: Weight trend chart, time filters and weekly rate (US-27 trend + US-25 chart) — UI — M–L
 
 ### Phase 3: Goal, metrics and closure
-- [ ] T-081: Target weight, BMI, measurement comparison and metric interpretation (US-27 goal/metrics) — UI + backend — L
+- [x] T-081: Target weight, BMI, measurement comparison and metric interpretation (US-27 goal/metrics) — UI + backend — L
   - **Checkpoint E5-B 👤 Health Connect, trend, goal, metrics and final regression:**
     - first sync and permissions (90 days); incremental sync without duplicates; write-back and its edit/delete; "Permiso necesario"; dots + "MA 7D" line, filters, weekly pill;
     - set and change the target; direction-aware distance and progress from the first weight; BMI with status; metric details with the disclaimer; composition values; "Comparar";
     - final regression over a few real days with the scale, manual entries via the calendar, Health Connect edit/delete, circumferences, chart, goal and Preferencias;
     - leave the app and come back;
     - approval → T-082.
-- [ ] T-084: Fix E5-B feedback: Health Connect precedence, composition values, chart target line (ADR-47) — UI — M
-- [ ] T-085: Trend chart for every body metric (metric selector) — UI — M
-- [ ] T-082: E5 closure — PM — S (tag `v0.5.0` and the retrospective, after E5-B is approved)
+- [x] T-084: Fix E5-B feedback: Health Connect precedence, composition values, chart target line (ADR-47) — UI — M
+- [x] T-085: Trend chart for every body metric (metric selector) — UI — M
+- [x] T-086: Fix crash when deleting an old manual weight — fix — S
+- [x] T-087: Fix E5-B feedback round 2 (ADR-48) — UI — M
+- [x] T-088: Trend line and weekly pace with sparse weigh-ins (ADR-49) — core + UI — M
+- [x] T-082: E5 closure — PM — S (retrospective and tag `v0.5.0`; E5-B approved 2026-10-22)
 
 There are two checkpoints (user decision 2026-10-21; the first breakdown had five): manual measurements, then everything else (Health Connect, trend, goal, metrics) with the final regression. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
 - pgTAP + lint + `testLocalDebugUnitTest` green per task;

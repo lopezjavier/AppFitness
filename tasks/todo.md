@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E5-B 👤 checkpoint again (T-088 merged). T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** E6 breakdown (T-089 onwards) by `epic-planner` in a fresh session (`planning/epics/E6-training-depth.md`); the PM presents the task list and the proposed 👤 checkpoints, each justified, and the user agrees them before the breakdown PR is merged and before the first task. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2204,8 +2204,8 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 ---
 
 ### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
-- [ ] T-079…T-081 and T-084…T-088 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+- [x] T-079…T-081 and T-084…T-088 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed. *(2026-10-22)*
+- [x] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Manual weight and circumferences (from T-076…T-078 and T-083): Perfil → "Peso": "Registrar peso de hoy" (day only, no hour; weight and fat fields aligned); 19,9 kg, 401 kg and 80 % fat disable "Guardar"; a second "Registrar peso de hoy" edits today's weight; the calendar marks days, sets yesterday's weight and edits or deletes a day (gone at once). "Circunferencias" → "Añadir medida": fill waist 84,5 and hip 98,0 at once → ratio "0,86"; the "?" help; edit and delete one; 19,9 and 251 cm disabled.
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
   - Weigh yourself, wait until the reading reaches Health Connect, then "Sincronizar": only the new weigh-in arrives, with its fat and the extra composition values in one entry; tap again: nothing new.
@@ -2218,7 +2218,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
   - Round-2 fixes: deleting an old manual weight no longer crashes; Preferencias "Peso actual" is read-only with a Health Connect weight; the "Peso actual" box opens the composition, the pencil opens today's entry, no green button, no "Comparar"; switching metric tabs is instant.
   - Final regression over a few real days: weigh yourself and "Sincronizar"; set a weight from the calendar and check Health Connect follows its edit and delete; log a waist and a hip (the ratio and its interpretation update); the chart, the weekly pill, the goal distance and the BMI move; the weight in Preferencias matches the weight screen.
   - Leave the app on the permission screen, mid-sync, with the target sheet half filled, a comparison open or a non-default chart filter: the same tab, screen and draft are restored.
-  - Approval → `v0.5.0` and the retrospective (T-082).
+  - Approval → `v0.5.0` and the retrospective (T-082). *(Approved by the user, 2026-10-22, after three feedback rounds: T-084/T-085, T-086/T-087, T-088.)*
   - Out of scope: a target date or estimated time to reach it (not in Phase 1).
 
 ---
@@ -2230,14 +2230,15 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** Closes E5: final regression on the phone with the real scale, approval, tag `v0.5.0` and the retrospective.
 
 **Acceptance criteria:**
-- [ ] T-076…T-081 (and any fix tasks) merged with green CI; pgTAP green for `body_measurements` (incl. `external_id` uniqueness and the manual-row-per-day RPC), `body_circumferences`, `health_sync_state` and `profiles.target_weight_kg`; `deploy-supabase` green after the last migration.
-- [ ] Host tests green for every E5 Gherkin scenario; the weekly rate, BMI, target distance and waist-to-hip ratio match the `04-business-rules.md` §3 examples.
-- [ ] Health Connect read and write manual test documented in the T-079 PR.
-- [ ] Checkpoint E5-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
-- [ ] `tasks/todo.md` (E5 ✅, next-task pointer) updated through a PR.
+- [x] T-076…T-081 (and any fix tasks) merged with green CI; pgTAP green for `body_measurements` (incl. `external_id` uniqueness and the manual-row-per-day RPC), `body_circumferences`, `health_sync_state` and `profiles.target_weight_kg`; `deploy-supabase` green after the last migration.
+- [x] Host tests green for every E5 Gherkin scenario; the weekly rate, BMI, target distance and waist-to-hip ratio match the `04-business-rules.md` §3 examples.
+- [x] Health Connect read and write manual test documented in the T-079 PR. *(Run on the phone with the real scale as part of Checkpoint E5-B, approved.)*
+- [x] Checkpoint E5-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [x] `tasks/todo.md` (E5 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.5.0` after approval.
+- [x] `gh run list` shows the last `deploy-supabase` green *(run of 2026-10-22, after the last E5 migration)*.
+- [ ] `git tag` lists `v0.5.0` *(PM creates it on the merge commit of this PR, right after the merge)*.
 
 **Dependencies:** T-081 (Checkpoint E5-B approved)
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`
