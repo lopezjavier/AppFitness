@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-086 (crash deleting an old manual weight), then T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
