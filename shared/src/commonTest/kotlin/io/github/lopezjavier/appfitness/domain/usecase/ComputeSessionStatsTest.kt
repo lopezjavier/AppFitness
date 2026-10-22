@@ -47,7 +47,7 @@ class ComputeSessionStatsTest {
     }
 
     @Test
-    fun completedSetsCountsEveryCompletedSetIncludingWarmUps() {
+    fun completedSetsSkipsWarmUpsByDefault() {
         val exercise = SessionExercise(
             "e1",
             0,
@@ -55,7 +55,8 @@ class ComputeSessionStatsTest {
             listOf(set(1, 20.0, 10, type = SetType.WarmUp), set(2, 100.0, 5), set(3, 100.0, 5, done = false)),
         )
 
-        assertEquals(2, ComputeSessionStats(session(exercise)).completedSets)
+        assertEquals(1, ComputeSessionStats(session(exercise)).completedSets)
+        assertEquals(2, ComputeSessionStats(session(exercise), includeWarmUp = true).completedSets)
     }
 
     @Test

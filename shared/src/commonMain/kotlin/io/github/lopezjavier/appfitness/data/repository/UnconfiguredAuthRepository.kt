@@ -68,6 +68,7 @@ class UnconfiguredProfileRepository : ProfileRepository {
         biometrics: Biometrics,
         goals: NutritionGoals,
         weight: WeightEntry?,
+        warmUpIncluded: Boolean,
     ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 

@@ -11,7 +11,9 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
 import kotlinx.coroutines.async
@@ -44,6 +46,7 @@ class SessionDetailViewModel(
     private val exerciseLibrary: ExerciseLibrary,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
+    private val preferences: TrainingPreferencesRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: WorkoutSession? = null
@@ -53,6 +56,7 @@ class SessionDetailViewModel(
     private var history: Map<String, List<ExerciseHistoryPoint>>? = null
     private var terminal: SessionDetailUiState? = SessionDetailUiState.Loading
     private var online = true
+    private var includeWarmUp = false
     private var edit: EditSetState? = null
         set(value) {
             field = value
@@ -117,6 +121,7 @@ class SessionDetailViewModel(
                     } else {
                         session = loaded
                         names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: names
+                        includeWarmUp = preferences.warmUpIncludedOrDefault()
                         history = loadHistory(loaded)
                         restoreEdit(loaded)
                         terminal = null
@@ -242,11 +247,11 @@ class SessionDetailViewModel(
 
     private fun render(): SessionDetailUiState {
         val current = session ?: return SessionDetailUiState.Loading
-        val records = history?.let { DetectSessionPersonalRecords(current, it) }.orEmpty()
+        val records = history?.let { DetectSessionPersonalRecords(current, it, includeWarmUp) }.orEmpty()
         return SessionDetailUiState.Content(
             name = current.name,
             label = sessionDateLabel(sessionLocalDate(current.startedAt), clock.today()),
-            stats = ComputeSessionStats(current),
+            stats = ComputeSessionStats(current, includeWarmUp),
             exercises = current.exercises.sortedBy { it.position }.map { exercise ->
                 DetailExercise(
                     position = exercise.position,

@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -22,7 +24,11 @@ private const val PAGE_SIZE = 20
  * deduplicated by id on append because a session finished meanwhile shifts the window. A refresh reloads from the
  * first page.
  */
-class HistoryViewModel(private val repository: WorkoutSessionRepository, private val clock: Clock) : ViewModel() {
+class HistoryViewModel(
+    private val repository: WorkoutSessionRepository,
+    private val preferences: TrainingPreferencesRepository,
+    private val clock: Clock,
+) : ViewModel() {
     private val _uiState = MutableStateFlow<HistoryUiState>(HistoryUiState.Loading)
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
@@ -32,6 +38,9 @@ class HistoryViewModel(private val repository: WorkoutSessionRepository, private
     /** Rows the server returned so far; the next page starts here (deduplicated rows do not count less). */
     private var nextOffset = 0
     private var job: Job? = null
+
+    /** The warm-up setting read with the first page; later pages use it too so the rows stay consistent. */
+    private var includeWarmUp = false
 
     init {
         loadFirstPage(showLoading = true)
@@ -62,6 +71,7 @@ class HistoryViewModel(private val repository: WorkoutSessionRepository, private
         job?.cancel()
         if (showLoading) _uiState.value = HistoryUiState.Loading
         job = viewModelScope.launch {
+            includeWarmUp = preferences.warmUpIncludedOrDefault()
             repository.listCompleted(0, PAGE_SIZE).fold(
                 onSuccess = { page ->
                     nextOffset = page.size
@@ -105,7 +115,7 @@ class HistoryViewModel(private val repository: WorkoutSessionRepository, private
     }
 
     private fun WorkoutSession.toRow(): HistoryRow {
-        val stats = ComputeSessionStats(this)
+        val stats = ComputeSessionStats(this, includeWarmUp)
         return HistoryRow(
             id = id,
             label = sessionDateLabel(sessionLocalDate(startedAt), clock.today()),

@@ -19,6 +19,10 @@ internal class FakeStrengthRepository : StrengthRepository {
     var sessionsFailure: AppError? = null
     var maxRepsFailure: AppError? = null
     var maxRepsCalls = 0
+
+    /** The `includeWarmUp` flag of every [maxRepsHistory] call. */
+    val maxRepsWarmUpArgs = mutableListOf<Boolean>()
+    var maxRepsWarmUp: Map<String, List<MaxRepsPoint>> = emptyMap()
     var volumeRows: List<WeeklyMuscleVolumeRow> = emptyList()
     var volumeFailure: AppError? = null
     var volumeFromArgs = mutableListOf<LocalDate>()
@@ -31,10 +35,16 @@ internal class FakeStrengthRepository : StrengthRepository {
     override suspend fun recentSessions(since: Instant): Result<List<WorkoutSession>> =
         sessionsFailure?.let { Result.failure(AppException(it)) } ?: Result.success(sessions)
 
-    override suspend fun maxRepsHistory(exerciseId: String, from: LocalDate?): Result<List<MaxRepsPoint>> {
+    override suspend fun maxRepsHistory(
+        exerciseId: String,
+        from: LocalDate?,
+        includeWarmUp: Boolean,
+    ): Result<List<MaxRepsPoint>> {
         maxRepsCalls++
+        maxRepsWarmUpArgs += includeWarmUp
+        val source = if (includeWarmUp) maxRepsWarmUp.takeIf { it.isNotEmpty() } ?: maxReps else maxReps
         return maxRepsFailure?.let { Result.failure(AppException(it)) }
-            ?: Result.success(maxReps[exerciseId].orEmpty())
+            ?: Result.success(source[exerciseId].orEmpty())
     }
 }
 

@@ -55,6 +55,7 @@ class CompleteOnboardingTest {
             biometrics: Biometrics,
             goals: NutritionGoals,
             weight: WeightEntry?,
+            warmUpIncluded: Boolean,
         ): Result<Unit> = error("unused")
     }
     private val completeOnboarding = CompleteOnboarding(goalsRepository, profileRepository)

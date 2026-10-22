@@ -9,7 +9,9 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.BuildExerciseProgress
 import io.github.lopezjavier.appfitness.feature.workout.loadExerciseNames
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +31,7 @@ class ExerciseProgressViewModel(
     private val exerciseRepository: ExerciseRepository,
     private val exerciseLibrary: ExerciseLibrary,
     private val clock: Clock,
+    private val preferences: TrainingPreferencesRepository,
 ) : ViewModel() {
     private var name: String? = null
     private var history: List<ExerciseHistoryPoint> = emptyList()
@@ -60,9 +63,15 @@ class ExerciseProgressViewModel(
             // Repetitions are only needed when no session has a 1RM (exercise logged without load).
             val reps = when {
                 points == null -> null
+
                 points.any { it.bestOneRepMax != null } -> emptyList()
+
                 points.isEmpty() -> emptyList()
-                else -> strength.maxRepsHistory(exerciseId).getOrNull()
+
+                else -> strength.maxRepsHistory(
+                    exerciseId,
+                    includeWarmUp = preferences.warmUpIncludedOrDefault(),
+                ).getOrNull()
             }
             if (points == null || reps == null) {
                 _uiState.value = ExerciseProgressUiState.Error

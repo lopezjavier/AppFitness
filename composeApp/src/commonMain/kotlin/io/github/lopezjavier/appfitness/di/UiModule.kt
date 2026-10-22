@@ -49,6 +49,7 @@ val uiModule =
                 profileRepository = get(),
                 goalsRepository = get(),
                 bodyMeasurementRepository = get(),
+                trainingPreferencesRepository = get(),
                 savePreferences = get(),
                 connectivity = get(),
                 clock = get(),
@@ -252,6 +253,7 @@ val uiModule =
                 exerciseLibrary = get(),
                 connectivity = get(),
                 clock = get(),
+                preferences = get(),
             )
         }
         viewModelOf(::StrengthViewModel)
@@ -264,6 +266,7 @@ val uiModule =
                 exerciseRepository = get(),
                 exerciseLibrary = get(),
                 clock = get(),
+                preferences = get(),
             )
         }
         // A blank routineId means a new routine (Koin parameters cannot be null).

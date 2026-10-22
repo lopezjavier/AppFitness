@@ -97,6 +97,17 @@ class SupabaseStrengthRepositoryTest {
     }
 
     @Test
+    fun maxRepsHistory_withWarmUpIncludedDoesNotFilterTheSetType() = runTest {
+        val repo = signedIn()
+
+        repo.maxRepsHistory("e1", includeWarmUp = true).getOrThrow()
+
+        val query = rest().single().url.toString()
+        assertTrue(!query.contains("set_type"), query)
+        assertTrue(query.contains("completed_at=not.is.null"), query)
+    }
+
+    @Test
     fun maxRepsHistory_withoutLowerBoundDoesNotFilterByDate() = runTest {
         val repo = signedIn()
 

@@ -15,7 +15,11 @@ class UnconfiguredStrengthRepository : StrengthRepository {
 
     override suspend fun recentSessions(since: Instant): Result<List<WorkoutSession>> = fail()
 
-    override suspend fun maxRepsHistory(exerciseId: String, from: LocalDate?): Result<List<MaxRepsPoint>> = fail()
+    override suspend fun maxRepsHistory(
+        exerciseId: String,
+        from: LocalDate?,
+        includeWarmUp: Boolean,
+    ): Result<List<MaxRepsPoint>> = fail()
 
     override suspend fun weeklyMuscleVolume(from: LocalDate): Result<List<WeeklyMuscleVolumeRow>> = fail()
 }

@@ -27,6 +27,8 @@ data class PreferencesForm(
     val strategy: GoalStrategy,
     val adjustment: Int,
     val split: MacroSplit,
+    /** "Incluir calentamiento": warm-up sets count in volume, 1RM, records and set totals. */
+    val warmUpIncluded: Boolean = false,
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
@@ -95,6 +97,9 @@ sealed interface PreferencesEvent {
 
     /** A macro slider moved to [percent]; the others rebalance. */
     data class MoveMacro(val macro: Macronutrient, val percent: Int) : PreferencesEvent
+
+    /** The "Incluir calentamiento" switch; only a draft until [Save]. */
+    data class SetWarmUpIncluded(val included: Boolean) : PreferencesEvent
 
     data object Save : PreferencesEvent
 

@@ -1,10 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
 import io.github.lopezjavier.appfitness.domain.model.ProgressMode
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -31,6 +33,7 @@ import kotlin.test.assertTrue
 class ExerciseProgressViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val strength = FakeStrengthRepository()
+    private val training = FakeTrainingPreferencesRepository()
     private val workouts = FakeWorkoutSessionRepository()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("bench", "bench")))
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca")))
@@ -41,7 +44,8 @@ class ExerciseProgressViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = ExerciseProgressViewModel("bench", workouts, strength, exercises, library, MutableClock())
+    private fun viewModel() =
+        ExerciseProgressViewModel("bench", workouts, strength, exercises, library, MutableClock(), training)
 
     private fun ExerciseProgressViewModel.content() = assertIs<ExerciseProgressUiState.Content>(uiState.value)
 
@@ -119,6 +123,23 @@ class ExerciseProgressViewModelTest {
         assertEquals(ProgressMode.MaxReps, progress.mode)
         assertEquals(listOf(8.0, 10.0), progress.primary.map { it.value })
         assertTrue(progress.volume.isEmpty())
+    }
+
+    @Test
+    fun maxRepsFollowTheWarmUpPreference() = runTest(dispatcher) {
+        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 1), null, 0.0)))
+        strength.maxReps = mapOf("bench" to listOf(MaxRepsPoint("a", LocalDate(2026, 10, 1), 8)))
+        strength.maxRepsWarmUp = mapOf("bench" to listOf(MaxRepsPoint("a", LocalDate(2026, 10, 1), 15)))
+
+        val off = viewModel()
+        advanceUntilIdle()
+        training.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+        val on = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(8.0), off.content().progress.primary.map { it.value })
+        assertEquals(listOf(15.0), on.content().progress.primary.map { it.value })
+        assertEquals(listOf(false, true), strength.maxRepsWarmUpArgs)
     }
 
     @Test

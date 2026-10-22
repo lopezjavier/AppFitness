@@ -112,6 +112,7 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     ): Result<Unit> {
         failing(upsertFailure)?.let { return it }
         applyToCompleted(sessionId, exercisePosition, setIndex, entry)
+        storeSetType(sessionId, exercisePosition, setIndex, setType)
         upserts +=
             SetWrite(sessionId, exerciseId, exercisePosition, supersetGroup, setIndex, entry, completedAt, setType)
         return Result.success(Unit)
@@ -140,6 +141,22 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         deleted += sessionId
         completed.removeAll { it.id == sessionId }
         return Result.success(Unit)
+    }
+
+    /** The server keeps the set type of the in-progress session, so a reload shows it. */
+    private fun storeSetType(sessionId: String, position: Int, setIndex: Int, setType: SetType) {
+        val stored = session?.takeIf { it.id == sessionId } ?: return
+        session = stored.copy(
+            exercises = stored.exercises.map { exercise ->
+                if (exercise.position != position) {
+                    exercise
+                } else {
+                    exercise.copy(
+                        sets = exercise.sets.map { if (it.setIndex == setIndex) it.copy(setType = setType) else it },
+                    )
+                }
+            },
+        )
     }
 
     private fun applyToCompleted(sessionId: String, position: Int, setIndex: Int, entry: SetEntry) {

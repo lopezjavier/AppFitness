@@ -85,6 +85,7 @@ internal data class SavePreferencesParams(
     @SerialName("p_measured_at") val measuredAt: String? = null,
     @SerialName("p_day_start") val dayStart: String? = null,
     @SerialName("p_day_end") val dayEnd: String? = null,
+    @SerialName("p_warm_up_included") val warmUpIncluded: Boolean? = null,
 ) {
     companion object {
         fun from(
@@ -92,6 +93,7 @@ internal data class SavePreferencesParams(
             biometrics: Biometrics,
             goals: NutritionGoals,
             weight: WeightEntry?,
+            warmUpIncluded: Boolean,
         ): SavePreferencesParams {
             val profile = BiometricsUpdateDto.from(biometrics)
             return SavePreferencesParams(
@@ -110,6 +112,7 @@ internal data class SavePreferencesParams(
                 measuredAt = weight?.measuredAt?.toString(),
                 dayStart = weight?.dayStart?.toString(),
                 dayEnd = weight?.dayEnd?.toString(),
+                warmUpIncluded = warmUpIncluded,
             )
         }
     }

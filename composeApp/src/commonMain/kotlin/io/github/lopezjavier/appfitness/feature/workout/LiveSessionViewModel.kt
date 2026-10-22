@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
@@ -20,7 +21,9 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
 import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
@@ -54,6 +57,14 @@ private const val TICK_MILLIS = 1000L
 private const val MAX_REPS = 999
 private const val MAX_RETRIES = 3
 private const val RETRY_BASE_MILLIS = 1000L
+
+private const val KEY_PICKER_POSITION = "live_picker_position"
+private const val KEY_PICKER_SET = "live_picker_set"
+private const val KEY_DRAFTS = "live_drafts"
+private const val DRAFT_SEPARATOR = ''
+private const val DRAFT_FIELDS = 4
+private const val DRAFT_WEIGHT = 2
+private const val DRAFT_REPS = 3
 
 /** One set of the session as the screen edits it. */
 private data class SetState(
@@ -97,6 +108,8 @@ class LiveSessionViewModel(
     private val haptics: Haptics,
     private val routineRepository: RoutineRepository,
     private val alertSound: AlertSound,
+    private val preferences: TrainingPreferencesRepository,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: SessionState? = null
 
@@ -118,6 +131,9 @@ class LiveSessionViewModel(
     private var finishSheet: FinishSheet? = null
     private var discardAsked = false
     private var busy = false
+
+    /** The set whose type picker is open; mirrored in [savedState] so it survives process death. */
+    private var typePicker: TypePickerTarget? = restoredPicker()
     private var terminal: LiveSessionUiState? = LiveSessionUiState.Loading
 
     private val queue = PendingSetQueue()
@@ -167,6 +183,12 @@ class LiveSessionViewModel(
     fun onEvent(event: LiveSessionEvent) {
         when (event) {
             LiveSessionEvent.Retry -> if (terminal == LiveSessionUiState.Error) load()
+
+            is LiveSessionEvent.OpenTypePicker -> openTypePicker(event.position, event.setIndex)
+
+            LiveSessionEvent.DismissTypePicker -> setPicker(null)
+
+            is LiveSessionEvent.SetTypeChosen -> chooseType(event)
 
             is LiveSessionEvent.WeightChanged -> editSet(event.position, event.setIndex) {
                 it.copy(weight = event.text, invalid = false)
@@ -225,7 +247,8 @@ class LiveSessionViewModel(
                         terminal = LiveSessionUiState.NoSession
                     } else {
                         loadNames()
-                        session = loaded.toState()
+                        session = loaded.toState().withRestoredDrafts()
+                        typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
                         ghosts = mutableMapOf()
                         coroutineScope {
@@ -345,6 +368,26 @@ class LiveSessionViewModel(
         if (event.checked) startRest(event.position)
     }
 
+    private fun openTypePicker(position: Int, setIndex: Int) {
+        if (terminal == null && findSet(position, setIndex) != null) setPicker(TypePickerTarget(position, setIndex))
+    }
+
+    private fun setPicker(target: TypePickerTarget?) {
+        typePicker = target
+        publish()
+    }
+
+    /** Applies the chosen type (also to a completed set) and queues the write like any other change of the set. */
+    private fun chooseType(event: LiveSessionEvent.SetTypeChosen) {
+        typePicker = null
+        if (findSet(event.position, event.setIndex) == null) {
+            publish()
+            return
+        }
+        updateSet(event.position, event.setIndex) { it.copy(setType = event.type) }
+        write(event.position, event.setIndex)
+    }
+
     private fun addSet(position: Int) {
         val current = session ?: return
         val exercise = current.exercises.firstOrNull { it.position == position } ?: return
@@ -399,7 +442,8 @@ class LiveSessionViewModel(
             if (repository.finish(current.id).isFailure) return@launch fail()
             val endedAt = clock.now()
             val finished = current.toWorkoutSession(endedAt)
-            val summary = BuildSessionSummary(finished, endedAt, loadHistory(finished))
+            val includeWarmUp = preferences.warmUpIncludedOrDefault()
+            val summary = BuildSessionSummary(finished, endedAt, loadHistory(finished), includeWarmUp)
             val named = current.exercises.associate { it.position to names[it.exerciseId] }
             busy = false
             finishSheet = null
@@ -407,6 +451,7 @@ class LiveSessionViewModel(
             tickerJob?.cancel()
             terminal = LiveSessionUiState.Finished(LiveSummary(summary, named))
             publish()
+            clearSavedState()
         }
     }
 
@@ -422,6 +467,7 @@ class LiveSessionViewModel(
             restTimer = null
             tickerJob?.cancel()
             publish()
+            clearSavedState()
             effectChannel.trySend(LiveSessionEffect.Closed)
         }
     }
@@ -530,7 +576,65 @@ class LiveSessionViewModel(
     }
 
     private fun publish() {
+        persistState()
         _uiState.value = terminal ?: render()
+    }
+
+    private fun restoredPicker(): TypePickerTarget? {
+        val position = savedState.get<Int>(KEY_PICKER_POSITION)
+        val setIndex = savedState.get<Int>(KEY_PICKER_SET)
+        return if (position != null && setIndex != null) TypePickerTarget(position, setIndex) else null
+    }
+
+    /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
+    private fun persistState() {
+        savedState[KEY_PICKER_POSITION] = typePicker?.position
+        savedState[KEY_PICKER_SET] = typePicker?.setIndex
+        if (terminal != null) return
+        val drafts = session?.exercises.orEmpty().flatMap { exercise ->
+            exercise.sets.filter { it.completedAt == null && (it.weight.isNotEmpty() || it.reps.isNotEmpty()) }
+                .map { listOf(exercise.position, it.setIndex, it.weight, it.reps).joinToString("$DRAFT_SEPARATOR") }
+        }
+        savedState[KEY_DRAFTS] = ArrayList(drafts)
+    }
+
+    /** The session is over: its picker target and drafts must not leak into the next one. */
+    private fun clearSavedState() {
+        typePicker = null
+        savedState.remove<Int>(KEY_PICKER_POSITION)
+        savedState.remove<Int>(KEY_PICKER_SET)
+        savedState.remove<List<String>>(KEY_DRAFTS)
+    }
+
+    /** Puts back the drafts typed before process death over the reloaded server state (unchecked sets only). */
+    private fun SessionState.withRestoredDrafts(): SessionState {
+        val drafts = savedState.get<List<String>>(KEY_DRAFTS).orEmpty().mapNotNull { row ->
+            val fields = row.split(DRAFT_SEPARATOR).takeIf { it.size == DRAFT_FIELDS }
+            val position = fields?.get(0)?.toIntOrNull()
+            val setIndex = fields?.get(1)?.toIntOrNull()
+            if (fields == null || position == null || setIndex == null) {
+                null
+            } else {
+                (position to setIndex) to (fields[DRAFT_WEIGHT] to fields[DRAFT_REPS])
+            }
+        }.toMap()
+        if (drafts.isEmpty()) return this
+        return copy(
+            exercises = exercises.map { exercise ->
+                exercise.copy(
+                    sets = exercise.sets.map { set ->
+                        val draft = drafts[exercise.position to set.setIndex]
+                        if (draft == null ||
+                            set.completedAt != null
+                        ) {
+                            set
+                        } else {
+                            set.copy(weight = draft.first, reps = draft.second)
+                        }
+                    },
+                )
+            },
+        )
     }
 
     private fun render(): LiveSessionUiState {
@@ -571,6 +675,7 @@ class LiveSessionViewModel(
             finishSheet = finishSheet,
             discardConfirm = discardAsked,
             busy = busy,
+            typePicker = typePicker,
         )
     }
 

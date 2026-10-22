@@ -40,6 +40,9 @@ data class LiveExercise(
 /** The running rest countdown: [remaining] of [total] (the total grows when time is added past it). */
 data class RestTimerUi(val remaining: Duration, val total: Duration)
 
+/** The set (exercise [position], [setIndex]) whose type picker is open. */
+data class TypePickerTarget(val position: Int, val setIndex: Int)
+
 /** The confirmation sheet of "Finalizar entreno": [pendingCount] sets are not completed and will be dropped. */
 data class FinishSheet(val pendingCount: Int)
 
@@ -70,6 +73,8 @@ sealed interface LiveSessionUiState {
         val busy: Boolean = false,
         /** Null when no rest is running. */
         val restTimer: RestTimerUi? = null,
+        /** The set whose type picker is open; null when closed. Survives process death (ADR-40). */
+        val typePicker: TypePickerTarget? = null,
     ) : LiveSessionUiState {
         val actionsBlocked: Boolean get() = !isOnline
         val queuedCount: Int get() = exercises.sumOf { exercise -> exercise.sets.count { it.pendingSave } }
@@ -81,6 +86,15 @@ sealed interface LiveSessionUiState {
 
 sealed interface LiveSessionEvent {
     data object Retry : LiveSessionEvent
+
+    /** Tap on the type badge of a set: opens the type picker for it. */
+    data class OpenTypePicker(val position: Int, val setIndex: Int) : LiveSessionEvent
+
+    /** The picker was closed without choosing (X, back, scrim, swipe): nothing changes. */
+    data object DismissTypePicker : LiveSessionEvent
+
+    /** "Listo" in the picker: sets the type of the set (pending or completed) and saves it; Working removes a type. */
+    data class SetTypeChosen(val position: Int, val setIndex: Int, val type: SetType) : LiveSessionEvent
 
     data class WeightChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
 

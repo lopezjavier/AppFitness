@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateTdee
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
@@ -47,7 +49,7 @@ import kotlin.time.Instant
 
 /** US-06 / US-07 / US-08 on the Preferencias screen. */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("TooManyFunctions") // One method per Gherkin scenario and rule.
+@Suppress("TooManyFunctions", "LargeClass") // One method per Gherkin scenario and rule, one shared setup.
 class PreferencesViewModelTest {
     private val today = LocalDate(2026, 10, 14)
     private val now = Instant.parse("2026-10-14T12:00:00Z")
@@ -59,6 +61,7 @@ class PreferencesViewModelTest {
     private val goals =
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
     private val connectivity = FakeConnectivityObserver(initial = true)
+    private val training = FakeTrainingPreferencesRepository()
     private val health = FakeHealthDataSource()
 
     @BeforeTest
@@ -78,6 +81,7 @@ class PreferencesViewModelTest {
         profileRepository = profile,
         goalsRepository = goals,
         bodyMeasurementRepository = weights,
+        trainingPreferencesRepository = training,
         savePreferences = SavePreferences(profile),
         connectivity = connectivity,
         clock = FakeClock(today, now),
@@ -158,6 +162,7 @@ class PreferencesViewModelTest {
             failing,
             goals,
             weights,
+            training,
             SavePreferences(failing),
             connectivity,
             FakeClock(today, now),
@@ -734,5 +739,86 @@ class PreferencesViewModelTest {
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
         assertEquals("Ana", restored.form.name)
         assertFalse(restored.canSave)
+    }
+
+    // -- warm-up inclusion --------------------------------------------------------------------------------------
+
+    @Test
+    fun warmUpSwitch_loadsTheSavedValue() = runTest {
+        training.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+
+        val (_, state) = loaded()
+
+        assertTrue(state().form.warmUpIncluded)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun warmUpSwitch_editsTheDraftOnly_andSaveSendsIt() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+        advanceUntilIdle()
+        assertTrue(state().form.warmUpIncluded)
+        assertTrue(state().canSave)
+        assertTrue(profile.preferenceSaves.isEmpty(), "nothing is written before Guardar")
+
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(profile.preferenceSaves.single().warmUpIncluded)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun warmUpSwitch_aFailedSaveKeepsTheDraft() = runTest {
+        profile.settingsResult = Result.failure(AppException(AppError.Network))
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(state().form.warmUpIncluded)
+        assertTrue(state().canSave)
+    }
+
+    @Test
+    fun warmUpSwitch_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertTrue(restored.form.warmUpIncluded)
+        assertFalse(restored.saved.warmUpIncluded)
+        assertTrue(restored.canSave)
+    }
+
+    @Test
+    fun warmUpSwitch_aDraftFromAnOlderVersionDecodesAsOff() {
+        val old = """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","strategy":"Deficit","adjustment":-400,""" +
+            """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
+
+        assertFalse(decodeDraft(old)!!.warmUpIncluded)
+    }
+
+    @Test
+    fun warmUpSwitch_aFailedReadIsLoadFailed_andRetryReloads() = runTest {
+        training.result = Result.failure(AppException(AppError.Network))
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        assertEquals(PreferencesUiState.LoadFailed, viewModel.uiState.value)
+
+        training.result = Result.success(TrainingPreferences())
+        viewModel.onEvent(PreferencesEvent.Retry)
+        advanceUntilIdle()
+
+        assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
     }
 }

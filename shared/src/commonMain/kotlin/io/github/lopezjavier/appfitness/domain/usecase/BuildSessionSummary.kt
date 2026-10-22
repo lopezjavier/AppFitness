@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import kotlin.time.Instant
 
@@ -23,14 +24,23 @@ object BuildSessionSummary {
         session: WorkoutSession,
         endedAt: Instant,
         history: Map<String, List<ExerciseHistoryPoint>>?,
+        includeWarmUp: Boolean = false,
     ): SessionSummary {
-        val best = session.exercises.groupBy { it.exerciseId }.mapValues { (_, rows) -> bestOneRepMax(rows) }
+        val best = session.exercises.groupBy { it.exerciseId }
+            .mapValues { (_, rows) -> bestOneRepMax(rows, includeWarmUp) }
         val records = if (history == null) emptySet() else DetectPersonalRecords(best, history, session.id)
         return SessionSummary(
             durationSeconds = (endedAt - session.startedAt).inWholeSeconds,
-            completedSets = session.exercises.sumOf { exercise -> exercise.sets.count { it.isCompleted } },
+            completedSets = session.exercises.sumOf { exercise ->
+                exercise.sets.count { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
+            },
             exercises = session.exercises.map {
-                ExerciseSummary(it.position, it.exerciseId, CalculateVolume(it.sets), it.exerciseId in records)
+                ExerciseSummary(
+                    it.position,
+                    it.exerciseId,
+                    CalculateVolume(it.sets, includeWarmUp),
+                    it.exerciseId in records,
+                )
             },
         )
     }

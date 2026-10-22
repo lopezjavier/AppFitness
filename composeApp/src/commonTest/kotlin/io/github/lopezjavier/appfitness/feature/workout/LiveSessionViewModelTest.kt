@@ -1,8 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
@@ -11,7 +14,9 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -58,7 +63,9 @@ class LiveSessionViewModelTest {
 
     private var created: LiveSessionViewModel? = null
 
-    private fun newViewModel() = LiveSessionViewModel(
+    private val trainingPreferences = FakeTrainingPreferencesRepository()
+
+    private fun newViewModel(savedState: SavedStateHandle = SavedStateHandle()) = LiveSessionViewModel(
         repository,
         exercises,
         library,
@@ -67,6 +74,8 @@ class LiveSessionViewModelTest {
         haptics,
         routines,
         alertSound,
+        trainingPreferences,
+        savedState,
     ).also { created = it }
 
     /** Stops a rest ticker left running, which would never let the virtual scheduler go idle (frozen clock). */
@@ -121,6 +130,196 @@ class LiveSessionViewModelTest {
         assertEquals(listOf(3, 3), state.exercises.map { it.sets.size })
         assertEquals(listOf("Press banca", null), state.exercises.map { it.name })
         assertTrue(state.exercises.flatMap { it.sets }.none { it.completed || it.pendingSave })
+    }
+
+    @Test
+    fun openingTheTypePicker_exposesTheTarget_andDismissingChangesNothing() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.OpenTypePicker(0, 2))
+        assertEquals(TypePickerTarget(0, 2), vm.active().typePicker)
+
+        vm.onEvent(LiveSessionEvent.DismissTypePicker)
+        assertNull(vm.active().typePicker)
+        assertEquals(SetType.Working, vm.row(0, 2).type)
+        assertTrue(repository.upserts.isEmpty())
+    }
+
+    @Test
+    fun assigningAType_toAPendingSet_updatesTheRowAndQueuesAWriteWithTheType() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.OpenTypePicker(0, 1))
+
+        vm.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.WarmUp))
+        runCurrent()
+
+        assertEquals(SetType.WarmUp, vm.row(0, 1).type)
+        assertNull(vm.active().typePicker)
+        val write = repository.upserts.single()
+        assertEquals(SetType.WarmUp, write.setType)
+        assertEquals(1, write.setIndex)
+        assertNull(write.completedAt)
+        assertEquals(SetEntry.WeightReps(0.0, 0), write.entry)
+    }
+
+    @Test
+    fun theAssignedType_survivesAReload() = runSessionTest {
+        val first = loaded()
+        first.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.Drop))
+        runCurrent()
+
+        val reloaded = loaded()
+
+        assertEquals(SetType.Drop, reloaded.row(0, 1).type)
+    }
+
+    @Test
+    fun removingAType_setsWorkingAgain() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.Failure))
+        runCurrent()
+
+        vm.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.Working))
+        runCurrent()
+
+        assertEquals(SetType.Working, vm.row(0, 1).type)
+        assertEquals(listOf(SetType.Failure, SetType.Working), repository.upserts.map { it.setType })
+    }
+
+    @Test
+    fun changingTheTypeOfACompletedSet_keepsItCompletedWithItsValues() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        check(vm, 0, 1)
+        val completedAt = repository.upserts.single().completedAt
+
+        vm.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.WarmUp))
+        runCurrent()
+
+        val write = repository.upserts.last()
+        assertEquals(SetType.WarmUp, write.setType)
+        assertEquals(SetEntry.WeightReps(60.0, 12), write.entry)
+        assertEquals(completedAt, write.completedAt)
+        assertTrue(vm.row(0, 1).completed)
+        assertEquals(SetType.WarmUp, vm.row(0, 1).type)
+    }
+
+    @Test
+    fun theTypeChosenOffline_isQueuedWithItsTypeAndSentOnReconnect() = runSessionTest {
+        val vm = loaded()
+        connectivity.state.value = false
+        runCurrent()
+
+        vm.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.WarmUp))
+        runCurrent()
+
+        assertTrue(repository.upserts.isEmpty())
+        assertTrue(vm.row(0, 1).pendingSave)
+
+        connectivity.state.value = true
+        advanceUntilIdle()
+
+        assertEquals(listOf(SetType.WarmUp), repository.upserts.map { it.setType })
+    }
+
+    @Test
+    fun theOpenPicker_isRestoredFromTheSameSavedState() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(LiveSessionEvent.OpenTypePicker(1, 2))
+        runCurrent()
+
+        val second = newViewModel(handle)
+        advanceUntilIdle()
+
+        assertEquals(TypePickerTarget(1, 2), second.active().typePicker)
+    }
+
+    @Test
+    fun uncheckedDrafts_areRestoredOverTheReloadedSession() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        advanceUntilIdle()
+        type(first, 0, 2, "72,5", "9")
+
+        val second = newViewModel(handle)
+        advanceUntilIdle()
+
+        assertEquals("72,5", second.row(0, 2).weight)
+        assertEquals("9", second.row(0, 2).reps)
+    }
+
+    @Test
+    fun aDraftNeverOverridesACompletedSetOfTheServer() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        advanceUntilIdle()
+        type(first, 0, 1, "10", "5")
+        repository.session = sessionOf(
+            SessionExercise("e1", 0, null, listOf(doneSet(1, 60.0, 12), pendingSet(2), pendingSet(3))),
+            SessionExercise("e2", 1, null, listOf(pendingSet(1))),
+        )
+
+        val second = newViewModel(handle)
+        advanceUntilIdle()
+
+        assertEquals("60", second.row(0, 1).weight)
+        assertEquals("12", second.row(0, 1).reps)
+    }
+
+    private fun warmUpAndWorkingSession() {
+        repository.session = sessionOf(
+            SessionExercise(
+                "e1",
+                0,
+                null,
+                listOf(
+                    WorkoutSet(1, SetType.WarmUp, SetEntry.WeightReps(40.0, 10), SESSION_START),
+                    doneSet(2, 80.0, 8),
+                ),
+            ),
+        )
+        repository.history = mapOf("e1" to emptyList())
+    }
+
+    private fun TestScope.finishedSummary(): SessionSummary {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.RequestFinish)
+        vm.onEvent(LiveSessionEvent.ConfirmFinish)
+        advanceUntilIdle()
+        return assertIs<LiveSessionUiState.Finished>(vm.uiState.value).summary.summary
+    }
+
+    @Test
+    fun finishingSummary_excludesWarmUpsByDefault() = runSessionTest {
+        warmUpAndWorkingSession()
+
+        val summary = finishedSummary()
+
+        assertEquals(1, summary.completedSets)
+        assertEquals(640.0, summary.exercises.single().volume)
+    }
+
+    @Test
+    fun finishingSummary_countsWarmUpsWhenThePreferenceIsOn() = runSessionTest {
+        warmUpAndWorkingSession()
+        trainingPreferences.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+
+        val summary = finishedSummary()
+
+        assertEquals(2, summary.completedSets)
+        assertEquals(1040.0, summary.exercises.single().volume)
+    }
+
+    @Test
+    fun finishingSummary_aFailedPreferenceReadFallsBackToExcludingWarmUps() = runSessionTest {
+        warmUpAndWorkingSession()
+        trainingPreferences.result = Result.failure(AppException(AppError.Network))
+
+        val summary = finishedSummary()
+
+        assertEquals(1, summary.completedSets)
     }
 
     @Test

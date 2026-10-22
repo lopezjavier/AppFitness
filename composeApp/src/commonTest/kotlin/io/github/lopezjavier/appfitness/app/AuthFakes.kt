@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,6 +64,7 @@ internal data class SavedPreferences(
     val biometrics: Biometrics,
     val goals: NutritionGoals,
     val weight: WeightEntry?,
+    val warmUpIncluded: Boolean = false,
 )
 
 /** Test double of [ProfileRepository]: each read returns the next of [results] (the last one repeats). */
@@ -117,8 +120,9 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         biometrics: Biometrics,
         goals: NutritionGoals,
         weight: WeightEntry?,
+        warmUpIncluded: Boolean,
     ): Result<Unit> {
-        preferenceSaves += SavedPreferences(displayName, biometrics, goals, weight)
+        preferenceSaves += SavedPreferences(displayName, biometrics, goals, weight, warmUpIncluded)
         return settingsResult
     }
 
@@ -239,5 +243,16 @@ internal class FakeAccountRepository(var outcome: DeleteAccountOutcome = DeleteA
         calls++
         gate?.await()
         return outcome
+    }
+}
+
+/** Test double of [TrainingPreferencesRepository]: [result] answers every read and [reads] counts them. */
+internal class FakeTrainingPreferencesRepository(warmUpIncluded: Boolean = false) : TrainingPreferencesRepository {
+    var result: Result<TrainingPreferences> = Result.success(TrainingPreferences(warmUpIncluded))
+    var reads = 0
+
+    override suspend fun get(): Result<TrainingPreferences> {
+        reads++
+        return result
     }
 }

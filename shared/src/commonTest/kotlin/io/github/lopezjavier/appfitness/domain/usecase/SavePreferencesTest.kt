@@ -22,7 +22,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-private class Saved(val name: String, val biometrics: Biometrics, val goals: NutritionGoals, val weight: WeightEntry?)
+private class Saved(
+    val name: String,
+    val biometrics: Biometrics,
+    val goals: NutritionGoals,
+    val weight: WeightEntry?,
+    val warmUpIncluded: Boolean,
+)
 
 class SavePreferencesTest {
     private val zone = TimeZone.of("Europe/Madrid")
@@ -55,8 +61,9 @@ class SavePreferencesTest {
             biometrics: Biometrics,
             goals: NutritionGoals,
             weight: WeightEntry?,
+            warmUpIncluded: Boolean,
         ): Result<Unit> {
-            saved += Saved(displayName, biometrics, goals, weight)
+            saved += Saved(displayName, biometrics, goals, weight, warmUpIncluded)
             return result
         }
     }
@@ -70,6 +77,7 @@ class SavePreferencesTest {
         weightChanged: Boolean = false,
         adjustment: Int = -400,
         split: MacroSplit = MacroSplit.DEFAULT,
+        warmUpIncluded: Boolean = false,
     ) = useCase(
         displayName = name,
         biometrics = Biometrics(sex, birthDate, height, ActivityLevel.Sedentary),
@@ -80,6 +88,7 @@ class SavePreferencesTest {
         strategy = if (adjustment < 0) GoalStrategy.Deficit else GoalStrategy.Maintenance,
         adjustment = adjustment,
         split = split,
+        warmUpIncluded = warmUpIncluded,
     )
 
     private fun tdee(sex: Sex, height: Int, weightKg: Double) =
@@ -169,6 +178,14 @@ class SavePreferencesTest {
         save(split = MacroSplit(35, 42, 23))
 
         assertEquals(MacroSplit(35, 42, 23), saved.single().goals.split)
+    }
+
+    @Test
+    fun theWarmUpFlagIsPassedThrough() = runTest {
+        save(warmUpIncluded = true)
+        save()
+
+        assertEquals(listOf(true, false), saved.map { it.warmUpIncluded })
     }
 
     @Test
