@@ -232,9 +232,6 @@ class WeightViewModelTest {
         assertFalse(form.isEditing)
         assertEquals("74,2", form.weightText)
         assertEquals("", form.fatText)
-        assertEquals(10, form.hour)
-        assertEquals(0, form.minute)
-        assertEquals(10 * 60, form.maxMinuteOfDay)
         assertTrue(form.canSave)
     }
 
@@ -251,8 +248,6 @@ class WeightViewModelTest {
         assertEquals("t", form.existingId)
         assertEquals("73,9", form.weightText)
         assertEquals("15,1", form.fatText)
-        assertEquals(7, form.hour)
-        assertEquals(30, form.minute)
     }
 
     @Test
@@ -297,9 +292,6 @@ class WeightViewModelTest {
 
         val form = model.form()
         assertEquals("75,0", form.weightText)
-        assertEquals(12, form.hour)
-        assertEquals(0, form.minute)
-        assertNull(form.maxMinuteOfDay)
         assertFalse(assertNotNull(model.content().sheet).isToday)
     }
 
@@ -326,8 +318,7 @@ class WeightViewModelTest {
 
         val form = model.form()
         assertEquals("m", form.existingId)
-        assertEquals(8, form.hour)
-        assertEquals(15, form.minute)
+        assertEquals("74,2", form.weightText)
     }
 
     @Test
@@ -409,7 +400,7 @@ class WeightViewModelTest {
     }
 
     @Test
-    fun savingAnEmptyPastDayAtAChosenTime_storesThatMomentAndMarksTheDay() = runTest(dispatcher) {
+    fun savingAnEmptyPastDay_storesLocalNoonAndMarksTheDay() = runTest(dispatcher) {
         val repository = FakeWeightRepository(manual("a", "2026-10-15T08:00:00Z", 74.2))
         val model = viewModel(repository)
         advanceUntilIdle()
@@ -417,16 +408,15 @@ class WeightViewModelTest {
         advanceUntilIdle()
 
         model.type("74,0")
-        model.onEvent(WeightEvent.SetTime(7, 30))
         model.onEvent(WeightEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(Instant.parse("2026-10-20T07:30:00Z"), repository.saves.single().measuredAt)
+        assertEquals(Instant.parse("2026-10-20T12:00:00Z"), repository.saves.single().measuredAt)
         assertTrue(yesterday in model.content().markedDays)
     }
 
     @Test
-    fun editing_changesWeightFatAndTimeButKeepsTheDayAndId() = runTest(dispatcher) {
+    fun editing_changesWeightAndFatButKeepsTheIdAndTheOriginalInstant() = runTest(dispatcher) {
         val repository = FakeWeightRepository(manual("m", "2026-10-18T08:15:00Z", 74.2))
         val model = viewModel(repository)
         advanceUntilIdle()
@@ -434,13 +424,12 @@ class WeightViewModelTest {
         advanceUntilIdle()
 
         model.type("73,0", "14,0")
-        model.onEvent(WeightEvent.SetTime(9, 5))
         model.onEvent(WeightEvent.Save)
         advanceUntilIdle()
 
         val save = repository.saves.single()
         assertEquals("m", save.id)
-        assertEquals(Instant.parse("2026-10-18T09:05:00Z"), save.measuredAt)
+        assertEquals(Instant.parse("2026-10-18T08:15:00Z"), save.measuredAt)
         assertEquals(73.0, save.weightKg)
         assertEquals(14.0, save.bodyFatPct)
     }
@@ -515,24 +504,6 @@ class WeightViewModelTest {
         assertEquals(BodyMeasurementProblem.TooLow, model.form().fatProblem)
         model.onEvent(WeightEvent.SetBodyFat("abc"))
         assertEquals(BodyMeasurementProblem.NotANumber, model.form().fatProblem)
-    }
-
-    @Test
-    fun timeOnToday_isClampedToNowAndPastDaysAreFree() = runTest(dispatcher) {
-        val model = viewModel(FakeWeightRepository(manual("a", "2026-10-10T08:00:00Z", 74.2)))
-        advanceUntilIdle()
-        model.onEvent(WeightEvent.LogToday)
-        advanceUntilIdle()
-
-        model.onEvent(WeightEvent.SetTime(23, 59))
-        assertEquals(10, model.form().hour)
-        assertEquals(0, model.form().minute)
-
-        model.onEvent(WeightEvent.OpenDay(yesterday))
-        advanceUntilIdle()
-        model.onEvent(WeightEvent.SetTime(23, 59))
-        assertEquals(23, model.form().hour)
-        assertEquals(59, model.form().minute)
     }
 
     // Deleting
@@ -670,7 +641,6 @@ class WeightViewModelTest {
             it.onEvent(WeightEvent.OpenDay(yesterday))
             advanceUntilIdle()
             it.type("73,", "15")
-            it.onEvent(WeightEvent.SetTime(7, 30))
         }
 
         val recreated = viewModel(repository)
@@ -680,9 +650,22 @@ class WeightViewModelTest {
         val form = recreated.form()
         assertEquals("73,", form.weightText)
         assertEquals("15", form.fatText)
-        assertEquals(7, form.hour)
-        assertEquals(30, form.minute)
         assertNull(form.existingId)
+    }
+
+    @Test
+    fun aDraftSavedByAnOlderVersionWithATimeKeyOnly_restoresNoForm() = runTest(dispatcher) {
+        val state = SavedStateHandle(
+            mapOf(
+                "weight_sheet_day" to yesterday.toString(),
+                "weight_draft_weight" to "73,",
+                "weight_draft_minute" to 450,
+            ),
+        )
+        val recreated = viewModel(FakeWeightRepository(manual("a", "2026-10-15T08:00:00Z", 74.2)), state)
+        advanceUntilIdle()
+
+        assertNull(assertNotNull(recreated.content().sheet).form)
     }
 
     @Test

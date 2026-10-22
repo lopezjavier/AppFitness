@@ -4,21 +4,13 @@ import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementCheck
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
-import kotlinx.datetime.LocalTime
 import kotlin.math.roundToInt
 
-private const val MINUTES_PER_HOUR = 60
 private const val TENTHS = 10.0
 private const val TENTHS_INT = 10
 
-/** The form as typed: the texts are kept raw so a half-typed number survives; the time is minutes since midnight. */
-internal data class MeasurementDraft(
-    val existingId: String?,
-    val weightText: String,
-    val fatText: String,
-    val minuteOfDay: Int,
-) {
-    val time: LocalTime get() = LocalTime(minuteOfDay / MINUTES_PER_HOUR, minuteOfDay % MINUTES_PER_HOUR)
+/** The form as typed: the texts are kept raw so a half-typed number survives. Only the day matters, not the hour. */
+internal data class MeasurementDraft(val existingId: String?, val weightText: String, val fatText: String) {
     val weightKg: Double? get() = parseDecimal(weightText)
     val bodyFatPct: Double? get() = parseDecimal(fatText)
 }
@@ -32,23 +24,17 @@ internal fun decimalText(value: Double): String {
     return "${tenths / TENTHS_INT},${tenths % TENTHS_INT}"
 }
 
-/** The draft that edits [row]: its own values and time of day in the given local [minuteOfDay]. */
-internal fun editDraft(row: BodyMeasurement, minuteOfDay: Int) = MeasurementDraft(
+/** The draft that edits [row]: its own values. */
+internal fun editDraft(row: BodyMeasurement) = MeasurementDraft(
     existingId = row.id,
     weightText = decimalText(row.weightKg),
     fatText = row.bodyFatPct?.let(::decimalText).orEmpty(),
-    minuteOfDay = minuteOfDay,
 )
 
-/**
- * The form state of [draft]. [maxMinuteOfDay] limits the time (the current minute on today, null on past days).
- * A blank field reports no problem; the weight is still required to save.
- */
-@Suppress("LongParameterList", "CyclomaticComplexMethod") // A flat mapping of independent field rules.
+/** The form state of [draft]. A blank field reports no problem; the weight is still required to save. */
 internal fun formOf(
     draft: MeasurementDraft,
     validate: ValidateBodyMeasurement,
-    maxMinuteOfDay: Int?,
     online: Boolean,
     saving: Boolean,
     saveError: WeightSaveError?,
@@ -65,17 +51,13 @@ internal fun formOf(
         fat == null -> BodyMeasurementProblem.NotANumber
         else -> (validate(ValidateBodyMeasurement.WEIGHT_MIN, fat) as? BodyMeasurementCheck.Invalid)?.problem
     }
-    val timeValid = maxMinuteOfDay == null || draft.minuteOfDay <= maxMinuteOfDay
     return MeasurementForm(
         existingId = draft.existingId,
         weightText = draft.weightText,
         fatText = draft.fatText,
-        hour = draft.minuteOfDay / MINUTES_PER_HOUR,
-        minute = draft.minuteOfDay % MINUTES_PER_HOUR,
-        maxMinuteOfDay = maxMinuteOfDay,
         weightProblem = weightProblem,
         fatProblem = fatProblem,
-        canSave = weight != null && weightProblem == null && fatProblem == null && timeValid && online && !saving,
+        canSave = weight != null && weightProblem == null && fatProblem == null && online && !saving,
         canDelete = draft.existingId != null && online && !saving,
         isSaving = saving,
         saveError = saveError,

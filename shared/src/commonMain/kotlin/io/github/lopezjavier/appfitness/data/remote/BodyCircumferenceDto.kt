@@ -43,11 +43,13 @@ internal data class BodyCircumferenceDto(
     @SerialName("measured_at") val measuredAt: String,
     val site: CircumferenceSiteDto,
     @SerialName("value_cm") val valueCm: Double,
+    @SerialName("created_at") val createdAt: String,
 ) {
-    fun toDomain(): BodyCircumference = BodyCircumference(id, site.domain, valueCm, Instant.parse(measuredAt))
+    fun toDomain(): BodyCircumference =
+        BodyCircumference(id, site.domain, valueCm, Instant.parse(measuredAt), Instant.parse(createdAt))
 
     companion object {
-        const val COLUMNS = "id,measured_at,site,value_cm"
+        const val COLUMNS = "id,measured_at,site,value_cm,created_at"
     }
 }
 

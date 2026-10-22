@@ -123,7 +123,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `GoalCard` | Target weight and distance ("faltan 4,2 kg" / "objetivo alcanzado", wording by strategy, `04-business-rules.md` §3.5) with a progress bar from the first weight in the app to the target |
 | `ComparisonDeltaRow` | Two measurements compared: metric label + signed delta in color ("−1,4 kg") |
 | `MetricInterpretationRow` | Metric value + status chip (low/normal/high) + short explanation; the list ends with the non-medical disclaimer |
-| `CircumferenceRow` | Body-site label + value in cm + date, with edit/delete; the site picker is a dropdown |
+| `CircumferenceRow` | Body-site label + value in cm + date, with edit/delete; sites are entered all at once in the sheet, each with a `?` text help |
 | `SkeletonBox` | Animated placeholder (shimmer) |
 | `EmptyState` / `ErrorState` | 48 dp decorative icon (`inbox` / `error`, Material Symbols, tinted `textSecondary` / `error`) + optional title + message + primary action (`Reintentar` is required on `ErrorState`); max width 360 dp, centred; `ErrorState` text is a polite live region |
 | `OfflineBanner` | Full-width `surfaceRaised` strip below the Top Bar, 1 dp `borderSubtle` bottom line, 20 dp decorative `cloud_off` icon in `energyAmber` + "Sin conexión" `bodyMedium`; wraps at large font scale; polite live region; shown on every destination and layout (on the rail layout it spans the full width above the rail) |

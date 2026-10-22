@@ -9,26 +9,27 @@ import kotlinx.datetime.LocalDate
 data class SiteHistory(val site: CircumferenceSite, val rows: List<BodyCircumference>)
 
 /**
- * The add/edit sheet. [existingId] is the row being edited (null while adding); the site is locked when editing.
- * [valueProblem] is null while the field is blank or valid; [canSave] also needs a value, a time not in the future,
- * connectivity and no save in flight. [maxMinuteOfDay] bounds the time on today and is null on past days.
+ * The add/edit sheet. [existingId] is the row being edited (null while adding). Adding lists every site in [values]
+ * (raw text, blank = not measured); editing has only that row's site. [problems] has an entry only for non-blank
+ * invalid fields. [helpSite] is the site whose measuring instructions are open. [canSave] needs at least one value,
+ * no problem, a day not in the future, connectivity and no save in flight.
  */
 data class CircumferenceSheetState(
     val existingId: String?,
-    val site: CircumferenceSite,
-    val valueText: String,
+    val values: Map<CircumferenceSite, String>,
+    val problems: Map<CircumferenceSite, CircumferenceProblem>,
     val date: LocalDate,
-    val hour: Int,
-    val minute: Int,
-    val maxMinuteOfDay: Int?,
     val canGoNextDay: Boolean,
-    val valueProblem: CircumferenceProblem?,
+    val helpSite: CircumferenceSite?,
     val canSave: Boolean,
     val canDelete: Boolean,
     val isSaving: Boolean,
     val saveError: WeightSaveError?,
 ) {
     val isEditing: Boolean get() = existingId != null
+
+    /** The locked site of the row being edited. */
+    val editSite: CircumferenceSite? get() = if (isEditing) values.keys.firstOrNull() else null
 }
 
 /** What the circumference section shows once loaded; [groups] only has sites with rows, in site order. */
@@ -55,16 +56,14 @@ sealed interface CircumferencesEvent {
 
     data class OpenEdit(val id: String) : CircumferencesEvent
 
-    /** Ignored when editing: the site is locked. */
-    data class SelectSite(val site: CircumferenceSite) : CircumferencesEvent
-
-    data class SetValue(val text: String) : CircumferencesEvent
+    /** Ignored for a site not in the sheet (the site of an edited row is locked). */
+    data class SetValue(val site: CircumferenceSite, val text: String) : CircumferencesEvent
 
     /** Dates after today are clamped to today. */
     data class SetDate(val date: LocalDate) : CircumferencesEvent
 
-    /** A time after now on today is clamped to now. */
-    data class SetTime(val hour: Int, val minute: Int) : CircumferencesEvent
+    /** Opens the instructions of [site], closing any other; closes them when already open. */
+    data class ToggleHelp(val site: CircumferenceSite) : CircumferencesEvent
 
     data object Save : CircumferencesEvent
 

@@ -215,7 +215,6 @@ private fun CircumferenceHistoryRow(
             whenText = stringResource(
                 Res.string.circumference_row_when,
                 circumferenceDayText(local.date, today),
-                timeText(local.hour, local.minute),
             ),
             clickLabel = stringResource(Res.string.circumference_row_edit_label),
             onClick = { onEvent(CircumferencesEvent.OpenEdit(row.id)) },

@@ -3,14 +3,17 @@ package io.github.lopezjavier.appfitness.feature.weight
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
-import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceEntry
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import kotlin.time.Instant
 
-/** In-memory [CircumferenceRepository]. */
+/** In-memory [CircumferenceRepository]; every row gets a growing `createdAt` so later saves order last. */
 internal class FakeCircumferenceRepository(vararg initial: BodyCircumference) : CircumferenceRepository {
     val rows = initial.toMutableList()
     val deletes = mutableListOf<String>()
+
+    /** One list of entries per successful `addAll` call. */
+    val addCalls = mutableListOf<List<CircumferenceEntry>>()
     var failReads = false
     var writeFailure: Throwable? = null
     private var nextId = 1
@@ -21,9 +24,13 @@ internal class FakeCircumferenceRepository(vararg initial: BodyCircumference) : 
         Result.success(rows.sortedByDescending { it.measuredAt })
     }
 
-    override suspend fun add(site: CircumferenceSite, valueCm: Double, measuredAt: Instant): Result<Unit> {
+    override suspend fun addAll(entries: List<CircumferenceEntry>, measuredAt: Instant): Result<Unit> {
         writeFailure?.let { return Result.failure(it) }
-        rows += BodyCircumference("new-${nextId++}", site, valueCm, measuredAt)
+        addCalls += entries
+        entries.forEach {
+            val n = nextId++
+            rows += BodyCircumference("new-$n", it.site, it.valueCm, measuredAt, Instant.fromEpochSeconds(n.toLong()))
+        }
         return Result.success(Unit)
     }
 

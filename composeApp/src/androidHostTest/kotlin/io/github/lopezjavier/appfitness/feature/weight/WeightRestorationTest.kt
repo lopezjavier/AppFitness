@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertTextEquals
@@ -11,7 +10,6 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -83,8 +81,6 @@ class WeightRestorationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("weight_sheet_weight_input").performTextReplacement("74,6")
         rule.onNodeWithTag("weight_sheet_fat_input").performTextReplacement("16,2")
-        rule.onNodeWithTag("weight_sheet_hour").performSemanticsAction(SemanticsActions.SetProgress) { it(8f) }
-        rule.onNodeWithTag("weight_sheet_minute").performSemanticsAction(SemanticsActions.SetProgress) { it(15f) }
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
@@ -94,7 +90,6 @@ class WeightRestorationTest {
         rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 15 sep")
         assertEquals("74,6", editableText("weight_sheet_weight_input"))
         assertEquals("16,2", editableText("weight_sheet_fat_input"))
-        rule.onNodeWithTag("weight_sheet_time_value").assertTextEquals("08:15")
     }
 
     @Test

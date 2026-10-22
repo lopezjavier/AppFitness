@@ -61,7 +61,7 @@ class CircumferenceSectionTest {
     private lateinit var repository: FakeCircumferenceRepository
 
     private fun row(id: String, site: CircumferenceSite, cm: Double, at: String = "2026-10-18T08:30:00Z") =
-        BodyCircumference(id, site, cm, Instant.parse(at))
+        BodyCircumference(id, site, cm, Instant.parse(at), Instant.parse(at))
 
     private fun weightModel(): WeightViewModel {
         val weights = FakeWeightRepository()
@@ -135,7 +135,7 @@ class CircumferenceSectionTest {
 
     private fun logMeasurement(value: String) {
         tap("circumference_add_button")
-        type("circumference_sheet_value_input", value)
+        type("circumference_sheet_value_input_waist", value)
         tap("circumference_sheet_save")
     }
 
@@ -157,8 +157,7 @@ class CircumferenceSectionTest {
 
         tap("circumference_add_button")
         rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Añadir medida")
-        rule.onNodeWithTag("circumference_sheet_site_field").assertTextContains("Cintura", substring = true)
-        type("circumference_sheet_value_input", "84,5")
+        type("circumference_sheet_value_input_waist", "84,5")
         tap("circumference_sheet_save")
 
         val saved = repository.rows.single()
@@ -171,17 +170,50 @@ class CircumferenceSectionTest {
     }
 
     @Test
-    fun anotherSite_canBeChosenFromTheDropdown() {
+    fun addSheet_hasSevenFields_andNoDropdownNorTime() {
         show()
 
         tap("circumference_add_button")
-        tap("circumference_sheet_site_field")
-        tap("circumference_sheet_site_option_hip")
-        type("circumference_sheet_value_input", "98")
+
+        CircumferenceSite.entries.forEach { site ->
+            val tag = site.name.lowercase()
+            rule.onNodeWithTag("circumference_sheet_value_input_$tag").assertExists()
+            rule.onNodeWithTag("circumference_sheet_help_$tag").assertExists()
+        }
+        rule.onNodeWithTag("circumference_sheet_site_field").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_time_value").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_hour", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun waistAndHipTogether_areSavedAtOnce_andShowTheRatio() {
+        show()
+
+        tap("circumference_add_button")
+        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        type("circumference_sheet_value_input_waist", "84,5")
+        type("circumference_sheet_value_input_hip", "98,0")
         tap("circumference_sheet_save")
 
-        assertEquals(CircumferenceSite.Hip, repository.rows.single().site)
+        assertEquals(setOf(CircumferenceSite.Waist, CircumferenceSite.Hip), repository.rows.map { it.site }.toSet())
+        assertEquals(2, repository.rows.size)
         rule.onNodeWithTag("circumference_group_hip").assertExists()
+        rule.onNodeWithTag("circumference_ratio").assertTextContains("0,86", substring = true)
+    }
+
+    @Test
+    fun tappingTheHelp_showsTheInstructionsOfThatSiteOnly_andTogglesThem() {
+        show()
+        tap("circumference_add_button")
+
+        tap("circumference_sheet_help_waist")
+        rule.onNodeWithTag("circumference_sheet_help_text_waist").assertTextContains("ombligo", substring = true)
+        tap("circumference_sheet_help_hip")
+        rule.onNodeWithTag("circumference_sheet_help_text_waist").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_help_text_hip").assertExists()
+        tap("circumference_sheet_help_hip")
+
+        rule.onNodeWithTag("circumference_sheet_help_text_hip").assertDoesNotExist()
     }
 
     @Test
@@ -196,20 +228,10 @@ class CircumferenceSectionTest {
         rule.onNodeWithTag("circumference_sheet_date_next").assertIsEnabled()
         tap("circumference_sheet_date_prev")
         rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("19 oct")
-        type("circumference_sheet_value_input", "84,5")
+        type("circumference_sheet_value_input_waist", "84,5")
         tap("circumference_sheet_save")
 
-        assertEquals(Instant.parse("2026-10-19T10:30:00Z"), repository.rows.single().measuredAt)
-    }
-
-    @Test
-    fun todaysTimeWheels_stopAtTheCurrentMinute() {
-        show()
-
-        tap("circumference_add_button")
-
-        rule.onNodeWithTag("circumference_sheet_time_value").assertTextEquals("10:30")
-        rule.onNodeWithTag("circumference_sheet_hour_item_11", useUnmergedTree = true).assertDoesNotExist()
+        assertEquals(Instant.parse("2026-10-19T12:00:00Z"), repository.rows.single().measuredAt)
     }
 
     // -- Waist-to-hip ratio -----------------------------------------------------------------------------------------
@@ -238,9 +260,9 @@ class CircumferenceSectionTest {
 
         tap("circumference_row_w")
         rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Editar medida")
-        rule.onNodeWithTag("circumference_sheet_site_readonly").assertTextEquals("Cintura")
-        rule.onNodeWithTag("circumference_sheet_site_field").assertDoesNotExist()
-        type("circumference_sheet_value_input", "86,0")
+        rule.onNodeWithTag("circumference_sheet_value_input_waist").assertExists()
+        rule.onNodeWithTag("circumference_sheet_value_input_hip").assertDoesNotExist()
+        type("circumference_sheet_value_input_waist", "86,0")
         tap("circumference_sheet_save")
 
         assertEquals(86.0, repository.rows.first { it.id == "w" }.valueCm, 0.0)
@@ -283,20 +305,21 @@ class CircumferenceSectionTest {
         val newest = rule.onNodeWithTag("circumference_row_new").getUnclippedBoundsInRoot()
         val oldest = rule.onNodeWithTag("circumference_row_old").getUnclippedBoundsInRoot()
         assertTrue(oldest.top >= newest.bottom)
-        assertRowShows("circumference_row_new", "18 oct · 08:30")
+        assertRowShows("circumference_row_new", "18 oct")
+        rule.onNode(hasText("08:30", substring = true)).assertDoesNotExist()
     }
 
     // -- Validation -------------------------------------------------------------------------------------------------
 
     @Test
-    fun valueBelowTheRange_disablesGuardar_andShowsTheRange() {
+    fun valueBelowTheRange_disablesGuardar_andShowsTheRangeUnderThatSite() {
         show()
         tap("circumference_add_button")
 
-        type("circumference_sheet_value_input", "19,9")
+        type("circumference_sheet_value_input_neck", "19,9")
 
         rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
-        rule.onNodeWithTag("circumference_sheet_range_hint").assertTextEquals("Entre 20 y 250 cm")
+        rule.onNodeWithTag("circumference_sheet_range_hint_neck").assertTextEquals("Entre 20 y 250 cm")
     }
 
     @Test
@@ -304,10 +327,21 @@ class CircumferenceSectionTest {
         show()
         tap("circumference_add_button")
 
-        type("circumference_sheet_value_input", "251")
+        type("circumference_sheet_value_input_calf", "251")
 
         rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
-        rule.onNodeWithTag("circumference_sheet_range_hint").assertTextEquals("Entre 20 y 250 cm")
+        rule.onNodeWithTag("circumference_sheet_range_hint_calf").assertTextEquals("Entre 20 y 250 cm")
+    }
+
+    @Test
+    fun oneInvalidSite_blocksGuardarEvenWithAValidOne() {
+        show()
+        tap("circumference_add_button")
+
+        type("circumference_sheet_value_input_waist", "84,5")
+        type("circumference_sheet_value_input_hip", "251")
+
+        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
     }
 
     @Test
@@ -315,12 +349,12 @@ class CircumferenceSectionTest {
         show()
         tap("circumference_add_button")
 
-        type("circumference_sheet_value_input", "20")
+        type("circumference_sheet_value_input_waist", "20")
         rule.onNodeWithTag("circumference_sheet_save").assertIsEnabled()
-        type("circumference_sheet_value_input", "250")
+        type("circumference_sheet_value_input_waist", "250")
 
         rule.onNodeWithTag("circumference_sheet_save").assertIsEnabled()
-        rule.onNodeWithTag("circumference_sheet_range_hint").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_range_hint_waist").assertDoesNotExist()
     }
 
     @Test
@@ -329,14 +363,14 @@ class CircumferenceSectionTest {
         tap("circumference_add_button")
 
         rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
-        rule.onNodeWithTag("circumference_sheet_range_hint").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_range_hint_waist").assertDoesNotExist()
     }
 
     @Test
     fun closingTheSheetWithoutGuardar_savesNothing() {
         show()
         tap("circumference_add_button")
-        type("circumference_sheet_value_input", "84,5")
+        type("circumference_sheet_value_input_waist", "84,5")
 
         rule.runOnUiThread { shownModel.onEvent(CircumferencesEvent.CloseSheet) }
         rule.waitForIdle()

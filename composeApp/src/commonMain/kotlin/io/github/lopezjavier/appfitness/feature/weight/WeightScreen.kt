@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_label
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_when
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_when_day
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_title
@@ -49,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -176,11 +178,13 @@ private fun WeightPanelSection(
 @Composable
 private fun WeightPanel(current: BodyMeasurement, timeZone: TimeZone, modifier: Modifier = Modifier) {
     val local = current.measuredAt.toLocalDateTime(timeZone)
-    val whenText = stringResource(
-        Res.string.weight_current_when,
-        "${local.day} ${local.month.shortLabel()}",
-        timeText(local.hour, local.minute),
-    )
+    val dayText = "${local.day} ${local.month.shortLabel()}"
+    // Only the day matters for a manual weight; imported readings keep their time.
+    val whenText = if (current.source == MeasurementSource.Manual) {
+        stringResource(Res.string.weight_current_when_day, dayText)
+    } else {
+        stringResource(Res.string.weight_current_when, dayText, timeText(local.hour, local.minute))
+    }
     val fatText = current.bodyFatPct?.let {
         stringResource(Res.string.weight_current_fat, stringResource(Res.string.weight_percent_value, decimalText(it)))
     }

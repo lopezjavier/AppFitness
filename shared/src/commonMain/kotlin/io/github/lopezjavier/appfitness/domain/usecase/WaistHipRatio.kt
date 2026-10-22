@@ -13,7 +13,7 @@ class WaistHipRatio {
     }
 
     private fun latest(list: List<BodyCircumference>, site: CircumferenceSite): BodyCircumference? =
-        list.filter { it.site == site }.maxWithOrNull(compareBy({ it.measuredAt }, { it.id }))
+        list.filter { it.site == site }.maxWithOrNull(compareBy({ it.measuredAt }, { it.createdAt }, { it.id }))
 
     private companion object {
         const val HUNDREDTHS = 100.0

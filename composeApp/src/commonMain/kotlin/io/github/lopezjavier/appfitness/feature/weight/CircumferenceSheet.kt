@@ -2,11 +2,11 @@
 
 package io.github.lopezjavier.appfitness.feature.weight
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -28,22 +28,28 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_day_next_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_day_previous_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_field_date
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_field_site
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_field_value
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_arm
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_calf
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_chest
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_hip
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_neck
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_thigh
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_toggle_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_help_waist
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_range_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_sheet_title_add
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_sheet_title_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_left
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_help
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error_offline
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
-import io.github.lopezjavier.appfitness.designsystem.AppDropdownField
-import io.github.lopezjavier.appfitness.designsystem.AppDropdownOption
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
@@ -56,14 +62,15 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val VALUE_INTEGER_DIGITS = 3
 private const val SHEET_TAG = "circumference_sheet"
 
 /**
- * The add/edit sheet of a circumference: site (a dropdown, read-only text when editing), value, day stepper and time
- * wheels, with "Eliminar" (edit only) and "Guardar" pinned at the bottom. Closing it by any route discards the draft.
+ * The add/edit sheet of a circumference: one value field per site (only the row's own when editing) and the day
+ * stepper, with "Eliminar" (edit only) and "Guardar" pinned at the bottom. Closing it by any route discards the draft.
  */
 @Composable
 internal fun CircumferenceSheet(
@@ -93,16 +100,8 @@ internal fun CircumferenceSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
                 CircumferenceSheetTitle(sheet.isEditing)
-                SiteField(sheet, onEvent)
-                ValueField(sheet, onEvent)
+                ValueFields(sheet, onEvent)
                 DayStepper(sheet, today, onEvent)
-                TimeWheelFields(
-                    hour = sheet.hour,
-                    minute = sheet.minute,
-                    maxMinuteOfDay = sheet.maxMinuteOfDay,
-                    testTagPrefix = SHEET_TAG,
-                    onTimeChange = { hour, minute -> onEvent(CircumferencesEvent.SetTime(hour, minute)) },
-                )
             }
             SheetActions(sheet, isOnline, onEvent)
         }
@@ -121,60 +120,93 @@ private fun CircumferenceSheetTitle(editing: Boolean) {
     )
 }
 
+/** Editing shows the locked site and its value; adding lists every site. */
 @Composable
-private fun SiteField(sheet: CircumferenceSheetState, onEvent: (CircumferencesEvent) -> Unit) {
-    val label = stringResource(Res.string.circumference_field_site)
-    val siteLabel = circumferenceSiteLabel(sheet.site)
-    if (sheet.isEditing) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(text = label, style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)
-            Text(
-                text = siteLabel,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.heightIn(min = Spacing.minTouchTarget).testTag("${SHEET_TAG}_site_readonly"),
-            )
-        }
-    } else {
-        val options = CircumferenceSite.entries.map { AppDropdownOption(siteKey(it), circumferenceSiteLabel(it)) }
-        AppDropdownField(
-            label = label,
-            options = options,
-            selectedKey = siteKey(sheet.site),
-            onSelect = { key ->
-                CircumferenceSite.entries.firstOrNull { siteKey(it) == key }
-                    ?.let { onEvent(CircumferencesEvent.SelectSite(it)) }
-            },
-            testTagPrefix = "${SHEET_TAG}_site",
-        )
+private fun ValueFields(sheet: CircumferenceSheetState, onEvent: (CircumferencesEvent) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        sheet.values.keys.forEach { site -> SiteValueField(sheet, site, onEvent) }
     }
 }
 
 /** The typed text lives here too ([NumberInput] needs a synchronous update); every edit also goes to the view model. */
 @Composable
-private fun ValueField(sheet: CircumferenceSheetState, onEvent: (CircumferencesEvent) -> Unit) {
-    var value by remember(sheet.existingId) { mutableStateOf(sheet.valueText) }
+private fun SiteValueField(
+    sheet: CircumferenceSheetState,
+    site: CircumferenceSite,
+    onEvent: (CircumferencesEvent) -> Unit,
+) {
+    var value by remember(sheet.existingId, site) { mutableStateOf(sheet.values.getValue(site)) }
+    val tag = site.name.lowercase()
+    val label = circumferenceSiteLabel(site)
+    val helpOpen = sheet.helpSite == site
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = label.uppercase(),
+                style = AppTheme.typography.labelTechnical,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            if (!sheet.isEditing) {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.circumference_help_toggle_cd, label.lowercase()),
+                    icon = Res.drawable.ic_help,
+                    testTag = "${SHEET_TAG}_help_$tag",
+                    onClick = { onEvent(CircumferencesEvent.ToggleHelp(site)) },
+                    tint = AppTheme.colors.textSecondary,
+                )
+            }
+        }
+        if (helpOpen) SiteHelpText(site, tag)
         NumberInput(
             value = value,
             onValueChange = {
                 value = it
-                onEvent(CircumferencesEvent.SetValue(it))
+                onEvent(CircumferencesEvent.SetValue(site, it))
             },
-            label = stringResource(Res.string.circumference_field_value),
-            modifier = Modifier.testTag("${SHEET_TAG}_value_input"),
+            label = label,
+            modifier = Modifier.fillMaxWidth().testTag("${SHEET_TAG}_value_input_$tag"),
             maxDecimals = 1,
             maxIntegerDigits = VALUE_INTEGER_DIGITS,
+            showLabel = false,
         )
-        if (sheet.valueProblem != null) {
+        if (sheet.problems.containsKey(site)) {
             Text(
                 text = stringResource(Res.string.circumference_range_hint),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.error,
-                modifier = Modifier.testTag("${SHEET_TAG}_range_hint"),
+                modifier = Modifier.testTag("${SHEET_TAG}_range_hint_$tag"),
             )
         }
     }
+}
+
+@Composable
+private fun SiteHelpText(site: CircumferenceSite, tag: String) {
+    Text(
+        text = stringResource(helpTextRes(site)),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppTheme.colors.surfaceRaised, AppShapes.base)
+            .padding(Spacing.md)
+            .testTag("${SHEET_TAG}_help_text_$tag"),
+    )
+}
+
+private fun helpTextRes(site: CircumferenceSite): StringResource = when (site) {
+    CircumferenceSite.Neck -> Res.string.circumference_help_neck
+    CircumferenceSite.Chest -> Res.string.circumference_help_chest
+    CircumferenceSite.Waist -> Res.string.circumference_help_waist
+    CircumferenceSite.Hip -> Res.string.circumference_help_hip
+    CircumferenceSite.Arm -> Res.string.circumference_help_arm
+    CircumferenceSite.Thigh -> Res.string.circumference_help_thigh
+    CircumferenceSite.Calf -> Res.string.circumference_help_calf
 }
 
 /** "Día anterior" / "Día siguiente" around the day text; the next button stops at today. */
@@ -252,5 +284,3 @@ private fun SheetActions(sheet: CircumferenceSheetState, isOnline: Boolean, onEv
         }
     }
 }
-
-private fun siteKey(site: CircumferenceSite): String = site.name.lowercase()
