@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,31 +18,32 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_button_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_label
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_when
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_when_day
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_edit_today_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_title
-import io.github.lopezjavier.appfitness.composeapp.resources.weight_log_today
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_percent_value
-import io.github.lopezjavier.appfitness.composeapp.resources.weight_trend_pill
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -52,11 +53,8 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.MonthCalendarGrid
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.TrendPill
-import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
@@ -69,15 +67,12 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonPanelHeight = Spacing.xl * 5
-private val SkeletonButtonHeight = Spacing.minTouchTarget
 private val SkeletonCalendarHeight = Spacing.xl * 11
-private val SkeletonPillWidth = Spacing.xl * 6
-private val SkeletonPillHeight = Spacing.xl + Spacing.sm
 
 /**
- * Stateless weight screen (US-25): the current weight with the "Registrar peso de hoy" button, and the month calendar
- * of the measurements; a day sheet opens over it. Wide windows put the panel and the calendar side by side. The
- * sections are separate composables so later tasks (chart, Health Connect) can extend this destination.
+ * Stateless weight screen (US-25): the current weight with an edit-today icon button, and the month
+ * calendar of the measurements; a day sheet opens over it. Wide windows put the panel and the calendar side by side.
+ * The sections are separate composables so later tasks (chart, Health Connect) can extend this destination.
  */
 @Composable
 fun WeightScreen(
@@ -213,7 +208,7 @@ private fun WeightContentView(
     }
 }
 
-/** The day sheet (with the comparison inside it), the target sheet and the metric detail over the screen. */
+/** The day sheet the target sheet and the metric detail over the screen. */
 @Composable
 private fun WeightSheets(
     content: WeightContent,
@@ -223,15 +218,8 @@ private fun WeightSheets(
     onGoalEvent: (GoalEvent) -> Unit,
 ) {
     content.sheet?.let { sheet ->
-        val daySheetGoal = goal?.let {
-            DaySheetGoal(it, content.current?.id, content.days[sheet.day]?.manual, onGoalEvent)
-        }
-        WeightDaySheet(sheet, content.isOnline, timeZone, onEvent, daySheetGoal = daySheetGoal)
+        WeightDaySheet(sheet, content.isOnline, timeZone, onEvent)
     }
-    // A comparison only lives inside the day sheet: without one it is dropped.
-    val orphanComparison = content.sheet == null && goal?.comparisonOpen == true
-    val closeComparison by rememberUpdatedState(onGoalEvent)
-    LaunchedEffect(orphanComparison) { if (orphanComparison) closeComparison(GoalEvent.CloseCompare) }
     if (content.compositionOpen) {
         CompositionSheet(content.composition, timeZone, { onEvent(WeightEvent.CloseComposition) })
     }
@@ -246,7 +234,7 @@ private fun WeightSheets(
     metric?.let { MetricDetailSheet(it, onGoalEvent) }
 }
 
-/** The current weight (or the empty state) and the full-width "Registrar peso de hoy" button under it. */
+/** The current weight panel (opens the composition) with the pencil that edits today's weight; or the empty state. */
 @Composable
 private fun WeightPanelSection(
     content: WeightContent,
@@ -255,32 +243,58 @@ private fun WeightPanelSection(
     trend: WeightTrendUiState?,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-        val current = content.current
-        if (current == null) {
+    val current = content.current
+    val editEnabled = content.days[content.today]?.hasHealthConnectWeight != true
+    val onEditToday = { onEvent(WeightEvent.LogToday) }
+    if (current == null) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             EmptyState(
                 message = stringResource(Res.string.weight_empty_message),
                 modifier = Modifier.fillMaxWidth(),
                 testTagPrefix = "weight_empty",
             )
-        } else {
-            WeightPanel(current, timeZone, trend, { onEvent(WeightEvent.OpenComposition) })
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                EditTodayButton(onEditToday, editEnabled)
+            }
         }
-        PrimaryButton(
-            text = stringResource(Res.string.weight_log_today),
-            onClick = { onEvent(WeightEvent.LogToday) },
-            modifier = Modifier.fillMaxWidth().testTag("weight_log_today_button"),
+    } else {
+        WeightPanel(
+            current,
+            timeZone,
+            trend,
+            { onEvent(WeightEvent.OpenComposition) },
+            onEditToday,
+            editEnabled,
+            modifier,
         )
     }
 }
 
+/** The pencil: opens today's weight sheet; inert (with a state description) when Health Connect owns today's weight. */
+@Composable
+private fun EditTodayButton(onClick: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
+    val hcNote = stringResource(Res.string.weight_hc_note)
+    AppIconButton(
+        contentDescription = stringResource(Res.string.weight_edit_today_cd),
+        icon = Res.drawable.ic_edit,
+        testTag = "weight_edit_today_button",
+        onClick = onClick,
+        modifier = modifier.semantics { if (!enabled) stateDescription = hcNote },
+        enabled = enabled,
+        tint = AppTheme.colors.textSecondary,
+    )
+}
+
 /** The latest measurement of any source: weight, when it was taken and the body fat when it has one. */
+@Suppress("LongParameterList")
 @Composable
 private fun WeightPanel(
     current: BodyMeasurement,
     timeZone: TimeZone,
     trend: WeightTrendUiState?,
     onOpenComposition: () -> Unit,
+    onEditToday: () -> Unit,
+    editEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val local = current.measuredAt.toLocalDateTime(timeZone)
@@ -294,7 +308,15 @@ private fun WeightPanel(
     val fatText = current.bodyFatPct?.let {
         stringResource(Res.string.weight_current_fat, stringResource(Res.string.weight_percent_value, decimalText(it)))
     }
-    Box(modifier.fillMaxWidth().testTag("weight_panel")) {
+    val openCd = stringResource(Res.string.weight_composition_button_cd)
+    Box(
+        modifier
+            .fillMaxWidth()
+            .clip(AppShapes.lg)
+            .clickable(role = Role.Button, onClick = onOpenComposition)
+            .semantics { contentDescription = openCd }
+            .testTag("weight_panel"),
+    ) {
         MetricTile(
             label = stringResource(Res.string.weight_current_label),
             value = stringResource(Res.string.weight_current_value, decimalText(current.weightKg)),
@@ -319,14 +341,7 @@ private fun WeightPanel(
                 }
             },
         )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.weight_composition_button_cd),
-            icon = Res.drawable.ic_add,
-            testTag = "weight_composition_button",
-            onClick = onOpenComposition,
-            modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs),
-            tint = AppTheme.colors.textSecondary,
-        )
+        EditTodayButton(onEditToday, editEnabled, Modifier.align(Alignment.TopEnd).padding(Spacing.xs))
     }
 }
 
@@ -360,7 +375,6 @@ private fun WeightLoading() {
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
         SkeletonBox(Modifier.fillMaxWidth().height(SkeletonPanelHeight), AppShapes.lg)
-        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonButtonHeight), AppShapes.lg)
         SkeletonBox(Modifier.fillMaxWidth().height(SkeletonCalendarHeight), AppShapes.lg)
     }
 }
@@ -368,33 +382,3 @@ private fun WeightLoading() {
 internal fun twoDigits(value: Int): String = value.toString().padStart(2, '0')
 
 internal fun timeText(hour: Int, minute: Int): String = "${twoDigits(hour)}:${twoDigits(minute)}"
-
-/** The weekly rate under the current weight: signed value coloured by the goal, or "Sin datos suficientes". */
-@Composable
-private fun WeeklyRatePill(trend: WeightTrendUiState) {
-    when (trend) {
-        WeightTrendUiState.Loading ->
-            SkeletonBox(
-                Modifier.size(SkeletonPillWidth, SkeletonPillHeight).testTag("weight_trend_loading"),
-                AppShapes.full,
-            )
-
-        WeightTrendUiState.Error -> Unit
-
-        is WeightTrendUiState.Content -> {
-            val rate = trend.weeklyRate
-            val value = rate.value
-            TrendPill(
-                text = if (value == null) {
-                    stringResource(Res.string.weekly_rate_no_data)
-                } else {
-                    stringResource(Res.string.weight_trend_pill, rateText(value))
-                },
-                tone = rate.tone.toTrendTone(),
-                modifier = Modifier.testTag("weight_trend_pill"),
-                direction = TrendPillDefaults.direction(value),
-                containerColor = AppTheme.colors.surfaceRaised,
-            )
-        }
-    }
-}

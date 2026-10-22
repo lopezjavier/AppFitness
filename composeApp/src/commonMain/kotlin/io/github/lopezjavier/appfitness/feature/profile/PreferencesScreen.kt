@@ -33,6 +33,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
@@ -71,6 +73,8 @@ fun PreferencesRoute(
     viewModel: PreferencesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // A Health Connect sync can land while the screen is away: re-read the weight flag on return.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(PreferencesEvent.Refresh) }
     PreferencesScreen(
         state = state,
         onEvent = viewModel::onEvent,

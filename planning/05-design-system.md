@@ -121,7 +121,6 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `MetricTile` | Technical label + `headlineMetric` value + unit |
 | `TrendPill` | Weekly rate pill (green/red/amber) |
 | `GoalCard` | Target weight and distance ("faltan 4,2 kg" / "objetivo alcanzado", wording by strategy, `04-business-rules.md` §3.5) with a progress bar from the first weight in the app to the target |
-| `ComparisonDeltaRow` | Two measurements compared: metric label + signed delta in color ("−1,4 kg") |
 | `MetricInterpretationRow` | Metric value + status chip (low/normal/high) + short explanation; the list ends with the non-medical disclaimer |
 | `CircumferenceRow` | Body-site label + value in cm + date, with edit/delete; sites are entered all at once in the sheet, each with a `?` text help |
 | `SkeletonBox` | Animated placeholder (shimmer) |

@@ -123,10 +123,8 @@ val uiModule =
                 targetDistance = get(),
                 interpret = get(),
                 waistHipRatio = get(),
-                compareMeasurements = get(),
                 validate = get(),
                 connectivity = get(),
-                clock = get(),
                 savedState = get(),
             )
         }

@@ -158,10 +158,11 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun notEnoughData_pillSaysSoAndPanelKeepsTheLastWeight() {
+    fun notEnoughData_panelHidesThePillAndKeepsTheLastWeight() {
         showScreen(content(points = points(1), rate = WeeklyRate(null, RateTone.Neutral)))
 
-        rule.onNodeWithTag("weight_trend_pill").assertTextContains("Sin datos suficientes")
+        rule.onNodeWithTag("weight_trend_pill").assertDoesNotExist()
+        rule.onNodeWithText("Sin datos suficientes").assertDoesNotExist()
         rule.onNodeWithTag("weight_current_value").assertTextContains("74,2 kg")
         rule.onNodeWithTag("weight_chart_empty").assertTextEquals("Registra tu peso varios días para ver la tendencia")
     }

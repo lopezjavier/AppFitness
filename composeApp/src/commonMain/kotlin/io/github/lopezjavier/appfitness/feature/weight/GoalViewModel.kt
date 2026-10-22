@@ -8,7 +8,6 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
-import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
@@ -17,7 +16,6 @@ import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementCheck
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
@@ -30,20 +28,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Instant
 
 private const val KEY_SHEET_OPEN = "goal_target_sheet_open"
 private const val KEY_SHEET_TEXT = "goal_target_sheet_text"
 private const val KEY_METRIC = "goal_open_metric"
-private const val KEY_COMPARE_ID = "goal_compare_older_id"
 private const val NONE = ""
 private const val TENTHS = 10.0
 private const val IDX_DRAFT = 1
 private const val IDX_METRIC = 2
-private const val IDX_COMPARE_ID = 3
-private const val IDX_COMPARISON = 4
-private const val IDX_ONLINE = 5
+private const val IDX_ONLINE = 3
 
 /** What the goal section reads once loaded. */
 private data class GoalLoad(
@@ -67,10 +60,10 @@ private data class TargetDraft(val text: String, val saving: Boolean = false, va
 
 /**
  * The goal card and metric tiles of the weight screen (US-27): target weight, distance, progress, BMI, body fat and
- * waist-to-hip interpretations, the target sheet, the open metric detail and the comparison of an older measurement
- * with the latest. Required reads (target, biometrics, latest weight) failing gives the Error state; the strategy
- * (Maintenance fallback), the onboarding weight and the circumferences are optional. The target draft, the open
- * metric and the comparison id live in [savedState] so they survive recreation; closing the target sheet discards
+ * waist-to-hip interpretations, the target sheet and the open metric detail. Required reads (target, biometrics,
+ * latest weight) failing gives the Error state; the strategy (Maintenance fallback), the onboarding weight and the
+ * circumferences are optional. The target draft and the open metric live in [savedState] so they survive
+ * recreation; closing the target sheet discards
  * the draft. Saving needs connectivity.
  */
 // One dependency per port or rule; one small handler per event.
@@ -84,21 +77,17 @@ class GoalViewModel(
     private val targetDistance: TargetDistance,
     private val interpret: InterpretMetric,
     private val waistHipRatio: WaistHipRatio,
-    private val compareMeasurements: CompareMeasurements,
     private val validate: ValidateBodyMeasurement,
     connectivity: ConnectivityObserver,
-    private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val load = MutableStateFlow<GoalLoadState>(GoalLoadState.Loading)
     private val draft = MutableStateFlow(restoreDraft())
     private val openMetric = MutableStateFlow(restoreMetric())
-    private val compareId = MutableStateFlow(savedState.get<String>(KEY_COMPARE_ID)?.takeIf { it != NONE })
-    private val comparison = MutableStateFlow<ComparisonState?>(null)
     private val online = MutableStateFlow(true)
 
     val uiState: StateFlow<GoalUiState> =
-        combine(load, draft, openMetric, compareId, comparison, online) { values ->
+        combine(load, draft, openMetric, online) { values ->
             buildState(values)
         }.stateIn(viewModelScope, SharingStarted.Eagerly, GoalUiState.Loading)
 
@@ -115,8 +104,6 @@ class GoalViewModel(
             GoalEvent.Dismiss -> setDraft(null)
             is GoalEvent.OpenMetric -> setMetric(event.kind)
             GoalEvent.CloseMetric -> setMetric(null)
-            is GoalEvent.OpenCompare -> openCompare(event.olderId)
-            GoalEvent.CloseCompare -> setCompareId(null)
             GoalEvent.Refresh -> if (load.value is GoalLoadState.Ready) reload(silent = true)
             GoalEvent.Retry -> if (load.value == GoalLoadState.Failed) reload(silent = false)
         }
@@ -144,16 +131,7 @@ class GoalViewModel(
                     waistToHip = circumferences.getAll().getOrNull()?.let(waistHipRatio::invoke),
                 ),
             )
-            compareId.value?.let { loadComparison(it) }
         }
-    }
-
-    private suspend fun loadComparison(olderId: String) {
-        val latest = measurements.getLatestWeight().getOrNull() ?: return
-        val until = clock.now() + 1.days
-        val rows = measurements.getMeasurements(Instant.fromEpochSeconds(0), until).getOrNull() ?: return
-        val older = rows.firstOrNull { it.id == olderId }
-        comparison.value = older?.let { ComparisonState(it, latest, compareMeasurements(it, latest)) }
     }
 
     // Target sheet
@@ -217,7 +195,7 @@ class GoalViewModel(
     private fun sameTenths(value: Double, saved: Double?): Boolean =
         saved != null && (value * TENTHS).roundToInt() == (saved * TENTHS).roundToInt()
 
-    // Metric and comparison
+    // Metric
 
     private fun setMetric(kind: MetricKind?) {
         openMetric.value = kind
@@ -226,18 +204,6 @@ class GoalViewModel(
 
     private fun restoreMetric(): MetricKind? =
         MetricKind.entries.firstOrNull { it.name == savedState.get<String>(KEY_METRIC) }
-
-    private fun openCompare(olderId: String) {
-        if (load.value !is GoalLoadState.Ready) return
-        setCompareId(olderId)
-        viewModelScope.launch { loadComparison(olderId) }
-    }
-
-    private fun setCompareId(id: String?) {
-        compareId.value = id
-        comparison.value = null
-        savedState[KEY_COMPARE_ID] = id ?: NONE
-    }
 
     // State
 
@@ -253,23 +219,13 @@ class GoalViewModel(
                     state.load,
                     values[IDX_DRAFT] as TargetDraft?,
                     values[IDX_METRIC] as MetricKind?,
-                    values[IDX_COMPARE_ID] as String?,
-                    values[IDX_COMPARISON] as ComparisonState?,
                     values[IDX_ONLINE] as Boolean,
                 ),
             )
         }
     }
 
-    @Suppress("LongParameterList")
-    private fun contentOf(
-        data: GoalLoad,
-        sheet: TargetDraft?,
-        metric: MetricKind?,
-        compareOlderId: String?,
-        comparisonState: ComparisonState?,
-        isOnline: Boolean,
-    ): GoalContent {
+    private fun contentOf(data: GoalLoad, sheet: TargetDraft?, metric: MetricKind?, isOnline: Boolean): GoalContent {
         val current = data.latest?.weightKg
         val target = data.targetKg
         val bmiValue = current?.let { bmi.compute(it, data.biometrics.heightCm) }
@@ -285,8 +241,6 @@ class GoalViewModel(
             isOnline = isOnline,
             targetSheet = sheet?.let { sheetOf(it, data.targetKg, isOnline) },
             openMetric = metric,
-            comparison = comparisonState,
-            comparisonOpen = compareOlderId != null,
         )
     }
 

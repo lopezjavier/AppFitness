@@ -49,6 +49,8 @@ private class PreferencesData(
     val profile: Result<ProfileSummary>,
     val biometrics: Result<SavedBiometrics>,
     val latestWeight: Result<BodyMeasurement?>,
+    /** The newest Health Connect weight of the latest weight's local day, if any (it wins over a manual row). */
+    val healthConnectWeight: BodyMeasurement?,
     val goals: Result<NutritionGoals?>,
 )
 
@@ -57,7 +59,7 @@ private class PreferencesData(
  * [PreferencesEvent.Save], which stores everything atomically (one RPC) with the target recalculated from the edited
  * weight. The weight is sent only when it changed. "Today" for the weight row is the local day in [timeZone].
  */
-@Suppress("LongParameterList") // One dependency per port.
+@Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one small handler per event.
 class PreferencesViewModel(
     private val profileRepository: ProfileRepository,
     private val goalsRepository: NutritionGoalsRepository,
@@ -121,6 +123,8 @@ class PreferencesViewModel(
             PreferencesEvent.Save -> save()
 
             PreferencesEvent.Retry -> if (_uiState.value == PreferencesUiState.LoadFailed) load()
+
+            PreferencesEvent.Refresh -> refreshWeight()
         }
     }
 
@@ -177,7 +181,14 @@ class PreferencesViewModel(
                 val biometrics = async { profileRepository.getBiometrics() }
                 val weight = async { bodyMeasurementRepository.getLatestWeight() }
                 val goals = async { goalsRepository.getOwn() }
-                PreferencesData(profile.await(), biometrics.await(), weight.await(), goals.await())
+                val latest = weight.await()
+                PreferencesData(
+                    profile.await(),
+                    biometrics.await(),
+                    latest,
+                    healthConnectWeightOf(latest),
+                    goals.await(),
+                )
             }
             _uiState.value = loadedOrNull(data) ?: PreferencesUiState.LoadFailed
         }
@@ -188,8 +199,9 @@ class PreferencesViewModel(
         val profile = data.profile.getOrNull()
         val biometrics = data.biometrics.getOrNull()?.toBiometricsOrNull()
         val latest = data.latestWeight.getOrNull()
-        val weight = latest?.weightKg
-        val fromHealthConnect = latest?.source == MeasurementSource.HealthConnect
+        val hcWeight = data.healthConnectWeight
+        val weight = (hcWeight ?: latest)?.weightKg
+        val fromHealthConnect = hcWeight != null
         if (profile == null || biometrics == null || weight == null) return null
         if (data.goals.isFailure) return null
         val goals = data.goals.getOrNull()
@@ -217,6 +229,43 @@ class PreferencesViewModel(
         )
     }
 
+    /**
+     * The Health Connect weight that owns the latest weight's day (ADR-47): the latest row itself, or the newest
+     * Health Connect row of the same local day when the latest one is a later manual row. Null when the weight is
+     * manual only; a failed day lookup falls back to the latest row's own source.
+     */
+    private suspend fun healthConnectWeightOf(latest: Result<BodyMeasurement?>): BodyMeasurement? {
+        val row = latest.getOrNull()
+        if (row == null || row.source == MeasurementSource.HealthConnect) return row
+        val day = row.measuredAt.toLocalDateTime(timeZone).date
+        val rows = bodyMeasurementRepository.getMeasurements(
+            day.atStartOfDayIn(timeZone),
+            day.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone),
+        ).getOrNull().orEmpty()
+        return rows.firstOrNull { it.source == MeasurementSource.HealthConnect }
+    }
+
+    /** Reloads only the weight and its flag: other draft fields stay, nothing is saved. */
+    private fun refreshWeight() {
+        if ((_uiState.value as? PreferencesUiState.Loaded)?.isSaving != false) return
+        viewModelScope.launch {
+            val latest = bodyMeasurementRepository.getLatestWeight()
+            if (latest.isFailure) return@launch
+            val hcWeight = healthConnectWeightOf(latest)
+            val row = hcWeight ?: latest.getOrNull() ?: return@launch
+            val fromHealthConnect = hcWeight != null
+            val weight = BiometricBounds.clampWeightTenths((row.weightKg * TENTHS_PER_KG).roundToInt()) / TENTHS_PER_KG
+            updateLoaded { state ->
+                val untouched = state.form.weightKg == state.saved.weightKg
+                state.copy(
+                    form = if (fromHealthConnect || untouched) state.form.copy(weightKg = weight) else state.form,
+                    saved = state.saved.copy(weightKg = weight),
+                    weightFromHealthConnect = fromHealthConnect,
+                )
+            }
+        }
+    }
+
     /** An unsaved form is kept in the saved state (process death); equal to the saved one, the draft is cleared. */
     private fun persistDraft(state: PreferencesUiState.Loaded) {
         savedState[KEY_DRAFT] = if (state.form == state.saved) null else state.form.encodeDraft()
@@ -232,7 +281,7 @@ class PreferencesViewModel(
                 displayName = form.name,
                 biometrics = form.toBiometrics(),
                 weightKg = form.weightKg,
-                weightChanged = form.weightKg != state.saved.weightKg,
+                weightChanged = !state.weightFromHealthConnect && form.weightKg != state.saved.weightKg,
                 now = clock.now(),
                 timeZone = timeZone,
                 strategy = form.strategy,
@@ -240,7 +289,7 @@ class PreferencesViewModel(
                 split = form.split,
             )
             if (result.isSuccess) {
-                if (form.weightKg != state.saved.weightKg) writeWeightBack()
+                if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()
                 updateLoaded { it.copy(form = form, saved = form, isSaving = false) }
                 effectChannel.send(PreferencesEffect.Saved)
             } else {

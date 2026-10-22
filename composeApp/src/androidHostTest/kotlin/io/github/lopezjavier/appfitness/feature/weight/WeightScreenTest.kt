@@ -182,7 +182,7 @@ class WeightScreenTest {
     fun logToday_opensAnEmptySheetPrefilledWithTheLatestWeight_andSavingUpdatesThePanel() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
         rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Registrar peso")
         assertEquals("74,2", rule.onNodeWithTag("weight_sheet_weight_input").text())
         rule.onNodeWithTag("weight_sheet_delete").assertDoesNotExist()
@@ -199,7 +199,7 @@ class WeightScreenTest {
     fun logToday_withBodyFat_savesBothValues() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
         type("weight_sheet_weight_input", "73,9")
         type("weight_sheet_fat_input", "15,1")
         tap("weight_sheet_save")
@@ -211,11 +211,11 @@ class WeightScreenTest {
     @Test
     fun logToday_afterTodayWasSaved_reopensItInEditMode() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
         type("weight_sheet_weight_input", "73,9")
         tap("weight_sheet_save")
 
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
 
         assertEquals("73,9", rule.onNodeWithTag("weight_sheet_weight_input").text())
         rule.onNodeWithTag("weight_sheet_delete").assertExists()
@@ -268,7 +268,7 @@ class WeightScreenTest {
     fun loggingToday_hasNoTimeFields_andSavesTheCurrentInstant() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
         assertNoTimeFields()
         type("weight_sheet_weight_input", "74,0")
         tap("weight_sheet_save")
@@ -310,7 +310,7 @@ class WeightScreenTest {
 
     private fun openTodaySheet() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
     }
 
     @Test
@@ -439,7 +439,7 @@ class WeightScreenTest {
         show()
 
         rule.onNodeWithTag("weight_empty").assertExists()
-        rule.onNodeWithTag("weight_log_today_button").assertExists()
+        rule.onNodeWithTag("weight_edit_today_button").assertExists()
         rule.onNodeWithTag("weight_panel").assertDoesNotExist()
     }
 
@@ -476,7 +476,7 @@ class WeightScreenTest {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
         repository.saveFailure = AppException(AppError.Unknown)
 
-        tap("weight_log_today_button")
+        tap("weight_edit_today_button")
         tap("weight_sheet_save")
 
         rule.onNodeWithTag("weight_day_sheet").assertExists()
