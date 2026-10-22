@@ -162,7 +162,7 @@ Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vec
 
 ## 8. Interaction rules (ADR-45)
 Generic rules for every screen; ux-reviewer rejects a plan that breaks them.
-- **Delete** runs at once: no confirmation dialog, no "Deshacer". Deleting from a details screen closes it.
+- **Delete** runs at once: no confirmation dialog, no "Deshacer". Deleting from a details screen closes it. Exceptions with a confirmation dialog: "Borrar cuenta" (ADR-29) and deleting a non-empty routine folder, which deletes its routines and names how many (ADR-51).
 - **Swipe-to-delete** uses the shared designsystem component: slow, heavy, fires only at the end of the travel; a shorter drag snaps back.
 - **Editing** screens have one "Guardar" that saves all changes together; nothing is saved per action (delete excepted). This includes bottom sheets and modals that edit a value: they have their own "Guardar", and closing them (X, back, swipe down, scrim) discards the change; nothing is applied on dismiss.
 - **Lists:** a row opens its details; editing starts from the details. Rows of the same kind show the same information everywhere.

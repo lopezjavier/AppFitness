@@ -10,7 +10,7 @@
 | E3 | Training core | US-09 … US-15 | Full UI + backend | `v0.3.0` — routines, live session, catalog assets, progress charts |
 | E4 | Food diary | US-16 … US-24 | Full UI + backend | `v0.4.0` — meal logging, portions and diary history |
 | E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, body composition, Health Connect and goal |
-| E6 | Training depth | US-28 … US-38 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management |
+| E6 | Training depth | US-28 … US-38, US-47 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management, manual-food editing |
 | E7 | Training insights | US-39 … US-44 | Full UI | `v0.7.0` — advanced stats, muscle distribution, reports |
 | E8 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
 
@@ -67,7 +67,7 @@ E3, E4, E5, E6, E7 ────────────────────�
 | US-31 | E6 | Exercise metric types | UI + backend |
 | US-32 | E6 | Volume options | UI + backend |
 | US-33 | E6 | Warm-up and plate calculators | UI + backend |
-| US-34 | E6 | Personal-record catalogue and live PR | UI + backend |
+| US-34 | E6 | Personal-record catalogue (live PR deferred, ADR-52) | UI + backend |
 | US-35 | E6 | Routine folders and next workout | UI + backend |
 | US-36 | E6 | Routine tracking and "Update Routine" | UI + backend |
 | US-37 | E6 | Workout detail, calendar and editing | UI |
@@ -80,6 +80,7 @@ E3, E4, E5, E6, E7 ────────────────────�
 | US-44 | E7 | Streaks and weekly check-ins | UI |
 | US-45 | E8 | About, version and licences | UI |
 | US-46 | E8 | Polish, accessibility, tablet and release build | UI |
+| US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
 
 ## 4. Traceability: requirements → stories
 
@@ -99,6 +100,7 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-2.10 Copy and repeat meals | US-19 |
 | FR-2.11 Configurable meals | US-23 |
 | FR-2.12 Diary views and history | US-19, US-24 |
+| FR-2.14 Editing manual foods | US-47 |
 | FR-3.1 Manual weight and circumferences | US-25 |
 | FR-3.2 Health Connect (read and write) | US-26 |
 | FR-3.3 – FR-3.5 Chart, filters, rate | US-27 |

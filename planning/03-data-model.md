@@ -82,7 +82,7 @@ Shared catalog (OFF cache) + personal foods.
 | image_url | text null | OFF URL (images are not stored) |
 | created_by | uuid null | only for `source = 'user'` |
 | search_vector | generated tsvector | GIN index; `unaccent` + `spanish` config (food names are Spanish) |
-| micronutrients | jsonb null | `source = 'user'` only: optional label values typed by the user (`saturated-fat_100g`, `sugars_100g`, `fiber_100g`, `salt_100g`; ADR-43) |
+| micronutrients | jsonb null | `source = 'user'` only: optional label values typed by the user, OFF keys per 100 base units (`saturated-fat_100g`, `sugars_100g`, `fiber_100g`, `salt_100g` since ADR-43; from E6 the full OFF nutrient list, known keys only, values ≥ 0; ADR-53) |
 | off_data | jsonb null | complete OFF product as received (`source = 'off'` only; ADR-43); written by Edge Functions, never used to compute entries, not returned by `food-search` |
 | fetched_at | timestamptz | cache refresh |
 
@@ -113,7 +113,7 @@ RLS: select when the parent food is readable (`source = 'off' or created_by = (s
 | amount | numeric(7,1) | > 0; in the food's `base_unit` |
 | portion_label | text null | snapshot of the portion used, if any |
 | food_name | text | snapshot |
-| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes) |
+| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes; editing a manual food applies to future entries only, ADR-53) |
 
 Index: `(user_id, log_date)`.
 
@@ -198,7 +198,7 @@ The training model is **forward-compatible** (ADR-30): the columns marked *(E6)*
 Catalog: one row per RepDB free exercise (`key`, `muscle_group`, `equipment`, `metric_type = weight_reps`, no name), loaded by a generated migration (`supabase/migrations/*_exercise_catalog.sql`, ADR-39), not by `seed.sql`. Consistency check: custom => `created_by` and `name` set (1-100 chars), `key` null; catalog => `key` set, `created_by` and `name` null. Names, instructions and images are **not** stored here: they live in the client asset bundle (`composeApp/src/commonMain/composeResources/files/exercises/`, ADR-30, ADR-39). RLS select: `not is_custom or created_by = (select auth.uid())`; writes only on own custom exercises.
 
 ### `routine_folders` (E6)
-`user_id`, `name`, `position`. RLS owner policy. Deleting a folder moves its routines to the default folder (never deletes them).
+`user_id`, `name`, `position`. RLS owner policy. Deleting a folder deletes its routines too, after a confirmation in the UI (ADR-51); their past sessions are kept (`workout_sessions.routine_id` is set null). This supersedes "its routines move to the default folder".
 
 ### `routines` (US-10, extended in E6)
 | Column | Type | Notes |
@@ -286,7 +286,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 
 The 1RM is computed in SQL with the same formula as the domain (see `04-business-rules.md`); domain and pgTAP tests use the same cases.
 
-E6 adds the RPCs for the PR catalogue, the warm-up/plate calculators and routine tracking (`Update Routine`); E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
+E6 adds the RPCs for the PR catalogue, routine folders/order, routine tracking (`Update Routine`), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
 
 ## 7. Edge Functions
 

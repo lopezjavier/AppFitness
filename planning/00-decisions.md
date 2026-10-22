@@ -347,7 +347,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Decision:** the UI calls saved templates "comidas" ("Guardar como comida", search tab "Comidas"); backend and code keep `meal_templates`. No quick-add chips on the Diary; a comida is added only from the search tab. Editing a comida ends with a choice: "Sobrescribir" or "Guardar como nueva" (asks a name, unique per user).
 - **Consequences:** US-21 in `epics/E4-food-diary.md`, FR-2.7 in `01-phase1-scope.md`, T-061 in `tasks/todo.md` and `tasks/plan.md` reflect this.
 
-### ADR-43 · Store the full Open Food Facts product and show micronutrients (E4, T-068)
+### ADR-43 · Store the full Open Food Facts product and show micronutrients (E4, T-068) — manual-food nutrients amended by ADR-53
 - **Context:** the user wants micronutrients from OFF kept and shown in the food details for future use (2026-10-21). ADR-06 and the `foods` cache keep only kcal, P/C/F, serving, name, brand and image URL; the rest of what OFF sends is discarded, and micronutrients were listed as out of scope in E4.
 - **Decision:**
   - `foods.off_data jsonb null` stores the complete product object exactly as OFF returned it (nutriments, ingredients, allergens, additives, Nutri-Score, NOVA, categories, …), written only by the Edge Functions with the secret key. The typed columns stay the source for kcal/macros and search; `off_data` is never used to compute diary entries (snapshots, ADR-32).
@@ -364,7 +364,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - The diary history (Día / Semana / Mes summaries and the month calendar) leaves the Diario and becomes a full-screen destination (back arrow) reached from an "Estadísticas" entry on the Perfil root (ADR-37 pattern). Tapping a day there opens the normal Diario on that day.
 - **Consequences:** US-24 in `epics/E4-food-diary.md`, `tasks/todo.md` and `tasks/plan.md` (T-071) reflect this; no data-model change.
 
-### ADR-45 · Interaction rules shared by every screen (E4, T-072)
+### ADR-45 · Interaction rules shared by every screen (E4, T-072) — folder-delete exception in ADR-51
 - **Context:** Checkpoint E4-B/E4-C (user, 2026-10-21): the same UX defects were reported on several screens (swipe fires too easily, "Deshacer" added after the user had asked for none, edits saved per action, differing texts for the same concept). Fixing them screen by screen leaves the app inconsistent.
 - **Decision:** `05-design-system.md` §8 holds generic rules, enforced by ux-reviewer on every UI task:
   - **Delete:** runs at once, with no confirmation dialog and no "Deshacer" (a deliberate swipe or tap is the confirmation). Deleting from a details screen closes it. Confirmation dialogs stay only for account-level destructive actions ("Borrar cuenta").
@@ -405,3 +405,42 @@ Format: context → decision → consequences. A decision is only changed by add
   - The weekly rate is the change between the **last two days with a weigh-in**, scaled to kg/week: `(w_last − w_prev) / days_between × 7`, 2 decimals. With fewer than 2 days with data → "Sin datos suficientes". The colouring by strategy is unchanged.
   - Same behaviour for the other body metrics of the selector.
 - **Consequences:** `04-business-rules.md` §3.2/§3.3, `epics/E5-weight.md` (US-25 scenarios) and `tasks/todo.md` (T-088) reflect this. Supersedes the "drawn only if ≥2 days" rule.
+
+### ADR-50 · Routines are planned set by set; planned values are placeholders; target RPE per exercise (E6, T-089, T-091)
+- **Context:** US-29 had two contradicting scenarios: "Planning sets in a routine" (each planned set with its own weight, reps and type; scope moved from E3 on 2026-10-19) and "Routine asks only sets and rest" (user request 2026-10-20). E6 breakdown, Q1 (user, 2026-10-22).
+- **Decision:**
+  - Per-set planning holds: each planned set has its own target weight, reps and type. The scenario "Routine asks only sets and rest" is removed.
+  - In the live session, a pending set started from a planned set shows the planned weight and reps as a **dim placeholder** in KG and REPS (the E3 ghost pattern, `04-business-rules.md` §4.3), never as filled values; the planned type is applied to the set as its value. A planned set without a weight falls back to the ghost placeholder. The ANTERIOR column keeps the previous performance.
+  - The target RPE is **per exercise** (`routine_exercises.target_rpe`, already in the ADR-30 schema), shown as "Objetivo RPE N" on the exercise's working sets. Chosen over per set because it needs no extra column and RPE targets are usually stated per exercise.
+- **Consequences:** `epics/E6-training-depth.md` (US-29, US-30), `04-business-rules.md` §4.3, `tasks/todo.md` (T-089, T-091). The planned-set table itself is a schema exception recorded by T-089.
+- **Approval:** 2026-10-22, user (E6 breakdown, Q1; placeholder and per-exercise RPE chosen by the epic-planner as delegated).
+
+### ADR-51 · Deleting a routine folder deletes its routines, after a confirmation (E6, T-098)
+- **Context:** US-35 said "deletes a folder and confirms… its routines move to Mis rutinas". ADR-45 keeps confirmation dialogs only for account-level actions. E6 breakdown, Q3 (user, 2026-10-22).
+- **Decision:**
+  - Deleting a folder deletes the folder **and all its routines** at once. Past workouts of those routines are kept (`workout_sessions.routine_id` is set null, as for a single routine delete).
+  - It asks for a confirmation that states how many routines will be deleted. This is an explicit exception to ADR-45 for a delete that removes many items at once. Every other training delete (a set, a routine, a workout) stays immediate with no dialog and no "Deshacer".
+  - Deleting a set in the live session keeps ADR-45: immediate, no "Deshacer" (Q2).
+- **Consequences:** supersedes "routines move to Mis rutinas" in `epics/E6-training-depth.md` US-35 and `03-data-model.md` §5 (`routine_folders`); `05-design-system.md` §8 lists the exception; T-096 and T-098 in `tasks/todo.md`.
+- **Approval:** 2026-10-22, user (E6 breakdown, Q2 and Q3).
+
+### ADR-52 · E6 scope cuts and defaults set at the breakdown (E6)
+- **Context:** E6 breakdown questions Q4–Q7 (user, 2026-10-22).
+- **Decision:**
+  - **Deferred** (out of Phase 1 for now; the scenario text is kept in `01-phase1-scope.md` §4.1 so it is not lost): the live "¡Nuevo récord!" notification and its strength levels (US-34 "Live PR"); the streak, rest days and rewards in the training calendar (US-37 "Calendar"); copying a workout (US-37 "Editing").
+  - Kept: PR detection and the catalogue, shown in the session summary, the exercise detail and the workout detail; the calendar with trained days (month, year, multi-year); editing and deleting a workout, "Guardar como rutina" and past workouts (from scratch, from a routine or from a finished workout as a template; never through the live session).
+  - "Total de repes" is the **all-time** total of completed reps of the exercise (the business rules did not define it).
+  - Calculator defaults (`04-business-rules.md` §4.9): warm-up bar × 10, 40 % × 5, 60 % × 3, 80 % × 2; bars 20, 15, 10 (EZ) and 7,5 kg; plates 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; rounding 2,5 kg for plates and 2 kg for dumbbells.
+- **Consequences:** `01-phase1-scope.md` FR-4.8 and §4.1, `04-business-rules.md` §4.8/§4.9, `epics/E6-training-depth.md` (US-33, US-34, US-37), `03-data-model.md` §6, `tasks/todo.md` (T-094, T-097, T-100, T-101). E7 US-44 (streaks and weekly check-ins) is not changed here; the E7 breakdown confirms it with the user.
+- **Approval:** 2026-10-22, user (E6 breakdown, Q4–Q7).
+
+### ADR-53 · Only manual foods are editable; edits apply to future entries; full label nutrients (E6, US-47, T-102)
+- **Context:** user request 2026-10-22 (after E5-A): edit foods and portions, enter every value of a Spanish label, and list nutrients in label order. Open Food Facts foods are a cache shared by every user (ADR-06, ADR-43); diary entries are snapshots (ADR-32). E6 breakdown, Q8.
+- **Decision:**
+  - Only manual foods (`source = 'user'`, owned by the caller) can be edited: name, brand, kcal, macros, micronutrients and portions. Open Food Facts foods are not editable (no edit action). The base unit is not editable.
+  - Edits apply to **future** diary entries only. Past entries keep their ADR-32 snapshots (values, `food_name`, `portion_label`); nothing is recomputed. Saved comidas compute from the food, so they use the new values.
+  - Portions: adding, editing and removing are allowed. An edited portion applies to new entries only. The user's rule "removing a portion is blocked while diary entries use it" is dropped: entries and comida items keep the amount and label as a snapshot and do not reference the portion row, so the removal changes nothing for them.
+  - Manual foods can carry the full Open Food Facts nutrient list in `foods.micronutrients` (OFF keys, values ≥ 0, known keys only). This amends ADR-43, which allowed four keys and no vitamins or minerals.
+  - Nutrients are entered and shown in the Spanish label order (EU Regulation 1169/2011, Annex XV): energy, fat, saturates, mono-unsaturates, polyunsaturates, carbohydrates, sugars, polyols, starch, fibre, protein, salt, then vitamins and minerals (Annex XIII order). The food details of every food, manual or OFF, use the same order and hide absent values.
+- **Consequences:** `epics/E6-training-depth.md` (US-47), `01-phase1-scope.md` (FR-2.14), `03-data-model.md` §3/§6 (`foods.micronutrients`, the edit RPC, `create_personal_food`), `07-roadmap.md`, `tasks/todo.md` (T-102). ADR-32 is unchanged.
+- **Approval:** 2026-10-22, user (E6 breakdown, Q8, revised the same day to future entries only).
