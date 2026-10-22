@@ -50,13 +50,17 @@ private fun TextPillPreview() {
 
 /** The visual pill primitive: overlay fill, full radius, md/xs padding and a 32 dp minimum height. */
 @Composable
-internal fun PillContainer(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+internal fun PillContainer(
+    modifier: Modifier = Modifier,
+    containerColor: Color = PillDefaults.containerColor(AppTheme.colors),
+    content: @Composable RowScope.() -> Unit,
+) {
     Row(
         modifier =
         modifier
             .heightIn(min = PillDefaults.MinHeight)
             .clip(PillDefaults.Shape)
-            .background(PillDefaults.containerColor(AppTheme.colors))
+            .background(containerColor)
             .padding(horizontal = PillDefaults.HorizontalPadding, vertical = PillDefaults.VerticalPadding),
         horizontalArrangement = Arrangement.spacedBy(PillDefaults.ItemSpacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,

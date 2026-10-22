@@ -492,18 +492,52 @@ class PreferencesViewModelTest {
     }
 
     @Test
-    fun theLatestWeightFromAnySource_isShownAndEditable() = runTest {
-        weights.row =
-            BodyMeasurement("w2", Instant.parse("2026-10-13T08:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+    fun aManualLatestWeight_isEditableAndNotFlaggedAsHealthConnect() = runTest {
         val (viewModel, state) = loaded()
-        assertEquals(79.4, state().form.weightKg)
-        assertFalse(state().canSave)
+        assertFalse(state().weightFromHealthConnect)
 
         viewModel.onEvent(PreferencesEvent.SetWeight(790))
         viewModel.onEvent(PreferencesEvent.Save)
         advanceUntilIdle()
 
         assertEquals(79.0, profile.preferenceSaves.single().weight?.weightKg)
+    }
+
+    @Test
+    fun aHealthConnectLatestWeight_isShownReadOnly() = runTest {
+        weights.row =
+            BodyMeasurement("w2", Instant.parse("2026-10-13T08:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        val (viewModel, state) = loaded()
+        assertEquals(79.4, state().form.weightKg)
+        assertTrue(state().weightFromHealthConnect)
+        assertFalse(state().canSave)
+
+        viewModel.onEvent(PreferencesEvent.SetWeight(790))
+        viewModel.onEvent(PreferencesEvent.SetHeight(172))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(79.4, state().form.weightKg)
+        assertNull(profile.preferenceSaves.single().weight)
+        assertTrue(health.writes.isEmpty())
+    }
+
+    @Test
+    fun aRestoredDraftCannotChangeAHealthConnectWeight() = runTest {
+        weights.row =
+            BodyMeasurement("w2", Instant.parse("2026-10-13T08:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetHeight(172))
+
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        val state = assertIs<PreferencesUiState.Loaded>(recreated.uiState.value)
+        assertTrue(state.weightFromHealthConnect)
+        assertEquals(172, state.form.heightCm)
+        assertEquals(79.4, state.form.weightKg)
     }
 
     @Test

@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthReading
 import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -132,6 +133,8 @@ internal class FakeMeasurementsRepository(var dayRows: List<BodyMeasurement> = e
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant) =
         Result.success(dayRows.filter { it.measuredAt >= from && it.measuredAt < toExclusive })
+
+    override suspend fun getLatestComposition() = Result.success(LatestComposition())
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> =
         Result.failure(AppException(AppError.Unknown))

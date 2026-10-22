@@ -43,7 +43,7 @@ create type set_type as enum ('working', 'warm_up', 'failure', 'drop');   -- UI:
 | sex | sex null | |
 | height_cm | numeric(5,1) null | 100–250 (check) |
 | activity_level | activity_level null | |
-| target_weight_kg | numeric(5,1) null | 20–400 (check); goal weight, no date (E5) |
+| target_weight_kg | numeric(5,2) null | 20–400 (check); goal weight, no date (E5) |
 | onboarding_completed | boolean | default false |
 
 - `on_auth_user_created` trigger (security definer) that inserts the row with name and avatar from `raw_user_meta_data`. The metadata is user-controlled, so the trigger sanitizes it and sign-up never fails on a constraint:

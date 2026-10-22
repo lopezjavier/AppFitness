@@ -13,18 +13,31 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
+import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
+import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
+import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
+import io.github.lopezjavier.appfitness.domain.usecase.Bmi
+import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
+import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
@@ -42,6 +55,22 @@ private object HealthClock : Clock {
 }
 
 /** The banner inside [WeightRoot]: the permission flow, and the denied state surviving recreation (ADR-40). */
+private class InMemoryChartPreferences : WeightChartPreferences {
+    private val state = MutableStateFlow(WeightChartRange.Default)
+    override val range: Flow<WeightChartRange> = state
+
+    override suspend fun setRange(range: WeightChartRange) {
+        state.value = range
+    }
+
+    private val metricState = MutableStateFlow(BodyMetric.Weight)
+    override val metric: Flow<BodyMetric> = metricState
+
+    override suspend fun setMetric(metric: BodyMetric) {
+        metricState.value = metric
+    }
+}
+
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class HealthSyncRestorationTest {
@@ -99,10 +128,40 @@ class HealthSyncRestorationTest {
                 timeZone = TimeZone.UTC,
             )
         }
+        val trend = remember {
+            WeightTrendViewModel(
+                measurements = weights,
+                circumferences = FakeCircumferenceRepository(),
+                goals = FakeNutritionGoalsRepository(),
+                profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
+                preferences = InMemoryChartPreferences(),
+                weightTrend = WeightTrend(),
+                clock = HealthClock,
+                timeZone = TimeZone.UTC,
+            )
+        }
+        val goal = remember {
+            GoalViewModel(
+                profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
+                measurements = weights,
+                goals = FakeNutritionGoalsRepository(),
+                circumferences = FakeCircumferenceRepository(),
+                bmi = Bmi(),
+                targetDistance = TargetDistance(),
+                interpret = InterpretMetric(),
+                waistHipRatio = WaistHipRatio(),
+                compareMeasurements = CompareMeasurements(),
+                validate = ValidateBodyMeasurement(),
+                connectivity = FakeConnectivityObserver(),
+                clock = HealthClock,
+            )
+        }
         AppTheme {
             WeightRoot(
                 modifier = Modifier,
                 viewModel = weight,
+                trendViewModel = trend,
+                goalViewModel = goal,
                 circumferencesViewModel = circumferences,
                 healthSyncViewModel = health,
                 launcherFor = { onResult ->

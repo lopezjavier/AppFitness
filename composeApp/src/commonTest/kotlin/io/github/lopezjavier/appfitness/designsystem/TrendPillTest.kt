@@ -33,6 +33,13 @@ class TrendPillTest {
     }
 
     @Test
+    fun containerColor_default_isOverlay() = assertEquals(c.surfaceOverlay, TrendPillDefaults.containerColor(c))
+
+    @Test
+    fun containerColor_override_wins() =
+        assertEquals(c.surfaceRaised, TrendPillDefaults.containerColor(c, c.surfaceRaised))
+
+    @Test
     fun direction_positiveRate_up() = assertEquals(TrendDirection.Up, TrendPillDefaults.direction(0.30))
 
     @Test

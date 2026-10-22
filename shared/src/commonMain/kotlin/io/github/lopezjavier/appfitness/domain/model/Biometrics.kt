@@ -62,4 +62,35 @@ data class ManualWeightSave(
 )
 
 /** The measurements of one local day: the manual entry (at most one) and the Health Connect ones. */
-data class DayMeasurements(val manual: BodyMeasurement?, val healthConnect: List<BodyMeasurement>)
+data class DayMeasurements(val manual: BodyMeasurement?, val healthConnect: List<BodyMeasurement>) {
+    /** A Health Connect weight takes precedence over manual entry for the day (ADR-47). */
+    val hasHealthConnectWeight: Boolean get() = healthConnect.isNotEmpty()
+}
+
+/** A value with the instant it was measured. */
+data class Dated<T>(val value: T, val measuredAt: Instant)
+
+/** The most recent value of each body-composition metric, each from its own newest row (null when never measured). */
+data class LatestComposition(
+    val bodyFat: Dated<Double>? = null,
+    val leanMass: Dated<Double>? = null,
+    val water: Dated<Double>? = null,
+    val bone: Dated<Double>? = null,
+    val bmr: Dated<Int>? = null,
+) {
+    companion object {
+        /** Picks, per metric, the value of the newest row that has it. */
+        fun from(rows: List<BodyMeasurement>): LatestComposition {
+            val newestFirst = rows.sortedByDescending { it.measuredAt }
+            fun <T : Any> pick(select: (BodyMeasurement) -> T?): Dated<T>? =
+                newestFirst.firstNotNullOfOrNull { row -> select(row)?.let { Dated(it, row.measuredAt) } }
+            return LatestComposition(
+                bodyFat = pick { it.bodyFatPct },
+                leanMass = pick { it.leanMassKg },
+                water = pick { it.waterKg },
+                bone = pick { it.boneKg },
+                bmr = pick { it.bmrKcal },
+            )
+        }
+    }
+}

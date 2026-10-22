@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -36,6 +38,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_value
 import io.github.lopezjavier.appfitness.composeapp.resources.date_today
 import io.github.lopezjavier.appfitness.composeapp.resources.date_yesterday
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -74,6 +77,7 @@ internal fun CircumferenceSection(
     timeZone: TimeZone,
     onEvent: (CircumferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onRatioClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier.fillMaxWidth().testTag("circumference_section"),
@@ -94,7 +98,7 @@ internal fun CircumferenceSection(
                 testTagPrefix = "circumference_error",
             )
 
-            is CircumferencesUiState.Content -> SectionContent(state.content, today, timeZone, onEvent)
+            is CircumferencesUiState.Content -> SectionContent(state.content, today, timeZone, onEvent, onRatioClick)
         }
     }
 }
@@ -135,6 +139,7 @@ private fun SectionContent(
     today: LocalDate,
     timeZone: TimeZone,
     onEvent: (CircumferencesEvent) -> Unit,
+    onRatioClick: (() -> Unit)?,
 ) {
     if (content.isEmpty) {
         EmptyState(
@@ -144,7 +149,7 @@ private fun SectionContent(
             testTagPrefix = "circumference_empty",
         )
     } else {
-        RatioTile(content.ratio)
+        RatioTile(content.ratio, onRatioClick)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             content.groups.forEach { group -> SiteGroup(group, content.isOnline, today, timeZone, onEvent) }
         }
@@ -152,11 +157,17 @@ private fun SectionContent(
 }
 
 @Composable
-private fun RatioTile(ratio: Double?) {
+private fun RatioTile(ratio: Double?, onClick: (() -> Unit)?) {
+    val openLabel = stringResource(Res.string.metric_tile_open_label)
+    val tagged = if (onClick != null && ratio != null) {
+        Modifier.testTag("weight_whr_row").clickable(onClickLabel = openLabel, role = Role.Button, onClick = onClick)
+    } else {
+        Modifier.testTag("circumference_ratio")
+    }
     MetricTile(
         label = stringResource(Res.string.circumference_ratio_label),
         value = ratio?.let(::ratioText) ?: stringResource(Res.string.circumference_ratio_unavailable),
-        modifier = Modifier.fillMaxWidth().testTag("circumference_ratio"),
+        modifier = Modifier.fillMaxWidth().then(tagged),
         supporting = if (ratio == null) {
             {
                 Text(

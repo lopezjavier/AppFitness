@@ -41,6 +41,8 @@ Out of scope (epic file): background sync, other Health Connect data (steps, sle
     - final regression over a few real days with the scale, manual entries via the calendar, Health Connect edit/delete, circumferences, chart, goal and Preferencias;
     - leave the app and come back;
     - approval → T-082.
+- [ ] T-084: Fix E5-B feedback: Health Connect precedence, composition values, chart target line (ADR-47) — UI — M
+- [ ] T-085: Trend chart for every body metric (metric selector) — UI — M
 - [ ] T-082: E5 closure — PM — S (tag `v0.5.0` and the retrospective, after E5-B is approved)
 
 There are two checkpoints (user decision 2026-10-21; the first breakdown had five): manual measurements, then everything else (Health Connect, trend, goal, metrics) with the final regression. Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
@@ -51,7 +53,7 @@ There are two checkpoints (user decision 2026-10-21; the first breakdown had fiv
 ## Dependencies
 
 ```
-v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► T-083 ─► T-079 ─► T-080 ─► T-081 ─► [E5-B 👤]
+v0.4.0 ─► T-076 ─► T-077 ─► T-078 ─► T-083 ─► T-079 ─► T-080 ─► T-081 ─► T-084 ─► T-085 ─► [E5-B 👤]
        ─► T-082 ─► v0.5.0
 ```
 - Strictly sequential; each checkpoint gates the next task. T-079, T-080 and T-081 run back to back (no checkpoint between).

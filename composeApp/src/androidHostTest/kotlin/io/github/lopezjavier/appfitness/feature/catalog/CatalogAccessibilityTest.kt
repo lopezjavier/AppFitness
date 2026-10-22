@@ -52,7 +52,7 @@ private val ExpectedSections =
         "selectable_card", "exercise_media", "reorderable",
         "state_messages", "offline_banner",
         "favourite_toggle", "portion_selector", "month_calendar", "diary_history_row",
-        "circumference_row",
+        "circumference_row", "goal_metrics",
         "top_bar",
         "navigation", "bottom_sheet", "confirm_dialog", "logo", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }

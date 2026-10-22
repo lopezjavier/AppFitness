@@ -127,6 +127,10 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Swipe-to-delete still feels unlike modern apps: ux-reviewer researches how swipe works in modern apps and aligns the shared component; add haptic feedback when the drag reaches the action threshold and when the delete fires | Checkpoint E4-C round 3, 2026-10-21 |
 | Visual bug: a stray horizontal line crosses the value of text fields (seen on the quantity "30" of the food details sheet; reference `design/references/e4c-line-through-quantity-field.png`). It recurs across screens: find the cause in the shared field/sheet components and fix it app-wide | Checkpoint E4-C round 3, 2026-10-21 |
 | Comida details: no visual separation between the comida summary and its first food; add a section divider with the label "Alimentos en esta comida" | Checkpoint E4-C approval, 2026-10-21 |
+| Weight screen: a pencil button inside the "Peso actual" card replaces the "Registrar peso de hoy" button | Checkpoint E5-B, 2026-10-22 |
+| Weight screen: the Health Connect sync status moves inside "Peso actual" and "Sincronizar" becomes a real button (not text) | Checkpoint E5-B, 2026-10-22 |
+| Weight screen: "Historial de mediciones" is reached from a calendar button, the same pattern as the calories (Diario) calendar | Checkpoint E5-B, 2026-10-22 |
+| Weight trend: goal progress is shown visually in "Tendencia" (first-weight marker, target line, shaded band between them) instead of a percentage on the goal card | Checkpoint E5-B, 2026-10-22 |
 ---
 
 ### UX consistency guardrails (E4 retrospective, 2026-10-21)

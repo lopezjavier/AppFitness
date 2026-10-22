@@ -395,7 +395,7 @@ class WeightScreenTest {
         assertEquals("Eliminar medición de 06:00", description("weight_hc_delete_h1"))
         rule.onNodeWithTag("weight_sheet_save").assertDoesNotExist()
         rule.onNodeWithTag("weight_sheet_weight_input").assertDoesNotExist()
-        rule.onNodeWithTag("weight_set_manual_button").assertExists()
+        rule.onNodeWithTag("weight_set_manual_button").assertDoesNotExist()
     }
 
     @Test
@@ -410,17 +410,15 @@ class WeightScreenTest {
     }
 
     @Test
-    fun dayWithOnlyHealthConnectRows_canSetItsManualWeight() {
+    fun dayWithHealthConnectRows_offersNoManualWeight() {
         show(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
 
         tap("month_calendar_day_2026-10-19")
-        tap("weight_set_manual_button")
 
         rule.onNodeWithTag("weight_hc_row_h1").assertExists()
-        rule.onNodeWithTag("weight_sheet_weight_input").assertExists()
-        type("weight_sheet_weight_input", "73,0")
-        tap("weight_sheet_save")
-        assertEquals(73.0, repository.saves.single().weightKg, 0.0)
+        rule.onNodeWithTag("weight_set_manual_button").assertDoesNotExist()
+        rule.onNodeWithTag("weight_sheet_weight_input").assertDoesNotExist()
+        rule.onNodeWithTag("weight_sheet_save").assertDoesNotExist()
     }
 
     // -- States -----------------------------------------------------------------------------------------------------

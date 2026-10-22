@@ -89,6 +89,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         foodItems()
         diaryHistoryItems()
         circumferenceItems()
+        goalMetricItems()
         shellItems()
         themeItems()
     }

@@ -46,7 +46,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_row_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sheet_done
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_hc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
@@ -135,7 +137,7 @@ internal fun PersonalDataCard(
             tag = "preferences_activity_row",
             enabled = editable,
         ) { sheet = PersonalSheet.Activity }
-        WeightRow(form.weightKg, editable) { sheet = PersonalSheet.Weight }
+        WeightRow(form.weightKg, editable, state.weightFromHealthConnect) { sheet = PersonalSheet.Weight }
     }
     PersonalSheets(sheet, state, onEvent) { sheet = null }
 }
@@ -148,9 +150,10 @@ private fun EditableRow(
     spokenValue: String,
     tag: String,
     enabled: Boolean,
+    showChevron: Boolean = true,
+    spoken: String = stringResource(Res.string.profile_row_cd, label, spokenValue),
     onClick: () -> Unit,
 ) {
-    val spoken = stringResource(Res.string.profile_row_cd, label, spokenValue)
     Row(
         modifier =
         Modifier
@@ -173,30 +176,55 @@ private fun EditableRow(
             style = AppTheme.typography.labelNumeric,
             color = AppTheme.colors.textPrimary,
         )
-        Icon(
-            painter = painterResource(Res.drawable.ic_chevron_right),
-            contentDescription = null,
-            tint = AppTheme.colors.textSecondary,
-            modifier = Modifier.size(Spacing.xl),
-        )
+        if (showChevron) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Spacing.xl),
+            )
+        }
     }
 }
 
-/** "Peso actual": an editable row like the others; the value is the weight with one decimal. */
+/**
+ * "Peso actual": an editable row like the others; the value is the weight with one decimal. While the latest weight
+ * comes from Health Connect ([fromHealthConnect]) the row is read-only and says why (ADR-47).
+ */
 @Composable
-private fun WeightRow(weightKg: Double, enabled: Boolean, onClick: () -> Unit) {
+private fun WeightRow(weightKg: Double, enabled: Boolean, fromHealthConnect: Boolean, onClick: () -> Unit) {
     val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
     val separator = stringResource(Res.string.onboarding_decimal_separator)
     val text =
         stringResource(Res.string.profile_weight_value, "${tenths / TENTHS_PER_KG}$separator${tenths % TENTHS_PER_KG}")
-    EditableRow(
-        label = stringResource(Res.string.onboarding_label_weight),
-        value = text,
-        spokenValue = text,
-        tag = "preferences_weight_row",
-        enabled = enabled,
-        onClick = onClick,
-    )
+    val label = stringResource(Res.string.onboarding_label_weight)
+    if (fromHealthConnect) {
+        HealthConnectWeightRow(label, text)
+    } else {
+        EditableRow(label, text, text, "preferences_weight_row", enabled, onClick = onClick)
+    }
+}
+
+@Composable
+private fun HealthConnectWeightRow(label: String, text: String) {
+    Column {
+        EditableRow(
+            label = label,
+            value = text,
+            spokenValue = text,
+            tag = "preferences_weight_row",
+            enabled = false,
+            showChevron = false,
+            spoken = stringResource(Res.string.profile_weight_hc_cd, label, text),
+            onClick = {},
+        )
+        Text(
+            text = stringResource(Res.string.weight_hc_note),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.fillMaxWidth().testTag("preferences_weight_hc_note"),
+        )
+    }
 }
 
 /** The name text field; a blank name shows "Escribe tu nombre" and blocks saving. */

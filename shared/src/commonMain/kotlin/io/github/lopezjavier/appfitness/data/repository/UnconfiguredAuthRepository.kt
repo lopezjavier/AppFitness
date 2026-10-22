@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -56,6 +57,10 @@ class UnconfiguredProfileRepository : ProfileRepository {
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
+    override suspend fun getTargetWeight(): Result<Double?> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun setTargetWeight(kg: Double?): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
     override fun hasProvidedFullName(): Boolean = false
 
     override suspend fun savePreferences(
@@ -77,6 +82,9 @@ class UnconfiguredBodyMeasurementRepository : BodyMeasurementRepository {
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun getLatestComposition(): Result<LatestComposition> =
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> =

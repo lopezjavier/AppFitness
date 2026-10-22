@@ -6,6 +6,7 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.SystemClock
+import io.github.lopezjavier.appfitness.data.local.DataStoreWeightChartPreferences
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
@@ -52,15 +53,19 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
+import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
+import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
@@ -71,12 +76,14 @@ import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import kotlinx.datetime.TimeZone
 import org.koin.dsl.module
 
@@ -206,6 +213,8 @@ val sharedModule =
             }
         }
         single<Clock> { SystemClock() }
+        single<WeightChartPreferences> { DataStoreWeightChartPreferences(get()) }
+        factory { WeightTrend() }
         factory { BuildDiaryDay() }
         factory { ResolvePortion() }
         factory { RecalculateEntry(get(), get(), get()) }
@@ -225,6 +234,10 @@ val sharedModule =
         factory { ValidateBodyMeasurement() }
         factory { ValidateCircumference() }
         factory { WaistHipRatio() }
+        factory { Bmi() }
+        factory { TargetDistance() }
+        factory { InterpretMetric(get()) }
+        factory { CompareMeasurements() }
         factory { MeasurementsByDay() }
         factory { CurrentWeight() }
         // The local day boundaries follow the device time zone, which is not a Koin dependency.

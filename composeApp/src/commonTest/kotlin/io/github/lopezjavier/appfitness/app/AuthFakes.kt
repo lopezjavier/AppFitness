@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -93,6 +94,18 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
     override suspend fun updateBiometrics(biometrics: Biometrics): Result<Unit> {
         biometricsUpdates += biometrics
         return updateResult
+    }
+
+    /** Result of [getTargetWeight]; saves go to [targetWeightSaves] and answered by [targetWeightSaveResult]. */
+    var targetWeight: Result<Double?> = Result.success(null)
+    var targetWeightSaveResult: Result<Unit> = Result.success(Unit)
+    val targetWeightSaves = mutableListOf<Double?>()
+
+    override suspend fun getTargetWeight(): Result<Double?> = targetWeight
+
+    override suspend fun setTargetWeight(kg: Double?): Result<Unit> {
+        targetWeightSaves += kg
+        return targetWeightSaveResult
     }
 
     /** Result of every [savePreferences], which also records the arguments. */
@@ -190,6 +203,8 @@ internal class FakeBodyMeasurementRepository(var row: BodyMeasurement? = null) :
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.success(listOfNotNull(row))
+
+    override suspend fun getLatestComposition(): Result<LatestComposition> = Result.success(LatestComposition())
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> = Result.success("row-1")
 

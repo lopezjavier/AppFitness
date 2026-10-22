@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-080 (weight trend chart); no checkpoint in between (E5-A folded into E5-B). T-076, T-077, T-078, T-079 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
+**Next:** T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2070,7 +2070,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Host tests (per scenario):** `DailyWeightsTest`, `MovingAverageTest`, `WeeklyRateTest` (`04` §3 examples; colour per strategy; missing MA7 → not enough data); `WeightChartRangeTest` (filter days and the 6-day lead-in); `WeightTrendViewModelTest` with a fake preferences store, a test `Clock` and Turbine (Metrics panel; Pace against the goal; Time filter persisted; Not enough data; Point detail; Logging a weight for a past day, on the chart); `WeightChartTest`, `TrendPillTest`, `MetricTileTest` (Robolectric: legend, pill text and colour state, empty message, container colour, `stateDescription`); restoration tests.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-079
 **Files likely touched:** `shared/…/domain/usecase/{DailyWeights,MovingAverage,WeeklyRate,WeightChartRange}.kt` + tests, `shared/…/domain/repository/{BodyMeasurementRepository,WeightPreferences}.kt`, `shared/…/data/repository/*`, `shared/…/data/local/*` (DataStore), DI, `composeApp/…/feature/weight/{WeightChart,WeightTrendViewModel,WeightUiState,WeightScreen}.kt`, `composeApp/…/designsystem/{AppLineChart,MetricTile,TrendPill}.kt` (+ callers), catalog, strings, tests
@@ -2078,8 +2078,114 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 
 ---
 
+## T-081: Target weight, BMI, measurement comparison and metric interpretation
+
+**Story:** US-27 (goal and metrics part) · **Flow:** UI + backend · **Scenarios:** BMI; Target weight and distance; Target distance on maintenance; Setting the target weight; Compare two measurements; Metric interpretation
+
+**Description:** Backend: one migration adds nullable `profiles.target_weight_kg numeric(5,2)` (range check 20–400, as the weight validator) and extends the owner `update` column grant of `profiles` to include it (a merged migration is never edited; pgTAP: range, owner-only update, cross-user isolation). Domain (pure, `04-business-rules.md` §3.5, §3.6, §3.8 examples as tests): `Bmi` (weight / height², 1 decimal, status by §3.8 ranges), `TargetDistance` (by `nutrition_goals` strategy: Deficit/Surplus "faltan X kg" until the target is reached in the strategy's direction, then "objetivo alcanzado"; Maintenance "X kg por encima/por debajo del objetivo", "objetivo alcanzado" at 0,0; Q3 resolved 2026-10-21), `GoalProgress` (percentage from the user's first weight in the app, the onboarding row, to the target; clamped 0–100), `InterpretMetric` (BMI, body fat and waist-to-hip ratio: value, status, short Spanish explanation; ranges in §3.8) and `CompareMeasurements` (weight and body fat differences with sign, `−1,4 kg` format). Data: `ProfileRepository` reads and updates `target_weight_kg`. UI on the weight screen: the `GoalCard` (target, distance, progress bar; "Fijar objetivo" when unset and "Cambiar" when set, opening a target sheet with one explicit "Guardar" and the weight validation), an "IMC 23,4" tile with its status, metric detail sheets for BMI, body fat and waist-to-hip ratio (`MetricInterpretationRow`, value, status, explanation and the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico"), the extra composition values from the scale (lean mass, water, bone, BMR) in the measurement detail, and "Comparar" on an older calendar measurement against the latest (`ComparisonDeltaRow`). New components `GoalCard`, `ComparisonDeltaRow` and `MetricInterpretationRow` get a catalog entry. Tablet layout per `05` §5. Restoration (ADR-40): target sheet draft, open detail and comparison selection survive background and process death. Out of scope: a target date or estimated time to reach it.
+
+**Acceptance criteria:**
+- [x] Migration + pgTAP: `target_weight_kg` range, the owner can update it, another user cannot, other columns' grants unchanged; `deploy-supabase` applies it.
+- [x] Height 178 cm and weight 74,2 kg → "IMC 23,4" with "Normal".
+- [x] Target 70,0, current 74,2, first weight 78,0 → "faltan 4,2 kg" and a bar at 48 %; at or below 70,0 → "objetivo alcanzado"; a target on the wrong side of the weight for the strategy → "objetivo alcanzado".
+- [x] Maintenance, target 70,0, current 71,0 → "1,0 kg por encima del objetivo".
+- [x] No target → "Fijar objetivo"; entering 70,0 and "Guardar" saves it in the profile and the card shows the distance; changing it updates the card; out-of-range values disable "Guardar".
+- [x] 74,2 kg today and 75,6 kg a month ago → "Comparar" on the older one shows "−1,4 kg" and the body fat difference.
+- [x] A metric detail shows value, status, explanation and the disclaimer; the scale's lean mass, water, bone and BMR are visible when present.
+
+**Host tests (per scenario):** `BmiTest`, `TargetDistanceTest`, `GoalProgressTest`, `InterpretMetricTest`, `CompareMeasurementsTest` (`04` §3 examples); `GoalViewModelTest` with a fake profile repository and Turbine (BMI; Target weight and distance; Target distance on maintenance; Setting the target weight; Compare two measurements; Metric interpretation); `GoalCardTest`, `ComparisonDeltaRowTest`, `MetricInterpretationRowTest` and the target sheet (Robolectric: texts, states, disabled "Guardar", disclaimer); restoration tests; pgTAP.
+
+**Verification:**
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-080
+**Files likely touched:** `supabase/migrations/<ts>_target_weight.sql`, `supabase/tests/profiles.test.sql`, `shared/…/domain/usecase/{Bmi,TargetDistance,GoalProgress,InterpretMetric,CompareMeasurements}.kt` + tests, `shared/…/domain/repository/ProfileRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/weight/{GoalCard,TargetWeightSheet,MetricDetailSheet,ComparisonSheet,WeightScreen,WeightUiState}.kt` + ViewModels, `composeApp/…/designsystem/{GoalCard,ComparisonDeltaRow,MetricInterpretationRow}.kt`, catalog, strings, tests
+**Estimated scope:** L (the planner slices it: backend + domain + data, then UI)
+
+---
+
+## T-084: Fix E5-B feedback: Health Connect precedence, composition values, chart target line (ADR-47)
+
+**Story:** US-25, US-27 (fix from Checkpoint E5-B feedback, 2026-10-22) · **Flow:** UI (+ small data change) · **Scenarios:** Composition values; Target line; Health Connect weight takes precedence
+
+**Description:** (1) ADR-47: a day with a Health Connect weight offers no manual entry/edit (note "Sincronizado desde Health Connect"); "Peso actual" in Preferencias is read-only while the most recent weight comes from Health Connect. (2) "+" button on "Peso actual" opens a "Composición corporal" sheet with the latest body fat, lean mass, water, bone and BMR and their dates ("—" when absent); the day's detail shows the same values for that day. (3) Dashed target-weight line on the weight chart. (4) Rename "MA 7D" to "Media 7 días" with a "?" help: "Promedio de tu peso en ese día y los 6 anteriores. Suaviza las oscilaciones diarias." (5) Goal card: replace the percentage with plain text "Desde tu primer peso: X kg" (the visual progress is deferred to E8).
+
+**Acceptance criteria:**
+- [x] A day with a Health Connect weight has no manual entry or edit; the note is shown; days without one are unchanged.
+- [x] Preferencias "Peso actual" is read-only while the latest weight is from Health Connect, editable otherwise.
+- [x] The "+" sheet and the day's detail show the composition values with dates.
+- [x] The chart shows the target line; the average line is labelled "Media 7 días" with its "?" help.
+- [x] The goal card shows no percentage.
+- [x] Restoration tests for the new sheet (ADR-40).
+
+**Verification:**
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if a migration is needed.
+
+**Dependencies:** T-081
+**Estimated scope:** M
+
+---
+
+## T-085: Trend chart for every body metric (metric selector)
+
+**Story:** US-27 (new scenario from Checkpoint E5-B feedback, 2026-10-22) · **Flow:** UI · **Scenarios:** Metric selector
+
+**Description:** A selector above the trend chart switches between weight, body fat %, lean mass, water, bone, BMR, waist and hip. It reuses the time filters (1S…1A, remembered), the 7-day average and the long-press readout; the target line only appears on the weight view. Metrics without data show the "not enough data" message.
+
+**Acceptance criteria:**
+- [x] Each metric charts its own series with the shared filters, average and point detail.
+- [x] The chosen metric and filter survive leaving the app (ADR-40).
+- [x] The target line shows only for weight.
+
+**Verification:**
+- [x] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-084
+**Estimated scope:** M
+
+---
+
+## T-086: Fix crash when deleting an old manual weight
+
+**Story:** US-25 (bug reported at Checkpoint E5-B round 2, 2026-10-22) · **Flow:** fix · **Scenarios:** Delete a manual weight
+
+**Description:** Deleting an old manual weight (from the calendar / day detail) removes it but the app crashes. The developer reproduces it with a failing test first, finds the cause (logcat from the user if needed) and fixes it.
+
+**Acceptance criteria:**
+- [x] Deleting an old manual weight removes it and the app keeps running (chart, calendar and "Peso actual" update).
+- [x] A regression test reproduces the crash before the fix.
+
+**Verification:**
+- [x] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-085
+**Estimated scope:** S
+
+---
+
+## T-087: Fix E5-B feedback round 2 (ADR-48)
+
+**Story:** US-25, US-27 (fix from Checkpoint E5-B feedback, 2026-10-22) · **Flow:** UI + core · **Scenarios:** Health Connect weight takes precedence; Metric selector
+
+**Description:** (1) Preferencias "Peso actual" must be read-only while the latest weight is from Health Connect (ADR-47 not honoured: it was editable); audit every other entry point for the same hole. (2) "Peso actual" shows the latest weight and its date, never "Sin datos suficientes". (3) ADR-48: remove the "+"; the whole box opens "Composición corporal"; a pencil in its place opens today's weight entry; remove the green "Registrar peso de hoy" button; remove "Comparar" and its code. (4) Preload: the weight screen loads weights, measurements and circumferences once when opened and switching metric tabs reads from memory (no reload, no network on tab change).
+
+**Acceptance criteria:**
+- [ ] With a Health Connect latest weight, "Peso actual" in Preferencias cannot be edited.
+- [ ] "Peso actual" never shows "Sin datos suficientes".
+- [ ] The box opens the composition; the pencil opens today's weight entry (disabled with a Health Connect weight); no green button; no "+"; no "Comparar".
+- [ ] Switching metric tabs makes no repository call and shows the chart at once.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-086
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
-- [ ] T-079…T-081 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-079…T-081 and T-084…T-087 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Manual weight and circumferences (from T-076…T-078 and T-083): Perfil → "Peso": "Registrar peso de hoy" (day only, no hour; weight and fat fields aligned); 19,9 kg, 401 kg and 80 % fat disable "Guardar"; a second "Registrar peso de hoy" edits today's weight; the calendar marks days, sets yesterday's weight and edits or deletes a day (gone at once). "Circunferencias" → "Añadir medida": fill waist 84,5 and hip 98,0 at once → ratio "0,86"; the "?" help; edit and delete one; 19,9 and 251 cm disabled.
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
@@ -2090,7 +2196,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
   - The weekly pill: its sign and colour match your strategy (Déficit: green while the average goes down). Set yesterday's weight from the calendar: the line and the pill update.
   - "Fijar objetivo": enter your target weight; the goal card shows "faltan X kg" and the progress since your first weight in the app; set a target on the other side of your weight (e.g. above it while in Déficit): "objetivo alcanzado"; change it and see the card follow.
   - "IMC" with its status; open the BMI, body fat and waist-to-hip ratio details: value, status, a short explanation and the disclaimer "Este producto no es un dispositivo médico…". The extra values from your scale (lean mass, water, bone, BMR) are visible.
-  - In the weight calendar, open an older day's measurement → "Comparar": the weight and fat differences with their sign.
+  - Round-2 fixes: deleting an old manual weight no longer crashes; Preferencias "Peso actual" is read-only with a Health Connect weight; the "Peso actual" box opens the composition, the pencil opens today's entry, no green button, no "Comparar"; switching metric tabs is instant.
   - Final regression over a few real days: weigh yourself and "Sincronizar"; set a weight from the calendar and check Health Connect follows its edit and delete; log a waist and a hip (the ratio and its interpretation update); the chart, the weekly pill, the goal distance and the BMI move; the weight in Preferencias matches the weight screen.
   - Leave the app on the permission screen, mid-sync, with the target sheet half filled, a comparison open or a non-default chart filter: the same tab, screen and draft are restored.
   - Approval → `v0.5.0` and the retrospective (T-082).
