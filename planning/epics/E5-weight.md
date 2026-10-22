@@ -232,11 +232,6 @@ Feature: Weight trend, goal and interpretation
     When the user taps "Fijar objetivo" and enters 70,0 kg
     Then the target is saved in their profile and the goal card shows the distance
 
-  Scenario: Compare two measurements
-    Given a measurement of 74,2 kg on today and 75,6 kg one month ago
-    When the user selects the older measurement and taps "Comparar"
-    Then they see the difference "−1,4 kg" and the body fat difference
-
   Scenario: Metric interpretation
     When the user opens a metric detail
     Then they see the value, a status and a short explanation

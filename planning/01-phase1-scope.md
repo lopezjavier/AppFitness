@@ -53,7 +53,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-3.5 Weekly rate of change colored according to the goal.
 - FR-3.6 Target weight and distance to the goal.
 - FR-3.7 BMI and informative interpretation of the metrics (with a non-medical disclaimer).
-- FR-3.8 Compare two measurements (difference in weight and body fat against a chosen previous entry).
+- ~~FR-3.8 Compare two measurements~~ — dropped at Checkpoint E5-B (ADR-48).
 
 ### FR-4 · Gym performance — Workout (E3, E6, E7)
 - FR-4.1 Exercise catalog seeded in Spanish (with the bundled RepDB thumbnail + start↔peak animation + Spanish instructions) and custom exercises.
