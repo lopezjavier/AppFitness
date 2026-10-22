@@ -34,7 +34,7 @@ Feature: Manual weight and body measurements
   Scenario: Logging today's weight
     Given the user is on the weight screen opened from the "Perfil" tab (button "Peso", ADR-37)
     When they tap "Registrar peso de hoy"
-    Then a Bottom Sheet opens with the weight prefilled with their last value (74,2 kg) and the current date and time
+    Then a Bottom Sheet opens with the weight prefilled with their last value (74,2 kg) and today's date
     When they enter 73,9 kg and tap "Guardar"
     Then a manual measurement of 73.9 kg is created
     And the panel shows "73,9 kg" as the current weight
@@ -50,8 +50,8 @@ Feature: Manual weight and body measurements
 
   Scenario: Logging a weight for a past day
     Given the weight calendar ("Historial de mediciones") with no weight yesterday
-    When they tap yesterday, set the time to 07:30, enter 74,0 kg and save
-    Then a manual measurement is stored for yesterday at 07:30
+    When they tap yesterday, enter 74,0 kg and save
+    Then a manual measurement is stored for yesterday
     And yesterday is marked in the calendar and the measurement appears on the chart on yesterday's date
 
   Scenario Outline: Validation
@@ -67,7 +67,7 @@ Feature: Manual weight and body measurements
   Scenario: Weight calendar, editing and deletion
     Given the weight calendar ("Historial de mediciones") on the weight screen, with the days that have a measurement marked
     When the user taps a day with a manual weight
-    Then they can change its weight, body fat and time, but not its date, and save with "Guardar"
+    Then they can change its weight and body fat, but not its date, and save with "Guardar"
     When they delete it
     Then it is removed at once, with no confirmation and no "Deshacer" (ADR-45)
     And the chart and metrics are recalculated
@@ -75,9 +75,19 @@ Feature: Manual weight and body measurements
 
   Scenario: Logging a circumference
     Given the "Circunferencias" section in Progress
-    When they tap "+ Medida", choose "Cintura" and enter 84,5 cm
+    When they tap "Añadir medida", a sheet shows the seven sites (Cuello, Pecho, Cintura, Cadera, Brazo, Muslo, Pantorrilla) as optional fields and a day (today by default)
+    And they enter only Cintura 84,5 cm and tap "Guardar"
     Then a circumference measurement of 84.5 cm for the waist is created
     And it appears in the waist history ordered by date
+
+  Scenario: Logging several circumferences at once
+    When they fill Cintura 84,5 and Cadera 98,0 in the same sheet and tap "Guardar"
+    Then one measurement per filled site is created for the chosen day
+    And the empty sites create nothing
+
+  Scenario: Measuring help
+    When they tap the "?" icon next to a site
+    Then they see short step-by-step instructions on how to take that measurement
 
   Scenario: Waist-to-hip ratio
     Given a waist of 84,5 cm and a hip of 98,0 cm
@@ -88,8 +98,9 @@ Feature: Manual weight and body measurements
     Then the ratio and the history are recalculated
 
   Scenario Outline: Circumference validation
-    When they enter <value> cm
+    When they enter <value> cm in any site
     Then the "Guardar" button is disabled and the allowed range is shown
+    And "Guardar" is also disabled while every site is empty
 
     Examples:
       | value |
@@ -100,7 +111,9 @@ Feature: Manual weight and body measurements
 **Technical notes**
 - Weight calendar (user decision 2026-10-21): a month grid (reusing `MonthCalendarGrid`) marks the days with measurements. An empty day opens a sheet to set that day's weight; a day with a weight opens it to edit or delete. The date of a measurement is never edited (it is fixed by the day tapped), so the one-manual-weight-per-day rule (`03-data-model.md` §4) cannot be broken by an edit. A day with only Health Connect readings can still get a manual weight.
 - `body_circumferences` migration + RLS + pgTAP; the waist-to-hip ratio is derived in the domain (`04-business-rules.md` §3.9), never stored.
-- The circumference site picker offers neck, chest, waist, hip, arm, thigh and calf; value in cm with 1 decimal.
+- The circumference sheet (user decision 2026-10-22, after Checkpoint E5-A) lists neck, chest, waist, hip, arm, thigh and calf as optional fields (value in cm with 1 decimal) so all of them can be saved at once; no site dropdown. Editing a saved row opens it with its single site.
+- Day only, no hour (user decision 2026-10-22): the weight and circumference sheets pick a day, not a time. A manual entry is stored for that day (today: the save instant; a past day: midday local time); Health Connect imports keep their real instant. Display shows dates only for manual rows.
+- The "?" help is text-only in Phase 1 (Spanish instructions per site); illustrations are added in E8 polish.
 
 ---
 
@@ -192,7 +205,7 @@ Feature: Weight trend, goal and interpretation
 
   Scenario: Metrics panel
     When they open the weight screen from the "Perfil" tab
-    Then they see the current weight "74,2 kg" with the measurement date and time
+    Then they see the current weight "74,2 kg" with the measurement date
     And the most recent body fat if available
     And the pill "−0,45 kg esta semana" in green
 

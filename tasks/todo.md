@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** Checkpoint E5-A (T-078 body circumferences in review; present to the user once merged and CI green). T-076 and T-077 done. E4 closed (tag `v0.4.0`).
+**Next:** T-083 (E5-A feedback: day-only forms, aligned weight sheet, all circumferences at once), then re-present Checkpoint E5-A. T-076, T-077 and T-078 done. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -1998,8 +1998,30 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 
 ---
 
+## T-083: E5-A feedback: day-only forms, aligned weight sheet, all circumferences at once
+
+**Story:** US-25 (fix from Checkpoint E5-A feedback, 2026-10-22) · **Flow:** UI (+ small data change) · **Scenarios:** Logging today's weight; Logging a weight for a past day; Weight calendar, editing and deletion; Logging a circumference; Logging several circumferences at once; Measuring help; Circumference validation
+
+**Description:** (1) Weight sheet bug: "Peso (kg)" and "Grasa corporal (%, opcional)" must sit on one horizontal line with the same height and no line crossing the inputs (screenshot from the user's phone: the right field is lower and a horizontal rule cuts through the form). (2) Day only, no hour, on the weight and circumference sheets (remove the hour wheels); manual rows are stored for the chosen day (today: the save instant; a past day: midday local time), displayed as a date without time; the current-weight panel shows the date only for manual rows. (3) Circumference sheet redesign: "Añadir medida" opens a sheet with the seven sites as optional fields and the day stepper; "Guardar" saves one row per filled site (disabled while all are empty or any value is invalid, range shown); no dropdown (`AppDropdownField` stays only if something else uses it, otherwise remove it and its catalog entry); a "?" icon per site opens short Spanish step-by-step instructions (text only, wording by ux-reviewer; images later in E8). Editing a saved row opens it with its single site. Rows with the same site and day: the latest saved wins for the ratio. No migration expected (tie-break by `created_at`); the planner confirms.
+
+**Acceptance criteria:**
+- [ ] The weight and body-fat fields of the add/edit sheet are on one line, same height, and no stray line crosses them (Robolectric layout test comparing the fields' top positions + a visual check at Checkpoint E5-A).
+- [ ] Neither the weight sheet nor the circumference sheet shows an hour; a past-day weight is stored for that day; the panel shows only the date.
+- [ ] Waist 84,5 + hip 98,0 in one sheet → two rows, ratio "0,86"; only waist → one row; all empty → "Guardar" disabled.
+- [ ] 19,9 or 251 in any site → "Guardar" disabled with "Entre 20 y 250 cm".
+- [ ] "?" next to a site shows its instructions.
+- [ ] Drafts of both sheets survive leaving the app and process death.
+
+**Verification:**
+- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if the migration is needed.
+
+**Dependencies:** T-078
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E5-A — Manual weight and body measurements 👤
-- [ ] T-076, T-077 and T-078 merged, CI green, `deploy-supabase` applied both migrations (T-076, T-078).
+- [ ] T-076, T-077, T-078 and T-083 merged, CI green, `deploy-supabase` applied both migrations (T-076, T-078). *(First presentation 2026-10-22: feedback became T-083; re-present with the list of what to re-test.)*
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Perfil → "Peso": your current weight with its date and time. "Registrar peso de hoy": prefilled with your last weight; save a new weight with body fat; try 19,9 kg, 401 kg and 80 % fat ("Guardar" disabled, range shown).
   - "Registrar peso de hoy" again: it opens today's weight to edit (one manual weight per day); change it in Preferencias → "Peso actual": the weight screen shows the same value.
