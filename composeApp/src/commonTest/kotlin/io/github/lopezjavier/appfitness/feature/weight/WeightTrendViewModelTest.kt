@@ -491,7 +491,7 @@ class WeightTrendViewModelTest {
     }
 
     @Test
-    fun sparseMetric_withASingleReading_stillHasAPlotButNoAverage() = runTest(dispatcher) {
+    fun sparseMetric_withASingleReading_stillHasAPlotAndItsOwnAverage() = runTest(dispatcher) {
         circumferences.rows += circumference(today, 90.0)
         prefs.metricState.value = BodyMetric.Waist
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
@@ -499,7 +499,7 @@ class WeightTrendViewModelTest {
 
         val content = vm.content()
         assertEquals(listOf(90.0), content.trend.points.map { it.dailyKg })
-        assertNull(content.trend.points.single().ma7Kg)
+        assertEquals(90.0, content.trend.points.single().ma7Kg)
         assertTrue(content.hasPlot)
     }
 

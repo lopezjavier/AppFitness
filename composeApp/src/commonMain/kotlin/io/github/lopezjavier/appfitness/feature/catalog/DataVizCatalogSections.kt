@@ -326,6 +326,9 @@ private val DemoChartValues = listOf(100.0, 104.0, 102.5, 108.0, 113.5)
 private val DemoMaValues = listOf(null, 102.0, 103.0, 104.5, 107.0)
 private val DemoChartLabels = listOf("1 oct", "8 oct", "15 oct", "22 oct", "29 oct")
 
+private val DemoGapValues = listOf(100.0, null, null, 103.0, null, null, null, 101.0)
+private val DemoGapLabels = listOf("1 oct", "2 oct", "3 oct", "4 oct", "5 oct", "6 oct", "7 oct", "8 oct")
+
 private const val DEMO_REFERENCE_LINE = 105.0
 
 @Composable
@@ -350,6 +353,18 @@ private fun LineChartSection() {
                 dots = DemoChartValues,
                 lineThickness = AppLineChartDefaults.MaLineThickness,
                 referenceLine = DEMO_REFERENCE_LINE,
+            )
+        }
+        AppCard(Modifier.fillMaxWidth()) {
+            AppLineChart(
+                values = DemoGapValues,
+                labels = DemoGapLabels,
+                description = stringResource(Res.string.catalog_line_chart_cd),
+                modifier = Modifier.fillMaxWidth().testTag("catalog_line_chart_gaps"),
+                valueLabel = { it.roundToInt().toString() },
+                dots = DemoGapValues,
+                lineThickness = AppLineChartDefaults.MaLineThickness,
+                connectGaps = true,
             )
         }
     }
