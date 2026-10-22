@@ -165,6 +165,7 @@ private fun referenceRange(
     return (min(low, reference) - pad)..(max(high, reference) + pad)
 }
 
+private const val EMPTY_LABEL = "-"
 private const val REFERENCE_RANGE_PADDING = 0.1
 private const val MIN_REFERENCE_PADDING = 0.5
 
@@ -246,7 +247,11 @@ private fun rememberAppCartesianChart(
             tick = rememberAxisTickComponent(Fill(gridColor)),
             guideline = null,
             valueFormatter = remember(labels) {
-                CartesianValueFormatter { _, value, _ -> labels.getOrElse(value.toInt()) { "" } }
+                // Vico rejects blank labels; for a frame after the data shrinks its model still has more points than
+                // the new labels, so an index past the end reuses the last label until the model catches up.
+                CartesianValueFormatter { _, value, _ ->
+                    labels.getOrElse(value.toInt()) { labels.lastOrNull().orEmpty() }.ifBlank { EMPTY_LABEL }
+                }
             },
             itemPlacer = remember(bottomSpacing) { HorizontalAxis.ItemPlacer.aligned(spacing = { bottomSpacing }) },
         ),
