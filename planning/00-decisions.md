@@ -396,3 +396,12 @@ Format: context → decision → consequences. A decision is only changed by add
   - The whole "Peso actual" box opens the "Composición corporal" sheet (the "+" is removed).
   - A pencil in the place of the "+" opens today's weight entry; the green "Registrar peso de hoy" button is removed. Under ADR-47 the pencil is disabled for a day with a Health Connect weight.
 - **Consequences:** `01-phase1-scope.md`, `07-roadmap.md`, `epics/E5-weight.md` and `tasks/todo.md` reflect this; the code and tests for the comparison are removed in T-087.
+
+### ADR-49 · Trend line and weekly pace must work with sparse weigh-ins (E5, T-088)
+- **Context:** Checkpoint E5-B round 3 (user, 2026-10-22): the user weighs once or twice a week. With two weigh-ins (the 14th and the 19th) the trend shows two dots and no line, and the pace reads "Sin datos suficientes". The 7-day average required 2 days with data in its window, which sparse weighing rarely meets.
+- **Decision:**
+  - The weight trend always draws a line, however few points there are and however far apart: the line connects consecutive available points across gaps (two weigh-ins a year apart still give a line). A single point stays a dot with the existing hint.
+  - `MA7(d)` is the average of the available values in `[d − 6, d]` with **1 or more** days (the "at least 2 days" condition of `04-business-rules.md` §3.2 is dropped). With sparse weighing the line therefore follows the weigh-ins; the "MA 7D" legend stays.
+  - The weekly rate is the change between the **last two days with a weigh-in**, scaled to kg/week: `(w_last − w_prev) / days_between × 7`, 2 decimals. With fewer than 2 days with data → "Sin datos suficientes". The colouring by strategy is unchanged.
+  - Same behaviour for the other body metrics of the selector.
+- **Consequences:** `04-business-rules.md` §3.2/§3.3, `epics/E5-weight.md` (US-25 scenarios) and `tasks/todo.md` (T-088) reflect this. Supersedes the "drawn only if ≥2 days" rule.

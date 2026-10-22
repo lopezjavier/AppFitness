@@ -67,11 +67,11 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 
 ### 3.2 7-day moving average (MA7)
 - `MA7(d)` = average of the available daily values in `[d − 6, d]`. If there are none, there is no point.
-- Drawn only if there are at least 2 days with data in the window.
+- A single day with data is enough (ADR-49: sparse weighing); the chart connects consecutive points across gaps.
 
 ### 3.3 Weekly rate of change
-- `rate = MA7(last day with data) − MA7(that day − 7)`, in kg/week with 2 decimals.
-- If either MA7 does not exist → "Sin datos suficientes" (not enough data).
+- `rate = (w_last − w_prev) / days_between × 7`, in kg/week with 2 decimals, where `w_last` and `w_prev` are the daily values of the last two days with data (ADR-49). Example: 79,4 kg on the 19th and 79,5 kg on the 14th → −0,14 kg/week.
+- With fewer than 2 days with data → "Sin datos suficientes" (not enough data).
 - Color by goal:
   - Deficit: rate < 0 → green; rate ≥ 0 → red.
   - Surplus: rate > 0 → green; rate ≤ 0 → red.
