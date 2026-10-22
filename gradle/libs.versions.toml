@@ -30,7 +30,7 @@ kotlinx-datetime = "0.8.0"
 navigation-compose = "2.9.2"
 # JetBrains lifecycle 2.9.6 (latest stable 2.9.x) is the version navigation-compose 2.9.2 already resolves
 # (T-021), so viewmodel-compose and runtime-compose add no upgrade or downgrade (checked in T-029).
-jetbrains-lifecycle = "2.9.6"
+jetbrains-lifecycle = "2.11.0"
 # Latest stable (1.2.1, T-029); Flow assertions in commonTest.
 turbine = "1.2.1"
 junit = "4.13.2"
@@ -44,7 +44,7 @@ androidx-compose-ui-test = "1.12.1"
 # supabase-kt 3.8.0 is built against Ktor 3.5.1, so the OkHttp engine and the mock engine use exactly 3.5.1.
 # The `sb_publishable_` key check (ADR-17) is SupabaseClientFactoryTest: the key is sent as `apikey`.
 supabase-bom = "3.8.0"
-ktor = "3.5.1"
+ktor = "3.6.0"
 androidx-credentials = "1.6.0"
 play-services-code-scanner = "16.1.0"
 googleid = "1.2.1"
