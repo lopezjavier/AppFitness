@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(30);
+select plan(43);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -23,7 +23,7 @@ select enum_has_labels('public', 'measurement_source', array['manual', 'health_c
 select has_table('public', 'body_measurements', 'public.body_measurements exists');
 select columns_are('public', 'body_measurements', array[
   'id', 'user_id', 'measured_at', 'weight_kg', 'body_fat_pct', 'source', 'external_id',
-  'created_at', 'updated_at'
+  'created_at', 'updated_at', 'lean_mass_kg', 'water_kg', 'bone_kg', 'bmr_kcal', 'hc_record_id'
 ], 'body_measurements has exactly the planned columns');
 select col_type_is('public', 'body_measurements', 'weight_kg', 'numeric(5,2)', 'weight_kg is numeric(5,2)');
 select col_type_is('public', 'body_measurements', 'body_fat_pct', 'numeric(4,1)', 'body_fat_pct is numeric(4,1)');
@@ -85,6 +85,64 @@ select throws_ok(
   $$insert into public.body_measurements (user_id, weight_kg, source, external_id)
     values ('22222222-2222-4222-8222-222222222222', 82, 'health_connect', 'hc-1')$$,
   '23505', null, 'a duplicate (user_id, external_id) is rejected');
+
+-- T-079: composition columns and the written-back copy marker.
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, lean_mass_kg, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 4.9, 'health_connect', 'r-lean-lo')$$,
+  '23514', null, 'lean_mass_kg 4.9 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, lean_mass_kg, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 400.1, 'health_connect', 'r-lean-hi')$$,
+  '23514', null, 'lean_mass_kg 400.1 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, water_kg, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 0.9, 'health_connect', 'r-water-lo')$$,
+  '23514', null, 'water_kg 0.9 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, water_kg, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 300.1, 'health_connect', 'r-water-hi')$$,
+  '23514', null, 'water_kg 300.1 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, bone_kg, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 0.09, 'health_connect', 'r-bone-lo')$$,
+  '23514', null, 'bone_kg 0.09 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, bone_kg, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 20.01, 'health_connect', 'r-bone-hi')$$,
+  '23514', null, 'bone_kg 20.01 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, bmr_kcal, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 299, 'health_connect', 'r-bmr-lo')$$,
+  '23514', null, 'bmr_kcal 299 is rejected');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, bmr_kcal, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 10001, 'health_connect', 'r-bmr-hi')$$,
+  '23514', null, 'bmr_kcal 10001 is rejected');
+select lives_ok(
+  $$insert into public.body_measurements
+      (user_id, weight_kg, lean_mass_kg, water_kg, bone_kg, bmr_kcal, source, external_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 5, 1, 0.1, 300, 'health_connect', 'r-lo'),
+           ('11111111-1111-4111-8111-111111111111', 70, 400, 300, 20, 10000, 'health_connect', 'r-hi')$$,
+  'inclusive composition bounds are accepted');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, bone_kg, source)
+    values ('11111111-1111-4111-8111-111111111111', 70, 3, 'manual')$$,
+  '23514', null, 'composition columns are rejected on a manual row');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, source, external_id, hc_record_id)
+    values ('11111111-1111-4111-8111-111111111111', 70, 'health_connect', 'r-x', 'copy-x')$$,
+  '23514', null, 'hc_record_id is rejected on a health_connect row');
+insert into public.body_measurements (user_id, weight_kg, source, hc_record_id)
+  values ('22222222-2222-4222-8222-222222222222', 79, 'manual', 'copy-1');
+select throws_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, source, hc_record_id)
+    values ('22222222-2222-4222-8222-222222222222', 78, 'manual', 'copy-1')$$,
+  '23505', null, 'hc_record_id is unique per user');
+select lives_ok(
+  $$insert into public.body_measurements (user_id, weight_kg, source, hc_record_id)
+    values ('11111111-1111-4111-8111-111111111111', 78, 'manual', 'copy-1')$$,
+  'the same hc_record_id is allowed for another user');
 delete from auth.users where id = '33333333-3333-4333-8333-333333333333';
 select is(
   (select count(*)::int from public.body_measurements where user_id = '33333333-3333-4333-8333-333333333333'),

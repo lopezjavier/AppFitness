@@ -819,5 +819,21 @@
     <string name="circumference_help_hip">1. De pie, con los pies juntos. 2. Pasa la cinta por la parte más ancha de los glúteos. 3. Mantén la cinta horizontal y sin apretar. 4. Anota el valor.</string>
     <string name="circumference_help_arm">1. De pie, con el brazo relajado a un lado. 2. Mide a mitad de camino entre el hombro y el codo. 3. Pasa la cinta alrededor del bíceps, sin apretar. Usa siempre el mismo brazo.</string>
     <string name="circumference_help_thigh">1. De pie, con el peso repartido en ambas piernas. 2. Pasa la cinta por la parte más ancha del muslo, bajo el glúteo. 3. Mantén la cinta horizontal y sin apretar. Usa siempre la misma pierna.</string>
+    <string name="health_title">Health Connect</string>
+    <string name="health_never_synced">Sin sincronizar</string>
+    <string name="health_syncing">Sincronizando...</string>
+    <string name="health_synced_now">Sincronizado ahora</string>
+    <string name="health_synced_minutes">Sincronizado hace %1$d min</string>
+    <string name="health_synced_hours">Sincronizado hace %1$d h</string>
+    <string name="health_synced_days">Sincronizado hace %1$d d</string>
+    <string name="health_permission_needed">Permiso necesario</string>
+    <string name="health_failed">No se pudo sincronizar</string>
+    <string name="health_install_needed">Instala Health Connect</string>
+    <string name="health_update_needed">Actualiza Health Connect</string>
+    <string name="health_action_sync">Sincronizar</string>
+    <string name="health_action_permit">Permitir</string>
+    <string name="health_action_install">Instalar</string>
+    <string name="health_action_update">Actualizar</string>
+    <string name="health_action_retry">Reintentar</string>
     <string name="circumference_help_calf">1. De pie, con el peso repartido en ambas piernas. 2. Pasa la cinta por la parte más ancha de la pantorrilla. 3. Mantén la cinta horizontal y sin apretar. Usa siempre la misma pierna.</string>
 </resources>

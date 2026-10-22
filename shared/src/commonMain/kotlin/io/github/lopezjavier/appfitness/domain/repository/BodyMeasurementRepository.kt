@@ -21,10 +21,16 @@ interface BodyMeasurementRepository {
     /**
      * Stores [save] atomically: one manual weight per local day, and an edit never moves the entry to another day.
      * Fails with `Validation` for out-of-range values or a day mismatch and `NotFound` for a row that is not the
-     * caller's manual one.
+     * caller's manual one. Returns the id of the stored row.
      */
-    suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit>
+    suspend fun saveManualWeight(save: ManualWeightSave): Result<String>
 
-    /** Deletes entry [id] of any source; an id that is not the caller's deletes nothing and still succeeds. */
+    /**
+     * Deletes entry [id] of any source; an id that is not the caller's deletes nothing and still succeeds. Deleting
+     * an imported (Health Connect) entry also remembers it, so the next import does not bring it back.
+     */
     suspend fun deleteMeasurement(id: String): Result<Unit>
+
+    /** Sets (or clears with null) the marker of the Health Connect copy of the caller's manual entry [id]. */
+    suspend fun setHcRecordId(id: String, hcRecordId: String?): Result<Unit>
 }

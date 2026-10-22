@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BalanceMacros
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyStrategyRules
+import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import kotlinx.coroutines.Job
@@ -31,7 +32,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
 private const val TENTHS_PER_KG = 10.0
@@ -60,6 +65,7 @@ class PreferencesViewModel(
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val healthWriteBack: HealthWriteBack? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PreferencesUiState>(PreferencesUiState.Loading)
     val uiState: StateFlow<PreferencesUiState> = _uiState.asStateFlow()
@@ -217,6 +223,7 @@ class PreferencesViewModel(
                 split = form.split,
             )
             if (result.isSuccess) {
+                if (form.weightKg != state.saved.weightKg) writeWeightBack()
                 updateLoaded { it.copy(form = form, saved = form, isSaving = false) }
                 effectChannel.send(PreferencesEffect.Saved)
             } else {
@@ -224,5 +231,14 @@ class PreferencesViewModel(
                 effectChannel.send(PreferencesEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network))
             }
         }
+    }
+
+    /** `save_preferences` returns nothing, so today's manual entry is read back and written to Health Connect. */
+    private suspend fun writeWeightBack() {
+        val today = clock.now().toLocalDateTime(timeZone).date
+        healthWriteBack?.onTodaysWeightSaved(
+            today.atStartOfDayIn(timeZone),
+            today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone),
+        )
     }
 }

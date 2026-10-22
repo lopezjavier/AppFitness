@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-079 (manual Health Connect sync); no checkpoint in between (E5-A folded into E5-B). T-076, T-077, T-078 and T-083 done. E4 closed (tag `v0.4.0`).
+**Next:** T-080 (weight trend chart); no checkpoint in between (E5-A folded into E5-B). T-076, T-077, T-078, T-079 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2027,23 +2027,23 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** Backend: one migration adds the nullable `lean_mass_kg numeric(5,2)`, `water_kg numeric(5,2)`, `bone_kg numeric(4,2)` and `bmr_kcal integer` columns to `body_measurements` (range checks by the planner) and creates `health_sync_state` (`user_id` PK referencing `auth.users` on delete cascade, `last_synced_at timestamptz`, owner RLS enabled and forced). The import is idempotent on `unique (user_id, external_id)` (for example an RPC `import_health_measurements(p_rows jsonb, p_synced_at timestamptz)` that inserts with `on conflict do nothing` and advances `last_synced_at` in the same transaction; planner's choice). The composition columns are only written by the import; manual saves leave them null (ADR-35). Manual rows keep the id of the copy written to Health Connect in a new nullable column (e.g. `hc_record_id`; `external_id` stays for imports), written only after a successful write-back. pgTAP. Platform: `androidx.health.connect:connect-client` (latest stable, pinned). Manifest: READ/WRITE permissions for weight, body fat, lean body mass, body water mass, bone mass and BMR; `<queries>` for the Health Connect package; the privacy-policy rationale activity (`ACTION_SHOW_PERMISSIONS_RATIONALE`, plus the Android 14+ `VIEW_PERMISSION_USAGE` activity-alias) with a short Spanish privacy text, whose wording is shown to the user before building. Domain: the `HealthDataSource` port (availability: available, not installed or update required; granted permissions; read records; write weight and fat), `HealthConnectDataSource` in `composeApp` androidMain (`02-architecture.md` §2) and a `FakeHealthDataSource` for tests. `PairHealthReadings` (pure, `04-business-rules.md` §3.7): one row per weight record, `external_id` = the weight record's `metadata.id`; fat and composition records are merged by instant (± 2 min); records whose data origin is this app (either flavor's package) are skipped, so write-backs never come back as duplicates. `SyncHealthMeasurements`: the first sync reads the last 90 days, later syncs read since `last_synced_at` (the planner picks the change-detection method; see the plan's risks). Write-back: after a successful manual save (T-077 day sheet and the Preferencias weight) and only with the write permission, weight and fat are inserted into Health Connect and the record id is stored on the row. Editing a manual entry that has a Health Connect copy updates that copy, and deleting it deletes the copy (Q2 resolved 2026-10-21, option (a); `04` §3.7). An entry without a copy (saved without permission) is not written on edit. A missing permission or a failed Health Connect call never fails the app's save or delete and shows nothing. Deleting an imported reading removes it from the app only (Health Connect lets an app delete only its own records), and it is not re-imported. UI: a Health Connect banner on the weight screen with "Sincronizar"; states "Sincronizado ahora" (green indicator), "Sincronizado hace 12 min" (relative time from the injected `Clock`), "Permiso necesario" with a shortcut to request the permissions again, syncing, and unavailable (offers to install or update Health Connect from Google Play); disabled offline. Imported rows show on their day in the weight calendar with the Health Connect icon and delete-only (T-077). The real Health Connect integration is tested by hand only (epic technical note).
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP (`health_sync_state.test.sql`, `body_measurements.test.sql` additions): new columns and their ranges; `health_sync_state` RLS on and forced with cross-user isolation; importing the same rows twice adds none (`external_id` uniqueness); deleting a user with sync state succeeds.
-- [ ] No permissions → "Sincronizar" opens the Health Connect permission screen for reading and writing; granted → the last 90 days are imported and the banner shows "Sincronizado ahora" with a green indicator.
-- [ ] Last sync 2 days ago and 2 new readings → exactly those 2 are imported; tapping again creates nothing.
-- [ ] A weight and a fat record within ± 2 min → one row with both; a weigh-in with weight, fat, lean mass, water, bone and BMR → one row with all six.
-- [ ] Manual 73,9 kg + 15,1 % with the write permission → both written to Health Connect; without it → saved in the app, nothing written, no error.
-- [ ] Denied permissions → "Permiso necesario" with the shortcut; nothing imported.
-- [ ] Health Connect not installed or needing an update → the Google Play install/update is offered.
-- [ ] Last sync 12 minutes ago → "Sincronizado hace 12 min".
-- [ ] Editing a written-back 73,9 kg entry to 73,5 updates the Health Connect copy; deleting it deletes the copy; an entry saved without permission is not written when edited later; a failing Health Connect call keeps the app's change.
-- [ ] A deleted imported reading is not re-imported by the next sync.
+- [x] Migration + pgTAP (`health_sync_state.test.sql`, `body_measurements.test.sql` additions): new columns and their ranges; `health_sync_state` RLS on and forced with cross-user isolation; importing the same rows twice adds none (`external_id` uniqueness); deleting a user with sync state succeeds.
+- [x] No permissions → "Sincronizar" opens the Health Connect permission screen for reading and writing; granted → the last 90 days are imported and the banner shows "Sincronizado ahora" with a green indicator.
+- [x] Last sync 2 days ago and 2 new readings → exactly those 2 are imported; tapping again creates nothing.
+- [x] A weight and a fat record within ± 2 min → one row with both; a weigh-in with weight, fat, lean mass, water, bone and BMR → one row with all six.
+- [x] Manual 73,9 kg + 15,1 % with the write permission → both written to Health Connect; without it → saved in the app, nothing written, no error.
+- [x] Denied permissions → "Permiso necesario" with the shortcut; nothing imported.
+- [x] Health Connect not installed or needing an update → the Google Play install/update is offered.
+- [x] Last sync 12 minutes ago → "Sincronizado hace 12 min".
+- [x] Editing a written-back 73,9 kg entry to 73,5 updates the Health Connect copy; deleting it deletes the copy; an entry saved without permission is not written when edited later; a failing Health Connect call keeps the app's change.
+- [x] A deleted imported reading is not re-imported by the next sync.
 - [ ] DoD: a manual read and write test on the user's phone with the real scale, documented in the PR.
 
 **Host tests (per scenario):** `PairHealthReadingsTest` (Weight and fat from the same weigh-in incl. the ± 2 min boundary; Extra composition metrics; own-origin records skipped); `SyncHealthMeasurementsTest` (First sync 90 days; Incremental sync; idempotent re-run); `HealthSyncViewModelTest` with `FakeHealthDataSource`, a test `Clock` and Turbine (First sync and permissions; Permissions denied; Health Connect unavailable; Last sync status); `MeasurementSheetViewModelTest` additions (Writing back a manual entry; Editing or deleting a written-back entry; Writing back without permission; a failing write keeps the save); `HealthConnectBannerTest` (Robolectric: every banner state and text); pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] `assembleProdDebug` merged manifest lists the twelve Health Connect permissions, the `<queries>` entry and the rationale activity.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] `assembleProdDebug` merged manifest lists the twelve Health Connect permissions, the `<queries>` entry and the rationale activity.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-083 (no checkpoint before E5-B, user decision 2026-10-22)
@@ -2059,13 +2059,13 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** Domain (pure, `04-business-rules.md` §3.1–§3.4 examples as tests): `DailyWeights` (average of the measurements of each local day), `MovingAverage` (MA7 over the available daily values in `[d − 6, d]`; drawn only with at least 2 days in the window), `WeeklyRate` (`MA7(last day with data) − MA7(that day − 7)`, 2 decimals, "Sin datos suficientes" when either is missing; colour by the `nutrition_goals` strategy: deficit/surplus green or red, maintenance green within ± 0,20 else amber), and the filter ranges 1S/1M/3M/6M/1A (7/30/90/180/365 days back from today). Data: each range is loaded with 6 extra days before its start so the first day has its MA7. UI on the weight screen. The panel gains the `TrendPill` ("−0,45 kg esta semana" in the goal colour, or "Sin datos suficientes"). The pill sits inside a `MetricTile` and both are `surfaceOverlay`, so they get a container-colour parameter (consumes the E4 "Notes for later epics" item; check every caller). The chart extends `AppLineChart` (Vico, already pinned; the strength charts keep working): daily readings as low-opacity dots, a thick `athleticCyan` MA7 line and the legend "MA 7D". A `FilterChipRow` offers 1S/1M/3M/6M/1A, default 3M, with an animated transition; the chosen filter is kept in DataStore (a local preference, ADR-01) across launches. Long-pressing a point shows its date, that day's weight and that day's MA7. With a single measurement the pill reads "Sin datos suficientes" and the chart shows the dot with "Registra tu peso varios días para ver la tendencia". Chart and pill update after every write. The chart exposes a text summary as `stateDescription`. Tablet: panel and chart on the left, calendar and circumferences on the right. Restoration of the selected point (the filter is already persisted).
 
 **Acceptance criteria:**
-- [ ] Deficit with 90 days of entries → the pill shows "−0,45 kg esta semana" in green (fixture); MA7 up 0,30 kg → "+0,30 kg esta semana" in red; maintenance ± 0,15 → green, 0,25 → amber; surplus mirrored.
-- [ ] The panel shows the current weight "74,2 kg" with its date and time and the latest body fat when present.
-- [ ] Dots + MA7 line + "MA 7D"; the weight set from the calendar for yesterday at 07:30 sits on yesterday's date; the MA7 of the first visible day uses the 6 days before the range.
-- [ ] Default 3M; "1M" shows the last 30 days with an animated transition; leaving the screen and relaunching the app keeps "1M".
-- [ ] One measurement → "Sin datos suficientes" and the dot with "Registra tu peso varios días para ver la tendencia".
-- [ ] Long-pressing a point shows its date, weight and MA7.
-- [ ] `MetricTile` and `TrendPill` take a container colour; the pill's outline is visible inside the tile; existing callers unchanged.
+- [x] Deficit with 90 days of entries → the pill shows "−0,45 kg esta semana" in green (fixture); MA7 up 0,30 kg → "+0,30 kg esta semana" in red; maintenance ± 0,15 → green, 0,25 → amber; surplus mirrored.
+- [x] The panel shows the current weight "74,2 kg" with its date and time and the latest body fat when present.
+- [x] Dots + MA7 line + "MA 7D"; the weight set from the calendar for yesterday at 07:30 sits on yesterday's date; the MA7 of the first visible day uses the 6 days before the range.
+- [x] Default 3M; "1M" shows the last 30 days with an animated transition; leaving the screen and relaunching the app keeps "1M".
+- [x] One measurement → "Sin datos suficientes" and the dot with "Registra tu peso varios días para ver la tendencia".
+- [x] Long-pressing a point shows its date, weight and MA7.
+- [x] `MetricTile` and `TrendPill` take a container colour; the pill's outline is visible inside the tile; existing callers unchanged.
 
 **Host tests (per scenario):** `DailyWeightsTest`, `MovingAverageTest`, `WeeklyRateTest` (`04` §3 examples; colour per strategy; missing MA7 → not enough data); `WeightChartRangeTest` (filter days and the 6-day lead-in); `WeightTrendViewModelTest` with a fake preferences store, a test `Clock` and Turbine (Metrics panel; Pace against the goal; Time filter persisted; Not enough data; Point detail; Logging a weight for a past day, on the chart); `WeightChartTest`, `TrendPillTest`, `MetricTileTest` (Robolectric: legend, pill text and colour state, empty message, container colour, `stateDescription`); restoration tests.
 

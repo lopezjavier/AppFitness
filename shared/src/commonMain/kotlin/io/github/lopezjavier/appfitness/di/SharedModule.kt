@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRep
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealTemplateRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
@@ -28,6 +29,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenc
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealTemplateRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
@@ -43,6 +45,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepositor
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -57,6 +60,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
@@ -66,6 +70,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
@@ -103,6 +108,14 @@ val sharedModule =
                 SupabaseBodyMeasurementRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredBodyMeasurementRepository()
+            }
+        }
+        single<HealthSyncRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseHealthSyncRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredHealthSyncRepository()
             }
         }
         single<CircumferenceRepository> {
@@ -215,5 +228,8 @@ val sharedModule =
         factory { MeasurementsByDay() }
         factory { CurrentWeight() }
         // The local day boundaries follow the device time zone, which is not a Koin dependency.
-        factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get()) }
+        // The HealthDataSource port is bound by the platform module.
+        factory { HealthWriteBack(get(), get(), get()) }
+        factory { SyncHealthMeasurements(get(), get(), get()) }
+        factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
     }

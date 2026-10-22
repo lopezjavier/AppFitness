@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(6);
+select plan(8);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -17,6 +17,10 @@ insert into public.body_measurements (user_id, weight_kg, source) values
 insert into public.nutrition_goals (user_id, target_kcal) values
   ('d1000000-0000-4000-8000-000000000001', 2000),
   ('d2000000-0000-4000-8000-000000000002', 1800);
+
+insert into public.health_sync_state (user_id, last_synced_at) values
+  ('d1000000-0000-4000-8000-000000000001', now()),
+  ('d2000000-0000-4000-8000-000000000002', now());
 
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
 
@@ -38,6 +42,12 @@ select is(
 select is(
   (select count(*)::int from public.nutrition_goals where user_id = 'd2000000-0000-4000-8000-000000000002'),
   1, 'another user''s nutrition_goals are untouched');
+select is(
+  (select count(*)::int from public.health_sync_state where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s health_sync_state is gone');
+select is(
+  (select count(*)::int from public.health_sync_state where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s health_sync_state is untouched');
 
 select * from finish();
 rollback;

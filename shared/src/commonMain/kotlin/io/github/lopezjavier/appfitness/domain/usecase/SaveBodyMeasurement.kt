@@ -23,12 +23,15 @@ import kotlinx.datetime.toLocalDateTime
  * - Past day without an entry ([day] set): measured at local noon of that day.
  * - Edit ([existing] set): the entry's day is locked; weight, fat and, when [time] is given, the time of day change.
  * - [time] (local) overrides the default time of a new save or an edit; the result must not be after now.
+ *
+ * After a successful save the weight is written back to Health Connect (best effort, never changes the result).
  */
 class SaveBodyMeasurement(
     private val repository: BodyMeasurementRepository,
     private val clock: Clock,
     private val timeZone: TimeZone,
     private val validate: ValidateBodyMeasurement = ValidateBodyMeasurement(),
+    private val healthWriteBack: HealthWriteBack? = null,
 ) {
     @Suppress("ReturnCount") // Two validation guards before the save.
     suspend operator fun invoke(
@@ -54,7 +57,7 @@ class SaveBodyMeasurement(
         if ((existing == null || time != null) && measuredAt > now) {
             return Result.failure(AppException(AppError.Validation))
         }
-        return repository.saveManualWeight(
+        val saved = repository.saveManualWeight(
             ManualWeightSave(
                 id = existing?.id,
                 weightKg = weightKg,
@@ -64,6 +67,10 @@ class SaveBodyMeasurement(
                 dayEnd = targetDay.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone),
             ),
         )
+        saved.getOrNull()?.let { rowId ->
+            healthWriteBack?.onSaved(rowId, weightKg, bodyFatPct, measuredAt, existing)
+        }
+        return saved.map {}
     }
 
     private companion object {

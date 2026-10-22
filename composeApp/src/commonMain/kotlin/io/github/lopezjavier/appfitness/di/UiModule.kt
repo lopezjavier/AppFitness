@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
+import io.github.lopezjavier.appfitness.feature.weight.HealthSyncViewModel
 import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
@@ -50,6 +51,7 @@ val uiModule =
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),
+                healthWriteBack = get(),
             )
         }
         viewModel {
@@ -91,6 +93,17 @@ val uiModule =
                 measurementsByDay = get(),
                 saveBodyMeasurement = get(),
                 validate = get(),
+                connectivity = get(),
+                clock = get(),
+                savedState = get(),
+                healthWriteBack = get(),
+            )
+        }
+        viewModel {
+            HealthSyncViewModel(
+                source = get(),
+                syncHealthMeasurements = get(),
+                repository = get(),
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),

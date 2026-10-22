@@ -1,0 +1,42 @@
+package io.github.lopezjavier.appfitness.domain.port
+
+import io.github.lopezjavier.appfitness.domain.model.ChangesResult
+import io.github.lopezjavier.appfitness.domain.model.HealthAccess
+import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
+import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import kotlin.time.Instant
+
+/**
+ * Health Connect as seen by the domain (planning/04 §3.7). Every Health Connect exception becomes
+ * `Result.failure`; nothing here throws.
+ */
+interface HealthDataSource {
+    fun availability(): HealthAvailability
+
+    /** The permissions granted right now. */
+    suspend fun access(): HealthAccess
+
+    /** A Changes API token for the six record types. */
+    suspend fun newChangesToken(): Result<String>
+
+    /** Records of the six types with `from <= time <= to`; only the metrics with read access are read. */
+    suspend fun readRange(from: Instant, to: Instant): Result<RawHealthRecords>
+
+    /** What changed since [token]; deletions are ignored. */
+    suspend fun readChanges(token: String): Result<ChangesResult>
+
+    /**
+     * Writes (or updates, when [version] is higher than the stored one) the weight copy `<rowId>:w` and the fat copy
+     * `<rowId>:f`; a null [bodyFatPct] deletes the fat copy.
+     */
+    suspend fun writeWeighIn(
+        rowId: String,
+        weightKg: Double,
+        bodyFatPct: Double?,
+        measuredAt: Instant,
+        version: Long,
+    ): Result<Unit>
+
+    /** Deletes the weight and fat copies of [rowId]. */
+    suspend fun deleteCopy(rowId: String): Result<Unit>
+}

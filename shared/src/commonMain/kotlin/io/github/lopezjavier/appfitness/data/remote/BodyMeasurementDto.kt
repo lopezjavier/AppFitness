@@ -25,14 +25,38 @@ internal data class BodyMeasurementDto(
     @SerialName("weight_kg") val weightKg: Double,
     val source: MeasurementSourceDto,
     @SerialName("body_fat_pct") val bodyFatPct: Double? = null,
+    @SerialName("lean_mass_kg") val leanMassKg: Double? = null,
+    @SerialName("water_kg") val waterKg: Double? = null,
+    @SerialName("bone_kg") val boneKg: Double? = null,
+    @SerialName("bmr_kcal") val bmrKcal: Int? = null,
+    @SerialName("hc_record_id") val hcRecordId: String? = null,
 ) {
-    fun toDomain(): BodyMeasurement =
-        BodyMeasurement(id, Instant.parse(measuredAt), weightKg, source.domain, bodyFatPct)
+    fun toDomain(): BodyMeasurement = BodyMeasurement(
+        id = id,
+        measuredAt = Instant.parse(measuredAt),
+        weightKg = weightKg,
+        source = source.domain,
+        bodyFatPct = bodyFatPct,
+        leanMassKg = leanMassKg,
+        waterKg = waterKg,
+        boneKg = boneKg,
+        bmrKcal = bmrKcal,
+        hcRecordId = hcRecordId,
+    )
 
     companion object {
-        const val COLUMNS = "id,measured_at,weight_kg,source,body_fat_pct"
+        const val COLUMNS =
+            "id,measured_at,weight_kg,source,body_fat_pct,lean_mass_kg,water_kg,bone_kg,bmr_kcal,hc_record_id"
     }
 }
+
+/** Arguments of the `delete_body_measurement` RPC. */
+@Serializable
+internal data class DeleteBodyMeasurementParams(@SerialName("p_id") val id: String)
+
+/** Body of `PATCH /body_measurements?id=eq.<id>` that sets or clears the written-back copy marker. */
+@Serializable
+internal data class HcRecordIdUpdateDto(@SerialName("hc_record_id") val hcRecordId: String?)
 
 /** Body of `POST /body_measurements`: `user_id` takes its default (the caller). */
 @Serializable

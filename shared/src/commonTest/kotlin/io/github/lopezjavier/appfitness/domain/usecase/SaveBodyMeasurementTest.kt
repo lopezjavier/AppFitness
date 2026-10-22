@@ -31,18 +31,56 @@ private class RecordingRepository : BodyMeasurementRepository {
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.success(emptyList())
 
-    override suspend fun saveManualWeight(save: ManualWeightSave): Result<Unit> {
+    override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> {
         saves += save
-        return Result.success(Unit)
+        return Result.success(save.id ?: "row-1")
     }
 
     override suspend fun deleteMeasurement(id: String): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setHcRecordId(id: String, hcRecordId: String?): Result<Unit> = Result.success(Unit)
 }
 
 private class FixedClock(private val at: Instant) : Clock {
     override fun today(): LocalDate = LocalDate(2026, 10, 14)
 
     override fun now(): Instant = at
+}
+
+class SaveBodyMeasurementWriteBackTest {
+    private val repository = RecordingRepository()
+    private val source = FakeHealthDataSource()
+    private val now = Instant.parse("2026-10-14T10:30:00Z")
+    private val useCase = SaveBodyMeasurement(
+        repository,
+        FixedClock(now),
+        MADRID,
+        healthWriteBack = HealthWriteBack(source, FakeMeasurementsRepository(), FixedTestClock(now)),
+    )
+
+    @Test
+    fun aSuccessfulSave_isWrittenToHealthConnectWithTheReturnedRowId() = runTest {
+        assertTrue(useCase(73.9, 15.1).isSuccess)
+
+        val write = source.writes.single()
+        assertEquals("row-1", write.rowId)
+        assertEquals(73.9, write.weightKg)
+        assertEquals(15.1, write.bodyFatPct)
+    }
+
+    @Test
+    fun aHealthConnectFailure_doesNotChangeTheResult() = runTest {
+        source.writeFailure = IllegalStateException("denied")
+
+        assertTrue(useCase(73.9, null).isSuccess)
+    }
+
+    @Test
+    fun aRejectedSave_writesNothing() = runTest {
+        assertTrue(useCase(10.0, null).isFailure)
+
+        assertTrue(source.writes.isEmpty())
+    }
 }
 
 class SaveBodyMeasurementTest {

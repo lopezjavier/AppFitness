@@ -1,0 +1,178 @@
+package io.github.lopezjavier.appfitness.feature.weight
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
+import io.github.lopezjavier.appfitness.domain.model.HealthMetric
+import io.github.lopezjavier.appfitness.domain.model.SyncOutcome
+import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+
+private const val KEY_DENIED = "health_permission_denied"
+
+/** Where the Health Connect sync stands, as the banner on the weight screen shows it (US-26). */
+sealed interface HealthSyncStatus {
+    /** Availability and the stored state are still being read: no status is shown yet. */
+    data object Loading : HealthSyncStatus
+
+    data object NeverSynced : HealthSyncStatus
+
+    data object Syncing : HealthSyncStatus
+
+    data class Synced(val lastSyncedAt: Instant, val age: SyncAge) : HealthSyncStatus
+
+    data object PermissionNeeded : HealthSyncStatus
+
+    data class Unavailable(val availability: HealthAvailability) : HealthSyncStatus
+
+    data object Failed : HealthSyncStatus
+}
+
+data class HealthSyncUiState(val status: HealthSyncStatus = HealthSyncStatus.Loading, val isOnline: Boolean = true)
+
+sealed interface HealthSyncEvent {
+    /** The banner's single button: sync, ask for the permission, or offer the install, depending on the state. */
+    data object Tap : HealthSyncEvent
+
+    /** The screen came back to the foreground (the user may have installed or granted something meanwhile). */
+    data object Refresh : HealthSyncEvent
+
+    data class PermissionResult(val granted: Boolean) : HealthSyncEvent
+}
+
+sealed interface HealthSyncEffect {
+    data object RequestPermissions : HealthSyncEffect
+
+    data object OpenInstall : HealthSyncEffect
+
+    /** A sync finished; the weight screen reloads to show the [imported] rows. */
+    data class Synced(val imported: Int) : HealthSyncEffect
+}
+
+/**
+ * The Health Connect banner (US-26). On open it reads availability, the granted access and the stored sync state; the
+ * only persisted bit is "the user denied the permission request" (ADR-40), everything else is recomputed. A one-minute
+ * ticker keeps "Sincronizado hace N min" current; [tick] suspends for that minute and is injectable for tests. Syncing
+ * needs connectivity like the weight writes.
+ */
+@Suppress("LongParameterList") // One dependency per port; the ticker is injectable for tests.
+class HealthSyncViewModel(
+    private val source: HealthDataSource,
+    private val syncHealthMeasurements: SyncHealthMeasurements,
+    private val repository: HealthSyncRepository,
+    connectivity: ConnectivityObserver,
+    private val clock: Clock,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val tick: suspend () -> Unit = { delay(1.minutes) },
+) : ViewModel() {
+    private val status = MutableStateFlow<HealthSyncStatus>(HealthSyncStatus.Loading)
+    private val now = MutableStateFlow(clock.now())
+    private val online = MutableStateFlow(true)
+
+    private val effectChannel = Channel<HealthSyncEffect>(Channel.BUFFERED)
+    val effects: Flow<HealthSyncEffect> = effectChannel.receiveAsFlow()
+
+    val uiState: StateFlow<HealthSyncUiState> = combine(status, now, online) { status, now, online ->
+        val shown = if (status is HealthSyncStatus.Synced) {
+            status.copy(age = SyncAge.of(status.lastSyncedAt, now))
+        } else {
+            status
+        }
+        HealthSyncUiState(shown, online)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, HealthSyncUiState())
+
+    init {
+        viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
+        viewModelScope.launch {
+            while (true) {
+                tick()
+                now.value = clock.now()
+            }
+        }
+        viewModelScope.launch { load() }
+    }
+
+    fun onEvent(event: HealthSyncEvent) {
+        when (event) {
+            HealthSyncEvent.Tap -> viewModelScope.launch { tap() }
+            HealthSyncEvent.Refresh -> if (status.value != HealthSyncStatus.Syncing) viewModelScope.launch { load() }
+            is HealthSyncEvent.PermissionResult -> viewModelScope.launch { onPermissionResult(event.granted) }
+        }
+    }
+
+    private suspend fun load() {
+        val availability = source.availability()
+        if (availability != HealthAvailability.Available) {
+            status.value = HealthSyncStatus.Unavailable(availability)
+            return
+        }
+        val canRead = HealthMetric.Weight in source.access().read
+        if (canRead) savedState[KEY_DENIED] = false
+        val stored = repository.getState().getOrElse {
+            status.value = HealthSyncStatus.Failed
+            return
+        }
+        status.value = when {
+            savedState.get<Boolean>(KEY_DENIED) == true -> HealthSyncStatus.PermissionNeeded
+            stored == null -> HealthSyncStatus.NeverSynced
+            !canRead -> HealthSyncStatus.PermissionNeeded
+            else -> HealthSyncStatus.Synced(stored.lastSyncedAt, SyncAge.Now)
+        }
+    }
+
+    private suspend fun tap() {
+        if (!online.value || status.value == HealthSyncStatus.Syncing) return
+        when {
+            source.availability() != HealthAvailability.Available -> effectChannel.send(HealthSyncEffect.OpenInstall)
+            HealthMetric.Weight !in source.access().read -> effectChannel.send(HealthSyncEffect.RequestPermissions)
+            else -> sync()
+        }
+    }
+
+    private suspend fun onPermissionResult(granted: Boolean) {
+        if (granted) {
+            sync()
+        } else {
+            savedState[KEY_DENIED] = true
+            status.value = HealthSyncStatus.PermissionNeeded
+        }
+    }
+
+    private suspend fun sync() {
+        status.value = HealthSyncStatus.Syncing
+        val result = syncHealthMeasurements()
+        status.value = when (val outcome = result.getOrNull()) {
+            is SyncOutcome.Synced -> {
+                savedState[KEY_DENIED] = false
+                now.value = clock.now()
+                effectChannel.send(HealthSyncEffect.Synced(outcome.imported))
+                HealthSyncStatus.Synced(outcome.syncedAt, SyncAge.Now)
+            }
+
+            SyncOutcome.PermissionNeeded -> {
+                savedState[KEY_DENIED] = true
+                HealthSyncStatus.PermissionNeeded
+            }
+
+            is SyncOutcome.Unavailable -> HealthSyncStatus.Unavailable(outcome.availability)
+
+            null -> HealthSyncStatus.Failed
+        }
+    }
+}

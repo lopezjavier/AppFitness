@@ -15,6 +15,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_delet
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_delete_error_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error_offline
+import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
+import io.github.lopezjavier.appfitness.platform.rememberHealthConnectLauncher
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -24,9 +26,14 @@ fun WeightRoot(
     modifier: Modifier = Modifier,
     viewModel: WeightViewModel = koinViewModel(),
     circumferencesViewModel: CircumferencesViewModel = koinViewModel(),
+    healthSyncViewModel: HealthSyncViewModel = koinViewModel(),
+    launcherFor: @Composable ((weightReadGranted: Boolean) -> Unit) -> HealthConnectLauncher =
+        { rememberHealthConnectLauncher(it) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val circumferences by circumferencesViewModel.uiState.collectAsStateWithLifecycle()
+    val healthSync by healthSyncViewModel.uiState.collectAsStateWithLifecycle()
+    val launcher = launcherFor { granted -> healthSyncViewModel.onEvent(HealthSyncEvent.PermissionResult(granted)) }
     val snackbarHost = remember { SnackbarHostState() }
     val failed = stringResource(Res.string.weight_delete_error)
     val offline = stringResource(Res.string.weight_delete_error_offline)
@@ -50,9 +57,19 @@ fun WeightRoot(
             }
         }
     }
+    LaunchedEffect(healthSyncViewModel) {
+        healthSyncViewModel.effects.collect { effect ->
+            when (effect) {
+                HealthSyncEffect.RequestPermissions -> launcher.requestPermissions()
+                HealthSyncEffect.OpenInstall -> launcher.openInstall()
+                is HealthSyncEffect.Synced -> viewModel.onEvent(WeightEvent.Refresh)
+            }
+        }
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.onEvent(WeightEvent.Refresh)
         circumferencesViewModel.onEvent(CircumferencesEvent.Refresh)
+        healthSyncViewModel.onEvent(HealthSyncEvent.Refresh)
     }
     WeightScreen(
         state = state,
@@ -60,6 +77,8 @@ fun WeightRoot(
         circumferences = circumferences,
         onCircumferenceEvent = circumferencesViewModel::onEvent,
         modifier = modifier,
+        healthSync = healthSync,
+        onHealthEvent = healthSyncViewModel::onEvent,
         snackbarHost = snackbarHost,
     )
 }
