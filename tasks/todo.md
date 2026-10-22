@@ -2139,7 +2139,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 - [x] The target line shows only for weight.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green.
+- [x] Lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-084
 **Estimated scope:** M
