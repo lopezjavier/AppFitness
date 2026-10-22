@@ -242,6 +242,15 @@ Feature: Weight trend, goal and interpretation
     And a thick athleticCyan line with the 7-day moving average
     And the legend "MA 7D"
 
+  Scenario: Sparse weigh-ins still draw a line
+    Given only two weigh-ins, on the 14th and the 19th
+    Then the chart shows a line connecting both points
+    And a gap of a year between two weigh-ins also shows a line between them
+
+  Scenario: Weekly pace with sparse weigh-ins
+    Given weigh-ins of 79,5 kg on the 14th and 79,4 kg on the 19th
+    Then the pill shows "−0,14 kg esta semana"
+
   Scenario: Time filter
     Given the default filter is "3M"
     When the user taps the "1M" chip

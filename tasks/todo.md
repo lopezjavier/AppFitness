@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** E5-B 👤 checkpoint (after T-087 merges; the user re-tests the APK, see Checkpoint E5-B). T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** T-088 (E5-B round 3, ADR-49), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2184,8 +2184,27 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 
 ---
 
+## T-088: Trend line and weekly pace with sparse weigh-ins (ADR-49)
+
+**Story:** US-25 (fix from Checkpoint E5-B round 3, 2026-10-22) · **Flow:** core + UI · **Scenarios:** Sparse weigh-ins still draw a line; Weekly pace with sparse weigh-ins
+
+**Description:** The user weighs once or twice a week. (1) `MovingAverage.at` accepts 1 or more days in its window. (2) `CalculateWeeklyRate` = change between the last two days with data, scaled to kg/week. (3) The chart draws a line connecting consecutive points across gaps, for every metric of the selector; one point stays a dot with the hint. Update the domain tests with the examples of `04-business-rules.md` §3.2/§3.3 and the host tests of the chart.
+
+**Acceptance criteria:**
+- [ ] Two weigh-ins (the 14th and the 19th) show a line between both points; also when they are a year apart.
+- [ ] 79,5 kg on the 14th and 79,4 kg on the 19th give a pace of −0,14 kg/week; a single weigh-in still reads "Sin datos suficientes".
+- [ ] The behaviour is the same for fat, lean mass, water, bone and BMR.
+
+**Verification:**
+- [ ] Lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-087
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
-- [ ] T-079…T-081 and T-084…T-087 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [ ] T-079…T-081 and T-084…T-088 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
   - Manual weight and circumferences (from T-076…T-078 and T-083): Perfil → "Peso": "Registrar peso de hoy" (day only, no hour; weight and fat fields aligned); 19,9 kg, 401 kg and 80 % fat disable "Guardar"; a second "Registrar peso de hoy" edits today's weight; the calendar marks days, sets yesterday's weight and edits or deletes a day (gone at once). "Circunferencias" → "Añadir medida": fill waist 84,5 and hip 98,0 at once → ratio "0,86"; the "?" help; edit and delete one; 19,9 and 251 cm disabled.
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
