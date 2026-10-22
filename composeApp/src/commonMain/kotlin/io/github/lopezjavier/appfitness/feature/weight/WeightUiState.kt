@@ -12,16 +12,13 @@ enum class WeightSaveError { Offline, Failed }
 /**
  * The manual weight form of the day sheet. [existingId] is the manual row being edited (null while creating); the date
  * is never part of the form, so it cannot be changed when editing. The problems are null while the field is blank or
- * valid; [canSave] also needs a weight, a valid time, connectivity and no save in flight.
- * [maxMinuteOfDay] bounds the time on today (the current minute) and is null on past days.
+ * valid; [canSave] also needs a weight, connectivity and no save in flight. There is no hour: a new weight is stored
+ * at the save instant on today and at 12:00 local on a past day; an edit keeps its stored instant.
  */
 data class MeasurementForm(
     val existingId: String?,
     val weightText: String,
     val fatText: String,
-    val hour: Int,
-    val minute: Int,
-    val maxMinuteOfDay: Int?,
     val weightProblem: BodyMeasurementProblem?,
     val fatProblem: BodyMeasurementProblem?,
     val canSave: Boolean,
@@ -90,8 +87,6 @@ sealed interface WeightEvent {
     data class SetWeight(val text: String) : WeightEvent
 
     data class SetBodyFat(val text: String) : WeightEvent
-
-    data class SetTime(val hour: Int, val minute: Int) : WeightEvent
 
     data object Save : WeightEvent
 

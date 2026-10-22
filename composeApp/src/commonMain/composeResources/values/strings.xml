@@ -753,6 +753,7 @@
     <string name="weight_current_label">Peso actual</string>
     <string name="weight_current_value">%1$s kg</string>
     <string name="weight_current_when">%1$s, %2$s</string>
+    <string name="weight_current_when_day">%1$s</string>
     <string name="weight_current_fat">Grasa corporal: %1$s</string>
     <string name="weight_percent_value">%1$s %</string>
     <string name="weight_log_today">Registrar peso de hoy</string>
@@ -762,14 +763,10 @@
     <string name="weight_sheet_title_today">Registrar peso</string>
     <string name="weight_sheet_title_day">Peso del %1$d %2$s</string>
     <string name="weight_field_weight">Peso (kg)</string>
-    <string name="weight_field_fat">Grasa corporal (%, opcional)</string>
+    <string name="weight_field_fat">Grasa (%)</string>
+    <string name="weight_field_fat_placeholder">Opcional</string>
     <string name="weight_range_weight">El peso debe estar entre 20 y 400 kg</string>
     <string name="weight_range_fat">La grasa corporal debe estar entre 2 y 75 %</string>
-    <string name="weight_time_label">Hora</string>
-    <string name="weight_hour_cd">Hora</string>
-    <string name="weight_minute_cd">Minutos</string>
-    <string name="weight_hours_unit">horas</string>
-    <string name="weight_minutes_unit">minutos</string>
     <string name="weight_save">Guardar</string>
     <string name="weight_delete">Eliminar</string>
     <string name="weight_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
@@ -789,7 +786,7 @@
     <string name="circumference_ratio_unavailable">—</string>
     <string name="circumference_ratio_no_data">Sin datos suficientes</string>
     <string name="circumference_value_cm">%1$s cm</string>
-    <string name="circumference_row_when">%1$s · %2$s</string>
+    <string name="circumference_row_when">%1$s</string>
     <string name="circumference_row_edit_label">Editar medida</string>
     <string name="circumference_row_delete_cd">Eliminar %1$s %2$s</string>
     <string name="circumference_empty_title">Aún no hay medidas</string>
@@ -815,5 +812,12 @@
     <string name="circumference_delete_error">No se pudo eliminar la medida</string>
     <string name="circumference_delete_error_offline">Sin conexión: no se pudo eliminar</string>
     <string name="catalog_section_circumference_row">Fila de circunferencia</string>
-    <string name="catalog_section_dropdown_field">Campo desplegable</string>
+    <string name="circumference_help_toggle_cd">Cómo medir %1$s</string>
+    <string name="circumference_help_neck">1. De pie, relajado y con la mirada al frente. 2. Pasa la cinta justo debajo de la nuez, sin apretar. 3. Mantén la cinta horizontal. 4. Anota el valor sin tensar el cuello.</string>
+    <string name="circumference_help_chest">1. De pie, con los brazos relajados a los lados. 2. Pasa la cinta por la línea de los pezones y la espalda. 3. Mide al soltar el aire, sin apretar. 4. Mantén la cinta horizontal.</string>
+    <string name="circumference_help_waist">1. De pie y relajado, sin meter tripa. 2. Busca el punto más estrecho del torso, a la altura del ombligo. 3. Mide al soltar el aire, con la cinta horizontal y sin apretar.</string>
+    <string name="circumference_help_hip">1. De pie, con los pies juntos. 2. Pasa la cinta por la parte más ancha de los glúteos. 3. Mantén la cinta horizontal y sin apretar. 4. Anota el valor.</string>
+    <string name="circumference_help_arm">1. De pie, con el brazo relajado a un lado. 2. Mide a mitad de camino entre el hombro y el codo. 3. Pasa la cinta alrededor del bíceps, sin apretar. Usa siempre el mismo brazo.</string>
+    <string name="circumference_help_thigh">1. De pie, con el peso repartido en ambas piernas. 2. Pasa la cinta por la parte más ancha del muslo, bajo el glúteo. 3. Mantén la cinta horizontal y sin apretar. Usa siempre la misma pierna.</string>
+    <string name="circumference_help_calf">1. De pie, con el peso repartido en ambas piernas. 2. Pasa la cinta por la parte más ancha de la pantorrilla. 3. Mantén la cinta horizontal y sin apretar. Usa siempre la misma pierna.</string>
 </resources>

@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceEntry
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceProblem
@@ -51,7 +52,12 @@ class CircumferencesViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun row(id: String, site: CircumferenceSite, cm: Double, at: String = "2026-10-18T08:00:00Z") =
-        BodyCircumference(id, site, cm, Instant.parse(at))
+        BodyCircumference(id, site, cm, Instant.parse(at), Instant.parse(at))
+
+    private fun CircumferencesViewModel.type(site: CircumferenceSite, text: String) =
+        onEvent(CircumferencesEvent.SetValue(site, text))
+
+    private fun CircumferencesViewModel.value(site: CircumferenceSite) = sheet().values.getValue(site)
 
     private fun viewModel(repository: FakeCircumferenceRepository, state: SavedStateHandle = savedState) =
         CircumferencesViewModel(
@@ -148,78 +154,117 @@ class CircumferencesViewModelTest {
     // Add
 
     @Test
-    fun openAdd_defaultsToWaistAndNow() = runTest(dispatcher) {
+    fun openAdd_listsEverySiteBlankOnToday() = runTest(dispatcher) {
         val model = viewModel(FakeCircumferenceRepository())
         advanceUntilIdle()
 
         model.onEvent(CircumferencesEvent.OpenAdd)
 
         val sheet = model.sheet()
-        assertEquals(CircumferenceSite.Waist, sheet.site)
+        assertEquals(CircumferenceSite.entries, sheet.values.keys.toList())
+        assertTrue(sheet.values.values.all { it.isEmpty() })
         assertEquals(today, sheet.date)
-        assertEquals(10, sheet.hour)
-        assertEquals(0, sheet.minute)
+        assertNull(sheet.helpSite)
         assertFalse(sheet.isEditing)
         assertFalse(sheet.canSave)
         assertFalse(sheet.canDelete)
     }
 
     @Test
-    fun logWaist_createsARowShownInTheWaistHistory() = runTest(dispatcher) {
+    fun waistAndHip_areSavedTogetherInOneCallAndGiveTheRatio() = runTest(dispatcher) {
         val repository = FakeCircumferenceRepository()
         val model = viewModel(repository)
         advanceUntilIdle()
 
         model.onEvent(CircumferencesEvent.OpenAdd)
-        model.onEvent(CircumferencesEvent.SetValue("84,5"))
+        model.type(CircumferenceSite.Waist, "84,5")
+        model.type(CircumferenceSite.Hip, "98,0")
         model.onEvent(CircumferencesEvent.Save)
         advanceUntilIdle()
 
+        assertEquals(
+            listOf(
+                listOf(
+                    CircumferenceEntry(CircumferenceSite.Waist, 84.5),
+                    CircumferenceEntry(CircumferenceSite.Hip, 98.0),
+                ),
+            ),
+            repository.addCalls,
+        )
         val content = model.content()
         assertNull(content.sheet)
-        val waist = content.groups.single { it.site == CircumferenceSite.Waist }
-        assertEquals(84.5, waist.rows.single().valueCm)
-        assertEquals(Instant.parse("2026-10-21T10:00:00Z"), waist.rows.single().measuredAt)
+        assertEquals(0.86, content.ratio)
+        assertEquals(Instant.parse("2026-10-21T10:00:00Z"), repository.rows.first().measuredAt)
     }
 
     @Test
-    fun selectSite_changesTheSiteOfANewMeasurement() = runTest(dispatcher) {
+    fun onlyFilledSites_areSent() = runTest(dispatcher) {
         val repository = FakeCircumferenceRepository()
         val model = viewModel(repository)
         advanceUntilIdle()
 
         model.onEvent(CircumferencesEvent.OpenAdd)
-        model.onEvent(CircumferencesEvent.SelectSite(CircumferenceSite.Calf))
-        model.onEvent(CircumferencesEvent.SetValue("38"))
+        model.type(CircumferenceSite.Calf, "38")
         model.onEvent(CircumferencesEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(CircumferenceSite.Calf, repository.rows.single().site)
+        assertEquals(listOf(listOf(CircumferenceEntry(CircumferenceSite.Calf, 38.0))), repository.addCalls)
+    }
+
+    @Test
+    fun sameDayRelog_latestSavedWinsInTheRatio() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        repeat(2) { round ->
+            model.onEvent(CircumferencesEvent.OpenAdd)
+            model.type(CircumferenceSite.Waist, if (round == 0) "90" else "80")
+            model.type(CircumferenceSite.Hip, "100")
+            model.onEvent(CircumferencesEvent.Save)
+            advanceUntilIdle()
+        }
+
+        assertEquals(0.8, model.content().ratio)
+        assertEquals(80.0, model.content().groups.single { it.site == CircumferenceSite.Waist }.rows.first().valueCm)
     }
 
     // Validation
 
     @Test
-    fun invalidValues_blockSavingWithTheProblem() = runTest(dispatcher) {
+    fun invalidValues_blockSavingWithTheProblemOnThatSite() = runTest(dispatcher) {
         val repository = FakeCircumferenceRepository()
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
 
-        model.onEvent(CircumferencesEvent.SetValue("19,9"))
-        assertEquals(CircumferenceProblem.TooLow, model.sheet().valueProblem)
+        model.type(CircumferenceSite.Arm, "19,9")
+        assertEquals(mapOf(CircumferenceSite.Arm to CircumferenceProblem.TooLow), model.sheet().problems)
         assertFalse(model.sheet().canSave)
 
-        model.onEvent(CircumferencesEvent.SetValue("251"))
-        assertEquals(CircumferenceProblem.TooHigh, model.sheet().valueProblem)
+        model.type(CircumferenceSite.Arm, "251")
+        assertEquals(mapOf(CircumferenceSite.Arm to CircumferenceProblem.TooHigh), model.sheet().problems)
         assertFalse(model.sheet().canSave)
 
-        model.onEvent(CircumferencesEvent.SetValue("abc"))
-        assertEquals(CircumferenceProblem.NotANumber, model.sheet().valueProblem)
+        model.type(CircumferenceSite.Arm, "abc")
+        assertEquals(CircumferenceProblem.NotANumber, model.sheet().problems[CircumferenceSite.Arm])
 
         model.onEvent(CircumferencesEvent.Save)
         advanceUntilIdle()
         assertTrue(repository.rows.isEmpty())
+    }
+
+    @Test
+    fun oneInvalidAndOneValid_cannotSave() = runTest(dispatcher) {
+        val model = viewModel(FakeCircumferenceRepository())
+        advanceUntilIdle()
+        model.onEvent(CircumferencesEvent.OpenAdd)
+
+        model.type(CircumferenceSite.Waist, "84,5")
+        assertTrue(model.sheet().canSave)
+        model.type(CircumferenceSite.Neck, "19,9")
+
+        assertFalse(model.sheet().canSave)
+        assertEquals(setOf(CircumferenceSite.Neck), model.sheet().problems.keys)
     }
 
     @Test
@@ -228,21 +273,38 @@ class CircumferencesViewModelTest {
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
 
-        model.onEvent(CircumferencesEvent.SetValue("20"))
+        model.type(CircumferenceSite.Waist, "20")
         assertTrue(model.sheet().canSave)
-        model.onEvent(CircumferencesEvent.SetValue("250"))
+        model.type(CircumferenceSite.Waist, "250")
         assertTrue(model.sheet().canSave)
-        assertNull(model.sheet().valueProblem)
+        assertTrue(model.sheet().problems.isEmpty())
     }
 
     @Test
-    fun blankValue_hasNoProblemButCannotSave() = runTest(dispatcher) {
+    fun allBlank_hasNoProblemButCannotSave() = runTest(dispatcher) {
+        val model = viewModel(FakeCircumferenceRepository())
+        advanceUntilIdle()
+        model.onEvent(CircumferencesEvent.OpenAdd)
+        model.type(CircumferenceSite.Waist, "   ")
+
+        assertTrue(model.sheet().problems.isEmpty())
+        assertFalse(model.sheet().canSave)
+    }
+
+    // Help
+
+    @Test
+    fun toggleHelp_opensOneSiteAtATimeAndClosesIt() = runTest(dispatcher) {
         val model = viewModel(FakeCircumferenceRepository())
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
 
-        assertNull(model.sheet().valueProblem)
-        assertFalse(model.sheet().canSave)
+        model.onEvent(CircumferencesEvent.ToggleHelp(CircumferenceSite.Waist))
+        assertEquals(CircumferenceSite.Waist, model.sheet().helpSite)
+        model.onEvent(CircumferencesEvent.ToggleHelp(CircumferenceSite.Hip))
+        assertEquals(CircumferenceSite.Hip, model.sheet().helpSite)
+        model.onEvent(CircumferencesEvent.ToggleHelp(CircumferenceSite.Hip))
+        assertNull(model.sheet().helpSite)
     }
 
     // Edit and delete
@@ -257,8 +319,8 @@ class CircumferencesViewModelTest {
         advanceUntilIdle()
 
         model.onEvent(CircumferencesEvent.OpenEdit("w"))
-        assertEquals("84,5", model.sheet().valueText)
-        model.onEvent(CircumferencesEvent.SetValue("90"))
+        assertEquals("84,5", model.value(CircumferenceSite.Waist))
+        model.type(CircumferenceSite.Waist, "90")
         model.onEvent(CircumferencesEvent.Save)
         advanceUntilIdle()
 
@@ -270,16 +332,52 @@ class CircumferencesViewModelTest {
     }
 
     @Test
-    fun edit_locksTheSite() = runTest(dispatcher) {
-        val model = viewModel(FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5)))
+    fun edit_locksTheSiteAndKeepsTheRowInstantOnItsDay() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        val model = viewModel(repository)
         advanceUntilIdle()
 
         model.onEvent(CircumferencesEvent.OpenEdit("w"))
-        model.onEvent(CircumferencesEvent.SelectSite(CircumferenceSite.Hip))
+        model.type(CircumferenceSite.Hip, "99")
 
-        assertEquals(CircumferenceSite.Waist, model.sheet().site)
-        assertTrue(model.sheet().isEditing)
+        assertEquals(CircumferenceSite.Waist, model.sheet().editSite)
+        assertEquals(listOf(CircumferenceSite.Waist), model.sheet().values.keys.toList())
         assertTrue(model.sheet().canDelete)
+
+        model.type(CircumferenceSite.Waist, "85")
+        model.onEvent(CircumferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(Instant.parse("2026-10-18T08:00:00Z"), repository.rows.single().measuredAt)
+        assertTrue(repository.addCalls.isEmpty())
+    }
+
+    @Test
+    fun edit_movedToAPastDay_isStoredAtNoon() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(CircumferencesEvent.OpenEdit("w"))
+
+        model.onEvent(CircumferencesEvent.SetDate(LocalDate(2026, 10, 15)))
+        model.onEvent(CircumferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(Instant.parse("2026-10-15T12:00:00Z"), repository.rows.single().measuredAt)
+    }
+
+    @Test
+    fun edit_movedToToday_isStoredAtTheSaveInstant() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(CircumferencesEvent.OpenEdit("w"))
+
+        model.onEvent(CircumferencesEvent.SetDate(today))
+        model.onEvent(CircumferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(Instant.parse("2026-10-21T10:00:00Z"), repository.rows.single().measuredAt)
     }
 
     @Test
@@ -342,7 +440,7 @@ class CircumferencesViewModelTest {
         assertFalse(model.content().isOnline)
         assertFalse(model.sheet().canSave)
         assertFalse(model.sheet().canDelete)
-        model.onEvent(CircumferencesEvent.SetValue("90"))
+        model.type(CircumferenceSite.Waist, "90")
         model.onEvent(CircumferencesEvent.Save)
         model.onEvent(CircumferencesEvent.Delete("w"))
         advanceUntilIdle()
@@ -357,7 +455,7 @@ class CircumferencesViewModelTest {
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
-        model.onEvent(CircumferencesEvent.SetValue("84,5"))
+        model.type(CircumferenceSite.Waist, "84,5")
         repository.writeFailure = AppException(AppError.Unknown)
 
         model.onEvent(CircumferencesEvent.Save)
@@ -366,9 +464,9 @@ class CircumferencesViewModelTest {
         val sheet = model.sheet()
         assertEquals(WeightSaveError.Failed, sheet.saveError)
         assertFalse(sheet.isSaving)
-        assertEquals("84,5", sheet.valueText)
+        assertEquals("84,5", model.value(CircumferenceSite.Waist))
 
-        model.onEvent(CircumferencesEvent.SetValue("85"))
+        model.type(CircumferenceSite.Waist, "85")
         assertNull(model.sheet().saveError)
     }
 
@@ -378,7 +476,7 @@ class CircumferencesViewModelTest {
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
-        model.onEvent(CircumferencesEvent.SetValue("84,5"))
+        model.type(CircumferenceSite.Waist, "84,5")
         repository.writeFailure = AppException(AppError.Network)
 
         model.onEvent(CircumferencesEvent.Save)
@@ -387,53 +485,34 @@ class CircumferencesViewModelTest {
         assertEquals(WeightSaveError.Offline, model.sheet().saveError)
     }
 
-    // Date and time
+    // Day
 
     @Test
-    fun futureDateAndTime_areClamped() = runTest(dispatcher) {
+    fun futureDate_isClampedToToday() = runTest(dispatcher) {
         val model = viewModel(FakeCircumferenceRepository())
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
 
         model.onEvent(CircumferencesEvent.SetDate(LocalDate(2026, 10, 24)))
+
         assertEquals(today, model.sheet().date)
         assertFalse(model.sheet().canGoNextDay)
-
-        model.onEvent(CircumferencesEvent.SetTime(23, 30))
-        assertEquals(10, model.sheet().hour)
-        assertEquals(0, model.sheet().minute)
     }
 
     @Test
-    fun pastDay_allowsAnyTimeAndKeepsItInTheSavedInstant() = runTest(dispatcher) {
+    fun pastDay_isStoredAtNoonLocal() = runTest(dispatcher) {
         val repository = FakeCircumferenceRepository()
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
 
         model.onEvent(CircumferencesEvent.SetDate(LocalDate(2026, 10, 19)))
-        model.onEvent(CircumferencesEvent.SetTime(23, 30))
-        model.onEvent(CircumferencesEvent.SetValue("84,5"))
+        model.type(CircumferenceSite.Waist, "84,5")
         assertTrue(model.sheet().canGoNextDay)
-        assertNull(model.sheet().maxMinuteOfDay)
         model.onEvent(CircumferencesEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(Instant.parse("2026-10-19T23:30:00Z"), repository.rows.single().measuredAt)
-    }
-
-    @Test
-    fun movingToTodayAfterALateTime_clampsTheTimeToNow() = runTest(dispatcher) {
-        val model = viewModel(FakeCircumferenceRepository())
-        advanceUntilIdle()
-        model.onEvent(CircumferencesEvent.OpenAdd)
-        model.onEvent(CircumferencesEvent.SetDate(LocalDate(2026, 10, 20)))
-        model.onEvent(CircumferencesEvent.SetTime(23, 0))
-
-        model.onEvent(CircumferencesEvent.SetDate(today))
-
-        assertEquals(10, model.sheet().hour)
-        assertEquals(0, model.sheet().minute)
+        assertEquals(Instant.parse("2026-10-19T12:00:00Z"), repository.rows.single().measuredAt)
     }
 
     // Draft
@@ -444,14 +523,14 @@ class CircumferencesViewModelTest {
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(CircumferencesEvent.OpenAdd)
-        model.onEvent(CircumferencesEvent.SetValue("84,5"))
+        model.type(CircumferenceSite.Waist, "84,5")
 
         model.onEvent(CircumferencesEvent.CloseSheet)
         assertNull(model.content().sheet)
         assertTrue(repository.rows.isEmpty())
 
         model.onEvent(CircumferencesEvent.OpenAdd)
-        assertEquals("", model.sheet().valueText)
+        assertEquals("", model.value(CircumferenceSite.Waist))
     }
 
     @Test
@@ -460,21 +539,38 @@ class CircumferencesViewModelTest {
         val first = viewModel(repository)
         advanceUntilIdle()
         first.onEvent(CircumferencesEvent.OpenAdd)
-        first.onEvent(CircumferencesEvent.SelectSite(CircumferenceSite.Chest))
-        first.onEvent(CircumferencesEvent.SetValue("101,2"))
+        first.type(CircumferenceSite.Chest, "101,2")
+        first.type(CircumferenceSite.Hip, "98,0")
         first.onEvent(CircumferencesEvent.SetDate(LocalDate(2026, 10, 19)))
-        first.onEvent(CircumferencesEvent.SetTime(7, 45))
+        first.onEvent(CircumferencesEvent.ToggleHelp(CircumferenceSite.Waist))
 
         val second = viewModel(repository, savedState)
         advanceUntilIdle()
 
         val sheet = second.sheet()
         assertNull(sheet.existingId)
-        assertEquals(CircumferenceSite.Chest, sheet.site)
-        assertEquals("101,2", sheet.valueText)
+        assertEquals("101,2", sheet.values.getValue(CircumferenceSite.Chest))
+        assertEquals("98,0", sheet.values.getValue(CircumferenceSite.Hip))
+        assertEquals("", sheet.values.getValue(CircumferenceSite.Waist))
+        assertEquals(CircumferenceSite.entries, sheet.values.keys.toList())
         assertEquals(LocalDate(2026, 10, 19), sheet.date)
-        assertEquals(7, sheet.hour)
-        assertEquals(45, sheet.minute)
+        assertEquals(CircumferenceSite.Waist, sheet.helpSite)
+    }
+
+    @Test
+    fun staleTimeKeysFromAnOlderVersion_areIgnored() = runTest(dispatcher) {
+        val state = SavedStateHandle(
+            mapOf(
+                "circumference_sheet_open" to true,
+                "circumference_draft_site" to "Chest",
+                "circumference_draft_value" to "101,2",
+                "circumference_draft_minute" to 465,
+            ),
+        )
+        val model = viewModel(FakeCircumferenceRepository(), state)
+        advanceUntilIdle()
+
+        assertNull(model.content().sheet)
     }
 
     @Test
@@ -483,15 +579,15 @@ class CircumferencesViewModelTest {
         val first = viewModel(repository)
         advanceUntilIdle()
         first.onEvent(CircumferencesEvent.OpenEdit("w"))
-        first.onEvent(CircumferencesEvent.SetValue("85"))
+        first.type(CircumferenceSite.Waist, "85")
 
         val second = viewModel(repository, savedState)
         advanceUntilIdle()
 
         val sheet = second.sheet()
         assertEquals("w", sheet.existingId)
-        assertEquals(CircumferenceSite.Waist, sheet.site)
-        assertEquals("85", sheet.valueText)
+        assertEquals(CircumferenceSite.Waist, sheet.editSite)
+        assertEquals(mapOf(CircumferenceSite.Waist to "85"), sheet.values)
     }
 
     @Test
@@ -500,7 +596,7 @@ class CircumferencesViewModelTest {
         val first = viewModel(repository)
         advanceUntilIdle()
         first.onEvent(CircumferencesEvent.OpenAdd)
-        first.onEvent(CircumferencesEvent.SetValue("84,5"))
+        first.type(CircumferenceSite.Waist, "84,5")
         first.onEvent(CircumferencesEvent.CloseSheet)
 
         val second = viewModel(repository, savedState)

@@ -10,8 +10,13 @@ import kotlin.time.Instant
 class WaistHipRatioTest {
     private val ratio = WaistHipRatio()
 
-    private fun row(id: String, site: CircumferenceSite, cm: Double, at: String = "2026-10-20T08:00:00Z") =
-        BodyCircumference(id, site, cm, Instant.parse(at))
+    private fun row(
+        id: String,
+        site: CircumferenceSite,
+        cm: Double,
+        at: String = "2026-10-20T08:00:00Z",
+        created: String = "2026-10-20T08:00:00Z",
+    ) = BodyCircumference(id, site, cm, Instant.parse(at), Instant.parse(created))
 
     @Test
     fun waistAndHip_giveTheRatioRoundedToTwoDecimals() {
@@ -47,6 +52,16 @@ class WaistHipRatioTest {
 
         assertEquals(0.9, ratio(listOf(a, b, hip)))
         assertEquals(0.9, ratio(listOf(b, a, hip)))
+    }
+
+    @Test
+    fun sameInstant_laterCreatedAtWinsEvenWithSmallerId() {
+        val older = row("z", CircumferenceSite.Waist, 80.0, created = "2026-10-20T09:00:00Z")
+        val newer = row("a", CircumferenceSite.Waist, 90.0, created = "2026-10-20T10:00:00Z")
+        val hip = row("h", CircumferenceSite.Hip, 100.0)
+
+        assertEquals(0.9, ratio(listOf(older, newer, hip)))
+        assertEquals(0.9, ratio(listOf(newer, older, hip)))
     }
 
     @Test

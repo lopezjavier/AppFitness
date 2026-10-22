@@ -32,7 +32,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.yearMonth
 
 private const val KEY_MONTH = "weight_month"
@@ -40,12 +39,8 @@ private const val KEY_SHEET_DAY = "weight_sheet_day"
 private const val KEY_EXISTING_ID = "weight_draft_existing_id"
 private const val KEY_WEIGHT = "weight_draft_weight"
 private const val KEY_FAT = "weight_draft_fat"
-private const val KEY_MINUTE = "weight_draft_minute"
+private const val KEY_HAS_FORM = "weight_draft_open"
 private const val NONE = ""
-private const val NO_DRAFT = -1
-private const val MINUTES_PER_HOUR = 60
-private const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
-private const val NOON_MINUTE = 12 * MINUTES_PER_HOUR
 
 /** What one month load fetched: the panel's latest row and the month's rows, also grouped by day. */
 private class WeightData(
@@ -73,9 +68,9 @@ private data class SheetState(
 
 /**
  * The weight screen (US-25): the current weight, a month calendar of the days with measurements and a day sheet that
- * creates, edits (weight, fat, time; the date is locked) or deletes the day's manual weight, and lists its Health
- * Connect rows (delete only). Deleting is immediate (ADR-45). The visible month, the open day and the draft live in
- * [savedState] as primitives, so they survive recreation; closing the sheet discards the draft. Writes need
+ * creates, edits (weight, fat; the date is locked, no hour is asked) or deletes the day's manual weight, and lists its
+ * Health Connect rows (delete only). Deleting is immediate (ADR-45). The visible month, the open day and the draft
+ * live in [savedState] as primitives, so they survive recreation; closing the sheet discards the draft. Writes need
  * connectivity. Prefill rule for a new weight: today uses the latest weight; a past day uses the latest weight at or
  * before it in the visible month, else the latest overall; none leaves the field blank.
  */
@@ -130,8 +125,6 @@ class WeightViewModel(
             is WeightEvent.SetWeight -> edit { it.copy(weightText = event.text) }
 
             is WeightEvent.SetBodyFat -> edit { it.copy(fatText = event.text) }
-
-            is WeightEvent.SetTime -> setTime(event.hour, event.minute)
 
             WeightEvent.Save -> save()
 
@@ -194,7 +187,7 @@ class WeightViewModel(
             val dayRows = data.days[day]
             val manual = dayRows?.manual
             val draft = when {
-                manual != null -> editDraftOf(manual)
+                manual != null -> editDraft(manual)
                 forceForm || dayRows?.healthConnect.isNullOrEmpty() -> newDraft(day, data)
                 else -> null
             }
@@ -223,34 +216,14 @@ class WeightViewModel(
             existingId = null,
             weightText = prefill?.let { decimalText(it.weightKg) }.orEmpty(),
             fatText = NONE,
-            minuteOfDay = if (day == clock.today()) nowMinuteOfDay() else NOON_MINUTE,
         )
     }
-
-    private fun editDraftOf(row: BodyMeasurement): MeasurementDraft {
-        val local = row.measuredAt.toLocalDateTime(timeZone)
-        return editDraft(row, local.hour * MINUTES_PER_HOUR + local.minute)
-    }
-
-    private fun nowMinuteOfDay(): Int {
-        val local = clock.now().toLocalDateTime(timeZone)
-        return local.hour * MINUTES_PER_HOUR + local.minute
-    }
-
-    private fun maxMinuteOf(day: LocalDate): Int? = if (day == clock.today()) nowMinuteOfDay() else null
 
     private fun edit(change: (MeasurementDraft) -> MeasurementDraft) {
         val state = sheet.value ?: return
         val draft = state.draft ?: return
         if (state.saving) return
         setSheet(state.copy(draft = change(draft), error = null))
-    }
-
-    private fun setTime(hour: Int, minute: Int) {
-        val state = sheet.value ?: return
-        val max = maxMinuteOf(state.day) ?: (MINUTES_PER_DAY - 1)
-        val requested = (hour * MINUTES_PER_HOUR + minute).coerceIn(0, MINUTES_PER_DAY - 1)
-        edit { it.copy(minuteOfDay = requested.coerceAtMost(max)) }
     }
 
     private fun setSheet(state: SheetState?) {
@@ -260,20 +233,18 @@ class WeightViewModel(
         savedState[KEY_EXISTING_ID] = draft?.existingId ?: NONE
         savedState[KEY_WEIGHT] = draft?.weightText ?: NONE
         savedState[KEY_FAT] = draft?.fatText ?: NONE
-        savedState[KEY_MINUTE] = draft?.minuteOfDay ?: NO_DRAFT
+        savedState[KEY_HAS_FORM] = draft != null
     }
 
     private fun restoreSheet(): SheetState? {
         val day = savedState.get<String>(KEY_SHEET_DAY)?.takeIf { it != NONE }?.let(LocalDate::parse) ?: return null
-        val minute = savedState.get<Int>(KEY_MINUTE) ?: NO_DRAFT
-        val draft = if (minute == NO_DRAFT) {
+        val draft = if (savedState.get<Boolean>(KEY_HAS_FORM) != true) {
             null
         } else {
             MeasurementDraft(
                 existingId = savedState.get<String>(KEY_EXISTING_ID)?.takeIf { it != NONE },
                 weightText = savedState.get<String>(KEY_WEIGHT).orEmpty(),
                 fatText = savedState.get<String>(KEY_FAT).orEmpty(),
-                minuteOfDay = minute,
             )
         }
         return SheetState(day, draft)
@@ -290,7 +261,7 @@ class WeightViewModel(
         val existing = draft.existingId?.let { id -> data.days[state.day]?.manual?.takeIf { it.id == id } }
         setSheet(state.copy(saving = true, error = null))
         viewModelScope.launch {
-            val result = saveBodyMeasurement(weight, draft.bodyFatPct, state.day, existing, draft.time)
+            val result = saveBodyMeasurement(weight, draft.bodyFatPct, state.day, existing)
             if (result.isSuccess) {
                 refreshData()
                 setSheet(null)
@@ -359,8 +330,6 @@ class WeightViewModel(
         day = state.day,
         isToday = state.day == clock.today(),
         healthConnect = data.days[state.day]?.healthConnect.orEmpty(),
-        form = state.draft?.let {
-            formOf(it, validate, maxMinuteOf(state.day), online, state.saving, state.error)
-        },
+        form = state.draft?.let { formOf(it, validate, online, state.saving, state.error) },
     )
 }

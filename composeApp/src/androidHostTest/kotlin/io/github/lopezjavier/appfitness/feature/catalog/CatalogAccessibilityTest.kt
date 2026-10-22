@@ -39,7 +39,6 @@ private val ExpectedTags =
         "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_sheet_open",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
         "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
-        "catalog_dropdown_field",
     )
 
 private val ExpectedSections =
@@ -53,7 +52,7 @@ private val ExpectedSections =
         "selectable_card", "exercise_media", "reorderable",
         "state_messages", "offline_banner",
         "favourite_toggle", "portion_selector", "month_calendar", "diary_history_row",
-        "dropdown_field", "circumference_row",
+        "circumference_row",
         "top_bar",
         "navigation", "bottom_sheet", "confirm_dialog", "logo", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }

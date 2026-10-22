@@ -14,7 +14,7 @@ import io.github.lopezjavier.appfitness.data.remote.MeasurementSourceDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
-import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceEntry
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import kotlin.time.Instant
 
@@ -32,14 +32,16 @@ class SupabaseCircumferenceRepository(private val auth: Auth, private val postgr
             .map { it.toDomain() }
     }
 
-    override suspend fun add(site: CircumferenceSite, valueCm: Double, measuredAt: Instant): Result<Unit> = signedIn {
+    override suspend fun addAll(entries: List<CircumferenceEntry>, measuredAt: Instant): Result<Unit> = signedIn {
         postgrest.from("body_circumferences").insert(
-            BodyCircumferenceInsertDto(
-                CircumferenceSiteDto.of(site),
-                valueCm,
-                measuredAt.toString(),
-                MeasurementSourceDto.Manual,
-            ),
+            entries.map {
+                BodyCircumferenceInsertDto(
+                    CircumferenceSiteDto.of(it.site),
+                    it.valueCm,
+                    measuredAt.toString(),
+                    MeasurementSourceDto.Manual,
+                )
+            },
         )
         Unit
     }.mapCheckViolation()

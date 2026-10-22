@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceEntry
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -29,8 +30,11 @@ private const val SESSION =
     """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
         """"user":{"id":"user-1","aud":"authenticated","email":"a@b.c"}}"""
 private const val ROWS =
-    """[{"id":"c-2","measured_at":"2026-10-20T08:00:00+00:00","site":"hip","value_cm":98.0},""" +
-        """{"id":"c-1","measured_at":"2026-10-14T10:00:00+00:00","site":"waist","value_cm":84.5}]"""
+    """[{"id":"c-2","measured_at":"2026-10-20T08:00:00+00:00","site":"hip","value_cm":98.0,""" +
+        """"created_at":"2026-10-20T08:05:00+00:00"},""" +
+        """{"id":"c-1","measured_at":"2026-10-14T10:00:00+00:00","site":"waist","value_cm":84.5,""" +
+        """"created_at":"2026-10-14T10:01:00+00:00"}]"""
+private val HIP_90 = CircumferenceEntry(CircumferenceSite.Hip, 90.0)
 private val MEASURED_AT = Instant.parse("2026-10-14T12:30:00Z")
 
 class SupabaseCircumferenceRepositoryTest {
@@ -75,25 +79,41 @@ class SupabaseCircumferenceRepositoryTest {
 
         assertEquals(
             listOf(
-                BodyCircumference("c-2", CircumferenceSite.Hip, 98.0, Instant.parse("2026-10-20T08:00:00Z")),
-                BodyCircumference("c-1", CircumferenceSite.Waist, 84.5, Instant.parse("2026-10-14T10:00:00Z")),
+                BodyCircumference(
+                    "c-2",
+                    CircumferenceSite.Hip,
+                    98.0,
+                    Instant.parse("2026-10-20T08:00:00Z"),
+                    Instant.parse("2026-10-20T08:05:00Z"),
+                ),
+                BodyCircumference(
+                    "c-1",
+                    CircumferenceSite.Waist,
+                    84.5,
+                    Instant.parse("2026-10-14T10:00:00Z"),
+                    Instant.parse("2026-10-14T10:01:00Z"),
+                ),
             ),
             rows,
         )
         val url = requests.last().url.toString()
         assertTrue(url.contains("order=measured_at.desc"), url)
+        assertTrue(url.contains("created_at"), url)
     }
 
     @Test
-    fun add_postsSiteValueDateAndManualSource() = runTest {
+    fun addAll_postsOneRequestWithEveryItem() = runTest {
         val repo = signedIn()
 
-        assertTrue(repo.add(CircumferenceSite.Waist, 84.5, MEASURED_AT).isSuccess)
+        val entries =
+            listOf(CircumferenceEntry(CircumferenceSite.Waist, 84.5), CircumferenceEntry(CircumferenceSite.Hip, 98.0))
+        assertTrue(repo.addAll(entries, MEASURED_AT).isSuccess)
 
         val post = writes().single()
         assertEquals(HttpMethod.Post, post.method)
         assertEquals(
-            """[{"site":"waist","value_cm":84.5,"measured_at":"2026-10-14T12:30:00Z","source":"manual"}]""",
+            """[{"site":"waist","value_cm":84.5,"measured_at":"2026-10-14T12:30:00Z","source":"manual"},""" +
+                """{"site":"hip","value_cm":98.0,"measured_at":"2026-10-14T12:30:00Z","source":"manual"}]""",
             (post.body as TextContent).text,
         )
     }
@@ -128,7 +148,7 @@ class SupabaseCircumferenceRepositoryTest {
         fail = true
 
         assertEquals(AppError.Network, repo.getAll().appErrorOrNull())
-        assertEquals(AppError.Network, repo.add(CircumferenceSite.Hip, 90.0, MEASURED_AT).appErrorOrNull())
+        assertEquals(AppError.Network, repo.addAll(listOf(HIP_90), MEASURED_AT).appErrorOrNull())
         assertEquals(AppError.Network, repo.delete("c-1").appErrorOrNull())
     }
 
@@ -136,7 +156,10 @@ class SupabaseCircumferenceRepositoryTest {
     fun checkViolation_isValidation() = runTest {
         val repo = signedIn(rejectWritesWith = "23514")
 
-        assertEquals(AppError.Validation, repo.add(CircumferenceSite.Hip, 19.0, MEASURED_AT).appErrorOrNull())
+        assertEquals(
+            AppError.Validation,
+            repo.addAll(listOf(HIP_90, CircumferenceEntry(CircumferenceSite.Neck, 19.0)), MEASURED_AT).appErrorOrNull(),
+        )
         assertEquals(AppError.Validation, repo.update("c-1", 19.0, MEASURED_AT).appErrorOrNull())
     }
 

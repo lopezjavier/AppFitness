@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -16,7 +15,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -103,11 +101,6 @@ class WeightScreenTest {
         rule.waitForIdle()
     }
 
-    private fun setWheel(tag: String, value: Float) {
-        rule.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
-        rule.waitForIdle()
-    }
-
     private fun description(tag: String): String? =
         rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
             ?.firstOrNull()
@@ -118,7 +111,7 @@ class WeightScreenTest {
     // -- Current weight panel ---------------------------------------------------------------------------------------
 
     @Test
-    fun panel_showsTheLatestWeightWithItsDateTimeAndBodyFat() {
+    fun panel_showsTheLatestManualWeightWithItsDateOnlyAndBodyFat() {
         show(
             manual("a", "2026-10-02T08:00:00Z", 75.0),
             manual("b", "2026-10-18T07:30:00Z", 73.9, fat = 15.1),
@@ -126,8 +119,15 @@ class WeightScreenTest {
 
         rule.onNodeWithTag("weight_current_value").assertTextContains("73,9 kg", substring = true)
         rule.onNodeWithTag("weight_current_value", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("18 oct, 07:30")
+        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("18 oct")
         rule.onNodeWithTag("weight_current_fat", useUnmergedTree = true).assertTextEquals("Grasa corporal: 15,1 %")
+    }
+
+    @Test
+    fun panel_ofAHealthConnectReading_keepsItsTime() {
+        show(manual("a", "2026-10-02T08:00:00Z", 75.0), healthConnect("h", "2026-10-19T06:00:00Z", 73.5))
+
+        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("19 oct, 06:00")
     }
 
     @Test
@@ -234,48 +234,76 @@ class WeightScreenTest {
     // -- Past days --------------------------------------------------------------------------------------------------
 
     @Test
-    fun emptyPastDay_opensTheSheetAndSavesAtTheChosenTime() {
+    fun emptyPastDay_opensTheSheetWithoutTime_andSavesAtNoon() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("month_calendar_day_$Yesterday")
         rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 20 oct")
-        rule.onNodeWithTag("weight_sheet_time_value").assertTextEquals("12:00")
-        setWheel("weight_sheet_hour", 7f)
-        setWheel("weight_sheet_minute", 30f)
+        assertNoTimeFields()
         type("weight_sheet_weight_input", "74,0")
         tap("weight_sheet_save")
 
-        assertEquals(Instant.parse("2026-10-20T07:30:00Z"), repository.saves.single().measuredAt)
+        assertEquals(Instant.parse("2026-10-20T12:00:00Z"), repository.saves.single().measuredAt)
         assertEquals("20 de octubre, con registros", description("month_calendar_day_$Yesterday"))
     }
 
     @Test
-    fun editingADay_changesWeightAndTime_andTheSheetOffersNoDateField() {
+    fun editingADay_changesWeight_keepsTheStoredInstant_andOffersNoDateOrTime() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("month_calendar_day_2026-10-18")
         rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 18 oct")
-        rule.onNodeWithTag("weight_sheet_time_value").assertTextEquals("07:30")
+        assertNoTimeFields()
         type("weight_sheet_weight_input", "73,8")
-        setWheel("weight_sheet_hour", 9f)
         tap("weight_sheet_save")
 
         val save = repository.saves.single()
         assertEquals("a", save.id)
         assertEquals(73.8, save.weightKg, 0.0)
-        assertEquals(Instant.parse("2026-10-18T09:30:00Z"), save.measuredAt)
+        assertEquals(Instant.parse("2026-10-18T07:30:00Z"), save.measuredAt)
         rule.onNodeWithTag("weight_sheet_date").assertDoesNotExist()
     }
 
     @Test
-    fun todaysTimeWheels_stopAtTheCurrentMinute() {
+    fun loggingToday_hasNoTimeFields_andSavesTheCurrentInstant() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("weight_log_today_button")
+        assertNoTimeFields()
+        type("weight_sheet_weight_input", "74,0")
+        tap("weight_sheet_save")
 
-        rule.onNodeWithTag("weight_sheet_time_value").assertTextEquals("10:30")
-        rule.onNodeWithTag("weight_sheet_hour_item_11", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("weight_sheet_hour_item_10", useUnmergedTree = true).assertExists()
+        assertEquals(Instant.parse("2026-10-21T10:30:00Z"), repository.saves.single().measuredAt)
+    }
+
+    private fun assertNoTimeFields() {
+        listOf("weight_sheet_time_value", "weight_sheet_hour", "weight_sheet_minute").forEach {
+            rule.onNodeWithTag(it, useUnmergedTree = true).assertDoesNotExist()
+        }
+    }
+
+    // -- Field alignment --------------------------------------------------------------------------------------------
+
+    private fun assertFieldsAligned() {
+        openTodaySheet()
+        val weight = rule.onNodeWithTag("weight_sheet_weight_input").getUnclippedBoundsInRoot()
+        val fat = rule.onNodeWithTag("weight_sheet_fat_input").getUnclippedBoundsInRoot()
+        assertEquals(weight.top, fat.top)
+        assertEquals(weight.bottom, fat.bottom)
+        val weightLabel = rule.onNodeWithTag("weight_sheet_weight_label").getUnclippedBoundsInRoot()
+        val fatLabel = rule.onNodeWithTag("weight_sheet_fat_label").getUnclippedBoundsInRoot()
+        assertEquals(weightLabel.top, fatLabel.top)
+    }
+
+    @Test
+    fun weightAndFatInputs_shareTheSameTopAndBottom() {
+        assertFieldsAligned()
+    }
+
+    @Test
+    @Config(fontScale = 1.3f)
+    fun weightAndFatInputs_stayAlignedAtLargeFontScale() {
+        assertFieldsAligned()
     }
 
     // -- Validation -------------------------------------------------------------------------------------------------

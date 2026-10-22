@@ -4,16 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -50,7 +47,13 @@ class CircumferenceRestorationTest {
     val rule = createComposeRule()
 
     private val repository = FakeCircumferenceRepository(
-        BodyCircumference("w", CircumferenceSite.Waist, 84.5, Instant.parse("2026-10-18T08:30:00Z")),
+        BodyCircumference(
+            "w",
+            CircumferenceSite.Waist,
+            84.5,
+            Instant.parse("2026-10-18T08:30:00Z"),
+            Instant.parse("2026-10-18T08:30:00Z"),
+        ),
     )
 
     private fun weightModel(): WeightViewModel {
@@ -102,53 +105,44 @@ class CircumferenceRestorationTest {
         rule.waitForIdle()
     }
 
-    private fun setWheel(tag: String, value: Float) {
-        rule.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
-        rule.waitForIdle()
-    }
-
     @Test
-    fun addSheet_keepsSiteValueDateAndTime_afterRecreation() {
+    fun addSheet_keepsTypedValuesDayAndOpenHelp_afterRecreation() {
         val savedState = SavedStateHandle()
         val tester = StateRestorationTester(rule)
         tester.setContent { Host(savedState) }
         rule.waitForIdle()
         tap("circumference_add_button")
-        tap("circumference_sheet_site_field")
-        tap("circumference_sheet_site_option_hip")
-        rule.onNodeWithTag("circumference_sheet_value_input").performTextReplacement("98,5")
+        rule.onNodeWithTag("circumference_sheet_value_input_hip").performTextReplacement("98,5")
+        rule.onNodeWithTag("circumference_sheet_value_input_neck").performTextReplacement("38,0")
         tap("circumference_sheet_date_prev")
-        setWheel("circumference_sheet_hour", 8f)
-        setWheel("circumference_sheet_minute", 15f)
+        tap("circumference_sheet_help_hip")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Añadir medida")
-        rule.onNodeWithTag("circumference_sheet_site_field").assertTextContains("Cadera", substring = true)
-        assertEquals("98,5", editableText("circumference_sheet_value_input"))
+        assertEquals("98,5", editableText("circumference_sheet_value_input_hip"))
+        assertEquals("38,0", editableText("circumference_sheet_value_input_neck"))
         rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("Ayer")
-        rule.onNodeWithTag("circumference_sheet_time_value").assertTextEquals("08:15")
+        rule.onNodeWithTag("circumference_sheet_help_text_hip").assertExists()
     }
 
     @Test
-    fun editSheet_keepsRowValueDateAndTime_afterRecreation() {
+    fun editSheet_keepsRowValueAndDay_afterRecreation() {
         val savedState = SavedStateHandle()
         val tester = StateRestorationTester(rule)
         tester.setContent { Host(savedState) }
         rule.waitForIdle()
         tap("circumference_row_w")
-        rule.onNodeWithTag("circumference_sheet_value_input").performTextReplacement("90,0")
-        setWheel("circumference_sheet_hour", 9f)
+        rule.onNodeWithTag("circumference_sheet_value_input_waist").performTextReplacement("90,0")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Editar medida")
-        rule.onNodeWithTag("circumference_sheet_site_readonly").assertTextEquals("Cintura")
-        assertEquals("90,0", editableText("circumference_sheet_value_input"))
+        assertEquals("90,0", editableText("circumference_sheet_value_input_waist"))
+        rule.onNodeWithTag("circumference_sheet_value_input_hip").assertDoesNotExist()
         rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("18 oct")
-        rule.onNodeWithTag("circumference_sheet_time_value").assertTextEquals("09:30")
         rule.onNodeWithTag("circumference_sheet_delete").assertExists()
     }
 }
