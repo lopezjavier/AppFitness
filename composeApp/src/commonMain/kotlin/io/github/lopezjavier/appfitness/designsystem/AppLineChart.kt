@@ -121,11 +121,19 @@ fun AppLineChart(
         producer.runTransaction {
             lineModel {
                 dots?.let { series ->
-                    val xs = if (connectGaps) series.presentIndices() else emptyList()
-                    if (xs.isEmpty()) addSeries(series) else series(xs, xs.map { series[it] as Double })
+                    val present = if (connectGaps) series.present() else emptyList()
+                    if (present.isEmpty()) {
+                        addSeries(series)
+                    } else {
+                        series(present.map { it.first }, present.map { it.second })
+                    }
                 }
-                val xs = if (connectGaps) values.presentIndices() else emptyList()
-                if (xs.isEmpty()) addSeries(values) else series(xs, xs.map { values[it] as Double })
+                val present = if (connectGaps) values.present() else emptyList()
+                if (present.isEmpty()) {
+                    addSeries(values)
+                } else {
+                    series(present.map { it.first }, present.map { it.second })
+                }
             }
         }
     }
@@ -160,7 +168,7 @@ fun AppLineChart(
  * Adds [series]; with [connectGaps] only the non-null values are added, at their original index as x, so the line joins
  * consecutive readings across the gaps. An all-null series keeps the null-aware form (Vico rejects empty x/y lists).
  */
-private fun List<Double?>.presentIndices(): List<Int> = indices.filter { this[it] != null }
+private fun List<Double?>.present(): List<Pair<Int, Double>> = mapIndexedNotNull { i, v -> v?.let { i to it } }
 
 private class ReferenceSpec(val value: Double, val range: ClosedFloatingPointRange<Double>)
 
