@@ -31,21 +31,24 @@ class SupabaseStrengthRepository(private val auth: Auth, private val postgrest: 
             .map { it.toDomain() }
     }
 
-    override suspend fun maxRepsHistory(exerciseId: String, from: LocalDate?): Result<List<MaxRepsPoint>> =
-        auth.ownRow {
-            val rows = postgrest.from("workout_sets")
-                .select(Columns.raw(MaxRepsRowDto.COLUMNS)) {
-                    filter {
-                        eq("exercise_id", exerciseId)
-                        eq("workout_sessions.status", "completed")
-                        neq("set_type", "warm_up")
-                        filterNot("completed_at", FilterOperator.IS, "null")
-                        if (from != null) gte("workout_sessions.started_at", "${from}T00:00:00Z")
-                    }
+    override suspend fun maxRepsHistory(
+        exerciseId: String,
+        from: LocalDate?,
+        includeWarmUp: Boolean,
+    ): Result<List<MaxRepsPoint>> = auth.ownRow {
+        val rows = postgrest.from("workout_sets")
+            .select(Columns.raw(MaxRepsRowDto.COLUMNS)) {
+                filter {
+                    eq("exercise_id", exerciseId)
+                    eq("workout_sessions.status", "completed")
+                    if (!includeWarmUp) neq("set_type", "warm_up")
+                    filterNot("completed_at", FilterOperator.IS, "null")
+                    if (from != null) gte("workout_sessions.started_at", "${from}T00:00:00Z")
                 }
-                .decodeList<MaxRepsRowDto>()
-            MaxRepsRowDto.toPoints(rows)
-        }
+            }
+            .decodeList<MaxRepsRowDto>()
+        MaxRepsRowDto.toPoints(rows)
+    }
 
     override suspend fun weeklyMuscleVolume(from: LocalDate): Result<List<WeeklyMuscleVolumeRow>> = auth.ownRow {
         postgrest.rpc("weekly_muscle_volume", WeeklyMuscleVolumeParams(from))

@@ -34,6 +34,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         strategy: GoalStrategy,
         adjustment: Int,
         split: MacroSplit,
+        warmUpIncluded: Boolean = false,
     ): Result<Unit> {
         val name = displayName.trim()
         val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
@@ -62,7 +63,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         } else {
             null
         }
-        return profileRepository.savePreferences(name, biometrics, goals, weight)
+        return profileRepository.savePreferences(name, biometrics, goals, weight, warmUpIncluded)
     }
 
     private companion object {

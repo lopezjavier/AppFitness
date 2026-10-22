@@ -62,7 +62,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-private const val SKELETON_CARDS = 3
+private const val SKELETON_CARDS = 4
 private const val SKELETON_CARD_UNITS = 5
 
 /** Stateful Preferencias: connects [PreferencesViewModel] to the stateless [PreferencesScreen]. */
@@ -181,6 +181,7 @@ private fun PreferencesLoaded(
                 } else {
                     PersonalAndEnergy(state, onEvent, onOpenMeals)
                     MacroSplitCard(state, onEvent)
+                    TrainingCard(state.form.warmUpIncluded, { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) })
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
@@ -254,6 +255,7 @@ private fun TwoColumns(
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             MacroSplitCard(state, onEvent)
+            TrainingCard(state.form.warmUpIncluded, { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) })
         }
     }
 }

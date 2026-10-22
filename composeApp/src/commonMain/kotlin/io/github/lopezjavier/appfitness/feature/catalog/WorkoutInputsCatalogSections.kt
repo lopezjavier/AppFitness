@@ -27,6 +27,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_text_field
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_1
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_2
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_type_clickable_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.name_error_blank
@@ -42,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
 
 private const val WEIGHT_PLACEHOLDER = "85"
@@ -52,6 +54,7 @@ private const val GRAMS_MAX_INTEGER_DIGITS = 4
 private const val COMPLETED_ROW_WEIGHT = "60"
 private const val COMPLETED_ROW_REPS = "12"
 private const val THIRD_SET = 3
+private const val FOURTH_SET = 4
 private const val STEPPER_START = -400
 private const val STEPPER_STEP = 50
 private const val STEPPER_MIN = -1000
@@ -229,19 +232,36 @@ private fun SetRowsSection() {
                     testTagPrefix = "catalog_set_row_2",
                 )
                 SetRow(
-                    values = SetRowValues(
-                        index = THIRD_SET,
-                        previous = null,
-                        weight = weight3,
-                        reps = reps3,
-                        completed = done3,
-                    ),
+                    values = SetRowValues(THIRD_SET, null, weight3, reps3, done3),
                     onWeightChange = { weight3 = it },
                     onRepsChange = { reps3 = it },
                     onCompletedChange = { done3 = it },
                     testTagPrefix = "catalog_set_row_3",
                 )
+                TappableTypeRow()
             }
         }
     }
+}
+
+/** A row whose type badge is a button: each tap toggles Calentamiento / Normal. */
+@Composable
+private fun TappableTypeRow() {
+    var type by rememberSaveable { mutableStateOf(SetType.WarmUp) }
+    SetRow(
+        values = SetRowValues(
+            index = FOURTH_SET,
+            previous = null,
+            weight = "",
+            reps = "",
+            completed = false,
+            type = type,
+        ),
+        onWeightChange = {},
+        onRepsChange = {},
+        onCompletedChange = {},
+        testTagPrefix = "catalog_set_row_4",
+        onTypeClick = { type = if (type == SetType.WarmUp) SetType.Working else SetType.WarmUp },
+        typeClickLabel = stringResource(Res.string.catalog_set_type_clickable_cd),
+    )
 }

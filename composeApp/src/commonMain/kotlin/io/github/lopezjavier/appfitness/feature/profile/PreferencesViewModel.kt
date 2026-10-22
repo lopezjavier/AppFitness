@@ -13,11 +13,13 @@ import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BalanceMacros
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyStrategyRules
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
@@ -52,6 +54,7 @@ private class PreferencesData(
     /** The newest Health Connect weight of the latest weight's local day, if any (it wins over a manual row). */
     val healthConnectWeight: BodyMeasurement?,
     val goals: Result<NutritionGoals?>,
+    val training: Result<TrainingPreferences>,
 )
 
 /**
@@ -64,6 +67,7 @@ class PreferencesViewModel(
     private val profileRepository: ProfileRepository,
     private val goalsRepository: NutritionGoalsRepository,
     private val bodyMeasurementRepository: BodyMeasurementRepository,
+    private val trainingPreferencesRepository: TrainingPreferencesRepository,
     private val savePreferences: SavePreferences,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
@@ -90,6 +94,7 @@ class PreferencesViewModel(
         load()
     }
 
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: PreferencesEvent) {
         when (event) {
             is PreferencesEvent.SetName ->
@@ -119,6 +124,8 @@ class PreferencesViewModel(
 
             is PreferencesEvent.MoveMacro ->
                 edit { it.copy(split = BalanceMacros(it.split, event.macro, event.percent)) }
+
+            is PreferencesEvent.SetWarmUpIncluded -> edit { it.copy(warmUpIncluded = event.included) }
 
             PreferencesEvent.Save -> save()
 
@@ -181,6 +188,7 @@ class PreferencesViewModel(
                 val biometrics = async { profileRepository.getBiometrics() }
                 val weight = async { bodyMeasurementRepository.getLatestWeight() }
                 val goals = async { goalsRepository.getOwn() }
+                val training = async { trainingPreferencesRepository.get() }
                 val latest = weight.await()
                 PreferencesData(
                     profile.await(),
@@ -188,13 +196,14 @@ class PreferencesViewModel(
                     latest,
                     healthConnectWeightOf(latest),
                     goals.await(),
+                    training.await(),
                 )
             }
             _uiState.value = loadedOrNull(data) ?: PreferencesUiState.LoadFailed
         }
     }
 
-    @Suppress("ReturnCount") // Guard clauses for the reads that must all have succeeded.
+    @Suppress("ReturnCount", "CyclomaticComplexMethod") // Guard clauses for the reads that must all have succeeded.
     private fun loadedOrNull(data: PreferencesData): PreferencesUiState.Loaded? {
         val profile = data.profile.getOrNull()
         val biometrics = data.biometrics.getOrNull()?.toBiometricsOrNull()
@@ -204,6 +213,7 @@ class PreferencesViewModel(
         val fromHealthConnect = hcWeight != null
         if (profile == null || biometrics == null || weight == null) return null
         if (data.goals.isFailure) return null
+        val training = data.training.getOrNull() ?: return null
         val goals = data.goals.getOrNull()
         val today = clock.today()
         val strategy = goals?.strategy ?: GoalStrategy.Maintenance
@@ -217,6 +227,7 @@ class PreferencesViewModel(
             strategy = strategy,
             adjustment = goals?.let { EnergyStrategyRules.clampAdjustment(strategy, it.calorieAdjustment) } ?: 0,
             split = goals?.split ?: MacroSplit.DEFAULT,
+            warmUpIncluded = training.warmUpIncluded,
         )
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
         return PreferencesUiState.Loaded(
@@ -287,6 +298,7 @@ class PreferencesViewModel(
                 strategy = form.strategy,
                 adjustment = form.adjustment,
                 split = form.split,
+                warmUpIncluded = form.warmUpIncluded,
             )
             if (result.isSuccess) {
                 if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()

@@ -3,10 +3,15 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -31,6 +36,7 @@ import kotlin.test.assertTrue
 class SessionDetailViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeWorkoutSessionRepository()
+    private val trainingPreferences = FakeTrainingPreferencesRepository()
     private val connectivity = FakeConnectivityObserver()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
 
@@ -48,6 +54,7 @@ class SessionDetailViewModelTest {
             exerciseLibrary = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca"))),
             connectivity = connectivity,
             clock = MutableClock(),
+            preferences = trainingPreferences,
             savedState = savedState,
         )
 
@@ -101,6 +108,60 @@ class SessionDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(false, model.content().exercises.single().isPersonalRecord)
+    }
+
+    /** Warm-up 100 x 3 (1RM 110) then working 80 x 8 (1RM 101.5). */
+    private fun seedHeavyWarmUp() {
+        repository.completed += completedSession("s1").copy(
+            exercises = listOf(
+                SessionExercise(
+                    "e1",
+                    0,
+                    null,
+                    listOf(
+                        WorkoutSet(1, SetType.WarmUp, SetEntry.WeightReps(100.0, 3), SESSION_START),
+                        doneSet(2, 80.0, 8),
+                    ),
+                ),
+            ),
+        )
+        repository.history = mapOf("e1" to listOf(point("old", 10, 105.0)))
+    }
+
+    @Test
+    fun warmUpSetsAreExcludedFromTheTotalsAndRecordsByDefault() = runTest(dispatcher) {
+        seedHeavyWarmUp()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(1, model.content().stats.completedSets)
+        assertEquals(640.0, model.content().stats.volumeKg)
+        assertEquals(false, model.content().exercises.single().isPersonalRecord)
+    }
+
+    @Test
+    fun warmUpSetsCountInTheTotalsAndRecordsWhenThePreferenceIsOn() = runTest(dispatcher) {
+        seedHeavyWarmUp()
+        trainingPreferences.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(2, model.content().stats.completedSets)
+        assertEquals(940.0, model.content().stats.volumeKg)
+        assertTrue(model.content().exercises.single().isPersonalRecord)
+    }
+
+    @Test
+    fun aFailedPreferenceReadStillShowsTheSessionExcludingWarmUps() = runTest(dispatcher) {
+        seedHeavyWarmUp()
+        trainingPreferences.result = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(1, model.content().stats.completedSets)
     }
 
     @Test

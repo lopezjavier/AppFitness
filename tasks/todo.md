@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Next task: T-090 (set types in the live session), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Next task: T-091 (RPE per set), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2288,17 +2288,17 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Live session: tapping a set's index opens the T-089 type picker. The badge shows on the set ("C" for "Calentamiento"), and "Quitar tipo" sets it back to "Normal". The type is saved with the set upsert. Backend: per-user training preferences (one row per user, `user_id` PK on delete cascade, owner RLS forced, `warm_up_included boolean default false`; the table later tasks extend; recorded in the E6 schema ADR). A new migration replaces `exercise_history`, `weekly_muscle_volume` and any other aggregate that filters warm-ups, so warm-up sets count only when the caller's setting is on. Aggregates are computed on read, so toggling "recalculates" past statistics without a rewrite. pgTAP covers both states (epic technical note). Domain: `CalculateVolume`, the session 1RM and `DetectPersonalRecords` take the inclusion flag. The session header totals (sets, reps) and the summary follow it (`04-business-rules.md` §4.6). UI: an "Incluir calentamiento" switch in Preferencias (an "Entrenamiento" block placed by ux-reviewer, saved with the screen's one "Guardar"). Fuerza, muscle volume, history and summaries reflect it.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: preferences RLS on and forced with cross-user isolation; `exercise_history` / `weekly_muscle_volume` exclude warm-up sets when off and include them when on; deleting a user with preferences succeeds.
-- [ ] Choosing "Calentamiento" on set 1 shows "C" and persists after reopening the session; "Quitar tipo" → "Normal".
-- [ ] Session with 40 × 10 warm-up + 80 × 8 working: volume "640 kg" and 1RM from 80 × 8 only; header total sets 1 (off) / 2 (on).
-- [ ] Turning "Incluir calentamiento" on changes the past 1RM, volume and muscle volume in Fuerza and the history, including a session older than the first loaded history page; turning it off restores them.
-- [ ] Draft and open picker restored after leaving the app.
+- [x] Migration + pgTAP: preferences RLS on and forced with cross-user isolation; `exercise_history` / `weekly_muscle_volume` exclude warm-up sets when off and include them when on; deleting a user with preferences succeeds.
+- [x] Choosing "Calentamiento" on set 1 shows "C" and persists after reopening the session; "Quitar tipo" → "Normal".
+- [x] Session with 40 × 10 warm-up + 80 × 8 working: volume "640 kg" and 1RM from 80 × 8 only; header total sets 1 (off) / 2 (on).
+- [x] Turning "Incluir calentamiento" on changes the past 1RM, volume and muscle volume in Fuerza and the history, including a session older than the first loaded history page; turning it off restores them.
+- [x] Draft and open picker restored after leaving the app.
 
 **Host tests (per scenario):** `CalculateVolumeTest`, `EstimateOneRepMaxTest`, `DetectPersonalRecordsTest` additions (Warm-up excluded by default; Toggling inclusion); `LiveSessionViewModelTest` (Assigning a type; Removing a type; header totals); `LiveSessionScreenTest` (badge, picker); `PreferencesViewModelTest`/screen test (switch saved with "Guardar"); `StrengthViewModelTest` (recalculated values, incl. an old session); restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-089
 **Files likely touched:** `supabase/migrations/<ts>_training_preferences.sql`, `supabase/tests/{training_preferences,exercise_history,weekly_muscle_volume}.test.sql`, `shared/…/domain/model/TrainingPreferences.kt`, `shared/…/domain/usecase/{CalculateVolume,DetectPersonalRecords}.kt` + tests, `shared/…/domain/repository/{TrainingPreferencesRepository,WorkoutSessionRepository}.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/workout/{LiveSessionScreen,LiveSessionViewModel,LiveSessionUiState,SessionSetRow,SessionSummaryScreen}.kt`, `composeApp/…/feature/profile/{PreferencesScreen,PreferencesViewModel}.kt`, strings, tests

@@ -40,5 +40,6 @@ interface ProfileRepository {
         biometrics: Biometrics,
         goals: NutritionGoals,
         weight: WeightEntry?,
+        warmUpIncluded: Boolean,
     ): Result<Unit>
 }

@@ -12,9 +12,14 @@ object DetectSessionPersonalRecords {
      * before the session's UTC start date count as earlier; same-day order is approximated because the points carry
      * no timestamp.
      */
-    operator fun invoke(session: WorkoutSession, history: Map<String, List<ExerciseHistoryPoint>>): Set<String> {
+    operator fun invoke(
+        session: WorkoutSession,
+        history: Map<String, List<ExerciseHistoryPoint>>,
+        includeWarmUp: Boolean = false,
+    ): Set<String> {
         val sessionDate = session.startedAt.toLocalDateTime(TimeZone.UTC).date
-        val best = session.exercises.groupBy { it.exerciseId }.mapValues { (_, rows) -> bestOneRepMax(rows) }
+        val best = session.exercises.groupBy { it.exerciseId }
+            .mapValues { (_, rows) -> bestOneRepMax(rows, includeWarmUp) }
         val earlier = history.mapValues { (_, points) -> points.filter { it.date <= sessionDate } }
         return DetectPersonalRecords(best, earlier, session.id)
     }

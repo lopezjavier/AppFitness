@@ -78,8 +78,12 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
         biometrics: Biometrics,
         goals: NutritionGoals,
         weight: WeightEntry?,
+        warmUpIncluded: Boolean,
     ): Result<Unit> = runMappingErrors {
-        postgrest.rpc("save_preferences", SavePreferencesParams.from(displayName, biometrics, goals, weight))
+        postgrest.rpc(
+            "save_preferences",
+            SavePreferencesParams.from(displayName, biometrics, goals, weight, warmUpIncluded),
+        )
     }.map {}
 
     private suspend fun <T> ownRow(block: suspend (userId: String) -> T): Result<T> = auth.ownRow(block)

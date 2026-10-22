@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(10);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -86,6 +86,32 @@ select is((select count(*)::int from public.weekly_muscle_volume('2026-09-01')
   'p_from excludes sessions before it');
 select is((select count(*)::int from public.weekly_muscle_volume('2026-10-12')), 2,
   'p_from equal to a session date includes that day');
+
+-- ---------------------------------------------------------------------------
+-- "Incluir calentamiento" (T-090): the warm-up 40 x 10 (400) counts when the flag is on, for any week
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.training_preferences (user_id, warm_up_included) values
+  ('11111111-1111-4111-8111-111111111111', true);
+insert into public.workout_sets
+  (session_id, exercise_id, exercise_position, set_index, set_type, weight_kg, reps, completed_at) values
+  ('a4000000-0000-4000-8000-000000000003', (select id from cat where k = 'c1'), 1, 1, 'warm_up', 50, 10, '2026-08-03 10:05+00');
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+
+select is((select total_volume from public.weekly_muscle_volume('2026-09-01')
+  where week_start = '2026-10-12' and muscle_group = 'chest'), 2500::numeric,
+  'on: the warm-up joins the chest volume (2100 + 400)');
+select is((select total_volume from public.weekly_muscle_volume('2026-08-01')
+  where week_start = '2026-08-03'), 1000::numeric,
+  'on: an old session also changes (500 + warm-up 500)');
+
+update public.training_preferences set warm_up_included = false
+  where user_id = '11111111-1111-4111-8111-111111111111';
+select is((select total_volume from public.weekly_muscle_volume('2026-08-01')
+  where week_start = '2026-08-03'), 500::numeric,
+  'off again: old session back to 500 (recalculated on read)');
 
 -- ---------------------------------------------------------------------------
 -- Bea only sees her own volume

@@ -89,7 +89,8 @@ object SetRowDefaults {
  * One set of a workout table: index, previous performance, KG and reps inputs and the completion
  * checkbox. A completed row makes both inputs read-only. [onUsePrevious] (optional) makes the previous
  * cell tappable on pending rows. When [testTagPrefix] is set the children are tagged `_previous`,
- * `_weight`, `_reps` and `_check`. Pair it with a [SetTableHeader] above, which names the columns.
+ * `_weight`, `_reps`, `_check` and `_type` (the badge). [onTypeClick] (optional) makes the badge a 48 dp button
+ * described by [typeClickLabel]. Pair it with a [SetTableHeader] above, which names the columns.
  */
 @Composable
 fun SetRow(
@@ -100,6 +101,8 @@ fun SetRow(
     modifier: Modifier = Modifier,
     onUsePrevious: (() -> Unit)? = null,
     testTagPrefix: String? = null,
+    onTypeClick: (() -> Unit)? = null,
+    typeClickLabel: String? = null,
 ) {
     val number = AppNumberFormat.integer(values.index)
     val previousText = SetRowDefaults.previousText(values.previous)
@@ -109,7 +112,13 @@ fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SetTypeBadge(type = values.type, number = number)
+        SetTypeBadge(
+            type = values.type,
+            number = number,
+            modifier = Modifier.tag(testTagPrefix, "type"),
+            onClick = onTypeClick,
+            clickLabel = typeClickLabel,
+        )
         PreviousCell(
             text = previousText,
             contentDescription = stringResource(Res.string.set_row_use_previous_cd, previousText),

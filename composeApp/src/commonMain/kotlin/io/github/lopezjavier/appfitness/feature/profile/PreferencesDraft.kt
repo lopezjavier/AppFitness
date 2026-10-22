@@ -25,6 +25,8 @@ internal data class PreferencesDraft(
     val proteinPct: Int,
     val carbsPct: Int,
     val fatPct: Int,
+    /** Absent in drafts saved by older versions. */
+    val warmUpIncluded: Boolean = false,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -41,6 +43,7 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         proteinPct = split.proteinPct,
         carbsPct = split.carbsPct,
         fatPct = split.fatPct,
+        warmUpIncluded = warmUpIncluded,
     ),
 )
 
@@ -56,5 +59,6 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
         strategy = GoalStrategy.valueOf(draft.strategy),
         adjustment = draft.adjustment,
         split = MacroSplit(draft.proteinPct, draft.carbsPct, draft.fatPct),
+        warmUpIncluded = draft.warmUpIncluded,
     )
 }.getOrNull()

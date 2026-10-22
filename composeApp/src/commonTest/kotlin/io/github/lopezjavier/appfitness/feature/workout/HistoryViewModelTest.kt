@@ -1,11 +1,17 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
+import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
+import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -45,6 +51,7 @@ internal fun completedSession(
 class HistoryViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeWorkoutSessionRepository()
+    private val training = FakeTrainingPreferencesRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -52,7 +59,7 @@ class HistoryViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = HistoryViewModel(repository, MutableClock())
+    private fun viewModel() = HistoryViewModel(repository, training, MutableClock())
 
     private fun HistoryViewModel.content() = assertIs<HistoryUiState.Content>(uiState.value)
 
@@ -86,6 +93,70 @@ class HistoryViewModelTest {
         assertEquals(52 * 60L, row.durationSeconds)
         assertEquals(1400.0, row.volumeKg)
         assertEquals(2, row.completedSets)
+    }
+
+    private fun withWarmUp(id: String) = completedSession(id).copy(
+        exercises = listOf(
+            SessionExercise(
+                "e1",
+                0,
+                null,
+                listOf(
+                    WorkoutSet(1, SetType.WarmUp, SetEntry.WeightReps(40.0, 10), SESSION_START),
+                    doneSet(2, 80.0, 8),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun warmUpSetsAreLeftOutOfTheRowByDefault() = runTest(dispatcher) {
+        repository.completed += withWarmUp("s1")
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val row = model.content().rows.single()
+        assertEquals(640.0, row.volumeKg)
+        assertEquals(1, row.completedSets)
+    }
+
+    @Test
+    fun warmUpSetsCountInTheRowWhenThePreferenceIsOn() = runTest(dispatcher) {
+        repository.completed += withWarmUp("s1")
+        training.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val row = model.content().rows.single()
+        assertEquals(1040.0, row.volumeKg)
+        assertEquals(2, row.completedSets)
+    }
+
+    @Test
+    fun refreshingPicksUpAChangedPreference() = runTest(dispatcher) {
+        repository.completed += withWarmUp("s1")
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(1, model.content().rows.single().completedSets)
+
+        training.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+        model.onEvent(HistoryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(2, model.content().rows.single().completedSets)
+    }
+
+    @Test
+    fun aFailedPreferenceReadFallsBackToExcludingWarmUpsWithoutBlocking() = runTest(dispatcher) {
+        repository.completed += withWarmUp("s1")
+        training.result = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(1, model.content().rows.single().completedSets)
     }
 
     @Test

@@ -16,10 +16,24 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.routines.ActionsSheet
 import io.github.lopezjavier.appfitness.feature.routines.SheetActionRow
 import org.jetbrains.compose.resources.stringResource
+
+/** The set type picker of the targeted set; "Listo" applies the choice, dismissing changes nothing. */
+@Composable
+internal fun LiveTypePicker(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+    val target = state.typePicker ?: return
+    val current = state.exercises.firstOrNull { it.position == target.position }
+        ?.sets?.firstOrNull { it.setIndex == target.setIndex }?.type ?: return
+    SetTypePickerSheet(
+        current = current,
+        onDone = { onEvent(LiveSessionEvent.SetTypeChosen(target.position, target.setIndex, it)) },
+        onDismiss = { onEvent(LiveSessionEvent.DismissTypePicker) },
+    )
+}
 
 @Composable
 internal fun LiveDialogs(

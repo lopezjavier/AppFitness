@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -114,6 +115,7 @@ class AppModuleTest {
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,
                 NutritionGoalsRepository::class,
+                TrainingPreferencesRepository::class,
                 MealSlotRepository::class,
                 FoodDiaryRepository::class,
                 FoodRepository::class,

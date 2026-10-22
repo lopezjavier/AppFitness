@@ -218,4 +218,5 @@ private fun LiveActive(
         SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
     }
     LiveDialogs(state, menuOpen, onCloseMenu = { menuOpen = false }, onEvent)
+    LiveTypePicker(state, onEvent)
 }
