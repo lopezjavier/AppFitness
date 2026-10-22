@@ -44,6 +44,10 @@ class CompleteOnboardingTest {
 
         override suspend fun updateDisplayName(name: String): Result<Unit> = error("unused")
 
+        override suspend fun getTargetWeight(): Result<Double?> = error("unused")
+
+        override suspend fun setTargetWeight(kg: Double?): Result<Unit> = error("unused")
+
         override fun hasProvidedFullName(): Boolean = error("unused")
 
         override suspend fun savePreferences(

@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.data.remote.DisplayNameUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.OnboardingCompletedDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
 import io.github.lopezjavier.appfitness.data.remote.SavePreferencesParams
+import io.github.lopezjavier.appfitness.data.remote.TargetWeightDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
@@ -54,6 +55,17 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = ownRow { userId ->
         postgrest.from("profiles").update(DisplayNameUpdateDto(name)) { filter { eq("id", userId) } }
+    }.map {}
+
+    override suspend fun getTargetWeight(): Result<Double?> = ownRow { userId ->
+        postgrest.from("profiles")
+            .select(Columns.raw(TargetWeightDto.COLUMNS)) { filter { eq("id", userId) } }
+            .decodeSingle<TargetWeightDto>()
+            .targetWeightKg
+    }
+
+    override suspend fun setTargetWeight(kg: Double?): Result<Unit> = ownRow { userId ->
+        postgrest.from("profiles").update(TargetWeightDto(kg)) { filter { eq("id", userId) } }
     }.map {}
 
     override fun hasProvidedFullName(): Boolean {

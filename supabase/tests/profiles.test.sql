@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(65);
+select plan(75);
 
 -- Test users (inserted as postgres; the on_auth_user_created trigger creates their profiles).
 --   A: Google-style metadata with full_name/avatar_url
@@ -53,8 +53,9 @@ select enum_has_labels('public', 'activity_level',
 select has_table('public', 'profiles', 'public.profiles exists');
 select columns_are('public', 'profiles', array[
   'id', 'display_name', 'avatar_url', 'birth_date', 'sex', 'height_cm', 'activity_level',
-  'onboarding_completed', 'created_at', 'updated_at'
+  'onboarding_completed', 'created_at', 'updated_at', 'target_weight_kg'
 ], 'profiles has exactly the planned columns');
+select col_type_is('public', 'profiles', 'target_weight_kg', 'numeric(5,2)', 'target_weight_kg is numeric(5,2)');
 select col_type_is('public', 'profiles', 'height_cm', 'numeric(5,1)', 'height_cm is numeric(5,1)');
 select col_not_null('public', 'profiles', 'onboarding_completed', 'onboarding_completed is not null');
 select col_default_is('public', 'profiles', 'onboarding_completed', 'false',
@@ -85,7 +86,7 @@ select is(
    where a.attrelid = 'public.profiles'::regclass and a.attnum > 0 and not a.attisdropped
      and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')),
   array['activity_level', 'avatar_url', 'birth_date', 'display_name',
-        'height_cm', 'onboarding_completed', 'sex'],
+        'height_cm', 'onboarding_completed', 'sex', 'target_weight_kg'],
   'authenticated can only update the user-editable columns'
 );
 select has_trigger('auth', 'users', 'on_auth_user_created', 'sign-up trigger exists on auth.users');
@@ -199,6 +200,27 @@ select lives_ok(
   $$update public.profiles set height_cm = null where id = '44444444-4444-4444-8444-444444444444'$$,
   'height_cm can be null'
 );
+select is(
+  (select target_weight_kg from public.profiles where id = '44444444-4444-4444-8444-444444444444'),
+  null,
+  'handle_new_user-created rows have a null target_weight_kg'
+);
+select throws_ok(
+  $$update public.profiles set target_weight_kg = 19.99 where id = '44444444-4444-4444-8444-444444444444'$$,
+  '23514', null, 'target_weight_kg below 20 is rejected'
+);
+select throws_ok(
+  $$update public.profiles set target_weight_kg = 400.01 where id = '44444444-4444-4444-8444-444444444444'$$,
+  '23514', null, 'target_weight_kg above 400 is rejected'
+);
+select lives_ok(
+  $$update public.profiles set target_weight_kg = 20 where id = '44444444-4444-4444-8444-444444444444'$$,
+  'target_weight_kg = 20 is accepted'
+);
+select lives_ok(
+  $$update public.profiles set target_weight_kg = 400 where id = '44444444-4444-4444-8444-444444444444'$$,
+  'target_weight_kg = 400 is accepted'
+);
 update public.profiles set display_name = 'x', updated_at = '2000-01-01'
   where id = '44444444-4444-4444-8444-444444444444';
 select is(
@@ -237,6 +259,24 @@ select results_eq(
     select count(*)::int from u$$,
   $$values (0)$$,
   'A updating B''s profile affects 0 rows'
+);
+select results_eq(
+  $$with u as (update public.profiles set target_weight_kg = 70.5
+               where id = '11111111-1111-4111-8111-111111111111' returning 1)
+    select count(*)::int from u$$,
+  $$values (1)$$,
+  'A can set their own target_weight_kg'
+);
+select lives_ok(
+  $$update public.profiles set target_weight_kg = null where id = '11111111-1111-4111-8111-111111111111'$$,
+  'A can clear their target_weight_kg'
+);
+select results_eq(
+  $$with u as (update public.profiles set target_weight_kg = 55
+               where id = '22222222-2222-4222-8222-222222222222' returning 1)
+    select count(*)::int from u$$,
+  $$values (0)$$,
+  'A updating B''s target_weight_kg affects 0 rows'
 );
 select throws_ok(
   $$update public.profiles set id = '55555555-5555-4555-8555-555555555555'
@@ -297,6 +337,11 @@ select is(
   (select display_name from public.profiles where id = '22222222-2222-4222-8222-222222222222'),
   'Bea',
   'B''s profile is unchanged after A''s update attempt'
+);
+select is(
+  (select target_weight_kg from public.profiles where id = '22222222-2222-4222-8222-222222222222'),
+  null,
+  'B''s target_weight_kg is unchanged after A''s update attempt'
 );
 select is(
   (select count(*)::int from public.profiles where id = '11111111-1111-4111-8111-111111111111'),
