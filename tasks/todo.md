@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-086 (crash deleting an old manual weight), then T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2153,11 +2153,11 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** Deleting an old manual weight (from the calendar / day detail) removes it but the app crashes. The developer reproduces it with a failing test first, finds the cause (logcat from the user if needed) and fixes it.
 
 **Acceptance criteria:**
-- [ ] Deleting an old manual weight removes it and the app keeps running (chart, calendar and "Peso actual" update).
-- [ ] A regression test reproduces the crash before the fix.
+- [x] Deleting an old manual weight removes it and the app keeps running (chart, calendar and "Peso actual" update).
+- [x] A regression test reproduces the crash before the fix.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green.
+- [x] Lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-085
 **Estimated scope:** S
