@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-083 (User feedback: day-only forms, aligned weight sheet, all circumferences at once); then T-079 with no checkpoint in between (E5-A folded into E5-B). T-076, T-077 and T-078 done. E4 closed (tag `v0.4.0`).
+**Next:** T-079 (manual Health Connect sync); no checkpoint in between (E5-A folded into E5-B). T-076, T-077, T-078 and T-083 done. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2005,15 +2005,15 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** (1) Weight sheet bug: "Peso (kg)" and "Grasa corporal (%, opcional)" must sit on one horizontal line with the same height and no line crossing the inputs (screenshot from the user's phone: the right field is lower and a horizontal rule cuts through the form). (2) Day only, no hour, on the weight and circumference sheets (remove the hour wheels); manual rows are stored for the chosen day (today: the save instant; a past day: midday local time), displayed as a date without time; the current-weight panel shows the date only for manual rows. (3) Circumference sheet redesign: "Añadir medida" opens a sheet with the seven sites as optional fields and the day stepper; "Guardar" saves one row per filled site (disabled while all are empty or any value is invalid, range shown); no dropdown (`AppDropdownField` stays only if something else uses it, otherwise remove it and its catalog entry); a "?" icon per site opens short Spanish step-by-step instructions (text only, wording by ux-reviewer; images later in E8). Editing a saved row opens it with its single site. Rows with the same site and day: the latest saved wins for the ratio. No migration expected (tie-break by `created_at`); the planner confirms.
 
 **Acceptance criteria:**
-- [ ] The weight and body-fat fields of the add/edit sheet are on one line, same height, and no stray line crosses them (Robolectric layout test comparing the fields' top positions + a visual check at Checkpoint E5-A).
-- [ ] Neither the weight sheet nor the circumference sheet shows an hour; a past-day weight is stored for that day; the panel shows only the date.
-- [ ] Waist 84,5 + hip 98,0 in one sheet → two rows, ratio "0,86"; only waist → one row; all empty → "Guardar" disabled.
-- [ ] 19,9 or 251 in any site → "Guardar" disabled with "Entre 20 y 250 cm".
-- [ ] "?" next to a site shows its instructions.
-- [ ] Drafts of both sheets survive leaving the app and process death.
+- [x] The weight and body-fat fields of the add/edit sheet are on one line, same height, and no stray line crosses them (Robolectric layout test comparing the fields' top positions + a visual check at Checkpoint E5-A).
+- [x] Neither the weight sheet nor the circumference sheet shows an hour; a past-day weight is stored for that day; the panel shows only the date.
+- [x] Waist 84,5 + hip 98,0 in one sheet → two rows, ratio "0,86"; only waist → one row; all empty → "Guardar" disabled.
+- [x] 19,9 or 251 in any site → "Guardar" disabled with "Entre 20 y 250 cm".
+- [x] "?" next to a site shows its instructions.
+- [x] Drafts of both sheets survive leaving the app and process death.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if the migration is needed.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if the migration is needed.
 
 **Dependencies:** T-078
 **Estimated scope:** M
