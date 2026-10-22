@@ -32,6 +32,7 @@ import coil3.test.FakeImageLoaderEngine
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
@@ -52,7 +53,7 @@ import org.robolectric.annotation.Config
 
 /** US-10 routine builder: creating, reordering, supersets, validation and the save/discard flows. */
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
 class RoutineBuilderScreenTest {
     @get:Rule
@@ -189,8 +190,8 @@ class RoutineBuilderScreenTest {
         show().add("a")
 
         rowName(0).assertContentDescriptionEquals("Press de banca")
-        rule.onNodeWithTag("routine_builder_sets_0_value").assertTextEquals("3")
-        rule.onNodeWithTag("routine_builder_reps_0_value").assertTextEquals("8")
+        for (set in 0..2) rule.onNodeWithTag("routine_builder_set_reps_0_$set").assertTextEquals("8")
+        rule.onNodeWithTag("routine_builder_set_row_0_3").assertDoesNotExist()
         rule.onNodeWithTag("routine_builder_rest_0_value").assertTextEquals("2 min")
     }
 
@@ -284,18 +285,8 @@ class RoutineBuilderScreenTest {
     }
 
     @Test
-    fun steppers_changeTheValues_andStopAtTheirBounds() {
+    fun restStepper_changesTheValue() {
         show().add("a")
-
-        repeat(MORE_THAN_MAX_SETS) { rule.onNodeWithTag("routine_builder_sets_0_increment").performClick() }
-        rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_sets_0_value").assertTextEquals("10")
-        rule.onNodeWithTag("routine_builder_sets_0_increment").assertIsNotEnabled()
-
-        repeat(MORE_THAN_MAX_SETS) { rule.onNodeWithTag("routine_builder_sets_0_decrement").performClick() }
-        rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_sets_0_value").assertTextEquals("1")
-        rule.onNodeWithTag("routine_builder_sets_0_decrement").assertIsNotEnabled()
 
         rule.onNodeWithTag("routine_builder_rest_0_increment").performClick()
         rule.waitForIdle()
@@ -370,7 +361,18 @@ class RoutineBuilderScreenTest {
         name = "Torso",
         rows =
         listOf(
-            BuilderRowUi(1L, "a", "Press de banca", null, 3, 8, rest, null, false, false, false),
+            BuilderRowUi(
+                1L,
+                "a",
+                "Press de banca",
+                null,
+                List(3) { PlannedSetUi(it.toLong(), "", "8", SetType.Working) },
+                rest,
+                null,
+                false,
+                false,
+                false,
+            ),
         ),
     )
 
@@ -472,5 +474,4 @@ class RoutineBuilderScreenTest {
     }
 }
 
-private const val MORE_THAN_MAX_SETS = 12
 private const val MORE_THAN_MAX_REST_STEPS = 70

@@ -6,15 +6,11 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
-import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
-import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.groupWithNext
-import io.github.lopezjavier.appfitness.domain.usecase.moveExercise
-import io.github.lopezjavier.appfitness.domain.usecase.normalizeGroups
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import io.github.lopezjavier.appfitness.domain.usecase.ungroup
 import kotlinx.coroutines.channels.Channel
@@ -24,35 +20,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 private const val KEY_DRAFT = "builder_draft"
 private const val KEY_BASELINE = "builder_baseline"
-
-/** One row of the draft; [group] is the superset group value (null = standalone). */
-@Serializable
-internal data class DraftRow(
-    val rowId: Long,
-    val exerciseId: String,
-    val sets: Int,
-    val reps: Int,
-    val restSeconds: Int,
-    val group: Int?,
-)
-
-/** The editable routine. Serializable so it survives process death inside the [SavedStateHandle]. */
-@Serializable
-internal data class RoutineDraft(
-    val name: String = "",
-    val notes: String? = null,
-    val rows: List<DraftRow> = emptyList(),
-    val nextRowId: Long = 0,
-)
+private const val KEY_PICKER = "builder_type_picker"
 
 /**
- * Routine builder (US-10): name, exercises with sets, reps and rest, reorder (drag or move up/down) and supersets.
- * The whole draft lives in [savedState] (as JSON), so it survives a configuration change and process death. With a
+ * Routine builder (US-10, US-29): name, exercises with per-set weight, reps and type, rest, reorder (drag or move
+ * up/down) and supersets. Supersets keep an equal set count (ADR-38): adding or removing a set applies to every
+ * member, and grouping makes the following members adopt the count of the row grouped. The whole draft lives in
+ * [savedState] (as JSON), so it survives a configuration change and process death. With a
  * [routineId] it loads that routine unless a draft was already restored. Saving is one atomic call and a failure
  * keeps every edit.
  */
@@ -74,6 +51,14 @@ class RoutineBuilderViewModel(
     private var online = true
     private var saving = false
     private var discardAsked = false
+
+    /** The set whose type picker is open as (rowId, setId); restored with the draft, never part of it. */
+    private var picker: Pair<Long, Long>? =
+        savedState.get<String>(KEY_PICKER)?.split(":")?.takeIf { it.size == 2 }?.let {
+            val rowId = it[0].toLongOrNull()
+            val setId = it[1].toLongOrNull()
+            if (rowId != null && setId != null) rowId to setId else null
+        }
 
     init {
         // A new routine is compared against the empty draft; without a stored baseline a restored draft would
@@ -101,6 +86,7 @@ class RoutineBuilderViewModel(
         if (phase == Phase.Loading) loadRoutine() else loadNames()
     }
 
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: RoutineBuilderEvent) {
         when (event) {
             RoutineBuilderEvent.Save -> save()
@@ -116,10 +102,15 @@ class RoutineBuilderViewModel(
                 publish()
             }
 
+            is RoutineBuilderEvent.OpenTypePicker -> openPicker(event.index, event.setIndex)
+
+            RoutineBuilderEvent.CloseTypePicker -> setPicker(null)
+
             else -> {
                 // An exercise created in the picker after this screen opened is not in the loaded catalog yet.
                 if (event is RoutineBuilderEvent.AddExercise && event.exerciseId !in catalog) loadNames()
                 listEdit(event)?.let { edit(it) }
+                setsEdit(event)?.let { edit(it) }
                 targetEdit(event)?.let { (index, change) -> editRow(index, change) }
             }
         }
@@ -137,8 +128,9 @@ class RoutineBuilderViewModel(
 
         is RoutineBuilderEvent.MoveDown -> { draft -> draft.movedRow(event.index, event.index + 1) }
 
-        is RoutineBuilderEvent.GroupWithNext ->
-            { draft -> draft.withGroups(groupWithNext(draft.rows.map(DraftRow::group), event.index)) }
+        is RoutineBuilderEvent.GroupWithNext -> { draft ->
+            draft.withGroups(groupWithNext(draft.rows.map(DraftRow::group), event.index)).leveledTo(event.index)
+        }
 
         is RoutineBuilderEvent.Ungroup ->
             { draft -> draft.withGroups(ungroup(draft.rows.map(DraftRow::group), event.index)) }
@@ -149,18 +141,30 @@ class RoutineBuilderViewModel(
         else -> null
     }
 
-    /** The row index and change of a stepper event, or null for any other event. */
+    /** The change an event makes to the planned sets of a row, or null for any other event. */
+    private fun setsEdit(event: RoutineBuilderEvent): ((RoutineDraft) -> RoutineDraft)? = when (event) {
+        is RoutineBuilderEvent.AddSet -> { draft -> draft.withAddedSet(event.index) }
+
+        is RoutineBuilderEvent.RemoveSet -> { draft -> draft.withoutSet(event.index, event.setIndex) }
+
+        is RoutineBuilderEvent.SetWeight -> { draft ->
+            draft.withSetEdit(event.index, event.setIndex) { it.copy(weight = event.text.take(WEIGHT_MAX_CHARS)) }
+        }
+
+        is RoutineBuilderEvent.SetReps -> { draft ->
+            draft.withSetEdit(event.index, event.setIndex) { it.copy(reps = event.text.take(REPS_MAX_CHARS)) }
+        }
+
+        is RoutineBuilderEvent.ChangeSetType -> { draft ->
+            setPicker(null)
+            draft.withSetEdit(event.index, event.setIndex) { it.copy(type = event.type) }
+        }
+
+        else -> null
+    }
+
+    /** The row index and change of the rest stepper event, or null for any other event. */
     private fun targetEdit(event: RoutineBuilderEvent): Pair<Int, (DraftRow) -> DraftRow>? = when (event) {
-        is RoutineBuilderEvent.StepSets ->
-            event.index to { row ->
-                row.copy(sets = (row.sets + event.delta).coerceIn(RoutineBounds.SETS_MIN, RoutineBounds.SETS_MAX))
-            }
-
-        is RoutineBuilderEvent.StepReps ->
-            event.index to { row ->
-                row.copy(reps = (row.reps + event.delta).coerceIn(RoutineBounds.REPS_MIN, RoutineBounds.REPS_MAX))
-            }
-
         is RoutineBuilderEvent.StepRest ->
             event.index to { row ->
                 val rest = row.restSeconds + event.delta * RoutineBounds.REST_STEP_SECONDS
@@ -254,6 +258,25 @@ class RoutineBuilderViewModel(
         savedState[KEY_DRAFT] = encode(draft)
     }
 
+    private fun openPicker(rowIndex: Int, setIndex: Int) {
+        val row = draft.rows.getOrNull(rowIndex)
+        val set = row?.sets?.getOrNull(setIndex)
+        if (phase == Phase.Editing && row != null && set != null) setPicker(row.rowId to set.setId)
+    }
+
+    private fun setPicker(target: Pair<Long, Long>?) {
+        picker = target
+        savedState[KEY_PICKER] = target?.let { "${it.first}:${it.second}" }
+        publish()
+    }
+
+    private fun renderPicker(): TypePickerUi? {
+        val (rowId, setId) = picker ?: return null
+        val rowIndex = draft.rows.indexOfFirst { it.rowId == rowId }
+        val set = draft.rows.getOrNull(rowIndex)?.sets?.withIndex()?.firstOrNull { it.value.setId == setId }
+        return set?.let { TypePickerUi(rowIndex, it.index, it.value.type) }
+    }
+
     private fun publish() {
         _uiState.value = render()
     }
@@ -277,8 +300,7 @@ class RoutineBuilderViewModel(
                         exerciseId = row.exerciseId,
                         name = exercise?.name,
                         imageKey = exercise?.takeIf { it.hasMedia }?.exercise?.key,
-                        sets = row.sets,
-                        reps = row.reps,
+                        plannedSets = row.sets.map { it.toUi() },
                         restSeconds = row.restSeconds,
                         supersetLabel = labels[index],
                         canMoveUp = index > 0,
@@ -290,62 +312,8 @@ class RoutineBuilderViewModel(
                 isSaving = saving,
                 isDirty = draft != baseline,
                 showDiscardConfirm = discardAsked,
+                typePicker = renderPicker(),
             )
         }
     }
 }
-
-private fun RoutineDraft.withNewRow(exerciseId: String): RoutineDraft = copy(
-    rows =
-    rows +
-        DraftRow(
-            rowId = nextRowId,
-            exerciseId = exerciseId,
-            sets = RoutineBounds.DEFAULT_SETS,
-            reps = RoutineBounds.DEFAULT_REPS,
-            restSeconds = RoutineBounds.DEFAULT_REST_SECONDS,
-            group = null,
-        ),
-    nextRowId = nextRowId + 1,
-)
-
-private fun RoutineDraft.movedRow(from: Int, to: Int): RoutineDraft =
-    copy(rows = moveExercise(rows, from, to)).renormalized()
-
-private fun RoutineDraft.withGroups(groups: List<Int?>): RoutineDraft =
-    copy(rows = rows.mapIndexed { index, row -> row.copy(group = groups[index]) })
-
-/** Clears and renumbers the superset groups after rows moved or went away. */
-private fun RoutineDraft.renormalized(): RoutineDraft = withGroups(normalizeGroups(rows.map(DraftRow::group)))
-
-private fun RoutineDraft.toRoutine(id: String?) = Routine(
-    id = id,
-    name = name.trim(),
-    notes = notes,
-    archived = false,
-    exercises =
-    rows.mapIndexed { index, row ->
-        RoutineExercise(row.exerciseId, index, row.group, row.sets, row.reps, row.restSeconds)
-    },
-)
-
-private fun Routine.toDraft(): RoutineDraft {
-    val groups = normalizeGroups(exercises.sortedBy { it.position }.map { it.supersetGroup })
-    val rows =
-        exercises.sortedBy { it.position }.mapIndexed { index, exercise ->
-            DraftRow(
-                rowId = index.toLong(),
-                exerciseId = exercise.exerciseId,
-                sets = exercise.targetSets,
-                reps = exercise.targetReps,
-                restSeconds = exercise.restSeconds,
-                group = groups[index],
-            )
-        }
-    return RoutineDraft(name = name, notes = notes, rows = rows, nextRowId = rows.size.toLong())
-}
-
-private fun encode(draft: RoutineDraft): String = Json.encodeToString(RoutineDraft.serializer(), draft)
-
-private fun decode(json: String): RoutineDraft? =
-    runCatching { Json.decodeFromString(RoutineDraft.serializer(), json) }.getOrNull()

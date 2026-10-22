@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
 import kotlin.time.Duration
@@ -15,6 +16,8 @@ data class LiveSetRow(
     /** Previous set's values, shown greyed on an added set; null when there is nothing to suggest. */
     val weightPlaceholder: String? = null,
     val repsPlaceholder: String? = null,
+    /** The stored type of the set (planned in the routine); shown by the index badge, not editable here. */
+    val type: SetType = SetType.Working,
     /** Last time's set as "85 kg × 8"; null when there is none (the UI shows a dash). */
     val previous: String? = null,
     /** The last write of this set has not reached the server yet; it is retried when the connection returns. */

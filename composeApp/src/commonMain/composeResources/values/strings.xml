@@ -277,8 +277,6 @@
     <string name="builder_row_menu_cd">Más opciones de %1$s</string>
     <string name="builder_reorder_cd">Reordenar %1$s</string>
     <string name="builder_row_cd_superset">%1$s, %2$s</string>
-    <string name="builder_sets_unit">SERIES</string>
-    <string name="builder_reps_unit">REPS</string>
     <string name="builder_rest_unit">DESCANSO</string>
     <string name="builder_exercise_open_cd">Ver ejercicio %1$s</string>
     <string name="rest_format_seconds">%1$d s</string>
@@ -293,19 +291,27 @@
         <item quantity="one">%1$d segundo</item>
         <item quantity="other">%1$d segundos</item>
     </plurals>
-    <plurals name="builder_sets_state">
-        <item quantity="one">%1$d serie</item>
-        <item quantity="other">%1$d series</item>
-    </plurals>
-    <plurals name="builder_reps_state">
-        <item quantity="one">%1$d repetición</item>
-        <item quantity="other">%1$d repeticiones</item>
-    </plurals>
     <string name="builder_rest_state">Descanso: %1$s</string>
-    <string name="builder_sets_decrease_cd">Menos series</string>
-    <string name="builder_sets_increase_cd">Más series</string>
-    <string name="builder_reps_decrease_cd">Menos repeticiones</string>
-    <string name="builder_reps_increase_cd">Más repeticiones</string>
+    <string name="builder_add_set">Añadir serie</string>
+    <string name="builder_set_delete_cd">Eliminar serie %1$d</string>
+    <string name="builder_set_weight_cd">Peso de la serie %1$d</string>
+    <string name="builder_set_reps_cd">Repeticiones de la serie %1$d</string>
+    <string name="builder_set_type_cd">Tipo de la serie %1$d: %2$s</string>
+    <string name="builder_set_hint_kg">kg</string>
+    <string name="builder_set_hint_reps">reps</string>
+    <string name="builder_superset_sets_hint">Las series se añaden y quitan en toda la superserie.</string>
+    <string name="set_type_normal">Normal</string>
+    <string name="set_type_warm_up">Calentamiento</string>
+    <string name="set_type_failure">Fallo</string>
+    <string name="set_type_drop">Drop</string>
+    <string name="set_type_clear">Quitar tipo</string>
+    <string name="set_type_done">Listo</string>
+    <string name="set_type_close_cd">Cerrar sin cambiar el tipo</string>
+    <string name="set_type_letter_warm_up">C</string>
+    <string name="set_type_letter_failure">F</string>
+    <string name="set_type_letter_drop">D</string>
+    <string name="set_type_picker_title">Tipo de serie</string>
+    <string name="catalog_section_set_type">Tipo de serie</string>
     <string name="builder_rest_decrease_cd">Menos descanso</string>
     <string name="builder_rest_increase_cd">Más descanso</string>
     <string name="builder_save_failed">No se pudo guardar la rutina. Inténtalo de nuevo.</string>

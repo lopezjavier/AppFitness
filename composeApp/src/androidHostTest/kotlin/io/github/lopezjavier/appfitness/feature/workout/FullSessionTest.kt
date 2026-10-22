@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -68,10 +69,10 @@ class FullSessionTest {
             notes = null,
             archived = false,
             exercises = listOf(
-                RoutineExercise("e1", 0, null, 2, 8, 60),
-                RoutineExercise("e2", 1, 1, 1, 8, 0),
-                RoutineExercise("e3", 2, 1, 1, 8, 90),
-                RoutineExercise("e4", 3, null, 1, 8, 30),
+                RoutineExercise("e1", 0, null, List(2) { PlannedSet(null, 8) }, 60),
+                RoutineExercise("e2", 1, 1, List(1) { PlannedSet(null, 8) }, 0),
+                RoutineExercise("e3", 2, 1, List(1) { PlannedSet(null, 8) }, 90),
+                RoutineExercise("e4", 3, null, List(1) { PlannedSet(null, 8) }, 30),
             ),
         )
         viewModel = LiveSessionViewModel(
