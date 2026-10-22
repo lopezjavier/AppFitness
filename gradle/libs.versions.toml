@@ -6,7 +6,7 @@
 # up to API 37 (developer.android.com/build/releases/agp-9-3-0-release-notes).
 agp = "9.3.3"
 kotlin = "2.4.21"
-compose-multiplatform = "1.12.1"
+compose-multiplatform = "1.12.2"
 # Kept 1.9.0 (latest stable) with CMP 1.12.1, checked in T-020: androidRuntimeClasspath
 # resolves androidx.compose.material3 1.4.0; ui/foundation are only upgraded to 1.12.1 by
 # conflict resolution (no downgrade, no FAILED). The officially paired 1.12.0-alpha03 is a
