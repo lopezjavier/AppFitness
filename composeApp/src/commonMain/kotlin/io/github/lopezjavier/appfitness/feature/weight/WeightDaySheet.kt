@@ -62,14 +62,9 @@ internal fun WeightDaySheet(
     timeZone: TimeZone,
     onEvent: (WeightEvent) -> Unit,
     modifier: Modifier = Modifier,
-    daySheetGoal: DaySheetGoal? = null,
 ) {
-    val comparing = daySheetGoal?.goal?.comparisonOpen == true
     AppBottomSheet(
-        onDismissRequest = {
-            daySheetGoal?.onEvent?.invoke(GoalEvent.CloseCompare)
-            onEvent(WeightEvent.CloseSheet)
-        },
+        onDismissRequest = { onEvent(WeightEvent.CloseSheet) },
         modifier = modifier,
         testTagPrefix = "weight_day_sheet",
     ) {
@@ -87,23 +82,15 @@ internal fun WeightDaySheet(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
-                if (comparing && daySheetGoal != null) {
-                    ComparisonContent(daySheetGoal.goal.comparison, daySheetGoal.onEvent)
-                } else {
-                    SheetTitle(sheet)
-                    if (sheet.healthConnect.isNotEmpty()) {
-                        HealthConnectRows(sheet.healthConnect, isOnline, timeZone, onEvent, daySheetGoal)
-                    }
-                    if (sheet.manualLocked) HealthConnectNote()
-                    sheet.dayComposition?.let { CompositionLines(it) }
-                    val form = sheet.form
-                    if (form != null) {
-                        MeasurementFormFields(sheet.day, form, onEvent)
-                        ManualExtras(form, daySheetGoal)
-                    }
+                SheetTitle(sheet)
+                if (sheet.healthConnect.isNotEmpty()) {
+                    HealthConnectRows(sheet.healthConnect, isOnline, timeZone, onEvent)
                 }
+                if (sheet.manualLocked) HealthConnectNote()
+                sheet.dayComposition?.let { CompositionLines(it) }
+                sheet.form?.let { MeasurementFormFields(sheet.day, it, onEvent) }
             }
-            if (!comparing) sheet.form?.let { SheetActions(it, isOnline, onEvent) }
+            sheet.form?.let { SheetActions(it, isOnline, onEvent) }
         }
     }
 }
@@ -141,7 +128,6 @@ private fun HealthConnectRows(
     isOnline: Boolean,
     timeZone: TimeZone,
     onEvent: (WeightEvent) -> Unit,
-    daySheetGoal: DaySheetGoal?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
@@ -151,17 +137,8 @@ private fun HealthConnectRows(
         )
         rows.forEach { row ->
             HealthConnectRow(row, isOnline, timeZone, onEvent)
-            daySheetGoal?.let { CompareButton(row.id, it) }
         }
     }
-}
-
-/** "Comparar" of the manual row being edited. */
-@Composable
-private fun ManualExtras(form: MeasurementForm, daySheetGoal: DaySheetGoal?) {
-    val id = form.existingId
-    if (id == null || daySheetGoal == null) return
-    CompareButton(id, daySheetGoal)
 }
 
 /** A Health Connect measurement: its source icon, time and weight, and a delete button (no edit affordance). */

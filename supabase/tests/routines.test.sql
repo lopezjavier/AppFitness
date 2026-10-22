@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(43);
+select plan(62);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -27,6 +27,26 @@ insert into public.routines (id, user_id, name) values
   ('a0000000-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'Rutina A');
 insert into public.routine_exercises (routine_id, exercise_id, position, target_sets, target_reps) values
   ('b0000000-0000-4000-8000-000000000001', (select id from cat where n = 1), 0, 3, 8);
+update public.routine_exercises set target_weight_kg = 60
+  where routine_id = 'b0000000-0000-4000-8000-000000000001';
+
+-- Data migration (T-089): the migration's own SQL body, replayed on B's legacy-style row (no planned sets yet).
+insert into public.routine_exercise_sets (routine_exercise_id, set_index, target_weight_kg, target_reps, set_type)
+select re.id, gs.n, re.target_weight_kg, re.target_reps, re.planned_set_type
+from public.routine_exercises re
+cross join lateral generate_series(1, re.target_sets) as gs(n)
+where re.routine_id = 'b0000000-0000-4000-8000-000000000001'
+on conflict (routine_exercise_id, set_index) do nothing;
+create temp table b_re as
+  select id from public.routine_exercises where routine_id = 'b0000000-0000-4000-8000-000000000001';
+grant select on b_re to authenticated;
+select is((select count(*)::int from public.routine_exercise_sets), 3,
+  'migration: a legacy row with target_sets 3 becomes three planned sets');
+select results_eq(
+  $$select set_index::int, target_weight_kg::float8, target_reps::int, set_type::text
+    from public.routine_exercise_sets order by set_index$$,
+  $$values (1, 60::float8, 8, 'working'), (2, 60::float8, 8, 'working'), (3, 60::float8, 8, 'working')$$,
+  'migration: planned sets copy reps, weight and type of the legacy row');
 
 -- ---------------------------------------------------------------------------
 -- Schema and security
@@ -54,6 +74,17 @@ select table_privs_are('public', 'routine_exercises', 'authenticated',
   array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'authenticated has CRUD without TRUNCATE');
 select function_privs_are('public', 'save_routine', array['jsonb'], 'anon', array[]::text[],
   'anon cannot execute save_routine');
+select columns_are('public', 'routine_exercise_sets', array[
+  'id', 'routine_exercise_id', 'set_index', 'target_weight_kg', 'target_reps', 'set_type'
+], 'routine_exercise_sets has the planned columns');
+select ok(
+  (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.routine_exercise_sets'::regclass),
+  'RLS is enabled and forced on routine_exercise_sets');
+select policies_are('public', 'routine_exercise_sets', array[
+  'routine_exercise_sets_select', 'routine_exercise_sets_insert', 'routine_exercise_sets_update',
+  'routine_exercise_sets_delete'], 'routine_exercise_sets has four policies');
+select table_privs_are('public', 'routine_exercise_sets', 'anon', array[]::text[],
+  'anon has no privileges on routine_exercise_sets');
 
 -- ---------------------------------------------------------------------------
 -- Checks and indexes (as postgres)
@@ -111,6 +142,14 @@ select is_empty($$update public.routines set name = 'hack' where id = 'b0000000-
   'A cannot update B''s routine');
 select is_empty($$delete from public.routines where id = 'b0000000-0000-4000-8000-000000000001' returning 1$$,
   'A cannot delete B''s routine');
+select is((select count(*)::int from public.routine_exercise_sets), 0, 'A does not see B''s planned sets');
+select throws_ok($$insert into public.routine_exercise_sets (routine_exercise_id, set_index, target_reps)
+  values ((select id from b_re), 9, 8)$$,
+  '42501', null, 'A cannot insert a planned set under B''s routine exercise');
+select is_empty($$update public.routine_exercise_sets set target_reps = 1 returning 1$$,
+  'A cannot update B''s planned sets');
+select is_empty($$delete from public.routine_exercise_sets returning 1$$,
+  'A cannot delete B''s planned sets');
 select throws_ok($$insert into public.routines (user_id, name)
   values ('22222222-2222-4222-8222-222222222222', 'Para B')$$,
   '42501', null, 'A cannot insert a routine for B');
@@ -138,46 +177,101 @@ insert into saved
     'name', '  Torso  ', 'notes', null,
     'exercises', jsonb_build_array(
       jsonb_build_object('exercise_id', (select id from cat where n = 1), 'position', 9,
-                         'superset_group', 1, 'target_sets', 3, 'target_reps', 8, 'rest_seconds', 90),
+                         'superset_group', 1, 'rest_seconds', 90, 'target_rpe', 8.5,
+                         'sets', jsonb_build_array(
+                           jsonb_build_object('weight_kg', 40, 'reps', 10, 'set_type', 'warm_up'),
+                           jsonb_build_object('weight_kg', 80, 'reps', 8, 'set_type', 'working'),
+                           jsonb_build_object('weight_kg', 80, 'reps', 8, 'set_type', 'working'),
+                           jsonb_build_object('weight_kg', null, 'reps', 6, 'set_type', 'working'))),
       jsonb_build_object('exercise_id', (select id from cat where n = 2), 'position', 3,
-                         'superset_group', 1, 'target_sets', 4, 'target_reps', 10))));
+                         'superset_group', 1,
+                         'sets', jsonb_build_array(
+                           jsonb_build_object('reps', 10), jsonb_build_object('reps', 10),
+                           jsonb_build_object('reps', 10), jsonb_build_object('reps', 10))))));
 select is((select name from public.routines where id = (select id from saved)), 'Torso',
   'save_routine creates the routine with a trimmed name');
 select results_eq(
   $$select position::int, superset_group::int, target_sets::int, rest_seconds::int
     from public.routine_exercises where routine_id = (select id from saved) order by position$$,
-  $$values (0, 1, 3, 90), (1, 1, 4, 120)$$,
+  $$values (0, 1, 4, 90), (1, 1, 4, 120)$$,
   'positions are re-assigned from array order and rest defaults to 120');
+select results_eq(
+  $$select s.set_index::int, s.target_weight_kg::float8, s.target_reps::int, s.set_type::text
+    from public.routine_exercise_sets s join public.routine_exercises re on re.id = s.routine_exercise_id
+    where re.routine_id = (select id from saved) and re.position = 0 order by s.set_index$$,
+  $$values (1, 40::float8, 10, 'warm_up'), (2, 80::float8, 8, 'working'), (3, 80::float8, 8, 'working'),
+           (4, null::float8, 6, 'working')$$,
+  'the four planned sets are saved in array order with weight, reps and type');
+select results_eq(
+  $$select target_sets::int, target_reps::int, target_rpe::float8
+    from public.routine_exercises where routine_id = (select id from saved) order by position$$,
+  $$values (4, 8, 8.5::float8), (4, 10, null::float8)$$,
+  'target_sets is the set count, target_reps the first working set, rpe is kept');
 
 -- save_routine: replace
 select lives_ok($$select public.save_routine(jsonb_build_object(
     'id', (select id from saved), 'name', 'Torso v2',
     'exercises', jsonb_build_array(
-      jsonb_build_object('exercise_id', (select id from cat where n = 3), 'target_sets', 5, 'target_reps', 5))))$$,
+      jsonb_build_object('exercise_id', (select id from cat where n = 3),
+        'sets', jsonb_build_array(jsonb_build_object('reps', 5, 'weight_kg', 100),
+                                  jsonb_build_object('reps', 5, 'weight_kg', 100))))))$$,
   'save_routine updates an own routine');
 select results_eq(
   $$select (select name from public.routines where id = (select id from saved)),
            (select count(*)::int from public.routine_exercises where routine_id = (select id from saved)),
-           (select target_sets::int from public.routine_exercises where routine_id = (select id from saved))$$,
-  $$values ('Torso v2'::text, 1, 5)$$,
-  'old exercise rows are replaced by the new array');
+           (select count(*)::int from public.routine_exercise_sets s
+              join public.routine_exercises re on re.id = s.routine_exercise_id
+              where re.routine_id = (select id from saved))$$,
+  $$values ('Torso v2'::text, 1, 2)$$,
+  'resaving replaces the exercise rows and their planned sets');
 
--- save_routine: atomic on an invalid last row
+-- save_routine: atomic on an invalid set
 select throws_ok($$select public.save_routine(jsonb_build_object(
     'id', (select id from saved), 'name', 'Roto',
     'exercises', jsonb_build_array(
-      jsonb_build_object('exercise_id', (select id from cat where n = 1), 'target_sets', 3, 'target_reps', 8),
-      jsonb_build_object('exercise_id', (select id from cat where n = 2), 'target_sets', 0, 'target_reps', 8))))$$,
-  '23514', null, 'an invalid row aborts save_routine');
+      jsonb_build_object('exercise_id', (select id from cat where n = 1),
+                         'sets', jsonb_build_array(jsonb_build_object('reps', 8))),
+      jsonb_build_object('exercise_id', (select id from cat where n = 2),
+                         'sets', jsonb_build_array(jsonb_build_object('reps', 0))))))$$,
+  '22023', null, 'reps 0 aborts save_routine');
+select throws_ok($$select public.save_routine(jsonb_build_object('name', 'Roto', 'exercises', jsonb_build_array(
+    jsonb_build_object('exercise_id', (select id from cat where n = 1),
+                       'sets', jsonb_build_array(jsonb_build_object('reps', 51))))))$$,
+  '22023', null, 'reps 51 aborts save_routine');
+select throws_ok($$select public.save_routine(jsonb_build_object('name', 'Roto', 'exercises', jsonb_build_array(
+    jsonb_build_object('exercise_id', (select id from cat where n = 1),
+                       'sets', jsonb_build_array(jsonb_build_object('reps', 8, 'weight_kg', -1))))))$$,
+  '22023', null, 'negative weight aborts save_routine');
+select throws_ok($$select public.save_routine(jsonb_build_object('name', 'Roto', 'exercises', jsonb_build_array(
+    jsonb_build_object('exercise_id', (select id from cat where n = 1),
+                       'sets', (select jsonb_agg(jsonb_build_object('reps', 8)) from generate_series(1, 11))))))$$,
+  '22023', null, 'eleven sets abort save_routine');
+select throws_ok($$select public.save_routine(jsonb_build_object('name', 'Roto', 'exercises', jsonb_build_array(
+    jsonb_build_object('exercise_id', (select id from cat where n = 1), 'sets', '[]'::jsonb))))$$,
+  '22023', null, 'zero sets abort save_routine');
+select throws_ok($$select public.save_routine(jsonb_build_object('name', 'Roto', 'exercises', jsonb_build_array(
+    jsonb_build_object('exercise_id', (select id from cat where n = 1),
+                       'sets', jsonb_build_array(jsonb_build_object('reps', 8, 'set_type', 'bogus'))))))$$,
+  '22023', null, 'an unknown set type aborts save_routine');
+select throws_ok($$select public.save_routine(jsonb_build_object('name', 'Roto', 'exercises', jsonb_build_array(
+    jsonb_build_object('exercise_id', (select id from cat where n = 1), 'superset_group', 1,
+                       'sets', jsonb_build_array(jsonb_build_object('reps', 8))),
+    jsonb_build_object('exercise_id', (select id from cat where n = 2), 'superset_group', 1,
+                       'sets', jsonb_build_array(jsonb_build_object('reps', 8), jsonb_build_object('reps', 8))))))$$,
+  '22023', null, 'superset members with different set counts are rejected');
 select results_eq(
   $$select (select name from public.routines where id = (select id from saved)),
-           (select count(*)::int from public.routine_exercises where routine_id = (select id from saved))$$,
-  $$values ('Torso v2'::text, 1)$$,
-  'a failed update leaves the previous state unchanged');
+           (select count(*)::int from public.routine_exercises where routine_id = (select id from saved)),
+           (select count(*)::int from public.routine_exercise_sets s
+              join public.routine_exercises re on re.id = s.routine_exercise_id
+              where re.routine_id = (select id from saved))$$,
+  $$values ('Torso v2'::text, 1, 2)$$,
+  'failed saves leave the previous state unchanged');
 select throws_ok($$select public.save_routine(jsonb_build_object(
     'name', 'Con ajeno',
     'exercises', jsonb_build_array(
-      jsonb_build_object('exercise_id', 'bbbbbbbb-0000-4000-8000-000000000001', 'target_sets', 3, 'target_reps', 8))))$$,
+      jsonb_build_object('exercise_id', 'bbbbbbbb-0000-4000-8000-000000000001',
+                         'sets', jsonb_build_array(jsonb_build_object('reps', 8))))))$$,
   '42501', null, 'save_routine rejects another user''s custom exercise');
 select is((select count(*)::int from public.routines where name = 'Con ajeno'), 0,
   'the rejected create left no routine behind');
@@ -204,6 +298,9 @@ select is((select count(*)::int from public.routines where user_id = '33333333-3
 select is((select count(*)::int from public.routine_exercises
            where routine_id = 'c0000000-0000-4000-8000-000000000001'), 0,
   'the deleted user''s routine exercises are gone');
+select is((select count(*)::int from public.routine_exercise_sets s
+           where not exists (select 1 from public.routine_exercises re where re.id = s.routine_exercise_id)), 0,
+  'no orphan planned sets remain');
 
 select * from finish();
 rollback;

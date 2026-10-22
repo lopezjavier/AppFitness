@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
@@ -101,6 +102,9 @@ class LiveSessionViewModel(
 
     /** Rest in seconds per exercise position; positions without an entry use the default. */
     private var rests: MutableMap<Int, Int> = mutableMapOf()
+
+    /** Planned sets of the session's routine by (position, setIndex); empty when the routine is gone or unread. */
+    private var planned: Map<Pair<Int, Int>, PlannedSet> = emptyMap()
 
     /** Last performance per exercise id; a missing key means no ghost. */
     private var ghosts: MutableMap<String, List<PreviousSet>> = mutableMapOf()
@@ -242,8 +246,9 @@ class LiveSessionViewModel(
     }
 
     /**
-     * The planned rest of each exercise comes from the routine the session started from, matched by position and
-     * exercise; anything unmatched (or a failed read, or a session without a routine) uses the default.
+     * The planned rest and the planned sets (weight and reps, shown as placeholders) of each exercise come from the
+     * routine the session started from, matched by position and exercise; anything unmatched (or a failed read, or a
+     * session without a routine) uses the default rest and the ghost placeholders (ADR-50).
      */
     private suspend fun loadRests(loaded: WorkoutSession) {
         val routine = loaded.routineId?.let { routineRepository.get(it).getOrNull() }
@@ -253,6 +258,14 @@ class LiveSessionViewModel(
             }
             exercise.position to (planned?.restSeconds ?: RoutineBounds.DEFAULT_REST_SECONDS)
         }.toMutableMap()
+        planned = buildMap {
+            loaded.exercises.forEach { exercise ->
+                val match = routine?.exercises?.firstOrNull {
+                    it.position == exercise.position && it.exerciseId == exercise.exerciseId
+                }
+                match?.plannedSets?.forEachIndexed { index, set -> put(exercise.position to (index + 1), set) }
+            }
+        }
     }
 
     /** A failed read just means no ghost; it never blocks the session. */
@@ -534,14 +547,17 @@ class LiveSessionViewModel(
                     supersetLabel = labels[index],
                     sets = exercise.sets.map { set ->
                         val ghost = ghostFor(exercise.exerciseId, set.setIndex)
+                        val plan = planned[exercise.position to set.setIndex]
                         LiveSetRow(
                             setIndex = set.setIndex,
                             weight = set.weight,
                             reps = set.reps,
                             completed = set.completedAt != null,
-                            weightPlaceholder = ghost?.let { GhostData.weightText(it.weightKg) }
+                            weightPlaceholder = plan?.weightKg?.let { GhostData.weightText(it) }
+                                ?: ghost?.let { GhostData.weightText(it.weightKg) }
                                 ?: set.weightPlaceholder,
-                            repsPlaceholder = ghost?.reps?.toString() ?: set.repsPlaceholder,
+                            repsPlaceholder = plan?.reps?.toString() ?: ghost?.reps?.toString() ?: set.repsPlaceholder,
+                            type = set.setType,
                             previous = GhostData.previousText(ghost),
                             pendingSave = (exercise.position to set.setIndex) in unsynced,
                             invalid = set.invalid,

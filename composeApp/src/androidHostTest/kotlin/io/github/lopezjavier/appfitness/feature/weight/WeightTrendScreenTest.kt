@@ -78,7 +78,7 @@ private fun content(
 ) = WeightTrendUiState.Content(
     range = range,
     metric = metric,
-    trend = TrendData(points, rate, hasEnoughData = points.any { it.ma7Kg != null }),
+    trend = TrendData(points, rate, hasEnoughData = points.size >= 2),
     weeklyRate = weeklyRate,
     selectedPoint = selected,
     targetKg = targetKg,
@@ -158,10 +158,11 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun notEnoughData_pillSaysSoAndPanelKeepsTheLastWeight() {
+    fun notEnoughData_panelHidesThePillAndKeepsTheLastWeight() {
         showScreen(content(points = points(1), rate = WeeklyRate(null, RateTone.Neutral)))
 
-        rule.onNodeWithTag("weight_trend_pill").assertTextContains("Sin datos suficientes")
+        rule.onNodeWithTag("weight_trend_pill").assertDoesNotExist()
+        rule.onNodeWithText("Sin datos suficientes").assertDoesNotExist()
         rule.onNodeWithTag("weight_current_value").assertTextContains("74,2 kg")
         rule.onNodeWithTag("weight_chart_empty").assertTextEquals("Registra tu peso varios días para ver la tendencia")
     }
@@ -419,6 +420,61 @@ class WeightTrendScreenTest {
 
         rule.onNodeWithTag("weight_chart").assertIsDisplayed()
         rule.onNodeWithTag("weight_chart_empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun sparseWeighIns_theChartIsDrawnWithTwoPointsFiveDaysApart() {
+        val sparse = listOf(
+            TrendPoint(LocalDate(2026, 10, 14), 79.5, 79.5),
+            TrendPoint(LocalDate(2026, 10, 19), 79.4, 79.45),
+        )
+        showChart(content(points = sparse))
+
+        rule.onNodeWithTag("weight_chart").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun sparseWeighIns_theChartIsDrawnWithTwoPointsAYearApart() {
+        val sparse = listOf(
+            TrendPoint(LocalDate(2025, 10, 19), 82.0, 82.0),
+            TrendPoint(LocalDate(2026, 10, 19), 79.4, 79.4),
+        )
+        showChart(content(range = WeightChartRange.Year, points = sparse))
+
+        rule.onNodeWithTag("weight_chart").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun sparseWeighIns_aNonWeightMetricAlsoDrawsTheChart() {
+        val sparse = listOf(
+            TrendPoint(LocalDate(2026, 10, 14), 18.0, 18.0),
+            TrendPoint(LocalDate(2026, 10, 19), 17.8, 17.9),
+        )
+        showChart(content(metric = BodyMetric.BodyFat, points = sparse))
+
+        rule.onNodeWithTag("weight_chart").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun sparseWeighIns_thePillShowsThePaceBetweenTheLastTwoWeighIns() {
+        val sparse = listOf(
+            TrendPoint(LocalDate(2026, 10, 14), 79.5, 79.5),
+            TrendPoint(LocalDate(2026, 10, 19), 79.4, 79.45),
+        )
+        showScreen(content(points = sparse, rate = WeeklyRate(-0.14, RateTone.Favorable)))
+
+        rule.onNodeWithTag("weight_trend_pill").assertTextContains("−0,14 kg esta semana")
+    }
+
+    @Test
+    fun singleWeighIn_showsTheHintInsteadOfTheChart() {
+        showChart(content(points = points(1), rate = WeeklyRate(null, RateTone.Neutral)))
+
+        rule.onNodeWithTag("weight_chart_empty").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart").assertDoesNotExist()
     }
 
     @Test

@@ -46,7 +46,8 @@ Example (target 2400): P 30 / C 45 / F 25 → 180 g / 270 g / 67 g. Raising P to
 ## 2. Diary
 
 - Every food has a **base unit** (`g` for solids, `ml` for drinks) and its nutrition is expressed per 100 base units.
-- Entry values: `kcal = kcal_100 × amount / 100` (same for macros), where `amount` is in the food's base unit, rounded to 0.1; stored as a snapshot.
+- Entry values: `kcal = kcal_100 × amount / 100` (same for macros), where `amount` is in the food's base unit, rounded to 0.1; stored as a snapshot. Editing a manual food or its portions (US-47) applies to future entries only; past snapshots never change (ADR-53).
+- Nutrients are entered and listed in the Spanish label order (EU Reg. 1169/2011 Annex XV): energy, fat, saturates, mono-unsaturates, polyunsaturates, carbohydrates, sugars, polyols, starch, fibre, protein, salt, then vitamins and minerals (Annex XIII order); absent values are hidden (ADR-53).
 - A named portion resolves to an `amount` in base units (e.g. "1 huevo" = 55 g); logging a portion stores the resolved amount and a `portion_label` snapshot.
 - Meal and day totals = sum of snapshots. In the UI, kcal and the base unit without decimals.
 - `remaining = target_kcal − consumed`. If negative, "+N kcal en exceso" (over) is shown with alert styling and the ring in its over-target state.
@@ -67,11 +68,11 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 
 ### 3.2 7-day moving average (MA7)
 - `MA7(d)` = average of the available daily values in `[d − 6, d]`. If there are none, there is no point.
-- Drawn only if there are at least 2 days with data in the window.
+- A single day with data is enough (ADR-49: sparse weighing); the chart connects consecutive points across gaps.
 
 ### 3.3 Weekly rate of change
-- `rate = MA7(last day with data) − MA7(that day − 7)`, in kg/week with 2 decimals.
-- If either MA7 does not exist → "Sin datos suficientes" (not enough data).
+- `rate = (w_last − w_prev) / days_between × 7`, in kg/week with 2 decimals, where `w_last` and `w_prev` are the daily values of the last two days with data (ADR-49). Example: 79,4 kg on the 19th and 79,5 kg on the 14th → −0,14 kg/week.
+- With fewer than 2 days with data → "Sin datos suficientes" (not enough data).
 - Color by goal:
   - Deficit: rate < 0 → green; rate ≥ 0 → red.
   - Surplus: rate > 0 → green; rate ≤ 0 → red.
@@ -132,6 +133,7 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - Matched by `set_index`; if the previous session had fewer sets, "—" is shown.
 - Format: "85 kg × 8".
 - The KG/REPS fields of a new set are prefilled with the ghost data as a placeholder (dim text, not as a value).
+- A pending set started from a planned routine set (E6, ADR-50) shows the planned weight and reps as the placeholder instead; without a planned weight, the ghost placeholder applies. The ANTERIOR column always shows the previous performance.
 
 ### 4.4 Rest timer
 - Duration = the exercise's `rest_seconds` in the routine (default 120 s; 0 = no timer). For exercises added during the session, 120 s.
@@ -154,9 +156,16 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - **Bodyweight** (`bodyweight`/`assisted` metric types): `volume = (latest body weight ± added/assisted weight) × reps`; the latest body weight is the newest `body_measurements` row. `weighted` counts the added load only.
 
 ### 4.8 PR catalogue
-- Per exercise family: `best_1rm` (Epley, §4.1), `heaviest_lift` (max `weight_kg`), `best_set` (max single-set volume), `max_volume` (max session volume), `total_reps`, and for duration/distance families `best_duration`, `best_distance`, `most_steps`, `most_floors`.
-- A **live PR notification** fires when a completed set beats the current best of that exercise (configurable off / low / normal / high).
+- Per exercise family: `best_1rm` (Epley, §4.1), `heaviest_lift` (max `weight_kg`), `best_set` (max single-set volume), `max_volume` (max session volume), `total_reps` (the **all-time** total of completed reps of the exercise; ADR-52), and for duration/distance families `best_duration`, `best_distance`, `most_steps`, `most_floors`.
+- Records are shown in the session summary, the exercise detail and the workout detail. ~~A live PR notification fires when a completed set beats the current best (configurable off / low / normal / high).~~ Deferred (ADR-52).
 - PRs respect the warm-up inclusion setting (§4.6).
+
+### 4.9 Calculators (defaults, ADR-52)
+- Warm-up scheme from the working weight W: bar × 10, 40 % W × 5, 60 % W × 3, 80 % W × 2; each weight rounded to the nearest multiple of the plate rounding and never below the bar. Example: W = 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2.
+- Bars: 20, 15, 10 (EZ) and 7,5 kg; default 20 kg.
+- Available plates (per side): 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; all on by default.
+- Plate calculator: plates per side = greedy from the heaviest available plate over `(target − bar) / 2`; when the target cannot be made, the closest lower weight is shown. Example: 100 kg with the 20 kg bar → "25 + 15" per side.
+- Rounding: plates 2,5 kg, dumbbells 2 kg (both user settings).
 
 ## 5. Formatting (UI, Spanish locale)
 - Thousands separator "." (also for 4 digits: "1.840") and decimal ",". Use a custom formatter in `commonMain`: the CLDR `es-ES` locale does not group 4-digit numbers.

@@ -34,6 +34,7 @@ internal fun LiveSetRow.toSetRowValues() = SetRowValues(
     completed = completed,
     weightPlaceholder = weightPlaceholder,
     repsPlaceholder = repsPlaceholder,
+    type = type,
 )
 
 /**

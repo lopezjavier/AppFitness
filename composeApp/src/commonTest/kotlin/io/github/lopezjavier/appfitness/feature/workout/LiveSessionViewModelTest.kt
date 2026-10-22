@@ -4,11 +4,14 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -677,6 +680,7 @@ class LiveSessionViewModelTest {
     @Test
     fun ghostFeedsThePreviousTextAndThePlaceholders_andMissingSetsHaveNone() = runSessionTest {
         repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 85.0, 8)))
+        routines.routines.clear()
 
         val vm = loaded()
 
@@ -960,6 +964,145 @@ class LiveSessionViewModelTest {
         assertEquals(0, haptics.alerts)
     }
 
+    // --- Planned targets (US-29, ADR-50) ---
+
+    private fun plannedRoutine(vararg sets: PlannedSet) = Routine(
+        id = "r1",
+        name = "Torso",
+        notes = null,
+        archived = false,
+        exercises = listOf(RoutineExercise("e1", 0, null, sets.toList(), restSeconds = 90)),
+    )
+
+    private fun plannedSession() = sessionOf(
+        SessionExercise(
+            "e1",
+            0,
+            null,
+            listOf(
+                WorkoutSet(1, SetType.WarmUp, SetEntry.WeightReps(0.0, 0), null),
+                pendingSet(2),
+                pendingSet(3),
+                pendingSet(4),
+            ),
+        ),
+    )
+
+    private fun planWarmUpAndThreeWorking() {
+        routines.routines.clear()
+        routines.routines += plannedRoutine(
+            PlannedSet(40.0, 10, SetType.WarmUp),
+            PlannedSet(80.0, 8),
+            PlannedSet(80.0, 8),
+            PlannedSet(80.0, 8),
+        )
+        repository.session = plannedSession()
+    }
+
+    @Test
+    fun plannedWeightAndReps_areShownAsPlaceholders_notAsValues() = runSessionTest {
+        planWarmUpAndThreeWorking()
+
+        val vm = loaded()
+
+        assertEquals(4, vm.active().exercises.single().sets.size)
+        val first = vm.row(0, 1)
+        assertEquals("40" to "10", first.weightPlaceholder to first.repsPlaceholder)
+        assertEquals("" to "", first.weight to first.reps)
+        val second = vm.row(0, 2)
+        assertEquals("80" to "8", second.weightPlaceholder to second.repsPlaceholder)
+        assertEquals("" to "", second.weight to second.reps)
+    }
+
+    @Test
+    fun theStoredSetType_reachesTheRows() = runSessionTest {
+        planWarmUpAndThreeWorking()
+
+        val vm = loaded()
+
+        assertEquals(
+            listOf(SetType.WarmUp, SetType.Working, SetType.Working, SetType.Working),
+            vm.active().exercises.single().sets.map { it.type },
+        )
+    }
+
+    @Test
+    fun plannedTargets_leaveThePreviousColumnUnchanged() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 30.0, 12), PreviousSet(2, 75.0, 9)))
+
+        val vm = loaded()
+
+        assertEquals("30 kg × 12", vm.row(0, 1).previous)
+        assertEquals("75 kg × 9", vm.row(0, 2).previous)
+        assertNull(vm.row(0, 3).previous)
+    }
+
+    @Test
+    fun aPlannedSetWithoutWeight_fallsBackToTheGhostWeight() = runSessionTest {
+        routines.routines.clear()
+        routines.routines += plannedRoutine(PlannedSet(null, 6), PlannedSet(null, 6))
+        repository.session = sessionOf(SessionExercise("e1", 0, null, listOf(pendingSet(1), pendingSet(2))))
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 70.0, 10)))
+
+        val vm = loaded()
+
+        assertEquals("70" to "6", vm.row(0, 1).weightPlaceholder to vm.row(0, 1).repsPlaceholder)
+        assertNull(vm.row(0, 2).weightPlaceholder)
+        assertEquals("6", vm.row(0, 2).repsPlaceholder)
+    }
+
+    @Test
+    fun withoutTheRoutine_thePlaceholdersAreTheGhostOnes() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        routines.routines.clear()
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 30.0, 12)))
+
+        val vm = loaded()
+
+        assertEquals("30" to "12", vm.row(0, 1).weightPlaceholder to vm.row(0, 1).repsPlaceholder)
+        assertNull(vm.row(0, 2).weightPlaceholder)
+    }
+
+    @Test
+    fun whenTheRoutineCannotBeRead_theSessionStillWorksWithGhostPlaceholders() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        routines.failure = AppError.Network
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 30.0, 12)))
+
+        val vm = loaded()
+
+        assertEquals("30", vm.row(0, 1).weightPlaceholder)
+        assertEquals(SetType.WarmUp, vm.row(0, 1).type)
+    }
+
+    @Test
+    fun aTypedValue_isKeptApartFromThePlaceholder() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        val vm = loaded()
+
+        type(vm, 0, 2, "85", "6")
+
+        val row = vm.row(0, 2)
+        assertEquals("85" to "6", row.weight to row.reps)
+        assertEquals("80" to "8", row.weightPlaceholder to row.repsPlaceholder)
+        check(vm, 0, 2)
+        assertEquals(85.0, (repository.upserts.last().entry as SetEntry.WeightReps).weightKg)
+    }
+
+    @Test
+    fun anExtraSet_hasNoPlannedTarget() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        val vm = loaded()
+        type(vm, 0, 4, "82,5", "7")
+
+        vm.onEvent(LiveSessionEvent.AddSet(0))
+        runCurrent()
+
+        val added = vm.row(0, 5)
+        assertEquals("82,5" to "7", added.weightPlaceholder to added.repsPlaceholder)
+    }
+
     private companion object {
         fun routineWithRests(vararg rests: Int) = Routine(
             id = "r1",
@@ -967,7 +1110,7 @@ class LiveSessionViewModelTest {
             notes = null,
             archived = false,
             exercises = rests.mapIndexed { index, rest ->
-                RoutineExercise("e${index + 1}", index, null, 3, 8, rest)
+                RoutineExercise("e${index + 1}", index, null, List(3) { PlannedSet(null, 8) }, rest)
             },
         )
 

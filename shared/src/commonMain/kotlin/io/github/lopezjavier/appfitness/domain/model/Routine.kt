@@ -3,7 +3,7 @@ package io.github.lopezjavier.appfitness.domain.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** DB values of `public.set_type`; mapped for completeness, used by the workout epic. */
+/** DB values of `public.set_type`. Labels in the UI: Normal, Calentamiento, Fallo, Drop. */
 @Serializable
 enum class SetType {
     @SerialName("working")
@@ -19,18 +19,24 @@ enum class SetType {
     Drop,
 }
 
+/** One planned set of a routine exercise (ADR-50). A null [weightKg] means "no planned weight". */
+data class PlannedSet(val weightKg: Double?, val reps: Int, val type: SetType = SetType.Working)
+
 /**
  * One planned exercise of a routine. [position] is 0-based and contiguous in the routine's order; [supersetGroup]
- * is null for a standalone exercise, otherwise exercises of the same group are consecutive.
+ * is null for a standalone exercise, otherwise exercises of the same group are consecutive. [plannedSets] is the
+ * ordered list of sets to perform; [targetRpe] is optional (1-10).
  */
 data class RoutineExercise(
     val exerciseId: String,
     val position: Int,
     val supersetGroup: Int?,
-    val targetSets: Int,
-    val targetReps: Int,
+    val plannedSets: List<PlannedSet>,
     val restSeconds: Int,
-)
+    val targetRpe: Double? = null,
+) {
+    val targetSets: Int get() = plannedSets.size
+}
 
 /** A routine template. [id] is null until it has been saved. */
 data class Routine(
@@ -51,10 +57,16 @@ object RoutineBounds {
     const val SETS_MAX = 10
     const val REPS_MIN = 1
     const val REPS_MAX = 50
+    const val WEIGHT_MIN_KG = 0.0
+    const val RPE_MIN = 1.0
+    const val RPE_MAX = 10.0
     const val REST_MIN_SECONDS = 0
     const val REST_MAX_SECONDS = 600
     const val REST_STEP_SECONDS = 10
     const val DEFAULT_SETS = 3
     const val DEFAULT_REPS = 8
     const val DEFAULT_REST_SECONDS = 120
+
+    /** Planned sets of a newly added exercise: [DEFAULT_SETS] Normal sets of [DEFAULT_REPS] reps, no weight. */
+    fun defaultPlannedSets(): List<PlannedSet> = List(DEFAULT_SETS) { PlannedSet(null, DEFAULT_REPS, SetType.Working) }
 }

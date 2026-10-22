@@ -411,7 +411,7 @@ class CircumferenceSectionTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("circumference_error").assertExists()
-        rule.onNodeWithTag("weight_log_today_button").assertExists()
+        rule.onNodeWithTag("weight_edit_today_button").assertExists()
         repository.failReads = false
         tap("circumference_error_action")
 
@@ -463,7 +463,7 @@ class CircumferenceSectionTest {
 
         val calendar = rule.onNodeWithTag("weight_calendar").getUnclippedBoundsInRoot()
         val section = rule.onNodeWithTag("circumference_section").getUnclippedBoundsInRoot()
-        val panel = rule.onNodeWithTag("weight_log_today_button").getUnclippedBoundsInRoot()
+        val panel = rule.onNodeWithTag("weight_edit_today_button").getUnclippedBoundsInRoot()
         assertTrue(section.top >= calendar.bottom)
         assertTrue(section.left >= panel.right)
     }

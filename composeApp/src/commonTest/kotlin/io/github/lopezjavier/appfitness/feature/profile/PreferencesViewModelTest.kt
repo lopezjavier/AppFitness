@@ -541,6 +541,102 @@ class PreferencesViewModelTest {
     }
 
     @Test
+    fun aLaterManualRowOnADayWithAHealthConnectWeight_isShownReadOnlyWithTheHealthConnectValue() = runTest {
+        val hc = BodyMeasurement("hc", Instant.parse("2026-10-13T07:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        val manual = BodyMeasurement("m", Instant.parse("2026-10-13T20:00:00Z"), 81.0, MeasurementSource.Manual)
+        weights.row = manual
+        weights.rows = listOf(hc, manual)
+
+        val (viewModel, state) = loaded()
+
+        assertTrue(state().weightFromHealthConnect)
+        assertEquals(79.4, state().form.weightKg)
+        viewModel.onEvent(PreferencesEvent.SetWeight(700))
+        assertEquals(79.4, state().form.weightKg)
+    }
+
+    @Test
+    fun aManualRowOnADayWithoutHealthConnectWeight_staysEditable() = runTest {
+        val manual = BodyMeasurement("m", Instant.parse("2026-10-13T20:00:00Z"), 81.0, MeasurementSource.Manual)
+        val otherDayHc =
+            BodyMeasurement("hc", Instant.parse("2026-10-12T07:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        weights.row = manual
+        weights.rows = listOf(otherDayHc, manual)
+
+        val (_, state) = loaded()
+
+        assertFalse(state().weightFromHealthConnect)
+        assertEquals(81.0, state().form.weightKg)
+    }
+
+    @Test
+    fun refresh_afterAHealthConnectWeightArrives_locksTheWeightAndKeepsTheOtherDraftFields() = runTest {
+        val (viewModel, state) = loaded()
+        viewModel.onEvent(PreferencesEvent.SetHeight(172))
+        viewModel.onEvent(PreferencesEvent.SetWeight(750))
+        assertFalse(state().weightFromHealthConnect)
+        val hc = BodyMeasurement("hc", Instant.parse("2026-10-14T07:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        weights.row = hc
+        weights.rows = listOf(hc)
+
+        viewModel.onEvent(PreferencesEvent.Refresh)
+        advanceUntilIdle()
+
+        assertTrue(state().weightFromHealthConnect)
+        assertEquals(79.4, state().form.weightKg)
+        assertEquals(79.4, state().saved.weightKg)
+        assertEquals(172, state().form.heightCm)
+        assertTrue(profile.preferenceSaves.isEmpty())
+    }
+
+    @Test
+    fun refresh_withNothingNew_keepsTheWeightDraft() = runTest {
+        val (viewModel, state) = loaded()
+        viewModel.onEvent(PreferencesEvent.SetWeight(750))
+
+        viewModel.onEvent(PreferencesEvent.Refresh)
+        advanceUntilIdle()
+
+        assertFalse(state().weightFromHealthConnect)
+        assertEquals(75.0, state().form.weightKg)
+    }
+
+    @Test
+    fun savingWhileHealthConnectOwnsTheWeight_neverSendsAWeightEvenIfTheFlagArrivedAfterTheEdit() = runTest {
+        val (viewModel, _) = loaded()
+        viewModel.onEvent(PreferencesEvent.SetWeight(750))
+        val hc = BodyMeasurement("hc", Instant.parse("2026-10-14T07:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        weights.row = hc
+        weights.rows = listOf(hc)
+        viewModel.onEvent(PreferencesEvent.Refresh)
+        advanceUntilIdle()
+        viewModel.onEvent(PreferencesEvent.SetHeight(172))
+
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertNull(profile.preferenceSaves.single().weight)
+    }
+
+    @Test
+    fun aRecreatedViewModelWithAHealthConnectWeight_keepsTheFlagAndDiscardsAStaleDraftWeight() = runTest {
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetWeight(750))
+        val hc = BodyMeasurement("hc", Instant.parse("2026-10-14T07:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        weights.row = hc
+        weights.rows = listOf(hc)
+
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        val state = assertIs<PreferencesUiState.Loaded>(recreated.uiState.value)
+        assertTrue(state.weightFromHealthConnect)
+        assertEquals(79.4, state.form.weightKg)
+    }
+
+    @Test
     fun revertingTheWeight_makesTheFormCleanAgain() = runTest {
         val (viewModel, state) = loaded()
 

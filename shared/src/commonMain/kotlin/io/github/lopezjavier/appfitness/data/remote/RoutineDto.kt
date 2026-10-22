@@ -1,8 +1,12 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
+import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
+import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.usecase.plannedSetsFromLegacy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -23,7 +27,7 @@ internal data class RoutineSummaryDto(
 @Serializable
 internal data class CountDto(val count: Int)
 
-/** `routines` row with its `routine_exercises`; the E6 columns are not read. */
+/** `routines` row with its `routine_exercises` and their planned sets. */
 @Serializable
 internal data class RoutineDto(
     val id: String,
@@ -36,26 +40,55 @@ internal data class RoutineDto(
 
     companion object {
         const val COLUMNS =
-            "id,name,notes,archived," +
-                "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps,rest_seconds)"
+            "id,name,notes,archived,routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
+                "target_weight_kg,planned_set_type,target_rpe,rest_seconds," +
+                "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
     }
 }
 
+/** A row of `routine_exercise_sets` as read. */
+@Serializable
+internal data class PlannedSetRowDto(
+    @SerialName("target_weight_kg") val weight: Double? = null,
+    @SerialName("target_reps") val reps: Int,
+    @SerialName("set_type") val setType: SetType = SetType.Working,
+    @SerialName("set_index") val setIndex: Int = 0,
+)
+
+/**
+ * `routine_exercises` row. Exercises that still have no child rows (legacy) are mapped from the summary columns:
+ * `target_sets` identical planned sets.
+ */
 @Serializable
 internal data class RoutineExerciseDto(
     @SerialName("exercise_id") val exerciseId: String,
     val position: Int,
     @SerialName("superset_group") val supersetGroup: Int? = null,
-    @SerialName("target_sets") val targetSets: Int,
-    @SerialName("target_reps") val targetReps: Int,
+    @SerialName("target_sets") val targetSets: Int = 1,
+    @SerialName("target_reps") val targetReps: Int = RoutineBounds.DEFAULT_REPS,
+    @SerialName("target_weight_kg") val targetWeightKg: Double? = null,
+    @SerialName("planned_set_type") val plannedSetType: SetType = SetType.Working,
+    @SerialName("target_rpe") val targetRpe: Double? = null,
     @SerialName("rest_seconds") val restSeconds: Int,
+    @SerialName("routine_exercise_sets") val sets: List<PlannedSetRowDto> = emptyList(),
 ) {
-    fun toDomain() = RoutineExercise(exerciseId, position, supersetGroup, targetSets, targetReps, restSeconds)
+    fun toDomain() = RoutineExercise(
+        exerciseId = exerciseId,
+        position = position,
+        supersetGroup = supersetGroup,
+        plannedSets = if (sets.isEmpty()) {
+            plannedSetsFromLegacy(targetSets, targetReps, targetWeightKg, plannedSetType)
+        } else {
+            sets.sortedBy { it.setIndex }.map { PlannedSet(it.weight, it.reps, it.setType) }
+        },
+        restSeconds = restSeconds,
+        targetRpe = targetRpe,
+    )
 }
 
 /**
- * Argument `p_routine` of the `save_routine` RPC. The E6 columns are left out on purpose, so their defaults apply.
- * A null [id] is omitted (insert); null group and notes are omitted too (they default to null in SQL).
+ * Argument `p_routine` of the `save_routine` RPC. A null [id] is omitted (insert); null group, notes, rpe and set
+ * weights are omitted too (they default to null in SQL).
  */
 @Serializable
 internal data class SaveRoutineRequest(
@@ -74,9 +107,9 @@ internal data class SaveRoutineRequest(
                     exerciseId = exercise.exerciseId,
                     position = index,
                     supersetGroup = exercise.supersetGroup,
-                    targetSets = exercise.targetSets,
-                    targetReps = exercise.targetReps,
                     restSeconds = exercise.restSeconds,
+                    targetRpe = exercise.targetRpe,
+                    sets = exercise.plannedSets.map { PlannedSetDto(it.weightKg, it.reps, it.type) },
                 )
             },
         )
@@ -88,9 +121,17 @@ internal data class SaveRoutineExerciseRequest(
     @SerialName("exercise_id") val exerciseId: String,
     val position: Int,
     @SerialName("superset_group") val supersetGroup: Int? = null,
-    @SerialName("target_sets") val targetSets: Int,
-    @SerialName("target_reps") val targetReps: Int,
     @SerialName("rest_seconds") val restSeconds: Int,
+    @SerialName("target_rpe") val targetRpe: Double? = null,
+    val sets: List<PlannedSetDto>,
+)
+
+/** One planned set of the `save_routine` payload. */
+@Serializable
+internal data class PlannedSetDto(
+    @SerialName("weight_kg") val weightKg: Double? = null,
+    val reps: Int,
+    @SerialName("set_type") val setType: SetType,
 )
 
 /** Arguments of the `save_routine` RPC. */

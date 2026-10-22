@@ -44,6 +44,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.11 Configurable meals: rename, reorder, add and delete meals (ADR-41).
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 - FR-2.13 Full Open Food Facts product data kept in the catalog and micronutrients shown in the food details (display only; ADR-43).
+- FR-2.14 Editing manual foods (E6, US-47): edit a manual food and its portions (add, edit, remove), for future entries only; the full label nutrient list in Spanish label order; Open Food Facts foods are not editable (ADR-53).
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.
@@ -63,7 +64,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-4.5 Automatic, configurable, non-blocking rest timer (+30 s, Skip).
 - FR-4.6 Session history.
 - FR-4.7 Progress charts per exercise (estimated 1RM, volume) and per muscle group (weekly volume).
-- FR-4.8 Training depth (E6): set types (warm-up/failure/drop) and warm-up inclusion, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue and live PR, routine folders/tracking and "Update Routine", workout detail/calendar/editing, session controls (pause, delete set, previous-values modes).
+- FR-4.8 Training depth (E6): per-set routine planning, set types (warm-up/failure/drop) and warm-up inclusion, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue (no live notification, §4.1), routine folders/order/tracking and "Update Routine", workout detail/calendar (trained days)/editing and past workouts, session controls (pause, delete set, previous-values modes).
 - FR-4.9 Statistics and reports (E7): exercise chart records and non-weight metrics, advanced statistics (time frames, set-count, sets per muscle group, main exercises), muscle distribution (radar, body heatmap), Monthly Report, Year in Review, streaks and weekly check-ins.
 - The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E7 add features without a schema migration.
 
@@ -89,6 +90,17 @@ These appear in the Stitch mockups or in the original documents but not in the o
 - Background Health Connect sync.
 - Offline mode.
 - Publishing on Google Play (distribution is by APK).
+
+### 4.1 Deferred by the user (may come back later)
+Stories and scenarios removed from an epic by the user. They are kept here with their origin and text so they are not lost; bringing one back is a scope decision of the user.
+
+| Item | Origin | Decision | Removed text |
+|---|---|---|---|
+| Live record notification and its strength levels | E6, US-34 "Live PR"; `04` §4.8 | ADR-52, 2026-10-22 | `When a completed set beats the current best of that exercise / Then a "¡Nuevo récord!" notification appears / And the strength of the notification follows the user's setting` (setting: off / low / normal / high) |
+| Training streak, rest days and rewards in the calendar | E6, US-37 "Calendar" | ADR-52, 2026-10-22 | `Then they see the trained days, the streak and the rest days (month, year, multi-year)` (only "the streak and the rest days" removed; trained days kept). E7 US-44 "Streaks and weekly check-ins" is reviewed with the user at the E7 breakdown. |
+| Copying a workout | E6, US-37 "Editing" | ADR-52, 2026-10-22 | `When they edit, copy or delete a workout / Then the change is reflected` (only "copy" removed). A past workout can still start from a finished workout. |
+| Routine asks only sets and rest | E6, US-29 (user request 2026-10-20) | ADR-50, 2026-10-22 (contradicted per-set planning) | `When the user adds an exercise in the routine builder / Then they configure only the number of sets and the rest / And the reps are entered in the live session` |
+| Editing Open Food Facts foods | E6 scope line (food editing, "if feasible") | ADR-53, 2026-10-22 | "edit macros and micronutrients … of Open Food Facts foods (if feasible)" |
 
 ### Deferred to Phase 2 (unchanged from the original requirements)
 - Web client (Compose for Web / Wasm) and DNS on Cloudflare.

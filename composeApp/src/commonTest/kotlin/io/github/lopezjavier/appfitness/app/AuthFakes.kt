@@ -181,6 +181,9 @@ internal class FakeBodyMeasurementRepository(var row: BodyMeasurement? = null) :
     val updates = mutableListOf<Triple<String, Double, Instant>>()
     var reads = 0
 
+    /** When set, [getMeasurements] serves these rows (filtered by range, newest first) instead of [row]. */
+    var rows: List<BodyMeasurement>? = null
+
     override suspend fun getOnboardingWeight(): Result<BodyMeasurement?> {
         reads++
         return readResult ?: Result.success(row)
@@ -202,7 +205,10 @@ internal class FakeBodyMeasurementRepository(var row: BodyMeasurement? = null) :
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.success(row)
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
-        Result.success(listOfNotNull(row))
+        Result.success(
+            rows?.filter { it.measuredAt >= from && it.measuredAt < toExclusive }?.sortedByDescending { it.measuredAt }
+                ?: listOfNotNull(row),
+        )
 
     override suspend fun getLatestComposition(): Result<LatestComposition> = Result.success(LatestComposition())
 

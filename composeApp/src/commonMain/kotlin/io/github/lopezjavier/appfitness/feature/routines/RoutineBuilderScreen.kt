@@ -53,6 +53,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
+import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
@@ -205,14 +206,27 @@ private fun BuilderForm(
             modifier = Modifier.fillMaxWidth().testTag("routine_builder_add_exercise_button"),
         )
     }
+    BuilderSheets(state, menuRowId, onEvent) { menuRowId = null }
+}
+
+/** The set type picker and the row menu, whichever is open. */
+@Composable
+private fun BuilderSheets(
+    state: RoutineBuilderUiState.Editing,
+    menuRowId: Long?,
+    onEvent: (RoutineBuilderEvent) -> Unit,
+    onCloseMenu: () -> Unit,
+) {
+    state.typePicker?.let { picker ->
+        SetTypePickerSheet(
+            current = picker.current,
+            onDone = { onEvent(RoutineBuilderEvent.ChangeSetType(picker.rowIndex, picker.setIndex, it)) },
+            onDismiss = { onEvent(RoutineBuilderEvent.CloseTypePicker) },
+        )
+    }
     val menuIndex = state.rows.indexOfFirst { it.rowId == menuRowId }
     if (menuIndex >= 0) {
-        BuilderRowMenu(
-            row = state.rows[menuIndex],
-            index = menuIndex,
-            onEvent = onEvent,
-            onDismiss = { menuRowId = null },
-        )
+        BuilderRowMenu(row = state.rows[menuIndex], index = menuIndex, onEvent = onEvent, onDismiss = onCloseMenu)
     }
 }
 
