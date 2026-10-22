@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -21,12 +22,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
+import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
@@ -41,6 +45,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,10 +70,14 @@ private fun content(
     points: List<TrendPoint> = points(10),
     rate: WeeklyRate = WeeklyRate(-0.45, RateTone.Favorable),
     selected: TrendPoint? = null,
+    targetKg: Double? = null,
+    maHelpOpen: Boolean = false,
 ) = WeightTrendUiState.Content(
     range = range,
     trend = TrendData(points, rate, hasEnoughData = points.any { it.ma7Kg != null }),
     selectedPoint = selected,
+    targetKg = targetKg,
+    maHelpOpen = maHelpOpen,
 )
 
 /** US-27 on the weight screen: the metrics pill, the two-layer chart, the range filter and the point detail. */
@@ -165,7 +174,7 @@ class WeightTrendScreenTest {
         showChart(content())
 
         rule.onNodeWithTag("weight_chart").assertIsDisplayed()
-        rule.onNodeWithTag("weight_chart_legend").assertTextContains("MA 7D")
+        rule.onNodeWithTag("weight_chart_legend").assertTextContains("Media 7 días")
         rule.onNodeWithTag("weight_chart_filter_3m").assertIsSelected()
         listOf("1s", "1m", "3m", "6m", "1a").forEach {
             rule.onNodeWithTag("weight_chart_filter_$it").assertIsDisplayed()
@@ -236,10 +245,43 @@ class WeightTrendScreenTest {
 
         rule.onNodeWithTag("weight_chart_point_detail").assertIsDisplayed()
         rule.onNodeWithText("Peso: 74,7 kg").assertIsDisplayed()
-        rule.onNodeWithText("MA 7D: 74,7 kg").assertIsDisplayed()
+        rule.onNodeWithText("Media 7 días: 74,7 kg").assertIsDisplayed()
         rule.onNodeWithTag("weight_chart_point_detail_close").performClick()
 
         assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectPoint(null)), events)
+    }
+
+    @Test
+    fun maHelp_isHiddenByDefaultAndTheButtonAsksToToggleIt() {
+        showChart(content())
+
+        rule.onNodeWithTag("weight_chart_ma_help_text").assertDoesNotExist()
+        rule.onNodeWithTag("weight_chart_ma_help_button").assertHeightIsAtLeast(48.dp).performClick()
+
+        assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.ToggleMaHelp), events)
+    }
+
+    @Test
+    fun maHelp_whenOpenExplainsTheAverage() {
+        showChart(content(maHelpOpen = true))
+
+        rule.onNodeWithTag("weight_chart_ma_help_text")
+            .assertTextEquals("Promedio de tu peso en ese día y los 6 anteriores. Suaviza las oscilaciones diarias.")
+    }
+
+    @Test
+    fun targetLine_legendAppearsOnlyWithATargetAndTheSummaryMentionsIt() {
+        showChart(content(targetKg = 70.0))
+
+        rule.onNodeWithTag("weight_chart_target_legend").assertTextContains("Objetivo")
+        assertTrue(toneOf("weight_chart").orEmpty().endsWith("Línea de objetivo en 70,0 kg."))
+    }
+
+    @Test
+    fun targetLine_withoutATargetHasNoLegendEntry() {
+        showChart(content(targetKg = null))
+
+        rule.onNodeWithTag("weight_chart_target_legend").assertDoesNotExist()
     }
 
     @Test
@@ -266,6 +308,7 @@ class WeightTrendScreenTest {
         return WeightTrendViewModel(
             measurements = FakeWeightRepository().apply { this.rows += rows },
             goals = FakeNutritionGoalsRepository(),
+            profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
             preferences = object : WeightChartPreferences {
                 override val range: Flow<WeightChartRange> = MutableStateFlow(WeightChartRange.Quarter)
 
@@ -303,6 +346,24 @@ class WeightTrendScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("weight_chart_point_detail").assertIsDisplayed()
+    }
+
+    @Test
+    fun maHelp_isShownAgainWhenTheHostAndViewModelAreRecreated() {
+        val savedState = SavedStateHandle()
+        var generation by mutableIntStateOf(0)
+        rule.setContent {
+            key(generation) { TrendHost(remember { trendViewModel(savedState) }) }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_chart_ma_help_button").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_chart_ma_help_text").assertIsDisplayed()
+
+        generation++
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("weight_chart_ma_help_text").assertIsDisplayed()
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesCount(tag: String, expected: Int) {

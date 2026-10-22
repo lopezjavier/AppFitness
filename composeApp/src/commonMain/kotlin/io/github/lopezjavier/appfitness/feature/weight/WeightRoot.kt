@@ -5,7 +5,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -56,6 +58,12 @@ fun WeightRoot(
             trendViewModel.onEvent(WeightTrendEvent.Refresh)
             goalViewModel.onEvent(GoalEvent.Refresh)
         }
+    }
+    // A saved goal changes the dashed target line of the chart.
+    val goalTarget = (goal as? GoalUiState.Content)?.content?.targetKg
+    var firstTarget by remember { mutableStateOf(true) }
+    LaunchedEffect(goalTarget) {
+        if (firstTarget) firstTarget = false else trendViewModel.onEvent(WeightTrendEvent.Refresh)
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.onEvent(WeightEvent.Refresh)

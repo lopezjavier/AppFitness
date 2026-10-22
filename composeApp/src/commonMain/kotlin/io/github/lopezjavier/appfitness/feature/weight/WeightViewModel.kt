@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -41,6 +42,7 @@ private const val KEY_EXISTING_ID = "weight_draft_existing_id"
 private const val KEY_WEIGHT = "weight_draft_weight"
 private const val KEY_FAT = "weight_draft_fat"
 private const val KEY_HAS_FORM = "weight_draft_open"
+private const val KEY_COMPOSITION_OPEN = "weight_composition_open"
 private const val NONE = ""
 
 /** What one month load fetched: the panel's latest row and the month's rows, also grouped by day. */
@@ -49,6 +51,7 @@ private class WeightData(
     val current: BodyMeasurement?,
     val rows: List<BodyMeasurement>,
     val days: Map<LocalDate, DayMeasurements>,
+    val composition: LatestComposition?,
 )
 
 private sealed interface WeightLoad {
@@ -94,13 +97,14 @@ class WeightViewModel(
     private val load = MutableStateFlow<WeightLoad>(WeightLoad.Loading)
     private val sheet = MutableStateFlow(restoreSheet())
     private val online = MutableStateFlow(true)
+    private val compositionOpen = MutableStateFlow(savedState.get<Boolean>(KEY_COMPOSITION_OPEN) == true)
     private var loadJob: Job? = null
     private var openJob: Job? = null
 
     private val effectChannel = Channel<WeightEffect>(Channel.BUFFERED)
     val effects: Flow<WeightEffect> = effectChannel.receiveAsFlow()
 
-    val uiState: StateFlow<WeightUiState> = combine(load, sheet, online, ::buildState)
+    val uiState: StateFlow<WeightUiState> = combine(load, sheet, online, compositionOpen, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, WeightUiState.Loading)
 
     init {
@@ -116,13 +120,17 @@ class WeightViewModel(
                 showMonth(month.value.plus(1, DateTimeUnit.MONTH))
             }
 
-            WeightEvent.LogToday -> open(clock.today(), forceForm = true)
+            WeightEvent.LogToday -> open(clock.today())
 
-            is WeightEvent.OpenDay -> open(event.date, forceForm = false)
+            is WeightEvent.OpenDay -> open(event.date)
 
             WeightEvent.CloseSheet -> setSheet(null)
 
-            WeightEvent.StartManual -> startManual()
+            // A day with a Health Connect weight offers no manual entry (ADR-47); any other day already has a form.
+
+            WeightEvent.OpenComposition -> setCompositionOpen(true)
+
+            WeightEvent.CloseComposition -> setCompositionOpen(false)
 
             is WeightEvent.SetWeight -> edit { it.copy(weightText = event.text) }
 
@@ -163,21 +171,33 @@ class WeightViewModel(
     /** Null when either read fails. */
     private suspend fun fetch(target: YearMonth): WeightData? {
         val (from, toExclusive) = WeightMonth.bounds(target, timeZone)
-        val (latest, rows) = coroutineScope {
+        val (latest, rows, composition) = coroutineScope {
             val latest = async { repository.getLatestWeight() }
             val rows = async { repository.getMeasurements(from, toExclusive) }
-            latest.await() to rows.await()
+            val composition = async { repository.getLatestComposition() }
+            Triple(latest.await(), rows.await(), composition.await())
         }
         if (latest.isFailure || rows.isFailure) return null
         val monthRows = rows.getOrThrow()
-        return WeightData(target, latest.getOrNull(), monthRows, measurementsByDay(monthRows, timeZone))
+        return WeightData(
+            target,
+            latest.getOrNull(),
+            monthRows,
+            measurementsByDay(monthRows, timeZone),
+            composition.getOrNull(),
+        )
+    }
+
+    private fun setCompositionOpen(open: Boolean) {
+        compositionOpen.value = open
+        savedState[KEY_COMPOSITION_OPEN] = open
     }
 
     private suspend fun refreshData(): WeightData? = fetch(month.value)?.also { load.value = WeightLoad.Ready(it) }
 
     // Sheet
 
-    private fun open(day: LocalDate, forceForm: Boolean) {
+    private fun open(day: LocalDate) {
         if (day > clock.today()) return
         openJob?.cancel()
         openJob = viewModelScope.launch {
@@ -189,22 +209,11 @@ class WeightViewModel(
             val dayRows = data.days[day]
             val manual = dayRows?.manual
             val draft = when {
+                dayRows?.hasHealthConnectWeight == true -> null
                 manual != null -> editDraft(manual)
-                forceForm || dayRows?.healthConnect.isNullOrEmpty() -> newDraft(day, data)
-                else -> null
+                else -> newDraft(day, data)
             }
             setSheet(SheetState(day, draft))
-        }
-    }
-
-    private fun startManual() {
-        val state = sheet.value ?: return
-        val data = (load.value as? WeightLoad.Ready)?.data ?: return
-        if (state.draft != null) return
-        openJob?.cancel()
-        openJob = viewModelScope.launch {
-            val draft = newDraft(state.day, data)
-            sheet.value?.takeIf { it.day == state.day }?.let { setSheet(it.copy(draft = draft)) }
         }
     }
 
@@ -259,6 +268,7 @@ class WeightViewModel(
         val draft = state.draft ?: return
         val data = (load.value as? WeightLoad.Ready)?.data ?: return
         val weight = draft.weightKg ?: return
+        if (data.days[state.day]?.hasHealthConnectWeight == true) return
         if (!online.value || state.saving) return
         val existing = draft.existingId?.let { id -> data.days[state.day]?.manual?.takeIf { it.id == id } }
         setSheet(state.copy(saving = true, error = null))
@@ -282,7 +292,9 @@ class WeightViewModel(
         val state = sheet.value ?: return
         val id = state.draft?.existingId ?: return
         if (state.saving) return
-        val row = (load.value as? WeightLoad.Ready)?.data?.days?.get(state.day)?.manual?.takeIf { it.id == id }
+        val dayRows = (load.value as? WeightLoad.Ready)?.data?.days?.get(state.day)
+        if (dayRows?.hasHealthConnectWeight == true) return
+        val row = dayRows?.manual?.takeIf { it.id == id }
         deleteRow(id, onDeleted = { row?.let { healthWriteBack?.onDeleted(it) } }) { setSheet(null) }
     }
 
@@ -309,7 +321,12 @@ class WeightViewModel(
 
     // State
 
-    private fun buildState(load: WeightLoad, sheet: SheetState?, online: Boolean): WeightUiState = when (load) {
+    private fun buildState(
+        load: WeightLoad,
+        sheet: SheetState?,
+        online: Boolean,
+        compositionOpen: Boolean,
+    ): WeightUiState = when (load) {
         WeightLoad.Loading -> WeightUiState.Loading
 
         WeightLoad.Failed -> WeightUiState.Error
@@ -325,15 +342,24 @@ class WeightViewModel(
                     days = load.data.days,
                     isOnline = online,
                     sheet = sheet?.let { sheetOf(it, load.data, online) },
+                    composition = load.data.composition,
+                    compositionOpen = compositionOpen,
                 ),
             )
         }
     }
 
-    private fun sheetOf(state: SheetState, data: WeightData, online: Boolean) = WeightSheet(
-        day = state.day,
-        isToday = state.day == clock.today(),
-        healthConnect = data.days[state.day]?.healthConnect.orEmpty(),
-        form = state.draft?.let { formOf(it, validate, online, state.saving, state.error) },
-    )
+    private fun sheetOf(state: SheetState, data: WeightData, online: Boolean): WeightSheet {
+        val day = data.days[state.day]
+        val locked = day?.hasHealthConnectWeight == true
+        val composition = day?.let { LatestComposition.from(it.healthConnect + listOfNotNull(it.manual)) }
+        return WeightSheet(
+            day = state.day,
+            isToday = state.day == clock.today(),
+            healthConnect = day?.healthConnect.orEmpty(),
+            form = state.draft?.takeUnless { locked }?.let { formOf(it, validate, online, state.saving, state.error) },
+            manualLocked = locked,
+            dayComposition = composition?.takeIf { it != LatestComposition() },
+        )
+    }
 }

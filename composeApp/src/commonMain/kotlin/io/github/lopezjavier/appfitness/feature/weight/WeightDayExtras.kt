@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_back
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_value_percent
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_bmr
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_bone
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_lean_mass
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_water
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -40,6 +41,7 @@ import io.github.lopezjavier.appfitness.designsystem.ComparisonDeltaRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 
@@ -56,14 +58,20 @@ internal class DaySheetGoal(
     fun canCompare(id: String): Boolean = latestId != null && id != latestId
 }
 
-/** Lean mass, water, bone and BMR of a measurement, only the ones it has, in this order everywhere. */
+/** Body fat, lean mass, water, bone and BMR of a day, only the ones it has, in this order everywhere. */
 @Composable
-internal fun CompositionLines(row: BodyMeasurement, modifier: Modifier = Modifier) {
-    val lean = row.leanMassKg?.let { stringResource(Res.string.weight_composition_lean_mass, decimalText(it)) }
-    val water = row.waterKg?.let { stringResource(Res.string.weight_composition_water, decimalText(it)) }
-    val bone = row.boneKg?.let { stringResource(Res.string.weight_composition_bone, decimalText(it)) }
-    val bmr = row.bmrKcal?.let { stringResource(Res.string.weight_composition_bmr, it.toString()) }
+internal fun CompositionLines(composition: LatestComposition, modifier: Modifier = Modifier) {
+    val fat = composition.bodyFat?.let {
+        stringResource(Res.string.weight_composition_fat, decimalText(it.value))
+    }
+    val lean = composition.leanMass?.let {
+        stringResource(Res.string.weight_composition_lean_mass, decimalText(it.value))
+    }
+    val water = composition.water?.let { stringResource(Res.string.weight_composition_water, decimalText(it.value)) }
+    val bone = composition.bone?.let { stringResource(Res.string.weight_composition_bone, decimalText(it.value)) }
+    val bmr = composition.bmr?.let { stringResource(Res.string.weight_composition_bmr, it.value.toString()) }
     val lines = listOfNotNull(
+        fat?.let { "weight_day_composition_body_fat" to it },
         lean?.let { "weight_day_composition_lean_mass" to it },
         water?.let { "weight_day_composition_water" to it },
         bone?.let { "weight_day_composition_bone" to it },

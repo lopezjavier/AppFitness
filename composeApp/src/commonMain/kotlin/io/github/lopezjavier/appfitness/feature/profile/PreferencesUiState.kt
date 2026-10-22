@@ -51,6 +51,8 @@ sealed interface PreferencesUiState {
         val today: LocalDate,
         val isSaving: Boolean = false,
         val isOnline: Boolean = true,
+        /** The latest weight comes from Health Connect: the weight is read-only here (ADR-47). */
+        val weightFromHealthConnect: Boolean = false,
     ) : PreferencesUiState {
         val isDirty: Boolean get() = form != saved
 

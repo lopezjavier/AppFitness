@@ -670,6 +670,7 @@ class WeightViewModelTest {
         val sheet = assertNotNull(model.content().sheet)
         assertEquals(listOf("hc2", "hc1"), sheet.healthConnect.map { it.id })
         assertNull(sheet.form)
+        assertTrue(sheet.manualLocked)
 
         model.onEvent(WeightEvent.DeleteHealthConnect("hc1"))
         advanceUntilIdle()
@@ -694,26 +695,158 @@ class WeightViewModelTest {
         assertTrue(model.content().isEmpty)
     }
 
+    // Health Connect precedence (ADR-47)
+
     @Test
-    fun aDayWithOnlyHealthConnectRows_canStartAManualWeight() = runTest(dispatcher) {
+    fun aDayWithHealthConnectRows_isLockedAndHasNoForm() = runTest(dispatcher) {
         val repository = FakeWeightRepository(healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 19)))
+        advanceUntilIdle()
+
+        val sheet = assertNotNull(model.content().sheet)
+        assertTrue(sheet.manualLocked)
+        assertNull(sheet.form)
+    }
+
+    @Test
+    fun saveAndDeleteManual_areIgnoredWhenHealthConnectLandsOnTheOpenDay() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("m", "2026-10-19T08:00:00Z", 74.0))
         val model = viewModel(repository)
         advanceUntilIdle()
         model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 19)))
         advanceUntilIdle()
-
-        model.onEvent(WeightEvent.StartManual)
+        repository.rows += healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9)
+        model.onEvent(WeightEvent.Refresh)
         advanceUntilIdle()
-        assertFalse(model.form().isEditing)
-        assertEquals("73,9", model.form().weightText)
-        model.type("73,5")
+
+        model.onEvent(WeightEvent.Save)
+        model.onEvent(WeightEvent.DeleteManual)
+        advanceUntilIdle()
+
+        assertTrue(repository.saves.isEmpty())
+        assertTrue(repository.deletes.isEmpty())
+    }
+
+    @Test
+    fun logToday_onADayWithAHealthConnectWeight_createsNoDraft() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(healthConnect("hc1", "2026-10-21T07:00:00Z", 73.9))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.LogToday)
+        advanceUntilIdle()
+
+        val sheet = assertNotNull(model.content().sheet)
+        assertEquals(today, sheet.day)
+        assertTrue(sheet.manualLocked)
+        assertNull(sheet.form)
+    }
+
+    @Test
+    fun anExistingManualRowOnAHealthConnectDay_isNotEditable() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(
+            manual("m", "2026-10-19T08:00:00Z", 74.0),
+            healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9),
+        )
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 19)))
+        advanceUntilIdle()
         model.onEvent(WeightEvent.Save)
         advanceUntilIdle()
 
-        val save = repository.saves.single()
-        assertNull(save.id)
-        assertEquals(Instant.parse("2026-10-19T12:00:00Z"), save.measuredAt)
-        assertNull(model.content().sheet)
+        val sheet = assertNotNull(model.content().sheet)
+        assertTrue(sheet.manualLocked)
+        assertNull(sheet.form)
+        assertTrue(repository.saves.isEmpty())
+    }
+
+    @Test
+    fun aDayWithoutHealthConnect_isNotLockedAndKeepsItsForm() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("m", "2026-10-18T08:15:00Z", 74.2))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 18)))
+        advanceUntilIdle()
+
+        assertFalse(assertNotNull(model.content().sheet).manualLocked)
+        assertEquals("m", model.form().existingId)
+    }
+
+    // Composition
+
+    @Test
+    fun composition_isLoadedWithTheScreen() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(
+            healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9).copy(bodyFatPct = 15.1, bmrKcal = 1720),
+        )
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        val composition = assertNotNull(model.content().composition)
+        assertEquals(15.1, composition.bodyFat?.value)
+        assertEquals(1720, composition.bmr?.value)
+        assertNull(composition.water)
+        assertFalse(model.content().compositionOpen)
+    }
+
+    @Test
+    fun aFailingCompositionRead_leavesTheScreenWorkingWithNullComposition() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("a", "2026-10-18T08:00:00Z", 74.2))
+        repository.failComposition = true
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        assertNull(model.content().composition)
+        assertEquals("a", model.content().current?.id)
+    }
+
+    @Test
+    fun openAndCloseComposition_toggleTheFlagAndSurviveRecreation() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("a", "2026-10-18T08:00:00Z", 74.2))
+        viewModel(repository).also {
+            advanceUntilIdle()
+            it.onEvent(WeightEvent.OpenComposition)
+            assertTrue(it.content().compositionOpen)
+        }
+
+        val recreated = viewModel(repository)
+        advanceUntilIdle()
+        assertTrue(recreated.content().compositionOpen)
+
+        recreated.onEvent(WeightEvent.CloseComposition)
+        assertFalse(recreated.content().compositionOpen)
+        assertFalse(viewModel(repository).also { advanceUntilIdle() }.content().compositionOpen)
+    }
+
+    @Test
+    fun theDaySheet_carriesThatDaysCompositionValues() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(
+            healthConnect("hc1", "2026-10-19T07:00:00Z", 73.9).copy(bodyFatPct = 15.1, leanMassKg = 62.4),
+            manual("m", "2026-10-18T08:00:00Z", 74.2, fat = 18.0),
+            manual("n", "2026-10-17T08:00:00Z", 74.2),
+        )
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 19)))
+        advanceUntilIdle()
+        val hcDay = assertNotNull(model.content().sheet?.dayComposition)
+        assertEquals(15.1, hcDay.bodyFat?.value)
+        assertEquals(62.4, hcDay.leanMass?.value)
+
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 18)))
+        advanceUntilIdle()
+        assertEquals(18.0, model.content().sheet?.dayComposition?.bodyFat?.value)
+
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 17)))
+        advanceUntilIdle()
+        assertNull(model.content().sheet?.dayComposition)
     }
 
     // Offline

@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -46,7 +48,7 @@ private const val KEY_DRAFT = "preferences_draft"
 private class PreferencesData(
     val profile: Result<ProfileSummary>,
     val biometrics: Result<SavedBiometrics>,
-    val weightKg: Result<Double?>,
+    val latestWeight: Result<BodyMeasurement?>,
     val goals: Result<NutritionGoals?>,
 )
 
@@ -101,7 +103,13 @@ class PreferencesViewModel(
             is PreferencesEvent.SetHeight -> edit { it.copy(heightCm = BiometricBounds.clampHeight(event.heightCm)) }
 
             is PreferencesEvent.SetWeight ->
-                edit { it.copy(weightKg = BiometricBounds.clampWeightTenths(event.tenths) / TENTHS_PER_KG) }
+                editLoaded { state, form ->
+                    if (state.weightFromHealthConnect) {
+                        form
+                    } else {
+                        form.copy(weightKg = BiometricBounds.clampWeightTenths(event.tenths) / TENTHS_PER_KG)
+                    }
+                }
 
             is PreferencesEvent.SelectActivity -> edit { it.copy(activity = event.level) }
 
@@ -169,7 +177,7 @@ class PreferencesViewModel(
                 val biometrics = async { profileRepository.getBiometrics() }
                 val weight = async { bodyMeasurementRepository.getLatestWeight() }
                 val goals = async { goalsRepository.getOwn() }
-                PreferencesData(profile.await(), biometrics.await(), weight.await().map { it?.weightKg }, goals.await())
+                PreferencesData(profile.await(), biometrics.await(), weight.await(), goals.await())
             }
             _uiState.value = loadedOrNull(data) ?: PreferencesUiState.LoadFailed
         }
@@ -179,7 +187,9 @@ class PreferencesViewModel(
     private fun loadedOrNull(data: PreferencesData): PreferencesUiState.Loaded? {
         val profile = data.profile.getOrNull()
         val biometrics = data.biometrics.getOrNull()?.toBiometricsOrNull()
-        val weight = data.weightKg.getOrNull()
+        val latest = data.latestWeight.getOrNull()
+        val weight = latest?.weightKg
+        val fromHealthConnect = latest?.source == MeasurementSource.HealthConnect
         if (profile == null || biometrics == null || weight == null) return null
         if (data.goals.isFailure) return null
         val goals = data.goals.getOrNull()
@@ -197,7 +207,14 @@ class PreferencesViewModel(
             split = goals?.split ?: MacroSplit.DEFAULT,
         )
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
-        return PreferencesUiState.Loaded(form = draft ?: form, saved = form, today = today, isOnline = online)
+        return PreferencesUiState.Loaded(
+            // A Health Connect weight is never edited here, whatever an older draft holds.
+            form = draft?.let { if (fromHealthConnect) it.copy(weightKg = form.weightKg) else it } ?: form,
+            saved = form,
+            today = today,
+            isOnline = online,
+            weightFromHealthConnect = fromHealthConnect,
+        )
     }
 
     /** An unsaved form is kept in the saved state (process death); equal to the saved one, the draft is cleared. */

@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -202,6 +203,8 @@ internal class FakeBodyMeasurementRepository(var row: BodyMeasurement? = null) :
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.success(listOfNotNull(row))
+
+    override suspend fun getLatestComposition(): Result<LatestComposition> = Result.success(LatestComposition())
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> = Result.success("row-1")
 

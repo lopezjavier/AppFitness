@@ -105,6 +105,7 @@ val uiModule =
             WeightTrendViewModel(
                 measurements = get(),
                 goals = get(),
+                profile = get(),
                 preferences = get(),
                 weightTrend = get(),
                 clock = get(),
@@ -119,7 +120,6 @@ val uiModule =
                 circumferences = get(),
                 bmi = get(),
                 targetDistance = get(),
-                goalProgress = get(),
                 interpret = get(),
                 waistHipRatio = get(),
                 compareMeasurements = get(),

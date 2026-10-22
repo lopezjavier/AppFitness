@@ -7,11 +7,13 @@ import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
+import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.TrendData
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 
 private const val KEY_SELECTED = "weight_trend_selected"
+private const val KEY_MA_HELP = "weight_trend_ma_help_open"
 private const val NONE = ""
 
 private sealed interface TrendLoad {
@@ -31,7 +34,7 @@ private sealed interface TrendLoad {
 
     data object Failed : TrendLoad
 
-    data class Ready(val range: WeightChartRange, val trend: TrendData) : TrendLoad
+    data class Ready(val range: WeightChartRange, val trend: TrendData, val targetKg: Double?) : TrendLoad
 }
 
 /**
@@ -45,6 +48,7 @@ private sealed interface TrendLoad {
 class WeightTrendViewModel(
     private val measurements: BodyMeasurementRepository,
     private val goals: NutritionGoalsRepository,
+    private val profile: ProfileRepository,
     private val preferences: WeightChartPreferences,
     private val weightTrend: WeightTrend,
     private val clock: Clock,
@@ -55,10 +59,11 @@ class WeightTrendViewModel(
     private val selectedDate = MutableStateFlow(
         savedState.get<String>(KEY_SELECTED)?.takeIf { it != NONE }?.let(LocalDate::parse),
     )
+    private val maHelpOpen = MutableStateFlow(savedState.get<Boolean>(KEY_MA_HELP) == true)
     private var currentRange: WeightChartRange = WeightChartRange.Default
     private var loadJob: Job? = null
 
-    val uiState: StateFlow<WeightTrendUiState> = combine(load, selectedDate, ::buildState)
+    val uiState: StateFlow<WeightTrendUiState> = combine(load, selectedDate, maHelpOpen, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, WeightTrendUiState.Loading)
 
     init {
@@ -73,8 +78,16 @@ class WeightTrendViewModel(
     fun onEvent(event: WeightTrendEvent) {
         when (event) {
             is WeightTrendEvent.SelectRange -> viewModelScope.launch { preferences.setRange(event.range) }
+
             is WeightTrendEvent.SelectPoint -> selectPoint(event.date)
+
             WeightTrendEvent.Refresh -> if (load.value is TrendLoad.Ready) reload(silent = true)
+
+            WeightTrendEvent.ToggleMaHelp -> {
+                maHelpOpen.value = !maHelpOpen.value
+                savedState[KEY_MA_HELP] = maHelpOpen.value
+            }
+
             WeightTrendEvent.Retry -> if (load.value == TrendLoad.Failed) reload(silent = false)
         }
     }
@@ -95,18 +108,24 @@ class WeightTrendViewModel(
                 window.fetchStart.atStartOfDayIn(timeZone),
                 window.endExclusive.atStartOfDayIn(timeZone),
             )
+            val targetDeferred = async { profile.getTargetWeight().getOrNull() }
             val strategy = goals.getOwn().getOrNull()?.strategy ?: GoalStrategy.Maintenance
+            val target = targetDeferred.await()
             when {
                 rows.isSuccess ->
                     load.value =
-                        TrendLoad.Ready(range, weightTrend(rows.getOrThrow(), range, strategy, timeZone, today))
+                        TrendLoad.Ready(
+                            range,
+                            weightTrend(rows.getOrThrow(), range, strategy, timeZone, today),
+                            target,
+                        )
 
                 !silent -> load.value = TrendLoad.Failed
             }
         }
     }
 
-    private fun buildState(load: TrendLoad, selected: LocalDate?): WeightTrendUiState = when (load) {
+    private fun buildState(load: TrendLoad, selected: LocalDate?, maHelp: Boolean): WeightTrendUiState = when (load) {
         TrendLoad.Loading -> WeightTrendUiState.Loading
 
         TrendLoad.Failed -> WeightTrendUiState.Error
@@ -115,6 +134,8 @@ class WeightTrendViewModel(
             range = load.range,
             trend = load.trend,
             selectedPoint = load.trend.points.firstOrNull { it.date == selected },
+            targetKg = load.targetKg,
+            maHelpOpen = maHelp,
         )
     }
 }

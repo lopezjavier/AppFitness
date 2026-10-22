@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.weight
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -15,6 +16,7 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
     val deletes = mutableListOf<String>()
     val hcRecordIds = mutableListOf<Pair<String, String?>>()
     var failReads = false
+    var failComposition = false
     var onboarding: BodyMeasurement? = null
     var saveFailure: Throwable? = null
     var deleteFailure: Throwable? = null
@@ -37,6 +39,12 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
         } else {
             Result.success(rows.filter { it.measuredAt >= from && it.measuredAt < toExclusive })
         }
+
+    override suspend fun getLatestComposition(): Result<LatestComposition> = if (failComposition) {
+        Result.failure(AppException(AppError.Network))
+    } else {
+        Result.success(LatestComposition.from(rows))
+    }
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> {
         saveFailure?.let { return Result.failure(it) }

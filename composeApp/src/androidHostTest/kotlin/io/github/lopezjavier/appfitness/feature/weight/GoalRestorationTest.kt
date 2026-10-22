@@ -25,7 +25,6 @@ import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -87,7 +86,7 @@ class GoalRestorationTest {
     )
 
     private fun goalModel(state: SavedStateHandle) = GoalViewModel(
-        profile, weights, goals, FakeCircumferenceRepository(), Bmi(), TargetDistance(), GoalProgress(),
+        profile, weights, goals, FakeCircumferenceRepository(), Bmi(), TargetDistance(),
         InterpretMetric(), WaistHipRatio(), CompareMeasurements(), ValidateBodyMeasurement(),
         FakeConnectivityObserver(), RestorationGoalClock, state,
     )

@@ -27,13 +27,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_health_connect
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_icon_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_row_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_section
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.weight_set_manual
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_sheet_title_day
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_sheet_title_today
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
@@ -42,7 +42,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
@@ -95,14 +94,10 @@ internal fun WeightDaySheet(
                     if (sheet.healthConnect.isNotEmpty()) {
                         HealthConnectRows(sheet.healthConnect, isOnline, timeZone, onEvent, daySheetGoal)
                     }
+                    if (sheet.manualLocked) HealthConnectNote()
+                    sheet.dayComposition?.let { CompositionLines(it) }
                     val form = sheet.form
-                    if (form == null) {
-                        SecondaryButton(
-                            text = stringResource(Res.string.weight_set_manual),
-                            onClick = { onEvent(WeightEvent.StartManual) },
-                            modifier = Modifier.fillMaxWidth().testTag("weight_set_manual_button"),
-                        )
-                    } else {
+                    if (form != null) {
                         MeasurementFormFields(sheet.day, form, onEvent)
                         ManualExtras(form, daySheetGoal)
                     }
@@ -129,6 +124,17 @@ private fun SheetTitle(sheet: WeightSheet) {
     )
 }
 
+/** Why a day with a Health Connect weight has no manual entry (ADR-47). */
+@Composable
+private fun HealthConnectNote() {
+    Text(
+        text = stringResource(Res.string.weight_hc_note),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier.testTag("weight_sheet_hc_note"),
+    )
+}
+
 @Composable
 private fun HealthConnectRows(
     rows: List<BodyMeasurement>,
@@ -145,21 +151,17 @@ private fun HealthConnectRows(
         )
         rows.forEach { row ->
             HealthConnectRow(row, isOnline, timeZone, onEvent)
-            CompositionLines(row)
             daySheetGoal?.let { CompareButton(row.id, it) }
         }
     }
 }
 
-/** The composition and "Comparar" of the manual row being edited. */
+/** "Comparar" of the manual row being edited. */
 @Composable
 private fun ManualExtras(form: MeasurementForm, daySheetGoal: DaySheetGoal?) {
     val id = form.existingId
     if (id == null || daySheetGoal == null) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        daySheetGoal.manual?.let { CompositionLines(it) }
-        CompareButton(id, daySheetGoal)
-    }
+    CompareButton(id, daySheetGoal)
 }
 
 /** A Health Connect measurement: its source icon, time and weight, and a delete button (no edit affordance). */

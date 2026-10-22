@@ -18,7 +18,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementCheck
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
 import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
@@ -83,7 +82,6 @@ class GoalViewModel(
     private val circumferences: CircumferenceRepository,
     private val bmi: Bmi,
     private val targetDistance: TargetDistance,
-    private val goalProgress: GoalProgress,
     private val interpret: InterpretMetric,
     private val waistHipRatio: WaistHipRatio,
     private val compareMeasurements: CompareMeasurements,
@@ -280,7 +278,7 @@ class GoalViewModel(
             currentKg = current,
             strategy = data.strategy,
             distance = if (current != null && target != null) targetDistance(current, target, data.strategy) else null,
-            progressPct = progressOf(data, current, target),
+            sinceFirstKg = sinceFirstOf(data, current),
             bmi = bmiValue?.let(interpret::bmi),
             bodyFat = data.latest?.bodyFatPct?.let { interpret.bodyFat(it, data.biometrics.sex) },
             waistToHip = data.waistToHip?.let { interpret.waistToHip(it, data.biometrics.sex) },
@@ -292,9 +290,11 @@ class GoalViewModel(
         )
     }
 
-    private fun progressOf(data: GoalLoad, current: Double?, target: Double?): Int? {
-        val start = data.onboarding?.weightKg
-        return if (start != null && current != null && target != null) goalProgress(start, current, target) else null
+    /** Signed change from the onboarding weight to the current one (current - first), rounded to one decimal. */
+    private fun sinceFirstOf(data: GoalLoad, current: Double?): Double? {
+        val start = data.onboarding?.weightKg ?: return null
+        if (current == null) return null
+        return ((current - start) * TENTHS).roundToInt() / TENTHS
     }
 
     private fun sheetOf(sheet: TargetDraft, saved: Double?, isOnline: Boolean): TargetSheetState {

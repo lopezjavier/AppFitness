@@ -54,6 +54,25 @@ class AppLineChartTest {
     }
 
     @Test
+    fun chart_withAReferenceLineOutsideTheDataStillRendersWithItsSummary() {
+        rule.setContent {
+            AppTheme {
+                AppLineChart(
+                    values = listOf(100.0, 105.0, 110.0),
+                    labels = listOf("a", "b", "c"),
+                    description = "Resumen con objetivo",
+                    modifier = Modifier.testTag("chart"),
+                    referenceLine = 90.0,
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("chart").assertHeightIsEqualTo(AppLineChartDefaults.Height)
+            .assertStateDescription("Resumen con objetivo")
+    }
+
+    @Test
     fun skeleton_hasTheSameHeightAsTheChart() {
         rule.setContent { AppTheme { AppLineChartSkeleton(Modifier.testTag("skeleton")) } }
         rule.waitForIdle()

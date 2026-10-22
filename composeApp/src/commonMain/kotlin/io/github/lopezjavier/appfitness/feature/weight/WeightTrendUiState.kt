@@ -14,10 +14,17 @@ sealed interface WeightTrendUiState {
 
     /**
      * [selectedPoint] is the point whose detail is open; null when none is selected or the selected day is not in
-     * the current range. [trend] has [TrendData.hasEnoughData] false for the "not enough data" state.
+     * the current range. [trend] has [TrendData.hasEnoughData] false for the "not enough data" state. [targetKg] is
+     * the goal weight for the dashed target line (null when none is set or it could not be read); [maHelpOpen] shows
+     * the help of the 7-day average.
      */
-    data class Content(val range: WeightChartRange, val trend: TrendData, val selectedPoint: TrendPoint?) :
-        WeightTrendUiState
+    data class Content(
+        val range: WeightChartRange,
+        val trend: TrendData,
+        val selectedPoint: TrendPoint?,
+        val targetKg: Double? = null,
+        val maHelpOpen: Boolean = false,
+    ) : WeightTrendUiState
 }
 
 sealed interface WeightTrendEvent {
@@ -29,6 +36,9 @@ sealed interface WeightTrendEvent {
 
     /** Reloads without the loading state (after a weight was saved or deleted). */
     data object Refresh : WeightTrendEvent
+
+    /** Shows or hides the help of the 7-day average. */
+    data object ToggleMaHelp : WeightTrendEvent
 
     /** Reloads after a failed load. */
     data object Retry : WeightTrendEvent

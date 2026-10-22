@@ -36,7 +36,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
-import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -158,7 +157,6 @@ class AppModuleTest {
                 WaistHipRatio::class,
                 Bmi::class,
                 TargetDistance::class,
-                GoalProgress::class,
                 InterpretMetric::class,
                 CompareMeasurements::class,
                 WeightChartPreferences::class,
