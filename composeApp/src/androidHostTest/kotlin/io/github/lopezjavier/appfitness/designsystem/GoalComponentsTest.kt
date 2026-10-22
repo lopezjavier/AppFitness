@@ -1,9 +1,5 @@
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
@@ -70,20 +66,6 @@ class GoalComponentsTest {
         rule.onNodeWithTag("g_since_first").assertTextEquals("Desde tu primer peso: -2,6 kg")
         rule.onNodeWithTag("g_change_button").assertHeightIsAtLeast(48.dp).performClick()
         assertEquals(1, changes)
-    }
-
-    @Test
-    fun comparisonDeltaRow_showsTheSignedDeltaAndSpeaksItInWords() {
-        rule.setContent {
-            AppTheme {
-                ComparisonDeltaRow("Peso", "75,6 → 74,2 kg", "−1,4 kg", "1,4 kg menos", Modifier.testTag("row"))
-            }
-        }
-
-        rule.onNodeWithTag("row").assertTextContains("−1,4 kg", substring = true)
-        val description = rule.onNodeWithTag("row").fetchSemanticsNode().config
-            .getOrNull(SemanticsProperties.ContentDescription)
-        assertEquals(listOf("Peso, 75,6 → 74,2 kg, 1,4 kg menos"), description)
     }
 
     @Test

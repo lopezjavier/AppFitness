@@ -16,10 +16,8 @@ import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
-import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.MetricStatus
@@ -35,7 +33,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -50,11 +47,6 @@ import kotlin.time.Instant
 @Suppress("TooManyFunctions") // One method per Gherkin scenario and rule.
 class GoalViewModelTest {
     private val dispatcher = StandardTestDispatcher()
-    private val clock = object : Clock {
-        override fun today(): LocalDate = LocalDate(2026, 10, 21)
-
-        override fun now(): Instant = Instant.parse("2026-10-21T10:00:00Z")
-    }
     private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true)))
     private val weights = FakeWeightRepository()
     private val goals = FakeNutritionGoalsRepository()
@@ -80,7 +72,7 @@ class GoalViewModelTest {
 
     private fun viewModel() = GoalViewModel(
         profile, weights, goals, circumferences, Bmi(), TargetDistance(), InterpretMetric(),
-        WaistHipRatio(), CompareMeasurements(), ValidateBodyMeasurement(), connectivity, clock, savedState,
+        WaistHipRatio(), ValidateBodyMeasurement(), connectivity, savedState,
     )
 
     private fun TestScope.send(vm: GoalViewModel, event: GoalEvent) {
@@ -289,31 +281,13 @@ class GoalViewModelTest {
     }
 
     @Test
-    fun compare_showsTheDeltaOfAnOlderMeasurementAgainstTheLatest() = runTest(dispatcher) {
-        weights.rows += row("old", 75.6, "2026-10-10T08:00:00Z", fat = 20.3)
-        val vm = viewModel()
-        advanceUntilIdle()
-
-        send(vm, GoalEvent.OpenCompare("old"))
-        advanceUntilIdle()
-
-        val comparison = checkNotNull(vm.content().comparison)
-        assertEquals(-1.4, comparison.comparison.weightDeltaKg)
-        assertEquals(-0.8, comparison.comparison.bodyFatDeltaPct)
-        send(vm, GoalEvent.CloseCompare)
-        assertNull(vm.content().comparison)
-        assertFalse(vm.content().comparisonOpen)
-    }
-
-    @Test
-    fun recreatedFromTheSameSavedState_restoresDraftMetricAndComparison() = runTest(dispatcher) {
+    fun recreatedFromTheSameSavedState_restoresDraftAndMetric() = runTest(dispatcher) {
         weights.rows += row("old", 75.6, "2026-10-10T08:00:00Z")
         val first = viewModel()
         advanceUntilIdle()
         send(first, GoalEvent.OpenTargetSheet)
         send(first, GoalEvent.EditTarget("66,5"))
         send(first, GoalEvent.OpenMetric(MetricKind.BodyFat))
-        send(first, GoalEvent.OpenCompare("old"))
         advanceUntilIdle()
 
         val second = viewModel()
@@ -321,7 +295,6 @@ class GoalViewModelTest {
 
         assertEquals("66,5", second.sheet().text)
         assertEquals(MetricKind.BodyFat, second.content().openMetric)
-        assertEquals(-1.4, second.content().comparison?.comparison?.weightDeltaKg)
         send(second, GoalEvent.CloseMetric)
         assertNull(second.content().openMetric)
     }

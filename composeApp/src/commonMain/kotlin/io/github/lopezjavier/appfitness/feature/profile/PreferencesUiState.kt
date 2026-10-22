@@ -99,6 +99,9 @@ sealed interface PreferencesEvent {
     data object Save : PreferencesEvent
 
     data object Retry : PreferencesEvent
+
+    /** Reloads only the weight and its Health Connect flag (e.g. on resume); never saves, keeps other fields. */
+    data object Refresh : PreferencesEvent
 }
 
 /** One-off results shown as a snackbar (the screen also fires the haptic on [Saved]). */

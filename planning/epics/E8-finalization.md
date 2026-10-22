@@ -123,14 +123,16 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Meal structure: meal names must be unique (case-insensitive); adding an existing name such as "Desayuno" is rejected with a hint | Checkpoint E4-B round 2, 2026-10-21 |
 | Meal structure: "Añadir comida" is disabled while a new meal is being created (no double-add) | Checkpoint E4-B round 2, 2026-10-21 |
 | Diario/Perfil/Comidas: top bar with the section name takes too much vertical space; make it smaller (all sections) | Checkpoint E4-C round 1, 2026-10-21 |
+| Weight screen: the "Objetivo" card differs in pencil alignment and text padding from "Peso actual"; extract one shared card component (title, value, subtitle, pencil) so similar cards cannot drift (local screenshot: `design/reported/e5b-r3-objetivo-vs-peso-actual-and-trend-two-dots.png`, gitignored) | Checkpoint E5-B round 3, 2026-10-22 |
 | Meal structure: a meal being created shows tick (save) and X (discard) buttons; discarding does not require saving then deleting | Checkpoint E4-B round 2, 2026-10-21 |
 | Swipe-to-delete still feels unlike modern apps: ux-reviewer researches how swipe works in modern apps and aligns the shared component; add haptic feedback when the drag reaches the action threshold and when the delete fires | Checkpoint E4-C round 3, 2026-10-21 |
-| Visual bug: a stray horizontal line crosses the value of text fields (seen on the quantity "30" of the food details sheet; reference `design/references/e4c-line-through-quantity-field.png`). It recurs across screens: find the cause in the shared field/sheet components and fix it app-wide | Checkpoint E4-C round 3, 2026-10-21 |
+| Visual bug: a stray horizontal line crosses the value of text fields (seen on the quantity "30" of the food details sheet; reference `design/reported/e4c-line-through-quantity-field.png`). It recurs across screens: find the cause in the shared field/sheet components and fix it app-wide | Checkpoint E4-C round 3, 2026-10-21 |
 | Comida details: no visual separation between the comida summary and its first food; add a section divider with the label "Alimentos en esta comida" | Checkpoint E4-C approval, 2026-10-21 |
 | Weight screen: a pencil button inside the "Peso actual" card replaces the "Registrar peso de hoy" button | Checkpoint E5-B, 2026-10-22 |
 | Weight screen: the Health Connect sync status moves inside "Peso actual" and "Sincronizar" becomes a real button (not text) | Checkpoint E5-B, 2026-10-22 |
 | Weight screen: "Historial de mediciones" is reached from a calendar button, the same pattern as the calories (Diario) calendar | Checkpoint E5-B, 2026-10-22 |
 | Weight trend: goal progress is shown visually in "Tendencia" (first-weight marker, target line, shaded band between them) instead of a percentage on the goal card | Checkpoint E5-B, 2026-10-22 |
+| Diario: a logged food added with a portion shows the portion's unit amount next to its name, e.g. "1 vaso (200 ml)" in the meal summary; the same for grams | User request, 2026-10-22 |
 ---
 
 ### UX consistency guardrails (E4 retrospective, 2026-10-21)
@@ -139,6 +141,7 @@ The user found repeated UX defects and inconsistencies across screens (icons vs.
 - Consolidate every convention the user has stated at checkpoints into `planning/05-design-system.md` as explicit rules.
 - Update `ux-reviewer` to check each UI plan against those rules and against the existing screens, so the same mistakes never come back.
 - Run a cross-screen consistency audit as part of the polish pass.
+- Success criterion (E5 retrospective, 2026-10-22): after E8 the user must not see new screens follow a different approach than existing ones. The `ux-reviewer` refinement is part of the epic's Definition of Done, not optional polish.
 
 ## Epic Definition of Done
 - All stories US-01…US-46 closed; the app is verified manually at the checkpoints.

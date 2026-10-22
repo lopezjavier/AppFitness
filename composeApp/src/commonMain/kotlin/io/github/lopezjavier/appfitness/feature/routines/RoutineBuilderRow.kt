@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -31,19 +32,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_down
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_up
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_reorder_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_reps_decrease_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_reps_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_reps_state
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_reps_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_cd_superset
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_sets_decrease_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_sets_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_sets_state
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_sets_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
@@ -61,7 +54,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.workout.restDurationText
 import io.github.lopezjavier.appfitness.feature.workout.restStateDescription
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val AccentWidth = Spacing.xs
@@ -76,9 +68,10 @@ internal fun BuilderRowUi.supersetText(): String? =
     supersetLabel?.let { stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number) }
 
 /**
- * One exercise of the routine: drag handle, thumbnail, name, superset label and menu, then the three steppers. A
- * superset member has a cyan accent on its left edge. [index] is the row position (it names the test tags); Subir and
- * Bajar are also exposed as accessibility actions of the row, so dragging is never the only way to reorder.
+ * One exercise of the routine: drag handle, thumbnail, name, superset label and menu, then the planned sets and the
+ * rest stepper. A superset member has a cyan accent on its left edge. [index] is the row position (it names the test
+ * tags); Subir and Bajar are also exposed as accessibility actions of the row, so dragging is never the only way to
+ * reorder.
  */
 @Composable
 internal fun ReorderableItemScope.BuilderRow(
@@ -223,29 +216,8 @@ private fun RowIdentity(
 
 @Composable
 private fun Steppers(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
-        StepperLine(
-            unit = stringResource(Res.string.builder_sets_unit),
-            valueText = row.sets.toString(),
-            state = pluralStringResource(Res.plurals.builder_sets_state, row.sets, row.sets),
-            decreaseDescription = stringResource(Res.string.builder_sets_decrease_cd),
-            increaseDescription = stringResource(Res.string.builder_sets_increase_cd),
-            canDecrease = row.sets > RoutineBounds.SETS_MIN,
-            canIncrease = row.sets < RoutineBounds.SETS_MAX,
-            onStep = { onEvent(RoutineBuilderEvent.StepSets(index, it)) },
-            tag = "routine_builder_sets_$index",
-        )
-        StepperLine(
-            unit = stringResource(Res.string.builder_reps_unit),
-            valueText = row.reps.toString(),
-            state = pluralStringResource(Res.plurals.builder_reps_state, row.reps, row.reps),
-            decreaseDescription = stringResource(Res.string.builder_reps_decrease_cd),
-            increaseDescription = stringResource(Res.string.builder_reps_increase_cd),
-            canDecrease = row.reps > RoutineBounds.REPS_MIN,
-            canIncrease = row.reps < RoutineBounds.REPS_MAX,
-            onStep = { onEvent(RoutineBuilderEvent.StepReps(index, it)) },
-            tag = "routine_builder_reps_$index",
-        )
+    Column(Modifier.fillMaxWidth().padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        PlannedSets(row, index, onEvent)
         StepperLine(
             unit = stringResource(Res.string.builder_rest_unit),
             valueText = restDurationText(row.restSeconds),

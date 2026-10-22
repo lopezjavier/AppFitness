@@ -22,7 +22,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -137,6 +140,15 @@ class WeightTrendViewModelTest {
         vm.onEvent(WeightTrendEvent.Refresh)
         advanceUntilIdle()
         assertNull(vm.content().targetKg)
+        assertEquals(20, vm.content().trend.points.size)
+    }
+
+    @Test
+    fun weightChart_stillRenders_whenTheCircumferenceReadFails() = runTest(dispatcher) {
+        circumferences.failReads = true
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
         assertEquals(20, vm.content().trend.points.size)
     }
 
@@ -383,14 +395,12 @@ class WeightTrendViewModelTest {
     }
 
     @Test
-    fun circumferences_areFetchedOnlyForWaistAndHip() = runTest(dispatcher) {
+    fun circumferences_areLoadedOnceAndWaistIsDerivedFromMemory() = runTest(dispatcher) {
         circumferences.rows += circumference(today, 90.0)
         circumferences.rows += circumference(LocalDate(2026, 10, 18), 92.0)
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
-        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
-        advanceUntilIdle()
-        assertEquals(0, circumferences.getAllCalls)
+        assertEquals(1, circumferences.getAllCalls)
 
         vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.Waist))
         advanceUntilIdle()
@@ -398,6 +408,73 @@ class WeightTrendViewModelTest {
         assertEquals(1, circumferences.getAllCalls)
         assertEquals(listOf(92.0, 90.0), vm.content().trend.points.map { it.dailyKg })
         assertTrue(vm.content().trend.hasEnoughData)
+    }
+
+    @Test
+    fun initialLoad_makesExactlyOneCallToEachSource() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(*series(80.0, 0.0).toTypedArray())
+        viewModel(repository)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.getMeasurementsCalls)
+        assertEquals(1, circumferences.getAllCalls)
+    }
+
+    @Test
+    fun switchingMetricAndRange_makesNoCallAndNeverEmitsLoading() = runTest(dispatcher) {
+        val rows = series(80.0, -0.1).map { it.copy(bodyFatPct = 20.0) }
+        circumferences.rows += circumference(today, 90.0)
+        val repository = FakeWeightRepository(*rows.toTypedArray())
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        val states = mutableListOf<WeightTrendUiState>()
+        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.toList(states) }
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.Waist))
+        vm.onEvent(WeightTrendEvent.SelectRange(WeightChartRange.Week))
+        vm.onEvent(WeightTrendEvent.SelectRange(WeightChartRange.Year))
+        advanceUntilIdle()
+        collector.cancel()
+
+        assertEquals(1, repository.getMeasurementsCalls)
+        assertEquals(1, circumferences.getAllCalls)
+        assertTrue(states.none { it is WeightTrendUiState.Loading })
+        assertEquals(BodyMetric.Waist, vm.content().metric)
+        assertEquals(WeightChartRange.Year, vm.content().range)
+    }
+
+    @Test
+    fun metricTabs_showTheSameValuesAsAFreshLoadOfThatMetric() = runTest(dispatcher) {
+        val rows = series(80.0, -0.1).map { it.copy(bodyFatPct = 20.0) }
+        val vm = viewModel(FakeWeightRepository(*rows.toTypedArray()))
+        advanceUntilIdle()
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        advanceUntilIdle()
+        val switched = vm.content()
+
+        prefs.metricState.value = BodyMetric.BodyFat
+        val fresh = viewModel(FakeWeightRepository(*rows.toTypedArray()))
+        advanceUntilIdle()
+
+        assertEquals(fresh.content().trend, switched.trend)
+        assertEquals(fresh.content().weeklyRate, switched.weeklyRate)
+    }
+
+    @Test
+    fun refresh_reloadsSilentlyWithoutEmittingLoading() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(*series(80.0, 0.0).toTypedArray())
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        val states = mutableListOf<WeightTrendUiState>()
+        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.toList(states) }
+
+        vm.onEvent(WeightTrendEvent.Refresh)
+        advanceUntilIdle()
+        collector.cancel()
+
+        assertEquals(2, repository.getMeasurementsCalls)
+        assertTrue(states.none { it is WeightTrendUiState.Loading })
     }
 
     @Test
@@ -414,7 +491,7 @@ class WeightTrendViewModelTest {
     }
 
     @Test
-    fun sparseMetric_withASingleReading_stillHasAPlotButNoAverage() = runTest(dispatcher) {
+    fun sparseMetric_withASingleReading_stillHasAPlotAndItsOwnAverage() = runTest(dispatcher) {
         circumferences.rows += circumference(today, 90.0)
         prefs.metricState.value = BodyMetric.Waist
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
@@ -422,7 +499,7 @@ class WeightTrendViewModelTest {
 
         val content = vm.content()
         assertEquals(listOf(90.0), content.trend.points.map { it.dailyKg })
-        assertNull(content.trend.points.single().ma7Kg)
+        assertEquals(90.0, content.trend.points.single().ma7Kg)
         assertTrue(content.hasPlot)
     }
 

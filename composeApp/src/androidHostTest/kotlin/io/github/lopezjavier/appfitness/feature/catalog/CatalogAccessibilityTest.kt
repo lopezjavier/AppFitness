@@ -34,7 +34,8 @@ private val ExpectedTags =
     listOf(
         "catalog_button_primary_enabled", "catalog_chip_1w", "catalog_segment_deficit",
         "catalog_macro_slider_protein", "catalog_number_input_weight", "catalog_set_checkbox_unchecked",
-        "catalog_set_row_3_check", "catalog_rest_timer_start", "catalog_empty_state_action",
+        "catalog_set_row_3_check", "catalog_set_type_picker_open", "catalog_rest_timer_start",
+        "catalog_empty_state_action",
         "catalog_error_state_action", "catalog_topbar_full_back",
         "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_sheet_open",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
@@ -47,6 +48,7 @@ private val ExpectedSections =
         "macro_stacked_bar",
         "metric_tiles",
         "trend_pills", "line_chart", "number_input", "text_field", "number_stepper", "set_checkbox", "set_rows",
+        "set_type",
         "rest_timer",
         "wheel_picker",
         "selectable_card", "exercise_media", "reorderable",

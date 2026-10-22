@@ -94,7 +94,8 @@ object AppLineChartDefaults {
  * [onPointLongPress] / [onPointTap] are set, a long press / tap reports the nearest point index, and
  * [detailActionLabel] exposes the same as an accessibility action on the last point. [animated] animates data changes.
  * [referenceLine] draws a dashed horizontal line at that value (textSecondary, dashed so it is not colour-only) and
- * widens the vertical range to include it; the caller mentions it in [description].
+ * widens the vertical range to include it; the caller mentions it in [description]. With [connectGaps] the line joins
+ * consecutive non-null values across the null gaps (sparse readings); indices, dots and selection are unchanged.
  */
 @Composable
 // The extra parameters are the optional trend layer; every default keeps the single-series chart as it was.
@@ -113,13 +114,26 @@ fun AppLineChart(
     detailActionLabel: String? = null,
     animated: Boolean = false,
     referenceLine: Double? = null,
+    connectGaps: Boolean = false,
 ) {
     val producer = remember { CartesianChartModelProducer() }
-    LaunchedEffect(values, dots) {
+    LaunchedEffect(values, dots, connectGaps) {
         producer.runTransaction {
             lineModel {
-                dots?.let { addSeries(it) }
-                addSeries(values)
+                dots?.let { series ->
+                    val present = if (connectGaps) series.present() else emptyList()
+                    if (present.isEmpty()) {
+                        addSeries(series)
+                    } else {
+                        series(present.map { it.first }, present.map { it.second })
+                    }
+                }
+                val present = if (connectGaps) values.present() else emptyList()
+                if (present.isEmpty()) {
+                    addSeries(values)
+                } else {
+                    series(present.map { it.first }, present.map { it.second })
+                }
             }
         }
     }
@@ -149,6 +163,12 @@ fun AppLineChart(
         )
     }
 }
+
+/**
+ * Adds [series]; with [connectGaps] only the non-null values are added, at their original index as x, so the line joins
+ * consecutive readings across the gaps. An all-null series keeps the null-aware form (Vico rejects empty x/y lists).
+ */
+private fun List<Double?>.present(): List<Pair<Int, Double>> = mapIndexedNotNull { i, v -> v?.let { i to it } }
 
 private class ReferenceSpec(val value: Double, val range: ClosedFloatingPointRange<Double>)
 

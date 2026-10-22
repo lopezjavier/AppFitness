@@ -204,6 +204,7 @@ private fun TrendPlot(state: WeightTrendUiState.Content, onEvent: (WeightTrendEv
             detailActionLabel = stringResource(Res.string.weight_chart_detail_action),
             animated = LocalAnimationsEnabled.current,
             referenceLine = state.targetKg,
+            connectGaps = true,
         )
         Legend(state.targetKg != null, state.maHelpOpen) { onEvent(WeightTrendEvent.ToggleMaHelp) }
         if (state.maHelpOpen) MaHelpText(state.metric)

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(61);
+select plan(63);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -205,6 +205,29 @@ select is((select name from public.workout_sessions where id = (select id from s
   'a routine without exercises starts a named session');
 select lives_ok($$select public.discard_workout_session((select id from started3))$$, 'discard the third session');
 
+-- T-089: one pending set per planned set, carrying its type and planned order
+create temp table planned_routine (id uuid);
+grant all on planned_routine to authenticated;
+insert into planned_routine select public.save_routine(jsonb_build_object(
+  'name', 'Press planificado',
+  'exercises', jsonb_build_array(jsonb_build_object(
+    'exercise_id', (select id from cat where n = 1),
+    'sets', jsonb_build_array(
+      jsonb_build_object('weight_kg', 40, 'reps', 10, 'set_type', 'warm_up'),
+      jsonb_build_object('weight_kg', 80, 'reps', 8),
+      jsonb_build_object('weight_kg', 80, 'reps', 8),
+      jsonb_build_object('reps', 6, 'set_type', 'failure'))))));
+create temp table started5 (id uuid);
+grant all on started5 to authenticated;
+insert into started5 select public.start_workout_session((select id from planned_routine));
+select results_eq(
+  $$select set_index::int, set_type::text, weight_kg::int, reps::int, completed_at is null
+    from public.workout_sets where session_id = (select id from started5) order by set_index$$,
+  $$values (1, 'warm_up', 0, 0, true), (2, 'working', 0, 0, true), (3, 'working', 0, 0, true),
+           (4, 'failure', 0, 0, true)$$,
+  'start creates one pending set per planned set with its type in planned order');
+select lives_ok($$select public.discard_workout_session((select id from started5))$$, 'discard the planned session');
+
 -- US-10: editing or archiving a routine leaves performed sessions unchanged
 create temp table started4 (id uuid);
 grant all on started4 to authenticated;
@@ -218,7 +241,8 @@ select lives_ok(
   format($$select public.save_routine(jsonb_build_object(
     'id', 'a0000000-0000-4000-8000-000000000001', 'name', 'Torso renombrada',
     'exercises', jsonb_build_array(jsonb_build_object(
-      'exercise_id', %L, 'target_sets', 5, 'target_reps', 5))))$$,
+      'exercise_id', %L,
+      'sets', jsonb_build_array(jsonb_build_object('reps', 5), jsonb_build_object('reps', 5))))))$$,
     (select id from cat where n = 3)),
   'renaming the routine and replacing its exercises succeeds');
 update public.routines set archived = true where id = 'a0000000-0000-4000-8000-000000000001';

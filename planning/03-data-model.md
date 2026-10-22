@@ -82,7 +82,7 @@ Shared catalog (OFF cache) + personal foods.
 | image_url | text null | OFF URL (images are not stored) |
 | created_by | uuid null | only for `source = 'user'` |
 | search_vector | generated tsvector | GIN index; `unaccent` + `spanish` config (food names are Spanish) |
-| micronutrients | jsonb null | `source = 'user'` only: optional label values typed by the user (`saturated-fat_100g`, `sugars_100g`, `fiber_100g`, `salt_100g`; ADR-43) |
+| micronutrients | jsonb null | `source = 'user'` only: optional label values typed by the user, OFF keys per 100 base units (`saturated-fat_100g`, `sugars_100g`, `fiber_100g`, `salt_100g` since ADR-43; from E6 the full OFF nutrient list, known keys only, values ≥ 0; ADR-53) |
 | off_data | jsonb null | complete OFF product as received (`source = 'off'` only; ADR-43); written by Edge Functions, never used to compute entries, not returned by `food-search` |
 | fetched_at | timestamptz | cache refresh |
 
@@ -113,7 +113,7 @@ RLS: select when the parent food is readable (`source = 'off' or created_by = (s
 | amount | numeric(7,1) | > 0; in the food's `base_unit` |
 | portion_label | text null | snapshot of the portion used, if any |
 | food_name | text | snapshot |
-| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes) |
+| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes; editing a manual food applies to future entries only, ADR-53) |
 
 Index: `(user_id, log_date)`.
 
@@ -198,7 +198,7 @@ The training model is **forward-compatible** (ADR-30): the columns marked *(E6)*
 Catalog: one row per RepDB free exercise (`key`, `muscle_group`, `equipment`, `metric_type = weight_reps`, no name), loaded by a generated migration (`supabase/migrations/*_exercise_catalog.sql`, ADR-39), not by `seed.sql`. Consistency check: custom => `created_by` and `name` set (1-100 chars), `key` null; catalog => `key` set, `created_by` and `name` null. Names, instructions and images are **not** stored here: they live in the client asset bundle (`composeApp/src/commonMain/composeResources/files/exercises/`, ADR-30, ADR-39). RLS select: `not is_custom or created_by = (select auth.uid())`; writes only on own custom exercises.
 
 ### `routine_folders` (E6)
-`user_id`, `name`, `position`. RLS owner policy. Deleting a folder moves its routines to the default folder (never deletes them).
+`user_id`, `name`, `position`. RLS owner policy. Deleting a folder deletes its routines too, after a confirmation in the UI (ADR-51); their past sessions are kept (`workout_sessions.routine_id` is set null). This supersedes "its routines move to the default folder".
 
 ### `routines` (US-10, extended in E6)
 | Column | Type | Notes |
@@ -228,7 +228,18 @@ Catalog: one row per RepDB free exercise (`key`, `muscle_group`, `equipment`, `m
 | target_weight_kg | numeric(6,2) null | *(E6)* |
 | rest_seconds | smallint | default 120, 0–600 |
 
-RLS via the parent routine.
+RLS via the parent routine. `target_reps`, `target_weight_kg` and `planned_set_type` are legacy summaries since T-089 (ADR-54): `target_reps` is the first working set's reps, `target_sets` the planned-set count.
+
+### `routine_exercise_sets` (E6, T-089, ADR-54)
+| Column | Type | Notes |
+|---|---|---|
+| routine_exercise_id | uuid FK | on delete cascade |
+| set_index | smallint | >= 1, unique per routine exercise; planned order |
+| target_weight_kg | numeric(6,2) null | >= 0; null = no planned weight |
+| target_reps | smallint | 1-50 |
+| set_type | set_type | default `working` |
+
+RLS via the parent routine exercise -> routine owner, forced. Existing routines were migrated to `target_sets` identical planned sets.
 
 ### `workout_sessions` (US-11, extended in E6)
 | Column | Type | Notes |
@@ -272,7 +283,8 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `save_preferences(p_display_name, p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct, p_weight_kg default null, p_measured_at default null, p_day_start default null, p_day_end default null)` | US-06/07/08 (T-041, ADR-24, ADR-37; replaces `save_profile_settings` from T-037) | `void`, security invoker. One transaction: updates the caller's `profiles` name (trimmed) and biometric fields, upserts their `nutrition_goals` row and, when `p_weight_kg` is set, replaces the latest `manual` `body_measurements` row with `measured_at` in `[p_day_start, p_day_end)` or inserts one. Weight arguments are all-or-none (`22023` otherwise); `P0002` if the caller has no profile row; table checks surface as `23514` |
 | `save_body_measurement(p_id uuid default null, p_weight_kg, p_body_fat_pct default null, p_measured_at, p_day_start, p_day_end)` | US-25 (T-076) | `uuid` of the written row, security invoker, `authenticated` only. Caller sends the bounds of the local day. `p_id` null: replaces the latest `manual` row with `measured_at` in `[p_day_start, p_day_end)` (weight, fat, time; null fat clears it) or inserts one; Health Connect rows are ignored. `p_id` set: the caller's own `manual` row only (`P0002` otherwise: other user, Health Connect, unknown), whose current `measured_at` must lie in the bounds, so the date never changes. `22023` for missing/invalid bounds or `p_measured_at` outside them; `28000` unauthenticated; ranges surface as `23514`. Delete is a plain `DELETE` under the owner policy |
 | `last_performance(p_exercise_id uuid)` | US-12 | Sets (`set_index`, `weight_kg`, `reps`) of the user's most recent completed session containing that exercise |
-| `start_workout_session(p_routine_id uuid default null)` | US-11 (T-044) | `uuid` of the new `in_progress` session, security invoker. With a routine: name snapshot and one pending `workout_sets` row (weight 0, reps 0, `completed_at` null) per target set, `exercise_position`/`superset_group` copied; without: name `Entreno libre`, no sets. Routine not visible: `P0002`; second in-progress session: `23505` |
+| `save_routine(p_routine jsonb)` | US-10, US-29 (T-043, T-089) | `uuid`, security invoker, one transaction. `{id?, name, notes?, exercises:[{exercise_id, superset_group?, rest_seconds?, target_rpe?, sets:[{weight_kg?, reps, set_type}]}]}`; replaces the routine's exercises and planned sets; positions and `set_index` come from array order; `target_sets` = set count, `target_reps` = first working set's reps. Invalid payload/set (1-10 sets, reps 1-50, weight >= 0, known type) or superset members with different set counts: `22023`; routine not visible: `P0002` |
+| `start_workout_session(p_routine_id uuid default null)` | US-11 (T-044) | `uuid` of the new `in_progress` session, security invoker. With a routine: name snapshot and one pending `workout_sets` row (weight 0, reps 0, `completed_at` null, `set_type` and `set_index` of the planned set) per `routine_exercise_sets` row (a routine exercise without planned sets falls back to `target_sets` generic sets), `exercise_position`/`superset_group` copied; without: name `Entreno libre`, no sets. Routine not visible: `P0002`; second in-progress session: `23505` |
 | `finish_workout_session(p_session_id uuid)` | US-11 (T-044) | `void`. One transaction: deletes the pending sets and sets `completed` + `ended_at`; `P0002` if not an own `in_progress` session |
 | `discard_workout_session(p_session_id uuid)` | US-11 (T-044) | `void`. Sets `discarded` + `ended_at` (sets are kept, history ignores them); `P0002` if not an own `in_progress` session |
 | `exercise_history(p_exercise_id uuid, p_from date default null)` | US-15 (T-044) | `table(session_id, session_date, best_one_rm, total_volume)` per `completed` session (UTC date of `started_at`, `>= p_from`) with completed, non-warm-up sets of the exercise, ordered by start. `best_one_rm`: Epley over sets with reps 1..12 and weight > 0 (reps 1 = weight), rounded to 0.5 kg, null if none; `total_volume = sum(weight_kg * reps)` |
@@ -286,7 +298,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 
 The 1RM is computed in SQL with the same formula as the domain (see `04-business-rules.md`); domain and pgTAP tests use the same cases.
 
-E6 adds the RPCs for the PR catalogue, the warm-up/plate calculators and routine tracking (`Update Routine`); E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
+E6 adds the RPCs for the PR catalogue, routine folders/order, routine tracking (`Update Routine`), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
 
 ## 7. Edge Functions
 

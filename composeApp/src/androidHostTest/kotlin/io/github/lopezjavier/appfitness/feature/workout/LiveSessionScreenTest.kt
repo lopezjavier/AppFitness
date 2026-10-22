@@ -8,7 +8,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
@@ -20,6 +22,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
@@ -335,5 +338,48 @@ class LiveSessionScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("live_set_0_4").assertExists()
+    }
+
+    private fun plannedState() = active(
+        exercises = listOf(
+            LiveExercise(
+                0,
+                "e1",
+                "Press banca",
+                null,
+                listOf(
+                    LiveSetRow(1, "", "", false, "40", "10", type = SetType.WarmUp, previous = "30 kg × 12"),
+                    LiveSetRow(2, "", "", false, "80", "8"),
+                    LiveSetRow(3, "", "", false, "80", "8"),
+                    LiveSetRow(4, "", "", false, "80", "8"),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun plannedSets_showTheTypeBadgeOnTheWarmUpAndTheNumberOnTheOthers() {
+        show(plannedState())
+
+        fun badge(set: Int) = rule.onNode(
+            hasTestTag("set_type_badge") and hasAnyAncestor(hasTestTag("live_set_0_$set")),
+            useUnmergedTree = true,
+        )
+        badge(1).assertTextEquals("C")
+        badge(2).assertTextEquals("2")
+        badge(4).assertTextEquals("4")
+    }
+
+    @Test
+    fun plannedWeightAndReps_areDimHintsNotValues_andThePreviousColumnIsKept() {
+        show(plannedState())
+
+        rule.onNodeWithTag("live_set_0_2_weight").assertTextEquals("")
+        rule.onNodeWithTag("live_set_0_2_reps").assertTextEquals("")
+        // The planned targets travel as the dim placeholders of the row, never as typed values.
+        val values = (plannedState().exercises.single().sets[1]).toSetRowValues()
+        assertEquals("80" to "8", values.weightPlaceholder to values.repsPlaceholder)
+        assertEquals("" to "", values.weight to values.reps)
+        rule.onNodeWithTag("live_set_0_1_previous").assertTextContains("30 kg × 12")
     }
 }

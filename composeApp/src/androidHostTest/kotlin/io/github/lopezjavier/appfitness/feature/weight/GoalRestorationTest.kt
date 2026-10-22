@@ -24,7 +24,6 @@ import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -47,7 +46,7 @@ private object RestorationGoalClock : Clock {
     override fun now(): Instant = Instant.parse("2026-10-21T10:30:00Z")
 }
 
-/** The target draft, the open metric detail and the comparison selection survive recreation (ADR-40). */
+/** The target draft, the open metric detail survive recreation (ADR-40). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class GoalRestorationTest {
@@ -87,8 +86,8 @@ class GoalRestorationTest {
 
     private fun goalModel(state: SavedStateHandle) = GoalViewModel(
         profile, weights, goals, FakeCircumferenceRepository(), Bmi(), TargetDistance(),
-        InterpretMetric(), WaistHipRatio(), CompareMeasurements(), ValidateBodyMeasurement(),
-        FakeConnectivityObserver(), RestorationGoalClock, state,
+        InterpretMetric(), WaistHipRatio(), ValidateBodyMeasurement(),
+        FakeConnectivityObserver(), state,
     )
 
     @Composable
