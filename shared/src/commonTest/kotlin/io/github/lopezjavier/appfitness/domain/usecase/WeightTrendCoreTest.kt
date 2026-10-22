@@ -81,8 +81,21 @@ class MovingAverageTest {
     }
 
     @Test
-    fun singleDayInWindow_hasNoPoint() {
-        assertNull(ma.at(listOf(day(1, 80.0)), LocalDate(2026, 10, 3)))
+    fun singleDayInWindow_isThatValue() {
+        assertEquals(80.0, ma.at(listOf(day(1, 80.0)), LocalDate(2026, 10, 3)))
+    }
+
+    @Test
+    fun threeDaysInWindow_areAveraged() {
+        assertEquals(80.0, ma.at(listOf(day(1, 78.0), day(2, 80.0), day(3, 82.0)), LocalDate(2026, 10, 3)))
+    }
+
+    @Test
+    fun windowBoundary_includesDMinusSixAndExcludesDMinusSeven() {
+        val daily = listOf(day(1, 100.0), day(2, 80.0))
+
+        assertEquals(90.0, ma.at(daily, LocalDate(2026, 10, 7))) // 1..7 includes the 1st
+        assertEquals(80.0, ma.at(daily, LocalDate(2026, 10, 8))) // 2..8 excludes the 1st
     }
 
     @Test
@@ -108,13 +121,8 @@ class MovingAverageTest {
 class WeeklyRateTest {
     private val rate = CalculateWeeklyRate()
 
-    /** Two days around the previous MA7 date (day 8) and two around the last one (day 15). */
-    private fun series(previous: Double, current: Double) = listOf(
-        day(7, previous),
-        day(8, previous),
-        day(14, current),
-        day(15, current),
-    )
+    /** Two weigh-ins exactly 7 days apart, so the rate equals the difference. */
+    private fun series(previous: Double, current: Double) = listOf(day(8, previous), day(15, current))
 
     @Test
     fun deficitLosingWeight_isFavorable() {
@@ -167,11 +175,38 @@ class WeeklyRateTest {
     }
 
     @Test
-    fun missingPreviousMa_isNotEnoughData() {
-        val result = rate(listOf(day(14, 80.0), day(15, 80.0)), GoalStrategy.Deficit)
+    fun singleDay_isNotEnoughData() {
+        val result = rate(listOf(day(15, 80.0)), GoalStrategy.Deficit)
 
         assertNull(result.value)
         assertEquals(RateTone.Neutral, result.tone)
+    }
+
+    @Test
+    fun sparseWeighIns_fiveDaysApart_scaleToAWeek() {
+        val result = rate(listOf(day(14, 79.5), day(19, 79.4)), GoalStrategy.Deficit)
+
+        assertEquals(-0.14, result.value)
+        assertEquals(RateTone.Favorable, result.tone)
+    }
+
+    @Test
+    fun threeDaysApart_scaleToAWeek() {
+        assertEquals(0.7, rate(listOf(day(10, 80.0), day(13, 80.3)), GoalStrategy.Surplus).value)
+    }
+
+    @Test
+    fun onlyTheLastTwoDaysCount_andInputOrderDoesNotMatter() {
+        val result = rate(listOf(day(19, 79.4), day(1, 90.0), day(14, 79.5)), GoalStrategy.Deficit)
+
+        assertEquals(-0.14, result.value)
+    }
+
+    @Test
+    fun twoWeighInsAYearApart_giveATinyRate() {
+        val daily = listOf(DailyWeight(LocalDate(2025, 10, 20), 85.0), DailyWeight(LocalDate(2026, 10, 20), 80.0))
+
+        assertEquals(-0.10, rate(daily, GoalStrategy.Deficit).value)
     }
 
     @Test
@@ -260,7 +295,21 @@ class WeightTrendTest {
         assertFalse(data.hasEnoughData)
         assertNull(data.rate.value)
         assertEquals(1, data.points.size)
-        assertNull(data.points.single().ma7Kg)
+        assertEquals(74.2, data.points.single().ma7Kg)
+    }
+
+    @Test
+    fun sparseWeighIns_14thAnd19th_haveEnoughDataAndMaOnBothPoints() {
+        val data = trend(
+            listOf(DailyWeight(LocalDate(2026, 10, 14), 79.5), DailyWeight(LocalDate(2026, 10, 19), 79.4)),
+            WeightChartRange.Month,
+            GoalStrategy.Deficit,
+            today,
+        )
+
+        assertTrue(data.hasEnoughData)
+        assertEquals(listOf(79.5, 79.45), data.points.map { it.ma7Kg })
+        assertEquals(-0.14, data.rate.value)
     }
 
     @Test
@@ -300,7 +349,7 @@ class WeightTrendTest {
     }
 
     @Test
-    fun dailyOverload_metricMeasuredEveryThreeDays_hasMa7FromTheSecondPoint() {
+    fun dailyOverload_metricMeasuredEveryThreeDays_hasMa7OnEveryPoint() {
         val daily = listOf(
             DailyWeight(LocalDate(2026, 10, 15), 30.0),
             DailyWeight(LocalDate(2026, 10, 18), 28.0),
@@ -309,12 +358,12 @@ class WeightTrendTest {
 
         val data = trend(daily, WeightChartRange.Month, GoalStrategy.Maintenance, today)
 
-        assertEquals(listOf(null, 29.0, 28.0), data.points.map { it.ma7Kg })
+        assertEquals(listOf(30.0, 29.0, 28.0), data.points.map { it.ma7Kg })
         assertTrue(data.hasEnoughData)
     }
 
     @Test
-    fun dailyOverload_metricMeasuredOnlyWeekly_hasNoMa7BecauseTheWindowHoldsOneDay() {
+    fun dailyOverload_metricMeasuredOnlyWeekly_stillHasMa7AndEnoughData() {
         val daily = listOf(
             DailyWeight(LocalDate(2026, 10, 7), 30.0),
             DailyWeight(LocalDate(2026, 10, 14), 28.0),
@@ -323,6 +372,7 @@ class WeightTrendTest {
 
         val data = trend(daily, WeightChartRange.Month, GoalStrategy.Maintenance, today)
 
-        assertFalse(data.hasEnoughData)
+        assertTrue(data.hasEnoughData)
+        assertEquals(listOf(30.0, 28.0, 26.0), data.points.map { it.ma7Kg })
     }
 }

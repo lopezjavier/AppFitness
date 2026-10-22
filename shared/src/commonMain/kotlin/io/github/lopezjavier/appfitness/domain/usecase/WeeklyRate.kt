@@ -1,8 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.minus
+import kotlinx.datetime.daysUntil
 import kotlin.math.abs
 import kotlin.math.round
 
@@ -12,14 +11,17 @@ enum class RateTone { Favorable, Unfavorable, Caution, Neutral }
 /** The weekly rate in kg/week with 2 decimals, or null (not enough data). */
 data class WeeklyRate(val value: Double?, val tone: RateTone)
 
-/** `MA7(last day with data) - MA7(that day - 7)` coloured by the goal (planning/04-business-rules.md §3.3). */
-class CalculateWeeklyRate(private val movingAverage: MovingAverage = MovingAverage()) {
+/**
+ * Rate between the last two days with data, scaled to 7 days: `(w_last - w_prev) / daysBetween * 7`, coloured by the
+ * goal (planning/04-business-rules.md §3.3, ADR-49). Fewer than 2 days with data means no rate.
+ */
+class CalculateWeeklyRate {
     operator fun invoke(daily: List<DailyWeight>, strategy: GoalStrategy): WeeklyRate {
-        val last = daily.maxOfOrNull { it.date }
-        val current = last?.let { movingAverage.at(daily, it) }
-        val previous = last?.let { movingAverage.at(daily, it.minus(DatePeriod(days = RATE_SPAN_DAYS))) }
-        if (current == null || previous == null) return NOT_ENOUGH
-        val rate = round((current - previous) * HUNDRED) / HUNDRED
+        val lastTwo = daily.distinctBy { it.date }.sortedBy { it.date }.takeLast(2)
+        if (lastTwo.size < 2) return NOT_ENOUGH
+        val (previous, last) = lastTwo
+        val daysBetween = previous.date.daysUntil(last.date)
+        val rate = round((last.kg - previous.kg) / daysBetween * RATE_SPAN_DAYS * HUNDRED) / HUNDRED
         return WeeklyRate(rate, toneOf(rate, strategy))
     }
 
@@ -31,7 +33,7 @@ class CalculateWeeklyRate(private val movingAverage: MovingAverage = MovingAvera
 
     private companion object {
         const val MAINTENANCE_BAND = 0.20
-        const val RATE_SPAN_DAYS = 7
+        const val RATE_SPAN_DAYS = 7.0
         const val HUNDRED = 100.0
         val NOT_ENOUGH = WeeklyRate(null, RateTone.Neutral)
     }

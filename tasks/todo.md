@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-088 (E5-B round 3, ADR-49), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** E5-B 👤 checkpoint again (T-088 merged). T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2191,12 +2191,12 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** The user weighs once or twice a week. (1) `MovingAverage.at` accepts 1 or more days in its window. (2) `CalculateWeeklyRate` = change between the last two days with data, scaled to kg/week. (3) The chart draws a line connecting consecutive points across gaps, for every metric of the selector; one point stays a dot with the hint. Update the domain tests with the examples of `04-business-rules.md` §3.2/§3.3 and the host tests of the chart.
 
 **Acceptance criteria:**
-- [ ] Two weigh-ins (the 14th and the 19th) show a line between both points; also when they are a year apart.
-- [ ] 79,5 kg on the 14th and 79,4 kg on the 19th give a pace of −0,14 kg/week; a single weigh-in still reads "Sin datos suficientes".
-- [ ] The behaviour is the same for fat, lean mass, water, bone and BMR.
+- [x] Two weigh-ins (the 14th and the 19th) show a line between both points; also when they are a year apart.
+- [x] 79,5 kg on the 14th and 79,4 kg on the 19th give a pace of −0,14 kg/week; a single weigh-in still reads "Sin datos suficientes".
+- [x] The behaviour is the same for fat, lean mass, water, bone and BMR.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green.
+- [x] Lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-087
 **Estimated scope:** M
