@@ -5,8 +5,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -100,24 +103,63 @@ class WeightScreenCompositionTest {
         rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
             ?.firstOrNull()
 
-    // -- "+" and the Composición corporal sheet ---------------------------------------------------------------------
+    // -- Whole panel opens the Composición corporal sheet; the pencil edits today ----------------------------
 
     @Test
-    fun plusButton_isATouchTargetWithASpokenLabelAndOpensTheSheet() {
+    fun wholePanel_isAButtonWithASpokenLabelAndOpensTheSheet() {
         show(healthConnectDay, olderManual)
 
-        assertEquals("Ver composición corporal", description("weight_composition_button"))
-        rule.onNodeWithTag("weight_composition_button").assertHeightIsAtLeast(48.dp)
-        tap("weight_composition_button")
+        assertEquals("Ver composición corporal", description("weight_panel"))
+        rule.onNodeWithTag("weight_panel").assertHasClickAction()
+        tap("weight_panel")
 
         rule.onNodeWithTag("weight_composition_title").assertTextEquals("Composición corporal")
+    }
+
+    @Test
+    fun panel_hasNoCompositionPlusNorGreenLogButton() {
+        show(healthConnectDay, olderManual)
+
+        rule.onNodeWithTag("weight_composition_button").assertDoesNotExist()
+        rule.onNodeWithTag("weight_log_today_button").assertDoesNotExist()
+    }
+
+    @Test
+    fun pencil_isATouchTargetThatOpensTodaysSheetWithoutOpeningTheComposition() {
+        show(olderManual)
+
+        assertEquals("Editar peso de hoy", description("weight_edit_today_button"))
+        rule.onNodeWithTag("weight_edit_today_button").assertHeightIsAtLeast(48.dp)
+        tap("weight_edit_today_button")
+
+        rule.onNodeWithTag("weight_sheet_weight_input").assertIsDisplayed()
+        rule.onNodeWithTag("weight_composition_title").assertDoesNotExist()
+    }
+
+    @Test
+    fun pencil_isDisabledWithTheHealthConnectNoteWhenTodayHasAnHealthConnectWeight() {
+        val todayHc = healthConnectDay.copy(id = "h2", measuredAt = Instant.parse("2026-10-21T06:00:00Z"))
+        show(todayHc)
+
+        rule.onNodeWithTag("weight_edit_today_button").assertIsNotEnabled()
+        val state = rule.onNodeWithTag("weight_edit_today_button").fetchSemanticsNode().config
+            .getOrNull(SemanticsProperties.StateDescription)
+        assertEquals("Sincronizado desde Health Connect", state)
+    }
+
+    @Test
+    fun emptyState_keepsTheEnabledPencilReachable() {
+        show()
+
+        rule.onNodeWithTag("weight_empty").assertExists()
+        rule.onNodeWithTag("weight_edit_today_button").assertIsEnabled()
     }
 
     @Test
     fun compositionSheet_showsTheNewestValuePerMetricWithItsDate() {
         show(healthConnectDay, olderManual)
 
-        tap("weight_composition_button")
+        tap("weight_panel")
 
         assertEquals("Grasa corporal, 18,5 %, 19 oct", description("weight_composition_fat"))
         assertEquals("Masa magra, 58,1 kg, 19 oct", description("weight_composition_lean"))
@@ -129,7 +171,7 @@ class WeightScreenCompositionTest {
     fun compositionSheet_marksAMetricThatWasNeverMeasuredAsWithoutData() {
         show(healthConnectDay, olderManual)
 
-        tap("weight_composition_button")
+        tap("weight_panel")
 
         assertEquals("TMB, sin datos", description("weight_composition_bmr"))
     }
@@ -138,7 +180,7 @@ class WeightScreenCompositionTest {
     fun compositionSheet_isReadOnlyAndGoneOnceTheViewModelClosesIt() {
         show(healthConnectDay)
 
-        tap("weight_composition_button")
+        tap("weight_panel")
         rule.onNodeWithTag("weight_composition_sheet").assertIsDisplayed()
         rule.onNodeWithTag("weight_sheet_save").assertDoesNotExist()
         rule.runOnUiThread { shownModel.onEvent(WeightEvent.CloseComposition) }
@@ -153,7 +195,7 @@ class WeightScreenCompositionTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { Host(viewModel(FakeWeightRepository(healthConnectDay), savedState)) }
         rule.waitForIdle()
-        tap("weight_composition_button")
+        tap("weight_panel")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
@@ -193,7 +235,8 @@ class WeightScreenCompositionTest {
         val todayHc = healthConnectDay.copy(id = "h2", measuredAt = Instant.parse("2026-10-21T06:00:00Z"))
         show(todayHc)
 
-        tap("weight_log_today_button")
+        rule.runOnUiThread { shownModel.onEvent(WeightEvent.LogToday) }
+        rule.waitForIdle()
 
         rule.onNodeWithTag("weight_sheet_hc_note").assertIsDisplayed()
         rule.onNodeWithTag("weight_sheet_weight_input").assertDoesNotExist()

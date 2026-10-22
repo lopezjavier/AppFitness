@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
@@ -32,7 +33,6 @@ import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -96,7 +96,7 @@ class WeightScreenGoalTest {
 
     private fun newGoalModel(state: SavedStateHandle) = GoalViewModel(
         profile, weights, goals, circumferences, Bmi(), TargetDistance(), InterpretMetric(),
-        WaistHipRatio(), CompareMeasurements(), ValidateBodyMeasurement(), FakeConnectivityObserver(), GoalClock, state,
+        WaistHipRatio(), ValidateBodyMeasurement(), FakeConnectivityObserver(), state,
     )
 
     @Composable
@@ -233,31 +233,13 @@ class WeightScreenGoalTest {
     }
 
     @Test
-    fun comparingAnOlderMeasurement_showsTheSignedDeltas() {
-        prepare()
-        weights.rows += manual("older", 75.6, "2026-10-10T12:00:00Z", fat = 20.2)
-        rule.setContent { Host(SavedStateHandle()) }
-        rule.waitForIdle()
-
-        weightModel.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 10)))
-        rule.waitForIdle()
-        tap("weight_compare_button_older")
-
-        rule.onNodeWithTag("weight_compare_weight_delta").assertTextContains("−1,4 kg", substring = true)
-        rule.onNodeWithTag("weight_compare_fat_delta").assertTextContains("−0,7 pt", substring = true)
-        tap("weight_compare_back_button")
-        rule.onNodeWithTag("weight_compare_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("weight_compare_button_older").assertIsDisplayed()
-    }
-
-    @Test
-    fun theLatestMeasurementCannotBeCompared() {
+    fun daySheet_hasNoCompareAction() {
         show()
 
         weightModel.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 20)))
         rule.waitForIdle()
 
-        rule.onNodeWithTag("weight_compare_button_latest").assertDoesNotExist()
+        rule.onNodeWithText("Comparar").assertDoesNotExist()
     }
 
     @Test

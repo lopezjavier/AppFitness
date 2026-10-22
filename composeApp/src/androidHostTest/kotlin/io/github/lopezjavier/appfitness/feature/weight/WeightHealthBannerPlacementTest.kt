@@ -81,7 +81,7 @@ class WeightHealthBannerPlacementTest {
         show(HealthSyncUiState(HealthSyncStatus.NeverSynced))
 
         rule.onNodeWithTag("weight_hc_banner").assertIsDisplayed()
-        assertTrue(bounds("weight_hc_banner").top >= bounds("weight_log_today_button").bottom)
+        assertTrue(bounds("weight_hc_banner").top >= bounds("weight_edit_today_button").bottom)
         assertTrue(bounds("weight_hc_banner").bottom <= bounds("weight_calendar").top)
     }
 
@@ -91,7 +91,7 @@ class WeightHealthBannerPlacementTest {
         show(HealthSyncUiState(HealthSyncStatus.NeverSynced))
 
         val banner = bounds("weight_hc_banner")
-        assertTrue(banner.top >= bounds("weight_log_today_button").bottom)
+        assertTrue(banner.top >= bounds("weight_edit_today_button").bottom)
         assertTrue(banner.right <= bounds("weight_calendar").left)
     }
 

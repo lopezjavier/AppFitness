@@ -23,7 +23,6 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -150,10 +149,8 @@ class HealthSyncRestorationTest {
                 targetDistance = TargetDistance(),
                 interpret = InterpretMetric(),
                 waistHipRatio = WaistHipRatio(),
-                compareMeasurements = CompareMeasurements(),
                 validate = ValidateBodyMeasurement(),
                 connectivity = FakeConnectivityObserver(),
-                clock = HealthClock,
             )
         }
         AppTheme {

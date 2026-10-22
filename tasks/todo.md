@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-087 (E5-B feedback round 2, ADR-48), then the E5-B 👤 checkpoint again. T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
+**Next:** E5-B 👤 checkpoint (after T-087 merges; the user re-tests the APK, see Checkpoint E5-B). T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2171,10 +2171,10 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** (1) Preferencias "Peso actual" must be read-only while the latest weight is from Health Connect (ADR-47 not honoured: it was editable); audit every other entry point for the same hole. (2) "Peso actual" shows the latest weight and its date, never "Sin datos suficientes". (3) ADR-48: remove the "+"; the whole box opens "Composición corporal"; a pencil in its place opens today's weight entry; remove the green "Registrar peso de hoy" button; remove "Comparar" and its code. (4) Preload: the weight screen loads weights, measurements and circumferences once when opened and switching metric tabs reads from memory (no reload, no network on tab change).
 
 **Acceptance criteria:**
-- [ ] With a Health Connect latest weight, "Peso actual" in Preferencias cannot be edited.
-- [ ] "Peso actual" never shows "Sin datos suficientes".
-- [ ] The box opens the composition; the pencil opens today's weight entry (disabled with a Health Connect weight); no green button; no "+"; no "Comparar".
-- [ ] Switching metric tabs makes no repository call and shows the chart at once.
+- [x] With a Health Connect latest weight, "Peso actual" in Preferencias cannot be edited.
+- [x] "Peso actual" never shows "Sin datos suficientes".
+- [x] The box opens the composition; the pencil opens today's weight entry (disabled with a Health Connect weight); no green button; no "+"; no "Comparar".
+- [x] Switching metric tabs makes no repository call and shows the chart at once.
 
 **Verification:**
 - [ ] Lint + `testLocalDebugUnitTest` green.

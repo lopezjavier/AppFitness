@@ -59,7 +59,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
@@ -237,7 +236,6 @@ val sharedModule =
         factory { Bmi() }
         factory { TargetDistance() }
         factory { InterpretMetric(get()) }
-        factory { CompareMeasurements() }
         factory { MeasurementsByDay() }
         factory { CurrentWeight() }
         // The local day boundaries follow the device time zone, which is not a Koin dependency.

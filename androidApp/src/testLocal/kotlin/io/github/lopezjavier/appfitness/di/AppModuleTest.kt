@@ -32,7 +32,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
-import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
@@ -158,7 +157,6 @@ class AppModuleTest {
                 Bmi::class,
                 TargetDistance::class,
                 InterpretMetric::class,
-                CompareMeasurements::class,
                 WeightChartPreferences::class,
                 WeightTrend::class,
             ),

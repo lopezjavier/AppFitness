@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_goal_metrics
-import io.github.lopezjavier.appfitness.designsystem.ComparisonDeltaRow
 import io.github.lopezjavier.appfitness.designsystem.GoalCard
 import io.github.lopezjavier.appfitness.designsystem.MetricInterpretationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -43,7 +42,6 @@ private fun GoalMetricSection() {
                 tone = StatusTone.Good,
                 explanation = "Tu peso es adecuado para tu estatura (IMC entre 18,5 y 24,9).",
             )
-            ComparisonDeltaRow("Peso", "75,6 → 74,2 kg", "−1,4 kg", "1,4 kg menos")
         }
     }
 }

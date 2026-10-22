@@ -3,6 +3,8 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -12,8 +14,6 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.MetricDailyValues
-import io.github.lopezjavier.appfitness.domain.usecase.TrendData
-import io.github.lopezjavier.appfitness.domain.usecase.WeeklyRate
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import kotlinx.coroutines.Job
@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -38,21 +39,25 @@ private sealed interface TrendLoad {
 
     data object Failed : TrendLoad
 
+    /** Everything every range and metric needs, fetched once; the trend of the selection is derived from it. */
     data class Ready(
-        val range: WeightChartRange,
-        val metric: BodyMetric,
-        val trend: TrendData,
-        val weeklyRate: WeeklyRate,
+        val rows: List<BodyMeasurement>,
+        val circumferenceRows: List<BodyCircumference>,
         val targetKg: Double?,
+        val strategy: GoalStrategy,
+        val today: LocalDate,
     ) : TrendLoad
 }
 
+private data class TrendSelection(val range: WeightChartRange, val metric: BodyMetric)
+
 /**
- * The trend of the weight screen (US-27): loads the measurements of the saved range (plus the lead-in days the MA7
- * and the weekly rate need), builds the [TrendData] of the saved metric against the user's goal strategy
- * (Maintenance when there is no goals row or it cannot be read) and keeps the selected point date in [savedState]
- * as an ISO string. The range and the metric live in [preferences]; selecting one saves it and the saved value
- * drives the reload. The weekly rate and the target are always the weight's.
+ * The trend of the weight screen (US-27): loads once everything any range or metric needs (the measurements of the
+ * widest range plus the MA7 lead-in, all circumferences, the target and the goal strategy, Maintenance when there is
+ * no goals row or it cannot be read) and derives the trend of the selected range and metric from memory, so switching
+ * tabs makes no call, shows no loading state and works offline. The selected point date is kept in [savedState] as an
+ * ISO string. The range and the metric live in [preferences]; selecting one saves it and updates the in-memory
+ * selection at once. Refresh and Retry reload the data. The weekly rate and the target are always the weight's.
  */
 // One dependency per port.
 @Suppress("LongParameterList")
@@ -73,30 +78,32 @@ class WeightTrendViewModel(
         savedState.get<String>(KEY_SELECTED)?.takeIf { it != NONE }?.let(LocalDate::parse),
     )
     private val maHelpOpen = MutableStateFlow(savedState.get<Boolean>(KEY_MA_HELP) == true)
-    private var currentRange: WeightChartRange = WeightChartRange.Default
-    private var currentMetric: BodyMetric = BodyMetric.Weight
+    private val selection = MutableStateFlow<TrendSelection?>(null)
     private var loadJob: Job? = null
 
-    val uiState: StateFlow<WeightTrendUiState> = combine(load, selectedDate, maHelpOpen, ::buildState)
+    val uiState: StateFlow<WeightTrendUiState> = combine(load, selection, selectedDate, maHelpOpen, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, WeightTrendUiState.Loading)
 
     init {
         viewModelScope.launch {
-            combine(preferences.range, preferences.metric, ::Pair).distinctUntilChanged().collect { (range, metric) ->
-                currentRange = range
-                currentMetric = metric
-                reload(silent = false)
+            combine(preferences.range, preferences.metric, ::TrendSelection).distinctUntilChanged().collect {
+                selection.value = it
             }
         }
+        reload(silent = false)
     }
 
     fun onEvent(event: WeightTrendEvent) {
         when (event) {
-            is WeightTrendEvent.SelectRange -> viewModelScope.launch { preferences.setRange(event.range) }
+            is WeightTrendEvent.SelectRange -> {
+                selection.update { it?.copy(range = event.range) }
+                viewModelScope.launch { preferences.setRange(event.range) }
+            }
 
             is WeightTrendEvent.SelectMetric -> {
                 // The open day may have no value in the new metric.
                 selectPoint(null)
+                selection.update { it?.copy(metric = event.metric) }
                 viewModelScope.launch { preferences.setMetric(event.metric) }
             }
 
@@ -120,57 +127,60 @@ class WeightTrendViewModel(
 
     private fun reload(silent: Boolean) {
         loadJob?.cancel()
-        val range = currentRange
-        val metric = currentMetric
         if (!silent) load.value = TrendLoad.Loading
         loadJob = viewModelScope.launch {
             val today = clock.today()
-            val window = range.window(today)
+            val window = WeightChartRange.entries.maxBy { it.days }.window(today)
             val rows = measurements.getMeasurements(
                 window.fetchStart.atStartOfDayIn(timeZone),
                 window.endExclusive.atStartOfDayIn(timeZone),
             )
-            val circumferenceRows = if (metric.isCircumference) circumferences.getAll() else Result.success(emptyList())
+            val circumferenceRows = circumferences.getAll()
             val targetDeferred = async { profile.getTargetWeight().getOrNull() }
             val strategy = goals.getOwn().getOrNull()?.strategy ?: GoalStrategy.Maintenance
             val target = targetDeferred.await()
             when {
-                rows.isSuccess && circumferenceRows.isSuccess -> {
-                    val weight = weightTrend(rows.getOrThrow(), range, strategy, timeZone, today)
-                    val shown = if (metric == BodyMetric.Weight) {
-                        weight
-                    } else {
-                        val daily =
-                            metricDailyValues(rows.getOrThrow(), circumferenceRows.getOrThrow(), metric, timeZone)
-                        weightTrend(daily, range, strategy, today)
-                    }
-                    load.value = TrendLoad.Ready(
-                        range,
-                        metric,
-                        shown,
-                        weight.rate,
-                        target.takeIf { metric == BodyMetric.Weight },
-                    )
-                }
+                rows.isSuccess && circumferenceRows.isSuccess -> load.value = TrendLoad.Ready(
+                    rows.getOrThrow(),
+                    circumferenceRows.getOrThrow(),
+                    target,
+                    strategy,
+                    today,
+                )
 
                 !silent -> load.value = TrendLoad.Failed
             }
         }
     }
 
-    private fun buildState(load: TrendLoad, selected: LocalDate?, maHelp: Boolean): WeightTrendUiState = when (load) {
-        TrendLoad.Loading -> WeightTrendUiState.Loading
+    private fun buildState(
+        load: TrendLoad,
+        selection: TrendSelection?,
+        selected: LocalDate?,
+        maHelp: Boolean,
+    ): WeightTrendUiState = when {
+        load is TrendLoad.Failed -> WeightTrendUiState.Error
 
-        TrendLoad.Failed -> WeightTrendUiState.Error
+        load !is TrendLoad.Ready || selection == null -> WeightTrendUiState.Loading
 
-        is TrendLoad.Ready -> WeightTrendUiState.Content(
-            range = load.range,
-            metric = load.metric,
-            weeklyRate = load.weeklyRate,
-            trend = load.trend,
-            selectedPoint = load.trend.points.firstOrNull { it.date == selected },
-            targetKg = load.targetKg,
-            maHelpOpen = maHelp,
-        )
+        else -> {
+            val (range, metric) = selection
+            val weight = weightTrend(load.rows, range, load.strategy, timeZone, load.today)
+            val shown = if (metric == BodyMetric.Weight) {
+                weight
+            } else {
+                val daily = metricDailyValues(load.rows, load.circumferenceRows, metric, timeZone)
+                weightTrend(daily, range, load.strategy, load.today)
+            }
+            WeightTrendUiState.Content(
+                range = range,
+                metric = metric,
+                weeklyRate = weight.rate,
+                trend = shown,
+                selectedPoint = shown.points.firstOrNull { it.date == selected },
+                targetKg = load.targetKg.takeIf { metric == BodyMetric.Weight },
+                maHelpOpen = maHelp,
+            )
+        }
     }
 }
