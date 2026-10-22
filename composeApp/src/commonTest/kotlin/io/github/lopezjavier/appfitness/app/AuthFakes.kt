@@ -95,6 +95,18 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         return updateResult
     }
 
+    /** Result of [getTargetWeight]; saves go to [targetWeightSaves] and answered by [targetWeightSaveResult]. */
+    var targetWeight: Result<Double?> = Result.success(null)
+    var targetWeightSaveResult: Result<Unit> = Result.success(Unit)
+    val targetWeightSaves = mutableListOf<Double?>()
+
+    override suspend fun getTargetWeight(): Result<Double?> = targetWeight
+
+    override suspend fun setTargetWeight(kg: Double?): Result<Unit> {
+        targetWeightSaves += kg
+        return targetWeightSaveResult
+    }
+
     /** Result of every [savePreferences], which also records the arguments. */
     var settingsResult: Result<Unit> = Result.success(Unit)
     val preferenceSaves = mutableListOf<SavedPreferences>()

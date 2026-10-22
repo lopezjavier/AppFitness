@@ -106,6 +106,7 @@ Every interpreted metric shows a value, a status and a short explanation. Ranges
 
 - BMI: `< 18,5` underweight · `18,5–24,9` normal · `25,0–29,9` overweight · `≥ 30` obese.
 - Body fat % (adult): men `< 10` low · `10–20` normal · `20–25` high · `> 25` very high; women `< 18` low · `18–28` normal · `28–32` high · `> 32` very high.
+- Shared edge values belong to the lower band (body fat men 20,0 normal, 25,0 high; women 28,0 normal, 32,0 high); BMI compares on the rounded value.
 - Waist-to-hip ratio (§3.9): men `≤ 0,90` low risk · `> 0,90` high; women `≤ 0,85` low · `> 0,85` high.
 
 ### 3.9 Waist-to-hip ratio (WHR)

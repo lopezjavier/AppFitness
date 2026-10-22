@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-081 (goal, BMI, comparison and interpretation; its section is still to be written in this file); the E5-B 👤 checkpoint follows it (E5-A folded into E5-B). T-076, T-077, T-078, T-079, T-080 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
+**Next:** the E5-B 👤 checkpoint (present it once T-081's PR is merged and `deploy-supabase` is green; E5-A folded into E5-B). T-076…T-081 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2075,6 +2075,33 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Dependencies:** T-079
 **Files likely touched:** `shared/…/domain/usecase/{DailyWeights,MovingAverage,WeeklyRate,WeightChartRange}.kt` + tests, `shared/…/domain/repository/{BodyMeasurementRepository,WeightPreferences}.kt`, `shared/…/data/repository/*`, `shared/…/data/local/*` (DataStore), DI, `composeApp/…/feature/weight/{WeightChart,WeightTrendViewModel,WeightUiState,WeightScreen}.kt`, `composeApp/…/designsystem/{AppLineChart,MetricTile,TrendPill}.kt` (+ callers), catalog, strings, tests
 **Estimated scope:** M–L
+
+---
+
+## T-081: Target weight, BMI, measurement comparison and metric interpretation
+
+**Story:** US-27 (goal and metrics part) · **Flow:** UI + backend · **Scenarios:** BMI; Target weight and distance; Target distance on maintenance; Setting the target weight; Compare two measurements; Metric interpretation
+
+**Description:** Backend: one migration adds nullable `profiles.target_weight_kg numeric(5,2)` (range check 20–400, as the weight validator) and extends the owner `update` column grant of `profiles` to include it (a merged migration is never edited; pgTAP: range, owner-only update, cross-user isolation). Domain (pure, `04-business-rules.md` §3.5, §3.6, §3.8 examples as tests): `Bmi` (weight / height², 1 decimal, status by §3.8 ranges), `TargetDistance` (by `nutrition_goals` strategy: Deficit/Surplus "faltan X kg" until the target is reached in the strategy's direction, then "objetivo alcanzado"; Maintenance "X kg por encima/por debajo del objetivo", "objetivo alcanzado" at 0,0; Q3 resolved 2026-10-21), `GoalProgress` (percentage from the user's first weight in the app, the onboarding row, to the target; clamped 0–100), `InterpretMetric` (BMI, body fat and waist-to-hip ratio: value, status, short Spanish explanation; ranges in §3.8) and `CompareMeasurements` (weight and body fat differences with sign, `−1,4 kg` format). Data: `ProfileRepository` reads and updates `target_weight_kg`. UI on the weight screen: the `GoalCard` (target, distance, progress bar; "Fijar objetivo" when unset and "Cambiar" when set, opening a target sheet with one explicit "Guardar" and the weight validation), an "IMC 23,4" tile with its status, metric detail sheets for BMI, body fat and waist-to-hip ratio (`MetricInterpretationRow`, value, status, explanation and the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico"), the extra composition values from the scale (lean mass, water, bone, BMR) in the measurement detail, and "Comparar" on an older calendar measurement against the latest (`ComparisonDeltaRow`). New components `GoalCard`, `ComparisonDeltaRow` and `MetricInterpretationRow` get a catalog entry. Tablet layout per `05` §5. Restoration (ADR-40): target sheet draft, open detail and comparison selection survive background and process death. Out of scope: a target date or estimated time to reach it.
+
+**Acceptance criteria:**
+- [x] Migration + pgTAP: `target_weight_kg` range, the owner can update it, another user cannot, other columns' grants unchanged; `deploy-supabase` applies it.
+- [x] Height 178 cm and weight 74,2 kg → "IMC 23,4" with "Normal".
+- [x] Target 70,0, current 74,2, first weight 78,0 → "faltan 4,2 kg" and a bar at 48 %; at or below 70,0 → "objetivo alcanzado"; a target on the wrong side of the weight for the strategy → "objetivo alcanzado".
+- [x] Maintenance, target 70,0, current 71,0 → "1,0 kg por encima del objetivo".
+- [x] No target → "Fijar objetivo"; entering 70,0 and "Guardar" saves it in the profile and the card shows the distance; changing it updates the card; out-of-range values disable "Guardar".
+- [x] 74,2 kg today and 75,6 kg a month ago → "Comparar" on the older one shows "−1,4 kg" and the body fat difference.
+- [x] A metric detail shows value, status, explanation and the disclaimer; the scale's lean mass, water, bone and BMR are visible when present.
+
+**Host tests (per scenario):** `BmiTest`, `TargetDistanceTest`, `GoalProgressTest`, `InterpretMetricTest`, `CompareMeasurementsTest` (`04` §3 examples); `GoalViewModelTest` with a fake profile repository and Turbine (BMI; Target weight and distance; Target distance on maintenance; Setting the target weight; Compare two measurements; Metric interpretation); `GoalCardTest`, `ComparisonDeltaRowTest`, `MetricInterpretationRowTest` and the target sheet (Robolectric: texts, states, disabled "Guardar", disclaimer); restoration tests; pgTAP.
+
+**Verification:**
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-080
+**Files likely touched:** `supabase/migrations/<ts>_target_weight.sql`, `supabase/tests/profiles.test.sql`, `shared/…/domain/usecase/{Bmi,TargetDistance,GoalProgress,InterpretMetric,CompareMeasurements}.kt` + tests, `shared/…/domain/repository/ProfileRepository.kt`, `shared/…/data/repository/*`, DI, `composeApp/…/feature/weight/{GoalCard,TargetWeightSheet,MetricDetailSheet,ComparisonSheet,WeightScreen,WeightUiState}.kt` + ViewModels, `composeApp/…/designsystem/{GoalCard,ComparisonDeltaRow,MetricInterpretationRow}.kt`, catalog, strings, tests
+**Estimated scope:** L (the planner slices it: backend + domain + data, then UI)
 
 ---
 

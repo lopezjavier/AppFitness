@@ -145,6 +145,58 @@ class SupabaseProfileRepositoryTest {
     }
 
     @Test
+    fun getTargetWeight_decodesTheColumnOfTheOwnRow() = runTest {
+        val repo = signedInRepository { """[{"target_weight_kg":70.5}]""" }
+
+        assertEquals(70.5, repo.getTargetWeight().getOrThrow())
+        val url = requests.last().url.toString()
+        assertTrue(url.contains("id=eq.user-1"), url)
+        assertTrue(url.contains("select=target_weight_kg"), url)
+    }
+
+    @Test
+    fun getTargetWeight_isNullWhenNotSet() = runTest {
+        val repo = signedInRepository { """[{"target_weight_kg":null}]""" }
+
+        assertEquals(null, repo.getTargetWeight().getOrThrow())
+    }
+
+    @Test
+    fun setTargetWeight_patchesOnlyTheTargetOfTheOwnRow() = runTest {
+        val repo = signedInRepository { "[]" }
+
+        assertTrue(repo.setTargetWeight(70.5).isSuccess)
+
+        val patch = requests.last()
+        assertEquals(HttpMethod.Patch, patch.method)
+        assertTrue(patch.url.toString().contains("id=eq.user-1"), patch.url.toString())
+        assertEquals("""{"target_weight_kg":70.5}""", (patch.body as TextContent).text)
+    }
+
+    @Test
+    fun setTargetWeight_nullClearsTheColumn() = runTest {
+        val repo = signedInRepository { "[]" }
+
+        assertTrue(repo.setTargetWeight(null).isSuccess)
+
+        assertEquals("""{"target_weight_kg":null}""", (requests.last().body as TextContent).text)
+    }
+
+    @Test
+    fun targetWeight_networkError_isAppErrorNetwork() = runTest {
+        var fail = false
+        val repo =
+            signedInRepository {
+                if (fail) throw IOException("offline")
+                "[]"
+            }
+        fail = true
+
+        assertEquals(AppError.Network, repo.getTargetWeight().appErrorOrNull())
+        assertEquals(AppError.Network, repo.setTargetWeight(70.0).appErrorOrNull())
+    }
+
+    @Test
     fun biometrics_networkError_isAppErrorNetwork() = runTest {
         var fail = false
         val repo =

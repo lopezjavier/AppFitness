@@ -115,6 +115,14 @@ internal data class SavePreferencesParams(
     }
 }
 
+/** Row of `select=target_weight_kg` on `profiles` and body of the `PATCH` that sets it (null clears it). */
+@Serializable
+internal data class TargetWeightDto(@SerialName("target_weight_kg") val targetWeightKg: Double?) {
+    companion object {
+        const val COLUMNS = "target_weight_kg"
+    }
+}
+
 /** Body of the `PATCH /profiles` that saves only the display name. */
 @Serializable
 internal data class DisplayNameUpdateDto(@SerialName("display_name") val displayName: String)

@@ -30,6 +30,7 @@ fun WeightRoot(
     circumferencesViewModel: CircumferencesViewModel = koinViewModel(),
     healthSyncViewModel: HealthSyncViewModel = koinViewModel(),
     trendViewModel: WeightTrendViewModel = koinViewModel(),
+    goalViewModel: GoalViewModel = koinViewModel(),
     launcherFor: @Composable ((weightReadGranted: Boolean) -> Unit) -> HealthConnectLauncher =
         { rememberHealthConnectLauncher(it) },
 ) {
@@ -37,6 +38,7 @@ fun WeightRoot(
     val circumferences by circumferencesViewModel.uiState.collectAsStateWithLifecycle()
     val healthSync by healthSyncViewModel.uiState.collectAsStateWithLifecycle()
     val trend by trendViewModel.uiState.collectAsStateWithLifecycle()
+    val goal by goalViewModel.uiState.collectAsStateWithLifecycle()
     val launcher = launcherFor { granted -> healthSyncViewModel.onEvent(HealthSyncEvent.PermissionResult(granted)) }
     val snackbarHost = remember { SnackbarHostState() }
     CollectWeightEffects(
@@ -50,11 +52,15 @@ fun WeightRoot(
     // A saved, edited or deleted weight changes the latest reading or the month's days: the trend reloads.
     val measurements = (state as? WeightUiState.Content)?.content?.let { it.current to it.days }
     LaunchedEffect(measurements) {
-        if (measurements != null) trendViewModel.onEvent(WeightTrendEvent.Refresh)
+        if (measurements != null) {
+            trendViewModel.onEvent(WeightTrendEvent.Refresh)
+            goalViewModel.onEvent(GoalEvent.Refresh)
+        }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.onEvent(WeightEvent.Refresh)
         trendViewModel.onEvent(WeightTrendEvent.Refresh)
+        goalViewModel.onEvent(GoalEvent.Refresh)
         circumferencesViewModel.onEvent(CircumferencesEvent.Refresh)
         healthSyncViewModel.onEvent(HealthSyncEvent.Refresh)
     }
@@ -68,6 +74,8 @@ fun WeightRoot(
         onHealthEvent = healthSyncViewModel::onEvent,
         trend = trend,
         onTrendEvent = trendViewModel::onEvent,
+        goal = goal,
+        onGoalEvent = goalViewModel::onEvent,
         snackbarHost = snackbarHost,
     )
 }
