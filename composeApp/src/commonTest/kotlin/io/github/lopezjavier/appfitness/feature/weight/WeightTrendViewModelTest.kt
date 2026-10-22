@@ -144,6 +144,15 @@ class WeightTrendViewModelTest {
     }
 
     @Test
+    fun weightChart_stillRenders_whenTheCircumferenceReadFails() = runTest(dispatcher) {
+        circumferences.failReads = true
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        assertEquals(20, vm.content().trend.points.size)
+    }
+
+    @Test
     fun refresh_picksUpAChangedTarget() = runTest(dispatcher) {
         profile.targetWeight = Result.success(72.5)
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))

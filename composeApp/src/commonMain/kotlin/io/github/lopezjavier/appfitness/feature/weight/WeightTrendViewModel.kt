@@ -42,10 +42,10 @@ private sealed interface TrendLoad {
     /** Everything every range and metric needs, fetched once; the trend of the selection is derived from it. */
     data class Ready(
         val rows: List<BodyMeasurement>,
-        val circumferenceRows: List<BodyCircumference>,
+        /** Null when the circumference read failed: only the circumference metrics depend on it. */
+        val circumferenceRows: List<BodyCircumference>?,
         val targetKg: Double?,
         val strategy: GoalStrategy,
-        val today: LocalDate,
     ) : TrendLoad
 }
 
@@ -116,7 +116,7 @@ class WeightTrendViewModel(
                 savedState[KEY_MA_HELP] = maHelpOpen.value
             }
 
-            WeightTrendEvent.Retry -> if (load.value == TrendLoad.Failed) reload(silent = false)
+            WeightTrendEvent.Retry -> if (uiState.value == WeightTrendUiState.Error) reload(silent = false)
         }
     }
 
@@ -140,12 +140,11 @@ class WeightTrendViewModel(
             val strategy = goals.getOwn().getOrNull()?.strategy ?: GoalStrategy.Maintenance
             val target = targetDeferred.await()
             when {
-                rows.isSuccess && circumferenceRows.isSuccess -> load.value = TrendLoad.Ready(
+                rows.isSuccess -> load.value = TrendLoad.Ready(
                     rows.getOrThrow(),
-                    circumferenceRows.getOrThrow(),
+                    circumferenceRows.getOrNull(),
                     target,
                     strategy,
-                    today,
                 )
 
                 !silent -> load.value = TrendLoad.Failed
@@ -165,12 +164,19 @@ class WeightTrendViewModel(
 
         else -> {
             val (range, metric) = selection
-            val weight = weightTrend(load.rows, range, load.strategy, timeZone, load.today)
-            val shown = if (metric == BodyMetric.Weight) {
-                weight
-            } else {
-                val daily = metricDailyValues(load.rows, load.circumferenceRows, metric, timeZone)
-                weightTrend(daily, range, load.strategy, load.today)
+            // Today is read on every derivation so a state kept past midnight windows on the right day.
+            val today = clock.today()
+            val weight = weightTrend(load.rows, range, load.strategy, timeZone, today)
+            val circumferenceRows = load.circumferenceRows
+            val shown = when {
+                metric == BodyMetric.Weight -> weight
+
+                circumferenceRows == null && metric.isCircumference -> return WeightTrendUiState.Error
+
+                else -> {
+                    val daily = metricDailyValues(load.rows, circumferenceRows.orEmpty(), metric, timeZone)
+                    weightTrend(daily, range, load.strategy, today)
+                }
             }
             WeightTrendUiState.Content(
                 range = range,

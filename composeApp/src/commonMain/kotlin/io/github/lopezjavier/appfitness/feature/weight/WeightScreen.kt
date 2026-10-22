@@ -67,13 +67,12 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonPanelHeight = Spacing.xl * 5
-private val SkeletonButtonHeight = Spacing.minTouchTarget
 private val SkeletonCalendarHeight = Spacing.xl * 11
 
 /**
- * Stateless weight screen (US-25): the current weight with the "Registrar peso de hoy" button, and the month calendar
- * of the measurements; a day sheet opens over it. Wide windows put the panel and the calendar side by side. The
- * sections are separate composables so later tasks (chart, Health Connect) can extend this destination.
+ * Stateless weight screen (US-25): the current weight with an edit-today icon button, and the month
+ * calendar of the measurements; a day sheet opens over it. Wide windows put the panel and the calendar side by side.
+ * The sections are separate composables so later tasks (chart, Health Connect) can extend this destination.
  */
 @Composable
 fun WeightScreen(
@@ -376,7 +375,6 @@ private fun WeightLoading() {
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
         SkeletonBox(Modifier.fillMaxWidth().height(SkeletonPanelHeight), AppShapes.lg)
-        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonButtonHeight), AppShapes.lg)
         SkeletonBox(Modifier.fillMaxWidth().height(SkeletonCalendarHeight), AppShapes.lg)
     }
 }
