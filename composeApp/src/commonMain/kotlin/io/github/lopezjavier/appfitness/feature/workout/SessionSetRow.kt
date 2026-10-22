@@ -15,12 +15,14 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_cloud_off
 import io.github.lopezjavier.appfitness.composeapp.resources.live_invalid_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pending_save
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SetRow
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
+import io.github.lopezjavier.appfitness.designsystem.SetTypeBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -58,6 +60,12 @@ internal fun SessionSetRow(
             modifier = Modifier.testTag(tag),
             onUsePrevious = { onEvent(LiveSessionEvent.UsePrevious(position, row.setIndex)) },
             testTagPrefix = tag,
+            onTypeClick = { onEvent(LiveSessionEvent.OpenTypePicker(position, row.setIndex)) },
+            typeClickLabel = stringResource(
+                Res.string.builder_set_type_cd,
+                row.setIndex,
+                stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
+            ),
         )
         if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
         if (row.invalid) {

@@ -98,6 +98,7 @@
     <string name="catalog_rest_start">Iniciar descanso</string>
     <string name="catalog_set_previous_1">80 kg × 10</string>
     <string name="catalog_set_previous_2">85 kg × 8</string>
+    <string name="catalog_set_type_clickable_cd">Cambiar tipo de la serie 4</string>
     <string name="state_retry">Reintentar</string>
     <string name="catalog_section_state_messages">Estados vacío y error</string>
     <string name="catalog_empty_title">Sin alimentos hoy</string>
@@ -670,6 +671,11 @@
     <string name="meals_last_meal_hint">Debe quedar al menos una comida</string>
     <string name="preferences_meals_title">Comidas</string>
     <string name="preferences_meals_subtitle">Nombre, orden y comidas del día</string>
+    <string name="preferences_training_title">Entrenamiento</string>
+    <string name="preferences_warm_up_label">Incluir calentamiento</string>
+    <string name="preferences_warm_up_helper">Las series de calentamiento cuentan en volumen, 1RM y récords.</string>
+    <string name="preferences_warm_up_on">Activado</string>
+    <string name="preferences_warm_up_off">Desactivado</string>
     <string name="food_create_cd">Crear alimento</string>
     <string name="meals_error_blank">Escribe un nombre</string>
     <string name="meals_error_too_long">Máximo 50 caracteres</string>

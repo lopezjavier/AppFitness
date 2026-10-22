@@ -320,6 +320,7 @@ class DraftRestorationTest {
                             library,
                             connectivity,
                             MutableClock(),
+                            FakeTrainingPreferencesRepository(),
                             handle,
                         )
                     }
@@ -362,6 +363,7 @@ class DraftRestorationTest {
                             profile,
                             goals,
                             weights,
+                            FakeTrainingPreferencesRepository(),
                             SavePreferences(profile),
                             connectivity,
                             FakeClock(),
