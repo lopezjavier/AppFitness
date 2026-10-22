@@ -7,8 +7,10 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -30,9 +32,15 @@ private const val SESSION =
 private const val ROUTINE_ROW =
     """[{"id":"r1","name":"Torso fuerza","notes":null,"archived":false,"routine_exercises":[""" +
         """{"exercise_id":"e2","position":1,"superset_group":null,"target_sets":4,"target_reps":10,""" +
-        """"rest_seconds":90},""" +
-        """{"exercise_id":"e1","position":0,"superset_group":3,"target_sets":3,"target_reps":8,""" +
-        """"rest_seconds":120}]}]"""
+        """"target_weight_kg":50,"planned_set_type":"working","target_rpe":null,"rest_seconds":90,""" +
+        """"routine_exercise_sets":[]},""" +
+        """{"exercise_id":"e1","position":0,"superset_group":3,"target_sets":4,"target_reps":8,""" +
+        """"target_weight_kg":null,"planned_set_type":"working","target_rpe":8.5,"rest_seconds":120,""" +
+        """"routine_exercise_sets":[""" +
+        """{"target_weight_kg":80,"target_reps":8,"set_type":"working","set_index":2},""" +
+        """{"target_weight_kg":40,"target_reps":10,"set_type":"warm_up","set_index":1},""" +
+        """{"target_weight_kg":80,"target_reps":8,"set_type":"working","set_index":3},""" +
+        """{"target_weight_kg":null,"target_reps":6,"set_type":"failure","set_index":4}]}]}]"""
 
 class SupabaseRoutineRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
@@ -66,14 +74,15 @@ class SupabaseRoutineRepositoryTest {
 
     private fun rest() = requests.filter { !it.url.encodedPath.contains("/auth/") }
 
-    private fun exercise(id: String, group: Int?, sets: Int, reps: Int, rest: Int) = RoutineExercise(
-        id,
-        position = 5,
-        supersetGroup = group,
-        targetSets = sets,
-        targetReps = reps,
-        restSeconds = rest,
-    )
+    private fun exercise(id: String, group: Int?, sets: List<PlannedSet>, rest: Int, rpe: Double? = null) =
+        RoutineExercise(
+            id,
+            position = 5,
+            supersetGroup = group,
+            plannedSets = sets,
+            restSeconds = rest,
+            targetRpe = rpe,
+        )
 
     private fun routine(id: String? = null, name: String = "Torso fuerza", group: Int? = null) = Routine(
         id = id,
@@ -82,13 +91,19 @@ class SupabaseRoutineRepositoryTest {
         archived = false,
         exercises =
         listOf(
-            exercise("e1", group, sets = 3, reps = 8, rest = 120),
-            exercise("e2", group, sets = 4, reps = 10, rest = 90),
+            exercise(
+                "e1",
+                group,
+                listOf(PlannedSet(40.0, 10, SetType.WarmUp), PlannedSet(null, 8, SetType.Working)),
+                rest = 120,
+                rpe = 8.5,
+            ),
+            exercise("e2", group, List(2) { PlannedSet(60.0, 10, SetType.Drop) }, rest = 90),
         ),
     )
 
     @Test
-    fun save_sendsAZeroBasedPayloadWithoutE6Keys_andReturnsTheId() = runTest {
+    fun save_sendsPlannedSetsAndRpeWithAZeroBasedPayload_andReturnsTheId() = runTest {
         val repo = signedIn()
 
         val id = repo.save(routine(group = 2)).getOrThrow()
@@ -97,10 +112,11 @@ class SupabaseRoutineRepositoryTest {
         assertEquals("/rest/v1/rpc/save_routine", call.url.encodedPath)
         assertEquals(
             """{"p_routine":{"name":"Torso fuerza","exercises":[""" +
-                """{"exercise_id":"e1","position":0,"superset_group":2,"target_sets":3,"target_reps":8,""" +
-                """"rest_seconds":120},""" +
-                """{"exercise_id":"e2","position":1,"superset_group":2,"target_sets":4,"target_reps":10,""" +
-                """"rest_seconds":90}]}}""",
+                """{"exercise_id":"e1","position":0,"superset_group":2,"rest_seconds":120,"target_rpe":8.5,""" +
+                """"sets":[{"weight_kg":40.0,"reps":10,"set_type":"warm_up"},{"reps":8,"set_type":"working"}]},""" +
+                """{"exercise_id":"e2","position":1,"superset_group":2,"rest_seconds":90,""" +
+                """"sets":[{"weight_kg":60.0,"reps":10,"set_type":"drop"},""" +
+                """{"weight_kg":60.0,"reps":10,"set_type":"drop"}]}]}}""",
             (call.body as TextContent).text,
         )
         assertEquals("new-id", id)
@@ -157,6 +173,46 @@ class SupabaseRoutineRepositoryTest {
         assertEquals(listOf("e1", "e2"), routine.exercises.map { it.exerciseId })
         assertEquals(3, routine.exercises[0].supersetGroup)
         assertEquals(90, routine.exercises[1].restSeconds)
+    }
+
+    @Test
+    fun get_mapsPlannedSetsInSetIndexOrderWithTypeWeightAndRpe() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW
+
+        val first = repo.get("r1").getOrThrow().exercises[0]
+
+        assertEquals(
+            listOf(
+                PlannedSet(40.0, 10, SetType.WarmUp),
+                PlannedSet(80.0, 8, SetType.Working),
+                PlannedSet(80.0, 8, SetType.Working),
+                PlannedSet(null, 6, SetType.Failure),
+            ),
+            first.plannedSets,
+        )
+        assertEquals(4, first.targetSets)
+        assertEquals(8.5, first.targetRpe)
+    }
+
+    @Test
+    fun get_exerciseWithoutPlannedSets_mapsTheLegacySummaryColumns() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW
+
+        val legacy = repo.get("r1").getOrThrow().exercises[1]
+
+        assertEquals(List(4) { PlannedSet(50.0, 10, SetType.Working) }, legacy.plannedSets)
+    }
+
+    @Test
+    fun get_asksForTheNestedPlannedSets() = runTest {
+        val repo = signedIn()
+
+        repo.get("r1")
+
+        val query = rest().single().url.encodedQuery
+        assertTrue("routine_exercise_sets(" in query || "routine_exercise_sets%28" in query, query)
     }
 
     @Test

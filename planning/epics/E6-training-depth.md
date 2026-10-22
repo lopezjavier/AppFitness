@@ -67,7 +67,7 @@ Feature: Set types
 
   Scenario: Planning sets in a routine
     Given a routine exercise being edited
-    When the user adds sets with their own weight, repetitions and type ("Calentamiento", "Normal", "Al fallo", "Drop")
+    When the user adds sets with their own weight, repetitions and type ("Calentamiento", "Normal", "Fallo", "Drop")
     Then each planned set is saved with its target and the live session starts from them
 
   Scenario: Planned targets in the live session

@@ -4,8 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -27,7 +29,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@Suppress("TooManyFunctions") // One method per Gherkin scenario or rule.
+@Suppress("TooManyFunctions", "LargeClass") // One method per Gherkin scenario or rule.
 class RoutineBuilderViewModelTest {
     private val exercises =
         FakeExerciseRepository(
@@ -104,8 +106,8 @@ class RoutineBuilderViewModelTest {
         assertEquals("Torso fuerza", saved.name)
         assertEquals(
             listOf(
-                RoutineExercise("a", 0, null, targetSets = 3, targetReps = 8, restSeconds = 120),
-                RoutineExercise("b", 1, null, targetSets = 3, targetReps = 8, restSeconds = 120),
+                RoutineExercise("a", 0, null, List(3) { PlannedSet(null, 8) }, restSeconds = 120),
+                RoutineExercise("b", 1, null, List(3) { PlannedSet(null, 8) }, restSeconds = 120),
             ),
             saved.exercises,
         )
@@ -306,21 +308,16 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun steppers_stayWithinTheirBounds() = runTest {
+    fun restStepper_staysWithinItsBounds() = runTest {
         val vm = builder()
         vm.add("a")
 
-        repeat(20) { vm.onEvent(RoutineBuilderEvent.StepSets(0, +1)) }
-        repeat(80) { vm.onEvent(RoutineBuilderEvent.StepReps(0, +1)) }
         repeat(60) { vm.onEvent(RoutineBuilderEvent.StepRest(0, +1)) }
-        val max = vm.form().rows.single()
-        repeat(20) { vm.onEvent(RoutineBuilderEvent.StepSets(0, -1)) }
-        repeat(80) { vm.onEvent(RoutineBuilderEvent.StepReps(0, -1)) }
-        repeat(60) { vm.onEvent(RoutineBuilderEvent.StepRest(0, -1)) }
-        val min = vm.form().rows.single()
+        val max = vm.form().rows.single().restSeconds
+        repeat(80) { vm.onEvent(RoutineBuilderEvent.StepRest(0, -1)) }
+        val min = vm.form().rows.single().restSeconds
 
-        assertEquals(Triple(10, 50, 600), Triple(max.sets, max.reps, max.restSeconds))
-        assertEquals(Triple(1, 1, 0), Triple(min.sets, min.reps, min.restSeconds))
+        assertEquals(600 to 0, max to min)
     }
 
     @Test
@@ -338,7 +335,23 @@ class RoutineBuilderViewModelTest {
     @Test
     fun restOffTheTenSecondGrid_movesByTenFromItsCurrentValue() = runTest {
         repository.routines.add(
-            Routine("r1", "Torso", null, false, listOf(RoutineExercise("a", 0, null, 3, 8, restSeconds = 45))),
+            Routine(
+                "r1",
+                "Torso",
+                null,
+                false,
+                listOf(
+                    RoutineExercise(
+                        "a",
+                        0,
+                        null,
+                        List(3) {
+                            PlannedSet(null, 8)
+                        },
+                        restSeconds = 45,
+                    ),
+                ),
+            ),
         )
         val vm = builder("r1")
 
@@ -413,8 +426,8 @@ class RoutineBuilderViewModelTest {
                 archived = false,
                 exercises =
                 listOf(
-                    RoutineExercise("c", 1, 4, targetSets = 4, targetReps = 6, restSeconds = 90),
-                    RoutineExercise("a", 0, 4, targetSets = 3, targetReps = 10, restSeconds = 60),
+                    RoutineExercise("c", 1, 4, List(3) { PlannedSet(null, 6) }, restSeconds = 90),
+                    RoutineExercise("a", 0, 4, List(3) { PlannedSet(null, 10) }, restSeconds = 60),
                 ),
             )
 
@@ -426,13 +439,13 @@ class RoutineBuilderViewModelTest {
         assertEquals(listOf("A1", "A2"), vm.form().rows.map { it.supersetLabel?.let { l -> "${l.letter}${l.number}" } })
         assertFalse(vm.form().isDirty)
 
-        vm.onEvent(RoutineBuilderEvent.StepSets(0, +1))
+        vm.onEvent(RoutineBuilderEvent.AddSet(0))
         vm.onEvent(RoutineBuilderEvent.Save)
         advanceUntilIdle()
         val saved = repository.saved.single()
         assertEquals("r1", saved.id)
         assertEquals("nota", saved.notes)
-        assertEquals(4, saved.exercises.first().targetSets)
+        assertEquals(listOf(4, 4), saved.exercises.map { it.targetSets })
     }
 
     @Test
@@ -535,5 +548,281 @@ class RoutineBuilderViewModelTest {
         vm.onEvent(RoutineBuilderEvent.SetName("x".repeat(150)))
 
         assertEquals(100, vm.form().name.length)
+    }
+
+    private fun RoutineBuilderViewModel.sets(row: Int) =
+        form().rows[row].plannedSets.map { Triple(it.weight, it.reps, it.type) }
+
+    private fun bench(vararg sets: PlannedSet) = Routine(
+        id = "r1",
+        name = "Torso",
+        notes = null,
+        archived = false,
+        exercises = listOf(RoutineExercise("a", 0, null, sets.toList(), restSeconds = 120)),
+    )
+
+    @Test
+    fun plannedSets_ofAWarmUpAndThreeWorkingSets_areSavedAndReopenedAsTheSameFour() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
+        vm.add("a")
+        vm.onEvent(RoutineBuilderEvent.ChangeSetType(0, 0, SetType.WarmUp))
+        vm.onEvent(RoutineBuilderEvent.SetWeight(0, 0, "40"))
+        vm.onEvent(RoutineBuilderEvent.SetReps(0, 0, "10"))
+        listOf(1, 2).forEach { vm.onEvent(RoutineBuilderEvent.SetWeight(0, it, "80")) }
+        vm.onEvent(RoutineBuilderEvent.AddSet(0))
+
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        val expected =
+            listOf(
+                PlannedSet(40.0, 10, SetType.WarmUp),
+                PlannedSet(80.0, 8, SetType.Working),
+                PlannedSet(80.0, 8, SetType.Working),
+                PlannedSet(80.0, 8, SetType.Working),
+            )
+        assertEquals(expected, repository.saved.single().exercises.single().plannedSets)
+        val reopened = builder("new-1", SavedStateHandle())
+        assertEquals(
+            listOf(
+                Triple("40", "10", SetType.WarmUp),
+                Triple("80", "8", SetType.Working),
+                Triple("80", "8", SetType.Working),
+                Triple("80", "8", SetType.Working),
+            ),
+            reopened.sets(0),
+        )
+    }
+
+    @Test
+    fun aNewExercise_startsWithThreeNormalSetsOfEightRepsAndNoWeight() = runTest {
+        val vm = builder()
+
+        vm.add("a")
+
+        assertEquals(List(3) { Triple("", "8", SetType.Working) }, vm.sets(0))
+    }
+
+    @Test
+    fun addSet_copiesTheLastSet_andStopsAtTen() = runTest {
+        val vm = builder()
+        vm.add("a")
+        vm.onEvent(RoutineBuilderEvent.SetWeight(0, 2, "62,5"))
+        vm.onEvent(RoutineBuilderEvent.ChangeSetType(0, 2, SetType.Drop))
+
+        vm.onEvent(RoutineBuilderEvent.AddSet(0))
+        assertEquals(Triple("62,5", "8", SetType.Drop), vm.sets(0)[3])
+
+        repeat(12) { vm.onEvent(RoutineBuilderEvent.AddSet(0)) }
+        assertEquals(10, vm.form().rows.single().plannedSets.size)
+        assertFalse(vm.form().rows.single().canAddSet)
+    }
+
+    @Test
+    fun removeSet_dropsThatSet_andNeverTheLastOne() = runTest {
+        val vm = builder()
+        vm.add("a")
+        vm.onEvent(RoutineBuilderEvent.SetReps(0, 1, "12"))
+
+        vm.onEvent(RoutineBuilderEvent.RemoveSet(0, 0))
+        assertEquals(listOf("12", "8"), vm.form().rows.single().plannedSets.map { it.reps })
+
+        repeat(5) { vm.onEvent(RoutineBuilderEvent.RemoveSet(0, 0)) }
+        assertEquals(1, vm.form().rows.single().plannedSets.size)
+        assertFalse(vm.form().rows.single().canRemoveSet)
+    }
+
+    @Test
+    fun editingOneSet_leavesTheOthersUntouched() = runTest {
+        val vm = builder()
+        vm.add("a")
+
+        vm.onEvent(RoutineBuilderEvent.SetWeight(0, 1, "80"))
+        vm.onEvent(RoutineBuilderEvent.SetReps(0, 1, "5"))
+        vm.onEvent(RoutineBuilderEvent.ChangeSetType(0, 1, SetType.Failure))
+
+        assertEquals(
+            listOf(
+                Triple("", "8", SetType.Working),
+                Triple("80", "5", SetType.Failure),
+                Triple("", "8", SetType.Working),
+            ),
+            vm.sets(0),
+        )
+    }
+
+    @Test
+    fun quitarTipo_isChoosingNormal() = runTest {
+        val vm = builder()
+        vm.add("a")
+        vm.onEvent(RoutineBuilderEvent.ChangeSetType(0, 0, SetType.WarmUp))
+
+        vm.onEvent(RoutineBuilderEvent.ChangeSetType(0, 0, SetType.Working))
+
+        assertEquals(SetType.Working, vm.form().rows.single().plannedSets.first().type)
+    }
+
+    @Test
+    fun aSetWithoutValidReps_blocksSaving_butAnEmptyWeightDoesNot() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
+        vm.add("a")
+        assertTrue(vm.form().canSave)
+
+        vm.onEvent(RoutineBuilderEvent.SetReps(0, 0, ""))
+        assertFalse(vm.form().canSave)
+        vm.onEvent(RoutineBuilderEvent.SetReps(0, 0, "51"))
+        assertFalse(vm.form().canSave)
+        vm.onEvent(RoutineBuilderEvent.SetReps(0, 0, "50"))
+        assertTrue(vm.form().canSave)
+    }
+
+    @Test
+    fun inASuperset_addingAndRemovingASet_appliesToEveryMember() = runTest {
+        val vm = builder()
+        vm.add("a", "b", "c")
+        vm.onEvent(RoutineBuilderEvent.GroupWithNext(0))
+
+        vm.onEvent(RoutineBuilderEvent.AddSet(1))
+        assertEquals(listOf(4, 4, 3), vm.form().rows.map { it.plannedSets.size })
+
+        vm.onEvent(RoutineBuilderEvent.RemoveSet(0, 0))
+        vm.onEvent(RoutineBuilderEvent.RemoveSet(0, 0))
+        assertEquals(listOf(2, 2, 3), vm.form().rows.map { it.plannedSets.size })
+    }
+
+    @Test
+    fun inASuperset_theLimitsApplyToTheWholeGroup() = runTest {
+        val vm = builder()
+        vm.add("a", "b")
+        vm.onEvent(RoutineBuilderEvent.GroupWithNext(0))
+
+        repeat(12) { vm.onEvent(RoutineBuilderEvent.AddSet(0)) }
+
+        assertEquals(listOf(10, 10), vm.form().rows.map { it.plannedSets.size })
+    }
+
+    @Test
+    fun groupingTwoExercisesWithDifferentCounts_makesTheSecondAdoptTheFirstCount() = runTest {
+        val vm = builder()
+        vm.add("a", "b", "c")
+        repeat(2) { vm.onEvent(RoutineBuilderEvent.AddSet(0)) }
+        vm.onEvent(RoutineBuilderEvent.RemoveSet(1, 0))
+
+        vm.onEvent(RoutineBuilderEvent.GroupWithNext(0))
+        assertEquals(listOf(5, 5, 3), vm.form().rows.map { it.plannedSets.size })
+
+        val other = builder(savedState = SavedStateHandle())
+        other.add("a", "b")
+        other.onEvent(RoutineBuilderEvent.RemoveSet(0, 0))
+        other.onEvent(RoutineBuilderEvent.GroupWithNext(0))
+        assertEquals(listOf(2, 2), other.form().rows.map { it.plannedSets.size })
+    }
+
+    @Test
+    fun aSupersetSavesWithEqualSetCounts() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Brazos"))
+        vm.add("a", "b")
+        vm.onEvent(RoutineBuilderEvent.GroupWithNext(0))
+        vm.onEvent(RoutineBuilderEvent.AddSet(1))
+
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf(4, 4), repository.saved.single().exercises.map { it.targetSets })
+    }
+
+    @Test
+    fun editingTheSetsOfTheSecondSupersetMember_ofALongerRoutine_keepsTheCountsEqual() = runTest {
+        repository.routines +=
+            Routine(
+                "r1",
+                "Largo",
+                null,
+                false,
+                listOf(
+                    RoutineExercise("a", 0, null, List(3) { PlannedSet(null, 8) }, restSeconds = 60),
+                    RoutineExercise("b", 1, 1, List(3) { PlannedSet(50.0, 10) }, restSeconds = 60),
+                    RoutineExercise("c", 2, 1, List(3) { PlannedSet(30.0, 12, SetType.Drop) }, restSeconds = 60),
+                    RoutineExercise("custom", 3, null, List(2) { PlannedSet(null, 5) }, restSeconds = 60),
+                ),
+            )
+        val vm = builder("r1")
+
+        vm.onEvent(RoutineBuilderEvent.AddSet(2))
+        vm.onEvent(RoutineBuilderEvent.SetWeight(2, 3, "35"))
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        val saved = repository.saved.single().exercises
+        assertEquals(listOf(3, 4, 4, 2), saved.map { it.targetSets })
+        assertEquals(PlannedSet(35.0, 12, SetType.Drop), saved[2].plannedSets.last())
+        assertEquals(PlannedSet(50.0, 10, SetType.Working), saved[1].plannedSets.last())
+    }
+
+    @Test
+    fun editingPlannedSets_makesTheDraftDirty_andBackAsks() = runTest {
+        repository.routines += bench(PlannedSet(60.0, 8), PlannedSet(60.0, 8))
+        val vm = builder("r1")
+        assertFalse(vm.form().isDirty)
+
+        vm.onEvent(RoutineBuilderEvent.SetWeight(0, 0, "65"))
+
+        assertTrue(vm.form().isDirty)
+        vm.onEvent(RoutineBuilderEvent.Back)
+        assertTrue(vm.form().showDiscardConfirm)
+    }
+
+    @Test
+    fun theTypePicker_opensForOneSet_andClosesWithoutChangingIt() = runTest {
+        val vm = builder()
+        vm.add("a")
+
+        vm.onEvent(RoutineBuilderEvent.OpenTypePicker(0, 1))
+        assertEquals(TypePickerUi(0, 1, SetType.Working), vm.form().typePicker)
+
+        vm.onEvent(RoutineBuilderEvent.CloseTypePicker)
+        assertNull(vm.form().typePicker)
+        assertEquals(SetType.Working, vm.form().rows.single().plannedSets[1].type)
+    }
+
+    @Test
+    fun choosingATypeInThePicker_appliesItToTheDraft_andClosesThePicker() = runTest {
+        val vm = builder()
+        vm.add("a")
+        vm.onEvent(RoutineBuilderEvent.OpenTypePicker(0, 0))
+
+        vm.onEvent(RoutineBuilderEvent.ChangeSetType(0, 0, SetType.WarmUp))
+
+        assertNull(vm.form().typePicker)
+        assertEquals(SetType.WarmUp, vm.form().rows.single().plannedSets.first().type)
+    }
+
+    @Test
+    fun aRestoredDraft_keepsTheSetEditsAndTheOpenPicker() = runTest {
+        val first = builder()
+        first.add("a", "b")
+        first.onEvent(RoutineBuilderEvent.SetWeight(1, 2, "77,5"))
+        first.onEvent(RoutineBuilderEvent.ChangeSetType(1, 0, SetType.WarmUp))
+        first.onEvent(RoutineBuilderEvent.AddSet(0))
+        first.onEvent(RoutineBuilderEvent.OpenTypePicker(1, 2))
+
+        val second = builder(savedState = handle)
+
+        assertEquals(4, second.form().rows[0].plannedSets.size)
+        assertEquals(
+            listOf(
+                Triple("", "8", SetType.WarmUp),
+                Triple("", "8", SetType.Working),
+                Triple("77,5", "8", SetType.Working),
+            ),
+            second.sets(1),
+        )
+        assertEquals(TypePickerUi(1, 2, SetType.Working), second.form().typePicker)
+        second.add("c")
+        assertEquals(10, second.form().rows.sumOf { it.plannedSets.size })
+        assertEquals(10, second.form().rows.flatMap { it.plannedSets }.map { it.setId }.toSet().size)
     }
 }

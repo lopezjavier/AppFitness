@@ -1,6 +1,23 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
+import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
+
+/**
+ * One planned set of a row. [setId] is stable while editing (the list key). [weight] and [reps] are the text as typed
+ * ([weight] empty = no planned weight); [isValid] is false while [reps] is not 1-50 or [weight] is not a number.
+ */
+data class PlannedSetUi(
+    val setId: Long,
+    val weight: String,
+    val reps: String,
+    val type: SetType,
+    val isValid: Boolean = true,
+)
+
+/** The set whose type picker is open: [current] is the type it has now. */
+data class TypePickerUi(val rowIndex: Int, val setIndex: Int, val current: SetType)
 
 /**
  * One exercise row of the builder. [rowId] is stable while editing (the list key; positions are not), [name] and
@@ -12,14 +29,16 @@ data class BuilderRowUi(
     val exerciseId: String,
     val name: String?,
     val imageKey: String?,
-    val sets: Int,
-    val reps: Int,
+    val plannedSets: List<PlannedSetUi>,
     val restSeconds: Int,
     val supersetLabel: SupersetLabel?,
     val canMoveUp: Boolean,
     val canMoveDown: Boolean,
     val canGroupWithNext: Boolean,
-)
+) {
+    val canAddSet: Boolean get() = plannedSets.size < RoutineBounds.SETS_MAX
+    val canRemoveSet: Boolean get() = plannedSets.size > RoutineBounds.SETS_MIN
+}
 
 /** State of the routine builder. */
 sealed interface RoutineBuilderUiState {
@@ -41,8 +60,11 @@ sealed interface RoutineBuilderUiState {
         val isSaving: Boolean = false,
         val isDirty: Boolean = false,
         val showDiscardConfirm: Boolean = false,
+        val typePicker: TypePickerUi? = null,
     ) : RoutineBuilderUiState {
-        val canSave: Boolean get() = name.isNotBlank() && rows.isNotEmpty() && isOnline && !isSaving
+        val canSave: Boolean
+            get() = name.isNotBlank() && rows.isNotEmpty() && isOnline && !isSaving &&
+                rows.all { row -> row.plannedSets.all { it.isValid } }
     }
 }
 
@@ -65,11 +87,25 @@ sealed interface RoutineBuilderEvent {
 
     data class Remove(val index: Int) : RoutineBuilderEvent
 
-    /** [delta] is -1 or +1 step of that field (rest steps are 10 s); the value stays within its bounds. */
-    data class StepSets(val index: Int, val delta: Int) : RoutineBuilderEvent
+    /** Appends a copy of the last set; in a superset it applies to every member so the counts stay equal. */
+    data class AddSet(val index: Int) : RoutineBuilderEvent
 
-    data class StepReps(val index: Int, val delta: Int) : RoutineBuilderEvent
+    /** Removes one set (never the last); in a superset it removes the same set of every member. */
+    data class RemoveSet(val index: Int, val setIndex: Int) : RoutineBuilderEvent
 
+    /** [text] is the weight as typed (empty = no planned weight). */
+    data class SetWeight(val index: Int, val setIndex: Int, val text: String) : RoutineBuilderEvent
+
+    data class SetReps(val index: Int, val setIndex: Int, val text: String) : RoutineBuilderEvent
+
+    /** Picks the type of one set (Normal clears it) and closes the picker. */
+    data class ChangeSetType(val index: Int, val setIndex: Int, val type: SetType) : RoutineBuilderEvent
+
+    data class OpenTypePicker(val index: Int, val setIndex: Int) : RoutineBuilderEvent
+
+    data object CloseTypePicker : RoutineBuilderEvent
+
+    /** [delta] is -1 or +1 step of the rest (10 s); the value stays within its bounds. */
     data class StepRest(val index: Int, val delta: Int) : RoutineBuilderEvent
 
     data object Save : RoutineBuilderEvent

@@ -444,3 +444,13 @@ Format: context → decision → consequences. A decision is only changed by add
   - Nutrients are entered and shown in the Spanish label order (EU Regulation 1169/2011, Annex XV): energy, fat, saturates, mono-unsaturates, polyunsaturates, carbohydrates, sugars, polyols, starch, fibre, protein, salt, then vitamins and minerals (Annex XIII order). The food details of every food, manual or OFF, use the same order and hide absent values.
 - **Consequences:** `epics/E6-training-depth.md` (US-47), `01-phase1-scope.md` (FR-2.14), `03-data-model.md` §3/§6 (`foods.micronutrients`, the edit RPC, `create_personal_food`), `07-roadmap.md`, `tasks/todo.md` (T-102). ADR-32 is unchanged.
 - **Approval:** 2026-10-22, user (E6 breakdown, Q8, revised the same day to future entries only).
+
+### ADR-54 · E6 schema exceptions to ADR-30: planned sets table (E6, T-089)
+- **Context:** ADR-30 fixed the forward-compatible schema at E3; per-set routine planning (ADR-50) needs a child table that does not exist there.
+- **Decision:**
+  - New table `routine_exercise_sets` (`routine_exercise_id` FK on delete cascade, `set_index` >= 1, `target_weight_kg` null >= 0, `target_reps` 1-50, `set_type`; unique `(routine_exercise_id, set_index)`), RLS enabled and forced through the parent routine's owner.
+  - `routine_exercises.target_sets` stays equal to the planned-set count; `target_reps`, `target_weight_kg` and `planned_set_type` stay as legacy summaries (not dropped). Existing routines are migrated to `target_sets` identical planned sets.
+  - `save_routine` takes `sets: [{weight_kg?, reps, set_type}]` per exercise (1-10) and `target_rpe`; superset members must have the same set count (`22023`, ADR-38). `start_workout_session` creates one pending set per planned set with its type.
+  - Planned weight and reps are read from the routine at runtime, not copied onto `workout_sets` (a routine edited mid-session only changes the placeholders).
+  - The set type label is "Fallo" (not "Al fallo"); later E6 tasks that need schema exceptions amend this ADR.
+- **Consequences:** `03-data-model.md` (`routine_exercise_sets`, RPC contracts), `epics/E6-training-depth.md`, `tasks/todo.md` (T-089).

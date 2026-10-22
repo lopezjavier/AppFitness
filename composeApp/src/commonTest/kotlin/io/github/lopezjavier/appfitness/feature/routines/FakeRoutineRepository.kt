@@ -2,9 +2,11 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 
 /** In-memory routines: newest first, archived ones hidden, ids assigned on save. */
@@ -73,8 +75,7 @@ fun routineOf(id: String, name: String, vararg exerciseIds: String) = Routine(
             exerciseId,
             position = index,
             supersetGroup = null,
-            targetSets = 3,
-            targetReps = 8,
+            plannedSets = List(3) { PlannedSet(null, 8, SetType.Working) },
             restSeconds = 120,
         )
     },

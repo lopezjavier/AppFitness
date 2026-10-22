@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,20 +8,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,6 +37,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.set_header_weight_c
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_reps_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_use_previous_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_weight_cd
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
 
 /** Values shown by one [SetRow]; the caller owns them. [previous] is caller-formatted ("85 kg × 8"). */
@@ -53,6 +50,7 @@ data class SetRowValues(
     val completed: Boolean,
     val weightPlaceholder: String? = null,
     val repsPlaceholder: String? = null,
+    val type: SetType = SetType.Working,
 )
 
 object SetRowDefaults {
@@ -111,7 +109,7 @@ fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IndexBadge(number)
+        SetTypeBadge(type = values.type, number = number)
         PreviousCell(
             text = previousText,
             contentDescription = stringResource(Res.string.set_row_use_previous_cd, previousText),
@@ -153,22 +151,6 @@ fun SetRow(
 
 private fun Modifier.tag(prefix: String?, part: String): Modifier =
     SetRowDefaults.childTag(prefix, part)?.let { testTag(it) } ?: this
-
-@Composable
-private fun IndexBadge(number: String) {
-    val (container, content) = SetRowDefaults.indexColors(AppTheme.colors)
-    Box(
-        modifier = Modifier.size(SetRowDefaults.IndexBadgeSize).clip(AppShapes.sm).background(container),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = number,
-            style = AppTheme.typography.labelTechnical.copy(fontWeight = FontWeight.W700),
-            color = content,
-            maxLines = 1,
-        )
-    }
-}
 
 @Composable
 private fun PreviousCell(
