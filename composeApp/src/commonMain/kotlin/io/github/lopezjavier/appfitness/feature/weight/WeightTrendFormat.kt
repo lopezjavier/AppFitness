@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
+import io.github.lopezjavier.appfitness.domain.model.MetricUnit
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
 import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
 import kotlinx.datetime.DatePeriod
@@ -22,6 +24,21 @@ internal fun rateText(value: Double): String {
         else -> "+"
     }
     return "$sign${hundredths / HUNDRED},${(hundredths % HUNDRED).toString().padStart(2, '0')}"
+}
+
+/** A metric value without its unit: one decimal with a comma, an integer for the BMR (kcal). */
+internal fun metricAxisText(value: Double, metric: BodyMetric): String =
+    if (metric.unit == MetricUnit.Kcal) value.roundToInt().toString() else decimalText(value)
+
+/** A metric value with its unit ("74,2 kg", "82,5 cm", "18,3 %", "1650 kcal"). */
+internal fun metricValueText(value: Double, metric: BodyMetric): String {
+    val unit = when (metric.unit) {
+        MetricUnit.Kg -> "kg"
+        MetricUnit.Cm -> "cm"
+        MetricUnit.Percent -> "%"
+        MetricUnit.Kcal -> "kcal"
+    }
+    return "${metricAxisText(value, metric)} $unit"
 }
 
 internal fun RateTone.toTrendTone(): TrendTone = when (this) {

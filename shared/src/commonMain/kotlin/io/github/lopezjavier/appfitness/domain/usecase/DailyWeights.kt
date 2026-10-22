@@ -6,7 +6,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-/** The value of one local day (planning/04-business-rules.md §3.1). */
+/**
+ * The value of one local day (planning/04-business-rules.md §3.1). [kg] carries the charted metric's own unit
+ * (kg, %, kcal or cm) when it comes from [MetricDailyValues].
+ */
 data class DailyWeight(val date: LocalDate, val kg: Double)
 
 /**

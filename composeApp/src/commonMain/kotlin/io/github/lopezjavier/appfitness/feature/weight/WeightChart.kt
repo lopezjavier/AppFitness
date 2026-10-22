@@ -29,8 +29,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_close
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_ma7
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_ma7_none
-import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_empty
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_empty_metric
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter_1a
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter_1a_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter_1m
@@ -44,6 +45,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_legend
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_ma_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_ma_help_text
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_ma_help_text_metric
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary_target
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_target_legend
@@ -63,8 +65,10 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.usecase.TrendData
 import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
+import io.github.lopezjavier.appfitness.domain.usecase.WeeklyRate
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import kotlinx.datetime.LocalDate
@@ -114,9 +118,10 @@ private val RangeFilters = listOf(
 )
 
 /**
- * The weight trend card (US-27): range chips, the chart of the daily dots with the MA7 line, the "Media 7 días" legend
- * (with its "?" help), the dashed goal line and the detail of the selected point. Loading shows a skeleton and an
- * error a retry; with too little data the chart is replaced by a hint but the chips stay.
+ * The trend card (US-27): the metric chips, range chips, the chart of the daily dots with the MA7 line, the
+ * "Media 7 días" legend (with its "?" help), the dashed goal line and the detail of the selected
+ * point. Loading shows a skeleton and an error a retry; with too little data the chart is replaced by a hint but
+ * the chips stay.
  */
 @Composable
 fun WeightChart(state: WeightTrendUiState, onEvent: (WeightTrendEvent) -> Unit, modifier: Modifier = Modifier) {
@@ -141,12 +146,17 @@ fun WeightChart(state: WeightTrendUiState, onEvent: (WeightTrendEvent) -> Unit, 
                 )
 
                 is WeightTrendUiState.Content -> {
+                    MetricChips(state.metric) { onEvent(WeightTrendEvent.SelectMetric(it)) }
                     RangeChips(state.range) { onEvent(WeightTrendEvent.SelectRange(it)) }
-                    if (state.trend.hasEnoughData) {
+                    if (state.hasPlot) {
                         TrendPlot(state, onEvent)
                     } else {
                         Text(
-                            text = stringResource(Res.string.weight_chart_empty),
+                            text = if (state.metric == BodyMetric.Weight) {
+                                stringResource(Res.string.weight_chart_empty)
+                            } else {
+                                stringResource(Res.string.weight_chart_empty_metric, metricName(state.metric))
+                            },
                             style = AppTheme.typography.bodyMedium,
                             color = AppTheme.colors.textSecondary,
                             modifier = Modifier.fillMaxWidth().testTag("weight_chart_empty"),
@@ -181,9 +191,9 @@ private fun TrendPlot(state: WeightTrendUiState.Content, onEvent: (WeightTrendEv
         AppLineChart(
             values = series.ma7,
             labels = labels,
-            description = chartSummary(state.range, trend, state.targetKg),
+            description = chartSummary(state.metric, state.range, trend, state.weeklyRate, state.targetKg),
             modifier = Modifier.fillMaxWidth().testTag("weight_chart"),
-            valueLabel = { decimalText(it) },
+            valueLabel = { metricAxisText(it, state.metric) },
             dots = series.dots,
             lineThickness = AppLineChartDefaults.MaLineThickness,
             onPointLongPress = { index -> onEvent(WeightTrendEvent.SelectPoint(series.pointAt(index)?.date)) },
@@ -196,8 +206,8 @@ private fun TrendPlot(state: WeightTrendUiState.Content, onEvent: (WeightTrendEv
             referenceLine = state.targetKg,
         )
         Legend(state.targetKg != null, state.maHelpOpen) { onEvent(WeightTrendEvent.ToggleMaHelp) }
-        if (state.maHelpOpen) MaHelpText()
-        selected?.let { PointDetail(it) { onEvent(WeightTrendEvent.SelectPoint(null)) } }
+        if (state.maHelpOpen) MaHelpText(state.metric)
+        selected?.let { PointDetail(it, state.metric) { onEvent(WeightTrendEvent.SelectPoint(null)) } }
     }
 }
 
@@ -262,9 +272,15 @@ private fun DashedSwatch() {
 private const val DASH_COUNT = 3
 
 @Composable
-private fun MaHelpText() {
+private fun MaHelpText(metric: BodyMetric) {
     Text(
-        text = stringResource(Res.string.weight_chart_ma_help_text),
+        text = stringResource(
+            if (metric == BodyMetric.Weight) {
+                Res.string.weight_chart_ma_help_text
+            } else {
+                Res.string.weight_chart_ma_help_text_metric
+            },
+        ),
         style = AppTheme.typography.bodySmall,
         color = AppTheme.colors.textSecondary,
         modifier = Modifier
@@ -276,7 +292,7 @@ private fun MaHelpText() {
 }
 
 @Composable
-private fun PointDetail(point: TrendPoint, onClose: () -> Unit) {
+private fun PointDetail(point: TrendPoint, metric: BodyMetric, onClose: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().testTag("weight_chart_point_detail"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -289,12 +305,17 @@ private fun PointDetail(point: TrendPoint, onClose: () -> Unit) {
                 color = AppTheme.colors.textPrimary,
             )
             Text(
-                text = stringResource(Res.string.weight_chart_detail_weight, decimalText(point.dailyKg)),
+                text = stringResource(
+                    Res.string.weight_chart_detail_value,
+                    metricName(metric),
+                    metricValueText(point.dailyKg, metric),
+                ),
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.textPrimary,
             )
             Text(
-                text = point.ma7Kg?.let { stringResource(Res.string.weight_chart_detail_ma7, decimalText(it)) }
+                text =
+                point.ma7Kg?.let { stringResource(Res.string.weight_chart_detail_ma7, metricValueText(it, metric)) }
                     ?: stringResource(Res.string.weight_chart_detail_ma7_none),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.athleticCyan,
@@ -314,18 +335,30 @@ private fun shortDate(date: LocalDate): String =
     stringResource(Res.string.chart_date_short, date.day, date.month.shortLabel())
 
 @Composable
-private fun chartSummary(range: WeightChartRange, trend: TrendData, targetKg: Double?): String {
+private fun chartSummary(
+    metric: BodyMetric,
+    range: WeightChartRange,
+    trend: TrendData,
+    weeklyRate: WeeklyRate,
+    targetKg: Double?,
+): String {
     val rangeText = stringResource(RangeFilters.first { it.range == range }.description)
-    val rate = trend.rate.value?.let { stringResource(Res.string.weight_trend_pill, rateText(it)) }
-        ?: stringResource(Res.string.weekly_rate_no_data)
-    val summary = stringResource(
+    val base = stringResource(
         Res.string.weight_chart_summary,
+        metricName(metric),
         rangeText,
         trend.points.size.toString(),
-        decimalText(trend.points.first().dailyKg),
-        decimalText(trend.points.last().dailyKg),
-        rate,
+        metricValueText(trend.points.first().dailyKg, metric),
+        metricValueText(trend.points.last().dailyKg, metric),
     )
-    return targetKg?.let { "$summary ${stringResource(Res.string.weight_chart_summary_target, decimalText(it))}" }
-        ?: summary
+    // The pace sentence and the goal line only describe the weight.
+    val rate = if (metric == BodyMetric.Weight) {
+        weeklyRate.value?.let { stringResource(Res.string.weight_trend_pill, rateText(it)) }
+            ?: stringResource(Res.string.weekly_rate_no_data)
+    } else {
+        null
+    }
+    val withRate = rate?.let { "$base $it" } ?: base
+    return targetKg?.let { "$withRate ${stringResource(Res.string.weight_chart_summary_target, decimalText(it))}" }
+        ?: withRate
 }

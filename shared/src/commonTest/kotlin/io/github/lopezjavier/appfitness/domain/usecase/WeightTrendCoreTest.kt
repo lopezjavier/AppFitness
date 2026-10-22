@@ -275,4 +275,54 @@ class WeightTrendTest {
         assertEquals(listOf(LocalDate(2026, 10, 14)), data.points.map { it.date })
         assertEquals(81.0, data.points.single().ma7Kg)
     }
+
+    @Test
+    fun dailyOverload_givesTheSameResultAsTheMeasurementOverload() {
+        val rows = (0..20).map { back ->
+            val date = LocalDate.fromEpochDays(today.toEpochDays() - back)
+            row("${date}T08:00:00Z", 80.0 - back * 0.1, id = "m$back")
+        }
+        val daily = DailyWeights()(rows, TimeZone.UTC)
+
+        assertEquals(
+            trend(rows, WeightChartRange.Month, GoalStrategy.Deficit, TimeZone.UTC, today),
+            trend(daily, WeightChartRange.Month, GoalStrategy.Deficit, today),
+        )
+    }
+
+    @Test
+    fun dailyOverload_singleDayIsNotEnoughDataAndTwoDaysAre() {
+        val one = listOf(DailyWeight(today, 20.0))
+        val two = listOf(DailyWeight(LocalDate(2026, 10, 20), 21.0), DailyWeight(today, 20.0))
+
+        assertFalse(trend(one, WeightChartRange.Month, GoalStrategy.Maintenance, today).hasEnoughData)
+        assertTrue(trend(two, WeightChartRange.Month, GoalStrategy.Maintenance, today).hasEnoughData)
+    }
+
+    @Test
+    fun dailyOverload_metricMeasuredEveryThreeDays_hasMa7FromTheSecondPoint() {
+        val daily = listOf(
+            DailyWeight(LocalDate(2026, 10, 15), 30.0),
+            DailyWeight(LocalDate(2026, 10, 18), 28.0),
+            DailyWeight(today, 26.0),
+        )
+
+        val data = trend(daily, WeightChartRange.Month, GoalStrategy.Maintenance, today)
+
+        assertEquals(listOf(null, 29.0, 28.0), data.points.map { it.ma7Kg })
+        assertTrue(data.hasEnoughData)
+    }
+
+    @Test
+    fun dailyOverload_metricMeasuredOnlyWeekly_hasNoMa7BecauseTheWindowHoldsOneDay() {
+        val daily = listOf(
+            DailyWeight(LocalDate(2026, 10, 7), 30.0),
+            DailyWeight(LocalDate(2026, 10, 14), 28.0),
+            DailyWeight(today, 26.0),
+        )
+
+        val data = trend(daily, WeightChartRange.Month, GoalStrategy.Maintenance, today)
+
+        assertFalse(data.hasEnoughData)
+    }
 }

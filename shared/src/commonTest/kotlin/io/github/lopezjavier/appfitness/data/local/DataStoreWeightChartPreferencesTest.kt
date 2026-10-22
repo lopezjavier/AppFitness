@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,5 +49,39 @@ class DataStoreWeightChartPreferencesTest {
         )
 
         assertEquals(WeightChartRange.Quarter, DataStoreWeightChartPreferences(store).range.first())
+    }
+
+    @Test
+    fun nothingSaved_metricDefaultsToWeight() = runTest {
+        assertEquals(BodyMetric.Weight, DataStoreWeightChartPreferences(InMemoryPreferencesStore()).metric.first())
+    }
+
+    @Test
+    fun everyMetric_roundTripsThroughAnotherInstance() = runTest {
+        BodyMetric.entries.forEach { metric ->
+            val store = InMemoryPreferencesStore()
+            DataStoreWeightChartPreferences(store).setMetric(metric)
+
+            assertEquals(metric, DataStoreWeightChartPreferences(store).metric.first())
+        }
+    }
+
+    @Test
+    fun unknownStoredMetric_fallsBackToWeight() = runTest {
+        val store = InMemoryPreferencesStore(
+            mutablePreferencesOf(stringPreferencesKey("weight_chart_metric") to "Height"),
+        )
+
+        assertEquals(BodyMetric.Weight, DataStoreWeightChartPreferences(store).metric.first())
+    }
+
+    @Test
+    fun rangeAndMetric_doNotOverwriteEachOther() = runTest {
+        val prefs = DataStoreWeightChartPreferences(InMemoryPreferencesStore())
+        prefs.setRange(WeightChartRange.Month)
+        prefs.setMetric(BodyMetric.Hip)
+
+        assertEquals(WeightChartRange.Month, prefs.range.first())
+        assertEquals(BodyMetric.Hip, prefs.metric.first())
     }
 }

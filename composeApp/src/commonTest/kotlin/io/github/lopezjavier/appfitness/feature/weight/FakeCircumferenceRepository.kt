@@ -15,10 +15,11 @@ internal class FakeCircumferenceRepository(vararg initial: BodyCircumference) : 
     /** One list of entries per successful `addAll` call. */
     val addCalls = mutableListOf<List<CircumferenceEntry>>()
     var failReads = false
+    var getAllCalls = 0
     var writeFailure: Throwable? = null
     private var nextId = 1
 
-    override suspend fun getAll(): Result<List<BodyCircumference>> = if (failReads) {
+    override suspend fun getAll(): Result<List<BodyCircumference>> = if (failReads.also { getAllCalls++ }) {
         Result.failure(AppException(AppError.Network))
     } else {
         Result.success(rows.sortedByDescending { it.measuredAt })

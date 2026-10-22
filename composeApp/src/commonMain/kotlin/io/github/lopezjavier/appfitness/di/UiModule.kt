@@ -104,6 +104,7 @@ val uiModule =
         viewModel {
             WeightTrendViewModel(
                 measurements = get(),
+                circumferences = get(),
                 goals = get(),
                 profile = get(),
                 preferences = get(),

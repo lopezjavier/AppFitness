@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -72,9 +73,13 @@ private fun content(
     selected: TrendPoint? = null,
     targetKg: Double? = null,
     maHelpOpen: Boolean = false,
+    metric: BodyMetric = BodyMetric.Weight,
+    weeklyRate: WeeklyRate = rate,
 ) = WeightTrendUiState.Content(
     range = range,
+    metric = metric,
     trend = TrendData(points, rate, hasEnoughData = points.any { it.ma7Kg != null }),
+    weeklyRate = weeklyRate,
     selectedPoint = selected,
     targetKg = targetKg,
     maHelpOpen = maHelpOpen,
@@ -295,7 +300,155 @@ class WeightTrendScreenTest {
         )
     }
 
-    private fun trendViewModel(savedState: SavedStateHandle): WeightTrendViewModel {
+    private val metricTags = listOf("weight", "body_fat", "lean_mass", "water", "bone", "bmr", "waist", "hip")
+
+    private fun fatPoints() = List(10) {
+        TrendPoint(LocalDate(2026, 10, 1 + it), 18.0 + it * 0.1, if (it == 0) null else 18.0 + it * 0.1)
+    }
+
+    @Test
+    fun metricSelector_offersTheEightMetricsWithWeightSelected() {
+        showChart(content())
+
+        metricTags.forEach { rule.onNodeWithTag("weight_chart_metric_$it").assertExists() }
+        rule.onNodeWithTag("weight_chart_metric_selector").assertExists()
+        rule.onNodeWithTag("weight_chart_metric_weight").assertIsSelected()
+    }
+
+    @Test
+    fun metricSelector_chipsAreNamedForScreenReaders() {
+        showChart(content())
+
+        val descriptions = listOf("body_fat" to "Grasa corporal", "bmr" to "Tasa metabólica basal")
+        descriptions.forEach { (tag, name) ->
+            val cd = rule.onNodeWithTag("weight_chart_metric_$tag").fetchSemanticsNode().config
+                .getOrNull(SemanticsProperties.ContentDescription)
+            assertEquals(listOf(name), cd)
+        }
+    }
+
+    @Test
+    fun metricSelector_tappingBodyFatSendsTheEvent() {
+        showChart(content())
+
+        rule.onNodeWithTag("weight_chart_metric_body_fat").performClick()
+
+        assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat)), events)
+    }
+
+    @Test
+    fun metricSelector_bodyFatShowsItsChartAndDetailInPercent() {
+        showChart(content(metric = BodyMetric.BodyFat, points = fatPoints(), selected = fatPoints()[3]))
+
+        rule.onNodeWithTag("weight_chart_metric_body_fat").assertIsSelected()
+        rule.onNodeWithTag("weight_chart").assertIsDisplayed()
+        rule.onNodeWithText("Grasa corporal: 18,3 %").assertIsDisplayed()
+        rule.onNodeWithText("Media 7 días: 18,3 %").assertIsDisplayed()
+    }
+
+    @Test
+    fun metricSelector_filtersStayUsableWithAnotherMetric() {
+        showChart(content(metric = BodyMetric.BodyFat, points = fatPoints()))
+
+        rule.onNodeWithTag("weight_chart_filter_1m").performClick()
+
+        assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectRange(WeightChartRange.Month)), events)
+    }
+
+    @Test
+    fun metricSelector_longPressReadsTheMetricValue() {
+        showChart(content(metric = BodyMetric.BodyFat, points = fatPoints()))
+
+        rule.onNodeWithTag("weight_chart").performTouchInput { longClick(centerRight.copy(x = right - 1f)) }
+
+        assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectPoint(LocalDate(2026, 10, 10))), events)
+    }
+
+    @Test
+    fun metricSelector_targetLegendIsWeightOnly() {
+        showChart(content(metric = BodyMetric.BodyFat, points = fatPoints(), targetKg = null))
+        rule.onNodeWithTag("weight_chart_target_legend").assertDoesNotExist()
+    }
+
+    @Test
+    fun metricSelector_summaryNamesTheMetricAndOmitsTheWeeklyRate() {
+        showChart(content(metric = BodyMetric.BodyFat, points = fatPoints()))
+
+        assertEquals(
+            "Grasa corporal, 3 meses: 10 días con datos, de 18,0 % a 18,9 %.",
+            toneOf("weight_chart"),
+        )
+    }
+
+    @Test
+    fun metricSelector_weeklyRatePillStaysOnWeightWhileAnotherMetricIsCharted() {
+        showScreen(
+            content(
+                metric = BodyMetric.BodyFat,
+                points = fatPoints(),
+                weeklyRate = WeeklyRate(-0.45, RateTone.Favorable),
+            ),
+        )
+
+        rule.onNodeWithTag("weight_trend_pill").assertTextContains("−0,45 kg esta semana")
+    }
+
+    @Test
+    fun metricSelector_bmrReadoutIsAnIntegerInKcal() {
+        val bmr = List(5) { TrendPoint(LocalDate(2026, 10, 1 + it), 1650.0 + it, if (it == 0) null else 1650.0 + it) }
+        showChart(content(metric = BodyMetric.Bmr, points = bmr, selected = bmr[2]))
+
+        rule.onNodeWithText("Tasa metabólica basal: 1652 kcal").assertIsDisplayed()
+    }
+
+    @Test
+    fun metricSelector_metricWithoutDataShowsTheGenericHintAndKeepsBothChipRows() {
+        showChart(content(metric = BodyMetric.Bone, points = emptyList()))
+
+        rule.onNodeWithTag(
+            "weight_chart_empty",
+        ).assertTextEquals("Hueso: sin datos en este periodo. Regístralos para ver la tendencia")
+        rule.onNodeWithTag("weight_chart_metric_waist").assertExists()
+        rule.onNodeWithTag("weight_chart_filter_3m").assertIsDisplayed()
+    }
+
+    @Test
+    fun metricSelector_sparseMetricWithoutAnAverageStillPlotsItsDots() {
+        val sparse = listOf(TrendPoint(LocalDate(2026, 10, 5), 84.0, null))
+        showChart(content(metric = BodyMetric.Waist, points = sparse))
+
+        rule.onNodeWithTag("weight_chart").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun metricSelector_lastChipIsVisibleWhenHipIsSelected() {
+        showChart(content(metric = BodyMetric.Hip, points = fatPoints()))
+
+        rule.onNodeWithTag("weight_chart_metric_hip").assertIsDisplayed().assertIsSelected()
+    }
+
+    /** The device preferences: they outlive a recreated ViewModel, like the DataStore does. */
+    private class MemoryPreferences : WeightChartPreferences {
+        val rangeState = MutableStateFlow(WeightChartRange.Quarter)
+        val metricState = MutableStateFlow(BodyMetric.Weight)
+        override val range: Flow<WeightChartRange> = rangeState
+
+        override suspend fun setRange(range: WeightChartRange) {
+            rangeState.value = range
+        }
+
+        override val metric: Flow<BodyMetric> = metricState
+
+        override suspend fun setMetric(metric: BodyMetric) {
+            metricState.value = metric
+        }
+    }
+
+    private fun trendViewModel(
+        savedState: SavedStateHandle,
+        preferences: WeightChartPreferences = MemoryPreferences(),
+    ): WeightTrendViewModel {
         val rows =
             List(10) {
                 BodyMeasurement(
@@ -303,17 +456,15 @@ class WeightTrendScreenTest {
                     Instant.parse("2026-10-${12 + it}T08:00:00Z"),
                     75.0 - it * 0.1,
                     MeasurementSource.Manual,
+                    bodyFatPct = 20.0 + it,
                 )
             }
         return WeightTrendViewModel(
             measurements = FakeWeightRepository().apply { this.rows += rows },
+            circumferences = FakeCircumferenceRepository(),
             goals = FakeNutritionGoalsRepository(),
             profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
-            preferences = object : WeightChartPreferences {
-                override val range: Flow<WeightChartRange> = MutableStateFlow(WeightChartRange.Quarter)
-
-                override suspend fun setRange(range: WeightChartRange) = Unit
-            },
+            preferences = preferences,
             weightTrend = WeightTrend(),
             clock = TrendClock,
             timeZone = TimeZone.UTC,
@@ -345,6 +496,31 @@ class WeightTrendScreenTest {
         generation++
         rule.waitForIdle()
 
+        rule.onNodeWithTag("weight_chart_point_detail").assertIsDisplayed()
+    }
+
+    @Test
+    fun metricRangeAndPoint_comeBackWhenTheHostAndViewModelAreRecreated() {
+        val savedState = SavedStateHandle()
+        val preferences = MemoryPreferences()
+        var generation by mutableIntStateOf(0)
+        rule.setContent {
+            key(generation) { TrendHost(remember { trendViewModel(savedState, preferences) }) }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_chart_metric_body_fat").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_chart_filter_1m").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_chart").performTouchInput { longClick(centerRight.copy(x = right - 1f)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_chart_point_detail").assertIsDisplayed()
+
+        generation++
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("weight_chart_metric_body_fat").assertIsSelected()
+        rule.onNodeWithTag("weight_chart_filter_1m").assertIsSelected()
         rule.onNodeWithTag("weight_chart_point_detail").assertIsDisplayed()
     }
 

@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -60,6 +61,13 @@ private class InMemoryChartPreferences : WeightChartPreferences {
 
     override suspend fun setRange(range: WeightChartRange) {
         state.value = range
+    }
+
+    private val metricState = MutableStateFlow(BodyMetric.Weight)
+    override val metric: Flow<BodyMetric> = metricState
+
+    override suspend fun setMetric(metric: BodyMetric) {
+        metricState.value = metric
     }
 }
 
@@ -123,6 +131,7 @@ class HealthSyncRestorationTest {
         val trend = remember {
             WeightTrendViewModel(
                 measurements = weights,
+                circumferences = FakeCircumferenceRepository(),
                 goals = FakeNutritionGoalsRepository(),
                 profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
                 preferences = InMemoryChartPreferences(),

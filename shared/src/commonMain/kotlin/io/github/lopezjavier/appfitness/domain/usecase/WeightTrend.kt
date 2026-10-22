@@ -27,8 +27,15 @@ class WeightTrend(
         strategy: GoalStrategy,
         timeZone: TimeZone,
         today: LocalDate,
+    ): TrendData = invoke(dailyWeights(measurements, timeZone), range, strategy, today)
+
+    /** Same as above over already grouped daily values (any metric; the rate only makes sense for weight). */
+    operator fun invoke(
+        daily: List<DailyWeight>,
+        range: WeightChartRange,
+        strategy: GoalStrategy,
+        today: LocalDate,
     ): TrendData {
-        val daily = dailyWeights(measurements, timeZone)
         val visibleStart = range.window(today).visibleStart
         val points = daily
             .filter { it.date >= visibleStart && it.date <= today }

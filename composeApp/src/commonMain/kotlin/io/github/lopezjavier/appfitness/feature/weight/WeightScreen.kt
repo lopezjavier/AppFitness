@@ -382,7 +382,7 @@ private fun WeeklyRatePill(trend: WeightTrendUiState) {
         WeightTrendUiState.Error -> Unit
 
         is WeightTrendUiState.Content -> {
-            val rate = trend.trend.rate
+            val rate = trend.weeklyRate
             val value = rate.value
             TrendPill(
                 text = if (value == null) {

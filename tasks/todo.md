@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-085 (E5-B feedback round 1, 2026-10-22; T-084 done), then the E5-B 👤 checkpoint again (re-test the points listed there plus the feedback items). T-076…T-081 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
+**Next:** E5-B 👤 checkpoint (T-085 done; T-079…T-081, T-084 and T-085 merged; approval releases T-082 → `v0.5.0`). T-079 real-scale device test pending, documented in its PR. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2134,12 +2134,12 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** A selector above the trend chart switches between weight, body fat %, lean mass, water, bone, BMR, waist and hip. It reuses the time filters (1S…1A, remembered), the 7-day average and the long-press readout; the target line only appears on the weight view. Metrics without data show the "not enough data" message.
 
 **Acceptance criteria:**
-- [ ] Each metric charts its own series with the shared filters, average and point detail.
-- [ ] The chosen metric and filter survive leaving the app (ADR-40).
-- [ ] The target line shows only for weight.
+- [x] Each metric charts its own series with the shared filters, average and point detail.
+- [x] The chosen metric and filter survive leaving the app (ADR-40).
+- [x] The target line shows only for weight.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green.
+- [x] Lint + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-084
 **Estimated scope:** M

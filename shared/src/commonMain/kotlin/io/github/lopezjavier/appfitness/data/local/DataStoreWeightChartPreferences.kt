@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,16 @@ class DataStoreWeightChartPreferences(private val store: DataStore<Preferences>)
         store.edit { it[KEY] = range.name }
     }
 
+    override val metric: Flow<BodyMetric> = store.data.map { prefs ->
+        BodyMetric.entries.firstOrNull { it.name == prefs[METRIC_KEY] } ?: BodyMetric.Weight
+    }
+
+    override suspend fun setMetric(metric: BodyMetric) {
+        store.edit { it[METRIC_KEY] = metric.name }
+    }
+
     private companion object {
         val KEY = stringPreferencesKey("weight_chart_range")
+        val METRIC_KEY = stringPreferencesKey("weight_chart_metric")
     }
 }
