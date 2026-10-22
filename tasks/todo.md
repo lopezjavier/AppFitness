@@ -1979,17 +1979,17 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 **Description:** Backend: one migration with the `circumference_site` enum and `body_circumferences` per `03-data-model.md` §4 (`value_cm numeric(5,1)` with check 20–250, `source` `manual`, index `(user_id, site, measured_at desc)`, `set_updated_at` trigger, `user_id` on delete cascade), RLS enabled and forced with owner policies on `(select auth.uid())`, client grants as for `body_measurements`; pgTAP. Domain (pure): the site list (neck, chest, waist, hip, arm, thigh, calf; Spanish labels in string resources, wording by ux-reviewer), value validation (20–250 cm, 1 decimal), `WaistHipRatio` (`04-business-rules.md` §3.9: latest waist / latest hip, 2 decimals, "Sin datos suficientes" when either is missing). `CircumferenceRepository`. UI: a "Circunferencias" section on the weight screen. "+ Medida" opens a sheet with the site dropdown, the value in cm and the date and time (default now), and "Guardar" disabled with the allowed range shown while invalid. Each site has a history ordered by date (`CircumferenceRow`, a new design-system component with a catalog entry: site, value in cm, date). A row opens the sheet to edit it; delete is at once (swipe or the sheet), with no "Deshacer". The ratio line ("0,86") recalculates in place. The ratio's interpretation (status by sex) is in T-081. Draft restored (ADR-40); writes disabled offline.
 
 **Acceptance criteria:**
-- [ ] Migration + `supabase/tests/body_circumferences.test.sql`: RLS on and forced; cross-user select/insert/update/delete blocked; 19.9 and 251 rejected; deleting a user with circumferences succeeds.
-- [ ] "+ Medida" → "Cintura" 84,5 cm → a waist row of 84.5 cm, shown in the waist history in date order.
-- [ ] Waist 84,5 and hip 98,0 → the section shows "0,86"; only one of them → "Sin datos suficientes".
-- [ ] Editing a value or deleting a row (at once) recalculates the ratio and the history.
-- [ ] 19,9 or 251 cm → "Guardar" disabled and the allowed range shown.
-- [ ] The sheet draft survives leaving the app and process death.
+- [x] Migration + `supabase/tests/body_circumferences.test.sql`: RLS on and forced; cross-user select/insert/update/delete blocked; 19.9 and 251 rejected; deleting a user with circumferences succeeds.
+- [x] "+ Medida" → "Cintura" 84,5 cm → a waist row of 84.5 cm, shown in the waist history in date order.
+- [x] Waist 84,5 and hip 98,0 → the section shows "0,86"; only one of them → "Sin datos suficientes".
+- [x] Editing a value or deleting a row (at once) recalculates the ratio and the history.
+- [x] 19,9 or 251 cm → "Guardar" disabled and the allowed range shown.
+- [x] The sheet draft survives leaving the app and process death.
 
 **Host tests (per scenario):** `WaistHipRatioTest` (84.5 / 98.0 → 0.86; a missing site → none; the latest row per site is used); `ValidateCircumferenceTest` (Circumference validation outline); `CircumferencesViewModelTest` with fakes + Turbine (Logging a circumference; Editing and deleting; ratio recalculated); `CircumferenceSectionTest` (Robolectric: "0,86", "Sin datos suficientes", disabled "Guardar" with the range, swipe delete); `CircumferenceRow` catalog entry and test; restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-077
