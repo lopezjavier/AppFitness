@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-084 (E5-B feedback round 1, 2026-10-22), then T-085, then the E5-B 👤 checkpoint again (re-test the points listed there plus the feedback items). T-076…T-081 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
+**Next:** T-085 (E5-B feedback round 1, 2026-10-22; T-084 done), then the E5-B 👤 checkpoint again (re-test the points listed there plus the feedback items). T-076…T-081 and T-083 done (T-079 real-scale device test pending, documented in its PR). E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -2112,15 +2112,15 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Description:** (1) ADR-47: a day with a Health Connect weight offers no manual entry/edit (note "Sincronizado desde Health Connect"); "Peso actual" in Preferencias is read-only while the most recent weight comes from Health Connect. (2) "+" button on "Peso actual" opens a "Composición corporal" sheet with the latest body fat, lean mass, water, bone and BMR and their dates ("—" when absent); the day's detail shows the same values for that day. (3) Dashed target-weight line on the weight chart. (4) Rename "MA 7D" to "Media 7 días" with a "?" help: "Promedio de tu peso en ese día y los 6 anteriores. Suaviza las oscilaciones diarias." (5) Goal card: replace the percentage with plain text "Desde tu primer peso: X kg" (the visual progress is deferred to E8).
 
 **Acceptance criteria:**
-- [ ] A day with a Health Connect weight has no manual entry or edit; the note is shown; days without one are unchanged.
-- [ ] Preferencias "Peso actual" is read-only while the latest weight is from Health Connect, editable otherwise.
-- [ ] The "+" sheet and the day's detail show the composition values with dates.
-- [ ] The chart shows the target line; the average line is labelled "Media 7 días" with its "?" help.
-- [ ] The goal card shows no percentage.
-- [ ] Restoration tests for the new sheet (ADR-40).
+- [x] A day with a Health Connect weight has no manual entry or edit; the note is shown; days without one are unchanged.
+- [x] Preferencias "Peso actual" is read-only while the latest weight is from Health Connect, editable otherwise.
+- [x] The "+" sheet and the day's detail show the composition values with dates.
+- [x] The chart shows the target line; the average line is labelled "Media 7 días" with its "?" help.
+- [x] The goal card shows no percentage.
+- [x] Restoration tests for the new sheet (ADR-40).
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if a migration is needed.
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; pgTAP green if a migration is needed.
 
 **Dependencies:** T-081
 **Estimated scope:** M

@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.weight
 
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -30,14 +31,17 @@ data class MeasurementForm(
 }
 
 /**
- * The open day sheet. [healthConnect] are that day's Health Connect rows (delete only); [form] is null while the day
- * has only Health Connect rows and the user has not asked to set a manual weight ([WeightEvent.StartManual]).
+ * The open day sheet. [healthConnect] are that day's Health Connect rows (delete only). A day with a Health Connect
+ * weight is [manualLocked] (ADR-47): [form] stays null and the manual entry cannot be created or edited.
+ * [dayComposition] holds that day's body-composition values (null when the day has none).
  */
 data class WeightSheet(
     val day: LocalDate,
     val isToday: Boolean,
     val healthConnect: List<BodyMeasurement>,
     val form: MeasurementForm?,
+    val manualLocked: Boolean = false,
+    val dayComposition: LatestComposition? = null,
 )
 
 /** Everything the weight screen shows once loaded. */
@@ -51,6 +55,10 @@ data class WeightContent(
     val days: Map<LocalDate, DayMeasurements>,
     val isOnline: Boolean,
     val sheet: WeightSheet?,
+    /** The newest value of each composition metric; null when it could not be read. */
+    val composition: LatestComposition? = null,
+    /** The "Composición corporal" sheet is open. */
+    val compositionOpen: Boolean = false,
 ) {
     /** Days of the visible month with at least one measurement. */
     val markedDays: Set<LocalDate> get() = days.keys
@@ -81,8 +89,12 @@ sealed interface WeightEvent {
     /** Close the sheet discarding the draft (X, back, swipe, scrim). */
     data object CloseSheet : WeightEvent
 
-    /** Start the manual form of a day that has only Health Connect rows. */
+    /** Ignored: a day with a Health Connect weight offers no manual entry (ADR-47). */
     data object StartManual : WeightEvent
+
+    data object OpenComposition : WeightEvent
+
+    data object CloseComposition : WeightEvent
 
     data class SetWeight(val text: String) : WeightEvent
 

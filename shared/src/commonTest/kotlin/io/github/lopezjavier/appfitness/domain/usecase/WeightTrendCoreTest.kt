@@ -32,6 +32,14 @@ class DailyWeightsTest {
     }
 
     @Test
+    fun dayWithHealthConnectAndManual_usesOnlyHealthConnect() {
+        val hc = row("2026-10-20T07:00:00Z", 80.0).copy(source = MeasurementSource.HealthConnect)
+        val result = dailyWeights(listOf(row("2026-10-20T20:00:00Z", 70.0), hc), TimeZone.UTC)
+
+        assertEquals(listOf(DailyWeight(LocalDate(2026, 10, 20), 80.0)), result)
+    }
+
+    @Test
     fun localDayBoundary_splitsMeasurementsAroundMidnight() {
         val zone = TimeZone.of("Europe/Madrid") // UTC+2 in October
         val result = dailyWeights(

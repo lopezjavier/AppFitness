@@ -18,9 +18,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.goal_card_empty_hin
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_card_set
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.goal_progress_percent
-import io.github.lopezjavier.appfitness.composeapp.resources.goal_progress_state
-import io.github.lopezjavier.appfitness.composeapp.resources.goal_progress_state_only
+import io.github.lopezjavier.appfitness.composeapp.resources.goal_since_first
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_target_value
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
@@ -28,7 +26,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GoalCard
-import io.github.lopezjavier.appfitness.designsystem.GoalCardProgress
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -38,7 +35,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonCardHeight = Spacing.xl * 4
-private const val PERCENT = 100f
 
 /**
  * The goal card and the BMI / body-fat tiles under the weight panel (US-27). Loading is a skeleton, a failed load an
@@ -69,24 +65,11 @@ internal fun GoalSection(state: GoalUiState, onEvent: (GoalEvent) -> Unit, modif
 @Composable
 private fun GoalCardContent(content: GoalContent, onEvent: (GoalEvent) -> Unit) {
     val distance = distanceText(content.distance)
-    val percent = content.progressPct
-    val progress = percent?.let {
-        val percentText = stringResource(Res.string.goal_progress_percent, it.toString())
-        GoalCardProgress(
-            fraction = it / PERCENT,
-            percentText = percentText,
-            stateText = if (distance != null) {
-                stringResource(Res.string.goal_progress_state, it.toString(), distance)
-            } else {
-                stringResource(Res.string.goal_progress_state_only, it.toString())
-            },
-        )
-    }
     GoalCard(
         title = stringResource(Res.string.goal_card_title),
         targetText = content.targetKg?.let { stringResource(Res.string.goal_target_value, decimalText(it)) },
         distanceText = distance,
-        progress = progress,
+        sinceFirstText = content.sinceFirstKg?.let { stringResource(Res.string.goal_since_first, signedTenths(it)) },
         emptyHint = stringResource(Res.string.goal_card_empty_hint),
         setLabel = stringResource(Res.string.goal_card_set),
         changeLabel = stringResource(Res.string.goal_card_change_cd),

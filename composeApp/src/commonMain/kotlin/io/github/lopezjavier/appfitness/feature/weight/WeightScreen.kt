@@ -28,8 +28,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_button_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_label
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_value
@@ -41,6 +43,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_titl
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_log_today
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_percent_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_trend_pill
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -229,6 +232,9 @@ private fun WeightSheets(
     val orphanComparison = content.sheet == null && goal?.comparisonOpen == true
     val closeComparison by rememberUpdatedState(onGoalEvent)
     LaunchedEffect(orphanComparison) { if (orphanComparison) closeComparison(GoalEvent.CloseCompare) }
+    if (content.compositionOpen) {
+        CompositionSheet(content.composition, timeZone, { onEvent(WeightEvent.CloseComposition) })
+    }
     goal?.targetSheet?.let { TargetWeightSheet(it, content.isOnline, onGoalEvent) }
     val metric = goal?.openMetric?.let { kind ->
         when (kind) {
@@ -258,7 +264,7 @@ private fun WeightPanelSection(
                 testTagPrefix = "weight_empty",
             )
         } else {
-            WeightPanel(current, timeZone, trend)
+            WeightPanel(current, timeZone, trend, { onEvent(WeightEvent.OpenComposition) })
         }
         PrimaryButton(
             text = stringResource(Res.string.weight_log_today),
@@ -274,6 +280,7 @@ private fun WeightPanel(
     current: BodyMeasurement,
     timeZone: TimeZone,
     trend: WeightTrendUiState?,
+    onOpenComposition: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val local = current.measuredAt.toLocalDateTime(timeZone)
@@ -287,7 +294,7 @@ private fun WeightPanel(
     val fatText = current.bodyFatPct?.let {
         stringResource(Res.string.weight_current_fat, stringResource(Res.string.weight_percent_value, decimalText(it)))
     }
-    Column(modifier.fillMaxWidth().testTag("weight_panel")) {
+    Box(modifier.fillMaxWidth().testTag("weight_panel")) {
         MetricTile(
             label = stringResource(Res.string.weight_current_label),
             value = stringResource(Res.string.weight_current_value, decimalText(current.weightKg)),
@@ -311,6 +318,14 @@ private fun WeightPanel(
                     trend?.let { WeeklyRatePill(it) }
                 }
             },
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.weight_composition_button_cd),
+            icon = Res.drawable.ic_add,
+            testTag = "weight_composition_button",
+            onClick = onOpenComposition,
+            modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs),
+            tint = AppTheme.colors.textSecondary,
         )
     }
 }

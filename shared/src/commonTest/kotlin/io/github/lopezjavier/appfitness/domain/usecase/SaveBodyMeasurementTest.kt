@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.usecase
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -30,6 +31,8 @@ private class RecordingRepository : BodyMeasurementRepository {
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.success(emptyList())
+
+    override suspend fun getLatestComposition(): Result<LatestComposition> = Result.success(LatestComposition())
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> {
         saves += save

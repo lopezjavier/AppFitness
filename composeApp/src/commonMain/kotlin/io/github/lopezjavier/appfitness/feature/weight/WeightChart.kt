@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_help
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_action
@@ -40,7 +42,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter_6m
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_filter_6m_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_legend
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_ma_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_ma_help_text
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary_target
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_target_legend
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_trend_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_trend_pill
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_trend_title
@@ -50,6 +56,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartSkeleton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -107,9 +114,9 @@ private val RangeFilters = listOf(
 )
 
 /**
- * The weight trend card (US-27): range chips, the chart of the daily dots with the MA7 line, the "MA 7D" legend and
- * the detail of the selected point. Loading shows a skeleton and an error a retry; with too little data the chart
- * is replaced by a hint but the chips stay.
+ * The weight trend card (US-27): range chips, the chart of the daily dots with the MA7 line, the "Media 7 días" legend
+ * (with its "?" help), the dashed goal line and the detail of the selected point. Loading shows a skeleton and an
+ * error a retry; with too little data the chart is replaced by a hint but the chips stay.
  */
 @Composable
 fun WeightChart(state: WeightTrendUiState, onEvent: (WeightTrendEvent) -> Unit, modifier: Modifier = Modifier) {
@@ -174,7 +181,7 @@ private fun TrendPlot(state: WeightTrendUiState.Content, onEvent: (WeightTrendEv
         AppLineChart(
             values = series.ma7,
             labels = labels,
-            description = chartSummary(state.range, trend),
+            description = chartSummary(state.range, trend, state.targetKg),
             modifier = Modifier.fillMaxWidth().testTag("weight_chart"),
             valueLabel = { decimalText(it) },
             dots = series.dots,
@@ -186,32 +193,86 @@ private fun TrendPlot(state: WeightTrendUiState.Content, onEvent: (WeightTrendEv
             },
             detailActionLabel = stringResource(Res.string.weight_chart_detail_action),
             animated = LocalAnimationsEnabled.current,
+            referenceLine = state.targetKg,
         )
-        Legend()
+        Legend(state.targetKg != null, state.maHelpOpen) { onEvent(WeightTrendEvent.ToggleMaHelp) }
+        if (state.maHelpOpen) MaHelpText()
         selected?.let { PointDetail(it) { onEvent(WeightTrendEvent.SelectPoint(null)) } }
     }
 }
 
 @Composable
-private fun Legend() {
+private fun Legend(hasTarget: Boolean, helpOpen: Boolean, onToggleHelp: () -> Unit) {
     Row(
-        Modifier.semantics(mergeDescendants = true) {}.testTag("weight_chart_legend"),
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LegendEntry("weight_chart_legend", stringResource(Res.string.weight_chart_legend)) {
+                Box(
+                    Modifier
+                        .size(LegendSwatchSize)
+                        .clip(CircleShape)
+                        .background(AppTheme.colors.athleticCyan),
+                )
+            }
+            if (hasTarget) {
+                LegendEntry("weight_chart_target_legend", stringResource(Res.string.weight_chart_target_legend)) {
+                    DashedSwatch()
+                }
+            }
+        }
+        AppIconButton(
+            contentDescription = stringResource(Res.string.weight_chart_ma_help_cd),
+            icon = Res.drawable.ic_help,
+            testTag = "weight_chart_ma_help_button",
+            onClick = onToggleHelp,
+            tint = if (helpOpen) AppTheme.colors.athleticCyan else AppTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
+private fun LegendEntry(tag: String, text: String, swatch: @Composable () -> Unit) {
+    Row(
+        Modifier.semantics(mergeDescendants = true) {}.testTag(tag),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(LegendSwatchSize)
-                .clip(CircleShape)
-                .background(AppTheme.colors.athleticCyan)
-                .clearAndSetSemantics {},
-        )
-        Text(
-            text = stringResource(Res.string.weight_chart_legend),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-        )
+        Box(Modifier.clearAndSetSemantics {}) { swatch() }
+        Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
     }
+}
+
+/** Three short dashes: the target line is told apart by its shape, not only by its colour. */
+@Composable
+private fun DashedSwatch() {
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        repeat(DASH_COUNT) {
+            Box(Modifier.size(width = Spacing.sm, height = Spacing.xs / 2).background(AppTheme.colors.textSecondary))
+        }
+    }
+}
+
+private const val DASH_COUNT = 3
+
+@Composable
+private fun MaHelpText() {
+    Text(
+        text = stringResource(Res.string.weight_chart_ma_help_text),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppTheme.colors.surfaceRaised, AppShapes.base)
+            .padding(Spacing.md)
+            .testTag("weight_chart_ma_help_text"),
+    )
 }
 
 @Composable
@@ -253,11 +314,11 @@ private fun shortDate(date: LocalDate): String =
     stringResource(Res.string.chart_date_short, date.day, date.month.shortLabel())
 
 @Composable
-private fun chartSummary(range: WeightChartRange, trend: TrendData): String {
+private fun chartSummary(range: WeightChartRange, trend: TrendData, targetKg: Double?): String {
     val rangeText = stringResource(RangeFilters.first { it.range == range }.description)
     val rate = trend.rate.value?.let { stringResource(Res.string.weight_trend_pill, rateText(it)) }
         ?: stringResource(Res.string.weekly_rate_no_data)
-    return stringResource(
+    val summary = stringResource(
         Res.string.weight_chart_summary,
         rangeText,
         trend.points.size.toString(),
@@ -265,4 +326,6 @@ private fun chartSummary(range: WeightChartRange, trend: TrendData): String {
         decimalText(trend.points.last().dailyKg),
         rate,
     )
+    return targetKg?.let { "$summary ${stringResource(Res.string.weight_chart_summary_target, decimalText(it))}" }
+        ?: summary
 }

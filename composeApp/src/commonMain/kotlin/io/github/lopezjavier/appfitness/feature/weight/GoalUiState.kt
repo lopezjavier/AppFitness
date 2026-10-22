@@ -25,7 +25,7 @@ data class ComparisonState(val older: BodyMeasurement, val latest: BodyMeasureme
 
 /**
  * What the goal card and metric tiles show. [targetKg] is null until a goal is set; [distance] needs a target and a
- * current weight; [progressPct] also needs the onboarding weight and a start different from the target. The
+ * current weight; [sinceFirstKg] is current minus onboarding weight (signed; null without either). The
  * interpretations are null without their inputs (no height, no body fat, no sex, no waist/hip). [openMetric] is the
  * metric whose detail sheet is open; [comparison] the open comparison (null while loading its rows).
  */
@@ -34,7 +34,7 @@ data class GoalContent(
     val currentKg: Double?,
     val strategy: GoalStrategy,
     val distance: TargetDistanceResult?,
-    val progressPct: Int?,
+    val sinceFirstKg: Double?,
     val bmi: MetricInterpretation?,
     val bodyFat: MetricInterpretation?,
     val waistToHip: MetricInterpretation?,

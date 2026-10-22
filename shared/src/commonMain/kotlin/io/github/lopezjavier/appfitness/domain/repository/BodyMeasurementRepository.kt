@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import kotlin.time.Instant
 
@@ -17,6 +18,9 @@ interface BodyMeasurementRepository {
 
     /** Entries with `from <= measuredAt < toExclusive` of any source, newest first. */
     suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>>
+
+    /** The newest recorded value of each body-composition metric (all null when none was ever measured). */
+    suspend fun getLatestComposition(): Result<LatestComposition>
 
     /**
      * Stores [save] atomically: one manual weight per local day, and an edit never moves the entry to another day.

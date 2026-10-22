@@ -326,6 +326,8 @@ private val DemoChartValues = listOf(100.0, 104.0, 102.5, 108.0, 113.5)
 private val DemoMaValues = listOf(null, 102.0, 103.0, 104.5, 107.0)
 private val DemoChartLabels = listOf("1 oct", "8 oct", "15 oct", "22 oct", "29 oct")
 
+private const val DEMO_REFERENCE_LINE = 105.0
+
 @Composable
 private fun LineChartSection() {
     CatalogSection(stringResource(Res.string.catalog_section_line_chart), "catalog_section_line_chart") {
@@ -347,6 +349,7 @@ private fun LineChartSection() {
                 valueLabel = { it.roundToInt().toString() },
                 dots = DemoChartValues,
                 lineThickness = AppLineChartDefaults.MaLineThickness,
+                referenceLine = DEMO_REFERENCE_LINE,
             )
         }
     }

@@ -57,6 +57,9 @@ fun WeightRoot(
             goalViewModel.onEvent(GoalEvent.Refresh)
         }
     }
+    // A saved goal changes the dashed target line of the chart.
+    val goalTarget = (goal as? GoalUiState.Content)?.content?.targetKg
+    LaunchedEffect(goalTarget) { trendViewModel.onEvent(WeightTrendEvent.Refresh) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.onEvent(WeightEvent.Refresh)
         trendViewModel.onEvent(WeightTrendEvent.Refresh)

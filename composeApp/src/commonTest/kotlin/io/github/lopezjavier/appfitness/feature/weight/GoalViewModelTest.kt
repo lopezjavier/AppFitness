@@ -20,7 +20,6 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
 import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.MetricStatus
@@ -80,7 +79,7 @@ class GoalViewModelTest {
         BodyMeasurement(id, Instant.parse(at), kg, MeasurementSource.Manual, bodyFatPct = fat)
 
     private fun viewModel() = GoalViewModel(
-        profile, weights, goals, circumferences, Bmi(), TargetDistance(), GoalProgress(), InterpretMetric(),
+        profile, weights, goals, circumferences, Bmi(), TargetDistance(), InterpretMetric(),
         WaistHipRatio(), CompareMeasurements(), ValidateBodyMeasurement(), connectivity, clock, savedState,
     )
 
@@ -94,7 +93,7 @@ class GoalViewModelTest {
     private fun GoalViewModel.sheet(): TargetSheetState = checkNotNull(content().targetSheet)
 
     @Test
-    fun startsLoadingThenShowsBmiTargetDistanceAndProgress() = runTest(dispatcher) {
+    fun startsLoadingThenShowsBmiTargetDistanceAndChangeSinceTheFirstWeight() = runTest(dispatcher) {
         val vm = viewModel()
         assertEquals(GoalUiState.Loading, vm.uiState.value)
         advanceUntilIdle()
@@ -104,7 +103,7 @@ class GoalViewModelTest {
         assertEquals(MetricStatus.Normal, content.bmi?.status)
         assertEquals(70.0, content.targetKg)
         assertEquals(TargetDistanceResult.Remaining(4.2), content.distance)
-        assertEquals(48, content.progressPct)
+        assertEquals(-3.8, content.sinceFirstKg)
         assertEquals(MetricStatus.BodyFatNormal, content.bodyFat?.status)
     }
 
@@ -129,23 +128,23 @@ class GoalViewModelTest {
     }
 
     @Test
-    fun noTarget_hasNoDistanceNorProgress() = runTest(dispatcher) {
+    fun noTarget_hasNoDistance() = runTest(dispatcher) {
         profile.targetWeight = Result.success(null)
         val vm = viewModel()
         advanceUntilIdle()
 
         assertNull(vm.content().targetKg)
         assertNull(vm.content().distance)
-        assertNull(vm.content().progressPct)
+        assertEquals(-3.8, vm.content().sinceFirstKg)
     }
 
     @Test
-    fun noOnboardingWeight_hasNoBar() = runTest(dispatcher) {
+    fun noOnboardingWeight_hasNoChangeSinceTheFirstWeight() = runTest(dispatcher) {
         weights.onboarding = null
         val vm = viewModel()
         advanceUntilIdle()
 
-        assertNull(vm.content().progressPct)
+        assertNull(vm.content().sinceFirstKg)
         assertIs<TargetDistanceResult.Remaining>(vm.content().distance)
     }
 

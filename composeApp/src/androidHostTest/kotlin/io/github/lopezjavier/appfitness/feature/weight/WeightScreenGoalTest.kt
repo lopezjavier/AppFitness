@@ -4,13 +4,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -31,7 +33,6 @@ import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -94,7 +95,7 @@ class WeightScreenGoalTest {
     )
 
     private fun newGoalModel(state: SavedStateHandle) = GoalViewModel(
-        profile, weights, goals, circumferences, Bmi(), TargetDistance(), GoalProgress(), InterpretMetric(),
+        profile, weights, goals, circumferences, Bmi(), TargetDistance(), InterpretMetric(),
         WaistHipRatio(), CompareMeasurements(), ValidateBodyMeasurement(), FakeConnectivityObserver(), GoalClock, state,
     )
 
@@ -148,13 +149,19 @@ class WeightScreenGoalTest {
     }
 
     @Test
-    fun goalCard_showsTheDistanceAndTheProgress() {
+    fun goalCard_showsTheDistance() {
         show()
 
         rule.onNodeWithTag("weight_goal_distance").assertTextContains("faltan 4,2 kg")
-        val state = rule.onNodeWithTag("weight_goal_progress").fetchSemanticsNode().config
-            .getOrNull(SemanticsProperties.StateDescription)
-        assertEquals("48 %, faltan 4,2 kg", state)
+    }
+
+    @Test
+    fun goalCard_showsTheChangeSinceTheFirstWeightAsPlainTextWithoutPercentage() {
+        show()
+
+        rule.onNodeWithTag("weight_goal_since_first").assertTextEquals("Desde tu primer peso: −3,8 kg")
+        rule.onNode(hasText("%", substring = true) and hasAnyAncestor(hasTestTag("weight_goal_card")))
+            .assertDoesNotExist()
     }
 
     @Test

@@ -3,10 +3,14 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
+import io.github.lopezjavier.appfitness.app.FakeProfileRepository
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
@@ -52,6 +56,8 @@ class WeightTrendViewModelTest {
         NutritionGoals(GoalStrategy.Deficit, calorieAdjustment = -500, targetKcal = 2000),
     )
 
+    private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true)))
+
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
 
@@ -74,6 +80,7 @@ class WeightTrendViewModelTest {
         WeightTrendViewModel(
             measurements = repository,
             goals = goals,
+            profile = profile,
             preferences = prefs,
             weightTrend = WeightTrend(),
             clock = clock,
@@ -85,6 +92,64 @@ class WeightTrendViewModelTest {
         val state = uiState.value
         assertIs<WeightTrendUiState.Content>(state)
         return state
+    }
+
+    @Test
+    fun targetKg_comesFromTheProfile() = runTest(dispatcher) {
+        profile.targetWeight = Result.success(72.5)
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        assertEquals(72.5, vm.content().targetKg)
+    }
+
+    @Test
+    fun targetKg_isNullWithoutATargetOrWhenTheReadFails() = runTest(dispatcher) {
+        profile.targetWeight = Result.success(null)
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+        assertNull(vm.content().targetKg)
+
+        profile.targetWeight = Result.failure(AppException(AppError.Network))
+        vm.onEvent(WeightTrendEvent.Refresh)
+        advanceUntilIdle()
+        assertNull(vm.content().targetKg)
+        assertEquals(20, vm.content().trend.points.size)
+    }
+
+    @Test
+    fun refresh_picksUpAChangedTarget() = runTest(dispatcher) {
+        profile.targetWeight = Result.success(72.5)
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
+        profile.targetWeight = Result.success(70.0)
+        vm.onEvent(WeightTrendEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(70.0, vm.content().targetKg)
+    }
+
+    @Test
+    fun toggleMaHelp_opensAndClosesAndSurvivesRecreation() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(*series(80.0, 0.0).toTypedArray())
+        val state = SavedStateHandle()
+        val vm = viewModel(repository, state)
+        advanceUntilIdle()
+        assertFalse(vm.content().maHelpOpen)
+
+        vm.onEvent(WeightTrendEvent.ToggleMaHelp)
+        advanceUntilIdle()
+        assertTrue(vm.content().maHelpOpen)
+        assertEquals(true, state.get<Boolean>("weight_trend_ma_help_open"))
+
+        val recreated = viewModel(repository, state)
+        advanceUntilIdle()
+        assertTrue(recreated.content().maHelpOpen)
+
+        recreated.onEvent(WeightTrendEvent.ToggleMaHelp)
+        advanceUntilIdle()
+        assertFalse(recreated.content().maHelpOpen)
     }
 
     @Test

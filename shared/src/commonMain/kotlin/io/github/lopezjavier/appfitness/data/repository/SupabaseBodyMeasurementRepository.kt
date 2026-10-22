@@ -6,6 +6,7 @@ import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementDto
 import io.github.lopezjavier.appfitness.data.remote.BodyMeasurementInsertDto
@@ -17,6 +18,7 @@ import io.github.lopezjavier.appfitness.data.remote.SaveBodyMeasurementParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import kotlin.time.Instant
@@ -26,10 +28,14 @@ private const val INVALID_PARAMETER = "22023"
 private const val CHECK_VIOLATION = "23514"
 private const val NO_DATA_FOUND = "P0002"
 
+private val COMPOSITION_COLUMNS = listOf("body_fat_pct", "lean_mass_kg", "water_kg", "bone_kg", "bmr_kcal")
+private const val COMPOSITION_LOOKBACK = 50L
+
 /**
  * `body_measurements` of the signed-in user (RLS owner policies). The onboarding weight is the user's earliest
  * `manual` row by `created_at` (id as the tie-break): no other writer exists before onboarding completes.
  */
+@Suppress("TooManyFunctions") // One method per port operation.
 class SupabaseBodyMeasurementRepository(private val auth: Auth, private val postgrest: Postgrest) :
     BodyMeasurementRepository {
     override suspend fun getOnboardingWeight(): Result<BodyMeasurement?> = signedIn { findOnboardingRow() }
@@ -73,6 +79,22 @@ class SupabaseBodyMeasurementRepository(private val auth: Auth, private val post
                 .decodeList<BodyMeasurementDto>()
                 .map { it.toDomain() }
         }
+
+    override suspend fun getLatestComposition(): Result<LatestComposition> = signedIn {
+        postgrest.from("body_measurements")
+            .select(Columns.raw(BodyMeasurementDto.COLUMNS)) {
+                filter {
+                    or {
+                        COMPOSITION_COLUMNS.forEach { filterNot(it, FilterOperator.IS, "null") }
+                    }
+                }
+                order("measured_at", Order.DESCENDING)
+                limit(COMPOSITION_LOOKBACK)
+            }
+            .decodeList<BodyMeasurementDto>()
+            .map { it.toDomain() }
+            .let { LatestComposition.from(it) }
+    }
 
     override suspend fun saveManualWeight(save: ManualWeightSave): Result<String> = signedIn {
         postgrest.rpc("save_body_measurement", SaveBodyMeasurementParams.from(save)).decodeAs<String>()

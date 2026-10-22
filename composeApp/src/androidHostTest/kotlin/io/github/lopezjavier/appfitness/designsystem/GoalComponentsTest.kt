@@ -20,8 +20,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-private const val PROGRESS = 0.48f
-
 /** The goal card, the comparison delta row and the metric interpretation row. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
@@ -32,7 +30,7 @@ class GoalComponentsTest {
     private var sets = 0
     private var changes = 0
 
-    private fun showCard(target: String?, progress: GoalCardProgress? = null, distance: String? = null) {
+    private fun showCard(target: String?, since: String? = null, distance: String? = null) {
         sets = 0
         changes = 0
         rule.setContent {
@@ -41,7 +39,7 @@ class GoalComponentsTest {
                     title = "Objetivo",
                     targetText = target,
                     distanceText = distance,
-                    progress = progress,
+                    sinceFirstText = since,
                     emptyHint = "Fija un peso objetivo",
                     setLabel = "Fijar objetivo",
                     changeLabel = "Cambiar objetivo",
@@ -64,14 +62,12 @@ class GoalComponentsTest {
     }
 
     @Test
-    fun goalCard_withTarget_showsDistanceAndProgressAndACompactEditButton() {
-        showCard("70,0 kg", GoalCardProgress(PROGRESS, "48 %", "48 %, faltan 4,2 kg"), "faltan 4,2 kg")
+    fun goalCard_withTarget_showsDistanceSinceFirstAndACompactEditButton() {
+        showCard("70,0 kg", "Desde tu primer peso: -2,6 kg", "faltan 4,2 kg")
 
         rule.onNodeWithText("70,0 kg").assertIsDisplayed()
         rule.onNodeWithTag("g_distance").assertTextEquals("faltan 4,2 kg")
-        val state = rule.onNodeWithTag("g_progress").fetchSemanticsNode().config
-            .getOrNull(SemanticsProperties.StateDescription)
-        assertEquals("48 %, faltan 4,2 kg", state)
+        rule.onNodeWithTag("g_since_first").assertTextEquals("Desde tu primer peso: -2,6 kg")
         rule.onNodeWithTag("g_change_button").assertHeightIsAtLeast(48.dp).performClick()
         assertEquals(1, changes)
     }

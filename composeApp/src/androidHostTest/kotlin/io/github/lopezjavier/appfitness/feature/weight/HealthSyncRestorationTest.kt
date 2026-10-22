@@ -23,7 +23,6 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.CompareMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.GoalProgress
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -125,6 +124,7 @@ class HealthSyncRestorationTest {
             WeightTrendViewModel(
                 measurements = weights,
                 goals = FakeNutritionGoalsRepository(),
+                profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
                 preferences = InMemoryChartPreferences(),
                 weightTrend = WeightTrend(),
                 clock = HealthClock,
@@ -139,7 +139,6 @@ class HealthSyncRestorationTest {
                 circumferences = FakeCircumferenceRepository(),
                 bmi = Bmi(),
                 targetDistance = TargetDistance(),
-                goalProgress = GoalProgress(),
                 interpret = InterpretMetric(),
                 waistHipRatio = WaistHipRatio(),
                 compareMeasurements = CompareMeasurements(),

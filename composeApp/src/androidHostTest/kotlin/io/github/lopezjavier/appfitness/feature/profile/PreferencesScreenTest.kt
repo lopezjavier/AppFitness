@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -64,6 +65,7 @@ class PreferencesScreenTest {
         saved: MacroSplit = split,
         isOnline: Boolean = true,
         isSaving: Boolean = false,
+        weightFromHealthConnect: Boolean = false,
     ): PreferencesUiState.Loaded {
         val base = PreferencesForm(
             name = "Ana",
@@ -82,6 +84,7 @@ class PreferencesScreenTest {
             today = today,
             isSaving = isSaving,
             isOnline = isOnline,
+            weightFromHealthConnect = weightFromHealthConnect,
         )
     }
 
@@ -184,6 +187,49 @@ class PreferencesScreenTest {
             .assertHeightIsAtLeast(48.dp)
         rule.onNodeWithText("100,0 kg").assertExists()
         rule.onNodeWithText("Se actualiza desde Progreso").assertDoesNotExist()
+    }
+
+    @Test
+    fun weightFromHealthConnect_isReadOnlyWithTheNoteAndNoEditInItsDescription() {
+        show(loaded(weightFromHealthConnect = true))
+
+        rule.onNodeWithTag("preferences_weight_row")
+            .performScrollTo()
+            .assertContentDescriptionEquals("Peso actual, 100,0 kg, sincronizado desde Health Connect")
+            .assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_weight_hc_note").assertTextEquals("Sincronizado desde Health Connect")
+        rule.onNodeWithTag("preferences_weight_row").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("preferences_sheet_weight").assertDoesNotExist()
+    }
+
+    @Test
+    fun manualWeight_hasNoHealthConnectNote() {
+        show(loaded(weightFromHealthConnect = false))
+
+        rule.onNodeWithTag("preferences_weight_hc_note").assertDoesNotExist()
+    }
+
+    @Test
+    fun weightFromHealthConnect_staysReadOnlyAfterRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                PreferencesScreen(
+                    state = loaded(weightFromHealthConnect = true),
+                    onEvent = {},
+                    effects = Channel<PreferencesEffect>(Channel.BUFFERED).receiveAsFlow(),
+                    onOpenMeals = {},
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("preferences_weight_row").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_weight_hc_note").assertExists()
     }
 
     @Test

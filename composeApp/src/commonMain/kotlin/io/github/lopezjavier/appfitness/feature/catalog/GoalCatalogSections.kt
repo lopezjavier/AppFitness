@@ -10,13 +10,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_goal_metrics
 import io.github.lopezjavier.appfitness.designsystem.ComparisonDeltaRow
 import io.github.lopezjavier.appfitness.designsystem.GoalCard
-import io.github.lopezjavier.appfitness.designsystem.GoalCardProgress
 import io.github.lopezjavier.appfitness.designsystem.MetricInterpretationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import org.jetbrains.compose.resources.stringResource
-
-private const val PROGRESS_FRACTION = 0.48f
 
 /** Catalog section of the goal card, the metric interpretation row and the comparison delta row. */
 internal fun LazyListScope.goalMetricItems() {
@@ -31,7 +28,7 @@ private fun GoalMetricSection() {
                 title = "Objetivo",
                 targetText = "70,0 kg",
                 distanceText = "faltan 4,2 kg",
-                progress = GoalCardProgress(PROGRESS_FRACTION, "48 %", "48 %, faltan 4,2 kg"),
+                sinceFirstText = "Desde tu primer peso: -2,6 kg",
                 emptyHint = "Fija un peso objetivo para ver cuánto te falta.",
                 setLabel = "Fijar objetivo",
                 changeLabel = "Cambiar objetivo",

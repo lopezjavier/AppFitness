@@ -276,6 +276,42 @@ class SupabaseBodyMeasurementRepositoryTest {
     }
 
     @Test
+    fun getLatestComposition_filtersRowsWithAnyCompositionNewestFirstAndPicksPerField() = runTest {
+        val repo = signedIn(
+            rows = {
+                """[{"id":"a","measured_at":"2026-10-14T10:00:00+00:00","weight_kg":73.9,"source":"health_connect",""" +
+                    """"body_fat_pct":15.1},""" +
+                    """{"id":"b","measured_at":"2026-10-10T10:00:00+00:00","weight_kg":74.5,""" +
+                    """"source":"health_connect","body_fat_pct":16.0,"bmr_kcal":1720}]"""
+            },
+        )
+
+        val latest = repo.getLatestComposition().getOrThrow()
+
+        assertEquals(15.1, latest.bodyFat?.value)
+        assertEquals(1720, latest.bmr?.value)
+        assertEquals(Instant.parse("2026-10-10T10:00:00Z"), latest.bmr?.measuredAt)
+        assertNull(latest.water)
+        val url = requests.last().url
+        assertEquals(
+            "(body_fat_pct.not.is.null,lean_mass_kg.not.is.null,water_kg.not.is.null," +
+                "bone_kg.not.is.null,bmr_kcal.not.is.null)",
+            url.parameters["or"],
+        )
+        assertTrue(url.toString().contains("order=measured_at.desc"), url.toString())
+        assertTrue(url.toString().contains("limit=50"), url.toString())
+    }
+
+    @Test
+    fun getLatestComposition_signedOutIsUnauthorizedAndNetworkIsNetwork() = runTest {
+        assertEquals(AppError.Unauthorized, signedOut().getLatestComposition().appErrorOrNull())
+        var fail = false
+        val repo = signedIn(failing = { fail })
+        fail = true
+        assertEquals(AppError.Network, repo.getLatestComposition().appErrorOrNull())
+    }
+
+    @Test
     fun newMethods_signedOut_areUnauthorized() = runTest {
         val repo = signedOut()
 
