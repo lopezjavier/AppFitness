@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-083 (E5-A feedback: day-only forms, aligned weight sheet, all circumferences at once), then re-present Checkpoint E5-A. T-076, T-077 and T-078 done. E4 closed (tag `v0.4.0`).
+**Next:** T-083 (User feedback: day-only forms, aligned weight sheet, all circumferences at once); then T-079 with no checkpoint in between (E5-A folded into E5-B). T-076, T-077 and T-078 done. E4 closed (tag `v0.4.0`).
 
 ---
 
@@ -1920,7 +1920,7 @@ Stories: `planning/epics/E5-weight.md` (US-25…US-27). Plan: [tasks/plan.md](pl
 Flow: T-076 is backend only (no ux-reviewer); every other task is UI (planner → ux-reviewer → developers → PR → review → merge); the backend parts are verified with pgTAP and `deploy-supabase`. The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`. Every new user-owned table cascades from `auth.users` (ADR-29). Every screen with input ships a restoration test (ADR-40). The interaction rules of ADR-45 / `05-design-system.md` §8 apply to every task: delete at once with no "Deshacer" (the US-25 Gherkin now says so), swipe through `SwipeToDeleteRow`, one explicit "Guardar" per sheet and nothing applied on dismiss, a row opens its details.
 Story IDs: the E4 micronutrient story, numbered "US-25" before, is now US-16b (T-068, T-070), so US-25 means only the E5 story.
 Questions in `tasks/plan.md`: Q1 (weight calendar, date locked when editing), Q2 (edits and deletes follow in Health Connect) and Q3 (direction-aware target wording, progress from the first weight) resolved by the user (2026-10-21); no open blocking question.
-Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight with the calendar, and circumferences) · E5-B after T-081 (Health Connect with the real scale, the weight trend, goal and metrics, and the final regression; approval releases T-082 → `v0.5.0`).
+Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became T-083 and E5-A was folded into E5-B): E5-B after T-081 (manual weight with the calendar, circumferences, Health Connect with the real scale, the weight trend, goal and metrics, and the final regression; approval releases T-082 → `v0.5.0`).
 
 ## T-076: Manual weight backend: one weight per day, locked date and the repository
 
@@ -1998,9 +1998,9 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 
 ---
 
-## T-083: E5-A feedback: day-only forms, aligned weight sheet, all circumferences at once
+## T-083: User feedback: day-only forms, aligned weight sheet, all circumferences at once
 
-**Story:** US-25 (fix from Checkpoint E5-A feedback, 2026-10-22) · **Flow:** UI (+ small data change) · **Scenarios:** Logging today's weight; Logging a weight for a past day; Weight calendar, editing and deletion; Logging a circumference; Logging several circumferences at once; Measuring help; Circumference validation
+**Story:** US-25 (fix from user feedback on T-076…T-078, 2026-10-22) · **Flow:** UI (+ small data change) · **Scenarios:** Logging today's weight; Logging a weight for a past day; Weight calendar, editing and deletion; Logging a circumference; Logging several circumferences at once; Measuring help; Circumference validation
 
 **Description:** (1) Weight sheet bug: "Peso (kg)" and "Grasa corporal (%, opcional)" must sit on one horizontal line with the same height and no line crossing the inputs (screenshot from the user's phone: the right field is lower and a horizontal rule cuts through the form). (2) Day only, no hour, on the weight and circumference sheets (remove the hour wheels); manual rows are stored for the chosen day (today: the save instant; a past day: midday local time), displayed as a date without time; the current-weight panel shows the date only for manual rows. (3) Circumference sheet redesign: "Añadir medida" opens a sheet with the seven sites as optional fields and the day stepper; "Guardar" saves one row per filled site (disabled while all are empty or any value is invalid, range shown); no dropdown (`AppDropdownField` stays only if something else uses it, otherwise remove it and its catalog entry); a "?" icon per site opens short Spanish step-by-step instructions (text only, wording by ux-reviewer; images later in E8). Editing a saved row opens it with its single site. Rows with the same site and day: the latest saved wins for the ratio. No migration expected (tie-break by `created_at`); the planner confirms.
 
@@ -2017,18 +2017,6 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 
 **Dependencies:** T-078
 **Estimated scope:** M
-
----
-
-### Checkpoint E5-A — Manual weight and body measurements 👤
-- [ ] T-076, T-077, T-078 and T-083 merged, CI green, `deploy-supabase` applied both migrations (T-076, T-078). *(First presentation 2026-10-22: feedback became T-083; re-present with the list of what to re-test.)*
-- [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
-  - Perfil → "Peso": your current weight with its date and time. "Registrar peso de hoy": prefilled with your last weight; save a new weight with body fat; try 19,9 kg, 401 kg and 80 % fat ("Guardar" disabled, range shown).
-  - "Registrar peso de hoy" again: it opens today's weight to edit (one manual weight per day); change it in Preferencias → "Peso actual": the weight screen shows the same value.
-  - Weight calendar: the days with a weight are marked; go back a month and forward (not past the current month). Tap yesterday (empty): set its weight at 07:30. Tap a day with a weight: edit the weight, fat or time (the date cannot be changed) and save; delete one (gone at once, no "Deshacer").
-  - "Circunferencias": "+ Medida" waist 84,5 and hip 98,0 → ratio "0,86"; edit and delete one and watch the ratio; try 19,9 and 251 cm.
-  - Leave the app and come back (also from the app switcher) on a past month of the calendar with a day's weight sheet half filled: the same tab, screen, month and draft are restored.
-  - Out of scope here: Health Connect, the chart and the weekly rate, goal, BMI, comparison and interpretation (E5-B).
 
 ---
 
@@ -2058,7 +2046,7 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 - [ ] `assembleProdDebug` merged manifest lists the twelve Health Connect permissions, the `<queries>` entry and the rationale activity.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
-**Dependencies:** Checkpoint E5-A
+**Dependencies:** T-083 (no checkpoint before E5-B, user decision 2026-10-22)
 **Files likely touched:** `supabase/migrations/<ts>_health_sync.sql`, `supabase/tests/{health_sync_state,body_measurements}.test.sql`, `gradle/libs.versions.toml`, `composeApp/build.gradle.kts`, `androidApp/src/main/AndroidManifest.xml`, a rationale activity + strings, `shared/…/domain/port/HealthDataSource.kt`, `shared/…/domain/usecase/{PairHealthReadings,SyncHealthMeasurements}.kt` + tests, `shared/…/domain/repository/{BodyMeasurementRepository,HealthSyncRepository}.kt`, `shared/…/data/repository/*`, DI, `composeApp/src/androidMain/…/platform/HealthConnectDataSource.kt`, `composeApp/…/feature/weight/{HealthConnectBanner,HealthSyncViewModel,MeasurementSheetViewModel,WeightScreen}.kt`, `composeApp/…/feature/profile/PreferencesViewModel.kt` (write-back), tests
 **Estimated scope:** L (the planner may run it as two dev slices: backend + domain + data source, then the banner and the write-back)
 
@@ -2093,6 +2081,7 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 ### Checkpoint E5-B — Health Connect, weight trend, goal, metrics and final regression 👤
 - [ ] T-079…T-081 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
+  - Manual weight and circumferences (from T-076…T-078 and T-083): Perfil → "Peso": "Registrar peso de hoy" (day only, no hour; weight and fat fields aligned); 19,9 kg, 401 kg and 80 % fat disable "Guardar"; a second "Registrar peso de hoy" edits today's weight; the calendar marks days, sets yesterday's weight and edits or deletes a day (gone at once). "Circunferencias" → "Añadir medida": fill waist 84,5 and hip 98,0 at once → ratio "0,86"; the "?" help; edit and delete one; 19,9 and 251 cm disabled.
   - Weight screen → "Sincronizar" for the first time: the Health Connect permission screen (read and write) opens; grant it: the last 90 days of weigh-ins appear on their days in the calendar with the Health Connect icon, and the banner reads "Sincronizado ahora".
   - Weigh yourself, wait until the reading reaches Health Connect, then "Sincronizar": only the new weigh-in arrives, with its fat and the extra composition values in one entry; tap again: nothing new.
   - Set a weight and fat by hand: see them in Health Connect; edit it in the app and Health Connect shows the new value; delete it and it is gone there too. Revoke the write permission and log again: saved in the app, nothing written, no error.
@@ -2119,7 +2108,7 @@ Checkpoints (two, user decision 2026-10-21): E5-A after T-078 (manual weight wit
 - [ ] T-076…T-081 (and any fix tasks) merged with green CI; pgTAP green for `body_measurements` (incl. `external_id` uniqueness and the manual-row-per-day RPC), `body_circumferences`, `health_sync_state` and `profiles.target_weight_kg`; `deploy-supabase` green after the last migration.
 - [ ] Host tests green for every E5 Gherkin scenario; the weekly rate, BMI, target distance and waist-to-hip ratio match the `04-business-rules.md` §3 examples.
 - [ ] Health Connect read and write manual test documented in the T-079 PR.
-- [ ] Checkpoints E5-A and E5-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [ ] Checkpoint E5-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
 - [ ] `tasks/todo.md` (E5 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
