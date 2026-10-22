@@ -81,7 +81,9 @@ class WeightScreenTest {
     @Composable
     private fun Host(model: WeightViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { WeightScreen(state, model::onEvent, timeZone = TimeZone.UTC) }
+        AppTheme {
+            WeightScreen(state, model::onEvent, CircumferencesUiState.Loading, {}, timeZone = TimeZone.UTC)
+        }
     }
 
     private fun show(vararg rows: BodyMeasurement) {
@@ -397,7 +399,11 @@ class WeightScreenTest {
 
     @Test
     fun loading_showsTheSkeleton() {
-        rule.setContent { AppTheme { WeightScreen(WeightUiState.Loading, {}, timeZone = TimeZone.UTC) } }
+        rule.setContent {
+            AppTheme {
+                WeightScreen(WeightUiState.Loading, {}, CircumferencesUiState.Loading, {}, timeZone = TimeZone.UTC)
+            }
+        }
 
         rule.onNodeWithTag("weight_loading").assertExists()
     }
@@ -449,6 +455,14 @@ class WeightScreenTest {
 
         rule.onNodeWithTag("weight_day_sheet").assertExists()
         rule.onNodeWithTag("weight_sheet_message").assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
+    }
+
+    @Test
+    fun circumferenceSection_isPresentBelowTheCalendar() {
+        show(manual("a", "2026-10-18T07:30:00Z", 73.9))
+
+        rule.onNodeWithTag("circumference_section").assertExists()
+        rule.onNodeWithTag("circumference_title").assertTextEquals("Circunferencias")
     }
 
     // -- Layout -----------------------------------------------------------------------------------------------------

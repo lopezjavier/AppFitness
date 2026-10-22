@@ -66,7 +66,9 @@ class WeightRestorationTest {
     @Composable
     private fun Host(model: WeightViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { WeightScreen(state, model::onEvent, timeZone = TimeZone.UTC) }
+        AppTheme {
+            WeightScreen(state, model::onEvent, CircumferencesUiState.Loading, {}, timeZone = TimeZone.UTC)
+        }
     }
 
     @Test

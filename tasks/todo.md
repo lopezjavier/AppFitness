@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ☐ · E6 ☐
 
-**Next:** T-078 (body circumferences; E5 checkpoints E5-A and E5-B). T-076 and T-077 done. E4 closed (tag `v0.4.0`).
+**Next:** Checkpoint E5-A (T-078 body circumferences in review; present to the user once merged and CI green). T-076 and T-077 done. E4 closed (tag `v0.4.0`).
 
 ---
 

@@ -11,6 +11,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_delete_error
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_delete_error_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error_offline
 import org.jetbrains.compose.resources.stringResource
@@ -18,11 +20,18 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful weight screen: connects [WeightViewModel]; it reloads on resume so a change in Preferencias shows. */
 @Composable
-fun WeightRoot(modifier: Modifier = Modifier, viewModel: WeightViewModel = koinViewModel()) {
+fun WeightRoot(
+    modifier: Modifier = Modifier,
+    viewModel: WeightViewModel = koinViewModel(),
+    circumferencesViewModel: CircumferencesViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val circumferences by circumferencesViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val failed = stringResource(Res.string.weight_delete_error)
     val offline = stringResource(Res.string.weight_delete_error_offline)
+    val circumferenceFailed = stringResource(Res.string.circumference_delete_error)
+    val circumferenceOffline = stringResource(Res.string.circumference_delete_error_offline)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -31,6 +40,26 @@ fun WeightRoot(modifier: Modifier = Modifier, viewModel: WeightViewModel = koinV
             }
         }
     }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(WeightEvent.Refresh) }
-    WeightScreen(state, viewModel::onEvent, modifier, snackbarHost)
+    LaunchedEffect(circumferencesViewModel) {
+        circumferencesViewModel.effects.collect { effect ->
+            when (effect) {
+                is CircumferencesEffect.DeleteFailed -> snackbarHost.showSnackbar(
+                    if (effect.offline) circumferenceOffline else circumferenceFailed,
+                    duration = SnackbarDuration.Long,
+                )
+            }
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onEvent(WeightEvent.Refresh)
+        circumferencesViewModel.onEvent(CircumferencesEvent.Refresh)
+    }
+    WeightScreen(
+        state = state,
+        onEvent = viewModel::onEvent,
+        circumferences = circumferences,
+        onCircumferenceEvent = circumferencesViewModel::onEvent,
+        modifier = modifier,
+        snackbarHost = snackbarHost,
+    )
 }
