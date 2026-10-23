@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-097g (E6-A feedback 2: bugs, whole-number RPE, pause, warm-up sheet), then T-097h (disc loader, derived rounding), then T-097i (hand count per exercise; blocked until the user fills a local CSV outside the repo (`exercise-hand-count.csv`, temporary)); then re-present Checkpoint E6-A. Last merged: T-097f (2026-10-23). E5 closed (tag `v0.5.0`).
+**Next:** T-097g (E6-A feedback 2: bugs, whole-number RPE, pause, warm-up sheet), then T-097h (disc loader, derived rounding), then T-097i (hand count per exercise; blocked until the user fills `C:\Users\javie\Documents\exercise-hand-count.csv` (outside the repo, temporary; columns `key,name,equipment,muscle_group,hands`, `hands` = 1 or 2; the PM checks that every row is filled and that all keys exist in the catalogue migration before the task starts, and the migration holds only keys and values, never the CSV)); then re-present Checkpoint E6-A. Last merged: T-097f (2026-10-23). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2544,7 +2544,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 
 **Story:** US-33, US-09 · **Flow:** UI + backend · **ADR-56**
 
-**Description:** Value `hands` (1 or 2) per exercise replaces "Contar mancuerna doble"; catalogue migration from the list the user fills in a local CSV outside the repo (`exercise-hand-count.csv`, temporary) (**blocked until the user returns it**); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
+**Description:** Value `hands` (1 or 2) per exercise replaces "Contar mancuerna doble"; catalogue migration from the list the user fills in `C:\Users\javie\Documents\exercise-hand-count.csv` (outside the repo, temporary; columns `key,name,equipment,muscle_group,hands`, `hands` = 1 or 2; the PM checks that every row is filled and that all keys exist in the catalogue migration before the task starts, and the migration holds only keys and values, never the CSV) (**blocked until the user returns it**); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
 
 **Dependencies:** T-097h, 👤 filled list · **Estimated scope:** L
 
