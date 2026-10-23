@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-093 (volume options, 2026-10-23). Next task: T-094 (personal-record catalogue), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-094 (personal-record catalogue, 2026-10-23). Next task: T-095 (exercise detail: Resumen, Historial and Cómo hacerlo), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2389,15 +2389,15 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Backend: an RPC (e.g. `personal_records(p_exercise_id uuid)`, `security invoker`) returns the `04-business-rules.md` §4.8 families of one exercise for the caller: weight families "Récord de peso" (`heaviest_lift`), "Mejor serie" (`best_set`), "Volumen máximo" (`max_volume`), "1RM estimado" (`best_1rm`), "Total de repes" (`total_reps`, the all-time total of completed reps, ADR-52); duration/distance families "Mejor tiempo", "Mayor distancia", "Más escalones" (and most floors). It honours warm-up inclusion (T-090), double dumbbell and bodyweight volume (T-093), and gets pgTAP with the §4 examples. Domain: `PersonalRecordCatalogue` (same rules, shared test cases). The session summary and the history session detail mark the records each session beat, from the catalogue (extending the E3 "PR" mark, which keeps counting an exercise's first session as a PR). No live notification and no notification setting: the "Live PR" scenario is deferred (ADR-52, `planning/01-phase1-scope.md` §4.1).
 
 **Acceptance criteria:**
-- [ ] RPC + pgTAP: each family from a fixture history; "Total de repes" sums every completed rep; warm-ups excluded unless included; other users' and discarded sessions ignored.
-- [ ] "Sentadilla" history → the five weight records; a cardio-style exercise → "Mejor tiempo", "Mayor distancia", "Más escalones".
-- [ ] A session that beats the best 1RM or the heaviest lift → the summary and the history detail mark that record; a warm-up set never makes a record while warm-ups are excluded.
-- [ ] No "¡Nuevo récord!" notification and no notification level in Preferencias.
+- [x] RPC + pgTAP: each family from a fixture history; "Total de repes" sums every completed rep; warm-ups excluded unless included; other users' and discarded sessions ignored.
+- [x] "Sentadilla" history → the five weight records; a cardio-style exercise → "Mejor tiempo", "Mayor distancia", "Más escalones".
+- [x] A session that beats the best 1RM or the heaviest lift → the summary and the history detail mark that record; a warm-up set never makes a record while warm-ups are excluded.
+- [x] No "¡Nuevo récord!" notification and no notification level in Preferencias.
 
 **Host tests (per scenario):** `PersonalRecordCatalogueTest` (Record types; Duration/distance family; §4 examples; all-time total reps); `SessionSummaryViewModelTest` / `SessionDetailViewModelTest` additions (Records in the summary and the history); screen tests (record labels); pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-093

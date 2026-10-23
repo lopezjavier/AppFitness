@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -123,6 +125,15 @@ class PreferencesScreenTest {
         assertEquals(1, opened)
         assertTrue(events.isEmpty())
         rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun preferences_hasNoPersonalRecordSettingOrNotification() {
+        show()
+
+        rule.onAllNodesWithText("¡Nuevo récord!", substring = true, ignoreCase = true).assertCountEquals(0)
+        rule.onAllNodesWithText("notificación", substring = true, ignoreCase = true).assertCountEquals(0)
+        rule.onAllNodesWithText("Nivel de récord", substring = true, ignoreCase = true).assertCountEquals(0)
     }
 
     @Test
