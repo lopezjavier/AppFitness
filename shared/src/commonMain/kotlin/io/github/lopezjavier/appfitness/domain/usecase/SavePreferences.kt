@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import kotlinx.datetime.DateTimeUnit
@@ -35,6 +36,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         adjustment: Int,
         split: MacroSplit,
         warmUpIncluded: Boolean = false,
+        previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     ): Result<Unit> {
         val name = displayName.trim()
         val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
@@ -63,7 +65,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         } else {
             null
         }
-        return profileRepository.savePreferences(name, biometrics, goals, weight, warmUpIncluded)
+        return profileRepository.savePreferences(name, biometrics, goals, weight, warmUpIncluded, previousValuesMode)
     }
 
     private companion object {

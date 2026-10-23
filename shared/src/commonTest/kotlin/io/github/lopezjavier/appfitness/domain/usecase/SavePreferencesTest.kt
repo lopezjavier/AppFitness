@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -28,6 +29,7 @@ private class Saved(
     val goals: NutritionGoals,
     val weight: WeightEntry?,
     val warmUpIncluded: Boolean,
+    val previousValuesMode: PreviousValuesMode,
 )
 
 class SavePreferencesTest {
@@ -62,8 +64,9 @@ class SavePreferencesTest {
             goals: NutritionGoals,
             weight: WeightEntry?,
             warmUpIncluded: Boolean,
+            previousValuesMode: PreviousValuesMode,
         ): Result<Unit> {
-            saved += Saved(displayName, biometrics, goals, weight, warmUpIncluded)
+            saved += Saved(displayName, biometrics, goals, weight, warmUpIncluded, previousValuesMode)
             return result
         }
     }
@@ -78,6 +81,7 @@ class SavePreferencesTest {
         adjustment: Int = -400,
         split: MacroSplit = MacroSplit.DEFAULT,
         warmUpIncluded: Boolean = false,
+        previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     ) = useCase(
         displayName = name,
         biometrics = Biometrics(sex, birthDate, height, ActivityLevel.Sedentary),
@@ -89,6 +93,7 @@ class SavePreferencesTest {
         adjustment = adjustment,
         split = split,
         warmUpIncluded = warmUpIncluded,
+        previousValuesMode = previousValuesMode,
     )
 
     private fun tdee(sex: Sex, height: Int, weightKg: Double) =
@@ -186,6 +191,17 @@ class SavePreferencesTest {
         save()
 
         assertEquals(listOf(true, false), saved.map { it.warmUpIncluded })
+    }
+
+    @Test
+    fun thePreviousValuesModeIsPassedThrough() = runTest {
+        save(previousValuesMode = PreviousValuesMode.Routine)
+        save()
+
+        assertEquals(
+            listOf(PreviousValuesMode.Routine, PreviousValuesMode.Overall),
+            saved.map { it.previousValuesMode },
+        )
     }
 
     @Test

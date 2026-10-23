@@ -181,7 +181,12 @@ private fun PreferencesLoaded(
                 } else {
                     PersonalAndEnergy(state, onEvent, onOpenMeals)
                     MacroSplitCard(state, onEvent)
-                    TrainingCard(state.form.warmUpIncluded, { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) })
+                    TrainingCard(
+                        warmUpIncluded = state.form.warmUpIncluded,
+                        onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
+                        previousValuesMode = state.form.previousValuesMode,
+                        onPreviousValuesMode = { onEvent(PreferencesEvent.SetPreviousValuesMode(it)) },
+                    )
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
@@ -255,7 +260,12 @@ private fun TwoColumns(
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             MacroSplitCard(state, onEvent)
-            TrainingCard(state.form.warmUpIncluded, { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) })
+            TrainingCard(
+                warmUpIncluded = state.form.warmUpIncluded,
+                onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
+                previousValuesMode = state.form.previousValuesMode,
+                onPreviousValuesMode = { onEvent(PreferencesEvent.SetPreviousValuesMode(it)) },
+            )
         }
     }
 }

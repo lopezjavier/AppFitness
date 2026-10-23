@@ -44,7 +44,13 @@ object BuildSessionSummary {
             .mapValues { (_, rows) -> bestOneRepMax(rows, includeWarmUp) }
         val records = if (history == null) emptySet() else DetectPersonalRecords(best, history, session.id)
         return SessionSummary(
-            durationSeconds = (endedAt - session.startedAt).inWholeSeconds,
+            durationSeconds = SessionDuration.seconds(
+                startedAt = session.startedAt,
+                endedAt = endedAt,
+                pausedAt = session.pausedAt,
+                pausedTotalSeconds = session.pausedTotalSeconds,
+                now = endedAt,
+            ),
             completedSets = session.exercises.sumOf { exercise ->
                 exercise.sets.count { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
             },

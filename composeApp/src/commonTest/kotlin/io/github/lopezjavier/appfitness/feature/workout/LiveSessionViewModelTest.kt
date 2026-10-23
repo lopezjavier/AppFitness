@@ -787,6 +787,8 @@ class LiveSessionViewModelTest {
     fun finishFailure_keepsTheStateAndReportsIt() = runSessionTest {
         repository.finishFailure = AppError.Network
         val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        check(vm, 0, 1) // Finishing needs one completed set (US-38).
         vm.onEvent(LiveSessionEvent.RequestFinish)
 
         vm.effects.test {
@@ -797,7 +799,7 @@ class LiveSessionViewModelTest {
 
         val state = vm.active()
         assertFalse(state.busy)
-        assertEquals(FinishSheet(6), state.finishSheet)
+        assertEquals(FinishSheet(5), state.finishSheet)
     }
 
     @Test

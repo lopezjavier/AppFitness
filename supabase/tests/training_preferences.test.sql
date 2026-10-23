@@ -34,7 +34,7 @@ insert into public.workout_sets
 -- Schema and security
 -- ---------------------------------------------------------------------------
 select has_table('public', 'training_preferences', 'public.training_preferences exists');
-select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at'],
+select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode'],
   'training_preferences has exactly the planned columns');
 select fk_ok('public', 'training_preferences', 'user_id', 'auth', 'users', 'id',
   'user_id references auth.users.id');

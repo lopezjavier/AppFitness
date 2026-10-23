@@ -47,7 +47,13 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
 
     override suspend fun discard(sessionId: String): Result<Unit> = fail()
 
-    override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> = fail()
+    override suspend fun pause(sessionId: String, at: Instant): Result<Unit> = fail()
+
+    override suspend fun resume(sessionId: String, at: Instant): Result<Unit> = fail()
+
+    override suspend fun deleteSet(sessionId: String, exercisePosition: Int, setIndex: Int): Result<Unit> = fail()
+
+    override suspend fun lastPerformance(exerciseId: String, routineId: String?): Result<List<PreviousSet>> = fail()
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =
         fail()

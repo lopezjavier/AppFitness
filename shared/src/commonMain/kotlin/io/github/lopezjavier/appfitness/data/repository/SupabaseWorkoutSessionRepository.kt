@@ -8,10 +8,12 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.DeleteSetParams
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
 import io.github.lopezjavier.appfitness.data.remote.ExerciseSessionRecordsDto
 import io.github.lopezjavier.appfitness.data.remote.LastPerformanceParams
+import io.github.lopezjavier.appfitness.data.remote.PauseParams
 import io.github.lopezjavier.appfitness.data.remote.PersonalRecordDto
 import io.github.lopezjavier.appfitness.data.remote.PreviousSetDto
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
@@ -142,11 +144,25 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
         postgrest.rpc("discard_workout_session", SessionIdParams(sessionId))
     }.map {}
 
-    override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> = auth.ownRow {
-        postgrest.rpc("last_performance", LastPerformanceParams(exerciseId))
-            .decodeList<PreviousSetDto>()
-            .map { it.toDomain() }
-    }
+    override suspend fun pause(sessionId: String, at: Instant): Result<Unit> = auth.ownRow {
+        postgrest.rpc("pause_workout_session", PauseParams(sessionId, at.toString()))
+    }.map {}
+
+    override suspend fun resume(sessionId: String, at: Instant): Result<Unit> = auth.ownRow {
+        postgrest.rpc("resume_workout_session", PauseParams(sessionId, at.toString()))
+    }.map {}
+
+    override suspend fun deleteSet(sessionId: String, exercisePosition: Int, setIndex: Int): Result<Unit> =
+        auth.ownRow {
+            postgrest.rpc("delete_workout_set", DeleteSetParams(sessionId, exercisePosition, setIndex))
+        }.map {}
+
+    override suspend fun lastPerformance(exerciseId: String, routineId: String?): Result<List<PreviousSet>> =
+        auth.ownRow {
+            postgrest.rpc("last_performance", LastPerformanceParams(exerciseId, routineId))
+                .decodeList<PreviousSetDto>()
+                .map { it.toDomain() }
+        }
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =
         auth.ownRow {

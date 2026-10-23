@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
@@ -79,10 +80,11 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
         goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean,
+        previousValuesMode: PreviousValuesMode,
     ): Result<Unit> = runMappingErrors {
         postgrest.rpc(
             "save_preferences",
-            SavePreferencesParams.from(displayName, biometrics, goals, weight, warmUpIncluded),
+            SavePreferencesParams.from(displayName, biometrics, goals, weight, warmUpIncluded, previousValuesMode),
         )
     }.map {}
 

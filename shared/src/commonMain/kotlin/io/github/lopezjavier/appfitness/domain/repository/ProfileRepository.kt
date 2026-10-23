@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
@@ -41,5 +42,6 @@ interface ProfileRepository {
         goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean,
+        previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     ): Result<Unit>
 }

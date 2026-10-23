@@ -14,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 class BuildSessionSummaryTest {
@@ -41,6 +42,13 @@ class BuildSessionSummaryTest {
         val summary = BuildSessionSummary(session(bench), end, emptyMap())
 
         assertEquals(3150L, summary.durationSeconds)
+    }
+
+    @Test
+    fun durationExcludesClosedAndOpenPauses() {
+        val paused = session(bench).copy(pausedTotalSeconds = 300, pausedAt = end - 150.seconds)
+
+        assertEquals(3150L - 300L - 150L, BuildSessionSummary(paused, end, emptyMap()).durationSeconds)
     }
 
     @Test

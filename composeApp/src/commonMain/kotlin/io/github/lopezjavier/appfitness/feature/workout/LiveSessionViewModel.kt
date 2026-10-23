@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
@@ -42,6 +43,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
 import io.github.lopezjavier.appfitness.domain.usecase.RestTimer
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.SessionDuration
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import io.github.lopezjavier.appfitness.domain.usecase.Stopwatch
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
@@ -83,6 +85,9 @@ private const val KEY_PICKER_SET = "live_picker_set"
 private const val KEY_RPE_PICKER_POSITION = "live_rpe_picker_position"
 private const val KEY_RPE_PICKER_SET = "live_rpe_picker_set"
 private const val KEY_DRAFTS = "live_drafts"
+private const val KEY_PAUSE_KNOWN = "live_pause_known"
+private const val KEY_PAUSED_AT = "live_paused_at"
+private const val KEY_PAUSED_TOTAL = "live_paused_total"
 private const val KEY_DOUBLE_DRAFT_EXERCISE = "live_double_dumbbell_exercise"
 private const val KEY_DOUBLE_DRAFT_ENABLED = "live_double_dumbbell_enabled"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
@@ -124,10 +129,33 @@ private data class ExerciseState(
 
 private data class SessionState(
     val id: String,
+    val routineId: String?,
     val name: String,
     val startedAt: Instant,
     val exercises: List<ExerciseState>,
+    val pausedAt: Instant? = null,
+    val pausedTotalSeconds: Long = 0,
 )
+
+/**
+ * A set deletion waiting for the server. [before] are the queued writes taken from the [PendingSetQueue] when it was
+ * requested: they use the set indexes the server still has, so they are sent first, then the deletion.
+ */
+private class DeleteOp(
+    val sessionId: String,
+    val position: Int,
+    val setIndex: Int,
+    val before: MutableList<SetWrite>,
+) {
+    var reported = false
+}
+
+/** Where [key] ends up once the set ([position], [setIndex]) is removed: later sets move down, that one is gone. */
+private fun shiftedBy(key: Pair<Int, Int>, position: Int, setIndex: Int): Pair<Int, Int>? = when {
+    key.first != position || key.second < setIndex -> key
+    key.second == setIndex -> null
+    else -> key.first to key.second - 1
+}
 
 /**
  * The live workout (US-11). Checking a set is optimistic: the row changes at once and the write goes through an
@@ -163,6 +191,12 @@ class LiveSessionViewModel(
 
     /** Target RPE of the session's routine by exercise position; empty for free sessions. */
     private var targetRpes: Map<Int, Double> = emptyMap()
+
+    /** Where the previous values come from (training preference, read at load). */
+    private var previousMode = PreviousValuesMode.Overall
+
+    /** Set deletions waiting for the server, oldest first. */
+    private val deleteOps = ArrayDeque<DeleteOp>()
 
     /** Last performance per exercise id; a missing key means no ghost. */
     private var ghosts: MutableMap<String, List<PreviousSet>> = mutableMapOf()
@@ -208,17 +242,21 @@ class LiveSessionViewModel(
     /** Whole seconds since the session started, refreshed every second while collected (driven by [clock]). */
     @OptIn(ExperimentalCoroutinesApi::class)
     val elapsedSeconds: Flow<Long> = uiState
-        .map { (it as? LiveSessionUiState.Active)?.startedAt }
+        .map { state ->
+            (state as? LiveSessionUiState.Active)?.let { Triple(it.startedAt, it.pausedAt, it.pausedTotalSeconds) }
+        }
         .distinctUntilChanged()
-        .flatMapLatest { startedAt ->
-            if (startedAt == null) {
+        .flatMapLatest { timing ->
+            if (timing == null) {
                 emptyFlow()
             } else {
+                val (startedAt, pausedAt, pausedTotal) = timing
                 flow {
-                    while (true) {
-                        emit((clock.now() - startedAt).inWholeSeconds.coerceAtLeast(0))
-                        delay(TICK_MILLIS)
-                    }
+                    do {
+                        emit(SessionDuration.seconds(startedAt, null, pausedAt, pausedTotal, clock.now()))
+                        // Paused: the value is constant, so there is nothing to refresh until the state changes.
+                        if (pausedAt == null) delay(TICK_MILLIS)
+                    } while (pausedAt == null)
                 }
             }
         }
@@ -281,6 +319,12 @@ class LiveSessionViewModel(
             is LiveSessionEvent.SetChecked -> setChecked(event)
 
             is LiveSessionEvent.AddSet -> addSet(event.position)
+
+            is LiveSessionEvent.DeleteSet -> deleteSet(event.position, event.setIndex)
+
+            LiveSessionEvent.PauseSession -> pauseSession()
+
+            LiveSessionEvent.ResumeSession -> resumeSession()
 
             is LiveSessionEvent.UsePrevious -> usePrevious(event.position, event.setIndex)
 
@@ -402,7 +446,8 @@ class LiveSessionViewModel(
                     } else {
                         loadNames()
                         loadVolumeOptions()
-                        session = loaded.toState().withRestoredDrafts()
+                        previousMode = preferences.get().getOrNull()?.previousValuesMode ?: PreviousValuesMode.Overall
+                        session = loaded.toState().withRestoredDrafts().withRestoredPause()
                         typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         rpePicker = rpePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
@@ -462,7 +507,9 @@ class LiveSessionViewModel(
 
     /** A failed read just means no ghost; it never blocks the session. */
     private suspend fun loadGhost(exerciseId: String) {
-        repository.lastPerformance(exerciseId).getOrNull()?.takeIf { it.isNotEmpty() }?.let { ghosts[exerciseId] = it }
+        val routineId = GhostData.routineFilter(previousMode, session?.routineId)
+        repository.lastPerformance(exerciseId, routineId).getOrNull()?.takeIf { it.isNotEmpty() }
+            ?.let { ghosts[exerciseId] = it }
     }
 
     private fun ghostFor(exerciseId: String, setIndex: Int): PreviousSet? =
@@ -661,9 +708,77 @@ class LiveSessionViewModel(
 
     private fun requestFinish() {
         val current = session ?: return
-        if (!online || busy || terminal != null) return
+        if (!sessionActionsAllowed() || !hasCompletedSet()) return
         val pending = current.exercises.sumOf { exercise -> exercise.sets.count { it.completedAt == null } }
         updateDialogs { finishSheet = FinishSheet(pending) }
+    }
+
+    /** Finishing, pausing and resuming need the server, so they wait for a connection and for the idle screen. */
+    private fun sessionActionsAllowed() = online && !busy && terminal == null
+
+    private fun hasCompletedSet() = session?.exercises.orEmpty().any { e -> e.sets.any { it.completedAt != null } }
+
+    /** Pauses locally at once and tells the server; the server refusing reverts it. Needs a connection like finish. */
+    private fun pauseSession() {
+        val current = session ?: return
+        if (!sessionActionsAllowed() || current.pausedAt != null) return
+        val at = clock.now()
+        session = current.copy(pausedAt = at)
+        publish()
+        viewModelScope.launch {
+            if (repository.pause(current.id, at).isFailure) {
+                session = session?.let { if (it.pausedAt == at) it.copy(pausedAt = null) else it }
+                fail()
+            }
+        }
+    }
+
+    /** Resumes locally at once (the paused span joins the total) and tells the server; refusing reverts it. */
+    private fun resumeSession() {
+        val current = session ?: return
+        val pausedAt = current.pausedAt?.takeIf { sessionActionsAllowed() } ?: return
+        val at = clock.now()
+        val resumed = current.copy(
+            pausedAt = null,
+            pausedTotalSeconds = current.pausedTotalSeconds + (at - pausedAt).inWholeSeconds.coerceAtLeast(0L),
+        )
+        session = resumed
+        publish()
+        viewModelScope.launch {
+            if (repository.resume(current.id, at).isFailure) {
+                session = session?.let { if (it == resumed) current else it }
+                fail()
+            }
+        }
+    }
+
+    /**
+     * Removes the set at once and renumbers the later sets of the exercise (rows, drafts, stopwatches and pickers
+     * travel with their set). The writes still queued are frozen into a [DeleteOp] with their current indexes so the
+     * server receives them, then the deletion, in that order; writes made afterwards use the new indexes.
+     */
+    private fun deleteSet(position: Int, setIndex: Int) {
+        val current = session ?: return
+        if (busy || terminal != null || findSet(position, setIndex) == null) return
+        replaceExercise(position) { exercise ->
+            exercise.copy(
+                sets = exercise.sets.filter { it.setIndex != setIndex }
+                    .map { if (it.setIndex > setIndex) it.copy(setIndex = it.setIndex - 1) else it },
+            )
+        }
+        typePicker = typePicker?.let { picker ->
+            shiftedBy(picker.position to picker.setIndex, position, setIndex)
+                ?.let { TypePickerTarget(it.first, it.second) }
+        }
+        rpePicker = rpePicker?.let { picker ->
+            shiftedBy(picker.position to picker.setIndex, position, setIndex)
+                ?.let { RpePickerTarget(it.first, it.second) }
+        }
+        val before = queue.drain().filterNot { it.exercisePosition == position && it.setIndex == setIndex }
+        deleteOps.addLast(DeleteOp(current.id, position, setIndex, before.toMutableList()))
+        unsynced = queuedKeys()
+        publish()
+        if (online) sync()
     }
 
     private fun requestDiscard() {
@@ -790,30 +905,72 @@ class LiveSessionViewModel(
 
     /** Sends every queued write in order; stops at the first failure. True when the queue is empty afterwards. */
     private suspend fun flushQueue(): Boolean = flushLock.withLock {
-        var allSent = true
-        for (write in queue.snapshot()) {
-            val sent = repository.upsertSet(
-                write.sessionId,
-                write.exerciseId,
-                write.exercisePosition,
-                write.supersetGroup,
-                write.setIndex,
-                write.entry,
-                write.completedAt,
-                write.setType,
-                write.rpe,
-            ).isSuccess
-            if (!sent) {
-                allSent = false
-                break
+        var allSent = flushDeletions()
+        if (allSent) {
+            for (write in queue.snapshot()) {
+                if (!send(write)) {
+                    allSent = false
+                    break
+                }
+                queue.remove(write)
             }
-            queue.remove(write)
         }
         unsynced = queuedKeys()
-        allSent && queue.isEmpty
+        allSent && queue.isEmpty && deleteOps.isEmpty()
     }
 
-    private fun queuedKeys() = queue.snapshot().map { it.exercisePosition to it.setIndex }.toSet()
+    private suspend fun send(write: SetWrite): Boolean = repository.upsertSet(
+        write.sessionId,
+        write.exerciseId,
+        write.exercisePosition,
+        write.supersetGroup,
+        write.setIndex,
+        write.entry,
+        write.completedAt,
+        write.setType,
+        write.rpe,
+    ).isSuccess
+
+    /** Sends each pending deletion preceded by the writes frozen with it; false at the first failure. */
+    private suspend fun flushDeletions(): Boolean {
+        while (deleteOps.isNotEmpty()) {
+            val op = deleteOps.first()
+            var sent = true
+            for (write in op.before.toList()) {
+                if (!send(write)) {
+                    sent = false
+                    break
+                }
+                op.before.remove(write)
+            }
+            sent = sent && repository.deleteSet(op.sessionId, op.position, op.setIndex).isSuccess
+            if (!sent) {
+                if (!op.reported) {
+                    op.reported = true
+                    effectChannel.trySend(LiveSessionEffect.ActionFailed)
+                }
+                return false
+            }
+            deleteOps.removeFirst()
+        }
+        return true
+    }
+
+    /** Sets with a write not yet on the server, by their current index (frozen writes follow later deletions). */
+    private fun queuedKeys(): Set<Pair<Int, Int>> {
+        val keys = queue.snapshot().map { it.exercisePosition to it.setIndex }.toMutableSet()
+        deleteOps.forEachIndexed { index, op ->
+            op.before.forEach { write ->
+                var key: Pair<Int, Int>? = write.exercisePosition to write.setIndex
+                deleteOps.drop(index).forEach { later ->
+                    key =
+                        key?.let { shiftedBy(it, later.position, later.setIndex) }
+                }
+                key?.let(keys::add)
+            }
+        }
+        return keys
+    }
 
     private fun updateDialogs(change: () -> Unit) {
         change()
@@ -865,6 +1022,11 @@ class LiveSessionViewModel(
         savedState[KEY_PICKER_SET] = typePicker?.setIndex
         savedState[KEY_RPE_PICKER_POSITION] = rpePicker?.position
         savedState[KEY_RPE_PICKER_SET] = rpePicker?.setIndex
+        session?.takeIf { terminal == null }?.let {
+            savedState[KEY_PAUSE_KNOWN] = true
+            savedState[KEY_PAUSED_AT] = it.pausedAt?.toString()
+            savedState[KEY_PAUSED_TOTAL] = it.pausedTotalSeconds
+        }
         if (terminal != null) return
         val drafts = session?.exercises.orEmpty().flatMap { exercise ->
             exercise.sets.filter { it.completedAt == null && it.hasDraft }.map {
@@ -898,6 +1060,18 @@ class LiveSessionViewModel(
         savedState.remove<Int>(KEY_RPE_PICKER_POSITION)
         savedState.remove<Int>(KEY_RPE_PICKER_SET)
         savedState.remove<List<String>>(KEY_DRAFTS)
+        savedState.remove<Boolean>(KEY_PAUSE_KNOWN)
+        savedState.remove<String>(KEY_PAUSED_AT)
+        savedState.remove<Long>(KEY_PAUSED_TOTAL)
+    }
+
+    /** A pause made before the screen was recreated wins over the loaded row (the server call may be in flight). */
+    private fun SessionState.withRestoredPause(): SessionState {
+        if (savedState.get<Boolean>(KEY_PAUSE_KNOWN) != true) return this
+        return copy(
+            pausedAt = savedState.get<String>(KEY_PAUSED_AT)?.let(Instant::parse),
+            pausedTotalSeconds = savedState.get<Long>(KEY_PAUSED_TOTAL) ?: pausedTotalSeconds,
+        )
     }
 
     /** Puts back the drafts typed before process death over the reloaded server state (unchecked sets only). */
@@ -991,13 +1165,18 @@ class LiveSessionViewModel(
             doubleDumbbellDraft = doubleDumbbellDraft,
             bodyWeightDraft = bodyWeightDraft,
             bodyWeightInvalid = bodyWeightInvalid,
+            pausedAt = current.pausedAt,
+            pausedTotalSeconds = current.pausedTotalSeconds,
         )
     }
 
     private fun WorkoutSession.toState() = SessionState(
         id = id,
+        routineId = routineId,
         name = name,
         startedAt = startedAt,
+        pausedAt = pausedAt,
+        pausedTotalSeconds = pausedTotalSeconds,
         exercises = exercises.sortedBy { it.position }.map { exercise ->
             ExerciseState(
                 exerciseId = exercise.exerciseId,
@@ -1031,11 +1210,13 @@ class LiveSessionViewModel(
 
     private fun SessionState.toWorkoutSession(endedAt: Instant) = WorkoutSession(
         id = id,
-        routineId = null,
+        routineId = routineId,
         name = name,
         status = SessionStatus.Completed,
         startedAt = startedAt,
         endedAt = endedAt,
+        pausedAt = pausedAt,
+        pausedTotalSeconds = pausedTotalSeconds,
         exercises = exercises.map { exercise ->
             SessionExercise(
                 exercise.exerciseId,

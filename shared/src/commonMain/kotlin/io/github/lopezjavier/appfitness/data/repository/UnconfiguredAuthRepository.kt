@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
@@ -70,6 +71,7 @@ class UnconfiguredProfileRepository : ProfileRepository {
         goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean,
+        previousValuesMode: PreviousValuesMode,
     ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 

@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
@@ -69,6 +70,7 @@ internal data class SavedPreferences(
     val goals: NutritionGoals,
     val weight: WeightEntry?,
     val warmUpIncluded: Boolean = false,
+    val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
 )
 
 /** Test double of [ProfileRepository]: each read returns the next of [results] (the last one repeats). */
@@ -125,8 +127,9 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean,
+        previousValuesMode: PreviousValuesMode,
     ): Result<Unit> {
-        preferenceSaves += SavedPreferences(displayName, biometrics, goals, weight, warmUpIncluded)
+        preferenceSaves += SavedPreferences(displayName, biometrics, goals, weight, warmUpIncluded, previousValuesMode)
         return settingsResult
     }
 

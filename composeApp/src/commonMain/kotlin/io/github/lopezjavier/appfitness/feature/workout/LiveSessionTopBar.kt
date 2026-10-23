@@ -14,11 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_back
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_paused_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_timer_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_timer_paused_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -40,6 +43,7 @@ internal fun LiveSessionTopBar(
     onBack: () -> Unit,
     onMenu: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    isPaused: Boolean = false,
 ) {
     val spokenSeconds = elapsedSeconds.coerceAtLeast(0) / DESCRIPTION_STEP_SECONDS * DESCRIPTION_STEP_SECONDS
     val timerDescription = stringResource(
@@ -47,6 +51,7 @@ internal fun LiveSessionTopBar(
         spokenSeconds / SECONDS_PER_MINUTE,
         spokenSeconds % SECONDS_PER_MINUTE,
     )
+    val pausedState = stringResource(Res.string.live_timer_paused_state)
     Row(
         modifier
             .fillMaxWidth()
@@ -58,16 +63,28 @@ internal fun LiveSessionTopBar(
     ) {
         AppIconButton(stringResource(Res.string.topbar_back_cd), Res.drawable.ic_arrow_back, "live_back", onBack)
         Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(Res.string.live_title),
-                style = AppTheme.typography.labelTechnical,
-                color = AppTheme.colors.athleticCyan,
-            )
+            if (isPaused) {
+                Text(
+                    text = stringResource(Res.string.live_paused_label),
+                    style = AppTheme.typography.labelTechnical,
+                    color = AppTheme.colors.energyAmber,
+                    modifier = Modifier.testTag("live_pause_label"),
+                )
+            } else {
+                Text(
+                    text = stringResource(Res.string.live_title),
+                    style = AppTheme.typography.labelTechnical,
+                    color = AppTheme.colors.athleticCyan,
+                )
+            }
             Text(
                 text = formatElapsed(elapsedSeconds),
                 style = AppTheme.typography.labelNumeric,
                 color = AppTheme.colors.textPrimary,
-                modifier = Modifier.semantics { contentDescription = timerDescription }.testTag("live_timer"),
+                modifier = Modifier.semantics {
+                    contentDescription = timerDescription
+                    if (isPaused) stateDescription = pausedState
+                }.testTag("live_timer"),
             )
         }
         if (onMenu != null) {

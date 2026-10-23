@@ -123,6 +123,32 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun getInProgress_readsThePauseState() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW.replace(
+            """"ended_at":null,""",
+            """"ended_at":null,"paused_at":"2026-10-19T10:20:00+00:00","paused_total_s":300,""",
+        )
+
+        val session = repo.getInProgress().getOrThrow()!!
+
+        assertEquals(Instant.parse("2026-10-19T10:20:00Z"), session.pausedAt)
+        assertEquals(300L, session.pausedTotalSeconds)
+        assertTrue(rest().single().url.toString().contains("paused_total_s"))
+    }
+
+    @Test
+    fun getInProgress_withoutPauseColumnsIsNotPaused() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW
+
+        val session = repo.getInProgress().getOrThrow()!!
+
+        assertNull(session.pausedAt)
+        assertEquals(0L, session.pausedTotalSeconds)
+    }
+
+    @Test
     fun getInProgress_groupsSetsByExerciseInPositionAndSetOrder() = runTest {
         val repo = signedIn()
         getBody = SESSION_ROW
@@ -311,6 +337,59 @@ class SupabaseWorkoutSessionRepositoryTest {
         assertEquals("/rest/v1/rpc/last_performance", call.url.encodedPath)
         assertEquals("""{"p_exercise_id":"e1"}""", bodyOf(call))
         assertEquals(listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 82.5, 8)), sets)
+    }
+
+    @Test
+    fun lastPerformance_withARoutineSendsTheRoutineId() = runTest {
+        val repo = signedIn()
+        rpcBody = "[]"
+
+        repo.lastPerformance("e1", "r1").getOrThrow()
+
+        assertEquals("""{"p_exercise_id":"e1","p_routine_id":"r1"}""", bodyOf(rest().single()))
+    }
+
+    @Test
+    fun pause_callsTheRpcWithTheInstant() = runTest {
+        val repo = signedIn()
+
+        repo.pause("s1", Instant.parse("2026-10-19T10:10:00Z")).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/pause_workout_session", call.url.encodedPath)
+        assertEquals("""{"p_session_id":"s1","p_at":"2026-10-19T10:10:00Z"}""", bodyOf(call))
+    }
+
+    @Test
+    fun resume_callsTheRpcWithTheInstant() = runTest {
+        val repo = signedIn()
+
+        repo.resume("s1", Instant.parse("2026-10-19T10:15:00Z")).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/resume_workout_session", call.url.encodedPath)
+        assertEquals("""{"p_session_id":"s1","p_at":"2026-10-19T10:15:00Z"}""", bodyOf(call))
+    }
+
+    @Test
+    fun deleteSet_callsTheRpcWithTheKey() = runTest {
+        val repo = signedIn()
+
+        repo.deleteSet("s1", 2, 3).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/delete_workout_set", call.url.encodedPath)
+        assertEquals("""{"p_session_id":"s1","p_exercise_position":2,"p_set_index":3}""", bodyOf(call))
+    }
+
+    @Test
+    fun sessionControls_offlineAndSignedOutMapErrors() = runTest {
+        val offline = signedIn()
+        failing = true
+        assertEquals(AppError.Network, offline.pause("s1", Instant.parse("2026-10-19T10:10:00Z")).appErrorOrNull())
+        assertEquals(AppError.Network, offline.deleteSet("s1", 0, 1).appErrorOrNull())
+        val out = signedIn(signIn = false)
+        assertEquals(AppError.Unauthorized, out.resume("s1", Instant.parse("2026-10-19T10:10:00Z")).appErrorOrNull())
     }
 
     @Test

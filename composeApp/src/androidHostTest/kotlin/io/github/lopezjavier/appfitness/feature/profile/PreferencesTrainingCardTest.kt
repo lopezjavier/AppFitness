@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -20,6 +21,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -38,7 +40,7 @@ class PreferencesTrainingCardTest {
 
     private val events = mutableListOf<PreferencesEvent>()
 
-    private fun form(warmUp: Boolean) = PreferencesForm(
+    private fun form(warmUp: Boolean, mode: PreviousValuesMode = PreviousValuesMode.Overall) = PreferencesForm(
         name = "Ana",
         sex = Sex.Male,
         birthDate = LocalDate(2000, 3, 1),
@@ -49,6 +51,7 @@ class PreferencesTrainingCardTest {
         adjustment = 0,
         split = MacroSplit.DEFAULT,
         warmUpIncluded = warmUp,
+        previousValuesMode = mode,
     )
 
     private fun loaded(warmUp: Boolean = false, saved: Boolean = false) = PreferencesUiState.Loaded(
@@ -111,5 +114,52 @@ class PreferencesTrainingCardTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_warm_up_switch").performScrollTo().assertIsOn()
+    }
+
+    @Test
+    fun previousValuesSelector_showsBothOptions_withOverallSelectedByDefault() {
+        rule.setContent { AppTheme { PreferencesScreen(loaded(), {}) } }
+
+        rule.onNodeWithTag("preferences_previous_mode").performScrollTo()
+        rule.onNodeWithText("Valores anteriores").assertExists()
+        rule.onNodeWithTag("preferences_previous_mode_routine").assertExists()
+        rule.onNodeWithTag("preferences_previous_mode_overall").assertIsSelected()
+    }
+
+    @Test
+    fun choosingTheRoutineMode_sendsItAndWaitsForGuardar() {
+        rule.setContent { AppTheme { PreferencesScreen(loaded(), { events += it }) } }
+
+        rule.onNodeWithTag("preferences_previous_mode_routine").performScrollTo().performClick()
+
+        assertEquals(
+            listOf<PreferencesEvent>(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine)),
+            events,
+        )
+        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun previousValuesMode_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            var routine by rememberSaveable { mutableStateOf(false) }
+            AppTheme {
+                PreferencesScreen(
+                    state = PreferencesUiState.Loaded(
+                        form = form(false, if (routine) PreviousValuesMode.Routine else PreviousValuesMode.Overall),
+                        saved = form(false),
+                        today = LocalDate(2026, 10, 14),
+                    ),
+                    onEvent = { if (it is PreferencesEvent.SetPreviousValuesMode) routine = true },
+                )
+            }
+        }
+        rule.onNodeWithTag("preferences_previous_mode_routine").performScrollTo().performClick()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("preferences_previous_mode_routine").performScrollTo().assertIsSelected()
     }
 }

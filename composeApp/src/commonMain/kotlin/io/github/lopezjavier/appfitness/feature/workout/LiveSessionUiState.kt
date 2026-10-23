@@ -112,7 +112,15 @@ sealed interface LiveSessionUiState {
         val bodyWeightDraft: String? = null,
         /** "Guardar" was refused because the typed weight is not valid; cleared by the next edit. */
         val bodyWeightInvalid: Boolean = false,
+        /** Set while the session is paused: the timer is frozen at this instant (US-38). */
+        val pausedAt: Instant? = null,
+        /** Seconds of earlier, already closed pauses; the duration excludes them. */
+        val pausedTotalSeconds: Long = 0,
     ) : LiveSessionUiState {
+        val isPaused: Boolean get() = pausedAt != null
+
+        /** "Finalizar entreno" needs at least one completed set (of any type). */
+        val canFinish: Boolean get() = exercises.any { exercise -> exercise.sets.any { it.completed } }
         val actionsBlocked: Boolean get() = !isOnline
         val queuedCount: Int get() = exercises.sumOf { exercise -> exercise.sets.count { it.pendingSave } }
     }
@@ -163,6 +171,18 @@ sealed interface LiveSessionEvent {
     data class SetChecked(val position: Int, val setIndex: Int, val checked: Boolean) : LiveSessionEvent
 
     data class AddSet(val position: Int) : LiveSessionEvent
+
+    /**
+     * Swipe (or the accessibility action) on a set: removes it at once, renumbers the later sets of the exercise and
+     * deletes it on the server. There is no undo (ADR-45).
+     */
+    data class DeleteSet(val position: Int, val setIndex: Int) : LiveSessionEvent
+
+    /** "Pausar entreno": freezes the session duration; blocked offline. */
+    data object PauseSession : LiveSessionEvent
+
+    /** "Reanudar entreno": the paused span stops counting towards the duration; blocked offline. */
+    data object ResumeSession : LiveSessionEvent
 
     /** Tap on the "ANTERIOR" cell: fills the weight and reps drafts with last time's values. */
     data class UsePrevious(val position: Int, val setIndex: Int) : LiveSessionEvent

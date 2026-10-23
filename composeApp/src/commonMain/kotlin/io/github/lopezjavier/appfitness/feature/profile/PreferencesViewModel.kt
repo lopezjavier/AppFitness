@@ -127,6 +127,8 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetWarmUpIncluded -> edit { it.copy(warmUpIncluded = event.included) }
 
+            is PreferencesEvent.SetPreviousValuesMode -> edit { it.copy(previousValuesMode = event.mode) }
+
             PreferencesEvent.Save -> save()
 
             PreferencesEvent.Retry -> if (_uiState.value == PreferencesUiState.LoadFailed) load()
@@ -228,6 +230,7 @@ class PreferencesViewModel(
             adjustment = goals?.let { EnergyStrategyRules.clampAdjustment(strategy, it.calorieAdjustment) } ?: 0,
             split = goals?.split ?: MacroSplit.DEFAULT,
             warmUpIncluded = training.warmUpIncluded,
+            previousValuesMode = training.previousValuesMode,
         )
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
         return PreferencesUiState.Loaded(
@@ -299,6 +302,7 @@ class PreferencesViewModel(
                 adjustment = form.adjustment,
                 split = form.split,
                 warmUpIncluded = form.warmUpIncluded,
+                previousValuesMode = form.previousValuesMode,
             )
             if (result.isSuccess) {
                 if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()

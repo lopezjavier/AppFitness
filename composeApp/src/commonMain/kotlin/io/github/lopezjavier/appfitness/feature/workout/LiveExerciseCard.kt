@@ -46,6 +46,7 @@ internal fun LiveExerciseCard(
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
     options: VolumeOptionsUi = VolumeOptionsUi(),
+    deleteEnabled: Boolean = true,
 ) {
     val position = exercise.position
     val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
@@ -67,7 +68,14 @@ internal fun LiveExerciseCard(
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
             SetTableHeader(showRpe = true, fields = fields)
             exercise.sets.forEach {
-                SessionSetRow(position, it, onEvent, metricType = exercise.metricType, equipment = exercise.equipment)
+                SessionSetRow(
+                    position,
+                    it,
+                    onEvent,
+                    metricType = exercise.metricType,
+                    equipment = exercise.equipment,
+                    deleteEnabled = deleteEnabled,
+                )
             }
             GhostButton(
                 text = stringResource(Res.string.live_add_set),

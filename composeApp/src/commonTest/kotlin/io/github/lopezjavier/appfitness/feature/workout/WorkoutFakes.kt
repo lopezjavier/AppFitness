@@ -85,6 +85,20 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var lastPerformanceFailure: AppError? = null
     val lastPerformanceCalls = mutableListOf<String>()
 
+    /** The routine id each [lastPerformance] call was made with, in call order. */
+    val lastPerformanceRoutineIds = mutableListOf<String?>()
+
+    /** Session controls: the recorded calls, their failures and the order of set writes versus deletions. */
+    val pauses = mutableListOf<Pair<String, Instant>>()
+    val resumes = mutableListOf<Pair<String, Instant>>()
+    val deletedSets = mutableListOf<Pair<Int, Int>>()
+    var pauseFailure: AppError? = null
+    var resumeFailure: AppError? = null
+    var deleteSetFailure: AppError? = null
+
+    /** "upsert:<position>:<index>" and "delete:<position>:<index>" in the order the server received them. */
+    val serverLog = mutableListOf<String>()
+
     /** Completed sessions (history); `session` stays the in-progress one. */
     val completed = mutableListOf<WorkoutSession>()
     val listCalls = mutableListOf<Pair<Int, Int>>()
@@ -121,6 +135,7 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         failing(upsertFailure)?.let { return it }
         applyToCompleted(sessionId, exercisePosition, setIndex, entry)
         storeSetTypeAndRpe(sessionId, exercisePosition, setIndex, setType, rpe)
+        serverLog += "upsert:$exercisePosition:$setIndex"
         upserts +=
             SetWrite(
                 sessionId, exerciseId, exercisePosition, supersetGroup, setIndex, entry, completedAt, setType, rpe,
@@ -235,9 +250,29 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         return Result.success(Unit)
     }
 
+    override suspend fun pause(sessionId: String, at: Instant): Result<Unit> {
+        failing(pauseFailure)?.let { return it }
+        pauses += sessionId to at
+        return Result.success(Unit)
+    }
+
+    override suspend fun resume(sessionId: String, at: Instant): Result<Unit> {
+        failing(resumeFailure)?.let { return it }
+        resumes += sessionId to at
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteSet(sessionId: String, exercisePosition: Int, setIndex: Int): Result<Unit> {
+        failing(deleteSetFailure)?.let { return it }
+        serverLog += "delete:$exercisePosition:$setIndex"
+        deletedSets += exercisePosition to setIndex
+        return Result.success(Unit)
+    }
+
     @Suppress("ReturnCount")
-    override suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>> {
+    override suspend fun lastPerformance(exerciseId: String, routineId: String?): Result<List<PreviousSet>> {
         lastPerformanceCalls += exerciseId
+        lastPerformanceRoutineIds += routineId
         failing(lastPerformanceFailure)?.let { return it }
         previous[exerciseId]?.let { return Result.success(it) }
         val latest = completed.sortedByDescending { it.startedAt }

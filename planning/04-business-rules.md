@@ -167,6 +167,13 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - Plate calculator: plates per side = greedy from the heaviest available plate over `(target − bar) / 2`; when the target cannot be made, the closest lower weight is shown. Example: 100 kg with the 20 kg bar → "25 + 15" per side.
 - Rounding: plates 2,5 kg, dumbbells 2 kg (both user settings).
 
+### 4.10 Session duration and pauses (US-38, T-096)
+- `duration = end - started_at - paused_total_s`, never below 0, where `end` = `ended_at` when finished, else `paused_at` while paused (the display freezes), else now. A pause still open when the session finishes counts as paused until `ended_at`.
+- Resuming adds the whole seconds since `paused_at` to `paused_total_s` (a negative span, from clock skew, adds 0).
+- Example: 10:00 elapsed, paused for 5:00, resumed, 20:00 later: the duration is the wall clock minus 5:00; at the pause instant the display freezes at 10:00 and continues from 10:00. Summary, history and detail use the same rule.
+- Pausing does not affect the rest timer or the per-set stopwatches. "Finalizar entreno" is enabled only when at least one set (of any type) is completed.
+- Previous values (§4.3): in "Última vez en esta rutina" mode only sessions of the same routine are considered; a free session, or an exercise never done in that routine, shows the overall last performance respectively no ghost (no fallback to other routines for the latter).
+
 ## 5. Formatting (UI, Spanish locale)
 - Thousands separator "." (also for 4 digits: "1.840") and decimal ",". Use a custom formatter in `commonMain`: the CLDR `es-ES` locale does not group 4-digit numbers.
 - Weight with 1 decimal; cm with 1 decimal; BMI with 1 decimal; waist-to-hip ratio with 2 decimals; kcal and grams without decimals; integer percentages.

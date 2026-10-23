@@ -33,6 +33,9 @@ class PendingSetQueue {
 
     fun snapshot(): List<SetWrite> = entries.values.toList()
 
+    /** Removes and returns every entry in queue order. */
+    fun drain(): List<SetWrite> = snapshot().also { entries.clear() }
+
     fun contains(exercisePosition: Int, setIndex: Int): Boolean = (exercisePosition to setIndex) in entries
 
     /** Drops [write] once sent, unless a newer write of the same set replaced it meanwhile. */
