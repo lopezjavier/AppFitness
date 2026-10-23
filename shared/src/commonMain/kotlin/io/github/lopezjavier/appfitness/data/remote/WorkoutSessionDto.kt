@@ -2,6 +2,9 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
@@ -152,4 +155,37 @@ internal data class ExerciseHistoryDto(
     @SerialName("total_volume") val totalVolume: Double = 0.0,
 ) {
     fun toDomain() = ExerciseHistoryPoint(sessionId, sessionDate, bestOneRm, totalVolume)
+}
+
+/** Row returned by the `personal_records` RPC; unknown record types are dropped. */
+@Serializable
+internal data class PersonalRecordDto(
+    @SerialName("record_type") val recordType: String,
+    val value: Double,
+    @SerialName("session_id") val sessionId: String? = null,
+    @SerialName("session_date") val sessionDate: LocalDate? = null,
+) {
+    fun toDomain(): PersonalRecord? =
+        PersonalRecordType.fromKey(recordType)?.let { PersonalRecord(it, value, sessionId, sessionDate) }
+}
+
+/** Row returned by the `exercise_session_records` RPC. */
+@Serializable
+internal data class ExerciseSessionRecordsDto(
+    @SerialName("session_id") val sessionId: String,
+    @SerialName("started_at") val startedAt: String,
+    @SerialName("heaviest_lift") val heaviestLift: Double? = null,
+    @SerialName("best_set") val bestSet: Double? = null,
+    @SerialName("session_volume") val sessionVolume: Double = 0.0,
+    @SerialName("best_one_rm") val bestOneRm: Double? = null,
+    @SerialName("total_reps") val totalReps: Long = 0,
+    @SerialName("best_duration_s") val bestDurationS: Int? = null,
+    @SerialName("best_distance_m") val bestDistanceM: Double? = null,
+    @SerialName("total_steps") val totalSteps: Int? = null,
+    @SerialName("total_floors") val totalFloors: Int? = null,
+) {
+    fun toDomain() = ExerciseSessionRecords(
+        sessionId, Instant.parse(startedAt), heaviestLift, bestSet, sessionVolume, bestOneRm, totalReps,
+        bestDurationS, bestDistanceM, totalSteps, totalFloors,
+    )
 }

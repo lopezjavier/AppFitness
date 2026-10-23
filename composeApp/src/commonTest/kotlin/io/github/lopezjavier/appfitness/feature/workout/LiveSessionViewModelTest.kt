@@ -8,6 +8,8 @@ import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
@@ -45,6 +47,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 @Suppress("LargeClass") // One class per view model: session, ghost data and rest timer share the same setup.
@@ -723,6 +726,47 @@ class LiveSessionViewModelTest {
 
         val exercises = assertIs<LiveSessionUiState.Finished>(vm.uiState.value).summary.summary.exercises
         assertEquals(listOf(false, true), exercises.map { it.isPersonalRecord })
+    }
+
+    @Test
+    fun summaryRecords_listTheFamiliesBeatenAgainstEarlierSessions() = runSessionTest {
+        repository.sessionRecords = mapOf(
+            "e1" to listOf(
+                ExerciseSessionRecords(
+                    "old",
+                    SESSION_START - 1.days,
+                    heaviestLift = 40.0,
+                    bestSet = 480.0,
+                    bestOneRm = 500.0,
+                ),
+            ),
+        )
+        repository.session = sessionOf(SessionExercise("e1", 0, null, listOf(doneSet(1, 60.0, 12))))
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.RequestFinish)
+        vm.onEvent(LiveSessionEvent.ConfirmFinish)
+        advanceUntilIdle()
+
+        val exercise = assertIs<LiveSessionUiState.Finished>(vm.uiState.value).summary.summary.exercises.single()
+        assertEquals(
+            setOf(PersonalRecordType.HeaviestLift, PersonalRecordType.BestSet, PersonalRecordType.MaxVolume),
+            exercise.records,
+        )
+    }
+
+    @Test
+    fun recordsFailure_stillShowsTheSummaryWithoutRecordMarks() = runSessionTest {
+        repository.recordsFailure = AppError.Network
+        repository.session = sessionOf(SessionExercise("e1", 0, null, listOf(doneSet(1, 60.0, 12))))
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.RequestFinish)
+        vm.onEvent(LiveSessionEvent.ConfirmFinish)
+        advanceUntilIdle()
+
+        val exercises = assertIs<LiveSessionUiState.Finished>(vm.uiState.value).summary.summary.exercises
+        assertTrue(exercises.all { it.records.isEmpty() })
     }
 
     @Test

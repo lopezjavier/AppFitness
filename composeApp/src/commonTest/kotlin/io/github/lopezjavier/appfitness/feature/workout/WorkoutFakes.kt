@@ -3,6 +3,8 @@ package io.github.lopezjavier.appfitness.feature.workout
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
@@ -14,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
@@ -73,6 +76,10 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var discardFailure: AppError? = null
     var historyFailure: AppError? = null
     var history: Map<String, List<ExerciseHistoryPoint>> = emptyMap()
+
+    /** Per-session record aggregates by exercise id (completed sessions, oldest first). */
+    var sessionRecords: Map<String, List<ExerciseSessionRecords>> = emptyMap()
+    var recordsFailure: AppError? = null
     var startedId = "s-new"
     var previous: Map<String, List<PreviousSet>> = emptyMap()
     var lastPerformanceFailure: AppError? = null
@@ -219,6 +226,12 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
 
     override suspend fun exerciseHistory(exerciseId: String, from: LocalDate?): Result<List<ExerciseHistoryPoint>> =
         failing(historyFailure) ?: Result.success(history[exerciseId].orEmpty())
+
+    override suspend fun personalRecords(exerciseId: String): Result<List<PersonalRecord>> =
+        failing(recordsFailure) ?: Result.success(PersonalRecordCatalogue.current(sessionRecords[exerciseId].orEmpty()))
+
+    override suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>> =
+        failing(recordsFailure) ?: Result.success(sessionRecords[exerciseId].orEmpty())
 }
 
 internal val SESSION_START: Instant = Instant.parse("2026-10-19T10:00:00Z")

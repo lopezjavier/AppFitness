@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -250,6 +251,53 @@ class SupabaseWorkoutSessionRepositoryTest {
         assertEquals(113.5, points[0].bestOneRepMax)
         assertEquals(2120.0, points[0].totalVolume)
         assertNull(points[1].bestOneRepMax)
+    }
+
+    @Test
+    fun personalRecords_mapsTheRowsAndDropsUnknownTypes() = runTest {
+        val repo = signedIn()
+        rpcBody =
+            """[{"record_type":"heaviest_lift","value":100,"session_id":"s1","session_date":"2026-10-01"},""" +
+            """{"record_type":"total_reps","value":35,"session_id":null,"session_date":null},""" +
+            """{"record_type":"future_family","value":1,"session_id":"s1","session_date":"2026-10-01"}]"""
+
+        val records = repo.personalRecords("e1").getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/personal_records", call.url.encodedPath)
+        assertEquals("""{"p_exercise_id":"e1"}""", bodyOf(call))
+        assertEquals(listOf(PersonalRecordType.HeaviestLift, PersonalRecordType.TotalReps), records.map { it.type })
+        assertEquals("s1", records[0].sessionId)
+        assertEquals(LocalDate(2026, 10, 1), records[0].date)
+        assertNull(records[1].sessionId)
+    }
+
+    @Test
+    fun sessionRecords_mapsTheAggregates() = runTest {
+        val repo = signedIn()
+        rpcBody =
+            """[{"session_id":"s1","started_at":"2026-10-01T10:00:00+00:00","heaviest_lift":100,"best_set":680,""" +
+            """"session_volume":1180,"best_one_rm":116.5,"total_reps":13,"best_duration_s":null,""" +
+            """"best_distance_m":null,"total_steps":null,"total_floors":null}]"""
+
+        val rows = repo.sessionRecords("e1").getOrThrow()
+
+        assertEquals("/rest/v1/rpc/exercise_session_records", rest().single().url.encodedPath)
+        val row = rows.single()
+        assertEquals(Instant.parse("2026-10-01T10:00:00Z"), row.startedAt)
+        assertEquals(116.5, row.bestOneRm)
+        assertEquals(1180.0, row.sessionVolume)
+        assertEquals(13L, row.totalReps)
+        assertNull(row.bestDurationS)
+    }
+
+    @Test
+    fun recordCalls_failWhenOffline() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertTrue(repo.personalRecords("e1").isFailure)
+        assertTrue(repo.sessionRecords("e1").isFailure)
     }
 
     @Test

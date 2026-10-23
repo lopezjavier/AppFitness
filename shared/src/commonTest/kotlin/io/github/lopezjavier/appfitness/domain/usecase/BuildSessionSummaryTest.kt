@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -87,6 +89,49 @@ class BuildSessionSummaryTest {
 
         assertFalse(summary.exercises[1].isPersonalRecord)
         assertEquals(0.0, summary.exercises[1].volume)
+    }
+
+    private fun earlier(heaviest: Double, oneRm: Double) = ExerciseSessionRecords(
+        "old",
+        Instant.parse("2026-10-01T10:00:00Z"),
+        heaviestLift = heaviest,
+        bestSet = 10_000.0,
+        sessionVolume = 10_000.0,
+        bestOneRm = oneRm,
+    )
+
+    @Test
+    fun beatingTheBestOneRepMaxAndHeaviestLiftGivesBothRecords() {
+        val summary = BuildSessionSummary(
+            session(bench),
+            end,
+            emptyMap(),
+            sessionRecords = mapOf("e1" to listOf(earlier(heaviest = 80.0, oneRm = 100.0))),
+        )
+
+        assertEquals(
+            setOf(PersonalRecordType.HeaviestLift, PersonalRecordType.Best1Rm),
+            summary.exercises.single().records,
+        )
+    }
+
+    @Test
+    fun aWarmUpSetThatWouldBeatTheRecordsGivesNoneWhileExcluded() {
+        val warm = SessionExercise("e1", 0, null, listOf(set(1, 200.0, 5, type = SetType.WarmUp)))
+        val history = mapOf("e1" to listOf(earlier(heaviest = 80.0, oneRm = 100.0)))
+
+        val off = BuildSessionSummary(session(warm), end, emptyMap(), sessionRecords = history)
+        val on = BuildSessionSummary(session(warm), end, emptyMap(), includeWarmUp = true, sessionRecords = history)
+
+        assertTrue(off.exercises.single().records.isEmpty())
+        assertTrue(PersonalRecordType.HeaviestLift in on.exercises.single().records)
+    }
+
+    @Test
+    fun unavailableRecordHistoryLeavesNoMarks() {
+        val summary = BuildSessionSummary(session(bench), end, emptyMap(), sessionRecords = null)
+
+        assertTrue(summary.exercises.single().records.isEmpty())
     }
 
     @Test

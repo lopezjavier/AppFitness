@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -48,4 +50,10 @@ interface WorkoutSessionRepository {
     suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>>
 
     suspend fun exerciseHistory(exerciseId: String, from: LocalDate? = null): Result<List<ExerciseHistoryPoint>>
+
+    /** Current best per record family of the exercise and the session that set it (04 §4.8); empty if never done. */
+    suspend fun personalRecords(exerciseId: String): Result<List<PersonalRecord>>
+
+    /** Record aggregates of every completed session containing the exercise, oldest first. */
+    suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>>
 }
