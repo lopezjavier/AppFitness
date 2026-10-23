@@ -17,11 +17,19 @@ object WarmUpCalculator {
     )
     private const val BAR_REPS = 10
     const val MAX_SETS = 4
+
+    /** Count the calculator sheet starts with (ADR-55): only the 60 % x 3 set. */
+    const val DEFAULT_SETS = 1
     private const val EPSILON = 1e-9
     private const val HALF = 0.5
 
     /** [sets] (1..[MAX_SETS], ADR-55): 4 adds the bar x 10 set; 3, 2 and 1 use fewer percentages. */
-    operator fun invoke(workingKg: Double, barKg: Double, roundingKg: Double, sets: Int = MAX_SETS): List<WarmUpSet> {
+    operator fun invoke(
+        workingKg: Double,
+        barKg: Double,
+        roundingKg: Double,
+        sets: Int = DEFAULT_SETS,
+    ): List<WarmUpSet> {
         val count = sets.coerceIn(1, MAX_SETS)
         val steps = STEPS_BY_COUNT[minOf(count, MAX_SETS - 1)].orEmpty()
         val barSet = if (count == MAX_SETS) listOf(WarmUpSet(barKg, BAR_REPS)) else emptyList()

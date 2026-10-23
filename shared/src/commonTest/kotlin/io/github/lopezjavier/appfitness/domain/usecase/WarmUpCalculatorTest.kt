@@ -7,7 +7,13 @@ import kotlin.test.assertTrue
 
 class WarmUpCalculatorTest {
     private fun scheme(working: Double, bar: Double = 20.0, rounding: Double = 2.5) =
-        WarmUpCalculator(working, bar, rounding)
+        WarmUpCalculator(working, bar, rounding, sets = WarmUpCalculator.MAX_SETS)
+
+    @Test
+    fun withoutACount_onlyTheSixtyPercentSetIsProposed() {
+        assertEquals(1, WarmUpCalculator.DEFAULT_SETS)
+        assertEquals(listOf(WarmUpSet(60.0, 3)), WarmUpCalculator(100.0, 20.0, 2.5))
+    }
 
     @Test
     fun hundredKilosWithTwentyKiloBar_isTheDefaultScheme() {
@@ -76,8 +82,8 @@ class WarmUpCalculatorTest {
     }
 
     @Test
-    fun fourSets_isTheDefault() {
-        assertEquals(scheme(100.0), WarmUpCalculator(100.0, 20.0, 2.5, sets = 4))
+    fun fourSets_addTheBarSet() {
+        assertEquals(WarmUpSet(20.0, 10), WarmUpCalculator(100.0, 20.0, 2.5, sets = 4).first())
     }
 
     @Test

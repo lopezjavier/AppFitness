@@ -165,7 +165,7 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun warmUp_100kgWith20kgBar_showsTheFourDefaultRows() {
+    fun warmUp_100kgWith20kgBar_showsOnlyTheSixtyPercentRowByDefault() {
         show()
 
         openWarmUp()
@@ -173,6 +173,17 @@ class LiveSessionCalculatorsTest {
         val tag = "live_exercise_1_warm_up_calc"
         rule.onNodeWithTag("${tag}_weight_field").assertTextContains("100")
         rule.onNodeWithTag("${tag}_bar_20").assertIsSelected()
+        rule.onNodeWithTag("${tag}_row_0").assertTextContains("60 kg × 3")
+        rule.onNodeWithTag("${tag}_row_1").assertDoesNotExist()
+    }
+
+    @Test
+    fun warmUp_100kgWith20kgBar_withFourSets_showsTheFullScheme() {
+        show()
+        openWarmUp()
+        repeat(3) { tap("warmup_sets_stepper_increment") }
+
+        val tag = "live_exercise_1_warm_up_calc"
         rule.onNodeWithTag("${tag}_row_0").assertTextContains("20 kg × 10")
         rule.onNodeWithTag("${tag}_row_1").assertTextContains("40 kg × 5")
         rule.onNodeWithTag("${tag}_row_2").assertTextContains("60 kg × 3")
@@ -186,7 +197,9 @@ class LiveSessionCalculatorsTest {
         show()
         openWarmUp()
         val tag = "live_exercise_1_warm_up_calc"
-        rule.onNodeWithTag("warmup_sets_stepper_value").assertTextEquals("4")
+        rule.onNodeWithTag("warmup_sets_stepper_value").assertTextEquals("1")
+        rule.onNodeWithTag("warmup_sets_stepper_decrement").assertIsNotEnabled()
+        repeat(3) { tap("warmup_sets_stepper_increment") }
         rule.onNodeWithTag("warmup_sets_stepper_increment").assertIsNotEnabled()
 
         tap("warmup_sets_stepper_decrement")
@@ -226,7 +239,7 @@ class LiveSessionCalculatorsTest {
 
         val config = rule.onNodeWithTag("live_exercise_1_warm_up_calc_row_0").fetchSemanticsNode().config
         val description = config[androidx.compose.ui.semantics.SemanticsProperties.ContentDescription]
-        kotlin.test.assertEquals(listOf("Calentamiento 1: 20 kilos, 10 repeticiones"), description)
+        kotlin.test.assertEquals(listOf("Calentamiento 1: 60 kilos, 3 repeticiones"), description)
     }
 
     @Test
@@ -237,7 +250,7 @@ class LiveSessionCalculatorsTest {
         tap("live_exercise_1_warm_up_calc_confirm")
 
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_sheet").assertDoesNotExist()
-        rule.onAllNodesWithText("C").assertCountEquals(4)
+        rule.onAllNodesWithText("C").assertCountEquals(1)
     }
 
     @Test
@@ -281,7 +294,7 @@ class LiveSessionCalculatorsTest {
 
         val tag = "live_exercise_1_plate_calc"
         rule.onNodeWithTag("${tag}_plates").assertTextEquals("25 + 15")
-        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("Por lado:")
+        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
         rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 20 kg")
         rule.onNodeWithTag("${tag}_note").assertDoesNotExist()
         rule.onNodeWithTag("${tag}_close").assertExists()

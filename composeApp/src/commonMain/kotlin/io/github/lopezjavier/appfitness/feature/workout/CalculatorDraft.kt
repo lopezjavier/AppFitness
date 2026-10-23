@@ -21,7 +21,7 @@ data class CalculatorDraft(
     val weightText: String,
     val barKg: Double,
     /** Warm-up only: how many warm-up sets (1..4, ADR-55); per use, never stored in the preferences. */
-    val warmUpSets: Int = WarmUpCalculator.MAX_SETS,
+    val warmUpSets: Int = WarmUpCalculator.DEFAULT_SETS,
 )
 
 /** Why the calculator shows no result. */
@@ -96,7 +96,7 @@ internal fun SavedStateHandle.restoredCalculatorDraft(): CalculatorDraft? {
             kind,
             get<String>(KEY_WEIGHT).orEmpty(),
             bar,
-            get<Int>(KEY_SETS) ?: WarmUpCalculator.MAX_SETS,
+            get<Int>(KEY_SETS) ?: WarmUpCalculator.DEFAULT_SETS,
         )
     }
 }

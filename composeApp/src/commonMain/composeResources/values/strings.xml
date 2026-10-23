@@ -417,7 +417,7 @@
     <string name="help_warmup_calc_cd">Ayuda: calculadora de calentamiento</string>
     <string name="help_warmup_calc_body">Indica tu peso de trabajo y la barra: con el contador eliges de 1 a 4 series de calentamiento con pesos crecientes, que se añaden antes de tus series.</string>
     <string name="help_plate_calc_cd">Ayuda: calculadora de discos</string>
-    <string name="help_plate_calc_body">Indica el peso total y la barra: verás los discos de cada lado de la barra; monta lo mismo en ambos lados. Se pueden repetir discos del mismo peso. Solo calcula, no guarda nada.</string>
+    <string name="help_plate_calc_body">Indica el peso total y la barra: verás los discos de cada lado de la barra; monta lo mismo en ambos lados. Se pueden repetir discos del mismo peso. Solo calcula, no guarda nada. Ejemplo: 100 kg con barra de 20 kg → 25 + 15 a cada lado</string>
     <string name="help_rounding_title">Redondeo</string>
     <string name="help_rounding_cd">Ayuda: redondeo de discos y mancuernas</string>
     <string name="help_rounding_body">El peso calculado se ajusta al múltiplo más cercano que puedes montar. Discos se usa en barras y Mancuernas en ejercicios con mancuernas.</string>
@@ -1126,7 +1126,7 @@
     <string name="live_calc_add">Añadir series</string>
     <string name="live_calc_hint_missing">Introduce el peso de trabajo</string>
     <string name="live_calc_hint_at_or_below_bar">El peso es igual o inferior a la barra</string>
-    <string name="live_calc_plates_per_side">Por lado:</string>
+    <string name="live_calc_plates_per_side">A cada lado de la barra:</string>
     <string name="live_calc_warm_up_sets_label">Series de calentamiento</string>
     <string name="live_calc_warm_up_sets_decrease_cd">Menos series de calentamiento</string>
     <string name="live_calc_warm_up_sets_increase_cd">Más series de calentamiento</string>
