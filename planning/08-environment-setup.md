@@ -119,3 +119,10 @@ CI and the unit tests build without the bundle (the catalog then shows only cust
 | Supabase Free | 500 MB DB, 500K Edge Function invocations/month, paused after 7 days without activity | Plenty for 1–5 users; keep-alive covers the pause |
 | GitHub Actions (public repo) | Unlimited minutes on standard runners | Keep CI fast anyway (Gradle cache; `supabase-ci` only when `supabase/**` changes) |
 | Open Food Facts | ~10 searches/min, ~100 product reads/min | Cache in `foods` + debounce in the app |
+
+## 6. Hardening and accepted risks (T-097c)
+
+- **Exposed API schemas:** only `public` (no `graphql_public`; nothing in the app, tests or functions uses GraphQL). `supabase/config.toml` covers local only: in the hosted project, set Dashboard → Project Settings → API → Exposed schemas to `public` only (👤 console step).
+- **Email sign-up disabled** (`[auth.email] enable_signup = false`), password minimum 8. The top-level `[auth] enable_signup` stays `true` because Google sign-in creates users through it. The seeded local test user is inserted by `seed.sql`, so password sign-in for it still works. On the hosted project, also disable email sign-ups in the Dashboard (Authentication → Sign In / Providers → Email) (👤).
+- **Accepted risk (owner decision 2026-10-23, only the owner uses the app):** no per-user rate limit on the food-search Edge Function (Free plan, one user).
+- **Accepted risk (same decision):** no privacy policy or health-data note; revisit before any distribution beyond the owner.
