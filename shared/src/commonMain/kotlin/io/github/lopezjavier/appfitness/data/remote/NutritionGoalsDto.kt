@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -88,6 +89,10 @@ internal data class SavePreferencesParams(
     @SerialName("p_day_end") val dayEnd: String? = null,
     @SerialName("p_warm_up_included") val warmUpIncluded: Boolean? = null,
     @SerialName("p_previous_values_mode") val previousValuesMode: PreviousValuesModeDto? = null,
+    @SerialName("p_bar_weight_kg") val barWeightKg: Double? = null,
+    @SerialName("p_plate_kg") val plateKg: List<Double>? = null,
+    @SerialName("p_plate_rounding_kg") val plateRoundingKg: Double? = null,
+    @SerialName("p_dumbbell_rounding_kg") val dumbbellRoundingKg: Double? = null,
 ) {
     companion object {
         @Suppress("LongParameterList") // The edited form fields.
@@ -98,6 +103,7 @@ internal data class SavePreferencesParams(
             weight: WeightEntry?,
             warmUpIncluded: Boolean,
             previousValuesMode: PreviousValuesMode,
+            calculators: CalculatorSettings? = null,
         ): SavePreferencesParams {
             val profile = BiometricsUpdateDto.from(biometrics)
             return SavePreferencesParams(
@@ -118,6 +124,10 @@ internal data class SavePreferencesParams(
                 dayEnd = weight?.dayEnd?.toString(),
                 warmUpIncluded = warmUpIncluded,
                 previousValuesMode = PreviousValuesModeDto.of(previousValuesMode),
+                barWeightKg = calculators?.barWeightKg,
+                plateKg = calculators?.plateKg,
+                plateRoundingKg = calculators?.plateRoundingKg,
+                dumbbellRoundingKg = calculators?.dumbbellRoundingKg,
             )
         }
     }

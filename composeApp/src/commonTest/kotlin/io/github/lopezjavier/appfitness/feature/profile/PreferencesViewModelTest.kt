@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
@@ -871,6 +872,109 @@ class PreferencesViewModelTest {
             """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
 
         assertEquals(PreviousValuesMode.Overall, decodeDraft(old)!!.previousValuesMode)
+    }
+
+    // -- calculator settings ------------------------------------------------------------------------------------
+
+    @Test
+    fun calculators_loadTheSavedValues() = runTest {
+        training.result = Result.success(
+            TrainingPreferences(barWeightKg = 15.0, plateKg = listOf(20.0, 5.0), plateRoundingKg = 5.0),
+        )
+
+        val (_, state) = loaded()
+
+        assertEquals(CalculatorSettings(15.0, listOf(20.0, 5.0), 5.0, 2.0), state().form.calculators)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun calculators_editTheDraftOnly_andSaveSendsThem() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetBarWeight(7.5))
+        viewModel.onEvent(PreferencesEvent.SetPlateRounding(5.0))
+        viewModel.onEvent(PreferencesEvent.SetDumbbellRounding(1.0))
+        viewModel.onEvent(PreferencesEvent.SetPlateEnabled(25.0, enabled = false))
+        advanceUntilIdle()
+
+        assertTrue(state().canSave)
+        assertTrue(profile.preferenceSaves.isEmpty(), "nothing is written before Guardar")
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val expected = CalculatorSettings(
+            7.5,
+            CalculatorSettings.PLATE_CATALOGUE - 25.0,
+            5.0,
+            1.0,
+        )
+        assertEquals(expected, profile.preferenceSaves.single().calculators)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun roundingSteps_areClampedToTheOfferedRange() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetPlateRounding(0.0))
+        assertEquals(0.5, state().form.calculators.plateRoundingKg)
+        viewModel.onEvent(PreferencesEvent.SetDumbbellRounding(40.0))
+        assertEquals(10.0, state().form.calculators.dumbbellRoundingKg)
+    }
+
+    @Test
+    fun plates_stayOrderedHeaviestFirst_whenReEnabled() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetPlateEnabled(20.0, enabled = false))
+        viewModel.onEvent(PreferencesEvent.SetPlateEnabled(20.0, enabled = true))
+
+        assertEquals(CalculatorSettings.PLATE_CATALOGUE, state().form.calculators.plateKg)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun plates_theLastOneCannotBeSwitchedOff_andShowsTheError() = runTest {
+        training.result = Result.success(TrainingPreferences(plateKg = listOf(2.5)))
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetPlateEnabled(2.5, enabled = false))
+
+        assertEquals(listOf(2.5), state().form.calculators.plateKg)
+        assertTrue(state().platesError)
+        assertFalse(state().canSave)
+
+        viewModel.onEvent(PreferencesEvent.SetPlateEnabled(5.0, enabled = true))
+        assertFalse(state().platesError)
+        assertEquals(listOf(5.0, 2.5), state().form.calculators.plateKg)
+    }
+
+    @Test
+    fun calculators_surviveARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetBarWeight(10.0))
+        first.onEvent(PreferencesEvent.SetPlateEnabled(0.5, enabled = false))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertEquals(10.0, restored.form.calculators.barWeightKg)
+        assertFalse(0.5 in restored.form.calculators.plateKg)
+        assertEquals(20.0, restored.saved.calculators.barWeightKg)
+        assertTrue(restored.canSave)
+    }
+
+    @Test
+    fun calculators_aDraftFromAnOlderVersionDecodesToTheDefaults() {
+        val old = """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","strategy":"Deficit","adjustment":-400,""" +
+            """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
+
+        assertEquals(CalculatorSettings(), decodeDraft(old)!!.calculators)
     }
 
     @Test

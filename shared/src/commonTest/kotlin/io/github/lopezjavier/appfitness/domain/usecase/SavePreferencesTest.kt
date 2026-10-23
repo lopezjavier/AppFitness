@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -23,6 +24,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
+@Suppress("LongParameterList") // Mirrors the repository call it records.
 private class Saved(
     val name: String,
     val biometrics: Biometrics,
@@ -30,6 +32,7 @@ private class Saved(
     val weight: WeightEntry?,
     val warmUpIncluded: Boolean,
     val previousValuesMode: PreviousValuesMode,
+    val calculators: CalculatorSettings?,
 )
 
 class SavePreferencesTest {
@@ -65,8 +68,9 @@ class SavePreferencesTest {
             weight: WeightEntry?,
             warmUpIncluded: Boolean,
             previousValuesMode: PreviousValuesMode,
+            calculators: CalculatorSettings?,
         ): Result<Unit> {
-            saved += Saved(displayName, biometrics, goals, weight, warmUpIncluded, previousValuesMode)
+            saved += Saved(displayName, biometrics, goals, weight, warmUpIncluded, previousValuesMode, calculators)
             return result
         }
     }
@@ -82,6 +86,7 @@ class SavePreferencesTest {
         split: MacroSplit = MacroSplit.DEFAULT,
         warmUpIncluded: Boolean = false,
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
+        calculators: CalculatorSettings? = null,
     ) = useCase(
         displayName = name,
         biometrics = Biometrics(sex, birthDate, height, ActivityLevel.Sedentary),
@@ -94,6 +99,7 @@ class SavePreferencesTest {
         split = split,
         warmUpIncluded = warmUpIncluded,
         previousValuesMode = previousValuesMode,
+        calculators = calculators,
     )
 
     private fun tdee(sex: Sex, height: Int, weightKg: Double) =
@@ -202,6 +208,15 @@ class SavePreferencesTest {
             listOf(PreviousValuesMode.Routine, PreviousValuesMode.Overall),
             saved.map { it.previousValuesMode },
         )
+    }
+
+    @Test
+    fun theCalculatorSettingsArePassedThrough_andNullMeansUnchanged() = runTest {
+        val settings = CalculatorSettings(7.5, listOf(20.0, 2.5), 5.0, 1.0)
+        save(calculators = settings)
+        save()
+
+        assertEquals(listOf(settings, null), saved.map { it.calculators })
     }
 
     @Test

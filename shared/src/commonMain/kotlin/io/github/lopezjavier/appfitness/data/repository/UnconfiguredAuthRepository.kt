@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
@@ -72,6 +73,7 @@ class UnconfiguredProfileRepository : ProfileRepository {
         weight: WeightEntry?,
         warmUpIncluded: Boolean,
         previousValuesMode: PreviousValuesMode,
+        calculators: CalculatorSettings?,
     ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 
