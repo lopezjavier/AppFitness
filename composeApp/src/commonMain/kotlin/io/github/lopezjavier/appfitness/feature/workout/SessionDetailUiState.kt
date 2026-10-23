@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 
@@ -13,6 +14,8 @@ data class DetailExercise(
     val name: String?,
     val sets: List<DetailSet>,
     val isPersonalRecord: Boolean,
+    /** Record families the session beat for this exercise, in enum order; empty while history is unavailable. */
+    val records: Set<PersonalRecordType> = emptySet(),
 )
 
 /** The set being corrected: [weight] and [reps] are the typed drafts; [invalid] marks a refused save. */

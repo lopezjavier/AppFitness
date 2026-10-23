@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 import org.junit.Assert.assertEquals
@@ -54,6 +56,7 @@ private fun detail(
                 DetailSet(2, SetType.Working, "87,5 kg × 8"),
             ),
             isPersonalRecord = firstRecord,
+            records = if (firstRecord) setOf(PersonalRecordType.Best1Rm, PersonalRecordType.MaxVolume) else emptySet(),
         ),
         DetailExercise(1, "e2", "Remo", listOf(DetailSet(1, SetType.Working, "87,5 kg × 8")), isPersonalRecord = false),
     ),
@@ -114,8 +117,29 @@ class SessionDetailScreenTest {
     fun personalRecord_isMarkedOnlyOnTheRecordExercise_withAnAccessibleLabel() {
         show(detail())
 
-        rule.onNodeWithTag("session_detail_pr_0").assert(hasContentDescription("Récord personal"))
-        rule.onNodeWithTag("session_detail_pr_1").assertDoesNotExist()
+        rule.onNodeWithTag("session_detail_record_0_best_1rm").assert(hasContentDescription("Récord: 1RM estimado"))
+        rule.onNodeWithTag("session_detail_record_0_max_volume").assert(hasContentDescription("Récord: Volumen máximo"))
+        rule.onNodeWithTag("session_detail_record_0_best_set").assertDoesNotExist()
+        rule.onNodeWithTag("session_detail_records_1").assertDoesNotExist()
+    }
+
+    @Test
+    fun durationAndDistanceRecords_showTheirLabels() {
+        val records = setOf(PersonalRecordType.BestDuration, PersonalRecordType.BestDistance)
+        show(
+            SessionDetailUiState.Content(
+                name = "Cardio",
+                label = DateLabel.Yesterday,
+                stats = SessionStats(durationSeconds = 1_800, completedSets = 1, volumeKg = 0.0),
+                exercises = listOf(DetailExercise(0, "e1", "Cinta", emptyList(), false, records)),
+                isOnline = true,
+                edit = null,
+                busy = false,
+            ),
+        )
+
+        rule.onNode(hasText("Mejor tiempo"), useUnmergedTree = true).assertExists()
+        rule.onNode(hasText("Mayor distancia"), useUnmergedTree = true).assertExists()
     }
 
     @Test

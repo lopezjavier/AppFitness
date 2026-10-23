@@ -9,7 +9,9 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
+import io.github.lopezjavier.appfitness.data.remote.ExerciseSessionRecordsDto
 import io.github.lopezjavier.appfitness.data.remote.LastPerformanceParams
+import io.github.lopezjavier.appfitness.data.remote.PersonalRecordDto
 import io.github.lopezjavier.appfitness.data.remote.PreviousSetDto
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
@@ -18,6 +20,8 @@ import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -132,4 +136,16 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
                 .decodeList<ExerciseHistoryDto>()
                 .map { it.toDomain() }
         }
+
+    override suspend fun personalRecords(exerciseId: String): Result<List<PersonalRecord>> = auth.ownRow {
+        postgrest.rpc("personal_records", LastPerformanceParams(exerciseId))
+            .decodeList<PersonalRecordDto>()
+            .mapNotNull { it.toDomain() }
+    }
+
+    override suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>> = auth.ownRow {
+        postgrest.rpc("exercise_session_records", LastPerformanceParams(exerciseId))
+            .decodeList<ExerciseSessionRecordsDto>()
+            .map { it.toDomain() }
+    }
 }

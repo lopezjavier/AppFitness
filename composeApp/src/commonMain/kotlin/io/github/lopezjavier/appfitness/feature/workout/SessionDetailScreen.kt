@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -50,8 +49,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.session_offline_rea
 import io.github.lopezjavier.appfitness.composeapp.resources.session_set_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_pr
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_pr_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -61,7 +58,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
-import io.github.lopezjavier.appfitness.designsystem.PillContainer
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
@@ -247,8 +243,8 @@ private fun ExerciseBlock(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (exercise.isPersonalRecord) PersonalRecordPill(exercise.position)
             }
+            PersonalRecordPills(exercise.records, exercise.position, "session_detail")
             if (exercise.sets.isEmpty()) {
                 Text(
                     text = stringResource(Res.string.session_detail_no_sets),
@@ -269,20 +265,6 @@ private fun ExerciseBlock(
                     .testTag("session_detail_progress_${exercise.exerciseId}"),
             )
         }
-    }
-}
-
-@Composable
-private fun PersonalRecordPill(position: Int) {
-    val description = stringResource(Res.string.summary_pr_cd)
-    PillContainer(
-        Modifier.testTag("session_detail_pr_$position").clearAndSetSemantics { contentDescription = description },
-    ) {
-        Text(
-            text = stringResource(Res.string.summary_pr),
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.athleticCyan,
-        )
     }
 }
 

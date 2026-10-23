@@ -441,8 +441,16 @@
     <string name="summary_sets">Series completadas</string>
     <string name="summary_volume_title">Volumen por ejercicio</string>
     <string name="summary_volume_value">%1$s kg</string>
-    <string name="summary_pr">PR</string>
-    <string name="summary_pr_cd">Récord personal</string>
+    <string name="record_heaviest_lift">Récord de peso</string>
+    <string name="record_best_set">Mejor serie</string>
+    <string name="record_max_volume">Volumen máximo</string>
+    <string name="record_best_1rm">1RM estimado</string>
+    <string name="record_best_duration">Mejor tiempo</string>
+    <string name="record_best_distance">Mayor distancia</string>
+    <string name="record_most_steps">Más escalones</string>
+    <string name="record_most_floors">Más pisos</string>
+    <string name="record_total_reps">Repeticiones totales</string>
+    <string name="record_cd">Récord: %1$s</string>
     <string name="summary_done">Listo</string>
 
     <!-- Session history (T-047) -->

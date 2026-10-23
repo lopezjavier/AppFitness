@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-093 (volume options, 2026-10-23). Next task: T-094 (personal-record catalogue), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-094 (personal-record catalogue, 2026-10-23). Next task: T-095 (exercise detail: Resumen, Historial and Cómo hacerlo), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2389,15 +2389,15 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Backend: an RPC (e.g. `personal_records(p_exercise_id uuid)`, `security invoker`) returns the `04-business-rules.md` §4.8 families of one exercise for the caller: weight families "Récord de peso" (`heaviest_lift`), "Mejor serie" (`best_set`), "Volumen máximo" (`max_volume`), "1RM estimado" (`best_1rm`), "Total de repes" (`total_reps`, the all-time total of completed reps, ADR-52); duration/distance families "Mejor tiempo", "Mayor distancia", "Más escalones" (and most floors). It honours warm-up inclusion (T-090), double dumbbell and bodyweight volume (T-093), and gets pgTAP with the §4 examples. Domain: `PersonalRecordCatalogue` (same rules, shared test cases). The session summary and the history session detail mark the records each session beat, from the catalogue (extending the E3 "PR" mark, which keeps counting an exercise's first session as a PR). No live notification and no notification setting: the "Live PR" scenario is deferred (ADR-52, `planning/01-phase1-scope.md` §4.1).
 
 **Acceptance criteria:**
-- [ ] RPC + pgTAP: each family from a fixture history; "Total de repes" sums every completed rep; warm-ups excluded unless included; other users' and discarded sessions ignored.
-- [ ] "Sentadilla" history → the five weight records; a cardio-style exercise → "Mejor tiempo", "Mayor distancia", "Más escalones".
-- [ ] A session that beats the best 1RM or the heaviest lift → the summary and the history detail mark that record; a warm-up set never makes a record while warm-ups are excluded.
-- [ ] No "¡Nuevo récord!" notification and no notification level in Preferencias.
+- [x] RPC + pgTAP: each family from a fixture history; "Total de repes" sums every completed rep; warm-ups excluded unless included; other users' and discarded sessions ignored.
+- [x] "Sentadilla" history → the five weight records; a cardio-style exercise → "Mejor tiempo", "Mayor distancia", "Más escalones".
+- [x] A session that beats the best 1RM or the heaviest lift → the summary and the history detail mark that record; a warm-up set never makes a record while warm-ups are excluded.
+- [x] No "¡Nuevo récord!" notification and no notification level in Preferencias.
 
 **Host tests (per scenario):** `PersonalRecordCatalogueTest` (Record types; Duration/distance family; §4 examples; all-time total reps); `SessionSummaryViewModelTest` / `SessionDetailViewModelTest` additions (Records in the summary and the history); screen tests (record labels); pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-093
@@ -2641,6 +2641,27 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 
 ---
 
+## T-102b: Edit a comida
+
+**Story:** US-47 (user request 2026-10-23) · **Flow:** UI (+ backend if the planner needs an atomic RPC) · **Scenarios:** to be added to US-47 in `planning/epics/E6-training-depth.md`
+
+**Description:** In "Añadir comida" → Comidas, tapping a row adds the comida to the diary and the trailing button is a pencil that opens "Editar comida" (inverts today's "+" adds / row tap edits). In "Editar comida" the rename pencil is removed: the name is a text field, saved with "Guardar" (an empty or duplicate name disables "Guardar" with a hint). A food is removed by swiping its row left or from the food details ("Eliminar"), and "Añadir alimento" adds foods through the existing food picker. Name, removals and additions are staged and applied together on "Guardar" (ADR-45); leaving without it changes nothing and the draft survives leaving the app.
+
+**Acceptance criteria:**
+- [ ] Tapping a comida row adds it; the trailing pencil opens "Editar comida".
+- [ ] The name is a text field saved by "Guardar"; no rename pencil.
+- [ ] Swipe-left and "Eliminar" in the details remove a food, applied on "Guardar".
+- [ ] "Añadir alimento" adds foods, applied on "Guardar".
+- [ ] Leaving without "Guardar" changes nothing; the draft survives leaving the app.
+
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green (plus pgTAP if a migration is added).
+
+**Dependencies:** T-102
+**Estimated scope:** M
+
+---
+
 ## T-103: E6 closure
 
 **Story:** E6 Definition of Done · **Flow:** PM
@@ -2648,7 +2669,7 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 **Description:** Closes E6: final regression on the phone, approval, tag `v0.6.0` and the retrospective.
 
 **Acceptance criteria:**
-- [ ] T-089…T-102 (and any fix tasks) merged with green CI; pgTAP green for the planned sets, training preferences, aggregates with warm-up inclusion and volume options, personal records, folders/order, Update Routine, workout management and the manual-food edit; `deploy-supabase` green after the last migration.
+- [ ] T-089…T-102b (and any fix tasks) merged with green CI; pgTAP green for the planned sets, training preferences, aggregates with warm-up inclusion and volume options, personal records, folders/order, Update Routine, workout management and the manual-food edit; `deploy-supabase` green after the last migration.
 - [ ] Host tests green for every E6 Gherkin scenario; `04-business-rules.md` §4 (set types, volume, PR families, calculators) covered by unit and pgTAP tests (epic DoD).
 - [ ] The set row covers every `exercise_metric_type` used by the seeded catalogue (epic DoD).
 - [ ] Checkpoints E6-A and E6-B approved and E6-C items 1–3 (food editing) passed; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
@@ -2657,19 +2678,20 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.6.0` after approval.
 
-**Dependencies:** T-102 (and Checkpoints E6-A and E6-B)
+**Dependencies:** T-102b (and Checkpoints E6-A and E6-B)
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E6.md`
 **Estimated scope:** S
 
-### Checkpoint E6-C — Food editing, final regression and approval 👤 (5 items + leave and come back)
+### Checkpoint E6-C — Food editing, final regression and approval 👤 (6 items + leave and come back)
 Journey: fix your own foods from their label, then one last real workout over everything E6 built. Why here: food editing (T-102) is its own journey in another domain, but it yields only 3 items, below the 5-item minimum, and only the closure follows it, so it joins the closing regression instead of calling the user twice in a row.
-- [ ] T-089…T-103 merged, CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
+- [ ] T-089…T-103 merged (incl. T-102b), CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
-  1. Edit a manual food (T-102): open one of your foods, "Editar", change its kcal or a macro and "Guardar": a new diary entry uses the new values; the entries you logged before keep theirs. An Open Food Facts food has no "Editar".
-  2. Portions (T-102): add a portion (it is offered when logging), change another (new entries use the new amount, old ones keep theirs) and remove one (no longer offered; past entries keep it).
-  3. Full label (T-102): create or edit a manual food from a real Spanish label, filling energy, fat, saturates, carbohydrates, sugars, fibre, protein, salt and some vitamins or minerals: the fields and the food details follow the label order; an Open Food Facts food's details use the same order.
-  4. One real workout end to end (epic DoD): start your next workout from its folder, with planned sets and a warm-up from the calculator, log RPE, a bodyweight or timed exercise, pause and resume, delete a set, beat a record, finish and choose "Actualizar rutina".
-  5. Afterwards check the exercise detail, the workout detail and the calendar, and Fuerza with "Incluir calentamiento" on and off.
+  1. Edit a comida (T-102b): in "Añadir comida" → Comidas, tapping a row adds it and the pencil opens "Editar comida"; rename it in the text field, swipe a food away or remove it from its details, add a food, "Guardar": everything applies together; leaving without "Guardar" changes nothing.
+  2. Edit a manual food (T-102): open one of your foods, "Editar", change its kcal or a macro and "Guardar": a new diary entry uses the new values; the entries you logged before keep theirs. An Open Food Facts food has no "Editar".
+  3. Portions (T-102): add a portion (it is offered when logging), change another (new entries use the new amount, old ones keep theirs) and remove one (no longer offered; past entries keep it).
+  4. Full label (T-102): create or edit a manual food from a real Spanish label, filling energy, fat, saturates, carbohydrates, sugars, fibre, protein, salt and some vitamins or minerals: the fields and the food details follow the label order; an Open Food Facts food's details use the same order.
+  5. One real workout end to end (epic DoD): start your next workout from its folder, with planned sets and a warm-up from the calculator, log RPE, a bodyweight or timed exercise, pause and resume, delete a set, beat a record, finish and choose "Actualizar rutina".
+  6. Afterwards check the exercise detail, the workout detail and the calendar, and Fuerza with "Incluir calentamiento" on and off.
   - Leave the app and come back mid-workout and with a food edit half done: the same tab, screen and draft are restored.
   - Approval → `git tag -a v0.6.0 -m "Epic E6"` + `git push --tags` + retrospective (T-103).
 

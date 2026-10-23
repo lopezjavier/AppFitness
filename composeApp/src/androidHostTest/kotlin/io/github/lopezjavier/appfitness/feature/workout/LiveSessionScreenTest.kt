@@ -22,6 +22,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
@@ -288,7 +289,13 @@ class LiveSessionScreenTest {
                 durationSeconds = 3_725,
                 completedSets = 3,
                 exercises = listOf(
-                    ExerciseSummary(0, "e1", 2_120.0, true),
+                    ExerciseSummary(
+                        0,
+                        "e1",
+                        2_120.0,
+                        true,
+                        setOf(PersonalRecordType.Best1Rm, PersonalRecordType.HeaviestLift),
+                    ),
                     ExerciseSummary(1, "e2", 400.0, false),
                 ),
             ),
@@ -301,21 +308,44 @@ class LiveSessionScreenTest {
         rule.onNodeWithTag("summary_sets").assertTextContains("3")
         rule.onNodeWithTag("summary_volume_0").assertTextContains("2.120 kg")
         rule.onNodeWithTag("summary_volume_0").assertTextContains("Press banca")
-        rule.onNodeWithTag("summary_pr_0").assert(hasContentDescription("Récord personal"))
-        rule.onNodeWithTag("summary_pr_1").assertDoesNotExist()
+        rule.onNodeWithTag(
+            "session_summary_record_0_heaviest_lift",
+        ).assert(hasContentDescription("Récord: Récord de peso"))
+        rule.onNodeWithTag("session_summary_record_0_best_1rm").assert(hasContentDescription("Récord: 1RM estimado"))
+        rule.onNodeWithTag("session_summary_records_1").assertDoesNotExist()
+        rule.onNodeWithTag("session_summary_record_0_best_set").assertDoesNotExist()
         rule.onNodeWithTag("summary_done").performClick()
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.Done), events)
     }
 
     @Test
-    fun summary_prBadgeShowsPrText() {
+    fun summary_durationAndDistanceExercise_showsItsRecordLabels() {
+        val records = setOf(
+            PersonalRecordType.BestDuration,
+            PersonalRecordType.BestDistance,
+            PersonalRecordType.MostSteps,
+            PersonalRecordType.MostFloors,
+        )
         val summary = LiveSummary(
-            SessionSummary(60, 1, listOf(ExerciseSummary(0, "e1", 100.0, true))),
+            SessionSummary(60, 1, listOf(ExerciseSummary(0, "e1", 0.0, false, records))),
+            mapOf(0 to "Cinta"),
+        )
+        show(LiveSessionUiState.Finished(summary))
+
+        listOf("Mejor tiempo", "Mayor distancia", "Más escalones", "Más pisos").forEach {
+            rule.onNode(hasText(it), useUnmergedTree = true).assertExists()
+        }
+    }
+
+    @Test
+    fun summary_withoutRecords_showsNoPills() {
+        val summary = LiveSummary(
+            SessionSummary(60, 1, listOf(ExerciseSummary(0, "e1", 100.0, false))),
             mapOf(0 to "Press banca"),
         )
         show(LiveSessionUiState.Finished(summary))
 
-        rule.onNode(hasText("PR"), useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("session_summary_records_0").assertDoesNotExist()
     }
 
     @Test

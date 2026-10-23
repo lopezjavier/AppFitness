@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -688,6 +689,7 @@ class LiveSessionViewModel(
                 includeWarmUp,
                 bodyMeasurements.getLatestWeight().getOrNull()?.weightKg,
                 exerciseOptions.doubleDumbbellIdsOrDefault(),
+                loadRecordHistory(finished),
             )
             val named = current.exercises.associate { it.position to names[it.exerciseId] }
             busy = false
@@ -729,6 +731,16 @@ class LiveSessionViewModel(
         val result = mutableMapOf<String, List<ExerciseHistoryPoint>>()
         for (id in ids) {
             result[id] = repository.exerciseHistory(id).getOrElse { return null }
+        }
+        return result
+    }
+
+    /** The record aggregates of every exercise with a completed set, or null when any cannot be read (no marks). */
+    private suspend fun loadRecordHistory(finished: WorkoutSession): Map<String, List<ExerciseSessionRecords>>? {
+        val ids = finished.exercises.filter { e -> e.sets.any { it.isCompleted } }.map { it.exerciseId }.distinct()
+        val result = mutableMapOf<String, List<ExerciseSessionRecords>>()
+        for (id in ids) {
+            result[id] = repository.sessionRecords(id).getOrElse { return null }
         }
         return result
     }

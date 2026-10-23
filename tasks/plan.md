@@ -54,6 +54,7 @@ Checkpoint rule: every user-testable item of the epic's tasks is collected first
 
 ### Phase 3: Food editing and closure
 - [ ] T-102: Editing manual foods (US-47) — UI + backend — L
+- [ ] T-102b: Edit a comida (US-47, user request 2026-10-23) — UI — M
 - [ ] T-103: E6 closure — PM — S
   - **Checkpoint E6-C 👤 Food editing, final regression and approval (5 items):** edit a manual food (future entries only; no edit for OFF); portions; the full label in label order; one real workout end to end; the exercise detail, workout detail, calendar and Fuerza with warm-ups on and off. Approval → `v0.6.0` and the retrospective. Why here: food editing alone gives 3 items and only the closure follows it.
 
@@ -69,7 +70,7 @@ Every checkpoint ends with "leave the app and come back: the same tab, screen an
 ```
 v0.5.0 ─► T-089 ─► T-090 ─► T-091 ─► T-092 ─► T-093 ─► T-094 ─► T-095 ─► T-096 ─► T-097 ─► [E6-A 👤]
        ─► T-098 ─► T-099 ─► T-100 ─► T-101 ─► [E6-B 👤]
-       ─► T-102 ─► T-103 ─► [E6-C 👤] ─► v0.6.0
+       ─► T-102 ─► T-102b ─► T-103 ─► [E6-C 👤] ─► v0.6.0
 ```
 - Strictly sequential; each checkpoint gates the next task.
 - Trade-off of fewer checkpoints: T-090…T-097 build on T-089's planned sets before the user tries them (nine tasks before E6-A), and the destructive folder delete (T-098) is tried only at E6-B. Mitigation: the T-089 data migration is verified on production routines (internal milestone) and host tests cover every scenario; a defect found at a checkpoint becomes a `fix(T-###)` task before the next phase.

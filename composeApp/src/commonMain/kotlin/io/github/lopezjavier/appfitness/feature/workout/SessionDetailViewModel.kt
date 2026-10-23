@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -19,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDef
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
+import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetEntryText
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -66,6 +68,9 @@ class SessionDetailViewModel(
 
     /** History of every exercise of the session; null when it could not be read (no records are shown). */
     private var history: Map<String, List<ExerciseHistoryPoint>>? = null
+
+    /** Record aggregates of every exercise of the session; null when they could not be read (no marks). */
+    private var recordHistory: Map<String, List<ExerciseSessionRecords>>? = null
     private var terminal: SessionDetailUiState? = SessionDetailUiState.Loading
     private var online = true
     private var includeWarmUp = false
@@ -137,6 +142,7 @@ class SessionDetailViewModel(
                         bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
                         doubleDumbbellIds = exerciseOptions.doubleDumbbellIdsOrDefault()
                         history = loadHistory(loaded)
+                        recordHistory = loadRecordHistory(loaded)
                         restoreEdit(loaded)
                         terminal = null
                     }
@@ -153,6 +159,14 @@ class SessionDetailViewModel(
         val results = ids.map { id -> async { repository.exerciseHistory(id).getOrNull() } }.awaitAll()
         if (results.any { it == null }) null else ids.zip(results.filterNotNull()).toMap()
     }
+
+    /** The record aggregates of every exercise, or null when any of them cannot be read. */
+    private suspend fun loadRecordHistory(loaded: WorkoutSession): Map<String, List<ExerciseSessionRecords>>? =
+        coroutineScope {
+            val ids = loaded.exercises.map { it.exerciseId }.distinct()
+            val results = ids.map { id -> async { repository.sessionRecords(id).getOrNull() } }.awaitAll()
+            if (results.any { it == null }) null else ids.zip(results.filterNotNull()).toMap()
+        }
 
     private fun openEdit(position: Int, setIndex: Int) {
         val set = session?.exercises?.firstOrNull { it.position == position }
@@ -263,6 +277,13 @@ class SessionDetailViewModel(
     private fun render(): SessionDetailUiState {
         val current = session ?: return SessionDetailUiState.Loading
         val records = history?.let { DetectSessionPersonalRecords(current, it, includeWarmUp) }.orEmpty()
+        val beaten = PersonalRecordCatalogue.beatenIn(
+            current,
+            recordHistory,
+            includeWarmUp,
+            bodyWeightKg,
+            doubleDumbbellIds,
+        )
         return SessionDetailUiState.Content(
             name = current.name,
             label = sessionDateLabel(sessionLocalDate(current.startedAt), clock.today()),
@@ -276,6 +297,7 @@ class SessionDetailViewModel(
                         DetailSet(set.setIndex, set.setType, SetEntryText.format(set.entry))
                     },
                     isPersonalRecord = exercise.exerciseId in records,
+                    records = beaten[exercise.exerciseId].orEmpty(),
                 )
             },
             isOnline = online,

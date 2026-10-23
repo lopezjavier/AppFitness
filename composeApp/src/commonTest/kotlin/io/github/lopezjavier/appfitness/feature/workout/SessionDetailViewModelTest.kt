@@ -9,7 +9,9 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -35,6 +37,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionDetailViewModelTest {
@@ -214,6 +217,67 @@ class SessionDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(false, model.content().exercises.single().isPersonalRecord)
+    }
+
+    private fun earlierRecords(id: String = "old") = ExerciseSessionRecords(
+        id,
+        Instant.parse("2026-10-01T10:00:00Z"),
+        heaviestLift = 80.0,
+        bestSet = 10_000.0,
+        sessionVolume = 100_000.0,
+        bestOneRm = 100.0,
+    )
+
+    @Test
+    fun beatingTheBestOneRepMaxAndTheHeaviestLiftMarksBothRecords() = runTest(dispatcher) {
+        seed()
+        repository.sessionRecords = mapOf("e1" to listOf(earlierRecords()))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(
+            setOf(PersonalRecordType.HeaviestLift, PersonalRecordType.Best1Rm),
+            model.content().exercises.single().records,
+        )
+    }
+
+    @Test
+    fun aWarmUpSetThatWouldBeatTheRecordsMarksNothingWhileExcluded() = runTest(dispatcher) {
+        seedHeavyWarmUp()
+        repository.sessionRecords = mapOf("e1" to listOf(earlierRecords().copy(heaviestLift = 90.0, bestOneRm = 105.0)))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().exercises.single().records.isEmpty())
+    }
+
+    @Test
+    fun aWarmUpSetCountsForTheRecordsWhenThePreferenceIsOn() = runTest(dispatcher) {
+        seedHeavyWarmUp()
+        repository.sessionRecords = mapOf("e1" to listOf(earlierRecords().copy(heaviestLift = 90.0, bestOneRm = 105.0)))
+        trainingPreferences.result = Result.success(TrainingPreferences(warmUpIncluded = true))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(
+            setOf(PersonalRecordType.HeaviestLift, PersonalRecordType.Best1Rm),
+            model.content().exercises.single().records,
+        )
+    }
+
+    @Test
+    fun aFailedRecordsLoadLeavesNoMarksAndStillShowsTheSession() = runTest(dispatcher) {
+        seed()
+        repository.sessionRecords = mapOf("e1" to listOf(earlierRecords()))
+        repository.recordsFailure = AppError.Network
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().exercises.single().records.isEmpty())
     }
 
     @Test
