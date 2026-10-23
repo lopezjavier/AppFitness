@@ -7,6 +7,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -18,6 +21,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -27,6 +32,7 @@ import org.robolectric.annotation.Config
 
 private fun rpeState(
     rpes: List<String?>,
+    done: List<Boolean>,
     picker: RpePickerTarget? = null,
     target: String? = null,
     previous: Map<Int, String> = emptyMap(),
@@ -40,7 +46,15 @@ private fun rpeState(
             "Press banca",
             null,
             rpes.mapIndexed { i, r ->
-                LiveSetRow(i + 1, "102,25", "123", completed = i == 0, previous = previous[i + 1], rpe = r)
+                LiveSetRow(
+                    i + 1,
+                    "102,25",
+                    "123",
+                    completed = done[i],
+                    type = if (i == 2) SetType.WarmUp else SetType.Working,
+                    previous = previous[i + 1],
+                    rpe = r,
+                )
             },
             targetRpeText = target,
         ),
@@ -58,7 +72,7 @@ class LiveSessionRpeTest {
     val rule = createComposeRule()
 
     private fun showStateful(
-        initial: List<String?> = listOf(null, null),
+        initial: List<String?> = listOf(null, null, null),
         target: String? = null,
         previous: Map<Int, String> = emptyMap(),
         fontScale: Float = 1f,
@@ -94,53 +108,79 @@ class LiveSessionRpeTest {
     }
 
     @Test
-    fun loggingTheRpe_pick7_5AndGuardar_showsItInTheCell() {
+    fun loggingTheRpe_pick7_5_showsItInTheCellAndClosesTheSheet() {
         showStateful()
 
         rule.onNodeWithTag("live_set_0_2_rpe").performClick()
         rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("7,5")
-        rule.onNodeWithTag("rpe_picker_done").assertDoesNotExist()
+        rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOff()
     }
 
     @Test
-    fun loggingTheRpe_isAllowedOnACompletedSet() {
-        showStateful()
+    fun changingTheRpeOfACompletedSet_pickUpdatesItAndKeepsItChecked() {
+        showStateful(listOf("8", null, null))
 
         rule.onNodeWithTag("live_set_0_1_rpe").performClick()
+        rule.onNodeWithTag("rpe_picker_option_8").assertIsSelected()
         rule.onNodeWithTag("rpe_picker_option_9").performClick()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("live_set_0_1_rpe").assertTextEquals("9")
+        rule.onNodeWithTag("live_set_0_1_check").assertIsOn()
     }
 
     @Test
-    fun closingWithoutGuardar_changesNothing() {
+    fun checkingAWorkingSetWithoutRpe_opensTheScale_andPickingCompletesIt() {
         showStateful()
 
-        rule.onNodeWithTag("live_set_0_2_rpe").performClick()
-        rule.onNodeWithTag("rpe_picker_option_10").performClick()
+        rule.onNodeWithTag("live_set_0_2_check").performClick()
+        rule.onNodeWithTag("rpe_picker").assertExists()
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOff()
+        rule.onNodeWithTag("rpe_picker_option_8").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOn()
+        rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("8")
+    }
+
+    @Test
+    fun closingThePromptWithoutPicking_leavesTheSetPending() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_2_check").performClick()
         rule.onNodeWithTag("rpe_picker_close").performClick()
         rule.waitForIdle()
 
+        rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOff()
         rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("—")
-        rule.onNodeWithTag("rpe_picker_done").assertDoesNotExist()
     }
 
     @Test
-    fun quitarRpe_clearsTheLoggedValue() {
-        showStateful(listOf("8", null))
+    fun checkingAWarmUpSet_completesWithoutPrompt() {
+        showStateful()
 
-        rule.onNodeWithTag("live_set_0_1_rpe").performClick()
-        rule.onNodeWithTag("rpe_picker_clear").performClick()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
+        rule.onNodeWithTag("live_set_0_3_check").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("live_set_0_1_rpe").assertTextEquals("—")
+        rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
+        rule.onNodeWithTag("live_set_0_3_check").assertIsOn()
+    }
+
+    @Test
+    fun checkingASetThatAlreadyHasRpe_completesWithoutPrompt() {
+        showStateful(listOf("8", "7,5", null))
+
+        rule.onNodeWithTag("live_set_0_2_check").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOn()
     }
 
     @Test
@@ -166,24 +206,25 @@ class LiveSessionRpeTest {
     }
 
     @Test
-    fun openPickerAndStagedValue_surviveRecreation() {
+    fun openPrompt_survivesRecreation_andPickingThenCompletes() {
         val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { StatefulRpeLive(listOf(null, null), null, emptyMap()) } }
-        rule.onNodeWithTag("live_set_0_2_rpe").performClick()
-        rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
+        tester.setContent { AppTheme { StatefulRpeLive(listOf(null, null, null), null, emptyMap()) } }
+        rule.onNodeWithTag("live_set_0_2_check").performClick()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
+        rule.onNodeWithTag("rpe_picker").assertExists()
+        rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("7,5")
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOn()
     }
 
     @Test
     fun at360DpAnd130PercentFont_weightAndRepsAreNotClipped() {
         showStateful(
-            listOf("7,5", null),
+            listOf("7,5", null, null),
             target = "8",
             previous = mapOf(2 to "85 kg × 8\nRPE 8"),
             fontScale = 1.3f,
@@ -197,24 +238,42 @@ class LiveSessionRpeTest {
     }
 }
 
+@Suppress("CyclomaticComplexMethod") // Test harness that mimics the view model's reaction to each event.
 @androidx.compose.runtime.Composable
 private fun StatefulRpeLive(initial: List<String?>, target: String?, previous: Map<Int, String>) {
     var rpes by rememberSaveable { mutableStateOf(initial) }
-    var picker by rememberSaveable { mutableStateOf<Pair<Int, Int>?>(null) }
+    var done by rememberSaveable { mutableStateOf(listOf(true, false, false)) }
+    var picker by rememberSaveable { mutableStateOf<Triple<Int, Int, Boolean>?>(null) }
     LiveSessionScreen(
-        state = rpeState(rpes, picker?.let { RpePickerTarget(it.first, it.second) }, target, previous),
+        state = rpeState(
+            rpes,
+            done,
+            picker?.let { RpePickerTarget(it.first, it.second, it.third) },
+            target,
+            previous,
+        ),
         elapsedSeconds = 0,
         onEvent = { event ->
             when (event) {
-                is LiveSessionEvent.OpenRpePicker -> picker = event.position to event.setIndex
+                is LiveSessionEvent.OpenRpePicker -> picker = Triple(event.position, event.setIndex, false)
 
                 LiveSessionEvent.DismissRpePicker -> picker = null
 
-                is LiveSessionEvent.SetRpeChosen -> {
-                    rpes = rpes.toMutableList().also {
-                        it[event.setIndex - 1] =
-                            event.rpe?.let(io.github.lopezjavier.appfitness.domain.usecase.RpeScale::text)
+                is LiveSessionEvent.SetChecked -> {
+                    val i = event.setIndex - 1
+                    if (event.checked && i > 1) {
+                        done = done.toMutableList().also { it[i] = true }
+                    } else if (event.checked && rpes[i] == null) {
+                        picker = Triple(event.position, event.setIndex, true)
+                    } else {
+                        done = done.toMutableList().also { it[i] = event.checked }
                     }
+                }
+
+                is LiveSessionEvent.SetRpeChosen -> {
+                    val i = event.setIndex - 1
+                    rpes = rpes.toMutableList().also { it[i] = RpeScale.text(event.rpe) }
+                    if (picker?.third == true && !done[i]) done = done.toMutableList().also { it[i] = true }
                     picker = null
                 }
 

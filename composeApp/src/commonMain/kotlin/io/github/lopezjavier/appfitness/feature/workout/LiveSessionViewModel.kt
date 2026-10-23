@@ -87,6 +87,7 @@ private const val KEY_PICKER_POSITION = "live_picker_position"
 private const val KEY_PICKER_SET = "live_picker_set"
 private const val KEY_RPE_PICKER_POSITION = "live_rpe_picker_position"
 private const val KEY_RPE_PICKER_SET = "live_rpe_picker_set"
+private const val KEY_RPE_PICKER_COMPLETES = "live_rpe_picker_completes"
 private const val KEY_DRAFTS = "live_drafts"
 private const val KEY_PAUSE_KNOWN = "live_pause_known"
 private const val KEY_PAUSED_AT = "live_paused_at"
@@ -645,21 +646,47 @@ class LiveSessionViewModel(
     private fun setChecked(event: LiveSessionEvent.SetChecked) {
         val set = findSet(event.position, event.setIndex)
         if (set == null || event.checked == (set.completedAt != null)) return
-        if (event.checked) fillBlankFromSuggestions(event.position, event.setIndex)
-        val filled = findSet(event.position, event.setIndex)
-        if (event.checked && filled?.let { parseEntry(it, metricOf(exerciseIdAt(event.position))) } == null) {
-            updateSet(event.position, event.setIndex) { it.copy(invalid = true) }
-            publish()
-            return
+        if (event.checked) checkSet(event.position, event.setIndex) else uncheckSet(event.position, event.setIndex)
+    }
+
+    /** Validates, then completes the set; a working set without RPE first asks for it (ADR-55). */
+    private fun checkSet(position: Int, setIndex: Int) {
+        fillBlankFromSuggestions(position, setIndex)
+        val filled = findSet(position, setIndex)
+        val valid = filled?.let { parseEntry(it, metricOf(exerciseIdAt(position))) } != null
+        val needsRpe = filled?.setType != SetType.WarmUp && filled?.rpe == null
+        when {
+            !valid -> {
+                updateSet(position, setIndex) { it.copy(invalid = true) }
+                publish()
+            }
+
+            needsRpe -> {
+                updateSet(position, setIndex) { it.copy(invalid = false) }
+                setRpePicker(RpePickerTarget(position, setIndex, completesSet = true))
+            }
+
+            else -> completeSet(position, setIndex)
         }
-        if (event.checked) haptics.tick()
-        val completedAt = if (event.checked) clock.now() else null
+    }
+
+    private fun uncheckSet(position: Int, setIndex: Int) {
         val now = clock.now()
-        updateSet(event.position, event.setIndex) {
-            it.copy(completedAt = completedAt, invalid = false, stopwatch = it.stopwatch.stop(now))
+        updateSet(position, setIndex) {
+            it.copy(completedAt = null, invalid = false, stopwatch = it.stopwatch.stop(now))
         }
-        write(event.position, event.setIndex)
-        if (event.checked) startRest(event.position)
+        write(position, setIndex)
+    }
+
+    /** Haptic, completion stamp, stopwatch stop, one write and the rest timer. */
+    private fun completeSet(position: Int, setIndex: Int) {
+        haptics.tick()
+        val now = clock.now()
+        updateSet(position, setIndex) {
+            it.copy(completedAt = now, invalid = false, stopwatch = it.stopwatch.stop(now))
+        }
+        write(position, setIndex)
+        startRest(position)
     }
 
     /** Untouched fields log the suggested (grey) values: planned first, then the last performance. */
@@ -707,13 +734,21 @@ class LiveSessionViewModel(
 
     /** Applies the chosen RPE (also to a completed set) and queues the write; an off-grid value is ignored. */
     private fun chooseRpe(event: LiveSessionEvent.SetRpeChosen) {
+        val completes = rpePicker?.completesSet == true
         rpePicker = null
-        if (findSet(event.position, event.setIndex) == null || event.rpe?.let(RpeScale::isValid) == false) {
+        val set = findSet(event.position, event.setIndex)
+        if (set == null || !RpeScale.isValid(event.rpe)) {
             publish()
             return
         }
         updateSet(event.position, event.setIndex) { it.copy(rpe = event.rpe) }
-        write(event.position, event.setIndex)
+        if (completes &&
+            set.completedAt == null
+        ) {
+            completeSet(event.position, event.setIndex)
+        } else {
+            write(event.position, event.setIndex)
+        }
     }
 
     private fun addSet(position: Int) {
@@ -814,7 +849,7 @@ class LiveSessionViewModel(
         }
         rpePicker = rpePicker?.let { picker ->
             shiftedBy(picker.position to picker.setIndex, position, setIndex)
-                ?.let { RpePickerTarget(it.first, it.second) }
+                ?.let { picker.copy(position = it.first, setIndex = it.second) }
         }
         val before = queue.drain().filterNot { it.exercisePosition == position && it.setIndex == setIndex }
         deleteOps.addLast(DeleteOp(current.id, position, setIndex, before.toMutableList()))
@@ -1103,7 +1138,8 @@ class LiveSessionViewModel(
     private fun restoredRpePicker(): RpePickerTarget? {
         val position = savedState.get<Int>(KEY_RPE_PICKER_POSITION)
         val setIndex = savedState.get<Int>(KEY_RPE_PICKER_SET)
-        return if (position != null && setIndex != null) RpePickerTarget(position, setIndex) else null
+        val completes = savedState.get<Boolean>(KEY_RPE_PICKER_COMPLETES) ?: false
+        return if (position != null && setIndex != null) RpePickerTarget(position, setIndex, completes) else null
     }
 
     private fun restoredDoubleDumbbellDraft(): DoubleDumbbellDraft? {
@@ -1121,6 +1157,7 @@ class LiveSessionViewModel(
         savedState[KEY_PICKER_SET] = typePicker?.setIndex
         savedState[KEY_RPE_PICKER_POSITION] = rpePicker?.position
         savedState[KEY_RPE_PICKER_SET] = rpePicker?.setIndex
+        savedState[KEY_RPE_PICKER_COMPLETES] = rpePicker?.completesSet
         session?.takeIf { terminal == null }?.let {
             savedState[KEY_PAUSE_KNOWN] = true
             savedState[KEY_PAUSED_AT] = it.pausedAt?.toString()
@@ -1160,6 +1197,7 @@ class LiveSessionViewModel(
         savedState.remove<Int>(KEY_PICKER_SET)
         savedState.remove<Int>(KEY_RPE_PICKER_POSITION)
         savedState.remove<Int>(KEY_RPE_PICKER_SET)
+        savedState.remove<Boolean>(KEY_RPE_PICKER_COMPLETES)
         savedState.remove<List<String>>(KEY_DRAFTS)
         savedState.remove<Boolean>(KEY_PAUSE_KNOWN)
         savedState.remove<String>(KEY_PAUSED_AT)

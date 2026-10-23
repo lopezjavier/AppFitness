@@ -1,14 +1,8 @@
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -27,17 +21,20 @@ class RpePickerSheetTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val reported = mutableListOf<Double?>()
+    private val reported = mutableListOf<Double>()
     private var dismissed = 0
 
     private fun show(current: Double? = null) {
         rule.setContent {
             AppTheme {
-                RpePickerSheet(current, 2, onDone = { reported += it }, onDismiss = { dismissed++ })
+                RpePickerSheet(current, 2, onSelect = { reported += it }, onDismiss = { dismissed++ })
             }
         }
         rule.waitForIdle()
     }
+
+    private fun top(value: Double) =
+        rule.onNodeWithTag(RpePickerDefaults.optionTag(value)).fetchSemanticsNode().boundsInRoot.top
 
     @Test
     fun showsNineOptions_eachAtLeast48DpTall() {
@@ -52,76 +49,40 @@ class RpePickerSheetTest {
     }
 
     @Test
-    fun choosingAnOptionAndGuardar_reportsIt() {
+    fun optionsAreListedFromTenAtTheTopDownToSix() {
+        show()
+
+        assertEquals((10 downTo 6).map { it.toDouble() }, RpePickerDefaults.Options.filter { it % 1.0 == 0.0 })
+        assertTrue(top(10.0) < top(8.0))
+        assertTrue(top(8.0) < top(6.0))
+    }
+
+    @Test
+    fun tappingAnOption_reportsItOnce_withoutGuardarOrQuitarNodes() {
         show()
 
         rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
-        rule.onNodeWithTag("rpe_picker_option_7_5").assertIsSelected()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
 
-        assertEquals(listOf<Double?>(7.5), reported)
-    }
-
-    @Test
-    fun guardarIsDisabled_untilTheStagedValueDiffers() {
-        show(current = 8.0)
-
-        rule.onNodeWithTag("rpe_picker_done").assertIsNotEnabled()
-        rule.onNodeWithTag("rpe_picker_option_8_5").performClick()
-        rule.onNodeWithTag("rpe_picker_done").assertIsEnabled()
-    }
-
-    @Test
-    fun quitarRpe_onlyStagesTheClear_andGuardarReportsNull() {
-        show(current = 8.0)
-
-        rule.onNodeWithTag("rpe_picker_clear").performClick()
-        assertTrue(reported.isEmpty())
-        rule.onNodeWithTag("rpe_picker_clear").assertDoesNotExist()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
-
-        assertEquals(listOf<Double?>(null), reported)
-    }
-
-    @Test
-    fun quitarRpe_isHiddenWhenNothingIsStaged() {
-        show()
-
+        assertEquals(listOf(7.5), reported)
+        rule.onNodeWithTag("rpe_picker_done").assertDoesNotExist()
         rule.onNodeWithTag("rpe_picker_clear").assertDoesNotExist()
     }
 
     @Test
-    fun closing_reportsNothingToSave() {
+    fun theCurrentValueIsSelected_andTheOthersAreNot() {
+        show(current = 8.0)
+
+        rule.onNodeWithTag("rpe_picker_option_8").assertIsSelected()
+        rule.onNodeWithTag("rpe_picker_option_8_5").assertIsNotSelected()
+    }
+
+    @Test
+    fun closing_callsOnDismissOnly() {
         show()
 
-        rule.onNodeWithTag("rpe_picker_option_9").performClick()
         rule.onNodeWithTag("rpe_picker_close").performClick()
 
         assertTrue(reported.isEmpty())
         assertEquals(1, dismissed)
-    }
-
-    @Test
-    fun stagedChoice_survivesRecreation() {
-        val tester = StateRestorationTester(rule)
-        tester.setContent {
-            AppTheme {
-                var open by rememberSaveable { mutableStateOf(true) }
-                if (open) {
-                    RpePickerSheet(null, 1, onDone = {
-                        reported += it
-                        open = false
-                    }, onDismiss = { open = false })
-                }
-            }
-        }
-        rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-        rule.onNodeWithTag("rpe_picker_option_7_5").assertIsSelected()
-        rule.onNodeWithTag("rpe_picker_done").performClick()
-
-        assertEquals(listOf<Double?>(7.5), reported)
     }
 }

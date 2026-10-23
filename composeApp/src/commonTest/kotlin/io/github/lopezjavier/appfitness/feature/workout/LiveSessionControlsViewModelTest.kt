@@ -106,6 +106,7 @@ class LiveSessionControlsViewModelTest {
 
     private fun TestScope.check(vm: LiveSessionViewModel, position: Int, index: Int) {
         vm.onEvent(LiveSessionEvent.SetChecked(position, index, true))
+        vm.onEvent(LiveSessionEvent.SetRpeChosen(position, index, 8.0)) // Answers the RPE prompt (ADR-55).
         runCurrent()
     }
 

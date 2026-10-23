@@ -316,10 +316,8 @@
     <string name="live_rpe_cell_cd">RPE de la serie %1$s, %2$s. Toca para cambiarlo</string>
     <string name="live_rpe_empty_state">sin registrar</string>
     <string name="rpe_picker_title">RPE de la serie %1$s</string>
-    <string name="rpe_picker_hint">6 es ligero, 10 es esfuerzo máximo</string>
+    <string name="rpe_picker_hint">Toca un valor para guardarlo y completar la serie</string>
     <string name="rpe_picker_option_cd">RPE %1$s</string>
-    <string name="rpe_picker_done">Guardar</string>
-    <string name="rpe_picker_clear">Quitar RPE</string>
     <string name="rpe_picker_close_cd">Cerrar selector de RPE</string>
     <string name="live_target_rpe">Objetivo RPE %1$s</string>
     <string name="routine_builder_target_rpe_label">RPE objetivo</string>

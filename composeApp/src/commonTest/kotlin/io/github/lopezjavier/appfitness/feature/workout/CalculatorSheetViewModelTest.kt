@@ -328,6 +328,7 @@ class CalculatorSheetViewModelTest {
         val vm = loaded()
         type(vm, 0, 1, "100", "5")
         send(vm, LiveSessionEvent.SetChecked(0, 1, true))
+        send(vm, LiveSessionEvent.SetRpeChosen(0, 1, 8.0)) // Answers the RPE prompt (ADR-55).
         runCurrent()
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
         send(vm, LiveSessionEvent.CalculatorWeightChanged("100"))
@@ -421,7 +422,8 @@ class CalculatorSheetViewModelTest {
         connectivity.state.value = false
         val vm = loaded()
         type(vm, 0, 1, "100", "5")
-        send(vm, LiveSessionEvent.SetChecked(0, 1, true)) // Queued under index 1.
+        send(vm, LiveSessionEvent.SetChecked(0, 1, true))
+        send(vm, LiveSessionEvent.SetRpeChosen(0, 1, 8.0)) // Completes the set, queued under index 1.
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
 
         send(vm, LiveSessionEvent.AddWarmUpSets(0, fourSets))
