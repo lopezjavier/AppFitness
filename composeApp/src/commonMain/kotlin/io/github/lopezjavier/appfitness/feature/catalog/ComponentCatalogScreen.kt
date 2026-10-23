@@ -32,9 +32,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_but
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_cards
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_chips
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_segmented
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_tabs
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_enabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_pressed
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_strategy_deficit
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_strategy_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_strategy_surplus
@@ -48,6 +52,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.timeframe_3m
 import io.github.lopezjavier.appfitness.composeapp.resources.timeframe_3m_desc
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
@@ -81,6 +86,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         item { ButtonsSection() }
         item { ChipsSection() }
         item { SegmentedSection() }
+        item { TabsSection() }
         dataVizItems()
         workoutInputItems()
         pickerItems()
@@ -226,6 +232,30 @@ private fun SegmentedSection() {
             selectedIndex = selected,
             onSelect = { selected = it },
             modifier = Modifier.testTag("catalog_segmented"),
+        )
+    }
+}
+
+@Composable
+private fun TabsSection() {
+    var selected by rememberSaveable { mutableIntStateOf(0) }
+    val summary = stringResource(Res.string.exercise_tab_summary)
+    val history = stringResource(Res.string.exercise_tab_history)
+    val howTo = stringResource(Res.string.exercise_tab_how_to)
+    val options =
+        remember(summary, history, howTo) {
+            listOf(
+                AppOption(summary, "catalog_tab_summary"),
+                AppOption(history, "catalog_tab_history"),
+                AppOption(howTo, "catalog_tab_how_to"),
+            )
+        }
+    CatalogSection(stringResource(Res.string.catalog_section_tabs), "catalog_section_tabs") {
+        AppTabRow(
+            options = options,
+            selectedIndex = selected,
+            onSelect = { selected = it },
+            modifier = Modifier.testTag("catalog_tabs"),
         )
     }
 }
