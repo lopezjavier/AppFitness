@@ -25,16 +25,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_body_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_double_dumbbell
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_save
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_title
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -43,6 +47,8 @@ import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.feature.routines.ActionsSheet
 import io.github.lopezjavier.appfitness.feature.routines.SheetActionRow
@@ -76,21 +82,62 @@ internal fun ExerciseMenuButton(
     }
 }
 
-/** The exercise's actions sheet: today only "Descanso", which [onRest] opens the rest sheet for. */
+/**
+ * The exercise's actions sheet: "Descanso", "Contar mancuerna doble" (dumbbell exercises only) and "Actualizar peso
+ * corporal" (bodyweight and assisted ones; disabled with its reason when Health Connect owns today's weight).
+ */
 @Composable
-internal fun ExerciseMenuSheet(position: Int, onRest: () -> Unit, onDismiss: () -> Unit) {
+@Suppress("LongParameterList") // One callback per action.
+internal fun ExerciseMenuSheet(
+    position: Int,
+    exercise: LiveExercise,
+    healthConnectToday: Boolean,
+    onRest: () -> Unit,
+    onDoubleDumbbell: () -> Unit,
+    onBodyWeight: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val prefix = "live_exercise_$position"
     ActionsSheet(
         title = stringResource(Res.string.live_exercise_menu_title),
         onDismiss = onDismiss,
-        testTagPrefix = "live_exercise_${position}_menu_sheet",
+        testTagPrefix = "${prefix}_menu_sheet",
     ) {
         SheetActionRow(
             label = stringResource(Res.string.live_exercise_menu_rest),
             onClick = onRest,
-            testTag = "live_exercise_${position}_menu_rest",
+            testTag = "${prefix}_menu_rest",
         )
+        if (exercise.equipment == Equipment.Dumbbell) {
+            SheetActionRow(
+                label = stringResource(Res.string.live_exercise_menu_double_dumbbell),
+                onClick = onDoubleDumbbell,
+                testTag = "${prefix}_menu_double_dumbbell",
+            )
+        }
+        if (exercise.metricType in BODY_WEIGHT_TYPES) {
+            val note = stringResource(Res.string.weight_hc_note)
+            SheetActionRow(
+                label = stringResource(Res.string.live_exercise_menu_body_weight),
+                onClick = onBodyWeight,
+                testTag = "${prefix}_menu_body_weight",
+                modifier = if (healthConnectToday) Modifier.semantics { stateDescription = note } else Modifier,
+                enabled = !healthConnectToday,
+            )
+            if (healthConnectToday) {
+                Text(
+                    text = note,
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("${prefix}_body_weight_hc_note"),
+                )
+            }
+        }
     }
 }
+
+/** Weighted exercises are excluded: they count the added load only, not the body weight. */
+private val BODY_WEIGHT_TYPES = setOf(ExerciseMetricType.Bodyweight, ExerciseMetricType.Assisted)
 
 /**
  * Rest of one exercise for this session only: a stepper in 10 s steps within [RoutineBounds] and "Guardar".

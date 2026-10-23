@@ -250,6 +250,16 @@ RLS via the parent routine exercise -> routine owner, forced. Existing routines 
 
 Owner-only RLS (enabled and forced). Helper `warm_up_included()` returns the caller's flag (false without a row). No row = default.
 
+### `exercise_options` (E6, T-093, ADR-54)
+| Column | Type | Notes |
+|---|---|---|
+| user_id | uuid | default `auth.uid()`, FK `auth.users` on delete cascade |
+| exercise_id | uuid | FK `exercises` on delete cascade; PK `(user_id, exercise_id)` |
+| double_dumbbell | boolean | not null, default false; "Contar mancuerna doble", only meaningful for `equipment = 'dumbbell'` |
+| updated_at | timestamptz | trigger |
+
+Owner-only RLS (enabled and forced). Helper `volume_factor(exercise_id)` returns 2 when the caller's flag is on and the exercise is a dumbbell exercise, else 1; it multiplies `set_volume` in `exercise_history` and `weekly_muscle_volume`. Written through `set_exercise_double_dumbbell(p_exercise_id uuid, p_enabled boolean) returns void` (security invoker, upsert; `22023` for a non-dumbbell exercise, `P0002` when the exercise is not found). No row = defaults (off).
+
 ### `workout_sessions` (US-11, extended in E6)
 | Column | Type | Notes |
 |---|---|---|

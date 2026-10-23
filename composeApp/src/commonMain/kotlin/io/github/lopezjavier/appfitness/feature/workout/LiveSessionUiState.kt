@@ -63,6 +63,9 @@ data class TypePickerTarget(val position: Int, val setIndex: Int)
 /** The set (exercise [position], [setIndex]) whose RPE picker is open. */
 data class RpePickerTarget(val position: Int, val setIndex: Int)
 
+/** The unsaved switch of the "Mancuerna doble" sheet of [exerciseId]; nothing is sent until "Guardar". */
+data class DoubleDumbbellDraft(val exerciseId: String, val enabled: Boolean)
+
 /** The confirmation sheet of "Finalizar entreno": [pendingCount] sets are not completed and will be dropped. */
 data class FinishSheet(val pendingCount: Int)
 
@@ -97,6 +100,18 @@ sealed interface LiveSessionUiState {
         val typePicker: TypePickerTarget? = null,
         /** The set whose RPE picker is open; null when closed. Survives process death (ADR-40). */
         val rpePicker: RpePickerTarget? = null,
+        /** Exercises counted double ("Contar mancuerna doble"); empty when none or unreadable. */
+        val doubleDumbbellIds: Set<String> = emptySet(),
+        /** The latest body weight in kg (prefills the body-weight sheet); null when there is none. */
+        val bodyWeightKg: Double? = null,
+        /** Today already has a Health Connect weight (ADR-47): the body-weight update is disabled. */
+        val todayHasHealthConnectWeight: Boolean = false,
+        /** Unsaved switch of the double-dumbbell sheet; null when not drafting. Survives process death (ADR-40). */
+        val doubleDumbbellDraft: DoubleDumbbellDraft? = null,
+        /** Weight as typed in the body-weight sheet; null when not drafting. Survives process death (ADR-40). */
+        val bodyWeightDraft: String? = null,
+        /** "Guardar" was refused because the typed weight is not valid; cleared by the next edit. */
+        val bodyWeightInvalid: Boolean = false,
     ) : LiveSessionUiState {
         val actionsBlocked: Boolean get() = !isOnline
         val queuedCount: Int get() = exercises.sumOf { exercise -> exercise.sets.count { it.pendingSave } }
@@ -184,6 +199,21 @@ sealed interface LiveSessionEvent {
 
     data object ConfirmDiscard : LiveSessionEvent
 
+    /** The switch of the "Mancuerna doble" sheet changed (draft only). */
+    data class DoubleDumbbellDraftChanged(val exerciseId: String, val enabled: Boolean) : LiveSessionEvent
+
+    /** "Guardar" in the "Mancuerna doble" sheet: stores the option (all sessions, past and future). */
+    data class SetDoubleDumbbell(val exerciseId: String, val enabled: Boolean) : LiveSessionEvent
+
+    /** The weight field of the body-weight sheet changed (draft only). */
+    data class BodyWeightDraftChanged(val text: String) : LiveSessionEvent
+
+    /** "Guardar" in the body-weight sheet: stores [text] (kg, decimal comma) as today's manual weight. */
+    data class SaveBodyWeight(val text: String) : LiveSessionEvent
+
+    /** Either options sheet was closed without saving (X, back, scrim, swipe): both drafts are dropped. */
+    data object DismissVolumeDrafts : LiveSessionEvent
+
     /** "Listo" on the summary. */
     data object Done : LiveSessionEvent
 }
@@ -197,4 +227,7 @@ sealed interface LiveSessionEffect {
 
     /** Finishing or discarding failed; message only, the state is unchanged. */
     data object ActionFailed : LiveSessionEffect
+
+    /** Saving the double-dumbbell option or the body weight failed; the sheet stays open with its draft. */
+    data object OptionSaveFailed : LiveSessionEffect
 }

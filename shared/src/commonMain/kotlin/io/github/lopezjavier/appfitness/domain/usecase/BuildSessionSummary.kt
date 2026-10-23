@@ -26,6 +26,7 @@ object BuildSessionSummary {
         history: Map<String, List<ExerciseHistoryPoint>>?,
         includeWarmUp: Boolean = false,
         bodyWeightKg: Double? = null,
+        doubleDumbbellExerciseIds: Set<String> = emptySet(),
     ): SessionSummary {
         val best = session.exercises.groupBy { it.exerciseId }
             .mapValues { (_, rows) -> bestOneRepMax(rows, includeWarmUp) }
@@ -39,7 +40,7 @@ object BuildSessionSummary {
                 ExerciseSummary(
                     it.position,
                     it.exerciseId,
-                    CalculateVolume(it.sets, includeWarmUp, bodyWeightKg),
+                    CalculateVolume(it.sets, includeWarmUp, bodyWeightKg, it.exerciseId in doubleDumbbellExerciseIds),
                     it.exerciseId in records,
                 )
             },

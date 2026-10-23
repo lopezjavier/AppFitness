@@ -74,6 +74,7 @@ fun LiveSessionRoot(
     val currentAddExercise by rememberUpdatedState(onAddExercise)
     val currentConsume by rememberUpdatedState(onConsumeSelection)
     val failed = stringResource(Res.string.live_action_failed)
+    var optionSaveFailed by remember { mutableStateOf(false) }
     LaunchedEffect(selectedExerciseId) {
         if (selectedExerciseId != null) {
             viewModel.onEvent(LiveSessionEvent.ExerciseSelected(selectedExerciseId))
@@ -84,8 +85,13 @@ fun LiveSessionRoot(
         viewModel.effects.collect { effect ->
             when (effect) {
                 LiveSessionEffect.OpenPicker -> currentAddExercise()
+
                 LiveSessionEffect.Closed -> currentClose()
+
                 LiveSessionEffect.ActionFailed -> snackbarHost.showSnackbar(failed)
+
+                // The options sheets show their own "No se pudo guardar" message.
+                LiveSessionEffect.OptionSaveFailed -> optionSaveFailed = true
             }
         }
     }
@@ -96,8 +102,27 @@ fun LiveSessionRoot(
         viewModel.onEvent(LiveSessionEvent.Resume)
         onPauseOrDispose { viewModel.onEvent(LiveSessionEvent.Pause) }
     }
-    LiveSessionScreen(state, elapsed, viewModel::onEvent, onClose, onOpenExercise, modifier, snackbarHost)
+    val onEvent = { event: LiveSessionEvent ->
+        if (event.isOptionEdit()) optionSaveFailed = false
+        viewModel.onEvent(event)
+    }
+    LiveSessionScreen(
+        state,
+        elapsed,
+        onEvent,
+        onClose,
+        onOpenExercise,
+        modifier,
+        snackbarHost,
+        optionSaveFailed,
+    )
 }
+
+private fun LiveSessionEvent.isOptionEdit() = this is LiveSessionEvent.DoubleDumbbellDraftChanged ||
+    this is LiveSessionEvent.SetDoubleDumbbell ||
+    this is LiveSessionEvent.BodyWeightDraftChanged ||
+    this is LiveSessionEvent.SaveBodyWeight ||
+    this is LiveSessionEvent.DismissVolumeDrafts
 
 /**
  * The live workout: top bar, one card per exercise and a sticky "Finalizar entreno" bar. Loading shows skeleton
@@ -113,6 +138,7 @@ fun LiveSessionScreen(
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    optionSaveFailed: Boolean = false,
 ) {
     Box(modifier.fillMaxSize().background(AppTheme.colors.surfaceBase).testTag("live_screen")) {
         when (state) {
@@ -138,6 +164,7 @@ fun LiveSessionScreen(
                 onBack,
                 snackbarHost,
                 onOpenExercise,
+                optionSaveFailed,
             )
 
             is LiveSessionUiState.Finished ->
@@ -192,6 +219,7 @@ private fun LiveActive(
     onBack: () -> Unit,
     snackbarHost: SnackbarHostState,
     onOpenExercise: (String) -> Unit,
+    optionSaveFailed: Boolean,
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
@@ -204,7 +232,14 @@ private fun LiveActive(
                 contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
             ) {
-                items(state.exercises, key = { it.position }) { LiveExerciseCard(it, onEvent, onOpenExercise) }
+                items(state.exercises, key = { it.position }) {
+                    LiveExerciseCard(
+                        it,
+                        onEvent,
+                        onOpenExercise,
+                        options = state.volumeOptionsFor(it, optionSaveFailed),
+                    )
+                }
                 item(key = "add_exercise") {
                     SecondaryButton(
                         text = stringResource(Res.string.live_add_exercise),

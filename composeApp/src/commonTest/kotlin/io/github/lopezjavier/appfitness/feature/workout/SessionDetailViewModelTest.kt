@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -41,6 +42,7 @@ class SessionDetailViewModelTest {
     private val repository = FakeWorkoutSessionRepository()
     private val trainingPreferences = FakeTrainingPreferencesRepository()
     private val bodyMeasurements = FakeWeightRepository()
+    private val options = FakeExerciseOptionsRepository()
     private val connectivity = FakeConnectivityObserver()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
 
@@ -60,6 +62,7 @@ class SessionDetailViewModelTest {
             clock = MutableClock(),
             preferences = trainingPreferences,
             bodyMeasurements = bodyMeasurements,
+            exerciseOptions = options,
             savedState = savedState,
         )
 
@@ -90,6 +93,20 @@ class SessionDetailViewModelTest {
         assertEquals("Press banca", exercise.name)
         assertEquals(listOf(1, 2), exercise.sets.map { it.setIndex })
         assertEquals("87,5 kg × 8", exercise.sets[0].text)
+    }
+
+    @Test
+    fun detailVolumeFollowsTheDoubleDumbbellOption() = runTest(dispatcher) {
+        seed()
+        options.ids = setOf("e1")
+        val on = viewModel()
+        advanceUntilIdle()
+        assertEquals(2800.0, on.content().stats.volumeKg)
+
+        options.ids = emptySet()
+        val off = viewModel()
+        advanceUntilIdle()
+        assertEquals(1400.0, off.content().stats.volumeKg)
     }
 
     @Test
