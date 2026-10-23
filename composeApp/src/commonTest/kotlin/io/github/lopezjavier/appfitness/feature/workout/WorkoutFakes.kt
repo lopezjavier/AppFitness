@@ -109,12 +109,15 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         entry: SetEntry,
         completedAt: Instant?,
         setType: SetType,
+        rpe: Double?,
     ): Result<Unit> {
         failing(upsertFailure)?.let { return it }
         applyToCompleted(sessionId, exercisePosition, setIndex, entry)
-        storeSetType(sessionId, exercisePosition, setIndex, setType)
+        storeSetTypeAndRpe(sessionId, exercisePosition, setIndex, setType, rpe)
         upserts +=
-            SetWrite(sessionId, exerciseId, exercisePosition, supersetGroup, setIndex, entry, completedAt, setType)
+            SetWrite(
+                sessionId, exerciseId, exercisePosition, supersetGroup, setIndex, entry, completedAt, setType, rpe,
+            )
         return Result.success(Unit)
     }
 
@@ -144,7 +147,7 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     }
 
     /** The server keeps the set type of the in-progress session, so a reload shows it. */
-    private fun storeSetType(sessionId: String, position: Int, setIndex: Int, setType: SetType) {
+    private fun storeSetTypeAndRpe(sessionId: String, position: Int, setIndex: Int, setType: SetType, rpe: Double?) {
         val stored = session?.takeIf { it.id == sessionId } ?: return
         session = stored.copy(
             exercises = stored.exercises.map { exercise ->
@@ -152,7 +155,9 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
                     exercise
                 } else {
                     exercise.copy(
-                        sets = exercise.sets.map { if (it.setIndex == setIndex) it.copy(setType = setType) else it },
+                        sets = exercise.sets.map {
+                            if (it.setIndex == setIndex) it.copy(setType = setType, rpe = rpe) else it
+                        },
                     )
                 }
             },

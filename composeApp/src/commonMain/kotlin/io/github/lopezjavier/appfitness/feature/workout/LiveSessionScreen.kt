@@ -219,4 +219,5 @@ private fun LiveActive(
     }
     LiveDialogs(state, menuOpen, onCloseMenu = { menuOpen = false }, onEvent)
     LiveTypePicker(state, onEvent)
+    LiveRpePicker(state, onEvent)
 }

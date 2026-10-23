@@ -24,6 +24,8 @@ data class LiveSetRow(
     val pendingSave: Boolean = false,
     /** Checking was refused because the weight or the reps are missing; cleared by the next edit. */
     val invalid: Boolean = false,
+    /** The logged RPE as "7,5"; null when none (the UI shows the empty marker). */
+    val rpe: String? = null,
 )
 
 /** An exercise card. [name] is null when the library has no name for it (the UI shows a generic label). */
@@ -35,6 +37,8 @@ data class LiveExercise(
     val sets: List<LiveSetRow>,
     /** Rest after each set of this exercise in this session (0 = no timer); editable per session only. */
     val restSeconds: Int = RoutineBounds.DEFAULT_REST_SECONDS,
+    /** The routine's target RPE as "8"; null when the exercise has none or the session is free. */
+    val targetRpeText: String? = null,
 )
 
 /** The running rest countdown: [remaining] of [total] (the total grows when time is added past it). */
@@ -42,6 +46,9 @@ data class RestTimerUi(val remaining: Duration, val total: Duration)
 
 /** The set (exercise [position], [setIndex]) whose type picker is open. */
 data class TypePickerTarget(val position: Int, val setIndex: Int)
+
+/** The set (exercise [position], [setIndex]) whose RPE picker is open. */
+data class RpePickerTarget(val position: Int, val setIndex: Int)
 
 /** The confirmation sheet of "Finalizar entreno": [pendingCount] sets are not completed and will be dropped. */
 data class FinishSheet(val pendingCount: Int)
@@ -75,6 +82,8 @@ sealed interface LiveSessionUiState {
         val restTimer: RestTimerUi? = null,
         /** The set whose type picker is open; null when closed. Survives process death (ADR-40). */
         val typePicker: TypePickerTarget? = null,
+        /** The set whose RPE picker is open; null when closed. Survives process death (ADR-40). */
+        val rpePicker: RpePickerTarget? = null,
     ) : LiveSessionUiState {
         val actionsBlocked: Boolean get() = !isOnline
         val queuedCount: Int get() = exercises.sumOf { exercise -> exercise.sets.count { it.pendingSave } }
@@ -95,6 +104,15 @@ sealed interface LiveSessionEvent {
 
     /** "Listo" in the picker: sets the type of the set (pending or completed) and saves it; Working removes a type. */
     data class SetTypeChosen(val position: Int, val setIndex: Int, val type: SetType) : LiveSessionEvent
+
+    /** Tap on the RPE cell of a set (pending or completed): opens the RPE picker for it. */
+    data class OpenRpePicker(val position: Int, val setIndex: Int) : LiveSessionEvent
+
+    /** The RPE picker was closed without saving: nothing changes. */
+    data object DismissRpePicker : LiveSessionEvent
+
+    /** "Guardar" in the RPE picker: sets the RPE of the set and saves it; null ("Quitar RPE") clears it. */
+    data class SetRpeChosen(val position: Int, val setIndex: Int, val rpe: Double?) : LiveSessionEvent
 
     data class WeightChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
 

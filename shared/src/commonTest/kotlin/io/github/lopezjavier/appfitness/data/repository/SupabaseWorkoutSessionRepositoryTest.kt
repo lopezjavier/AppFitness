@@ -38,7 +38,7 @@ private const val SESSION_ROW =
         """{"exercise_id":"e2","exercise_position":1,"superset_group":null,"set_index":1,"set_type":"working",""" +
         """"weight_kg":0,"reps":0,"completed_at":null},""" +
         """{"exercise_id":"e1","exercise_position":0,"superset_group":3,"set_index":2,"set_type":"working",""" +
-        """"weight_kg":80.5,"reps":8,"completed_at":"2026-10-19T10:10:00+00:00"},""" +
+        """"weight_kg":80.5,"reps":8,"rpe":7.5,"completed_at":"2026-10-19T10:10:00+00:00"},""" +
         """{"exercise_id":"e1","exercise_position":0,"superset_group":3,"set_index":1,"set_type":"warm_up",""" +
         """"weight_kg":40,"reps":10,"completed_at":"2026-10-19T10:05:00+00:00"}]}]"""
 
@@ -140,6 +140,8 @@ class SupabaseWorkoutSessionRepositoryTest {
         assertEquals(SetType.WarmUp, first.sets[0].setType)
         assertEquals(SetEntry.WeightReps(80.5, 8), first.sets[1].entry)
         assertEquals(2, first.sets.count { it.isCompleted })
+        assertEquals(7.5, first.sets[1].rpe)
+        assertNull(first.sets[0].rpe)
         assertEquals(false, session.exercises[1].sets.single().isCompleted)
         val query = rest().single().url.encodedQuery
         assertTrue("status=eq.in_progress" in query, query)
@@ -181,6 +183,24 @@ class SupabaseWorkoutSessionRepositoryTest {
         assertTrue(""""set_type":"working"""" in body, body)
         assertTrue(""""weight_kg":80.5""" in body && """"reps":8""" in body, body)
         assertTrue(""""completed_at":"2026-10-19T10:10:00Z"""" in body, body)
+    }
+
+    @Test
+    fun upsertSet_sendsTheRpe() = runTest {
+        val repo = signedIn()
+
+        repo.upsertSet("s1", "e1", 0, null, 2, SetEntry.WeightReps(80.5, 8), null, rpe = 7.5).getOrThrow()
+
+        assertTrue(""""rpe":7.5""" in bodyOf(rest().single()))
+    }
+
+    @Test
+    fun upsertSet_withoutRpe_sendsANullSoItCanBeCleared() = runTest {
+        val repo = signedIn()
+
+        repo.upsertSet("s1", "e1", 0, null, 2, SetEntry.WeightReps(80.5, 8), null).getOrThrow()
+
+        assertTrue(""""rpe":null""" in bodyOf(rest().single()))
     }
 
     @Test
@@ -243,6 +263,18 @@ class SupabaseWorkoutSessionRepositoryTest {
         assertEquals("/rest/v1/rpc/last_performance", call.url.encodedPath)
         assertEquals("""{"p_exercise_id":"e1"}""", bodyOf(call))
         assertEquals(listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 82.5, 8)), sets)
+    }
+
+    @Test
+    fun lastPerformance_decodesTheRpeAndNull() = runTest {
+        val repo = signedIn()
+        rpcBody =
+            """[{"set_index":1,"weight_kg":80,"reps":10,"rpe":8},""" +
+            """{"set_index":2,"weight_kg":82.5,"reps":8,"rpe":null}]"""
+
+        val sets = repo.lastPerformance("e1").getOrThrow()
+
+        assertEquals(listOf(8.0, null), sets.map { it.rpe })
     }
 
     @Test

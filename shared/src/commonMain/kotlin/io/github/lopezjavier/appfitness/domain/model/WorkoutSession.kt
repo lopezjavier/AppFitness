@@ -3,7 +3,13 @@ package io.github.lopezjavier.appfitness.domain.model
 import kotlin.time.Instant
 
 /** One set of a session. A set is pending until [completedAt] is set; finishing the session drops pending sets. */
-data class WorkoutSet(val setIndex: Int, val setType: SetType, val entry: SetEntry, val completedAt: Instant?) {
+data class WorkoutSet(
+    val setIndex: Int,
+    val setType: SetType,
+    val entry: SetEntry,
+    val completedAt: Instant?,
+    val rpe: Double? = null,
+) {
     val isCompleted: Boolean get() = completedAt != null
 }
 

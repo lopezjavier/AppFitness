@@ -16,8 +16,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.RpePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.feature.routines.ActionsSheet
 import io.github.lopezjavier.appfitness.feature.routines.SheetActionRow
 import org.jetbrains.compose.resources.stringResource
@@ -32,6 +34,20 @@ internal fun LiveTypePicker(state: LiveSessionUiState.Active, onEvent: (LiveSess
         current = current,
         onDone = { onEvent(LiveSessionEvent.SetTypeChosen(target.position, target.setIndex, it)) },
         onDismiss = { onEvent(LiveSessionEvent.DismissTypePicker) },
+    )
+}
+
+/** The RPE picker of the targeted set; "Guardar" applies the choice (null clears it), dismissing changes nothing. */
+@Composable
+internal fun LiveRpePicker(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+    val target = state.rpePicker ?: return
+    val row = state.exercises.firstOrNull { it.position == target.position }
+        ?.sets?.firstOrNull { it.setIndex == target.setIndex } ?: return
+    RpePickerSheet(
+        current = row.rpe?.let(RpeScale::parse),
+        setNumber = row.setIndex,
+        onDone = { onEvent(LiveSessionEvent.SetRpeChosen(target.position, target.setIndex, it)) },
+        onDismiss = { onEvent(LiveSessionEvent.DismissRpePicker) },
     )
 }
 

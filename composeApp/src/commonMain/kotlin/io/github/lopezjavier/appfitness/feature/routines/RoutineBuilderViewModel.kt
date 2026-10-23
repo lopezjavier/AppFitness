@@ -171,6 +171,9 @@ class RoutineBuilderViewModel(
                 row.copy(restSeconds = rest.coerceIn(RoutineBounds.REST_MIN_SECONDS, RoutineBounds.REST_MAX_SECONDS))
             }
 
+        is RoutineBuilderEvent.StepTargetRpe ->
+            event.index to { row -> row.copy(targetRpe = steppedRpe(row.targetRpe, event.delta)) }
+
         else -> null
     }
 
@@ -302,6 +305,7 @@ class RoutineBuilderViewModel(
                         imageKey = exercise?.takeIf { it.hasMedia }?.exercise?.key,
                         plannedSets = row.sets.map { it.toUi() },
                         restSeconds = row.restSeconds,
+                        targetRpe = row.targetRpe,
                         supersetLabel = labels[index],
                         canMoveUp = index > 0,
                         canMoveDown = index < lastIndex,

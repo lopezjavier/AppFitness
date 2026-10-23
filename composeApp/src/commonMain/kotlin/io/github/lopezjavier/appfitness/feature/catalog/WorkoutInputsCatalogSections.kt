@@ -27,6 +27,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_text_field
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_1
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_2
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_rpe_clickable_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_type_clickable_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_increase_cd
@@ -54,6 +55,8 @@ private const val GRAMS_MAX_INTEGER_DIGITS = 4
 private const val COMPLETED_ROW_WEIGHT = "60"
 private const val COMPLETED_ROW_REPS = "12"
 private const val THIRD_SET = 3
+private const val FIFTH_SET = 5
+private const val CATALOG_RPE = "7,5"
 private const val FOURTH_SET = 4
 private const val STEPPER_START = -400
 private const val STEPPER_STEP = 50
@@ -239,8 +242,34 @@ private fun SetRowsSection() {
                     testTagPrefix = "catalog_set_row_3",
                 )
                 TappableTypeRow()
+                RpeRowDemo()
             }
         }
+    }
+}
+
+/** A row with the optional RPE column: each tap on the RPE cell toggles "7,5" / none. */
+@Composable
+private fun RpeRowDemo() {
+    var rpe by rememberSaveable { mutableStateOf<String?>(null) }
+    Column(verticalArrangement = Arrangement.spacedBy(SetRowDefaults.RowGap)) {
+        SetTableHeader(Modifier.testTag("catalog_set_rpe_header"), showRpe = true)
+        SetRow(
+            values = SetRowValues(
+                index = FIFTH_SET,
+                previous = null,
+                weight = "",
+                reps = "",
+                completed = false,
+                rpe = rpe,
+            ),
+            onWeightChange = {},
+            onRepsChange = {},
+            onCompletedChange = {},
+            testTagPrefix = "catalog_set_row_rpe",
+            onRpeClick = { rpe = if (rpe == null) CATALOG_RPE else null },
+            rpeClickLabel = stringResource(Res.string.catalog_set_rpe_clickable_cd),
+        )
     }
 }
 

@@ -237,6 +237,26 @@ class SessionDetailViewModelTest {
     }
 
     @Test
+    fun correctingASet_keepsItsLoggedRpe() = runTest(dispatcher) {
+        val base = completedSession("s1")
+        val exercise = base.exercises.single()
+        repository.completed += base.copy(
+            exercises = listOf(
+                exercise.copy(sets = exercise.sets.map { if (it.setIndex == 2) it.copy(rpe = 8.5) else it }),
+            ),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.EditSet(0, 2))
+
+        model.onEvent(SessionDetailEvent.RepsChanged("7"))
+        model.onEvent(SessionDetailEvent.SaveSet)
+        advanceUntilIdle()
+
+        assertEquals(8.5, repository.upserts.single().rpe)
+    }
+
+    @Test
     fun correctingASetRecomputesTheRecordMark() = runTest(dispatcher) {
         seed()
         // 87.5 x 8 -> 1RM 110.5 beats 110.0; after correcting both sets to 5 reps (102) it no longer does.

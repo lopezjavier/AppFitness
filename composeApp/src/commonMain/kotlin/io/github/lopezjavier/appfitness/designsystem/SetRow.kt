@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +33,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_previous
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_reps
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_reps_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
+import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_weight_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_reps_cd
@@ -51,6 +54,8 @@ data class SetRowValues(
     val weightPlaceholder: String? = null,
     val repsPlaceholder: String? = null,
     val type: SetType = SetType.Working,
+    /** The logged RPE as "7,5"; null shows the empty marker. Only rendered when the row has an RPE handler. */
+    val rpe: String? = null,
 )
 
 object SetRowDefaults {
@@ -72,6 +77,20 @@ object SetRowDefaults {
     const val KG_WEIGHT = 3.5f
     const val REPS_WEIGHT = 2f
 
+    // Weighted columns when the fixed 48 dp RPE cell is present (UX: ~48 / 64 / 43 dp at 360 dp).
+    const val PREVIOUS_WEIGHT_RPE = 2.25f
+    const val KG_WEIGHT_RPE = 3f
+    const val REPS_WEIGHT_RPE = 2f
+    const val PREVIOUS_MAX_LINES_RPE = 3
+
+    fun previousWeight(withRpe: Boolean): Float = if (withRpe) PREVIOUS_WEIGHT_RPE else PREVIOUS_WEIGHT
+
+    fun kgWeight(withRpe: Boolean): Float = if (withRpe) KG_WEIGHT_RPE else KG_WEIGHT
+
+    fun repsWeight(withRpe: Boolean): Float = if (withRpe) REPS_WEIGHT_RPE else REPS_WEIGHT
+
+    fun previousMaxLines(withRpe: Boolean): Int = if (withRpe) PREVIOUS_MAX_LINES_RPE else PREVIOUS_MAX_LINES
+
     fun previousText(previous: String?): String = if (previous.isNullOrBlank()) NO_PREVIOUS else previous
 
     /** "catalog_set_row_2" and "weight" give "catalog_set_row_2_weight"; no prefix gives no tag. */
@@ -89,8 +108,10 @@ object SetRowDefaults {
  * One set of a workout table: index, previous performance, KG and reps inputs and the completion
  * checkbox. A completed row makes both inputs read-only. [onUsePrevious] (optional) makes the previous
  * cell tappable on pending rows. When [testTagPrefix] is set the children are tagged `_previous`,
- * `_weight`, `_reps`, `_check` and `_type` (the badge). [onTypeClick] (optional) makes the badge a 48 dp button
- * described by [typeClickLabel]. Pair it with a [SetTableHeader] above, which names the columns.
+ * `_weight`, `_reps`, `_check`, `_type` (the badge) and `_rpe`. [onTypeClick]
+ * (optional) makes the badge a 48 dp button described by [typeClickLabel]. [onRpeClick] (optional) adds a fixed
+ * 48 dp RPE cell between reps and the checkbox, spoken as [rpeClickLabel]; it stays tappable on completed rows.
+ * Pair it with a [SetTableHeader] above, which names the columns.
  */
 @Composable
 fun SetRow(
@@ -103,7 +124,10 @@ fun SetRow(
     testTagPrefix: String? = null,
     onTypeClick: (() -> Unit)? = null,
     typeClickLabel: String? = null,
+    onRpeClick: (() -> Unit)? = null,
+    rpeClickLabel: String? = null,
 ) {
+    val withRpe = onRpeClick != null
     val number = AppNumberFormat.integer(values.index)
     val previousText = SetRowDefaults.previousText(values.previous)
     val clickable = SetRowDefaults.isPreviousClickable(onUsePrevious != null, values.previous, values.completed)
@@ -123,25 +147,20 @@ fun SetRow(
             text = previousText,
             contentDescription = stringResource(Res.string.set_row_use_previous_cd, previousText),
             onClick = onUsePrevious.takeIf { clickable },
-            modifier = Modifier.weight(SetRowDefaults.PREVIOUS_WEIGHT).tag(testTagPrefix, "previous"),
+            maxLines = SetRowDefaults.previousMaxLines(withRpe),
+            modifier = Modifier.weight(SetRowDefaults.previousWeight(withRpe)).tag(testTagPrefix, "previous"),
         )
-        NumberInput(
-            value = values.weight,
-            onValueChange = onWeightChange,
-            label = stringResource(Res.string.set_row_weight_cd, number),
-            modifier = Modifier.weight(SetRowDefaults.KG_WEIGHT).tag(testTagPrefix, "weight"),
-            placeholder = values.weightPlaceholder,
-            maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
-            maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
-            showLabel = false,
-            readOnly = values.completed,
-            imeAction = ImeAction.Next,
+        WeightInput(
+            values = values,
+            number = number,
+            onChange = onWeightChange,
+            modifier = Modifier.weight(SetRowDefaults.kgWeight(withRpe)).tag(testTagPrefix, "weight"),
         )
         NumberInput(
             value = values.reps,
             onValueChange = onRepsChange,
             label = stringResource(Res.string.set_row_reps_cd, number),
-            modifier = Modifier.weight(SetRowDefaults.REPS_WEIGHT).tag(testTagPrefix, "reps"),
+            modifier = Modifier.weight(SetRowDefaults.repsWeight(withRpe)).tag(testTagPrefix, "reps"),
             placeholder = values.repsPlaceholder,
             maxDecimals = SetRowDefaults.REPS_MAX_DECIMALS,
             maxIntegerDigits = SetRowDefaults.REPS_MAX_INTEGER_DIGITS,
@@ -149,6 +168,14 @@ fun SetRow(
             readOnly = values.completed,
             imeAction = ImeAction.Done,
         )
+        if (onRpeClick != null) {
+            RpeCell(
+                value = values.rpe,
+                description = rpeClickLabel,
+                onClick = onRpeClick,
+                modifier = Modifier.tag(testTagPrefix, "rpe"),
+            )
+        }
         SetCompletionCheckbox(
             checked = values.completed,
             onCheckedChange = onCompletedChange,
@@ -156,6 +183,27 @@ fun SetRow(
             modifier = Modifier.tag(testTagPrefix, "check"),
         )
     }
+}
+
+@Composable
+private fun WeightInput(
+    values: SetRowValues,
+    number: String,
+    onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NumberInput(
+        value = values.weight,
+        onValueChange = onChange,
+        label = stringResource(Res.string.set_row_weight_cd, number),
+        modifier = modifier,
+        placeholder = values.weightPlaceholder,
+        maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
+        maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
+        showLabel = false,
+        readOnly = values.completed,
+        imeAction = ImeAction.Next,
+    )
 }
 
 private fun Modifier.tag(prefix: String?, part: String): Modifier =
@@ -167,13 +215,14 @@ private fun PreviousCell(
     contentDescription: String,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    maxLines: Int = SetRowDefaults.PREVIOUS_MAX_LINES,
 ) {
     val label: @Composable (Modifier) -> Unit = { textModifier ->
         Text(
             text = text,
             style = AppTheme.typography.bodySmall,
             color = AppTheme.colors.ghostData,
-            maxLines = SetRowDefaults.PREVIOUS_MAX_LINES,
+            maxLines = maxLines,
             modifier = textModifier,
         )
     }
@@ -193,12 +242,32 @@ private fun PreviousCell(
     }
 }
 
+/** Fixed 48 dp button showing the logged RPE ("7,5") in the training accent or the empty marker. */
+@Composable
+private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(SetCompletionCheckboxDefaults.TouchTarget)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { if (description != null) contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = value ?: SetRowDefaults.NO_PREVIOUS,
+            style = AppTheme.typography.bodyMedium,
+            color = if (value == null) AppTheme.colors.textSecondary else AppTheme.colors.athleticCyan,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+    }
+}
+
 /**
  * Column headers of a set table ("SERIE · ANTERIOR · KG · REPS · LISTO") on the same column widths as
  * [SetRow]. Not interactive: each field speaks its own label.
  */
 @Composable
-fun SetTableHeader(modifier: Modifier = Modifier) {
+fun SetTableHeader(modifier: Modifier = Modifier, showRpe: Boolean = false) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
@@ -210,19 +279,30 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
             spoken = stringResource(Res.string.set_header_index_cd),
             centered = true,
         )
-        HeaderText(stringResource(Res.string.set_header_previous), Modifier.weight(SetRowDefaults.PREVIOUS_WEIGHT))
+        HeaderText(
+            stringResource(Res.string.set_header_previous),
+            Modifier.weight(SetRowDefaults.previousWeight(showRpe)),
+        )
         HeaderText(
             text = stringResource(Res.string.set_header_weight),
-            modifier = Modifier.weight(SetRowDefaults.KG_WEIGHT),
+            modifier = Modifier.weight(SetRowDefaults.kgWeight(showRpe)),
             spoken = stringResource(Res.string.set_header_weight_cd),
             centered = true,
         )
         HeaderText(
             text = stringResource(Res.string.set_header_reps),
-            modifier = Modifier.weight(SetRowDefaults.REPS_WEIGHT),
+            modifier = Modifier.weight(SetRowDefaults.repsWeight(showRpe)),
             spoken = stringResource(Res.string.set_header_reps_cd),
             centered = true,
         )
+        if (showRpe) {
+            HeaderText(
+                text = stringResource(Res.string.set_header_rpe),
+                modifier = Modifier.width(SetCompletionCheckboxDefaults.TouchTarget),
+                spoken = stringResource(Res.string.set_header_rpe_cd),
+                centered = true,
+            )
+        }
         HeaderText(
             text = stringResource(Res.string.set_header_done),
             modifier = Modifier.width(SetCompletionCheckboxDefaults.TouchTarget),

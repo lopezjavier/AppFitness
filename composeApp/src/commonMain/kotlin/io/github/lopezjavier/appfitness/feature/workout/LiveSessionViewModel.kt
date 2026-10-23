@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
 import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
 import io.github.lopezjavier.appfitness.domain.usecase.RestTimer
+import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
@@ -60,6 +61,8 @@ private const val RETRY_BASE_MILLIS = 1000L
 
 private const val KEY_PICKER_POSITION = "live_picker_position"
 private const val KEY_PICKER_SET = "live_picker_set"
+private const val KEY_RPE_PICKER_POSITION = "live_rpe_picker_position"
+private const val KEY_RPE_PICKER_SET = "live_rpe_picker_set"
 private const val KEY_DRAFTS = "live_drafts"
 private const val DRAFT_SEPARATOR = ''
 private const val DRAFT_FIELDS = 4
@@ -76,6 +79,7 @@ private data class SetState(
     val weightPlaceholder: String? = null,
     val repsPlaceholder: String? = null,
     val invalid: Boolean = false,
+    val rpe: Double? = null,
 )
 
 private data class ExerciseState(
@@ -119,6 +123,9 @@ class LiveSessionViewModel(
     /** Planned sets of the session's routine by (position, setIndex); empty when the routine is gone or unread. */
     private var planned: Map<Pair<Int, Int>, PlannedSet> = emptyMap()
 
+    /** Target RPE of the session's routine by exercise position; empty for free sessions. */
+    private var targetRpes: Map<Int, Double> = emptyMap()
+
     /** Last performance per exercise id; a missing key means no ghost. */
     private var ghosts: MutableMap<String, List<PreviousSet>> = mutableMapOf()
     private var restTimer: RestTimer? = null
@@ -134,6 +141,7 @@ class LiveSessionViewModel(
 
     /** The set whose type picker is open; mirrored in [savedState] so it survives process death. */
     private var typePicker: TypePickerTarget? = restoredPicker()
+    private var rpePicker: RpePickerTarget? = restoredRpePicker()
     private var terminal: LiveSessionUiState? = LiveSessionUiState.Loading
 
     private val queue = PendingSetQueue()
@@ -189,6 +197,12 @@ class LiveSessionViewModel(
             LiveSessionEvent.DismissTypePicker -> setPicker(null)
 
             is LiveSessionEvent.SetTypeChosen -> chooseType(event)
+
+            is LiveSessionEvent.OpenRpePicker -> openRpePicker(event.position, event.setIndex)
+
+            LiveSessionEvent.DismissRpePicker -> setRpePicker(null)
+
+            is LiveSessionEvent.SetRpeChosen -> chooseRpe(event)
 
             is LiveSessionEvent.WeightChanged -> editSet(event.position, event.setIndex) {
                 it.copy(weight = event.text, invalid = false)
@@ -249,6 +263,7 @@ class LiveSessionViewModel(
                         loadNames()
                         session = loaded.toState().withRestoredDrafts()
                         typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
+                        rpePicker = rpePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
                         ghosts = mutableMapOf()
                         coroutineScope {
@@ -287,6 +302,13 @@ class LiveSessionViewModel(
                     it.position == exercise.position && it.exerciseId == exercise.exerciseId
                 }
                 match?.plannedSets?.forEachIndexed { index, set -> put(exercise.position to (index + 1), set) }
+            }
+        }
+        targetRpes = buildMap {
+            loaded.exercises.forEach { exercise ->
+                routine?.exercises
+                    ?.firstOrNull { it.position == exercise.position && it.exerciseId == exercise.exerciseId }
+                    ?.targetRpe?.let { put(exercise.position, it) }
             }
         }
     }
@@ -385,6 +407,26 @@ class LiveSessionViewModel(
             return
         }
         updateSet(event.position, event.setIndex) { it.copy(setType = event.type) }
+        write(event.position, event.setIndex)
+    }
+
+    private fun openRpePicker(position: Int, setIndex: Int) {
+        if (terminal == null && findSet(position, setIndex) != null) setRpePicker(RpePickerTarget(position, setIndex))
+    }
+
+    private fun setRpePicker(target: RpePickerTarget?) {
+        rpePicker = target
+        publish()
+    }
+
+    /** Applies the chosen RPE (also to a completed set) and queues the write; an off-grid value is ignored. */
+    private fun chooseRpe(event: LiveSessionEvent.SetRpeChosen) {
+        rpePicker = null
+        if (findSet(event.position, event.setIndex) == null || event.rpe?.let(RpeScale::isValid) == false) {
+            publish()
+            return
+        }
+        updateSet(event.position, event.setIndex) { it.copy(rpe = event.rpe) }
         write(event.position, event.setIndex)
     }
 
@@ -504,6 +546,7 @@ class LiveSessionViewModel(
                 entry = parseEntry(set) ?: SetEntry.WeightReps(0.0, 0),
                 completedAt = set.completedAt,
                 setType = set.setType,
+                rpe = set.rpe,
             ),
         )
         if (online) {
@@ -543,6 +586,7 @@ class LiveSessionViewModel(
                 write.entry,
                 write.completedAt,
                 write.setType,
+                write.rpe,
             ).isSuccess
             if (!sent) {
                 allSent = false
@@ -586,10 +630,18 @@ class LiveSessionViewModel(
         return if (position != null && setIndex != null) TypePickerTarget(position, setIndex) else null
     }
 
+    private fun restoredRpePicker(): RpePickerTarget? {
+        val position = savedState.get<Int>(KEY_RPE_PICKER_POSITION)
+        val setIndex = savedState.get<Int>(KEY_RPE_PICKER_SET)
+        return if (position != null && setIndex != null) RpePickerTarget(position, setIndex) else null
+    }
+
     /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
     private fun persistState() {
         savedState[KEY_PICKER_POSITION] = typePicker?.position
         savedState[KEY_PICKER_SET] = typePicker?.setIndex
+        savedState[KEY_RPE_PICKER_POSITION] = rpePicker?.position
+        savedState[KEY_RPE_PICKER_SET] = rpePicker?.setIndex
         if (terminal != null) return
         val drafts = session?.exercises.orEmpty().flatMap { exercise ->
             exercise.sets.filter { it.completedAt == null && (it.weight.isNotEmpty() || it.reps.isNotEmpty()) }
@@ -601,8 +653,11 @@ class LiveSessionViewModel(
     /** The session is over: its picker target and drafts must not leak into the next one. */
     private fun clearSavedState() {
         typePicker = null
+        rpePicker = null
         savedState.remove<Int>(KEY_PICKER_POSITION)
         savedState.remove<Int>(KEY_PICKER_SET)
+        savedState.remove<Int>(KEY_RPE_PICKER_POSITION)
+        savedState.remove<Int>(KEY_RPE_PICKER_SET)
         savedState.remove<List<String>>(KEY_DRAFTS)
     }
 
@@ -665,9 +720,11 @@ class LiveSessionViewModel(
                             previous = GhostData.previousText(ghost),
                             pendingSave = (exercise.position to set.setIndex) in unsynced,
                             invalid = set.invalid,
+                            rpe = set.rpe?.let(RpeScale::text),
                         )
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
+                    targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
                 )
             },
             restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total) },
@@ -676,6 +733,7 @@ class LiveSessionViewModel(
             discardConfirm = discardAsked,
             busy = busy,
             typePicker = typePicker,
+            rpePicker = rpePicker,
         )
     }
 
@@ -702,6 +760,7 @@ class LiveSessionViewModel(
             weight = entry?.takeIf { done || it.weightKg != 0.0 }?.let { weightText(it.weightKg) }.orEmpty(),
             reps = entry?.takeIf { done || it.reps != 0 }?.reps?.toString().orEmpty(),
             completedAt = completedAt,
+            rpe = rpe,
         )
     }
 
@@ -723,6 +782,7 @@ class LiveSessionViewModel(
                         set.setType,
                         parseEntry(set) ?: SetEntry.WeightReps(0.0, 0),
                         set.completedAt,
+                        set.rpe,
                     )
                 },
             )

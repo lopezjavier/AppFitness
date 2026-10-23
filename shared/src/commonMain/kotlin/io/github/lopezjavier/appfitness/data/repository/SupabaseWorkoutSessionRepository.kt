@@ -88,6 +88,7 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
         entry: SetEntry,
         completedAt: Instant?,
         setType: SetType,
+        rpe: Double?,
     ): Result<Unit> = auth.ownRow {
         val values = entry as SetEntry.WeightReps
         val dto = WorkoutSetUpsertDto(
@@ -99,6 +100,7 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
             setType = setType,
             weightKg = values.weightKg,
             reps = values.reps,
+            rpe = rpe,
             completedAt = completedAt?.toString(),
         )
         postgrest.from("workout_sets").upsert(dto) { onConflict = "session_id,exercise_position,set_index" }

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(9);
+select plan(10);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -28,17 +28,17 @@ insert into public.workout_sessions (id, user_id, name, status, started_at, ende
    '2026-02-01 10:00+00', '2026-02-01 11:00+00');
 
 insert into public.workout_sets
-  (session_id, exercise_id, exercise_position, set_index, weight_kg, reps, completed_at) values
-  ('a2000000-0000-4000-8000-000000000001', (select id from cat where n = 1), 0, 1, 50, 10, '2026-01-01 10:10+00'),
-  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 0, 2, 85, 8, '2026-01-08 10:20+00'),
-  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 0, 1, 82.5, 10, '2026-01-08 10:10+00'),
-  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 0, 3, 90, 5, null),
-  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 1, 1, 10, 20, '2026-01-08 10:40+00'),
-  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 2), 2, 1, 70, 8, null),
-  ('a2000000-0000-4000-8000-000000000003', (select id from cat where n = 1), 0, 1, 500, 5, '2026-01-20 10:10+00'),
-  ('a2000000-0000-4000-8000-000000000004', (select id from cat where n = 1), 0, 1, 600, 5, '2026-01-25 10:10+00'),
-  ('b1000000-0000-4000-8000-000000000001', (select id from cat where n = 1), 0, 1, 400, 3, '2026-02-01 10:10+00'),
-  ('b1000000-0000-4000-8000-000000000001', (select id from cat where n = 3), 1, 1, 300, 3, '2026-02-01 10:10+00');
+  (session_id, exercise_id, exercise_position, set_index, weight_kg, reps, completed_at, rpe) values
+  ('a2000000-0000-4000-8000-000000000001', (select id from cat where n = 1), 0, 1, 50, 10, '2026-01-01 10:10+00', null),
+  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 0, 2, 85, 8, '2026-01-08 10:20+00', 8),
+  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 0, 1, 82.5, 10, '2026-01-08 10:10+00', null),
+  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 0, 3, 90, 5, null, null),
+  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 1), 1, 1, 10, 20, '2026-01-08 10:40+00', null),
+  ('a2000000-0000-4000-8000-000000000002', (select id from cat where n = 2), 2, 1, 70, 8, null, null),
+  ('a2000000-0000-4000-8000-000000000003', (select id from cat where n = 1), 0, 1, 500, 5, '2026-01-20 10:10+00', null),
+  ('a2000000-0000-4000-8000-000000000004', (select id from cat where n = 1), 0, 1, 600, 5, '2026-01-25 10:10+00', null),
+  ('b1000000-0000-4000-8000-000000000001', (select id from cat where n = 1), 0, 1, 400, 3, '2026-02-01 10:10+00', null),
+  ('b1000000-0000-4000-8000-000000000001', (select id from cat where n = 3), 1, 1, 300, 3, '2026-02-01 10:10+00', null);
 
 select function_privs_are('public', 'last_performance', array['uuid'], 'anon', array[]::text[],
   'anon cannot execute last_performance');
@@ -53,6 +53,10 @@ select results_eq(
   $$select set_index, weight_kg, reps from public.last_performance((select id from cat where n = 1))$$,
   $$values (1, 82.5::numeric, 10), (2, 85::numeric, 8)$$,
   'returns the completed sets of the latest completed session ordered by set_index');
+select results_eq(
+  $$select set_index, rpe from public.last_performance((select id from cat where n = 1))$$,
+  $$values (1, null::numeric), (2, 8::numeric)$$,
+  'returns the logged rpe, null where it was not logged');
 select is(
   (select count(*)::int from public.last_performance((select id from cat where n = 1)) where weight_kg in (500, 600, 50, 90, 10)),
   0, 'ignores pending sets, discarded, in-progress, older sessions and later positions of the same exercise');

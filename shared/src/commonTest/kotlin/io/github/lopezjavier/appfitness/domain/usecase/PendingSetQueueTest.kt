@@ -5,13 +5,14 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class PendingSetQueueTest {
     private val at = Instant.parse("2026-10-19T10:00:00Z")
 
-    private fun write(position: Int, index: Int, weight: Double = 60.0) = SetWrite(
+    private fun write(position: Int, index: Int, weight: Double = 60.0, rpe: Double? = null) = SetWrite(
         sessionId = "s1",
         exerciseId = "e$position",
         exercisePosition = position,
@@ -20,6 +21,7 @@ class PendingSetQueueTest {
         entry = SetEntry.WeightReps(weight, 10),
         completedAt = at,
         setType = SetType.Working,
+        rpe = rpe,
     )
 
     @Test
@@ -69,5 +71,22 @@ class PendingSetQueueTest {
 
         assertTrue(queue.isEmpty)
         assertFalse(queue.contains(0, 1))
+    }
+
+    @Test
+    fun theQueuedWriteKeepsItsRpe() {
+        val queue = PendingSetQueue()
+        queue.enqueue(write(0, 1, rpe = 7.5))
+
+        assertEquals(7.5, queue.snapshot().single().rpe)
+    }
+
+    @Test
+    fun aNewerWriteWithoutRpeReplacesTheOldOne() {
+        val queue = PendingSetQueue()
+        queue.enqueue(write(0, 1, rpe = 7.5))
+        queue.enqueue(write(0, 1, rpe = null))
+
+        assertNull(queue.snapshot().single().rpe)
     }
 }

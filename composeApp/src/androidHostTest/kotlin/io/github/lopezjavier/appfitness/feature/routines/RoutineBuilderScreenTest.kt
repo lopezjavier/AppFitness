@@ -285,6 +285,25 @@ class RoutineBuilderScreenTest {
     }
 
     @Test
+    fun targetRpeStepper_startsWithoutTarget_thenShows8_andSavePersistsIt() {
+        val vm = show()
+        rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
+        vm.add("a")
+
+        rule.onNodeWithTag("routine_builder_target_rpe_0_value").assertTextEquals("Sin objetivo")
+        rule.onNodeWithTag("routine_builder_target_rpe_0_decrement").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_target_rpe_0_increment").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_target_rpe_0_value").assertTextEquals("8")
+        assertTrue(repository.saved.isEmpty())
+
+        rule.onNodeWithTag("routine_builder_save_button").performClick()
+        rule.waitForIdle()
+
+        assertEquals(8.0, repository.saved.single().exercises.single().targetRpe)
+    }
+
+    @Test
     fun restStepper_changesTheValue() {
         show().add("a")
 

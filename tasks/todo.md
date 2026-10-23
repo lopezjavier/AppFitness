@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Next task: T-091 (RPE per set), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-091 (RPE per set, 2026-10-23). Next task: T-092 (exercise metric types), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2313,16 +2313,16 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** The live set row gets an RPE cell. Tapping it opens a picker from 6 to 10 in half points ("7,5"), with its own "Guardar" (ADR-45), and the value is saved in `workout_sets.rpe`. A new migration replaces `last_performance` so it also returns `rpe`, and the ghost shows "RPE 8" for that set. Target RPE: the routine builder sets a target RPE per exercise (`routine_exercises.target_rpe`, ADR-50; no schema change), passed through `save_routine` and `start_workout_session`, and the exercise's working sets in the live session show "Objetivo RPE 8". Spanish decimal formatting (`04` §5).
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: `last_performance` returns `rpe`; other users' and discarded sessions still ignored.
-- [ ] Picking "7,5" stores 7.5 and the cell shows "7,5"; values outside 6–10 or off the half-point grid are impossible.
-- [ ] Previous session with RPE 8 on set 2 → the ghost of set 2 shows "RPE 8"; no previous RPE → nothing extra.
-- [ ] An exercise planned with target RPE 8 → its working sets show "Objetivo RPE 8"; editing the target in the builder needs "Guardar".
-- [ ] Picker draft restored after leaving the app.
+- [x] Migration + pgTAP: `last_performance` returns `rpe`; other users' and discarded sessions still ignored.
+- [x] Picking "7,5" stores 7.5 and the cell shows "7,5"; values outside 6–10 or off the half-point grid are impossible.
+- [x] Previous session with RPE 8 on set 2 → the ghost of set 2 shows "RPE 8"; no previous RPE → nothing extra.
+- [x] An exercise planned with target RPE 8 → its working sets show "Objetivo RPE 8"; editing the target in the builder needs "Guardar".
+- [x] Picker draft restored after leaving the app.
 
 **Host tests (per scenario):** `RpeScaleTest` (6–10 half points, "7,5" format); `GhostDataTest` additions (Previous RPE); `LiveSessionViewModelTest` (Logging the RPE; Target RPE); `LiveSessionScreenTest` (cell text, "Objetivo RPE 8"); `RoutineBuilderViewModelTest` (target RPE); restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-090

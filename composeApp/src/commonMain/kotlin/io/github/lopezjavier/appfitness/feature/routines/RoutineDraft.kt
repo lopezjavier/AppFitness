@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.moveExercise
 import io.github.lopezjavier.appfitness.domain.usecase.normalizeGroups
 import kotlinx.serialization.Serializable
@@ -24,6 +25,7 @@ internal data class DraftRow(
     val sets: List<DraftSet>,
     val restSeconds: Int,
     val group: Int?,
+    val targetRpe: Double? = null,
 )
 
 /** The editable routine. Serializable so it survives process death inside the [SavedStateHandle]. */
@@ -160,6 +162,7 @@ internal fun RoutineDraft.toRoutine(id: String?) = Routine(
             supersetGroup = row.group,
             plannedSets = row.sets.map { it.toPlannedSet() ?: PlannedSet(null, RoutineBounds.REPS_MIN, it.type) },
             restSeconds = row.restSeconds,
+            targetRpe = row.targetRpe,
         )
     },
 )
@@ -175,9 +178,19 @@ internal fun Routine.toDraft(): RoutineDraft {
                 sets = exercise.plannedSets.map { it.toDraft(setId++) },
                 restSeconds = exercise.restSeconds,
                 group = groups[index],
+                targetRpe = exercise.targetRpe,
             )
         }
     return RoutineDraft(name = name, notes = notes, rows = rows, nextRowId = rows.size.toLong(), nextSetId = setId)
+}
+
+private const val DEFAULT_TARGET_RPE = 8.0
+
+/** One half-point step of a target RPE: none + up = 8, 10 + up stays 10, 6 + down = none. */
+internal fun steppedRpe(current: Double?, delta: Int): Double? {
+    if (current == null) return if (delta > 0) DEFAULT_TARGET_RPE else null
+    val next = current + delta * RpeScale.STEP
+    return if (next < RpeScale.MIN) null else next.coerceAtMost(RpeScale.MAX)
 }
 
 internal fun encode(draft: RoutineDraft): String = Json.encodeToString(RoutineDraft.serializer(), draft)

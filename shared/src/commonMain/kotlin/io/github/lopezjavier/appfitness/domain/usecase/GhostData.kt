@@ -10,8 +10,14 @@ object GhostData {
     fun forSet(previous: List<PreviousSet>, setIndex: Int): PreviousSet? =
         previous.firstOrNull { it.setIndex == setIndex }
 
-    /** "85 kg × 8", or null when there is nothing to show (the UI renders the dash). */
-    fun previousText(set: PreviousSet?): String? = set?.let { "${weightText(it.weightKg)} kg × ${it.reps}" }
+    /** "85 kg × 8" plus a second line "RPE 8" when last time logged one; null when there is nothing to show. */
+    fun previousText(set: PreviousSet?): String? = set?.let {
+        val base = "${weightText(it.weightKg)} kg × ${it.reps}"
+        rpeText(it)?.let { rpe -> "$base\n$rpe" } ?: base
+    }
+
+    /** "RPE 8", or null when the previous set had no RPE. */
+    fun rpeText(set: PreviousSet?): String? = set?.rpe?.let { "RPE ${RpeScale.text(it)}" }
 
     /** The weight without a trailing zero and with a decimal comma: "60", "82,5". */
     fun weightText(weightKg: Double): String {

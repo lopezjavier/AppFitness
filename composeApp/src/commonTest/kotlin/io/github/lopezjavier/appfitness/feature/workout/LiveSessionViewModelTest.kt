@@ -1302,6 +1302,198 @@ class LiveSessionViewModelTest {
         assertEquals("82,5" to "7", added.weightPlaceholder to added.repsPlaceholder)
     }
 
+    // --- RPE per set (US-30, ADR-50) ---
+
+    private fun LiveSessionViewModel.chooseRpe(position: Int, setIndex: Int, rpe: Double?) {
+        onEvent(LiveSessionEvent.SetRpeChosen(position, setIndex, rpe))
+    }
+
+    @Test
+    fun openingTheRpePicker_exposesTheTarget_andDismissingChangesNothing() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.OpenRpePicker(0, 2))
+        assertEquals(RpePickerTarget(0, 2), vm.active().rpePicker)
+        vm.onEvent(LiveSessionEvent.DismissRpePicker)
+
+        assertNull(vm.active().rpePicker)
+        assertTrue(repository.upserts.isEmpty())
+    }
+
+    @Test
+    fun pickingAnRpe_showsItInTheRow_andSavesIt() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.OpenRpePicker(0, 1))
+
+        vm.chooseRpe(0, 1, 7.5)
+        runCurrent()
+
+        assertEquals("7,5", vm.row(0, 1).rpe)
+        assertNull(vm.active().rpePicker)
+        assertEquals(7.5, repository.upserts.single().rpe)
+    }
+
+    @Test
+    fun pickingAnRpeOnACompletedSet_keepsItCompletedAndKeepsTheValues() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        check(vm, 0, 1)
+
+        vm.chooseRpe(0, 1, 8.0)
+        runCurrent()
+
+        val write = repository.upserts.last()
+        assertEquals(8.0, write.rpe)
+        assertEquals(SetEntry.WeightReps(60.0, 12), write.entry)
+        assertTrue(vm.row(0, 1).completed)
+        assertEquals("8", vm.row(0, 1).rpe)
+    }
+
+    @Test
+    fun removingTheRpe_clearsItAndSendsNull() = runSessionTest {
+        val vm = loaded()
+        vm.chooseRpe(0, 1, 9.0)
+        runCurrent()
+
+        vm.chooseRpe(0, 1, null)
+        runCurrent()
+
+        assertNull(vm.row(0, 1).rpe)
+        assertEquals(listOf(9.0, null), repository.upserts.map { it.rpe })
+    }
+
+    @Test
+    fun anRpeOffTheGrid_isIgnored() = runSessionTest {
+        val vm = loaded()
+
+        vm.chooseRpe(0, 1, 5.5)
+        runCurrent()
+
+        assertNull(vm.row(0, 1).rpe)
+        assertTrue(repository.upserts.isEmpty())
+    }
+
+    @Test
+    fun checkingAndUncheckingASet_keepsItsRpe() = runSessionTest {
+        val vm = loaded()
+        vm.chooseRpe(0, 1, 7.5)
+        runCurrent()
+        type(vm, 0, 1, "60", "12")
+
+        check(vm, 0, 1)
+        check(vm, 0, 1, checked = false)
+
+        assertEquals(listOf(7.5, 7.5, 7.5), repository.upserts.map { it.rpe })
+        assertEquals("7,5", vm.row(0, 1).rpe)
+    }
+
+    @Test
+    fun anAddedSet_hasNoRpe() = runSessionTest {
+        val vm = loaded()
+        vm.chooseRpe(0, 1, 7.5)
+        runCurrent()
+
+        vm.onEvent(LiveSessionEvent.AddSet(0))
+        runCurrent()
+
+        assertNull(vm.row(0, 4).rpe)
+    }
+
+    @Test
+    fun theRpeChosenOffline_isQueuedAndSentOnReconnect() = runSessionTest {
+        val vm = loaded()
+        connectivity.state.value = false
+        runCurrent()
+
+        vm.chooseRpe(0, 1, 8.5)
+        runCurrent()
+        assertTrue(repository.upserts.isEmpty())
+        assertEquals("8,5", vm.row(0, 1).rpe)
+
+        connectivity.state.value = true
+        advanceUntilIdle()
+
+        assertEquals(listOf(8.5), repository.upserts.map { it.rpe })
+    }
+
+    @Test
+    fun theLoggedRpe_survivesAReload() = runSessionTest {
+        val first = loaded()
+        first.chooseRpe(0, 1, 7.5)
+        runCurrent()
+
+        val reloaded = loaded()
+
+        assertEquals("7,5", reloaded.row(0, 1).rpe)
+    }
+
+    @Test
+    fun theOpenRpePicker_isRestoredFromTheSameSavedState_andClearedWhenTheSessionEnds() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(LiveSessionEvent.OpenRpePicker(1, 2))
+        runCurrent()
+
+        val second = newViewModel(handle)
+        advanceUntilIdle()
+        assertEquals(RpePickerTarget(1, 2), second.active().rpePicker)
+
+        second.onEvent(LiveSessionEvent.RequestDiscard)
+        second.onEvent(LiveSessionEvent.ConfirmDiscard)
+        advanceUntilIdle()
+        val third = newViewModel(handle)
+        advanceUntilIdle()
+        assertNull((third.uiState.value as? LiveSessionUiState.Active)?.rpePicker)
+    }
+
+    @Test
+    fun aRoutineExerciseWithATargetRpe_showsItAsText() = runSessionTest {
+        routines.routines.clear()
+        routines.routines += Routine(
+            "r1",
+            "Torso",
+            null,
+            false,
+            listOf(
+                RoutineExercise("e1", 0, null, List(3) { PlannedSet(null, 8) }, 90, targetRpe = 8.0),
+                RoutineExercise("e2", 1, null, List(3) { PlannedSet(null, 8) }, 90, targetRpe = 7.5),
+            ),
+        )
+
+        val vm = loaded()
+
+        assertEquals(listOf("8", "7,5"), vm.active().exercises.map { it.targetRpeText })
+    }
+
+    @Test
+    fun aRoutineExerciseWithoutATarget_hasNoTargetText() = runSessionTest {
+        val vm = loaded()
+
+        assertEquals(listOf(null, null), vm.active().exercises.map { it.targetRpeText })
+    }
+
+    @Test
+    fun aSessionWithoutARoutine_hasNoTargetText() = runSessionTest {
+        repository.session = repository.session!!.copy(routineId = null)
+
+        val vm = loaded()
+
+        assertNull(vm.active().exercises.first().targetRpeText)
+    }
+
+    @Test
+    fun theGhostShowsLastTimesRpeOnItsSetOnly() = runSessionTest {
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10), PreviousSet(2, 85.0, 8, rpe = 8.0)))
+
+        val vm = loaded()
+
+        assertEquals("80 kg × 10", vm.row(0, 1).previous)
+        assertEquals("85 kg × 8\nRPE 8", vm.row(0, 2).previous)
+        assertEquals("85" to "8", vm.row(0, 2).weightPlaceholder to vm.row(0, 2).repsPlaceholder)
+        assertNull(vm.row(0, 2).rpe)
+    }
+
     private companion object {
         fun routineWithRests(vararg rests: Int) = Routine(
             id = "r1",
