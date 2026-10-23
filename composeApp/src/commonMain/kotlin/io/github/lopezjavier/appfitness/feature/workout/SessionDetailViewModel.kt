@@ -198,6 +198,7 @@ class SessionDetailViewModel(
                 entry = entry,
                 completedAt = original.completedAt,
                 setType = original.setType,
+                rpe = original.rpe,
             )
             busy = false
             if (result.isSuccess) {

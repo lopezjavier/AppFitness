@@ -25,6 +25,7 @@ internal data class WorkoutSetDto(
     @SerialName("set_type") val setType: SetType = SetType.Working,
     @SerialName("weight_kg") val weightKg: Double = 0.0,
     val reps: Int = 0,
+    val rpe: Double? = null,
     @SerialName("completed_at") val completedAt: String? = null,
 ) {
     fun toDomain() = WorkoutSet(
@@ -32,11 +33,12 @@ internal data class WorkoutSetDto(
         setType = setType,
         entry = SetEntry.WeightReps(weightKg, reps),
         completedAt = completedAt?.let(Instant::parse),
+        rpe = rpe,
     )
 
     companion object {
         const val COLUMNS =
-            "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,completed_at"
+            "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,rpe,completed_at"
     }
 }
 
@@ -87,6 +89,8 @@ internal data class WorkoutSetUpsertDto(
     @SerialName("set_type") val setType: SetType,
     @SerialName("weight_kg") val weightKg: Double,
     val reps: Int,
+    // Always sent, even when null, so clearing the RPE reaches the server.
+    @EncodeDefault val rpe: Double? = null,
     @EncodeDefault @SerialName("completed_at") val completedAt: String? = null,
 )
 
@@ -112,8 +116,9 @@ internal data class PreviousSetDto(
     @SerialName("set_index") val setIndex: Int,
     @SerialName("weight_kg") val weightKg: Double = 0.0,
     val reps: Int = 0,
+    val rpe: Double? = null,
 ) {
-    fun toDomain() = PreviousSet(setIndex, weightKg, reps)
+    fun toDomain() = PreviousSet(setIndex, weightKg, reps, rpe)
 }
 
 /** Row returned by the `exercise_history` RPC. */

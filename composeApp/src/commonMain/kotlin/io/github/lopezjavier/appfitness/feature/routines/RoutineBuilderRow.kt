@@ -41,6 +41,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_la
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_label
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_none
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
@@ -50,6 +54,7 @@ import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.workout.restDurationText
 import io.github.lopezjavier.appfitness.feature.workout.restStateDescription
@@ -229,7 +234,26 @@ private fun Steppers(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEven
             onStep = { onEvent(RoutineBuilderEvent.StepRest(index, it)) },
             tag = "routine_builder_rest_$index",
         )
+        TargetRpeLine(row, index, onEvent)
     }
+}
+
+/** "RPE OBJETIVO" stepper: none ("Sin objetivo") or 6 to 10 in half points. */
+@Composable
+private fun TargetRpeLine(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
+    val target = row.targetRpe
+    val valueText = target?.let(RpeScale::text) ?: stringResource(Res.string.routine_builder_target_rpe_none)
+    StepperLine(
+        unit = stringResource(Res.string.routine_builder_target_rpe_label),
+        valueText = valueText,
+        state = valueText,
+        decreaseDescription = stringResource(Res.string.routine_builder_target_rpe_decrease_cd, valueText),
+        increaseDescription = stringResource(Res.string.routine_builder_target_rpe_increase_cd, valueText),
+        canDecrease = target != null,
+        canIncrease = target == null || target < RpeScale.MAX,
+        onStep = { onEvent(RoutineBuilderEvent.StepTargetRpe(index, it)) },
+        tag = "routine_builder_target_rpe_$index",
+    )
 }
 
 /** Technical label ("SERIES") on the left, the stepper on the right. */

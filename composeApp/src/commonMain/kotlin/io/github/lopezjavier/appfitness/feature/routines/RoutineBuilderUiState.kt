@@ -35,6 +35,8 @@ data class BuilderRowUi(
     val canMoveUp: Boolean,
     val canMoveDown: Boolean,
     val canGroupWithNext: Boolean,
+    /** Target RPE of the exercise (6 to 10 in half points); null = no target. */
+    val targetRpe: Double? = null,
 ) {
     val canAddSet: Boolean get() = plannedSets.size < RoutineBounds.SETS_MAX
     val canRemoveSet: Boolean get() = plannedSets.size > RoutineBounds.SETS_MIN
@@ -107,6 +109,9 @@ sealed interface RoutineBuilderEvent {
 
     /** [delta] is -1 or +1 step of the rest (10 s); the value stays within its bounds. */
     data class StepRest(val index: Int, val delta: Int) : RoutineBuilderEvent
+
+    /** [delta] is -1 or +1 half point of the target RPE: from none +1 gives 8, below 6 clears it. */
+    data class StepTargetRpe(val index: Int, val delta: Int) : RoutineBuilderEvent
 
     data object Save : RoutineBuilderEvent
 

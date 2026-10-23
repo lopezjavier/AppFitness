@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_op
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_add_set
+import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
@@ -52,7 +53,15 @@ internal fun LiveExerciseCard(
                 ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
-            SetTableHeader()
+            exercise.targetRpeText?.let {
+                Text(
+                    text = stringResource(Res.string.live_target_rpe, it),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
+                )
+            }
+            SetTableHeader(showRpe = true)
             exercise.sets.forEach { SessionSetRow(position, it, onEvent) }
             GhostButton(
                 text = stringResource(Res.string.live_add_set),

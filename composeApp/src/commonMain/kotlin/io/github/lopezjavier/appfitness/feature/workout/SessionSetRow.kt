@@ -19,6 +19,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_cloud_off
 import io.github.lopezjavier.appfitness.composeapp.resources.live_invalid_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pending_save
+import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_cell_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_empty_state
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SetRow
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
@@ -37,6 +40,7 @@ internal fun LiveSetRow.toSetRowValues() = SetRowValues(
     weightPlaceholder = weightPlaceholder,
     repsPlaceholder = repsPlaceholder,
     type = type,
+    rpe = rpe,
 )
 
 /**
@@ -65,6 +69,12 @@ internal fun SessionSetRow(
                 Res.string.builder_set_type_cd,
                 row.setIndex,
                 stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
+            ),
+            onRpeClick = { onEvent(LiveSessionEvent.OpenRpePicker(position, row.setIndex)) },
+            rpeClickLabel = stringResource(
+                Res.string.live_rpe_cell_cd,
+                AppNumberFormat.integer(row.setIndex),
+                row.rpe ?: stringResource(Res.string.live_rpe_empty_state),
             ),
         )
         if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))

@@ -825,4 +825,97 @@ class RoutineBuilderViewModelTest {
         assertEquals(10, second.form().rows.sumOf { it.plannedSets.size })
         assertEquals(10, second.form().rows.flatMap { it.plannedSets }.map { it.setId }.toSet().size)
     }
+
+    private fun RoutineBuilderViewModel.stepRpe(delta: Int, times: Int = 1) =
+        repeat(times) { onEvent(RoutineBuilderEvent.StepTargetRpe(0, delta)) }
+
+    @Test
+    fun targetRpe_startsWithNone_andTheFirstIncreaseGivesEight() = runTest {
+        val vm = builder()
+        vm.add("a")
+        assertNull(vm.form().rows.single().targetRpe)
+
+        vm.stepRpe(+1)
+
+        assertEquals(8.0, vm.form().rows.single().targetRpe)
+    }
+
+    @Test
+    fun targetRpe_movesInHalfPoints_andClampsAtTen() = runTest {
+        val vm = builder()
+        vm.add("a")
+
+        vm.stepRpe(+1)
+        vm.stepRpe(+1)
+        assertEquals(8.5, vm.form().rows.single().targetRpe)
+        vm.stepRpe(+1, times = 10)
+
+        assertEquals(10.0, vm.form().rows.single().targetRpe)
+    }
+
+    @Test
+    fun targetRpe_steppingDownFromSix_clearsIt() = runTest {
+        val vm = builder()
+        vm.add("a")
+        vm.stepRpe(+1)
+        vm.stepRpe(-1, times = 4)
+        assertEquals(6.0, vm.form().rows.single().targetRpe)
+
+        vm.stepRpe(-1)
+
+        assertNull(vm.form().rows.single().targetRpe)
+    }
+
+    @Test
+    fun targetRpe_steppingDownWithNone_staysNone() = runTest {
+        val vm = builder()
+        vm.add("a")
+
+        vm.stepRpe(-1)
+
+        assertNull(vm.form().rows.single().targetRpe)
+    }
+
+    @Test
+    fun targetRpe_makesTheDraftDirty_andSaveSendsIt() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
+        vm.add("a")
+        vm.stepRpe(+1)
+        assertTrue(vm.form().isDirty)
+
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(8.0, repository.saved.single().exercises.single().targetRpe)
+    }
+
+    @Test
+    fun editingARoutine_loadsItsExistingTarget_andItSurvivesARecreation() = runTest {
+        repository.routines.add(
+            Routine(
+                "r1",
+                "Torso",
+                null,
+                false,
+                listOf(RoutineExercise("a", 0, null, List(3) { PlannedSet(null, 8) }, 90, targetRpe = 7.5)),
+            ),
+        )
+        val first = builder("r1")
+        assertEquals(7.5, first.form().rows.single().targetRpe)
+        first.stepRpe(+1)
+
+        val second = builder("r1", handle)
+
+        assertEquals(8.0, second.form().rows.single().targetRpe)
+    }
+
+    @Test
+    fun aDraftSavedWithoutTheTargetField_stillDecodes() {
+        val old = """{"name":"X","rows":[{"rowId":0,"exerciseId":"a","sets":[],"restSeconds":90,"group":null}]}"""
+
+        val draft = decode(old)
+
+        assertNull(draft!!.rows.single().targetRpe)
+    }
 }

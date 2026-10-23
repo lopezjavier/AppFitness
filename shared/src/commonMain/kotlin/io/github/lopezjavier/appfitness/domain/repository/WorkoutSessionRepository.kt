@@ -27,6 +27,7 @@ interface WorkoutSessionRepository {
         entry: SetEntry,
         completedAt: Instant?,
         setType: SetType = SetType.Working,
+        rpe: Double? = null,
     ): Result<Unit>
 
     /** Completed sessions, newest first; a page is [limit] rows starting at [offset]. */
