@@ -166,6 +166,7 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - Available plates (per side): 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; all on by default.
 - Plate calculator: plates per side = greedy from the heaviest available plate over `(target − bar) / 2`; when the target cannot be made, the closest lower weight is shown. Example: 100 kg with the 20 kg bar → "25 + 15" per side.
 - Rounding: plates 2,5 kg, dumbbells 2 kg (both user settings).
+- Dumbbell handle (ADR-55, T-097f): dumbbell exercises use the plate calculator with the handle as the bar (per dumbbell; default 1 kg, range 0,5-10 kg in 0,5 steps, user setting, no bar selector). Example: target 21 kg, handle 1 kg → 10 per side. The dumbbell warm-up uses the handle as its base (never below the handle). Rule: bar used = handle for dumbbells, the selected bar otherwise.
 
 ### 4.10 Session duration and pauses (US-38, T-096)
 - `duration = end - started_at - paused_total_s`, never below 0, where `end` = `ended_at` when finished, else `paused_at` while paused (the display freezes), else now. A pause still open when the session finishes counts as paused until `ended_at`.

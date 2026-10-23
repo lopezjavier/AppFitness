@@ -5,14 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.groupWithNext
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import io.github.lopezjavier.appfitness.domain.usecase.ungroup
+import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
+import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
+import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellDraft
+import io.github.lopezjavier.appfitness.feature.workout.barFor
+import io.github.lopezjavier.appfitness.feature.workout.calculatorUiState
+import io.github.lopezjavier.appfitness.feature.workout.persistCalculatorDraft
+import io.github.lopezjavier.appfitness.feature.workout.restoredCalculatorDraft
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +39,8 @@ import kotlinx.coroutines.launch
 private const val KEY_DRAFT = "builder_draft"
 private const val KEY_BASELINE = "builder_baseline"
 private const val KEY_PICKER = "builder_type_picker"
+private const val KEY_DOUBLE_EXERCISE = "builder_double_dumbbell_exercise"
+private const val KEY_DOUBLE_ENABLED = "builder_double_dumbbell_enabled"
 
 /**
  * Routine builder (US-10, US-29): name, exercises with per-set weight, reps and type, rest, reorder (drag or move
@@ -31,15 +48,18 @@ private const val KEY_PICKER = "builder_type_picker"
  * member, and grouping makes the following members adopt the count of the row grouped. The whole draft lives in
  * [savedState] (as JSON), so it survives a configuration change and process death. With a
  * [routineId] it loads that routine unless a draft was already restored. Saving is one atomic call and a failure
- * keeps every edit.
+ * keeps every edit. The calculator sheets and the double-dumbbell sheet (ADR-55) keep their drafts in [savedState]
+ * too, separate from the routine draft: they never make the routine dirty.
  */
-@Suppress("TooManyFunctions") // One small function per builder event.
+@Suppress("TooManyFunctions", "LongParameterList") // One small function per builder event; injected ports.
 class RoutineBuilderViewModel(
     private val routineId: String?,
     private val savedState: SavedStateHandle,
     private val repository: RoutineRepository,
     private val loadCatalog: LoadExerciseCatalog,
     connectivity: ConnectivityObserver,
+    private val preferences: TrainingPreferencesRepository,
+    private val exerciseOptions: ExerciseOptionsRepository,
 ) : ViewModel() {
     private val restored = savedState.get<String>(KEY_DRAFT)?.let { decode(it) }
     private var draft: RoutineDraft = restored ?: RoutineDraft()
@@ -59,6 +79,16 @@ class RoutineBuilderViewModel(
             val setId = it[1].toLongOrNull()
             if (rowId != null && setId != null) rowId to setId else null
         }
+
+    private var trainingPreferences = TrainingPreferences()
+    private var doubleDumbbellIds: Set<String> = emptySet()
+    private var calculatorDraft: CalculatorDraft? = savedState.restoredCalculatorDraft()
+    private var doubleDumbbellDraft: DoubleDumbbellDraft? =
+        savedState.get<String>(KEY_DOUBLE_EXERCISE)?.let {
+            DoubleDumbbellDraft(it, savedState.get<Boolean>(KEY_DOUBLE_ENABLED) ?: false)
+        }
+    private var doubleDumbbellSaving = false
+    private var doubleDumbbellError = false
 
     init {
         // A new routine is compared against the empty draft; without a stored baseline a restored draft would
@@ -84,6 +114,7 @@ class RoutineBuilderViewModel(
             }
         }
         if (phase == Phase.Loading) loadRoutine() else loadNames()
+        loadSheetData()
     }
 
     @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
@@ -106,14 +137,62 @@ class RoutineBuilderViewModel(
 
             RoutineBuilderEvent.CloseTypePicker -> setPicker(null)
 
-            else -> {
-                // An exercise created in the picker after this screen opened is not in the loaded catalog yet.
-                if (event is RoutineBuilderEvent.AddExercise && event.exerciseId !in catalog) loadNames()
-                listEdit(event)?.let { edit(it) }
-                setsEdit(event)?.let { edit(it) }
-                targetEdit(event)?.let { (index, change) -> editRow(index, change) }
-            }
+            else -> if (!sheetEvent(event)) editEvent(event)
         }
+    }
+
+    /** Handles the calculator and double-dumbbell events; false for any other event. */
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
+    private fun sheetEvent(event: RoutineBuilderEvent): Boolean {
+        when (event) {
+            is RoutineBuilderEvent.OpenCalculator -> openCalculator(event.index, event.kind)
+
+            is RoutineBuilderEvent.CalculatorWeightChanged ->
+                updateSheets { calculatorDraft = calculatorDraft?.copy(weightText = event.text) }
+
+            is RoutineBuilderEvent.CalculatorBarChanged -> updateSheets {
+                val draft = calculatorDraft
+                if (draft != null && event.barKg in CalculatorSettings.BARS_KG && !isDumbbell(draft.position)) {
+                    calculatorDraft = draft.copy(barKg = event.barKg)
+                }
+            }
+
+            is RoutineBuilderEvent.CalculatorWarmUpSetsChanged -> updateSheets {
+                if (event.sets in 1..WarmUpCalculator.MAX_SETS) {
+                    calculatorDraft = calculatorDraft?.copy(warmUpSets = event.sets)
+                }
+            }
+
+            is RoutineBuilderEvent.AddWarmUpSets -> addWarmUpSets(event.index, event)
+
+            RoutineBuilderEvent.DismissCalculator -> updateSheets { calculatorDraft = null }
+
+            is RoutineBuilderEvent.OpenDoubleDumbbell -> openDoubleDumbbell(event.index)
+
+            is RoutineBuilderEvent.DoubleDumbbellDraftChanged -> updateSheets {
+                doubleDumbbellDraft = DoubleDumbbellDraft(event.exerciseId, event.enabled)
+                doubleDumbbellError = false
+            }
+
+            is RoutineBuilderEvent.SetDoubleDumbbell -> saveDoubleDumbbell(event.exerciseId, event.enabled)
+
+            RoutineBuilderEvent.DismissOptionSheets -> updateSheets {
+                calculatorDraft = null
+                doubleDumbbellDraft = null
+                doubleDumbbellError = false
+            }
+
+            else -> return false
+        }
+        return true
+    }
+
+    private fun editEvent(event: RoutineBuilderEvent) {
+        // An exercise created in the picker after this screen opened is not in the loaded catalog yet.
+        if (event is RoutineBuilderEvent.AddExercise && event.exerciseId !in catalog) loadNames()
+        listEdit(event)?.let { edit(it) }
+        setsEdit(event)?.let { edit(it) }
+        targetEdit(event)?.let { (index, change) -> editRow(index, change) }
     }
 
     /** The change an event makes to the list (name, rows, order, supersets), or null for any other event. */
@@ -208,6 +287,87 @@ class RoutineBuilderViewModel(
         }
     }
 
+    /** Best effort: a failed read keeps the defaults (1 kg handle, no double dumbbell) and never blocks. */
+    private fun loadSheetData() {
+        viewModelScope.launch {
+            trainingPreferences = preferences.get().getOrNull() ?: TrainingPreferences()
+            doubleDumbbellIds = exerciseOptions.doubleDumbbellIdsOrDefault()
+            publish()
+        }
+    }
+
+    private fun equipmentOf(index: Int): Equipment? =
+        draft.rows.getOrNull(index)?.let { catalog[it.exerciseId]?.exercise?.equipment }
+
+    private fun isDumbbell(index: Int) = equipmentOf(index) == Equipment.Dumbbell
+
+    private fun updateSheets(change: () -> Unit) {
+        if (phase != Phase.Editing) return
+        change()
+        persistSheets()
+        publish()
+    }
+
+    private fun persistSheets() {
+        savedState.persistCalculatorDraft(calculatorDraft)
+        savedState[KEY_DOUBLE_EXERCISE] = doubleDumbbellDraft?.exerciseId
+        savedState[KEY_DOUBLE_ENABLED] = doubleDumbbellDraft?.enabled
+    }
+
+    /** Opens the calculator with the first working set's weight (empty if none) and the bar for the equipment. */
+    private fun openCalculator(index: Int, kind: CalculatorKind) {
+        val row = draft.rows.getOrNull(index) ?: return
+        val weight = row.sets.firstOrNull { it.type != SetType.WarmUp }?.weight.orEmpty()
+        val bar = barFor(trainingPreferences.barWeightKg, equipmentOf(index), trainingPreferences)
+        updateSheets {
+            doubleDumbbellDraft = null
+            doubleDumbbellError = false
+            calculatorDraft = CalculatorDraft(index, kind, weight, bar)
+        }
+    }
+
+    private fun addWarmUpSets(index: Int, event: RoutineBuilderEvent.AddWarmUpSets) {
+        if (phase != Phase.Editing || saving || !draft.canAddWarmUps(index, event.sets.size)) return
+        draft = draft.withWarmUpSets(index, event.sets)
+        persist()
+        updateSheets { calculatorDraft = null }
+    }
+
+    private fun openDoubleDumbbell(index: Int) {
+        val row = draft.rows.getOrNull(index) ?: return
+        if (!isDumbbell(index)) return
+        updateSheets {
+            calculatorDraft = null
+            doubleDumbbellError = false
+            doubleDumbbellDraft = DoubleDumbbellDraft(row.exerciseId, row.exerciseId in doubleDumbbellIds)
+        }
+    }
+
+    private fun saveDoubleDumbbell(exerciseId: String, enabled: Boolean) {
+        if (phase != Phase.Editing || doubleDumbbellSaving) return
+        if (!online) {
+            updateSheets { doubleDumbbellError = true }
+            return
+        }
+        doubleDumbbellSaving = true
+        publish()
+        viewModelScope.launch {
+            val saved = exerciseOptions.setDoubleDumbbell(exerciseId, enabled).isSuccess
+            doubleDumbbellSaving = false
+            updateSheets {
+                doubleDumbbellError = !saved
+                if (saved) {
+                    doubleDumbbellIds = if (enabled) doubleDumbbellIds + exerciseId else doubleDumbbellIds - exerciseId
+                    doubleDumbbellDraft = null
+                }
+            }
+        }
+    }
+
+    private fun renderCalculator() = calculatorDraft?.takeIf { it.position in draft.rows.indices }?.let {
+        calculatorUiState(it, trainingPreferences, equipmentOf(it.position))
+    }
+
     private fun back() {
         if (saving) return
         if (draft != baseline) {
@@ -292,6 +452,7 @@ class RoutineBuilderViewModel(
         Phase.Editing -> {
             val labels = supersetLabels(draft.rows.map(DraftRow::group))
             val lastIndex = draft.rows.lastIndex
+            val calculator = renderCalculator()
             RoutineBuilderUiState.Editing(
                 isEditMode = routineId != null,
                 name = draft.name,
@@ -310,6 +471,8 @@ class RoutineBuilderViewModel(
                         canMoveUp = index > 0,
                         canMoveDown = index < lastIndex,
                         canGroupWithNext = index < lastIndex,
+                        equipment = exercise?.exercise?.equipment,
+                        isDoubleDumbbell = row.exerciseId in doubleDumbbellIds,
                     )
                 },
                 isOnline = online,
@@ -317,6 +480,14 @@ class RoutineBuilderViewModel(
                 isDirty = draft != baseline,
                 showDiscardConfirm = discardAsked,
                 typePicker = renderPicker(),
+                calculator = calculator,
+                warmUpBlockedByCap = calculator != null && calculator.draft.kind == CalculatorKind.WarmUp &&
+                    !draft.canAddWarmUps(calculator.draft.position, calculator.warmUp.size.coerceAtLeast(1)),
+                doubleDumbbellDraft = doubleDumbbellDraft?.takeIf { d ->
+                    draft.rows.any { it.exerciseId == d.exerciseId }
+                },
+                doubleDumbbellSaving = doubleDumbbellSaving,
+                doubleDumbbellError = doubleDumbbellError,
             )
         }
     }

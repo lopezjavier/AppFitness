@@ -2,9 +2,11 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.PlateResult
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
+import io.github.lopezjavier.appfitness.domain.usecase.CalculatorBase
 import io.github.lopezjavier.appfitness.domain.usecase.PlateCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 
@@ -45,38 +47,57 @@ data class CalculatorUiState(
     val warmUp: List<WarmUpSet> = emptyList(),
     val plates: PlateResult? = null,
     val hint: CalculatorHint? = null,
+    /** Dumbbell exercise: the bar is the handle, so the sheet shows no bar selector. */
+    val isDumbbell: Boolean = false,
 ) {
     /** "Añadir series" is enabled only with a warm-up to insert. */
     val canAddWarmUp: Boolean get() = draft.kind == CalculatorKind.WarmUp && warmUp.isNotEmpty()
 }
 
+/**
+ * Derives the sheet state. For dumbbells the bar is always the handle (ADR-55), so a draft saved with another bar is
+ * re-based here; [CalculatorUiState.draft] carries the value actually used.
+ */
 internal fun calculatorUiState(
-    draft: CalculatorDraft,
+    savedDraft: CalculatorDraft,
     preferences: TrainingPreferences,
-    dumbbell: Boolean,
+    equipment: Equipment?,
 ): CalculatorUiState {
+    val dumbbell = equipment == Equipment.Dumbbell
+    val draft = savedDraft.copy(barKg = barFor(savedDraft.barKg, equipment, preferences))
     val weight = NumberInputDefaults.parse(draft.weightText)?.takeIf { it > 0.0 }
     val rounding = if (dumbbell) preferences.dumbbellRoundingKg else preferences.plateRoundingKg
-    return when {
-        weight == null -> CalculatorUiState(draft, null, rounding, hint = CalculatorHint.MissingWeight)
-
-        draft.kind == CalculatorKind.Plates -> CalculatorUiState(
-            draft,
-            weight,
-            rounding,
-            plates = PlateCalculator(weight, draft.barKg, preferences.plateKg),
-        )
-
-        weight <= draft.barKg -> CalculatorUiState(draft, weight, rounding, hint = CalculatorHint.AtOrBelowBar)
-
-        else -> CalculatorUiState(
-            draft,
-            weight,
-            rounding,
-            warmUp = WarmUpCalculator(weight, draft.barKg, rounding, draft.warmUpSets),
-        )
-    }
+    return calculatorResult(draft, weight, rounding, preferences).copy(isDumbbell = dumbbell)
 }
+
+private fun calculatorResult(
+    draft: CalculatorDraft,
+    weight: Double?,
+    rounding: Double,
+    preferences: TrainingPreferences,
+): CalculatorUiState = when {
+    weight == null -> CalculatorUiState(draft, null, rounding, hint = CalculatorHint.MissingWeight)
+
+    draft.kind == CalculatorKind.Plates -> CalculatorUiState(
+        draft,
+        weight,
+        rounding,
+        plates = PlateCalculator(weight, draft.barKg, preferences.plateKg),
+    )
+
+    weight <= draft.barKg -> CalculatorUiState(draft, weight, rounding, hint = CalculatorHint.AtOrBelowBar)
+
+    else -> CalculatorUiState(
+        draft,
+        weight,
+        rounding,
+        warmUp = WarmUpCalculator(weight, draft.barKg, rounding, draft.warmUpSets),
+    )
+}
+
+/** The bar to use: the handle for dumbbells (not selectable), the [chosenKg] bar for the rest. */
+internal fun barFor(chosenKg: Double, equipment: Equipment?, preferences: TrainingPreferences): Double =
+    if (equipment == Equipment.Dumbbell) CalculatorBase.forEquipment(equipment, preferences.calculators) else chosenKg
 
 private const val KEY_POSITION = "live_calc_position"
 private const val KEY_KIND = "live_calc_kind"

@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.moveExercise
 import io.github.lopezjavier.appfitness.domain.usecase.normalizeGroups
@@ -74,6 +75,30 @@ internal fun RoutineDraft.withAddedSet(index: Int): RoutineDraft {
             if (i in members) row.copy(sets = row.sets + row.sets.last().copy(setId = next++)) else row
         }
     return copy(rows = updated, nextSetId = next)
+}
+
+/** True when [count] more sets fit in the row (and so in every member of its superset). */
+internal fun RoutineDraft.canAddWarmUps(index: Int, count: Int): Boolean {
+    val row = rows.getOrNull(index) ?: return false
+    return row.sets.size + count <= RoutineBounds.SETS_MAX
+}
+
+/**
+ * Inserts [sets] as warm-up sets after the row's leading warm-ups and before its first other set. In a superset the
+ * other members are levelled with copies of their last set (ADR-38). Nothing changes when the row is unknown, [sets]
+ * is empty or the result would exceed [RoutineBounds.SETS_MAX].
+ */
+internal fun RoutineDraft.withWarmUpSets(index: Int, sets: List<WarmUpSet>): RoutineDraft {
+    val row = rows.getOrNull(index)
+    if (row == null || sets.isEmpty() || !canAddWarmUps(index, sets.size)) return this
+    val insertAt = row.sets.indexOfFirst { it.type != SetType.WarmUp }.takeIf { it >= 0 } ?: row.sets.size
+    val added = sets.mapIndexed { i, set ->
+        DraftSet(nextSetId + i, weightText(set.weightKg), set.reps.toString(), SetType.WarmUp)
+    }
+    val updated = rows.mapIndexed { i, r ->
+        if (i == index) r.copy(sets = r.sets.take(insertAt) + added + r.sets.drop(insertAt)) else r
+    }
+    return copy(rows = updated, nextSetId = nextSetId + sets.size).leveledTo(index)
 }
 
 /** Removes set [setIndex] from the row and from every other member of its superset; the last set stays. */

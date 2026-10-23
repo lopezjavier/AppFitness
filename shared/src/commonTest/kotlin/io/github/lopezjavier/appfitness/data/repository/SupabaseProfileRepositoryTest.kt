@@ -264,8 +264,8 @@ class SupabaseProfileRepositorySavePreferencesTest {
     }
 
     @Test
-    fun withCalculatorSettings_sendsTheFourCalculatorArguments() = runTest {
-        val settings = CalculatorSettings(7.5, listOf(20.0, 2.5, 0.5), 5.0, 1.0)
+    fun withCalculatorSettings_sendsTheFiveCalculatorArguments() = runTest {
+        val settings = CalculatorSettings(7.5, listOf(20.0, 2.5, 0.5), 5.0, 1.0, 1.5)
 
         assertTrue(
             repository().savePreferences("Ana", biometrics, goals, null, false, calculators = settings).isSuccess,
@@ -275,7 +275,7 @@ class SupabaseProfileRepositorySavePreferencesTest {
         assertTrue(
             body.endsWith(
                 """"p_previous_values_mode":"overall","p_bar_weight_kg":7.5,"p_plate_kg":[20.0,2.5,0.5],""" +
-                    """"p_plate_rounding_kg":5.0,"p_dumbbell_rounding_kg":1.0}""",
+                    """"p_plate_rounding_kg":5.0,"p_dumbbell_rounding_kg":1.0,"p_dumbbell_handle_kg":1.5}""",
             ),
             body,
         )

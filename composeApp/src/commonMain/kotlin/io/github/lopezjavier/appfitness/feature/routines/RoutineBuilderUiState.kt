@@ -1,8 +1,13 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
+import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
+import io.github.lopezjavier.appfitness.feature.workout.CalculatorUiState
+import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellDraft
 
 /**
  * One planned set of a row. [setId] is stable while editing (the list key). [weight] and [reps] are the text as typed
@@ -37,6 +42,10 @@ data class BuilderRowUi(
     val canGroupWithNext: Boolean,
     /** Target RPE of the exercise (6 to 10 in half points); null = no target. */
     val targetRpe: Double? = null,
+    /** Equipment of the exercise; null while the catalog loads (equipment-dependent menu entries stay hidden). */
+    val equipment: Equipment? = null,
+    /** "Contar mancuerna doble" is on for this exercise (exercise_options, ADR-54). */
+    val isDoubleDumbbell: Boolean = false,
 ) {
     val canAddSet: Boolean get() = plannedSets.size < RoutineBounds.SETS_MAX
     val canRemoveSet: Boolean get() = plannedSets.size > RoutineBounds.SETS_MIN
@@ -63,6 +72,14 @@ sealed interface RoutineBuilderUiState {
         val isDirty: Boolean = false,
         val showDiscardConfirm: Boolean = false,
         val typePicker: TypePickerUi? = null,
+        /** The open warm-up or plate calculator sheet; its inputs are never part of the routine draft. */
+        val calculator: CalculatorUiState? = null,
+        /** True when inserting the calculator's warm-ups would exceed the sets cap (the action is disabled). */
+        val warmUpBlockedByCap: Boolean = false,
+        /** The open "Contar mancuerna doble" sheet; saved immediately with its own Guardar, not with the routine. */
+        val doubleDumbbellDraft: DoubleDumbbellDraft? = null,
+        val doubleDumbbellSaving: Boolean = false,
+        val doubleDumbbellError: Boolean = false,
     ) : RoutineBuilderUiState {
         val canSave: Boolean
             get() = name.isNotBlank() && rows.isNotEmpty() && isOnline && !isSaving &&
@@ -112,6 +129,32 @@ sealed interface RoutineBuilderEvent {
 
     /** [delta] is -1 or +1 half point of the target RPE: from none +1 gives 8, below 6 clears it. */
     data class StepTargetRpe(val index: Int, val delta: Int) : RoutineBuilderEvent
+
+    /** Opens the warm-up or plate calculator of row [index], prefilled with its first working weight. */
+    data class OpenCalculator(val index: Int, val kind: CalculatorKind) : RoutineBuilderEvent
+
+    data class CalculatorWeightChanged(val text: String) : RoutineBuilderEvent
+
+    /** Ignored for dumbbells: their bar is the handle. */
+    data class CalculatorBarChanged(val barKg: Double) : RoutineBuilderEvent
+
+    data class CalculatorWarmUpSetsChanged(val sets: Int) : RoutineBuilderEvent
+
+    /** Inserts the calculated warm-ups into row [index] of the draft (saved with the routine's Guardar). */
+    data class AddWarmUpSets(val index: Int, val sets: List<WarmUpSet>) : RoutineBuilderEvent
+
+    data object DismissCalculator : RoutineBuilderEvent
+
+    /** Opens "Contar mancuerna doble" for the dumbbell row [index]. */
+    data class OpenDoubleDumbbell(val index: Int) : RoutineBuilderEvent
+
+    data class DoubleDumbbellDraftChanged(val exerciseId: String, val enabled: Boolean) : RoutineBuilderEvent
+
+    /** Writes the exercise option now (needs a connection); on failure the sheet stays open with an error. */
+    data class SetDoubleDumbbell(val exerciseId: String, val enabled: Boolean) : RoutineBuilderEvent
+
+    /** Closes every option sheet (calculators and double dumbbell), discarding their drafts. */
+    data object DismissOptionSheets : RoutineBuilderEvent
 
     data object Save : RoutineBuilderEvent
 

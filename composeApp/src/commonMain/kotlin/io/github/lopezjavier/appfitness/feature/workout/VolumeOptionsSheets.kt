@@ -79,35 +79,51 @@ internal fun LiveSessionUiState.Active.volumeOptionsFor(exercise: LiveExercise, 
     saveFailed = saveFailed,
 )
 
+/** What the double-dumbbell sheet of one exercise renders; the host (live session or builder) fills it. */
+internal class DoubleDumbbellSheetState(
+    /** The stored option. */
+    val current: Boolean,
+    /** Unsaved switch mirrored by the host; null when it has no draft (also: the option was just stored). */
+    val draft: Boolean?,
+    val saveFailed: Boolean,
+    /** Why "Guardar" is unavailable (for example offline); null when it is available. */
+    val blockedReason: String? = null,
+    /** Extra line under the standard hint (the builder says it saves at once). */
+    val savesImmediatelyHint: String? = null,
+)
+
 /**
- * "Contar mancuerna doble": one switch and "Guardar". The switch is a local draft (mirrored to the view model so it
- * survives process death); nothing is stored until "Guardar", and closing the sheet discards it.
+ * "Contar mancuerna doble": one switch and "Guardar". The switch is a local draft (mirrored to the host so it
+ * survives process death); nothing is stored until "Guardar", and closing the sheet discards it. [tagPrefix] names the
+ * tags (`<tagPrefix>_double_dumbbell_...`).
  */
 @Composable
+@Suppress("LongParameterList") // State plus the host callbacks.
 internal fun DoubleDumbbellSheet(
-    position: Int,
-    exerciseId: String,
-    options: VolumeOptionsUi,
-    onEvent: (LiveSessionEvent) -> Unit,
+    tagPrefix: String,
+    state: DoubleDumbbellSheetState,
+    onDraftChange: (Boolean) -> Unit,
+    onSave: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
     onClose: () -> Unit,
 ) {
-    val tag = "live_exercise_${position}_double_dumbbell"
-    var enabled by rememberSaveable { mutableStateOf(options.doubleDraft ?: options.doubleDumbbell) }
+    val tag = "${tagPrefix}_double_dumbbell"
+    var enabled by rememberSaveable { mutableStateOf(state.draft ?: state.current) }
     var submitted by rememberSaveable { mutableStateOf(false) }
-    // The view model clears the draft once the option is stored: that closes the sheet.
+    // The host clears the draft once the option is stored: that closes the sheet.
     val currentClose by rememberUpdatedState(onClose)
-    LaunchedEffect(options.doubleDraft) { if (submitted && options.doubleDraft == null) currentClose() }
+    LaunchedEffect(state.draft) { if (submitted && state.draft == null) currentClose() }
     OptionSheet(
         title = stringResource(Res.string.live_double_dumbbell_title),
         tag = tag,
-        saveEnabled = enabled != options.doubleDumbbell,
-        errorText = if (submitted && options.saveFailed) stringResource(Res.string.live_options_save_error) else null,
+        saveEnabled = enabled != state.current && state.blockedReason == null,
+        errorText = if (submitted && state.saveFailed) stringResource(Res.string.live_options_save_error) else null,
         onSave = {
             submitted = true
-            onEvent(LiveSessionEvent.SetDoubleDumbbell(exerciseId, enabled))
+            onSave(enabled)
         },
         onDismiss = {
-            onEvent(LiveSessionEvent.DismissVolumeDrafts)
+            onDismiss()
             onClose()
         },
     ) {
@@ -116,7 +132,7 @@ internal fun DoubleDumbbellSheet(
             tag = "${tag}_switch",
             onChange = {
                 enabled = it
-                onEvent(LiveSessionEvent.DoubleDumbbellDraftChanged(exerciseId, it))
+                onDraftChange(it)
             },
         )
         Text(
@@ -125,6 +141,22 @@ internal fun DoubleDumbbellSheet(
             color = AppTheme.colors.textSecondary,
             modifier = Modifier.testTag("${tag}_hint"),
         )
+        state.savesImmediatelyHint?.let {
+            Text(
+                text = it,
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("${tag}_saves_hint"),
+            )
+        }
+        state.blockedReason?.let {
+            Text(
+                text = it,
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("${tag}_offline_reason"),
+            )
+        }
     }
 }
 

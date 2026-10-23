@@ -3,6 +3,8 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
@@ -73,6 +75,8 @@ class RoutineBuilderViewModelTest {
                 repository,
                 LoadExerciseCatalog(exercises, library),
                 connectivity,
+                FakeTrainingPreferencesRepository(),
+                FakeExerciseOptionsRepository(),
             )
         advanceUntilIdle()
         return vm
@@ -453,7 +457,15 @@ class RoutineBuilderViewModelTest {
         repository.routines += routineOf("r1", "Pierna", "a")
         repository.failure = AppError.Network
         val vm =
-            RoutineBuilderViewModel("r1", handle, repository, LoadExerciseCatalog(exercises, library), connectivity)
+            RoutineBuilderViewModel(
+                "r1",
+                handle,
+                repository,
+                LoadExerciseCatalog(exercises, library),
+                connectivity,
+                FakeTrainingPreferencesRepository(),
+                FakeExerciseOptionsRepository(),
+            )
         assertEquals(RoutineBuilderUiState.Loading, vm.uiState.value)
 
         advanceUntilIdle()

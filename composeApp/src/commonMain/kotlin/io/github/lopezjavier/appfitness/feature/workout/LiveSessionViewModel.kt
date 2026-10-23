@@ -391,7 +391,7 @@ class LiveSessionViewModel(
             }
 
             is LiveSessionEvent.CalculatorBarChanged -> updateDialogs {
-                if (event.barKg in CalculatorSettings.BARS_KG) {
+                if (event.barKg in CalculatorSettings.BARS_KG && !isDumbbell(calculatorDraft?.position)) {
                     calculatorDraft = calculatorDraft?.copy(barKg = event.barKg)
                 }
             }
@@ -873,15 +873,26 @@ class LiveSessionViewModel(
             ?: set.weightPlaceholder
     }
 
-    /** Opens the calculator with the first working weight (typed, else the placeholder) and the default bar. */
+    /** Opens the calculator with the first working weight (typed, else the placeholder) and the bar (the handle
+     * for dumbbells). */
     private fun openCalculator(position: Int, kind: CalculatorKind) {
         val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
         if (terminal != null) return
         val reference = exercise.sets.firstOrNull { it.setType != SetType.WarmUp }
         val weight = reference?.let { it.weight.ifBlank { weightPlaceholderOf(exercise, it).orEmpty() } }.orEmpty()
         updateDialogs {
-            calculatorDraft = CalculatorDraft(position, kind, weight, trainingPreferences.barWeightKg)
+            calculatorDraft = CalculatorDraft(
+                position,
+                kind,
+                weight,
+                barFor(trainingPreferences.barWeightKg, traits[exercise.exerciseId]?.equipment, trainingPreferences),
+            )
         }
+    }
+
+    private fun isDumbbell(position: Int?): Boolean {
+        val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return false
+        return traits[exercise.exerciseId]?.equipment == Equipment.Dumbbell
     }
 
     /**
@@ -1308,7 +1319,7 @@ class LiveSessionViewModel(
                     calculatorUiState(
                         draft,
                         trainingPreferences,
-                        traits[it.exerciseId]?.equipment == Equipment.Dumbbell,
+                        traits[it.exerciseId]?.equipment,
                     )
                 }
             },

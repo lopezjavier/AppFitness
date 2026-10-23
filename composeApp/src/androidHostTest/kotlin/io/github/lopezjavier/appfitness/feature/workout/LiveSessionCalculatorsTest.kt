@@ -370,12 +370,58 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun plateCalculator_isOnlyOfferedForBarbellExercises() {
+    fun plateCalculator_isOfferedForBarbellAndDumbbellExercises() {
         show()
 
         tap("live_exercise_0_menu")
-        rule.onNodeWithTag("live_exercise_0_menu_plate_calc").assertDoesNotExist()
+
+        rule.onNodeWithTag("live_exercise_0_menu_plate_calc").assertExists()
         rule.onNodeWithTag("live_exercise_0_menu_warm_up_calc").assertExists()
+    }
+
+    @Test
+    fun dumbbellPlates_target21kgWith1kgHandle_shows10PerSideAndNoBarSelector() {
+        show()
+        tap("live_exercise_0_menu")
+        tap("live_exercise_0_menu_plate_calc")
+
+        type("live_exercise_0_plate_calc_weight_field", "21")
+
+        val tag = "live_exercise_0_plate_calc"
+        rule.onNodeWithTag("${tag}_plates").assertTextEquals("10")
+        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
+        rule.onNodeWithTag("${tag}_handle_label").assertTextEquals("Mango: 1 kg")
+        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_bar_label").assertDoesNotExist()
+    }
+
+    @Test
+    fun dumbbellPlates_theHandleShowsTheSavedValue() {
+        preferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 2.5))
+        show()
+        tap("live_exercise_0_menu")
+        tap("live_exercise_0_menu_plate_calc")
+
+        rule.onNodeWithTag("live_exercise_0_plate_calc_handle_label").assertTextEquals("Mango: 2,5 kg")
+    }
+
+    @Test
+    fun dumbbellWarmUp_neverGoesBelowTheHandle() {
+        show()
+        tap("live_exercise_0_menu")
+        tap("live_exercise_0_menu_warm_up_calc")
+        type("live_exercise_0_warm_up_calc_weight_field", "20")
+        repeat(2) { tap("warmup_sets_stepper_increment") }
+
+        val tag = "live_exercise_0_warm_up_calc"
+        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_row_0").assertExists()
+        val texts = (0..2).map { i ->
+            rule.onNodeWithTag("${tag}_row_$i").fetchSemanticsNode().config[
+                androidx.compose.ui.semantics.SemanticsProperties.ContentDescription,
+            ].single()
+        }
+        kotlin.test.assertTrue(texts.none { it.contains(" 0 kilos") }, texts.toString())
     }
 
     @Test

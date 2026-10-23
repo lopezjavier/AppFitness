@@ -41,6 +41,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_la
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_double_dumbbell
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_label
@@ -53,9 +56,11 @@ import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnailDefaults
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.restDurationText
 import io.github.lopezjavier.appfitness.feature.workout.restStateDescription
 import org.jetbrains.compose.resources.painterResource
@@ -329,11 +334,49 @@ internal fun BuilderRowMenu(
                 testTag = "routine_builder_ungroup_$index",
             )
         }
+        CalculatorMenuRows(row, index, onEvent, onDismiss)
         SheetActionRow(
             label = stringResource(Res.string.builder_remove),
             onClick = { act(RoutineBuilderEvent.Remove(index)) },
             testTag = "routine_builder_remove_$index",
             destructive = true,
+        )
+    }
+}
+
+/**
+ * Calculator and double-dumbbell entries, with the conditions of the live exercise menu. The equipment-dependent ones
+ * stay hidden until the catalog has loaded, so a wrong entry never shows. They do not use `act`: the menu closes and
+ * the sheet they open is state of the view model.
+ */
+@Composable
+private fun CalculatorMenuRows(
+    row: BuilderRowUi,
+    index: Int,
+    onEvent: (RoutineBuilderEvent) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val open: (RoutineBuilderEvent) -> Unit = {
+        onEvent(it)
+        onDismiss()
+    }
+    SheetActionRow(
+        label = stringResource(Res.string.live_exercise_menu_warm_up_calc),
+        onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.WarmUp)) },
+        testTag = "routine_builder_warm_up_calc_$index",
+    )
+    if (row.equipment == Equipment.Barbell || row.equipment == Equipment.Dumbbell) {
+        SheetActionRow(
+            label = stringResource(Res.string.live_exercise_menu_plate_calc),
+            onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Plates)) },
+            testTag = "routine_builder_plate_calc_$index",
+        )
+    }
+    if (row.equipment == Equipment.Dumbbell) {
+        SheetActionRow(
+            label = stringResource(Res.string.live_exercise_menu_double_dumbbell),
+            onClick = { open(RoutineBuilderEvent.OpenDoubleDumbbell(index)) },
+            testTag = "routine_builder_double_dumbbell_$index",
         )
     }
 }

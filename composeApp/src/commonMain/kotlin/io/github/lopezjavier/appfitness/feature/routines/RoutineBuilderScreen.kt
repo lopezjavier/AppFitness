@@ -209,7 +209,7 @@ private fun BuilderForm(
     BuilderSheets(state, menuRowId, onEvent) { menuRowId = null }
 }
 
-/** The set type picker and the row menu, whichever is open. */
+/** The set type picker, the row menu and the calculator / double-dumbbell sheets, whichever is open. */
 @Composable
 private fun BuilderSheets(
     state: RoutineBuilderUiState.Editing,
@@ -228,6 +228,7 @@ private fun BuilderSheets(
     if (menuIndex >= 0) {
         BuilderRowMenu(row = state.rows[menuIndex], index = menuIndex, onEvent = onEvent, onDismiss = onCloseMenu)
     }
+    BuilderOptionSheets(state, onEvent)
 }
 
 /** "Guardar" pinned at the bottom, with the offline reason above it when there is no connection. */

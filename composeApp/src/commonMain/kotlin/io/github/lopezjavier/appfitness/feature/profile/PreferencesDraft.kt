@@ -36,6 +36,7 @@ internal data class PreferencesDraft(
     val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
     val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
     val dumbbellRoundingKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
+    val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -58,6 +59,7 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         plateKg = calculators.plateKg,
         plateRoundingKg = calculators.plateRoundingKg,
         dumbbellRoundingKg = calculators.dumbbellRoundingKg,
+        dumbbellHandleKg = calculators.dumbbellHandleKg,
     ),
 )
 
@@ -80,6 +82,7 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
             plateKg = draft.plateKg,
             plateRoundingKg = draft.plateRoundingKg,
             dumbbellRoundingKg = draft.dumbbellRoundingKg,
+            dumbbellHandleKg = draft.dumbbellHandleKg,
         ),
     )
 }.getOrNull()

@@ -30,6 +30,8 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.test.FakeImageLoaderEngine
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -97,6 +99,8 @@ class RoutineBuilderScreenTest {
                 repository,
                 LoadExerciseCatalog(exercises, library),
                 connectivity,
+                FakeTrainingPreferencesRepository(),
+                FakeExerciseOptionsRepository(),
             )
         rule.setContent {
             AppTheme {

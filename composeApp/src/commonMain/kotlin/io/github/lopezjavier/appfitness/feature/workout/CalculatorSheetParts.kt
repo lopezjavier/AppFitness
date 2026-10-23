@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import org.jetbrains.compose.resources.stringResource
 
 private const val WEIGHT_MAX_DECIMALS = 1
@@ -43,8 +44,21 @@ private const val WEIGHT_MAX_INTEGER_DIGITS = 3
 internal class CalculatorHelp(val contentDescription: String, val body: String, val testTag: String)
 
 /**
+ * What the calculator sheets can ask of their host (the live session or the routine builder); the sheets know
+ * nothing about either screen's events.
+ */
+internal class CalculatorActions(
+    val onWeight: (String) -> Unit,
+    val onBar: (Double) -> Unit,
+    val onWarmUpSets: (Int) -> Unit,
+    val onAddWarmUp: (List<WarmUpSet>) -> Unit,
+    val onDismiss: () -> Unit,
+)
+
+/**
  * Shared frame of both calculator sheets: heading, a scrolling body (weight field, bar selector, [results]) and the
- * [action] pinned below it. Closing the sheet (X, back, swipe, scrim) calls [onDismiss] and inserts nothing.
+ * [action] pinned below it. Closing the sheet (X, back, swipe, scrim) calls `actions.onDismiss` and inserts nothing.
+ * Dumbbell exercises have no bar selector: the handle is the bar (shown by the plate sheet).
  */
 @Composable
 @Suppress("LongParameterList") // Frame slots of two sheets.
@@ -53,13 +67,13 @@ internal fun CalculatorSheetFrame(
     title: String,
     weightLabel: String,
     calculator: CalculatorUiState,
-    onEvent: (LiveSessionEvent) -> Unit,
+    actions: CalculatorActions,
     help: CalculatorHelp,
     results: @Composable () -> Unit,
     action: @Composable () -> Unit,
 ) {
     AppBottomSheet(
-        onDismissRequest = { onEvent(LiveSessionEvent.DismissCalculator) },
+        onDismissRequest = actions.onDismiss,
         testTagPrefix = "${tag}_sheet",
     ) {
         Column(
@@ -92,13 +106,13 @@ internal fun CalculatorSheetFrame(
                 }
                 NumberInput(
                     value = calculator.draft.weightText,
-                    onValueChange = { onEvent(LiveSessionEvent.CalculatorWeightChanged(it)) },
+                    onValueChange = actions.onWeight,
                     label = weightLabel,
                     modifier = Modifier.fillMaxWidth().testTag("${tag}_weight_field"),
                     maxDecimals = WEIGHT_MAX_DECIMALS,
                     maxIntegerDigits = WEIGHT_MAX_INTEGER_DIGITS,
                 )
-                BarSelector(tag, calculator.draft.barKg) { onEvent(LiveSessionEvent.CalculatorBarChanged(it)) }
+                if (!calculator.isDumbbell) BarSelector(tag, calculator.draft.barKg, actions.onBar)
                 results()
             }
             action()

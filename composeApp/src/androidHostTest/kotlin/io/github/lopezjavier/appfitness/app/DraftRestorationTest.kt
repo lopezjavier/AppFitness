@@ -146,7 +146,12 @@ class DraftRestorationTest {
                                 FakeRoutineRepository(),
                                 LoadExerciseCatalog(exercises, library),
                                 connectivity,
-                            ).also { current = it }
+                                FakeTrainingPreferencesRepository(),
+                                FakeExerciseOptionsRepository(),
+                            ).also {
+                                current =
+                                    it
+                            }
                         }
                     RoutineBuilderRoot(
                         routineId = null,
@@ -195,6 +200,8 @@ class DraftRestorationTest {
                                 FakeRoutineRepository(),
                                 LoadExerciseCatalog(repo, library),
                                 connectivity,
+                                FakeTrainingPreferencesRepository(),
+                                FakeExerciseOptionsRepository(),
                             )
                         }
                     RoutineBuilderRoot(

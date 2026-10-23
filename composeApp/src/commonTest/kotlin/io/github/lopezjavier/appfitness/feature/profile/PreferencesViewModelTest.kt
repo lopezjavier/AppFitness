@@ -924,6 +924,48 @@ class PreferencesViewModelTest {
     }
 
     @Test
+    fun dumbbellHandle_isClampedAndStepsInHalfKilos() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetDumbbellHandle(0.0))
+        assertEquals(0.5, state().form.calculators.dumbbellHandleKg)
+        viewModel.onEvent(PreferencesEvent.SetDumbbellHandle(40.0))
+        assertEquals(10.0, state().form.calculators.dumbbellHandleKg)
+        viewModel.onEvent(PreferencesEvent.SetDumbbellHandle(2.5))
+        assertEquals(2.5, state().form.calculators.dumbbellHandleKg)
+    }
+
+    @Test
+    fun dumbbellHandle_loadsMakesTheFormDirty_andSaveSendsIt() = runTest {
+        training.result = Result.success(TrainingPreferences(dumbbellHandleKg = 1.5))
+        val (viewModel, state) = loaded()
+
+        assertEquals(1.5, state().form.calculators.dumbbellHandleKg)
+        assertFalse(state().canSave)
+        viewModel.onEvent(PreferencesEvent.SetDumbbellHandle(2.0))
+        assertTrue(state().canSave)
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(2.0, profile.preferenceSaves.single().calculators?.dumbbellHandleKg)
+    }
+
+    @Test
+    fun dumbbellHandle_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetDumbbellHandle(3.0))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertEquals(3.0, restored.form.calculators.dumbbellHandleKg)
+        assertTrue(restored.canSave)
+    }
+
+    @Test
     fun plates_stayOrderedHeaviestFirst_whenReEnabled() = runTest {
         val (viewModel, state) = loaded()
 

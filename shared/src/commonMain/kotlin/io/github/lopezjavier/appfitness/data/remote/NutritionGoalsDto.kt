@@ -93,6 +93,7 @@ internal data class SavePreferencesParams(
     @SerialName("p_plate_kg") val plateKg: List<Double>? = null,
     @SerialName("p_plate_rounding_kg") val plateRoundingKg: Double? = null,
     @SerialName("p_dumbbell_rounding_kg") val dumbbellRoundingKg: Double? = null,
+    @SerialName("p_dumbbell_handle_kg") val dumbbellHandleKg: Double? = null,
 ) {
     companion object {
         @Suppress("LongParameterList") // The edited form fields.
@@ -128,6 +129,7 @@ internal data class SavePreferencesParams(
                 plateKg = calculators?.plateKg,
                 plateRoundingKg = calculators?.plateRoundingKg,
                 dumbbellRoundingKg = calculators?.dumbbellRoundingKg,
+                dumbbellHandleKg = calculators?.dumbbellHandleKg,
             )
         }
     }

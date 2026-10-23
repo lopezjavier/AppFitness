@@ -12,6 +12,9 @@ internal fun CalculatorSettings.withPlateRounding(kg: Double) =
 internal fun CalculatorSettings.withDumbbellRounding(kg: Double) =
     copy(dumbbellRoundingKg = kg.coerceIn(MIN_ROUNDING_KG, MAX_ROUNDING_KG))
 
+internal fun CalculatorSettings.withDumbbellHandle(kg: Double) =
+    copy(dumbbellHandleKg = kg.coerceIn(MIN_ROUNDING_KG, MAX_ROUNDING_KG))
+
 /** Only the bars of the catalogue are accepted; anything else leaves the settings unchanged. */
 internal fun CalculatorSettings.withBar(kg: Double) =
     if (kg in CalculatorSettings.BARS_KG) copy(barWeightKg = kg) else this

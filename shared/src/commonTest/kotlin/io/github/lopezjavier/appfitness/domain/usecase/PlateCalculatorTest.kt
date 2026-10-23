@@ -91,4 +91,32 @@ class PlateCalculatorTest {
     fun emptyPlatesText_isBlank() {
         assertEquals("", PlateCalculator(20.0, 20.0, all).perSideText())
     }
+
+    @Test
+    fun dumbbellTwentyOneKilosWithOneKiloHandle_isTenPerSide() {
+        val result = PlateCalculator(21.0, 1.0, all)
+
+        assertEquals("10", result.perSideText())
+        assertEquals(21.0, result.achievedKg)
+        assertTrue(result.exact)
+    }
+
+    @Test
+    fun dumbbellTargetBetweenSteps_givesTheClosestLowerAndIsNotExact() {
+        val result = PlateCalculator(20.3, 1.0, all)
+
+        assertEquals(20.0, result.achievedKg)
+        assertFalse(result.exact)
+    }
+
+    @Test
+    fun dumbbellTargetAtOrBelowTheHandle_givesTheHandleOnly() {
+        val atHandle = PlateCalculator(1.0, 1.0, all)
+        val below = PlateCalculator(0.5, 1.0, all)
+
+        assertEquals("", atHandle.perSideText())
+        assertTrue(atHandle.exact)
+        assertEquals(1.0, below.achievedKg)
+        assertFalse(below.exact)
+    }
 }

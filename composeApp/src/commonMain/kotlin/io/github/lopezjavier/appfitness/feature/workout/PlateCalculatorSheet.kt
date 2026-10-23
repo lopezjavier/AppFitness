@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.help_plate_calc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_only
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_close
+import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_handle_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_missing
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_not_exact
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_plate_title
@@ -41,14 +42,14 @@ import org.jetbrains.compose.resources.stringResource
  * action; nothing is stored.
  */
 @Composable
-internal fun PlateCalculatorSheet(position: Int, calculator: CalculatorUiState, onEvent: (LiveSessionEvent) -> Unit) {
-    val tag = "live_exercise_${position}_plate_calc"
+internal fun PlateCalculatorSheet(tagPrefix: String, calculator: CalculatorUiState, actions: CalculatorActions) {
+    val tag = "${tagPrefix}_plate_calc"
     CalculatorSheetFrame(
         tag = tag,
         title = stringResource(Res.string.live_calc_plate_title),
         weightLabel = stringResource(Res.string.live_calc_target_weight),
         calculator = calculator,
-        onEvent = onEvent,
+        actions = actions,
         help = CalculatorHelp(
             stringResource(Res.string.help_plate_calc_cd),
             stringResource(Res.string.help_plate_calc_body),
@@ -58,7 +59,7 @@ internal fun PlateCalculatorSheet(position: Int, calculator: CalculatorUiState, 
         action = {
             SecondaryButton(
                 text = stringResource(Res.string.live_calc_close),
-                onClick = { onEvent(LiveSessionEvent.DismissCalculator) },
+                onClick = actions.onDismiss,
                 modifier = Modifier.fillMaxWidth().testTag("${tag}_close"),
             )
         },
@@ -80,20 +81,31 @@ private fun PlateResults(tag: String, calculator: CalculatorUiState) {
                 color = AppTheme.colors.textSecondary,
                 modifier = Modifier.testTag("${tag}_hint"),
             )
+            if (calculator.isDumbbell) BarLabel(tag, calculator)
             return@Column
         }
-        val barKg = GhostData.weightText(calculator.draft.barKg)
         PlatesLine(tag, plates)
-        Text(
-            text = stringResource(Res.string.live_calc_bar_label, barKg),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("${tag}_bar_label"),
-        )
+        BarLabel(tag, calculator)
         if (!plates.exact && target > calculator.draft.barKg) {
             NotExactNote(tag, target, plates.achievedKg)
         }
     }
+}
+
+/** "Barra 20 kg", or "Mango: 1 kg" for dumbbells (the handle actually used). */
+@Composable
+private fun BarLabel(tag: String, calculator: CalculatorUiState) {
+    val barKg = GhostData.weightText(calculator.draft.barKg)
+    val dumbbell = calculator.isDumbbell
+    Text(
+        text = stringResource(
+            if (dumbbell) Res.string.live_calc_handle_label else Res.string.live_calc_bar_label,
+            barKg,
+        ),
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier.testTag(if (dumbbell) "${tag}_handle_label" else "${tag}_bar_label"),
+    )
 }
 
 @Composable

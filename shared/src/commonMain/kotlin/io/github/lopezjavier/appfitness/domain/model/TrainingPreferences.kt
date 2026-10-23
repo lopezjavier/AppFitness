@@ -12,9 +12,10 @@ data class TrainingPreferences(
     val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
     val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
     val dumbbellRoundingKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
+    val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
 ) {
     val calculators: CalculatorSettings
-        get() = CalculatorSettings(barWeightKg, plateKg, plateRoundingKg, dumbbellRoundingKg)
+        get() = CalculatorSettings(barWeightKg, plateKg, plateRoundingKg, dumbbellRoundingKg, dumbbellHandleKg)
 }
 
 /** The calculator settings stored in `training_preferences` and saved with `save_preferences`. */
@@ -23,11 +24,13 @@ data class CalculatorSettings(
     val plateKg: List<Double> = PLATE_CATALOGUE,
     val plateRoundingKg: Double = DEFAULT_PLATE_ROUNDING_KG,
     val dumbbellRoundingKg: Double = DEFAULT_DUMBBELL_ROUNDING_KG,
+    val dumbbellHandleKg: Double = DEFAULT_DUMBBELL_HANDLE_KG,
 ) {
     companion object {
         const val DEFAULT_BAR_KG = 20.0
         const val DEFAULT_PLATE_ROUNDING_KG = 2.5
         const val DEFAULT_DUMBBELL_ROUNDING_KG = 2.0
+        const val DEFAULT_DUMBBELL_HANDLE_KG = 1.0
 
         /** The bars offered, heaviest first. */
         val BARS_KG: List<Double> = listOf(20.0, 15.0, 10.0, 7.5)
