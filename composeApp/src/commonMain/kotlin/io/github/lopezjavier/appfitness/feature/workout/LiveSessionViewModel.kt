@@ -6,19 +6,21 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
-import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.model.columns
@@ -192,8 +194,9 @@ class LiveSessionViewModel(
     /** Target RPE of the session's routine by exercise position; empty for free sessions. */
     private var targetRpes: Map<Int, Double> = emptyMap()
 
-    /** Where the previous values come from (training preference, read at load). */
-    private var previousMode = PreviousValuesMode.Overall
+    /** Training preferences (read at load, the defaults until then): previous-values mode and calculator settings. */
+    private var trainingPreferences = TrainingPreferences()
+    private val previousMode get() = trainingPreferences.previousValuesMode
 
     /** Set deletions waiting for the server, oldest first. */
     private val deleteOps = ArrayDeque<DeleteOp>()
@@ -225,6 +228,7 @@ class LiveSessionViewModel(
     private var doubleDumbbellDraft: DoubleDumbbellDraft? = restoredDoubleDumbbellDraft()
     private var bodyWeightDraft: String? = savedState.get<String>(KEY_BODY_WEIGHT_DRAFT)
     private var bodyWeightInvalid = false
+    private var calculatorDraft: CalculatorDraft? = savedState.restoredCalculatorDraft()
 
     private val queue = PendingSetQueue()
     private val flushLock = Mutex()
@@ -378,6 +382,22 @@ class LiveSessionViewModel(
                 bodyWeightInvalid = false
             }
 
+            is LiveSessionEvent.OpenCalculator -> openCalculator(event.position, event.kind)
+
+            is LiveSessionEvent.CalculatorWeightChanged -> updateDialogs {
+                calculatorDraft = calculatorDraft?.copy(weightText = event.text)
+            }
+
+            is LiveSessionEvent.CalculatorBarChanged -> updateDialogs {
+                if (event.barKg in CalculatorSettings.BARS_KG) {
+                    calculatorDraft = calculatorDraft?.copy(barKg = event.barKg)
+                }
+            }
+
+            is LiveSessionEvent.AddWarmUpSets -> addWarmUpSets(event.position, event.sets)
+
+            LiveSessionEvent.DismissCalculator -> updateDialogs { calculatorDraft = null }
+
             LiveSessionEvent.Done -> effectChannel.trySend(LiveSessionEffect.Closed)
         }
     }
@@ -446,8 +466,10 @@ class LiveSessionViewModel(
                     } else {
                         loadNames()
                         loadVolumeOptions()
-                        previousMode = preferences.get().getOrNull()?.previousValuesMode ?: PreviousValuesMode.Overall
+                        trainingPreferences = preferences.get().getOrNull() ?: TrainingPreferences()
                         session = loaded.toState().withRestoredDrafts().withRestoredPause()
+                        calculatorDraft =
+                            calculatorDraft?.takeIf { draft -> loaded.exercises.any { it.position == draft.position } }
                         typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         rpePicker = rpePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
@@ -781,6 +803,56 @@ class LiveSessionViewModel(
         if (online) sync()
     }
 
+    /** The greyed weight of a set: the routine's plan, else last time's value, else the one it was added with. */
+    private fun weightPlaceholderOf(exercise: ExerciseState, set: SetState): String? {
+        val weighted = metricOf(exercise.exerciseId) == ExerciseMetricType.WeightReps
+        return planned[exercise.position to set.setIndex]?.weightKg?.let { GhostData.weightText(it) }
+            ?: ghostFor(exercise.exerciseId, set.setIndex)?.takeIf { weighted || it.weightKg != 0.0 }
+                ?.let { GhostData.weightText(it.weightKg) }
+            ?: set.weightPlaceholder
+    }
+
+    /** Opens the calculator with the first working weight (typed, else the placeholder) and the default bar. */
+    private fun openCalculator(position: Int, kind: CalculatorKind) {
+        val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
+        if (terminal != null) return
+        val reference = exercise.sets.firstOrNull { it.setType != SetType.WarmUp }
+        val weight = reference?.let { it.weight.ifBlank { weightPlaceholderOf(exercise, it).orEmpty() } }.orEmpty()
+        updateDialogs {
+            calculatorDraft = CalculatorDraft(position, kind, weight, trainingPreferences.barWeightKg)
+        }
+    }
+
+    /**
+     * Inserts [sets] as warm-up sets after the exercise's leading warm-ups and before its first other set. The sets
+     * from there on move up by the number inserted (rows, drafts, stopwatches and pickers travel with them), and every
+     * moved or new set is queued under its new index with its full content: an upsert overwrites the row that held the
+     * old index and the highest index is a new row, so the server ends up with exactly this order whatever order the
+     * queue is flushed in. Writes still queued under an old index of a moved set are replaced by these.
+     */
+    private fun addWarmUpSets(position: Int, sets: List<WarmUpSet>) {
+        val exercise = session?.exercises?.firstOrNull { it.position == position }
+        if (exercise == null || sets.isEmpty() || busy) return
+        if (terminal != null) return
+        val insertAt = exercise.sets.indexOfFirst { it.setType != SetType.WarmUp }.takeIf { it >= 0 }
+            ?: exercise.sets.size
+        val added = sets.map {
+            SetState(0, SetType.WarmUp, weightText(it.weightKg), it.reps.toString(), completedAt = null)
+        }
+        val merged = (exercise.sets.take(insertAt) + added + exercise.sets.drop(insertAt))
+            .mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+        replaceExercise(position) { it.copy(sets = merged) }
+        val firstMoved = insertAt + 1
+        val moved = { pickerPosition: Int, pickerSet: Int -> pickerPosition == position && pickerSet >= firstMoved }
+        typePicker =
+            typePicker?.let { if (moved(it.position, it.setIndex)) it.copy(setIndex = it.setIndex + sets.size) else it }
+        rpePicker =
+            rpePicker?.let { if (moved(it.position, it.setIndex)) it.copy(setIndex = it.setIndex + sets.size) else it }
+        calculatorDraft = null
+        // Highest index first: the new row is created before the lower ones are overwritten.
+        merged.drop(insertAt).reversed().forEach { write(position, it.setIndex) }
+    }
+
     private fun requestDiscard() {
         if (!online || busy || terminal != null) return
         updateDialogs { discardAsked = true }
@@ -1018,6 +1090,7 @@ class LiveSessionViewModel(
         savedState[KEY_DOUBLE_DRAFT_EXERCISE] = doubleDumbbellDraft?.exerciseId
         savedState[KEY_DOUBLE_DRAFT_ENABLED] = doubleDumbbellDraft?.enabled
         savedState[KEY_BODY_WEIGHT_DRAFT] = bodyWeightDraft
+        savedState.persistCalculatorDraft(calculatorDraft)
         savedState[KEY_PICKER_POSITION] = typePicker?.position
         savedState[KEY_PICKER_SET] = typePicker?.setIndex
         savedState[KEY_RPE_PICKER_POSITION] = rpePicker?.position
@@ -1052,6 +1125,8 @@ class LiveSessionViewModel(
         rpePicker = null
         doubleDumbbellDraft = null
         bodyWeightDraft = null
+        calculatorDraft = null
+        savedState.persistCalculatorDraft(null)
         savedState.remove<String>(KEY_DOUBLE_DRAFT_EXERCISE)
         savedState.remove<Boolean>(KEY_DOUBLE_DRAFT_ENABLED)
         savedState.remove<String>(KEY_BODY_WEIGHT_DRAFT)
@@ -1136,10 +1211,7 @@ class LiveSessionViewModel(
                             floors = set.floors,
                             durationSeconds = set.stopwatch.elapsedSeconds(now),
                             stopwatchRunning = set.stopwatch.isRunning,
-                            weightPlaceholder = plan?.weightKg?.let { GhostData.weightText(it) }
-                                ?: ghost?.takeIf { weighted || it.weightKg != 0.0 }
-                                    ?.let { GhostData.weightText(it.weightKg) }
-                                ?: set.weightPlaceholder,
+                            weightPlaceholder = weightPlaceholderOf(exercise, set),
                             repsPlaceholder = plan?.reps?.toString() ?: ghost?.reps?.toString() ?: set.repsPlaceholder,
                             type = set.setType,
                             previous = GhostData.previousText(ghost, metricOf(exercise.exerciseId)),
@@ -1167,6 +1239,16 @@ class LiveSessionViewModel(
             bodyWeightInvalid = bodyWeightInvalid,
             pausedAt = current.pausedAt,
             pausedTotalSeconds = current.pausedTotalSeconds,
+            calculator = calculatorDraft?.let { draft ->
+                val exercise = current.exercises.firstOrNull { it.position == draft.position }
+                exercise?.let {
+                    calculatorUiState(
+                        draft,
+                        trainingPreferences,
+                        traits[it.exerciseId]?.equipment == Equipment.Dumbbell,
+                    )
+                }
+            },
         )
     }
 

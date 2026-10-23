@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MacroTargets
@@ -32,6 +33,8 @@ data class PreferencesForm(
     val warmUpIncluded: Boolean = false,
     /** "Valores anteriores": where the live session takes the previous values from. */
     val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
+    /** "Calculadoras": default bar, available plates and the plate/dumbbell rounding. */
+    val calculators: CalculatorSettings = CalculatorSettings(),
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
@@ -58,11 +61,14 @@ sealed interface PreferencesUiState {
         val isOnline: Boolean = true,
         /** The latest weight comes from Health Connect: the weight is read-only here (ADR-47). */
         val weightFromHealthConnect: Boolean = false,
+        /** The user tried to switch off the last plate; cleared by the next accepted plate change. */
+        val platesError: Boolean = false,
     ) : PreferencesUiState {
         val isDirty: Boolean get() = form != saved
 
         /** "Guardar" needs a change, a filled name, the network and no save running. */
-        val canSave: Boolean get() = isDirty && form.isNameValid && isOnline && !isSaving
+        val canSave: Boolean
+            get() = isDirty && form.isNameValid && form.calculators.plateKg.isNotEmpty() && isOnline && !isSaving
 
         val energy: EnergyStrategyUiState
             get() = energyStrategyUiState(
@@ -106,6 +112,18 @@ sealed interface PreferencesEvent {
 
     /** The "Valores anteriores" selector; only a draft until [Save]. */
     data class SetPreviousValuesMode(val mode: PreviousValuesMode) : PreferencesEvent
+
+    /** Default bar of the calculators (20, 15, 10 or 7,5 kg); only a draft until [Save]. */
+    data class SetBarWeight(val kg: Double) : PreferencesEvent
+
+    /** Plate rounding step in kg (clamped to 0,5..10); only a draft until [Save]. */
+    data class SetPlateRounding(val kg: Double) : PreferencesEvent
+
+    /** Dumbbell rounding step in kg (clamped to 0,5..10); only a draft until [Save]. */
+    data class SetDumbbellRounding(val kg: Double) : PreferencesEvent
+
+    /** Switches one plate of the catalogue on or off; the last plate cannot be switched off (sets `platesError`). */
+    data class SetPlateEnabled(val kg: Double, val enabled: Boolean) : PreferencesEvent
 
     data object Save : PreferencesEvent
 

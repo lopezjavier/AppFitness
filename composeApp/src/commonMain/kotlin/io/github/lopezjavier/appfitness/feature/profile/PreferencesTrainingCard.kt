@@ -30,19 +30,25 @@ import io.github.lopezjavier.appfitness.designsystem.AppSwitch
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Entrenamiento" card: one row whose whole 48 dp area toggles "Incluir calentamiento". The switch is drawn inside
- * but hidden from semantics, so there is a single focus target (the row). Nothing is applied until "Guardar".
+ * "Entrenamiento" card: one row whose whole 48 dp area toggles "Incluir calentamiento", the previous-values selector
+ * and the "Calculadoras" block. The switch is drawn inside but hidden from semantics, so there is a single focus
+ * target (the row). Nothing is applied until "Guardar".
  */
+@Suppress("LongParameterList") // One value and callback per control of the card.
 @Composable
 internal fun TrainingCard(
     warmUpIncluded: Boolean,
     onChange: (Boolean) -> Unit,
     previousValuesMode: PreviousValuesMode,
     onPreviousValuesMode: (PreviousValuesMode) -> Unit,
+    calculators: CalculatorSettings,
+    platesError: Boolean,
+    onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val stateText =
@@ -84,6 +90,7 @@ internal fun TrainingCard(
                 )
             }
             PreviousValuesSelector(previousValuesMode, onPreviousValuesMode)
+            CalculatorsBlock(calculators, platesError, onEvent)
         }
     }
 }

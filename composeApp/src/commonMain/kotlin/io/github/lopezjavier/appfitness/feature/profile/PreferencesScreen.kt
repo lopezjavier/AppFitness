@@ -186,6 +186,9 @@ private fun PreferencesLoaded(
                         onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
                         previousValuesMode = state.form.previousValuesMode,
                         onPreviousValuesMode = { onEvent(PreferencesEvent.SetPreviousValuesMode(it)) },
+                        calculators = state.form.calculators,
+                        platesError = state.platesError,
+                        onEvent = onEvent,
                     )
                 }
             }
@@ -265,6 +268,9 @@ private fun TwoColumns(
                 onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
                 previousValuesMode = state.form.previousValuesMode,
                 onPreviousValuesMode = { onEvent(PreferencesEvent.SetPreviousValuesMode(it)) },
+                calculators = state.form.calculators,
+                platesError = state.platesError,
+                onEvent = onEvent,
             )
         }
     }

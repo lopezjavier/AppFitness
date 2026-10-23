@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import kotlinx.serialization.SerialName
@@ -25,10 +26,23 @@ internal enum class PreviousValuesModeDto(val domain: PreviousValuesMode) {
 internal data class TrainingPreferencesDto(
     @SerialName("warm_up_included") val warmUpIncluded: Boolean = false,
     @SerialName("previous_values_mode") val previousValuesMode: PreviousValuesModeDto = PreviousValuesModeDto.Overall,
+    @SerialName("bar_weight_kg") val barWeightKg: Double = CalculatorSettings.DEFAULT_BAR_KG,
+    @SerialName("plate_kg") val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
+    @SerialName("plate_rounding_kg") val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
+    @SerialName("dumbbell_rounding_kg") val dumbbellRoundingKg: Double =
+        CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
 ) {
-    fun toDomain(): TrainingPreferences = TrainingPreferences(warmUpIncluded, previousValuesMode.domain)
+    fun toDomain(): TrainingPreferences = TrainingPreferences(
+        warmUpIncluded = warmUpIncluded,
+        previousValuesMode = previousValuesMode.domain,
+        barWeightKg = barWeightKg,
+        plateKg = plateKg,
+        plateRoundingKg = plateRoundingKg,
+        dumbbellRoundingKg = dumbbellRoundingKg,
+    )
 
     companion object {
-        const val COLUMNS = "warm_up_included,previous_values_mode"
+        const val COLUMNS =
+            "warm_up_included,previous_values_mode,bar_weight_kg,plate_kg,plate_rounding_kg,dumbbell_rounding_kg"
     }
 }

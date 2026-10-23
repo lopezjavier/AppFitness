@@ -144,6 +144,14 @@ private fun ExerciseSheets(
                 onEvent(LiveSessionEvent.DoubleDumbbellDraftChanged(exercise.exerciseId, options.doubleDumbbell))
                 onSheetChange(ExerciseSheet.DoubleDumbbell)
             },
+            onWarmUpCalculator = {
+                onEvent(LiveSessionEvent.OpenCalculator(position, CalculatorKind.WarmUp))
+                onSheetChange(ExerciseSheet.None)
+            },
+            onPlateCalculator = {
+                onEvent(LiveSessionEvent.OpenCalculator(position, CalculatorKind.Plates))
+                onSheetChange(ExerciseSheet.None)
+            },
             onBodyWeight = {
                 onEvent(LiveSessionEvent.BodyWeightDraftChanged(options.bodyWeightKg?.let(::decimalText).orEmpty()))
                 onSheetChange(ExerciseSheet.BodyWeight)

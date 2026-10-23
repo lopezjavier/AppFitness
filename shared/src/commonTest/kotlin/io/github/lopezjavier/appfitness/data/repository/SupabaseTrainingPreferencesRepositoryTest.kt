@@ -66,6 +66,31 @@ class SupabaseTrainingPreferencesRepositoryTest {
     }
 
     @Test
+    fun get_readsTheCalculatorColumns() = runTest {
+        body = """[{"warm_up_included":false,"previous_values_mode":"overall","bar_weight_kg":7.5,""" +
+            """"plate_kg":[20,2.5,0.5],"plate_rounding_kg":5.0,"dumbbell_rounding_kg":1.0}]"""
+
+        val result = repository().get().getOrThrow()
+
+        assertEquals(7.5, result.barWeightKg)
+        assertEquals(listOf(20.0, 2.5, 0.5), result.plateKg)
+        assertEquals(5.0, result.plateRoundingKg)
+        assertEquals(1.0, result.dumbbellRoundingKg)
+        assertTrue(rest().single().url.toString().contains("plate_kg"))
+    }
+
+    @Test
+    fun get_rowWithoutCalculatorColumnsUsesTheDefaults() = runTest {
+        body = """[{"warm_up_included":true}]"""
+
+        val result = repository().get().getOrThrow()
+
+        assertEquals(TrainingPreferences(warmUpIncluded = true), result)
+        assertEquals(20.0, result.barWeightKg)
+        assertEquals(10, result.plateKg.size)
+    }
+
+    @Test
     fun get_rowWithoutTheModeColumnDefaultsToOverall() = runTest {
         body = """[{"warm_up_included":false}]"""
 

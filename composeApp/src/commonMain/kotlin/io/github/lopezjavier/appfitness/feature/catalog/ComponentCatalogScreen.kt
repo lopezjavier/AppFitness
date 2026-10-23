@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -54,6 +55,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
@@ -208,6 +210,13 @@ private fun ChipsSection() {
             selectedIndex = selected,
             onSelect = { selected = it },
             modifier = Modifier.testTag("catalog_chip_row"),
+        )
+        var on by rememberSaveable { mutableStateOf(true) }
+        AppToggleChip(
+            label = "2,5",
+            checked = on,
+            onCheckedChange = { on = it },
+            modifier = Modifier.testTag("catalog_toggle_chip"),
         )
     }
 }

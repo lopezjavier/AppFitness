@@ -129,11 +129,33 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetPreviousValuesMode -> edit { it.copy(previousValuesMode = event.mode) }
 
+            is PreferencesEvent.SetBarWeight -> edit { it.copy(calculators = it.calculators.withBar(event.kg)) }
+
+            is PreferencesEvent.SetPlateRounding ->
+                edit { it.copy(calculators = it.calculators.withPlateRounding(event.kg)) }
+
+            is PreferencesEvent.SetDumbbellRounding ->
+                edit { it.copy(calculators = it.calculators.withDumbbellRounding(event.kg)) }
+
+            is PreferencesEvent.SetPlateEnabled -> setPlate(event.kg, event.enabled)
+
             PreferencesEvent.Save -> save()
 
             PreferencesEvent.Retry -> if (_uiState.value == PreferencesUiState.LoadFailed) load()
 
             PreferencesEvent.Refresh -> refreshWeight()
+        }
+    }
+
+    private fun setPlate(kg: Double, enabled: Boolean) {
+        updateLoaded { state ->
+            if (state.isSaving) return@updateLoaded state
+            val calculators = state.form.calculators.withPlate(kg, enabled)
+            if (calculators == null) {
+                state.copy(platesError = true)
+            } else {
+                state.copy(form = state.form.copy(calculators = calculators), platesError = false)
+            }
         }
     }
 
@@ -231,6 +253,7 @@ class PreferencesViewModel(
             split = goals?.split ?: MacroSplit.DEFAULT,
             warmUpIncluded = training.warmUpIncluded,
             previousValuesMode = training.previousValuesMode,
+            calculators = training.calculators,
         )
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
         return PreferencesUiState.Loaded(
@@ -303,6 +326,7 @@ class PreferencesViewModel(
                 split = form.split,
                 warmUpIncluded = form.warmUpIncluded,
                 previousValuesMode = form.previousValuesMode,
+                calculators = form.calculators,
             )
             if (result.isSuccess) {
                 if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()
