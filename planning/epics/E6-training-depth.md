@@ -108,8 +108,37 @@ Feature: RPE
 
   Scenario: Logging the RPE
     When the user taps the RPE cell of a set
-    Then they pick a value from 6 to 10 in half points ("7,5")
-    And the cell shows "7,5"
+    Then a vertical scale from 6 to 10 in half points opens
+    When they pick "7,5"
+    Then the cell shows "7,5"
+    And the scale closes (a tap applies it; there is no "Guardar" or "Quitar RPE")
+
+  Scenario: Completing a working set without RPE
+    Given a working set with weight and reps and no RPE
+    When the user checks it
+    Then the RPE scale opens and the set is not completed yet
+    When they pick 8
+    Then the scale closes, the set is completed with RPE 8 and the rest timer starts
+
+  Scenario: Closing the scale without picking
+    Given the RPE scale opened by checking a set
+    When the user closes it without picking
+    Then the set stays pending and nothing is saved
+
+  Scenario: Warm-up sets are exempt
+    When the user checks a warm-up set
+    Then it completes directly, without the RPE scale
+
+  Scenario: A set that already has RPE
+    Given a set with an RPE picked earlier
+    When the user checks it
+    Then it completes directly
+
+  Scenario: Changing the RPE
+    When the user taps the RPE cell of a completed set
+    Then the scale opens with the current value highlighted
+    When they pick another value
+    Then the RPE is updated and nothing else changes
 
   Scenario: Previous RPE
     Given the previous session logged RPE 8 for that set

@@ -38,7 +38,7 @@ internal fun LiveTypePicker(state: LiveSessionUiState.Active, onEvent: (LiveSess
     )
 }
 
-/** The RPE picker of the targeted set; "Guardar" applies the choice (null clears it), dismissing changes nothing. */
+/** The RPE picker of the targeted set; a tap applies the choice (and completes the set when prompted). */
 @Composable
 internal fun LiveRpePicker(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
     val target = state.rpePicker ?: return
@@ -47,8 +47,9 @@ internal fun LiveRpePicker(state: LiveSessionUiState.Active, onEvent: (LiveSessi
     RpePickerSheet(
         current = row.rpe?.let(RpeScale::parse),
         setNumber = row.setIndex,
-        onDone = { onEvent(LiveSessionEvent.SetRpeChosen(target.position, target.setIndex, it)) },
+        onSelect = { onEvent(LiveSessionEvent.SetRpeChosen(target.position, target.setIndex, it)) },
         onDismiss = { onEvent(LiveSessionEvent.DismissRpePicker) },
+        completesSet = target.completesSet,
     )
 }
 

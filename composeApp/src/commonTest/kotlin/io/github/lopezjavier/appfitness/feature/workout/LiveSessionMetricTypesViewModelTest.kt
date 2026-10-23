@@ -132,6 +132,9 @@ class LiveSessionMetricTypesViewModelTest {
 
     private fun TestScope.checkAndGetEntry(vm: LiveSessionViewModel, metric: ExerciseMetricType): SetEntry? {
         send(vm, LiveSessionEvent.SetChecked(positionOf(metric), 1, true))
+        if ((vm.uiState.value as? LiveSessionUiState.Active)?.rpePicker?.completesSet == true) {
+            send(vm, LiveSessionEvent.SetRpeChosen(positionOf(metric), 1, 8.0)) // Answers the RPE prompt (ADR-55).
+        }
         return repository.upserts.lastOrNull { it.exercisePosition == positionOf(metric) }?.entry
     }
 

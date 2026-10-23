@@ -62,7 +62,7 @@ data class RestTimerUi(val remaining: Duration, val total: Duration)
 data class TypePickerTarget(val position: Int, val setIndex: Int)
 
 /** The set (exercise [position], [setIndex]) whose RPE picker is open. */
-data class RpePickerTarget(val position: Int, val setIndex: Int)
+data class RpePickerTarget(val position: Int, val setIndex: Int, val completesSet: Boolean = false)
 
 /** The unsaved switch of the "Mancuerna doble" sheet of [exerciseId]; nothing is sent until "Guardar". */
 data class DoubleDumbbellDraft(val exerciseId: String, val enabled: Boolean)
@@ -155,7 +155,7 @@ sealed interface LiveSessionEvent {
     data object DismissRpePicker : LiveSessionEvent
 
     /** "Guardar" in the RPE picker: sets the RPE of the set and saves it; null ("Quitar RPE") clears it. */
-    data class SetRpeChosen(val position: Int, val setIndex: Int, val rpe: Double?) : LiveSessionEvent
+    data class SetRpeChosen(val position: Int, val setIndex: Int, val rpe: Double) : LiveSessionEvent
 
     data class WeightChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
 

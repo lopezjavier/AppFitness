@@ -43,6 +43,26 @@ class AppColors(
     // §4 Shadow colors (tokens only; see AppElevation)
     val shadowSheet: Color,
     val glowLime: Color,
+) {
+    /** §2.5 RPE ramp (green = easiest, red = hardest) for a grid value 6 to 10; only used by the RPE picker. */
+    fun rpeScale(value: Double): Color =
+        RpeRamp[((value - RPE_RAMP_MIN) / RPE_RAMP_STEP).toInt().coerceIn(0, RpeRamp.lastIndex)]
+}
+
+private const val RPE_RAMP_MIN = 6.0
+private const val RPE_RAMP_STEP = 0.5
+
+/** RPE 6, 6.5, ... 10 (05 §2.5). */
+private val RpeRamp = listOf(
+    Color(0xFF22C55E),
+    Color(0xFF65D04A),
+    Color(0xFFA3E635),
+    Color(0xFFD4D93A),
+    Color(0xFFFACC15),
+    Color(0xFFFB923C),
+    Color(0xFFEF4444),
+    Color(0xFFE5383B),
+    Color(0xFFDC2626),
 )
 
 private val NeonLime = Color(0xFFA3E635)

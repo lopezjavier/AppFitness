@@ -4,6 +4,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -128,6 +129,15 @@ class FullSessionTest {
         rule.onNodeWithTag("live_set_${position}_${index}_reps").performTextInput(reps)
         rule.onNodeWithTag("live_set_${position}_${index}_check").performClick()
         settle()
+        answerRpePrompt()
+    }
+
+    /** Checking a working set without RPE opens the scale (ADR-55); picking 8 completes it. */
+    private fun answerRpePrompt() {
+        if (rule.onAllNodesWithTag("rpe_picker_option_8").fetchSemanticsNodes().isNotEmpty()) {
+            rule.onNodeWithTag("rpe_picker_option_8").performClick()
+            settle()
+        }
     }
 
     @Test
@@ -148,6 +158,7 @@ class FullSessionTest {
         settle()
         rule.onNodeWithTag("live_set_0_1_check").performClick()
         settle()
+        answerRpePrompt()
 
         // Bench: 60 s rest, ticking down from the clock, then the alert fires once and the bar goes away.
         rule.onNodeWithTag("live_rest_countdown").assertTextContains("01:00")

@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
@@ -45,10 +46,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
+
+private const val AUTO_RPE = 8.0
 
 @Suppress("LargeClass") // One class per view model: session, ghost data and rest timer share the same setup.
 class LiveSessionViewModelTest {
@@ -124,7 +128,28 @@ class LiveSessionViewModelTest {
         runCurrent() // Not advanceUntilIdle: a running rest ticker never goes idle on a virtual clock.
     }
 
-    private fun TestScope.check(vm: LiveSessionViewModel, position: Int, index: Int, checked: Boolean = true) {
+    /** Checks the set; when the RPE prompt opens (ADR-55) it is answered with [rpe] so the set completes. */
+    private fun TestScope.check(
+        vm: LiveSessionViewModel,
+        position: Int,
+        index: Int,
+        checked: Boolean = true,
+        rpe: Double? = AUTO_RPE,
+    ) {
+        checkWithoutAnswering(vm, position, index, checked)
+        if (rpe != null && vm.active().rpePicker?.completesSet == true) {
+            vm.onEvent(LiveSessionEvent.SetRpeChosen(position, index, rpe))
+            runCurrent()
+        }
+    }
+
+    /** Checks the set and leaves any RPE prompt open. */
+    private fun TestScope.checkWithoutAnswering(
+        vm: LiveSessionViewModel,
+        position: Int,
+        index: Int,
+        checked: Boolean = true,
+    ) {
         vm.onEvent(LiveSessionEvent.SetChecked(position, index, checked))
         runCurrent()
     }
@@ -610,8 +635,7 @@ class LiveSessionViewModelTest {
         repository.upsertFailure = AppError.Network
         val vm = loaded()
         type(vm, 0, 1, "60", "12")
-        vm.onEvent(LiveSessionEvent.SetChecked(0, 1, true))
-        runCurrent()
+        check(vm, 0, 1)
         assertTrue(vm.row(0, 1).pendingSave)
 
         repository.upsertFailure = null
@@ -1432,7 +1456,7 @@ class LiveSessionViewModelTest {
 
     // --- RPE per set (US-30, ADR-50) ---
 
-    private fun LiveSessionViewModel.chooseRpe(position: Int, setIndex: Int, rpe: Double?) {
+    private fun LiveSessionViewModel.chooseRpe(position: Int, setIndex: Int, rpe: Double) {
         onEvent(LiveSessionEvent.SetRpeChosen(position, setIndex, rpe))
     }
 
@@ -1478,16 +1502,146 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun removingTheRpe_clearsItAndSendsNull() = runSessionTest {
-        val vm = loaded()
-        vm.chooseRpe(0, 1, 9.0)
+    fun checkingAWorkingSetWithoutRpe_opensThePromptAndDoesNotCompleteIt() = runSessionTest {
+        val vm = timerVm(90, 120)
+
+        checkWithoutAnswering(vm, 0, 1)
+
+        assertEquals(RpePickerTarget(0, 1, completesSet = true), vm.active().rpePicker)
+        assertFalse(vm.row(0, 1).completed)
+        assertTrue(repository.upserts.isEmpty())
+        assertNull(vm.active().restTimer)
+        assertEquals(0, haptics.ticks)
+    }
+
+    @Test
+    fun pickingAnRpeAtThePrompt_completesTheSetWithOneWrite_andStartsTheRest() = runSessionTest {
+        val vm = timerVm(90, 120)
+        checkWithoutAnswering(vm, 0, 1)
+
+        vm.chooseRpe(0, 1, 8.0)
         runCurrent()
 
-        vm.chooseRpe(0, 1, null)
+        assertTrue(vm.row(0, 1).completed)
+        assertEquals("8", vm.row(0, 1).rpe)
+        assertNull(vm.active().rpePicker)
+        val write = repository.upserts.single()
+        assertEquals(8.0, write.rpe)
+        assertEquals(SetEntry.WeightReps(60.0, 12), write.entry)
+        assertNotNull(write.completedAt)
+        assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
+        assertEquals(1, haptics.ticks)
+    }
+
+    @Test
+    fun dismissingThePrompt_leavesTheSetPendingWithoutWriting() = runSessionTest {
+        val vm = timerVm(90, 120)
+        checkWithoutAnswering(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.DismissRpePicker)
         runCurrent()
 
+        assertNull(vm.active().rpePicker)
+        assertFalse(vm.row(0, 1).completed)
         assertNull(vm.row(0, 1).rpe)
-        assertEquals(listOf(9.0, null), repository.upserts.map { it.rpe })
+        assertTrue(repository.upserts.isEmpty())
+    }
+
+    @Test
+    fun checkingAWarmUpSetWithoutRpe_completesAtOnce() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.SetTypeChosen(0, 1, SetType.WarmUp))
+        type(vm, 0, 1, "40", "10")
+
+        checkWithoutAnswering(vm, 0, 1)
+
+        assertNull(vm.active().rpePicker)
+        assertTrue(vm.row(0, 1).completed)
+    }
+
+    @Test
+    fun checkingASetThatAlreadyHasRpe_completesAtOnce() = runSessionTest {
+        val vm = loaded()
+        vm.chooseRpe(0, 1, 7.5)
+        type(vm, 0, 1, "60", "12")
+
+        checkWithoutAnswering(vm, 0, 1)
+
+        assertNull(vm.active().rpePicker)
+        assertTrue(vm.row(0, 1).completed)
+    }
+
+    @Test
+    fun checkingAnInvalidSet_marksItInvalidAndDoesNotOpenThePrompt() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.AddSet(0))
+        runCurrent()
+
+        checkWithoutAnswering(vm, 0, 4)
+
+        assertTrue(vm.row(0, 4).invalid)
+        assertNull(vm.active().rpePicker)
+    }
+
+    @Test
+    fun changingTheRpeOfACompletedSet_doesNotTouchItsCompletion() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        check(vm, 0, 1)
+        val completedAt = repository.upserts.single().completedAt
+
+        vm.onEvent(LiveSessionEvent.OpenRpePicker(0, 1))
+        assertEquals(RpePickerTarget(0, 1, completesSet = false), vm.active().rpePicker)
+        vm.chooseRpe(0, 1, 9.5)
+        runCurrent()
+
+        assertEquals(9.5, repository.upserts.last().rpe)
+        assertEquals(completedAt, repository.upserts.last().completedAt)
+        assertEquals(2, repository.upserts.size)
+        assertEquals(1, haptics.ticks)
+    }
+
+    @Test
+    fun pickingAnRpeFromTheCellOfAPendingSet_savesItWithoutCompleting() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        vm.onEvent(LiveSessionEvent.OpenRpePicker(0, 1))
+
+        vm.chooseRpe(0, 1, 8.0)
+        runCurrent()
+
+        assertFalse(vm.row(0, 1).completed)
+        assertEquals("8", vm.row(0, 1).rpe)
+        assertEquals(0, haptics.ticks)
+    }
+
+    @Test
+    fun thePromptFlag_isRestoredFromTheSameSavedState_andPickingThenCompletes() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        advanceUntilIdle()
+        type(first, 0, 1, "60", "12")
+        checkWithoutAnswering(first, 0, 1)
+
+        val second = newViewModel(handle)
+        advanceUntilIdle()
+        assertEquals(RpePickerTarget(0, 1, completesSet = true), second.active().rpePicker)
+        second.chooseRpe(0, 1, 8.0)
+        runCurrent()
+
+        assertTrue(second.row(0, 1).completed)
+    }
+
+    @Test
+    fun addingWarmUpSets_keepsThePromptFlagOnTheShiftedSet() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+        checkWithoutAnswering(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.AddWarmUpSets(0, listOf(WarmUpSet(30.0, 5), WarmUpSet(45.0, 3))))
+        runCurrent()
+
+        assertEquals(RpePickerTarget(0, 3, completesSet = true), vm.active().rpePicker)
     }
 
     @Test

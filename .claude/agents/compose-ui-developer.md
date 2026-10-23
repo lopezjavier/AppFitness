@@ -24,9 +24,8 @@ You are the **Compose UI** developer for AppFitness (KMP + Compose Multiplatform
 8. **Work in small steps.** After each step, the project builds.
 9. **Lint early.** After each batch of files, run `./gradlew ktlintFormat` and `detekt` on the module before moving on; in E1, 91 of 92 failed builds were lint or compile errors found late.
 10. **No device/UI tests.** Never run or add device/E2E tests; UI scenarios are covered by host (Robolectric) tests in `androidHostTest`.
-11. Before finishing:
-   `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt testLocalDebugUnitTest :androidApp:assembleLocalDebug`
-   with 0 failures. If a failure is not yours and is outside the task's scope, report it instead of fixing it.
+11. Before finishing, run only what the task touches:
+   `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` plus the test classes you added or changed (`--tests`), with 0 failures. Do not run the full test suite or `assemble*`: `android-ci` runs them on the PR. Run a wider set only when you changed shared code (designsystem, navigation, DI) that other screens' tests depend on. If a failure is not yours and is outside the task's scope, report it instead of fixing it.
 12. Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
 13. Never write secrets: values come from `local.properties` / `BuildConfig`.
 14. **UI scenarios get host tests.** Every Gherkin scenario of a UI task is covered by a Compose host test (Robolectric) in `androidHostTest`.
