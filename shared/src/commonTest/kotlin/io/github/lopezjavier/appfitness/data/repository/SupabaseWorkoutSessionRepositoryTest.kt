@@ -454,6 +454,34 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun exerciseSessions_innerEmbedsTheExerciseSetsFiltersAndSendsTheWindow() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW.replace("in_progress", "completed")
+
+        val sessions = repo.exerciseSessions("e1", offset = 40, limit = 20).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/workout_sessions", call.url.encodedPath)
+        val query = call.url.parameters.entries().joinToString("&") { (k, v) -> "$k=${v.joinToString()}" }
+        assertTrue("workout_sets!inner(" in query, query)
+        assertTrue("status=eq.completed" in query, query)
+        assertTrue("workout_sets.exercise_id=eq.e1" in query, query)
+        assertTrue("workout_sets.completed_at=not.is.null" in query, query)
+        assertTrue("order=started_at.desc" in call.url.encodedQuery && "id.desc" in call.url.encodedQuery, query)
+        assertTrue("offset=40" in call.url.encodedQuery && "limit=20" in call.url.encodedQuery, query)
+        assertEquals(listOf("s1"), sessions.map { it.id })
+        assertEquals(SessionStatus.Completed, sessions.single().status)
+    }
+
+    @Test
+    fun exerciseSessions_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.exerciseSessions("e1", 0, 20).appErrorOrNull())
+    }
+
+    @Test
     fun listCompleted_offline_isNetworkError() = runTest {
         val repo = signedIn()
         failing = true

@@ -89,6 +89,10 @@ internal data class WorkoutSessionDto(
 
     companion object {
         const val COLUMNS = "id,routine_id,name,status,started_at,ended_at,workout_sets(${WorkoutSetDto.COLUMNS})"
+
+        /** Only the sessions that contain a matching set (filtered through the embed), embedding just those sets. */
+        const val INNER_COLUMNS =
+            "id,routine_id,name,status,started_at,ended_at,workout_sets!inner(${WorkoutSetDto.COLUMNS})"
     }
 }
 

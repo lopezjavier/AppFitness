@@ -6,6 +6,7 @@ import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
@@ -66,6 +67,23 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
             .decodeList<WorkoutSessionDto>()
             .map { it.toDomain() }
     }
+
+    override suspend fun exerciseSessions(exerciseId: String, offset: Int, limit: Int): Result<List<WorkoutSession>> =
+        auth.ownRow {
+            postgrest.from("workout_sessions")
+                .select(Columns.raw(WorkoutSessionDto.INNER_COLUMNS)) {
+                    filter {
+                        eq("status", "completed")
+                        eq("workout_sets.exercise_id", exerciseId)
+                        filterNot("workout_sets.completed_at", FilterOperator.IS, "null")
+                    }
+                    order("started_at", Order.DESCENDING)
+                    order("id", Order.DESCENDING)
+                    range(offset.toLong(), (offset + limit - 1).toLong())
+                }
+                .decodeList<WorkoutSessionDto>()
+                .map { it.toDomain() }
+        }
 
     override suspend fun getSession(sessionId: String): Result<WorkoutSession?> = auth.ownRow {
         postgrest.from("workout_sessions")

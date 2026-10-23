@@ -36,6 +36,9 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
 
     override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> = fail()
 
+    override suspend fun exerciseSessions(exerciseId: String, offset: Int, limit: Int): Result<List<WorkoutSession>> =
+        fail()
+
     override suspend fun getSession(sessionId: String): Result<WorkoutSession?> = fail()
 
     override suspend fun deleteSession(sessionId: String): Result<Unit> = fail()
