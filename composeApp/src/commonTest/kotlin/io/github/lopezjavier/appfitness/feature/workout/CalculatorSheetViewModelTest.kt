@@ -284,6 +284,11 @@ class CalculatorSheetViewModelTest {
         val server = serverSets()
         assertEquals(List(4) { SetType.WarmUp } + List(3) { SetType.Working }, server.values.map { it.setType })
         assertEquals(100.0, (server.getValue(5).entry as SetEntry.WeightReps).weightKg)
+        // A moved working set that was blank and never on the server is written as the empty entry
+        // (weight 0, reps 0 are accepted by workout_sets: both columns are NOT NULL DEFAULT 0, CHECK >= 0).
+        val blank = server.getValue(7)
+        assertEquals(SetEntry.WeightReps(0.0, 0), blank.entry)
+        assertNull(blank.completedAt)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.PlateResult
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -46,7 +47,7 @@ object PlateCalculator {
         return PlateResult(chosen, achieved, exact = targetKg - achieved in -EPSILON..EPSILON)
     }
 
-    private fun isQuarter(kg: Double) = kotlin.math.abs(kg * UNITS_PER_KG - (kg * UNITS_PER_KG).roundToInt()) < EPSILON
+    private fun isQuarter(kg: Double) = abs(kg * UNITS_PER_KG - (kg * UNITS_PER_KG).roundToInt()) < EPSILON
 }
 
 /** "25 + 15": the plates of one side with a decimal comma ("1,25"); blank when there are none. */

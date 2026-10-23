@@ -27,7 +27,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.PlateResult
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
+import io.github.lopezjavier.appfitness.domain.usecase.perSideText
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -72,7 +74,7 @@ private fun PlateResults(tag: String, calculator: CalculatorUiState) {
             return@Column
         }
         val barKg = GhostData.weightText(calculator.draft.barKg)
-        PlatesLine(tag, plates.platesPerSide)
+        PlatesLine(tag, plates)
         Text(
             text = stringResource(Res.string.live_calc_bar_label, barKg),
             style = AppTheme.typography.bodyMedium,
@@ -86,8 +88,8 @@ private fun PlateResults(tag: String, calculator: CalculatorUiState) {
 }
 
 @Composable
-private fun PlatesLine(tag: String, platesPerSide: List<Double>) {
-    if (platesPerSide.isEmpty()) {
+private fun PlatesLine(tag: String, plates: PlateResult) {
+    if (plates.platesPerSide.isEmpty()) {
         Text(
             text = stringResource(Res.string.live_calc_bar_only),
             style = AppTheme.typography.headlineMetric,
@@ -96,7 +98,7 @@ private fun PlatesLine(tag: String, platesPerSide: List<Double>) {
         )
         return
     }
-    val line = platesPerSide.joinToString(" + ") { GhostData.weightText(it) }
+    val line = plates.perSideText()
     val description = stringResource(Res.string.live_calc_plates_line_cd, line)
     Column {
         Text(
