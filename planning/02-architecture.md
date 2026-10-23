@@ -139,6 +139,7 @@
 
 - RLS enabled and forced on **every** table in the `public` schema; policies use `(select auth.uid())`.
 - The app only contains the Supabase **publishable key** (`sb_publishable_...`); the legacy anon key is not used. The **secret key** (`sb_secret_...`, legacy `service_role`) is only used server-side by Edge Functions (ADR-17).
+- Default privileges of the `postgres` role in `public` grant nothing to `anon` (nor to PUBLIC for functions; the PUBLIC revoke is global, so postgres-created functions outside `public` also need an explicit grant); every new object needs an explicit grant to `authenticated`/`service_role`.
 - Edge Functions validate the JWT and the input (search length, EAN/UPC format) and cap results.
 - No secrets in the repository: `.gitignore` for `local.properties`, `.env*`, `supabase/.env*`, keystores. GitHub secret scanning + push protection + gitleaks.
 - Dependabot for Gradle, npm/Deno and GitHub Actions.
