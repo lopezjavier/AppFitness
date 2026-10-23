@@ -18,8 +18,12 @@ import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_back
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_pause
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.live_paused_label
+import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_timer_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_timer_paused_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
@@ -44,6 +48,7 @@ internal fun LiveSessionTopBar(
     onMenu: (() -> Unit)?,
     modifier: Modifier = Modifier,
     isPaused: Boolean = false,
+    onTogglePause: (() -> Unit)? = null,
 ) {
     val spokenSeconds = elapsedSeconds.coerceAtLeast(0) / DESCRIPTION_STEP_SECONDS * DESCRIPTION_STEP_SECONDS
     val timerDescription = stringResource(
@@ -87,6 +92,7 @@ internal fun LiveSessionTopBar(
                 }.testTag("live_timer"),
             )
         }
+        onTogglePause?.let { PauseToggle(isPaused, it) }
         if (onMenu != null) {
             AppIconButton(
                 stringResource(Res.string.live_menu_cd),
@@ -96,4 +102,14 @@ internal fun LiveSessionTopBar(
             )
         }
     }
+}
+
+@Composable
+private fun PauseToggle(isPaused: Boolean, onClick: () -> Unit) {
+    AppIconButton(
+        contentDescription = stringResource(if (isPaused) Res.string.live_resume else Res.string.live_pause),
+        icon = if (isPaused) Res.drawable.ic_play_arrow else Res.drawable.ic_pause,
+        testTag = "live_pause_toggle",
+        onClick = onClick,
+    )
 }

@@ -14,8 +14,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_empty_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
-import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
-import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -27,7 +25,7 @@ import io.github.lopezjavier.appfitness.feature.routines.ActionsSheet
 import io.github.lopezjavier.appfitness.feature.routines.SheetActionRow
 import org.jetbrains.compose.resources.stringResource
 
-/** The set type picker of the targeted set; "Listo" applies the choice, dismissing changes nothing. */
+/** The set type picker of the targeted set; a tap applies the choice, dismissing changes nothing. */
 @Composable
 internal fun LiveTypePicker(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
     val target = state.typePicker ?: return
@@ -35,7 +33,7 @@ internal fun LiveTypePicker(state: LiveSessionUiState.Active, onEvent: (LiveSess
         ?.sets?.firstOrNull { it.setIndex == target.setIndex }?.type ?: return
     SetTypePickerSheet(
         current = current,
-        onDone = { onEvent(LiveSessionEvent.SetTypeChosen(target.position, target.setIndex, it)) },
+        onSelect = { onEvent(LiveSessionEvent.SetTypeChosen(target.position, target.setIndex, it)) },
         onDismiss = { onEvent(LiveSessionEvent.DismissTypePicker) },
     )
 }
@@ -67,15 +65,6 @@ internal fun LiveDialogs(
             onDismiss = onCloseMenu,
             testTagPrefix = "live_menu",
         ) {
-            SheetActionRow(
-                label = stringResource(if (state.isPaused) Res.string.live_resume else Res.string.live_pause),
-                onClick = {
-                    onCloseMenu()
-                    onEvent(if (state.isPaused) LiveSessionEvent.ResumeSession else LiveSessionEvent.PauseSession)
-                },
-                testTag = if (state.isPaused) "live_menu_resume" else "live_menu_pause",
-                enabled = !state.actionsBlocked && !state.busy,
-            )
             SheetActionRow(
                 label = stringResource(Res.string.live_finish),
                 onClick = {

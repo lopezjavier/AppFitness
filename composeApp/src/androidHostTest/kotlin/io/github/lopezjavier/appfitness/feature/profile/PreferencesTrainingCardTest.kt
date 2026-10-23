@@ -182,6 +182,30 @@ class PreferencesTrainingCardTest {
         )
 
     @Test
+    fun roundingHelp_opensItsExplanation_andCloses() {
+        rule.setContent { AppTheme { PreferencesScreen(loaded(), {}) } }
+
+        rule.onNodeWithTag("rounding_help").performScrollTo().performClick()
+        rule.onNodeWithTag("rounding_help_sheet").assertExists()
+        rule.onNodeWithTag("rounding_help_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("rounding_help_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun previousModeHelp_opensItsExplanation_andCloses() {
+        rule.setContent { AppTheme { PreferencesScreen(loaded(), {}) } }
+
+        rule.onNodeWithTag("previous_mode_help").performScrollTo().performClick()
+        rule.onNodeWithTag("previous_mode_help_sheet").assertExists()
+        rule.onNodeWithTag("previous_mode_help_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("previous_mode_help_sheet").assertDoesNotExist()
+    }
+
+    @Test
     fun calculatorsBlock_showsTheDefaultsInsideTheTrainingCard() {
         rule.setContent { AppTheme { PreferencesScreen(loaded(), {}) } }
 

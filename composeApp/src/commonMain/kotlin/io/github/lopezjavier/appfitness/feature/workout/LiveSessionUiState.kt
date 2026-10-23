@@ -124,6 +124,10 @@ sealed interface LiveSessionUiState {
 
         /** "Finalizar entreno" needs at least one completed set (of any type). */
         val canFinish: Boolean get() = exercises.any { exercise -> exercise.sets.any { it.completed } }
+
+        /** At least one exercise and every set of every exercise completed: the screen offers "Finalizar entreno". */
+        val allExercisesComplete: Boolean
+            get() = exercises.isNotEmpty() && exercises.all { e -> e.sets.isNotEmpty() && e.sets.all { it.completed } }
         val actionsBlocked: Boolean get() = !isOnline
         val queuedCount: Int get() = exercises.sumOf { exercise -> exercise.sets.count { it.pendingSave } }
     }
@@ -245,6 +249,9 @@ sealed interface LiveSessionEvent {
 
     /** The bar selector of the open calculator changed (per use, not saved). */
     data class CalculatorBarChanged(val barKg: Double) : LiveSessionEvent
+
+    /** The warm-up set count (1..4) of the open calculator changed (per use, not saved; ADR-55). */
+    data class CalculatorWarmUpSetsChanged(val sets: Int) : LiveSessionEvent
 
     /**
      * "Añadir series": inserts [sets] (the rows the warm-up sheet shows) as `warm_up` sets before the first

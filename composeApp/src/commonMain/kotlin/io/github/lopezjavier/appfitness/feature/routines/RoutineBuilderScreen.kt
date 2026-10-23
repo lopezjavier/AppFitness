@@ -220,7 +220,7 @@ private fun BuilderSheets(
     state.typePicker?.let { picker ->
         SetTypePickerSheet(
             current = picker.current,
-            onDone = { onEvent(RoutineBuilderEvent.ChangeSetType(picker.rowIndex, picker.setIndex, it)) },
+            onSelect = { onEvent(RoutineBuilderEvent.ChangeSetType(picker.rowIndex, picker.setIndex, it)) },
             onDismiss = { onEvent(RoutineBuilderEvent.CloseTypePicker) },
         )
     }

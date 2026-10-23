@@ -7,8 +7,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,6 +23,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import kotlinx.datetime.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,13 +63,11 @@ class LiveSessionControlsScreenTest {
     }
 
     @Test
-    fun running_menuOffersPause_andSendsIt() {
+    fun running_topBarOffersPause_andSendsIt() {
         show(controlsState())
 
-        openMenu()
-        rule.onNodeWithTag("live_menu_resume").assertDoesNotExist()
-        rule.onNodeWithText("Pausar entreno").assertExists()
-        rule.onNodeWithTag("live_menu_pause").performClick()
+        rule.onNodeWithTag("live_pause_toggle").assertContentDescriptionEquals("Pausar entreno")
+        rule.onNodeWithTag("live_pause_toggle").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.PauseSession), events)
     }
@@ -82,10 +83,8 @@ class LiveSessionControlsScreenTest {
             .getOrNull(SemanticsProperties.StateDescription)
         assertEquals("En pausa", description)
 
-        openMenu()
-        rule.onNodeWithTag("live_menu_pause").assertDoesNotExist()
-        rule.onNodeWithText("Reanudar entreno").assertExists()
-        rule.onNodeWithTag("live_menu_resume").performClick()
+        rule.onNodeWithTag("live_pause_toggle").assertContentDescriptionEquals("Reanudar entreno")
+        rule.onNodeWithTag("live_pause_toggle").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.ResumeSession), events)
     }
@@ -96,6 +95,45 @@ class LiveSessionControlsScreenTest {
 
         rule.onNodeWithTag("live_pause_label").assertDoesNotExist()
         rule.onNodeWithText("EN VIVO").assertExists()
+    }
+
+    @Test
+    fun menu_hasNoPauseOrResumeItem() {
+        show(controlsState())
+
+        openMenu()
+
+        rule.onNodeWithTag("live_menu_pause").assertDoesNotExist()
+        rule.onNodeWithTag("live_menu_resume").assertDoesNotExist()
+        rule.onNodeWithTag("live_menu_finish").assertExists()
+    }
+
+    @Test
+    fun aPendingSet_hidesTheFinishButton() {
+        show(controlsState(sets = listOf(set(1, done = true), set(2))))
+
+        rule.onNodeWithTag("live_add_exercise").assertExists()
+        rule.onNodeWithTag("live_finish_button").assertDoesNotExist()
+    }
+
+    @Test
+    fun allSetsDone_showsFinishBelowAddExercise_andRequestsFinish() {
+        show(controlsState(sets = listOf(set(1, done = true), set(2, done = true))))
+
+        val addBottom = rule.onNodeWithTag("live_add_exercise").getBoundsInRoot().bottom
+        rule.onNodeWithTag("live_finish_button").assertExists().assertIsEnabled()
+        assertTrue(rule.onNodeWithTag("live_finish_button").getBoundsInRoot().top >= addBottom)
+        rule.onNodeWithTag("live_finish_button").performClick()
+
+        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.RequestFinish), events)
+    }
+
+    @Test
+    fun allSetsDone_offline_finishIsDisabledWithTheReasonVisible() {
+        show(controlsState(sets = listOf(set(1, done = true))).copy(isOnline = false))
+
+        rule.onNodeWithTag("live_finish_button").assertIsNotEnabled()
+        rule.onNodeWithTag("live_finish_offline_reason").assertExists()
     }
 
     @Test
@@ -171,8 +209,7 @@ class LiveSessionControlsScreenTest {
                 )
             }
         }
-        openMenu()
-        rule.onNodeWithTag("live_menu_pause").performClick()
+        rule.onNodeWithTag("live_pause_toggle").performClick()
         rule.onNodeWithTag("live_pause_label").assertExists()
 
         tester.emulateSavedInstanceStateRestore()

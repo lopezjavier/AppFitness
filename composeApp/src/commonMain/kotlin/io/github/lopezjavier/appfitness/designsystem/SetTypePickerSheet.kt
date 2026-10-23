@@ -2,9 +2,7 @@
 
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,10 +16,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -29,11 +23,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
-import io.github.lopezjavier.appfitness.composeapp.resources.set_type_clear
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_set_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_close_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_type_done
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_picker_title
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.painterResource
@@ -50,26 +45,21 @@ object SetTypePickerDefaults {
         SetType.Failure -> "failure"
         SetType.Drop -> "drop"
     }
-
-    /** "Quitar tipo" only makes sense while the staged type is not Normal. */
-    fun showsClear(staged: SetType): Boolean = staged != SetType.Working
 }
 
 /**
- * Bottom sheet to choose a set type. A tap only stages the choice; "Listo" reports it through [onDone] and the
- * caller applies it (the builder stages it into its draft, saved by its own "Guardar"). The close button, back,
- * scrim and a swipe call [onDismiss] without changing anything. "Quitar tipo" stages Normal.
+ * Bottom sheet to choose a set type (single choice, ADR-55): a tap on an option reports it through [onSelect] and
+ * the caller applies it and closes the sheet (the builder edits its draft, saved by its own "Guardar"). The close
+ * button, back, scrim and a swipe call [onDismiss] without changing anything. "Normal" removes the type.
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
 fun SetTypePickerSheet(
     current: SetType,
-    onDone: (SetType) -> Unit,
+    onSelect: (SetType) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var stagedOrdinal by rememberSaveable(current) { mutableIntStateOf(current.ordinal) }
-    val staged = SetType.entries[stagedOrdinal]
     AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "set_type_picker") {
         Column(
             Modifier.padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg).navigationBarsPadding(),
@@ -82,6 +72,12 @@ fun SetTypePickerSheet(
                     color = AppTheme.colors.textPrimary,
                     modifier = Modifier.weight(1f).semantics { heading() },
                 )
+                HelpButton(
+                    contentDescription = stringResource(Res.string.help_set_type_cd),
+                    title = stringResource(Res.string.set_type_picker_title),
+                    body = stringResource(Res.string.help_set_type_body),
+                    testTag = "set_type_help",
+                )
                 AppIconButton(
                     contentDescription = stringResource(Res.string.set_type_close_cd),
                     icon = Res.drawable.ic_close,
@@ -90,29 +86,8 @@ fun SetTypePickerSheet(
                 )
             }
             Column(Modifier.selectableGroup()) {
-                SetTypePickerOptions(staged) { stagedOrdinal = it.ordinal }
+                SetTypePickerOptions(current, onSelect)
             }
-            if (SetTypePickerDefaults.showsClear(staged)) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = Spacing.minTouchTarget)
-                        .clickable(role = Role.Button) { stagedOrdinal = SetType.Working.ordinal }
-                        .testTag("set_type_picker_clear"),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.set_type_clear),
-                        style = AppTheme.typography.bodyLarge,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                }
-            }
-            PrimaryButton(
-                text = stringResource(Res.string.set_type_done),
-                onClick = { onDone(staged) },
-                modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm).testTag("set_type_picker_done"),
-            )
         }
     }
 }
@@ -131,7 +106,13 @@ private fun SetTypePickerOptions(staged: SetType, onSelect: (SetType) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (type == SetType.Working) {
-                Box(Modifier.size(SetRowDefaults.IndexBadgeSize))
+                // Decorative: the "Normal" label sits right next to it.
+                Icon(
+                    painter = painterResource(Res.drawable.ic_set_normal),
+                    contentDescription = null,
+                    tint = AppTheme.colors.textPrimary,
+                    modifier = Modifier.size(SetRowDefaults.IndexBadgeSize).testTag("set_type_picker_normal_icon"),
+                )
             } else {
                 SetTypeBadge(type = type, number = "")
             }

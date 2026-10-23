@@ -3,10 +3,12 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -14,6 +16,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_plate_calc_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_plate_calc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_only
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_close
@@ -45,6 +49,11 @@ internal fun PlateCalculatorSheet(position: Int, calculator: CalculatorUiState, 
         weightLabel = stringResource(Res.string.live_calc_target_weight),
         calculator = calculator,
         onEvent = onEvent,
+        help = CalculatorHelp(
+            stringResource(Res.string.help_plate_calc_cd),
+            stringResource(Res.string.help_plate_calc_body),
+            "plate_calc_help",
+        ),
         results = { PlateResults(tag, calculator) },
         action = {
             SecondaryButton(
@@ -100,17 +109,21 @@ private fun PlatesLine(tag: String, plates: PlateResult) {
     }
     val line = plates.perSideText()
     val description = stringResource(Res.string.live_calc_plates_line_cd, line)
-    Column {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(
+            text = stringResource(Res.string.live_calc_plates_per_side),
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.testTag("${tag}_per_side_label"),
+        )
         Text(
             text = line,
             style = AppTheme.typography.headlineMetric,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.semantics { contentDescription = description }.testTag("${tag}_plates"),
-        )
-        Text(
-            text = stringResource(Res.string.live_calc_plates_per_side),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
         )
     }
 }

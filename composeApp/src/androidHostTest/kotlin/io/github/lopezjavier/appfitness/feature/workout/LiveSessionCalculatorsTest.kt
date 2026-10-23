@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
@@ -139,7 +140,32 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun warmUp_100kgWith20kgBar_showsTheFourDefaultRows() {
+    fun warmUpHelp_opensItsExplanation_andClosesWithoutLeavingTheCalculator() {
+        show()
+        openWarmUp()
+
+        tap("warmup_calc_help")
+        rule.onNodeWithTag("warmup_calc_help_sheet").assertExists()
+        tap("warmup_calc_help_sheet_close")
+
+        rule.onNodeWithTag("warmup_calc_help_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_1_warm_up_calc_weight_field").assertExists()
+    }
+
+    @Test
+    fun plateHelp_opensItsExplanation_andCloses() {
+        show()
+        openPlates()
+
+        tap("plate_calc_help")
+        rule.onNodeWithTag("plate_calc_help_sheet").assertExists()
+        tap("plate_calc_help_sheet_close")
+
+        rule.onNodeWithTag("plate_calc_help_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun warmUp_100kgWith20kgBar_showsOnlyTheSixtyPercentRowByDefault() {
         show()
 
         openWarmUp()
@@ -147,12 +173,62 @@ class LiveSessionCalculatorsTest {
         val tag = "live_exercise_1_warm_up_calc"
         rule.onNodeWithTag("${tag}_weight_field").assertTextContains("100")
         rule.onNodeWithTag("${tag}_bar_20").assertIsSelected()
+        rule.onNodeWithTag("${tag}_row_0").assertTextContains("60 kg × 3")
+        rule.onNodeWithTag("${tag}_row_1").assertDoesNotExist()
+    }
+
+    @Test
+    fun warmUp_100kgWith20kgBar_withFourSets_showsTheFullScheme() {
+        show()
+        openWarmUp()
+        repeat(3) { tap("warmup_sets_stepper_increment") }
+
+        val tag = "live_exercise_1_warm_up_calc"
         rule.onNodeWithTag("${tag}_row_0").assertTextContains("20 kg × 10")
         rule.onNodeWithTag("${tag}_row_1").assertTextContains("40 kg × 5")
         rule.onNodeWithTag("${tag}_row_2").assertTextContains("60 kg × 3")
         rule.onNodeWithTag("${tag}_row_3").assertTextContains("80 kg × 2")
         rule.onNodeWithTag("${tag}_row_4").assertDoesNotExist()
         rule.onNodeWithTag("${tag}_row_0").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun warmUp_stepper_changesTheNumberOfRows_withinOneToFour() {
+        show()
+        openWarmUp()
+        val tag = "live_exercise_1_warm_up_calc"
+        rule.onNodeWithTag("warmup_sets_stepper_value").assertTextEquals("1")
+        rule.onNodeWithTag("warmup_sets_stepper_decrement").assertIsNotEnabled()
+        repeat(3) { tap("warmup_sets_stepper_increment") }
+        rule.onNodeWithTag("warmup_sets_stepper_increment").assertIsNotEnabled()
+
+        tap("warmup_sets_stepper_decrement")
+        tap("warmup_sets_stepper_decrement")
+
+        rule.onNodeWithTag("warmup_sets_stepper_value").assertTextEquals("2")
+        rule.onNodeWithTag("${tag}_row_1").assertExists()
+        rule.onNodeWithTag("${tag}_row_2").assertDoesNotExist()
+        rule.onNodeWithTag("warmup_sets_stepper_decrement").assertHeightIsAtLeast(48.dp)
+
+        tap("warmup_sets_stepper_decrement")
+        rule.onNodeWithTag("warmup_sets_stepper_decrement").assertIsNotEnabled()
+        rule.onNodeWithTag("${tag}_row_1").assertDoesNotExist()
+        tap("warmup_sets_stepper_increment")
+        rule.onNodeWithTag("${tag}_row_1").assertExists()
+    }
+
+    @Test
+    fun warmUp_stepper_hasSpanishLabels() {
+        show()
+        openWarmUp()
+
+        rule.onNodeWithTag(
+            "warmup_sets_stepper_decrement",
+        ).assertContentDescriptionEquals("Menos series de calentamiento")
+        rule.onNodeWithTag(
+            "warmup_sets_stepper_increment",
+        ).assertContentDescriptionEquals("Más series de calentamiento")
+        rule.onAllNodesWithText("Series de calentamiento").assertCountEquals(1)
     }
 
     @Test
@@ -163,7 +239,7 @@ class LiveSessionCalculatorsTest {
 
         val config = rule.onNodeWithTag("live_exercise_1_warm_up_calc_row_0").fetchSemanticsNode().config
         val description = config[androidx.compose.ui.semantics.SemanticsProperties.ContentDescription]
-        kotlin.test.assertEquals(listOf("Calentamiento 1: 20 kilos, 10 repeticiones"), description)
+        kotlin.test.assertEquals(listOf("Calentamiento 1: 60 kilos, 3 repeticiones"), description)
     }
 
     @Test
@@ -174,7 +250,7 @@ class LiveSessionCalculatorsTest {
         tap("live_exercise_1_warm_up_calc_confirm")
 
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_sheet").assertDoesNotExist()
-        rule.onAllNodesWithText("C").assertCountEquals(4)
+        rule.onAllNodesWithText("C").assertCountEquals(1)
     }
 
     @Test
@@ -218,6 +294,7 @@ class LiveSessionCalculatorsTest {
 
         val tag = "live_exercise_1_plate_calc"
         rule.onNodeWithTag("${tag}_plates").assertTextEquals("25 + 15")
+        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
         rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 20 kg")
         rule.onNodeWithTag("${tag}_note").assertDoesNotExist()
         rule.onNodeWithTag("${tag}_close").assertExists()

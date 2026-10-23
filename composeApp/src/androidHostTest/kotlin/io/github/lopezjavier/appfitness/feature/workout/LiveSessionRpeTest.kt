@@ -80,6 +80,20 @@ class LiveSessionRpeTest {
     }
 
     @Test
+    fun rpeHelp_opensItsExplanation_andClosesKeepingThePicker() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_2_rpe").performClick()
+        rule.onNodeWithTag("live_rpe_help").performClick()
+        rule.onNodeWithTag("live_rpe_help_sheet").assertExists()
+        rule.onNodeWithTag("live_rpe_help_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_rpe_help_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("rpe_picker").assertExists()
+    }
+
+    @Test
     fun loggingTheRpe_pick7_5AndGuardar_showsItInTheCell() {
         showStateful()
 

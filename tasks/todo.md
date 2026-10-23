@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-096 (session controls, 2026-10-23). Next task: T-097d (E6-A feedback, ADR-55), then T-097e, T-097f; then Checkpoint E6-A is re-presented before T-098. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-097c (2026-10-23). In PR: T-097d (E6-A feedback, ADR-55). Next task: T-097e, then T-097f; then Checkpoint E6-A is re-presented before T-098. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2488,11 +2488,13 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** "?" help (RPE, Tipo de serie, calculators, roundings, previous-values mode); tap-to-apply set type picker without "Listo" or "Quitar tipo"; visible "Normal" icon; planned weight/reps pre-filled in grey, "Anterior" fills the last values; "Finalizar entreno" below "Añadir ejercicio" when all exercises are complete; pause/resume icon in the top bar next to the timer; fix first back press returning to the live exercise.
 
 **Acceptance criteria:**
-- [ ] Each "?" opens a short Spanish explanation; set type applies on tap; "Normal" icon visible on the dark background.
-- [ ] Planned values are grey, editable, and completing the set without editing logs them; "Anterior" fills the last values.
-- [ ] All exercises complete → "Finalizar entreno" below "Añadir ejercicio".
-- [ ] Pause/resume icon in the top bar; no longer in the "En vivo" menu.
-- [ ] Starting an exercise and pressing back once leaves it.
+- [x] Each "?" opens a short Spanish explanation; set type applies on tap; "Normal" icon visible on the dark background.
+- [x] Planned values are grey, editable, and completing the set without editing logs them; "Anterior" fills the last values.
+- [x] All exercises complete → "Finalizar entreno" below "Añadir ejercicio".
+- [x] Pause/resume icon in the top bar; no longer in the "En vivo" menu.
+- [x] Starting an exercise and pressing back once leaves it.
+- [x] Warm-up calculator stepper (1–4, default 1: only 60 % × 3) sets how many warm-up sets are proposed; not persisted; 3 → 40/60/80 %, 2 → 50/80 %, 1 → 60 %.
+- [x] Plate calculator labels the result "A cada lado de la barra:"; help texts rewritten (set types, RPE 6–10 with RIR meaning, plates per side).
 
 **Dependencies:** T-097 · **Estimated scope:** M
 

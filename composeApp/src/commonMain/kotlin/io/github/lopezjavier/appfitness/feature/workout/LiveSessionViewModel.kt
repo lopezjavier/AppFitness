@@ -48,6 +48,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SessionDuration
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import io.github.lopezjavier.appfitness.domain.usecase.Stopwatch
+import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -394,6 +395,12 @@ class LiveSessionViewModel(
                 }
             }
 
+            is LiveSessionEvent.CalculatorWarmUpSetsChanged -> updateDialogs {
+                if (event.sets in 1..WarmUpCalculator.MAX_SETS) {
+                    calculatorDraft = calculatorDraft?.copy(warmUpSets = event.sets)
+                }
+            }
+
             is LiveSessionEvent.AddWarmUpSets -> addWarmUpSets(event.position, event.sets)
 
             LiveSessionEvent.DismissCalculator -> updateDialogs { calculatorDraft = null }
@@ -638,7 +645,9 @@ class LiveSessionViewModel(
     private fun setChecked(event: LiveSessionEvent.SetChecked) {
         val set = findSet(event.position, event.setIndex)
         if (set == null || event.checked == (set.completedAt != null)) return
-        if (event.checked && parseEntry(set, metricOf(exerciseIdAt(event.position))) == null) {
+        if (event.checked) fillBlankFromSuggestions(event.position, event.setIndex)
+        val filled = findSet(event.position, event.setIndex)
+        if (event.checked && filled?.let { parseEntry(it, metricOf(exerciseIdAt(event.position))) } == null) {
             updateSet(event.position, event.setIndex) { it.copy(invalid = true) }
             publish()
             return
@@ -651,6 +660,17 @@ class LiveSessionViewModel(
         }
         write(event.position, event.setIndex)
         if (event.checked) startRest(event.position)
+    }
+
+    /** Untouched fields log the suggested (grey) values: planned first, then the last performance. */
+    private fun fillBlankFromSuggestions(position: Int, setIndex: Int) {
+        val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
+        updateSet(position, setIndex) {
+            it.copy(
+                weight = it.weight.ifBlank { weightPlaceholderOf(exercise, it).orEmpty() },
+                reps = it.reps.ifBlank { repsPlaceholderOf(exercise, it).orEmpty() },
+            )
+        }
     }
 
     private fun exerciseIdAt(position: Int): String =
@@ -802,6 +822,12 @@ class LiveSessionViewModel(
         publish()
         if (online) sync()
     }
+
+    /** The greyed reps of a set: the routine's plan, else last time's value, else the one it was added with. */
+    private fun repsPlaceholderOf(exercise: ExerciseState, set: SetState): String? =
+        planned[exercise.position to set.setIndex]?.reps?.toString()
+            ?: ghostFor(exercise.exerciseId, set.setIndex)?.reps?.toString()
+            ?: set.repsPlaceholder
 
     /** The greyed weight of a set: the routine's plan, else last time's value, else the one it was added with. */
     private fun weightPlaceholderOf(exercise: ExerciseState, set: SetState): String? {
@@ -1198,7 +1224,6 @@ class LiveSessionViewModel(
                     equipment = traits[exercise.exerciseId]?.equipment,
                     sets = exercise.sets.map { set ->
                         val ghost = ghostFor(exercise.exerciseId, set.setIndex)
-                        val plan = planned[exercise.position to set.setIndex]
                         val now = clock.now()
                         val weighted = metricOf(exercise.exerciseId) == ExerciseMetricType.WeightReps
                         LiveSetRow(
@@ -1212,7 +1237,7 @@ class LiveSessionViewModel(
                             durationSeconds = set.stopwatch.elapsedSeconds(now),
                             stopwatchRunning = set.stopwatch.isRunning,
                             weightPlaceholder = weightPlaceholderOf(exercise, set),
-                            repsPlaceholder = plan?.reps?.toString() ?: ghost?.reps?.toString() ?: set.repsPlaceholder,
+                            repsPlaceholder = repsPlaceholderOf(exercise, set),
                             type = set.setType,
                             previous = GhostData.previousText(ghost, metricOf(exercise.exerciseId)),
                             pendingSave = (exercise.position to set.setIndex) in unsynced,

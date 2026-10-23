@@ -129,6 +129,8 @@ class CalculatorSheetViewModelTest {
 
         assertEquals("100", vm.calculator().draft.weightText)
         assertEquals(CalculatorKind.WarmUp, vm.calculator().draft.kind)
+        assertEquals(listOf(WarmUpSet(60.0, 3)), vm.calculator().warmUp)
+        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
         assertEquals(fourSets, vm.calculator().warmUp)
     }
 
@@ -172,6 +174,7 @@ class CalculatorSheetViewModelTest {
         type(vm, 0, 1, "100", "5")
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
         assertEquals(15.0, vm.calculator().draft.barKg)
+        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
 
         send(vm, LiveSessionEvent.CalculatorBarChanged(7.5))
         assertEquals(7.5, vm.calculator().draft.barKg)
@@ -189,6 +192,7 @@ class CalculatorSheetViewModelTest {
     fun editingTheWeight_updatesTheResultLive() = runSessionTest {
         val vm = loaded()
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
 
         send(vm, LiveSessionEvent.CalculatorWeightChanged("100"))
 
@@ -207,11 +211,13 @@ class CalculatorSheetViewModelTest {
         val vm = loaded()
 
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
         send(vm, LiveSessionEvent.CalculatorWeightChanged("90"))
         assertEquals(2.5, vm.calculator().roundingKg)
         assertEquals(listOf(20.0, 35.0, 55.0, 72.5), vm.calculator().warmUp.map { it.weightKg })
 
         send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.WarmUp))
+        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
         send(vm, LiveSessionEvent.CalculatorWeightChanged("90"))
         assertEquals(5.0, vm.calculator().roundingKg)
         assertEquals(listOf(20.0, 35.0, 55.0, 70.0), vm.calculator().warmUp.map { it.weightKg })
@@ -459,6 +465,28 @@ class CalculatorSheetViewModelTest {
 
         assertEquals(CalculatorDraft(0, CalculatorKind.Plates, "102,5", 10.0), second.calculator().draft)
         assertEquals(listOf(25.0, 20.0, 1.25), assertNotNull(second.calculator().plates).platesPerSide.take(3))
+    }
+
+    @Test
+    fun theWarmUpSetCountDefaultsToOne_changesTheResult_andSurvivesARecreatedViewModel() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = loaded(handle)
+        type(first, 0, 1, "100", "5")
+        send(first, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        assertEquals(1, first.calculator().draft.warmUpSets)
+        assertEquals(listOf(60.0), first.calculator().warmUp.map { it.weightKg })
+
+        send(first, LiveSessionEvent.CalculatorWarmUpSetsChanged(2))
+        assertEquals(listOf(50.0, 80.0), first.calculator().warmUp.map { it.weightKg })
+        send(first, LiveSessionEvent.CalculatorWarmUpSetsChanged(9))
+        assertEquals(2, first.calculator().draft.warmUpSets, "a count outside 1..4 is ignored")
+
+        val second = loaded(handle)
+        assertEquals(2, second.calculator().draft.warmUpSets)
+
+        send(second, LiveSessionEvent.DismissCalculator)
+        send(second, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        assertEquals(1, second.calculator().draft.warmUpSets, "not persisted: the next use starts at 1")
     }
 
     @Test

@@ -16,19 +16,27 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_warmup_calc_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_warmup_calc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_add
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_at_or_below_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_missing
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_row
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_row_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_sets_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_sets_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_sets_label
+import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_sets_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_working_weight
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
+import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -44,7 +52,17 @@ internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState,
         weightLabel = stringResource(Res.string.live_calc_working_weight),
         calculator = calculator,
         onEvent = onEvent,
-        results = { WarmUpResults(tag, calculator) },
+        help = CalculatorHelp(
+            stringResource(Res.string.help_warmup_calc_cd),
+            stringResource(Res.string.help_warmup_calc_body),
+            "warmup_calc_help",
+        ),
+        results = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                WarmUpSetsStepper(calculator.draft.warmUpSets, onEvent)
+                WarmUpResults(tag, calculator)
+            }
+        },
         action = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 calculator.hint?.let {
@@ -70,6 +88,33 @@ internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState,
             }
         },
     )
+}
+
+@Composable
+private fun WarmUpSetsStepper(sets: Int, onEvent: (LiveSessionEvent) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(Res.string.live_calc_warm_up_sets_label),
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        NumberStepper(
+            valueText = sets.toString(),
+            onDecrement = { onEvent(LiveSessionEvent.CalculatorWarmUpSetsChanged(sets - 1)) },
+            onIncrement = { onEvent(LiveSessionEvent.CalculatorWarmUpSetsChanged(sets + 1)) },
+            decrementEnabled = sets > 1,
+            incrementEnabled = sets < WarmUpCalculator.MAX_SETS,
+            decrementContentDescription = stringResource(Res.string.live_calc_warm_up_sets_decrease_cd),
+            incrementContentDescription = stringResource(Res.string.live_calc_warm_up_sets_increase_cd),
+            stateDescription = stringResource(Res.string.live_calc_warm_up_sets_state, sets),
+            testTagPrefix = "warmup_sets_stepper",
+        )
+    }
 }
 
 @Composable

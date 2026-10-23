@@ -161,7 +161,7 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - PRs respect the warm-up inclusion setting (§4.6).
 
 ### 4.9 Calculators (defaults, ADR-52)
-- Warm-up scheme from the working weight W: bar × 10, 40 % W × 5, 60 % W × 3, 80 % W × 2; each weight rounded to the nearest multiple of the plate rounding and never below the bar. Example: W = 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2.
+- Warm-up scheme from the working weight W: bar × 10, 40 % W × 5, 60 % W × 3, 80 % W × 2; each weight rounded to the nearest multiple of the plate rounding and never below the bar. Example: W = 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2. The user picks 1–4 sets in the sheet (ADR-55, per use, not stored; default 1, so only the 60 % × 3 set is shown at first): 3 → 40/60/80 %, 2 → 50/80 % (× 5, × 2), 1 → 60 % (× 3); the bar set (× 10) only appears with 4.
 - Bars: 20, 15, 10 (EZ) and 7,5 kg; default 20 kg.
 - Available plates (per side): 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; all on by default.
 - Plate calculator: plates per side = greedy from the heaviest available plate over `(target − bar) / 2`; when the target cannot be made, the closest lower weight is shown. Example: 100 kg with the 20 kg bar → "25 + 15" per side.

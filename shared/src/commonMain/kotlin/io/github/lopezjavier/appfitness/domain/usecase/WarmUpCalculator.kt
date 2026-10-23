@@ -10,13 +10,30 @@ import kotlin.math.floor
  * working weight at or below the bar gives no warm-up.
  */
 object WarmUpCalculator {
-    private val STEPS = listOf(0.4 to 5, 0.6 to 3, 0.8 to 2)
+    private val STEPS_BY_COUNT = mapOf(
+        3 to listOf(0.4 to 5, 0.6 to 3, 0.8 to 2),
+        2 to listOf(0.5 to 5, 0.8 to 2),
+        1 to listOf(0.6 to 3),
+    )
     private const val BAR_REPS = 10
+    const val MAX_SETS = 4
+
+    /** Count the calculator sheet starts with (ADR-55): only the 60 % x 3 set. */
+    const val DEFAULT_SETS = 1
     private const val EPSILON = 1e-9
     private const val HALF = 0.5
 
-    operator fun invoke(workingKg: Double, barKg: Double, roundingKg: Double): List<WarmUpSet> {
-        val candidates = listOf(WarmUpSet(barKg, BAR_REPS)) + STEPS.map { (fraction, reps) ->
+    /** [sets] (1..[MAX_SETS], ADR-55): 4 adds the bar x 10 set; 3, 2 and 1 use fewer percentages. */
+    operator fun invoke(
+        workingKg: Double,
+        barKg: Double,
+        roundingKg: Double,
+        sets: Int = DEFAULT_SETS,
+    ): List<WarmUpSet> {
+        val count = sets.coerceIn(1, MAX_SETS)
+        val steps = STEPS_BY_COUNT[minOf(count, MAX_SETS - 1)].orEmpty()
+        val barSet = if (count == MAX_SETS) listOf(WarmUpSet(barKg, BAR_REPS)) else emptyList()
+        val candidates = barSet + steps.map { (fraction, reps) ->
             WarmUpSet(maxOf(roundTo(workingKg * fraction, roundingKg), barKg), reps)
         }
         return candidates.filter { it.weightKg < workingKg }.fold(emptyList()) { kept, set ->

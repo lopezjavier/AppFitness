@@ -15,7 +15,14 @@ enum class CalculatorKind { WarmUp, Plates }
  * The open calculator sheet of the exercise at [position]: the weight as typed ([weightText], prefilled from the
  * exercise) and the bar chosen for this use (not saved). Mirrored in the saved state (ADR-40).
  */
-data class CalculatorDraft(val position: Int, val kind: CalculatorKind, val weightText: String, val barKg: Double)
+data class CalculatorDraft(
+    val position: Int,
+    val kind: CalculatorKind,
+    val weightText: String,
+    val barKg: Double,
+    /** Warm-up only: how many warm-up sets (1..4, ADR-55); per use, never stored in the preferences. */
+    val warmUpSets: Int = WarmUpCalculator.DEFAULT_SETS,
+)
 
 /** Why the calculator shows no result. */
 enum class CalculatorHint {
@@ -62,7 +69,12 @@ internal fun calculatorUiState(
 
         weight <= draft.barKg -> CalculatorUiState(draft, weight, rounding, hint = CalculatorHint.AtOrBelowBar)
 
-        else -> CalculatorUiState(draft, weight, rounding, warmUp = WarmUpCalculator(weight, draft.barKg, rounding))
+        else -> CalculatorUiState(
+            draft,
+            weight,
+            rounding,
+            warmUp = WarmUpCalculator(weight, draft.barKg, rounding, draft.warmUpSets),
+        )
     }
 }
 
@@ -70,6 +82,7 @@ private const val KEY_POSITION = "live_calc_position"
 private const val KEY_KIND = "live_calc_kind"
 private const val KEY_WEIGHT = "live_calc_weight"
 private const val KEY_BAR = "live_calc_bar"
+private const val KEY_SETS = "live_calc_sets"
 
 internal fun SavedStateHandle.restoredCalculatorDraft(): CalculatorDraft? {
     val position = get<Int>(KEY_POSITION)
@@ -78,7 +91,13 @@ internal fun SavedStateHandle.restoredCalculatorDraft(): CalculatorDraft? {
     return if (position == null || kind == null || bar == null) {
         null
     } else {
-        CalculatorDraft(position, kind, get<String>(KEY_WEIGHT).orEmpty(), bar)
+        CalculatorDraft(
+            position,
+            kind,
+            get<String>(KEY_WEIGHT).orEmpty(),
+            bar,
+            get<Int>(KEY_SETS) ?: WarmUpCalculator.DEFAULT_SETS,
+        )
     }
 }
 
@@ -87,4 +106,5 @@ internal fun SavedStateHandle.persistCalculatorDraft(draft: CalculatorDraft?) {
     this[KEY_KIND] = draft?.kind?.name
     this[KEY_WEIGHT] = draft?.weightText
     this[KEY_BAR] = draft?.barKg
+    this[KEY_SETS] = draft?.warmUpSets
 }

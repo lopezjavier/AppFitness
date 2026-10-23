@@ -14,6 +14,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_10
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_15
@@ -35,6 +38,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_ti
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -57,12 +61,20 @@ internal fun CalculatorsBlock(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            text = stringResource(Res.string.preferences_calc_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(Res.string.preferences_calc_title),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            HelpButton(
+                contentDescription = stringResource(Res.string.help_rounding_cd),
+                title = stringResource(Res.string.help_rounding_title),
+                body = stringResource(Res.string.help_rounding_body),
+                testTag = "rounding_help",
+            )
+        }
         RoundingRow(
             label = stringResource(Res.string.preferences_calc_plate_rounding),
             kg = settings.plateRoundingKg,
