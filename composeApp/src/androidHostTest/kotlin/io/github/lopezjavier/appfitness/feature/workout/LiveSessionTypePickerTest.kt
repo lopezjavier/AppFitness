@@ -64,28 +64,51 @@ class LiveSessionTypePickerTest {
     }
 
     @Test
-    fun assigningAType_chooseWarmUpAndListo_showsC() {
+    fun assigningAType_tapWarmUp_appliesAndClosesAtOnce() {
         showStateful()
 
         rule.onNodeWithTag("live_set_0_1_type").performClick()
         rule.onNodeWithTag("set_type_picker_option_warm_up").performClick()
-        rule.onNodeWithTag("set_type_picker_done").performClick()
         rule.waitForIdle()
 
         badge(1).assertTextEquals("C")
-        rule.onNodeWithTag("set_type_picker_done").assertDoesNotExist()
+        rule.onNodeWithTag("set_type_picker").assertDoesNotExist()
     }
 
     @Test
-    fun removingAType_quitarTipo_showsTheIndexAgain() {
+    fun removingAType_tapNormal_showsTheIndexAgain() {
         showStateful(listOf(SetType.WarmUp, SetType.Working))
 
         rule.onNodeWithTag("live_set_0_1_type").performClick()
-        rule.onNodeWithTag("set_type_picker_clear").performClick()
-        rule.onNodeWithTag("set_type_picker_done").performClick()
+        rule.onNodeWithTag("set_type_picker_option_working").performClick()
         rule.waitForIdle()
 
         badge(1).assertTextEquals("1")
+    }
+
+    @Test
+    fun picker_hasNoDoneOrClearButtons_andShowsTheNormalIcon() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_1_type").performClick()
+
+        rule.onNodeWithTag("set_type_picker_done").assertDoesNotExist()
+        rule.onNodeWithTag("set_type_picker_clear").assertDoesNotExist()
+        rule.onNodeWithTag("set_type_picker_normal_icon", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun picker_helpOpensTheExplanation_andCloses() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_1_type").performClick()
+        rule.onNodeWithTag("set_type_help").performClick()
+        rule.onNodeWithTag("set_type_help_sheet").assertExists()
+        rule.onNodeWithTag("set_type_help_sheet_body").assertExists()
+        rule.onNodeWithTag("set_type_help_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("set_type_help_sheet").assertDoesNotExist()
     }
 
     @Test
@@ -93,24 +116,22 @@ class LiveSessionTypePickerTest {
         showStateful()
 
         rule.onNodeWithTag("live_set_0_1_type").performClick()
-        rule.onNodeWithTag("set_type_picker_option_failure").performClick()
         rule.onNodeWithTag("set_type_picker_close").performClick()
         rule.waitForIdle()
 
         badge(1).assertTextEquals("1")
-        rule.onNodeWithTag("set_type_picker_done").assertDoesNotExist()
+        rule.onNodeWithTag("set_type_picker").assertDoesNotExist()
     }
 
     @Test
-    fun openPickerAndStagedOption_surviveRecreation() {
+    fun openPicker_survivesRecreation_andTapStillApplies() {
         val tester = StateRestorationTester(rule)
         tester.setContent { AppTheme { StatefulLive(listOf(SetType.Working, SetType.Working)) } }
         rule.onNodeWithTag("live_set_0_2_type").performClick()
-        rule.onNodeWithTag("set_type_picker_option_drop").performClick()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
-        rule.onNodeWithTag("set_type_picker_done").performClick()
+        rule.onNodeWithTag("set_type_picker_option_drop").performClick()
         rule.waitForIdle()
 
         badge(2).assertTextEquals("D")

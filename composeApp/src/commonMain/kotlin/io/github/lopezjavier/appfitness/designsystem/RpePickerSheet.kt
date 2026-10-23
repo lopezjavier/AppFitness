@@ -28,6 +28,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_clear
 import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_close_cd
@@ -75,20 +78,7 @@ fun RpePickerSheet(
             Modifier.padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.rpe_picker_title, AppNumberFormat.integer(setNumber)),
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.weight(1f).semantics { heading() },
-                )
-                AppIconButton(
-                    contentDescription = stringResource(Res.string.rpe_picker_close_cd),
-                    icon = Res.drawable.ic_close,
-                    testTag = "rpe_picker_close",
-                    onClick = onDismiss,
-                )
-            }
+            RpePickerHeader(setNumber, onDismiss)
             Text(
                 text = stringResource(Res.string.rpe_picker_hint),
                 style = AppTheme.typography.bodySmall,
@@ -124,6 +114,30 @@ fun RpePickerSheet(
                 enabled = RpePickerDefaults.canSave(current, staged),
             )
         }
+    }
+}
+
+@Composable
+private fun RpePickerHeader(setNumber: Int, onDismiss: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(Res.string.rpe_picker_title, AppNumberFormat.integer(setNumber)),
+            style = AppTheme.typography.titleLarge,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        HelpButton(
+            contentDescription = stringResource(Res.string.help_rpe_cd),
+            title = stringResource(Res.string.help_rpe_title),
+            body = stringResource(Res.string.help_rpe_body),
+            testTag = "live_rpe_help",
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.rpe_picker_close_cd),
+            icon = Res.drawable.ic_close,
+            testTag = "rpe_picker_close",
+            onClick = onDismiss,
+        )
     }
 }
 

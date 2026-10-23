@@ -114,12 +114,16 @@ fun WorkoutEntryHost(
         opened = true
         onOpenLiveSession()
     }
+    // Re-arm only on a Live -> Routines transition seen by this composition. A stale Routines state right after
+    // coming back from the live screen (before recheck) must not clear the flag, or Live would reopen the screen.
+    var previous by remember { mutableStateOf<WorkoutEntryState?>(null) }
     LaunchedEffect(state) {
         when (state) {
-            WorkoutEntryState.Routines -> opened = false
+            WorkoutEntryState.Routines -> if (previous == WorkoutEntryState.Live) opened = false
             WorkoutEntryState.Live -> if (!opened) open()
             WorkoutEntryState.Checking -> Unit
         }
+        previous = state
     }
     Column(modifier) {
         if (state == WorkoutEntryState.Live) {

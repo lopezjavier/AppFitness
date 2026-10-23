@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +20,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -29,6 +31,7 @@ import org.robolectric.annotation.Config
 /** US-11 "Resuming or discarding from Mis rutinas": the in-progress card with continue and discard. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One scenario per test.
 class WorkoutEntryHostTest {
     @get:Rule
     val rule = createComposeRule()
@@ -119,6 +122,59 @@ class WorkoutEntryHostTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("workout_discard").assertIsNotEnabled()
+    }
+
+    @Test
+    fun startingFromRoutines_thenBackWithLiveFound_doesNotReopenTheLiveScreen() {
+        val state = MutableStateFlow<WorkoutEntryState>(WorkoutEntryState.Routines)
+        val tester = StateRestorationTester(rule)
+        var openFromRoutines: () -> Unit = {}
+        tester.setContent {
+            AppTheme {
+                val current by state.collectAsState()
+                WorkoutEntryHost(
+                    state = current,
+                    onOpenLiveSession = { openedLive++ },
+                    onOpenHistory = {},
+                ) { modifier, open ->
+                    openFromRoutines = open
+                    Box(modifier.fillMaxSize())
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.runOnIdle { openFromRoutines() }
+        assertEquals(1, openedLive)
+
+        // Back from the live screen: the tab is recomposed with the stale state, then recheck finds the session.
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+        state.value = WorkoutEntryState.Live
+        rule.waitForIdle()
+
+        assertEquals(1, openedLive)
+    }
+
+    @Test
+    fun afterTheSessionEnds_aNewSessionOpensTheLiveScreenOnce() {
+        val state = MutableStateFlow<WorkoutEntryState>(WorkoutEntryState.Live)
+        rule.setContent {
+            AppTheme {
+                val current by state.collectAsState()
+                WorkoutEntryHost(state = current, onOpenLiveSession = {
+                    openedLive++
+                }, onOpenHistory = {}) { modifier, _ ->
+                    Box(modifier.fillMaxSize())
+                }
+            }
+        }
+        rule.waitForIdle()
+        state.value = WorkoutEntryState.Routines
+        rule.waitForIdle()
+        state.value = WorkoutEntryState.Live
+        rule.waitForIdle()
+
+        assertEquals(2, openedLive)
     }
 
     @Test

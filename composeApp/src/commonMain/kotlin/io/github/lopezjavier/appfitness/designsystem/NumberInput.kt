@@ -123,7 +123,8 @@ object NumberInputDefaults {
         container = appColors.surfaceOverlay,
         border = if (focused && !readOnly) appColors.neonLime else appColors.borderStrong,
         text = appColors.textPrimary,
-        placeholder = appColors.ghostData,
+        // Planned values are editable data, so AA contrast (textSecondary) rather than ghostData.
+        placeholder = appColors.textSecondary,
         label = appColors.textSecondary,
         cursor = appColors.neonLime,
     )

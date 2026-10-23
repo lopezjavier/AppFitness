@@ -16,6 +16,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_warmup_calc_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_warmup_calc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_add
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_at_or_below_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_missing
@@ -44,6 +46,11 @@ internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState,
         weightLabel = stringResource(Res.string.live_calc_working_weight),
         calculator = calculator,
         onEvent = onEvent,
+        help = CalculatorHelp(
+            stringResource(Res.string.help_warmup_calc_cd),
+            stringResource(Res.string.help_warmup_calc_body),
+            "warmup_calc_help",
+        ),
         results = { WarmUpResults(tag, calculator) },
         action = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

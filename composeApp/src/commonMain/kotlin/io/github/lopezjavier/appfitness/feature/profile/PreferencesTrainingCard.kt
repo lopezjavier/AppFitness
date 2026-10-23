@@ -16,6 +16,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_overall
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_routine
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_values_title
@@ -28,6 +30,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitch
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
@@ -104,11 +107,20 @@ private fun PreviousValuesSelector(mode: PreviousValuesMode, onSelect: (Previous
         AppOption(stringResource(Res.string.preferences_previous_mode_overall), "preferences_previous_mode_overall"),
     )
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
-            text = stringResource(Res.string.preferences_previous_values_title),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(Res.string.preferences_previous_values_title),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            HelpButton(
+                contentDescription = stringResource(Res.string.help_previous_mode_cd),
+                title = stringResource(Res.string.preferences_previous_values_title),
+                body = stringResource(Res.string.help_previous_mode_body),
+                testTag = "previous_mode_help",
+            )
+        }
         SegmentedSelector(
             options = options,
             selectedIndex = modes.indexOf(mode),

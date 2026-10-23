@@ -4,6 +4,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_ba
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -36,6 +38,9 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val WEIGHT_MAX_DECIMALS = 1
 private const val WEIGHT_MAX_INTEGER_DIGITS = 3
+
+/** The "?" of a calculator sheet: description, body and tag. */
+internal class CalculatorHelp(val contentDescription: String, val body: String, val testTag: String)
 
 /**
  * Shared frame of both calculator sheets: heading, a scrolling body (weight field, bar selector, [results]) and the
@@ -49,6 +54,7 @@ internal fun CalculatorSheetFrame(
     weightLabel: String,
     calculator: CalculatorUiState,
     onEvent: (LiveSessionEvent) -> Unit,
+    help: CalculatorHelp,
     results: @Composable () -> Unit,
     action: @Composable () -> Unit,
 ) {
@@ -70,12 +76,20 @@ internal fun CalculatorSheetFrame(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                Text(
-                    text = title,
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.semantics { heading() },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = AppTheme.typography.titleLarge,
+                        color = AppTheme.colors.textPrimary,
+                        modifier = Modifier.weight(1f).semantics { heading() },
+                    )
+                    HelpButton(
+                        contentDescription = help.contentDescription,
+                        title = title,
+                        body = help.body,
+                        testTag = help.testTag,
+                    )
+                }
                 NumberInput(
                     value = calculator.draft.weightText,
                     onValueChange = { onEvent(LiveSessionEvent.CalculatorWeightChanged(it)) },

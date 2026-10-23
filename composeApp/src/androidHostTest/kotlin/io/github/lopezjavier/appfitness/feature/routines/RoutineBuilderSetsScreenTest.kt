@@ -114,7 +114,6 @@ class RoutineBuilderSetsScreenTest {
     private fun pickType(row: Int, set: Int, optionTag: String) {
         tap("routine_builder_set_type_${row}_$set")
         tap(optionTag)
-        tap("set_type_picker_done")
     }
 
     @Test
@@ -224,32 +223,27 @@ class RoutineBuilderSetsScreenTest {
     }
 
     @Test
-    fun quitarTipo_isOnlyOfferedForATypedSet_andGoesBackToNormal() {
+    fun tappingNormal_goesBackToNormal_andThePickerOffersNoClearOrDone() {
         show(null, "a")
         tap("routine_builder_set_type_0_0")
         rule.onNodeWithTag("set_type_picker_clear").assertDoesNotExist()
+        rule.onNodeWithTag("set_type_picker_done").assertDoesNotExist()
         rule.onNodeWithTag("set_type_picker_option_working").assertIsSelected()
         tap("set_type_picker_option_warm_up")
-        rule.onNodeWithTag("set_type_picker_clear").assertExists()
-        tap("set_type_picker_done")
         badge(0, 0).assertTextEquals("C")
 
         tap("routine_builder_set_type_0_0")
         rule.onNodeWithTag("set_type_picker_option_warm_up").assertIsSelected()
-        tap("set_type_picker_clear")
-        rule.onNodeWithTag("set_type_picker_option_working").assertIsSelected()
-        tap("set_type_picker_done")
+        tap("set_type_picker_option_working")
 
         badge(0, 0).assertTextEquals("1")
     }
 
     @Test
-    fun theTypePicker_doesNotApplyOnTap_andClosingItDiscardsTheChoice() {
+    fun closingThePickerWithoutChoosing_keepsTheType() {
         show(null, "a")
         tap("routine_builder_set_type_0_0")
 
-        tap("set_type_picker_option_failure")
-        badge(0, 0).assertTextEquals("1")
         tap("set_type_picker_close")
 
         rule.onNodeWithTag("set_type_picker").assertDoesNotExist()

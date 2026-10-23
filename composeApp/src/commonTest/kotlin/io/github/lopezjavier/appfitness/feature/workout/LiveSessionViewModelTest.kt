@@ -471,7 +471,8 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun checkingWithEmptyReps_isRefusedWithoutHapticOrUpsert() = runSessionTest {
+    fun checkingWithEmptyReps_andNoSuggestion_isRefusedWithoutHapticOrUpsert() = runSessionTest {
+        routines.routines.clear()
         val vm = loaded()
         type(vm, 0, 1, "60", "")
 
@@ -1355,6 +1356,78 @@ class LiveSessionViewModelTest {
 
         val added = vm.row(0, 5)
         assertEquals("82,5" to "7", added.weightPlaceholder to added.repsPlaceholder)
+    }
+
+    @Test
+    fun checkingASetWithBlankDrafts_logsThePlannedValues() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        val vm = loaded()
+
+        check(vm, 0, 2)
+
+        assertEquals(SetEntry.WeightReps(80.0, 8), repository.upserts.last().entry)
+        assertTrue(vm.row(0, 2).completed)
+        assertFalse(vm.row(0, 2).invalid)
+    }
+
+    @Test
+    fun checkingASetWithOneEditedField_keepsItAndFillsTheOtherFromThePlan() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        val vm = loaded()
+        type(vm, 0, 2, "", "6")
+
+        check(vm, 0, 2)
+
+        assertEquals(SetEntry.WeightReps(80.0, 6), repository.upserts.last().entry)
+    }
+
+    @Test
+    fun usePrevious_overridesThePlannedValues() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 30.0, 12), PreviousSet(2, 75.0, 9)))
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.UsePrevious(0, 2))
+        runCurrent()
+        check(vm, 0, 2)
+
+        assertEquals(SetEntry.WeightReps(75.0, 9), repository.upserts.last().entry)
+    }
+
+    @Test
+    fun checkingAnExtraSetWithoutAnySuggestion_isStillInvalid() = runSessionTest {
+        planWarmUpAndThreeWorking()
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.AddSet(0))
+        runCurrent()
+
+        check(vm, 0, 5)
+
+        assertTrue(vm.row(0, 5).invalid)
+        assertFalse(vm.row(0, 5).completed)
+    }
+
+    @Test
+    fun allExercisesComplete_isFalseWithAPendingSet_andTrueWhenEverySetIsDone() = runSessionTest {
+        repository.session = sessionOf(SessionExercise("e1", 0, null, listOf(pendingSet(1), pendingSet(2))))
+        val vm = loaded()
+        type(vm, 0, 1, "60", "10")
+        check(vm, 0, 1)
+
+        assertFalse(vm.active().allExercisesComplete)
+
+        type(vm, 0, 2, "60", "10")
+        check(vm, 0, 2)
+
+        assertTrue(vm.active().allExercisesComplete)
+    }
+
+    @Test
+    fun allExercisesComplete_isFalseWithoutExercises() = runSessionTest {
+        repository.session = sessionOf()
+        val vm = loaded()
+
+        assertFalse(vm.active().allExercisesComplete)
     }
 
     // --- RPE per set (US-30, ADR-50) ---

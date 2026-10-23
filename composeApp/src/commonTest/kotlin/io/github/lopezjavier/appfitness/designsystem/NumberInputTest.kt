@@ -170,9 +170,9 @@ class NumberInputTest {
         assertEquals(c.borderStrong, colors(focused = true, readOnly = true).border)
 
     @Test
-    fun colors_placeholder_isGhostData_text_isTextPrimary() {
+    fun colors_placeholder_isTextSecondary_text_isTextPrimary() {
         val colors = colors(focused = false)
-        assertEquals(c.ghostData, colors.placeholder)
+        assertEquals(c.textSecondary, colors.placeholder)
         assertEquals(c.textPrimary, colors.text)
         assertEquals(c.surfaceOverlay, colors.container)
         assertEquals(c.textSecondary, colors.label)

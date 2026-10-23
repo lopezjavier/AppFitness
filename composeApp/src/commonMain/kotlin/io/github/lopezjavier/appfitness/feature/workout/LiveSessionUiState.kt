@@ -124,6 +124,10 @@ sealed interface LiveSessionUiState {
 
         /** "Finalizar entreno" needs at least one completed set (of any type). */
         val canFinish: Boolean get() = exercises.any { exercise -> exercise.sets.any { it.completed } }
+
+        /** At least one exercise and every set of every exercise completed: the screen offers "Finalizar entreno". */
+        val allExercisesComplete: Boolean
+            get() = exercises.isNotEmpty() && exercises.all { e -> e.sets.isNotEmpty() && e.sets.all { it.completed } }
         val actionsBlocked: Boolean get() = !isOnline
         val queuedCount: Int get() = exercises.sumOf { exercise -> exercise.sets.count { it.pendingSave } }
     }

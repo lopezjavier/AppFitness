@@ -13,8 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set_type
+import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_picker_title
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -47,11 +50,17 @@ private fun SetTypeSection() {
             onClick = { pickerOpen = true },
             modifier = Modifier.testTag("catalog_set_type_picker_open"),
         )
+        HelpButton(
+            contentDescription = stringResource(Res.string.help_set_type_cd),
+            title = stringResource(Res.string.set_type_picker_title),
+            body = stringResource(Res.string.help_set_type_body),
+            testTag = "catalog_help_button",
+        )
     }
     if (pickerOpen) {
         SetTypePickerSheet(
             current = SetType.entries[chosen],
-            onDone = {
+            onSelect = {
                 chosen = it.ordinal
                 pickerOpen = false
             },

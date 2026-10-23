@@ -35,11 +35,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.live_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_add_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.live_error
+import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
+import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -224,7 +227,17 @@ private fun LiveActive(
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
     Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
-        LiveSessionTopBar(elapsedSeconds, onBack, onMenu = { menuOpen = true }, isPaused = state.isPaused)
+        LiveSessionTopBar(
+            elapsedSeconds,
+            onBack,
+            onMenu = { menuOpen = true },
+            isPaused = state.isPaused,
+            onTogglePause = if (state.actionsBlocked || state.busy) {
+                null
+            } else {
+                { onEvent(if (state.isPaused) LiveSessionEvent.ResumeSession else LiveSessionEvent.PauseSession) }
+            },
+        )
         state.restTimer?.let { RestBar(it, onEvent) }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
@@ -249,6 +262,9 @@ private fun LiveActive(
                             .testTag("live_add_exercise"),
                     )
                 }
+                if (state.allExercisesComplete) {
+                    item(key = "finish_session") { FinishButton(state, onEvent) }
+                }
             }
         }
         SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
@@ -267,5 +283,26 @@ private fun LiveCalculator(state: LiveSessionUiState.Active, onEvent: (LiveSessi
     when (calculator.draft.kind) {
         CalculatorKind.WarmUp -> WarmUpCalculatorSheet(position, calculator, onEvent)
         CalculatorKind.Plates -> PlateCalculatorSheet(position, calculator, onEvent)
+    }
+}
+
+/** "Finalizar entreno" below "Añadir ejercicio" once every set is done; offline it stays visible but disabled. */
+@Composable
+private fun FinishButton(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        PrimaryButton(
+            text = stringResource(Res.string.live_finish),
+            onClick = { onEvent(LiveSessionEvent.RequestFinish) },
+            modifier = Modifier.fillMaxWidth().testTag("live_finish_button"),
+            enabled = !state.actionsBlocked && !state.busy,
+        )
+        if (state.actionsBlocked) {
+            Text(
+                text = stringResource(Res.string.live_finish_offline_reason),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("live_finish_offline_reason"),
+            )
+        }
     }
 }

@@ -139,6 +139,31 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
+    fun warmUpHelp_opensItsExplanation_andClosesWithoutLeavingTheCalculator() {
+        show()
+        openWarmUp()
+
+        tap("warmup_calc_help")
+        rule.onNodeWithTag("warmup_calc_help_sheet").assertExists()
+        tap("warmup_calc_help_sheet_close")
+
+        rule.onNodeWithTag("warmup_calc_help_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_1_warm_up_calc_weight_field").assertExists()
+    }
+
+    @Test
+    fun plateHelp_opensItsExplanation_andCloses() {
+        show()
+        openPlates()
+
+        tap("plate_calc_help")
+        rule.onNodeWithTag("plate_calc_help_sheet").assertExists()
+        tap("plate_calc_help_sheet_close")
+
+        rule.onNodeWithTag("plate_calc_help_sheet").assertDoesNotExist()
+    }
+
+    @Test
     fun warmUp_100kgWith20kgBar_showsTheFourDefaultRows() {
         show()
 
