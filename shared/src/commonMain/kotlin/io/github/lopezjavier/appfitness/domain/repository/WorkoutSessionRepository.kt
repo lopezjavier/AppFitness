@@ -35,6 +35,12 @@ interface WorkoutSessionRepository {
     /** Completed sessions, newest first; a page is [limit] rows starting at [offset]. */
     suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>>
 
+    /**
+     * Completed sessions containing the exercise, newest first; each holds one exercise entry with only that
+     * exercise's completed sets, by set index. A page is [limit] sessions from [offset].
+     */
+    suspend fun exerciseSessions(exerciseId: String, offset: Int, limit: Int): Result<List<WorkoutSession>>
+
     /** A completed session with its sets; null when it does not exist or is not completed. */
     suspend fun getSession(sessionId: String): Result<WorkoutSession?>
 

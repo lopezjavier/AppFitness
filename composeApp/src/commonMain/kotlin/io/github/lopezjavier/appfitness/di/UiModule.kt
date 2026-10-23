@@ -239,7 +239,7 @@ val uiModule =
                 savedState = get(),
             )
         }
-        viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get()) }
+        viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get(), get(), get()) }
         viewModelOf(::RoutinesViewModel)
         viewModel { WorkoutEntryViewModel(repository = get(), connectivity = get(), savedState = get()) }
         viewModel {

@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-094 (personal-record catalogue, 2026-10-23). Next task: T-095 (exercise detail: Resumen, Historial and Cómo hacerlo), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-095 (exercise detail tabs, 2026-10-23). Next task: T-096 (session controls), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2413,16 +2413,16 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** The exercise detail (T-042, reached from the entry points of T-051) becomes three tabs. "Resumen" has the animation and the T-094 records ("Récord de peso", "Mejor serie", "1RM estimado", "Volumen máximo"), plus a link to the Fuerza chart of the exercise. "Historial" lists the completed sessions with that exercise, newest first, with their sets (type badge, RPE, metric values) and pagination. "Cómo hacerlo" shows the Spanish instructions from `library.json`. Never-logged exercises show the empty state in "Historial" and no records. Custom exercises have no media (placeholder) and no "Cómo hacerlo" content (ux-reviewer decides how it shows). The selected tab survives leaving the app.
 
 **Acceptance criteria:**
-- [ ] "Press de banca con barra" shows "Resumen", "Historial" and "Cómo hacerlo".
-- [ ] "Historial" lists past sessions newest first with their sets; with more sessions than one page, scrolling loads the rest without duplicates.
-- [ ] "Resumen" shows the four marks consistent with T-094.
-- [ ] An exercise never logged → the "Historial" empty state.
-- [ ] Tab and scroll restored after leaving the app.
+- [x] "Press de banca con barra" shows "Resumen", "Historial" and "Cómo hacerlo".
+- [x] "Historial" lists past sessions newest first with their sets; with more sessions than one page, scrolling loads the rest without duplicates.
+- [x] "Resumen" shows the four marks consistent with T-094.
+- [x] An exercise never logged → the "Historial" empty state.
+- [x] Tab and scroll restored after leaving the app.
 
 **Host tests (per scenario):** `ExerciseDetailViewModelTest` with fakes + Turbine (Tabs; History incl. pagination; Records; No history); `ExerciseDetailScreenTest` (Robolectric: tab labels, record labels, empty state); restoration tests; pgTAP only if SQL is added.
 
 **Verification:**
-- [ ] Lint + `testLocalDebugUnitTest` green (+ pgTAP and `deploy-supabase` if a migration is added).
+- [x] Lint + `testLocalDebugUnitTest` green (+ pgTAP and `deploy-supabase` if a migration is added).
 
 **Dependencies:** T-094
 **Files likely touched:** `composeApp/…/feature/exercises/{ExerciseDetailScreen,ExerciseDetailViewModel,ExerciseHistoryTab,ExerciseSummaryTab}.kt`, `shared/…/domain/repository/WorkoutSessionRepository.kt`, `shared/…/data/repository/*`, optionally a migration + pgTAP, strings, tests
