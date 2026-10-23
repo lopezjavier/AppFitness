@@ -141,6 +141,32 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         return Result.success(ordered.drop(offset).take(limit))
     }
 
+    /** Overrides what [exerciseSessions] returns for an offset (e.g. to repeat a session); null uses [completed]. */
+    var exerciseSessionsPage: ((offset: Int) -> List<WorkoutSession>)? = null
+    val exerciseSessionCalls = mutableListOf<Triple<String, Int, Int>>()
+    var exerciseSessionsFailure: AppError? = null
+
+    /** Calls from this offset on fail with a network error (the first pages succeed). */
+    var exerciseSessionsFailureFromOffset: Int? = null
+
+    @Suppress("ReturnCount")
+    override suspend fun exerciseSessions(exerciseId: String, offset: Int, limit: Int): Result<List<WorkoutSession>> {
+        exerciseSessionCalls += Triple(exerciseId, offset, limit)
+        failing(exerciseSessionsFailure)?.let { return it }
+        if (exerciseSessionsFailureFromOffset?.let { offset >= it } == true) return failing(AppError.Network)!!
+        exerciseSessionsPage?.let { return Result.success(it(offset)) }
+        val matching = completed
+            .filter { session -> session.exercises.any { it.exerciseId == exerciseId } }
+            .sortedWith(compareByDescending<WorkoutSession> { it.startedAt }.thenByDescending { it.id })
+            .map { session ->
+                session.copy(
+                    exercises = session.exercises.filter { it.exerciseId == exerciseId }
+                        .map { exercise -> exercise.copy(sets = exercise.sets.filter { it.isCompleted }) },
+                )
+            }
+        return Result.success(matching.drop(offset).take(limit))
+    }
+
     override suspend fun getSession(sessionId: String): Result<WorkoutSession?> {
         getSessionCalls++
         return failing(getSessionFailure) ?: Result.success(completed.firstOrNull { it.id == sessionId })
