@@ -52,8 +52,20 @@ interface WorkoutSessionRepository {
 
     suspend fun discard(sessionId: String): Result<Unit>
 
-    /** Completed sets of the latest finished session containing the exercise, by set index; empty if never done. */
-    suspend fun lastPerformance(exerciseId: String): Result<List<PreviousSet>>
+    /** Pauses the session at [at]; pausing an already paused session keeps the first pause. */
+    suspend fun pause(sessionId: String, at: Instant): Result<Unit>
+
+    /** Resumes the session at [at], adding the paused span to its paused total; a no-op when not paused. */
+    suspend fun resume(sessionId: String, at: Instant): Result<Unit>
+
+    /** Deletes the set and shifts the later sets of that exercise down by one, atomically. */
+    suspend fun deleteSet(sessionId: String, exercisePosition: Int, setIndex: Int): Result<Unit>
+
+    /**
+     * Completed sets of the latest finished session containing the exercise, by set index; empty if never done.
+     * With a [routineId] only sessions of that routine count.
+     */
+    suspend fun lastPerformance(exerciseId: String, routineId: String? = null): Result<List<PreviousSet>>
 
     suspend fun exerciseHistory(exerciseId: String, from: LocalDate? = null): Result<List<ExerciseHistoryPoint>>
 

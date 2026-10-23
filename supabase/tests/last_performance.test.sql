@@ -40,9 +40,9 @@ insert into public.workout_sets
   ('b1000000-0000-4000-8000-000000000001', (select id from cat where n = 1), 0, 1, 400, 3, '2026-02-01 10:10+00', null),
   ('b1000000-0000-4000-8000-000000000001', (select id from cat where n = 3), 1, 1, 300, 3, '2026-02-01 10:10+00', null);
 
-select function_privs_are('public', 'last_performance', array['uuid'], 'anon', array[]::text[],
+select function_privs_are('public', 'last_performance', array['uuid','uuid'], 'anon', array[]::text[],
   'anon cannot execute last_performance');
-select function_privs_are('public', 'last_performance', array['uuid'], 'authenticated', array['EXECUTE'],
+select function_privs_are('public', 'last_performance', array['uuid','uuid'], 'authenticated', array['EXECUTE'],
   'authenticated can execute last_performance');
 
 set local role authenticated;

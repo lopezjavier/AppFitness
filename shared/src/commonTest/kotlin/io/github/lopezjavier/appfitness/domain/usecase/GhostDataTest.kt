@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -54,4 +55,15 @@ class GhostDataTest {
 
     @Test
     fun placeholders_ignoreRpe() = assertEquals("85" to "8", GhostData.placeholders(PreviousSet(2, 85.0, 8, rpe = 8.0)))
+
+    @Test
+    fun routineFilter_routineModeWithARoutine_isTheRoutineId() =
+        assertEquals("r1", GhostData.routineFilter(PreviousValuesMode.Routine, "r1"))
+
+    @Test
+    fun routineFilter_routineModeInAFreeSession_isNull() =
+        assertNull(GhostData.routineFilter(PreviousValuesMode.Routine, null))
+
+    @Test
+    fun routineFilter_overallMode_isNull() = assertNull(GhostData.routineFilter(PreviousValuesMode.Overall, "r1"))
 }

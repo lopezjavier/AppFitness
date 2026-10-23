@@ -2437,17 +2437,17 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Pause and resume: `workout_sessions.paused_at` marks a pause. The duration must exclude paused time, so the planner adds an accumulated paused-time column (new migration, recorded in the E6 schema ADR) if it is needed. The "EN VIVO" stopwatch stops while paused and continues on resume, also after leaving the app (computed from instants and the injected `Clock`). Assumption: the rest timer is not affected by the pause (confirmed at E6-A). "Finalizar entreno" (⋮ menu, T-052) is disabled until at least one set is completed. Deleting a set: swiping with `SwipeToDeleteRow` removes it at once, with no "Deshacer" (ADR-45, user decision 2026-10-22), deletes the row on the server and re-indexes the following sets (the upsert key is `(session_id, exercise_position, set_index)`, so the re-index is atomic: an RPC or one transaction, planner's choice). Previous-values mode: a choice between "Última vez en esta rutina" and the last time overall. Assumption: it is a training preference applied to every session (confirmed at E6-A). A new migration replaces `last_performance` with an optional routine filter.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP (if a column is added; `last_performance` with the routine filter: only sessions of that routine, other users ignored).
-- [ ] Pausing at 10:00 for 5 minutes and resuming → the duration continues from 10:00; the summary and the history exclude the paused time; a pause survives closing the app.
-- [ ] No completed set → "Finalizar entreno" disabled; one completed set → enabled.
-- [ ] Swiping set 2 of 4 removes it at once with no "Deshacer"; sets 3–4 become 2–3; reopening the session shows three sets.
-- [ ] "Última vez en esta rutina" → the ghost comes from the last session of this routine even if a newer session of another routine has the exercise.
-- [ ] Pause state and the mode survive leaving the app.
+- [x] Migration + pgTAP (if a column is added; `last_performance` with the routine filter: only sessions of that routine, other users ignored).
+- [x] Pausing at 10:00 for 5 minutes and resuming → the duration continues from 10:00; the summary and the history exclude the paused time; a pause survives closing the app.
+- [x] No completed set → "Finalizar entreno" disabled; one completed set → enabled.
+- [x] Swiping set 2 of 4 removes it at once with no "Deshacer"; sets 3–4 become 2–3; reopening the session shows three sets.
+- [x] "Última vez en esta rutina" → the ghost comes from the last session of this routine even if a newer session of another routine has the exercise.
+- [x] Pause state and the mode survive leaving the app.
 
 **Host tests (per scenario):** `SessionDurationTest` (paused time, test `Clock`); `LiveSessionViewModelTest` additions (Pause and resume; Finishing an empty workout; Deleting a set incl. re-indexing; Previous-values mode); `LiveSessionScreenTest` (disabled "Finalizar entreno", swipe); `GhostDataTest` (routine mode); restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-095

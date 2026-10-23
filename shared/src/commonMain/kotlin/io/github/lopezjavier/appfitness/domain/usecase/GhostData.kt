@@ -2,11 +2,19 @@ package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 
 private const val DECIMAL_SEPARATOR = ','
 
 /** Pure helpers that turn the last performance of an exercise into the texts of a set row (US-12). */
 object GhostData {
+    /**
+     * The routine id the previous values are restricted to: only in [PreviousValuesMode.Routine] mode and for a
+     * session started from a routine. Overall mode and free sessions look at every session (null).
+     */
+    fun routineFilter(mode: PreviousValuesMode, routineId: String?): String? =
+        if (mode == PreviousValuesMode.Routine) routineId else null
+
     /** The previous set with the same index, or null when last time had fewer sets (or none). */
     fun forSet(previous: List<PreviousSet>, setIndex: Int): PreviousSet? =
         previous.firstOrNull { it.setIndex == setIndex }

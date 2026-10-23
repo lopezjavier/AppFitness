@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
@@ -56,6 +57,7 @@ class CompleteOnboardingTest {
             goals: NutritionGoals,
             weight: WeightEntry?,
             warmUpIncluded: Boolean,
+            previousValuesMode: PreviousValuesMode,
         ): Result<Unit> = error("unused")
     }
     private val completeOnboarding = CompleteOnboarding(goalsRepository, profileRepository)

@@ -256,7 +256,8 @@ class SupabaseProfileRepositorySavePreferencesTest {
         val body = (call.body as TextContent).text
         assertEquals(
             """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
-                """"p_activity_level":"moderate",$goalsJson,"p_warm_up_included":false}""",
+                """"p_activity_level":"moderate",$goalsJson,"p_warm_up_included":false,""" +
+                """"p_previous_values_mode":"overall"}""",
             body,
         )
     }
@@ -278,7 +279,7 @@ class SupabaseProfileRepositorySavePreferencesTest {
             """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
                 """"p_activity_level":"moderate",$goalsJson,"p_weight_kg":81.5,""" +
                 """"p_measured_at":"2026-10-19T10:00:00Z","p_day_start":"2026-10-18T22:00:00Z",""" +
-                """"p_day_end":"2026-10-19T22:00:00Z","p_warm_up_included":true}""",
+                """"p_day_end":"2026-10-19T22:00:00Z","p_warm_up_included":true,"p_previous_values_mode":"overall"}""",
             body,
         )
     }

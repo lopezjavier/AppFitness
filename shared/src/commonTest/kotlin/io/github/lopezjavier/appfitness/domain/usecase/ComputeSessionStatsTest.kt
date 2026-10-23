@@ -78,4 +78,11 @@ class ComputeSessionStatsTest {
 
         assertEquals(87.5, before - after)
     }
+
+    @Test
+    fun durationExcludesPausedTime() {
+        val paused = session(bench).copy(pausedTotalSeconds = 300)
+
+        assertEquals(3150L - 300L, ComputeSessionStats(paused).durationSeconds)
+    }
 }

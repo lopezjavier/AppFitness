@@ -11,8 +11,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_confir
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_message
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
+import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_empty_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
+import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
+import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -65,13 +68,22 @@ internal fun LiveDialogs(
             testTagPrefix = "live_menu",
         ) {
             SheetActionRow(
+                label = stringResource(if (state.isPaused) Res.string.live_resume else Res.string.live_pause),
+                onClick = {
+                    onCloseMenu()
+                    onEvent(if (state.isPaused) LiveSessionEvent.ResumeSession else LiveSessionEvent.PauseSession)
+                },
+                testTag = if (state.isPaused) "live_menu_resume" else "live_menu_pause",
+                enabled = !state.actionsBlocked && !state.busy,
+            )
+            SheetActionRow(
                 label = stringResource(Res.string.live_finish),
                 onClick = {
                     onCloseMenu()
                     onEvent(LiveSessionEvent.RequestFinish)
                 },
                 testTag = "live_menu_finish",
-                enabled = !state.actionsBlocked && !state.busy,
+                enabled = !state.actionsBlocked && !state.busy && state.canFinish,
             )
             SheetActionRow(
                 label = stringResource(Res.string.live_menu_discard),
@@ -84,6 +96,7 @@ internal fun LiveDialogs(
                 destructive = true,
             )
             if (state.actionsBlocked) OfflineReason("live_menu_offline_reason")
+            if (!state.canFinish) FinishEmptyReason()
         }
     }
     state.finishSheet?.let {
@@ -105,6 +118,16 @@ internal fun LiveDialogs(
             testTagPrefix = "live_discard",
         )
     }
+}
+
+@Composable
+private fun FinishEmptyReason() {
+    Text(
+        text = stringResource(Res.string.live_finish_empty_reason),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier.padding(top = Spacing.sm).testTag("live_menu_finish_reason"),
+    )
 }
 
 @Composable

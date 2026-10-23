@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -27,6 +28,8 @@ internal data class PreferencesDraft(
     val fatPct: Int,
     /** Absent in drafts saved by older versions. */
     val warmUpIncluded: Boolean = false,
+    /** [PreviousValuesMode] by name; absent in drafts saved by older versions. */
+    val previousValuesMode: String = PreviousValuesMode.Overall.name,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -44,6 +47,7 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         carbsPct = split.carbsPct,
         fatPct = split.fatPct,
         warmUpIncluded = warmUpIncluded,
+        previousValuesMode = previousValuesMode.name,
     ),
 )
 
@@ -60,5 +64,6 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
         adjustment = draft.adjustment,
         split = MacroSplit(draft.proteinPct, draft.carbsPct, draft.fatPct),
         warmUpIncluded = draft.warmUpIncluded,
+        previousValuesMode = PreviousValuesMode.valueOf(draft.previousValuesMode),
     )
 }.getOrNull()

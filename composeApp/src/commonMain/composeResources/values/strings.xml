@@ -415,6 +415,12 @@
     <string name="live_menu_cd">Más opciones del entreno</string>
     <string name="live_menu_discard">Descartar entreno</string>
     <string name="live_finish">Finalizar entreno</string>
+    <string name="live_pause">Pausar entreno</string>
+    <string name="live_resume">Reanudar entreno</string>
+    <string name="live_paused_label">EN PAUSA</string>
+    <string name="live_timer_paused_state">En pausa</string>
+    <string name="live_finish_empty_reason">Completa al menos una serie para finalizar</string>
+    <string name="live_set_delete_cd">Eliminar serie %1$d</string>
     <string name="live_finish_offline_reason">Sin conexión: no puedes finalizar ni descartar el entreno</string>
     <string name="live_add_set">Añadir serie</string>
     <string name="live_add_exercise">Añadir ejercicio</string>
@@ -729,6 +735,9 @@
     <string name="preferences_warm_up_helper">Las series de calentamiento cuentan en volumen, 1RM y récords.</string>
     <string name="preferences_warm_up_on">Activado</string>
     <string name="preferences_warm_up_off">Desactivado</string>
+    <string name="preferences_previous_values_title">Valores anteriores</string>
+    <string name="preferences_previous_mode_routine">Última vez en esta rutina</string>
+    <string name="preferences_previous_mode_overall">Última vez en general</string>
     <string name="food_create_cd">Crear alimento</string>
     <string name="meals_error_blank">Escribe un nombre</string>
     <string name="meals_error_too_long">Máximo 50 caracteres</string>

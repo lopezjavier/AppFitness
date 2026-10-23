@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MacroTargets
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateMacroTargets
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
@@ -29,6 +30,8 @@ data class PreferencesForm(
     val split: MacroSplit,
     /** "Incluir calentamiento": warm-up sets count in volume, 1RM, records and set totals. */
     val warmUpIncluded: Boolean = false,
+    /** "Valores anteriores": where the live session takes the previous values from. */
+    val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
@@ -100,6 +103,9 @@ sealed interface PreferencesEvent {
 
     /** The "Incluir calentamiento" switch; only a draft until [Save]. */
     data class SetWarmUpIncluded(val included: Boolean) : PreferencesEvent
+
+    /** The "Valores anteriores" selector; only a draft until [Save]. */
+    data class SetPreviousValuesMode(val mode: PreviousValuesMode) : PreferencesEvent
 
     data object Save : PreferencesEvent
 

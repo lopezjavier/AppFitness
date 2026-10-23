@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -86,14 +87,17 @@ internal data class SavePreferencesParams(
     @SerialName("p_day_start") val dayStart: String? = null,
     @SerialName("p_day_end") val dayEnd: String? = null,
     @SerialName("p_warm_up_included") val warmUpIncluded: Boolean? = null,
+    @SerialName("p_previous_values_mode") val previousValuesMode: PreviousValuesModeDto? = null,
 ) {
     companion object {
+        @Suppress("LongParameterList") // The edited form fields.
         fun from(
             displayName: String,
             biometrics: Biometrics,
             goals: NutritionGoals,
             weight: WeightEntry?,
             warmUpIncluded: Boolean,
+            previousValuesMode: PreviousValuesMode,
         ): SavePreferencesParams {
             val profile = BiometricsUpdateDto.from(biometrics)
             return SavePreferencesParams(
@@ -113,6 +117,7 @@ internal data class SavePreferencesParams(
                 dayStart = weight?.dayStart?.toString(),
                 dayEnd = weight?.dayEnd?.toString(),
                 warmUpIncluded = warmUpIncluded,
+                previousValuesMode = PreviousValuesModeDto.of(previousValuesMode),
             )
         }
     }

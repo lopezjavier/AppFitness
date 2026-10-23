@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -806,6 +807,70 @@ class PreferencesViewModelTest {
             """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
 
         assertFalse(decodeDraft(old)!!.warmUpIncluded)
+    }
+
+    // -- previous values mode -----------------------------------------------------------------------------------
+
+    @Test
+    fun previousValuesMode_loadsTheSavedValue() = runTest {
+        training.result = Result.success(TrainingPreferences(previousValuesMode = PreviousValuesMode.Routine))
+
+        val (_, state) = loaded()
+
+        assertEquals(PreviousValuesMode.Routine, state().form.previousValuesMode)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun previousValuesMode_editsTheDraftOnly_andSaveSendsIt() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
+        advanceUntilIdle()
+        assertEquals(PreviousValuesMode.Routine, state().form.previousValuesMode)
+        assertTrue(state().canSave)
+        assertTrue(profile.preferenceSaves.isEmpty(), "nothing is written before Guardar")
+
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(PreviousValuesMode.Routine, profile.preferenceSaves.single().previousValuesMode)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun previousValuesMode_choosingTheSavedValueAgainIsNotDirty() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
+        viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Overall))
+
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun previousValuesMode_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertEquals(PreviousValuesMode.Routine, restored.form.previousValuesMode)
+        assertEquals(PreviousValuesMode.Overall, restored.saved.previousValuesMode)
+        assertTrue(restored.canSave)
+    }
+
+    @Test
+    fun previousValuesMode_aDraftFromAnOlderVersionDecodesAsOverall() {
+        val old = """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","strategy":"Deficit","adjustment":-400,""" +
+            """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
+
+        assertEquals(PreviousValuesMode.Overall, decodeDraft(old)!!.previousValuesMode)
     }
 
     @Test

@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_invalid_set_me
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pending_save
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_cell_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_empty_state
+import io.github.lopezjavier.appfitness.composeapp.resources.live_set_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SetFieldKind
@@ -30,6 +31,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetRowFieldActions
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
@@ -66,51 +68,60 @@ internal fun SessionSetRow(
     modifier: Modifier = Modifier,
     metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     equipment: Equipment? = null,
+    deleteEnabled: Boolean = true,
 ) {
     val tag = "live_set_${position}_${row.setIndex}"
-    Column(modifier) {
-        SetRow(
-            values = row.toSetRowValues(),
-            onWeightChange = { onEvent(LiveSessionEvent.WeightChanged(position, row.setIndex, it)) },
-            onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
-            onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },
-            modifier = Modifier.testTag(tag),
-            onUsePrevious = { onEvent(LiveSessionEvent.UsePrevious(position, row.setIndex)) },
-            testTagPrefix = tag,
-            onTypeClick = { onEvent(LiveSessionEvent.OpenTypePicker(position, row.setIndex)) },
-            typeClickLabel = stringResource(
-                Res.string.builder_set_type_cd,
-                row.setIndex,
-                stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
-            ),
-            fields = setFieldSpecs(metricType, equipment),
-            actions = SetRowFieldActions(
-                onFieldChange = { kind, text -> onEvent(fieldChanged(kind, position, row.setIndex, text)) },
-                onStopwatchToggle = { onEvent(LiveSessionEvent.StopwatchToggled(position, row.setIndex)) },
-                onDurationEdit = { onEvent(LiveSessionEvent.DurationEdited(position, row.setIndex, it)) },
-            ),
-            onRpeClick = { onEvent(LiveSessionEvent.OpenRpePicker(position, row.setIndex)) },
-            rpeClickLabel = stringResource(
-                Res.string.live_rpe_cell_cd,
-                AppNumberFormat.integer(row.setIndex),
-                row.rpe ?: stringResource(Res.string.live_rpe_empty_state),
-            ),
-        )
-        if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
-        if (row.invalid) {
-            Text(
-                text = stringResource(
-                    if (metricType == ExerciseMetricType.WeightReps) {
-                        Res.string.live_invalid_set
-                    } else {
-                        Res.string.live_invalid_set_metric
-                    },
+    SwipeToDeleteRow(
+        deleteLabel = stringResource(Res.string.live_set_delete_cd, row.setIndex),
+        enabled = deleteEnabled,
+        onDelete = { onEvent(LiveSessionEvent.DeleteSet(position, row.setIndex)) },
+        backgroundTag = "live_set_delete_background_${position}_${row.setIndex}",
+        modifier = modifier.testTag("${tag}_swipe"),
+    ) {
+        Column {
+            SetRow(
+                values = row.toSetRowValues(),
+                onWeightChange = { onEvent(LiveSessionEvent.WeightChanged(position, row.setIndex, it)) },
+                onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
+                onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },
+                modifier = Modifier.testTag(tag),
+                onUsePrevious = { onEvent(LiveSessionEvent.UsePrevious(position, row.setIndex)) },
+                testTagPrefix = tag,
+                onTypeClick = { onEvent(LiveSessionEvent.OpenTypePicker(position, row.setIndex)) },
+                typeClickLabel = stringResource(
+                    Res.string.builder_set_type_cd,
+                    row.setIndex,
+                    stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
                 ),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.error,
-                modifier = Modifier.padding(start = Spacing.xl).semantics { liveRegion = LiveRegionMode.Polite }
-                    .testTag("${tag}_invalid"),
+                fields = setFieldSpecs(metricType, equipment),
+                actions = SetRowFieldActions(
+                    onFieldChange = { kind, text -> onEvent(fieldChanged(kind, position, row.setIndex, text)) },
+                    onStopwatchToggle = { onEvent(LiveSessionEvent.StopwatchToggled(position, row.setIndex)) },
+                    onDurationEdit = { onEvent(LiveSessionEvent.DurationEdited(position, row.setIndex, it)) },
+                ),
+                onRpeClick = { onEvent(LiveSessionEvent.OpenRpePicker(position, row.setIndex)) },
+                rpeClickLabel = stringResource(
+                    Res.string.live_rpe_cell_cd,
+                    AppNumberFormat.integer(row.setIndex),
+                    row.rpe ?: stringResource(Res.string.live_rpe_empty_state),
+                ),
             )
+            if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
+            if (row.invalid) {
+                Text(
+                    text = stringResource(
+                        if (metricType == ExerciseMetricType.WeightReps) {
+                            Res.string.live_invalid_set
+                        } else {
+                            Res.string.live_invalid_set_metric
+                        },
+                    ),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.error,
+                    modifier = Modifier.padding(start = Spacing.xl).semantics { liveRegion = LiveRegionMode.Polite }
+                        .testTag("${tag}_invalid"),
+                )
+            }
         }
     }
 }

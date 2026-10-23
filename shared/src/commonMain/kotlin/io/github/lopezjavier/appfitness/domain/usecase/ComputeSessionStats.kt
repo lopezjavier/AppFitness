@@ -15,7 +15,9 @@ object ComputeSessionStats {
         bodyWeightKg: Double? = null,
         doubleDumbbellExerciseIds: Set<String> = emptySet(),
     ): SessionStats = SessionStats(
-        durationSeconds = session.endedAt?.let { (it - session.startedAt).inWholeSeconds } ?: 0L,
+        durationSeconds = session.endedAt?.let {
+            SessionDuration.seconds(session.startedAt, it, session.pausedAt, session.pausedTotalSeconds, it)
+        } ?: 0L,
         completedSets = session.exercises.sumOf { exercise ->
             exercise.sets.count { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
         },

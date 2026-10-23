@@ -29,4 +29,8 @@ data class WorkoutSession(
     val startedAt: Instant,
     val endedAt: Instant?,
     val exercises: List<SessionExercise>,
+    /** Set while the session is paused; the paused span is not part of the duration. */
+    val pausedAt: Instant? = null,
+    /** Seconds of already closed pauses. */
+    val pausedTotalSeconds: Long = 0,
 )

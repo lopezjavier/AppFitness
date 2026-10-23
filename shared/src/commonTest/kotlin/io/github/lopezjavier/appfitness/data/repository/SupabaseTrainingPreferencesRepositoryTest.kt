@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.ktor.client.engine.mock.MockEngine
@@ -54,14 +55,21 @@ class SupabaseTrainingPreferencesRepositoryTest {
 
     @Test
     fun get_readsTheOwnRow() = runTest {
-        body = """[{"warm_up_included":true}]"""
+        body = """[{"warm_up_included":true,"previous_values_mode":"routine"}]"""
 
         val result = repository().get().getOrThrow()
 
-        assertEquals(TrainingPreferences(warmUpIncluded = true), result)
+        assertEquals(TrainingPreferences(true, PreviousValuesMode.Routine), result)
         val query = rest().single().url.toString()
         assertTrue(query.contains("/rest/v1/training_preferences"), query)
         assertTrue(query.contains("user_id=eq.user-1"), query)
+    }
+
+    @Test
+    fun get_rowWithoutTheModeColumnDefaultsToOverall() = runTest {
+        body = """[{"warm_up_included":false}]"""
+
+        assertEquals(PreviousValuesMode.Overall, repository().get().getOrThrow().previousValuesMode)
     }
 
     @Test
