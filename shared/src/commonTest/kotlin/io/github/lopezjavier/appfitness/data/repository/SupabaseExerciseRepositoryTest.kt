@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -93,7 +94,8 @@ class SupabaseExerciseRepositoryTest {
 
         val post = requests.single { it.method == HttpMethod.Post && !it.url.encodedPath.contains("/auth/") }
         assertEquals(
-            """[{"name":"Press Hammer","muscle_group":"chest","equipment":"machine","is_custom":true}]""",
+            """[{"name":"Press Hammer","muscle_group":"chest","equipment":"machine",""" +
+                """"metric_type":"weight_reps","is_custom":true}]""",
             (post.body as TextContent).text,
         )
         assertEquals("Press Hammer", created.name)
@@ -116,6 +118,9 @@ class SupabaseExerciseRepositoryTest {
         failing = true
 
         assertEquals(AppError.Network, repo.getAll().appErrorOrNull())
-        assertEquals(AppError.Network, repo.createCustom("x", MuscleGroup.Back, Equipment.Band).appErrorOrNull())
+        assertEquals(
+            AppError.Network,
+            repo.createCustom("x", MuscleGroup.Back, Equipment.Band, ExerciseMetricType.WeightReps).appErrorOrNull(),
+        )
     }
 }

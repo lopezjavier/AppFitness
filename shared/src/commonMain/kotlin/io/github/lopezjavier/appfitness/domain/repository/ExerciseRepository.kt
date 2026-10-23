@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 
 /** The exercise catalog plus the signed-in user's custom exercises. A failure carries an `AppException`. */
@@ -12,6 +13,11 @@ interface ExerciseRepository {
     /** The exercise with this id, or `NotFound` when it is not visible to the user. */
     suspend fun getById(id: String): Result<Exercise>
 
-    /** Creates a private custom exercise (`weight_reps`). */
-    suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise>
+    /** Creates a private custom exercise measured by [metricType] (the sets it logs follow it). */
+    suspend fun createCustom(
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
+    ): Result<Exercise>
 }

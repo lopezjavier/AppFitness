@@ -71,7 +71,7 @@ enum class Equipment {
     Other,
 }
 
-/** DB values of `public.exercise_metric_type`. Only [WeightReps] is rendered before E6. */
+/** DB values of `public.exercise_metric_type`; each one maps to a [SetEntry] variant (see `SetEntryMapping.kt`). */
 @Serializable
 enum class ExerciseMetricType {
     @SerialName("weight_reps")

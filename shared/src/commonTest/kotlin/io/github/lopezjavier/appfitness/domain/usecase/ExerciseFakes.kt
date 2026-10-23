@@ -47,7 +47,12 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         rows.firstOrNull { it.id == id }?.let { Result.success(it) }
             ?: Result.failure(AppException(AppError.NotFound))
 
-    override suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise> {
+    override suspend fun createCustom(
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        metricType: ExerciseMetricType,
+    ): Result<Exercise> {
         createCalls++
         createFailure?.let { return Result.failure(AppException(it)) }
         val created = catalogRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)

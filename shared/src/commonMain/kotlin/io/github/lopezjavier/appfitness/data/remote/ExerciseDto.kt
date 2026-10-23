@@ -32,5 +32,6 @@ internal data class ExerciseInsertDto(
     val name: String,
     @SerialName("muscle_group") val muscleGroup: MuscleGroup,
     val equipment: Equipment,
+    @SerialName("metric_type") val metricType: ExerciseMetricType,
     @SerialName("is_custom") val isCustom: Boolean,
 )

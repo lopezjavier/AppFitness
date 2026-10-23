@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 
 private const val DECIMAL_SEPARATOR = ','
@@ -10,11 +11,15 @@ object GhostData {
     fun forSet(previous: List<PreviousSet>, setIndex: Int): PreviousSet? =
         previous.firstOrNull { it.setIndex == setIndex }
 
-    /** "85 kg × 8" plus a second line "RPE 8" when last time logged one; null when there is nothing to show. */
-    fun previousText(set: PreviousSet?): String? = set?.let {
-        val base = "${weightText(it.weightKg)} kg × ${it.reps}"
-        rpeText(it)?.let { rpe -> "$base\n$rpe" } ?: base
-    }
+    /**
+     * The set as [SetEntryText] writes it ("85 kg × 8", "01:30", "5,0 km · 30:00") plus a second line "RPE 8" when
+     * last time logged one; null when there is nothing to show.
+     */
+    fun previousText(set: PreviousSet?, metricType: ExerciseMetricType = ExerciseMetricType.WeightReps): String? =
+        set?.let {
+            val base = SetEntryText.format(it, metricType)
+            rpeText(it)?.let { rpe -> "$base\n$rpe" } ?: base
+        }
 
     /** "RPE 8", or null when the previous set had no RPE. */
     fun rpeText(set: PreviousSet?): String? = set?.rpe?.let { "RPE ${RpeScale.text(it)}" }

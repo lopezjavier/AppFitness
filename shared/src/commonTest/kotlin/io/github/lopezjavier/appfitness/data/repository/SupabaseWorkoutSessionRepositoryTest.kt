@@ -266,6 +266,84 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun lastPerformance_parsesTheMetricColumns() = runTest {
+        val repo = signedIn()
+        rpcBody =
+            """[{"set_index":1,"weight_kg":0,"reps":0,"rpe":null,"duration_s":1800,"distance_m":5000.5,""" +
+            """"steps":null,"floors":null},""" +
+            """{"set_index":2,"weight_kg":0,"reps":0,"duration_s":600,"distance_m":null,"steps":900,"floors":12}]"""
+
+        val sets = repo.lastPerformance("e1").getOrThrow()
+
+        assertEquals(1800, sets[0].durationS)
+        assertEquals(5000.5, sets[0].distanceM)
+        assertNull(sets[0].steps)
+        assertEquals(listOf(900, 12), listOf(sets[1].steps, sets[1].floors))
+        assertNull(sets[1].distanceM)
+    }
+
+    @Test
+    fun upsertSet_ofEachVariant_writesOnlyItsApplicableColumns() = runTest {
+        val repo = signedIn()
+        val cases = listOf(
+            SetEntry.RepsOnly(12) to
+                """"weight_kg":0.0,"reps":12,"duration_s":null,"distance_m":null,"steps":null,"floors":null""",
+            SetEntry.Duration(90) to
+                """"weight_kg":0.0,"reps":0,"duration_s":90,"distance_m":null,"steps":null,"floors":null""",
+            SetEntry.WeightDuration(32.0, 45) to
+                """"weight_kg":32.0,"reps":0,"duration_s":45,"distance_m":null,"steps":null,"floors":null""",
+            SetEntry.DistanceDuration(5000.0, 1800) to
+                """"weight_kg":0.0,"reps":0,"duration_s":1800,"distance_m":5000.0,"steps":null,"floors":null""",
+            SetEntry.Bodyweight(10.0, 8) to
+                """"weight_kg":10.0,"reps":8,"duration_s":null,"distance_m":null,"steps":null,"floors":null""",
+            SetEntry.Assisted(20.0, 10) to
+                """"weight_kg":20.0,"reps":10,"duration_s":null,"distance_m":null,"steps":null,"floors":null""",
+            SetEntry.Weighted(15.0, 6) to
+                """"weight_kg":15.0,"reps":6,"duration_s":null,"distance_m":null,"steps":null,"floors":null""",
+            SetEntry.StepsDuration(4000, 1800) to
+                """"weight_kg":0.0,"reps":0,"duration_s":1800,"distance_m":null,"steps":4000,"floors":null""",
+            SetEntry.FloorsDuration(30, 600) to
+                """"weight_kg":0.0,"reps":0,"duration_s":600,"distance_m":null,"steps":null,"floors":30""",
+        )
+
+        cases.forEach { (entry, expected) ->
+            repo.upsertSet("s1", "e1", 0, null, 1, entry, null).getOrThrow()
+            val body = bodyOf(rest().last())
+            assertTrue(expected in body, "$entry wrote $body")
+        }
+    }
+
+    @Test
+    fun getInProgress_mapsTheColumnsToTheVariantOfTheExerciseMetricType() = runTest {
+        val repo = signedIn()
+        getBody =
+            """[{"id":"s1","routine_id":null,"name":"Mix","status":"in_progress",""" +
+            """"started_at":"2026-10-19T10:00:00+00:00","ended_at":null,"workout_sets":[""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":1,"weight_kg":0,"reps":0,""" +
+            """"duration_s":90,"exercises":{"metric_type":"duration"},"completed_at":null},""" +
+            """{"exercise_id":"e2","exercise_position":1,"set_index":1,"weight_kg":0,"reps":0,""" +
+            """"duration_s":1800,"distance_m":5000.5,"exercises":{"metric_type":"distance_duration"},""" +
+            """"completed_at":null},""" +
+            """{"exercise_id":"e3","exercise_position":2,"set_index":1,"weight_kg":10,"reps":8,""" +
+            """"exercises":{"metric_type":"bodyweight"},"completed_at":null},""" +
+            """{"exercise_id":"e4","exercise_position":3,"set_index":1,"weight_kg":80,"reps":5,""" +
+            """"completed_at":null}]}]"""
+
+        val session = repo.getInProgress().getOrThrow()!!
+
+        assertEquals(
+            listOf(
+                SetEntry.Duration(90),
+                SetEntry.DistanceDuration(5000.5, 1800),
+                SetEntry.Bodyweight(10.0, 8),
+                SetEntry.WeightReps(80.0, 5),
+            ),
+            session.exercises.map { it.sets.single().entry },
+        )
+        assertTrue("exercises(metric_type)" in rest().single().url.encodedQuery.replace("%28", "(").replace("%29", ")"))
+    }
+
+    @Test
     fun lastPerformance_decodesTheRpeAndNull() = runTest {
         val repo = signedIn()
         rpcBody =
