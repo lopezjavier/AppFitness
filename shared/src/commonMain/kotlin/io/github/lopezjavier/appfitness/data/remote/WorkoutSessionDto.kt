@@ -1,10 +1,11 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
-import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetColumns
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
@@ -14,6 +15,10 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
+
+/** The `exercises(metric_type)` embed of a `workout_sets` row. */
+@Serializable
+internal data class ExerciseMetricDto(@SerialName("metric_type") val metricType: ExerciseMetricType)
 
 /** `workout_sets` row as read with its session; `numeric` decodes as Double. */
 @Serializable
@@ -25,20 +30,28 @@ internal data class WorkoutSetDto(
     @SerialName("set_type") val setType: SetType = SetType.Working,
     @SerialName("weight_kg") val weightKg: Double = 0.0,
     val reps: Int = 0,
+    @SerialName("duration_s") val durationS: Int? = null,
+    @SerialName("distance_m") val distanceM: Double? = null,
+    val steps: Int? = null,
+    val floors: Int? = null,
     val rpe: Double? = null,
     @SerialName("completed_at") val completedAt: String? = null,
+    // Embedded `exercises(metric_type)`; absent means the default weight and reps.
+    val exercises: ExerciseMetricDto? = null,
 ) {
     fun toDomain() = WorkoutSet(
         setIndex = setIndex,
         setType = setType,
-        entry = SetEntry.WeightReps(weightKg, reps),
+        entry = SetColumns(weightKg, reps, durationS, distanceM, steps, floors)
+            .toEntry(exercises?.metricType ?: ExerciseMetricType.WeightReps),
         completedAt = completedAt?.let(Instant::parse),
         rpe = rpe,
     )
 
     companion object {
         const val COLUMNS =
-            "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,rpe,completed_at"
+            "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,duration_s,distance_m," +
+                "steps,floors,rpe,completed_at,exercises(metric_type)"
     }
 }
 
@@ -89,6 +102,11 @@ internal data class WorkoutSetUpsertDto(
     @SerialName("set_type") val setType: SetType,
     @SerialName("weight_kg") val weightKg: Double,
     val reps: Int,
+    // Always sent, even when null, so a re-upsert after a metric change clears the columns that no longer apply.
+    @EncodeDefault @SerialName("duration_s") val durationS: Int? = null,
+    @EncodeDefault @SerialName("distance_m") val distanceM: Double? = null,
+    @EncodeDefault val steps: Int? = null,
+    @EncodeDefault val floors: Int? = null,
     // Always sent, even when null, so clearing the RPE reaches the server.
     @EncodeDefault val rpe: Double? = null,
     @EncodeDefault @SerialName("completed_at") val completedAt: String? = null,
@@ -117,8 +135,12 @@ internal data class PreviousSetDto(
     @SerialName("weight_kg") val weightKg: Double = 0.0,
     val reps: Int = 0,
     val rpe: Double? = null,
+    @SerialName("duration_s") val durationS: Int? = null,
+    @SerialName("distance_m") val distanceM: Double? = null,
+    val steps: Int? = null,
+    val floors: Int? = null,
 ) {
-    fun toDomain() = PreviousSet(setIndex, weightKg, reps, rpe)
+    fun toDomain() = PreviousSet(setIndex, weightKg, reps, rpe, durationS, distanceM, steps, floors)
 }
 
 /** Row returned by the `exercise_history` RPC. */

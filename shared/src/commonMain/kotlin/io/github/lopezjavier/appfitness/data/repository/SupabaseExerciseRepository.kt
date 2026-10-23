@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 
@@ -37,14 +38,20 @@ class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: 
                 ?.toDomain()
     }.mapCatching { it ?: throw AppException(AppError.NotFound) }
 
-    override suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise> =
-        signedIn {
-            postgrest.from("exercises")
-                .insert(ExerciseInsertDto(name.trim(), muscleGroup, equipment, isCustom = true)) { select() }
-                .decodeSingle<ExerciseDto>()
-                .toDomain()
-                .also { cache = null }
-        }
+    override suspend fun createCustom(
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        metricType: ExerciseMetricType,
+    ): Result<Exercise> = signedIn {
+        postgrest.from("exercises")
+            .insert(ExerciseInsertDto(name.trim(), muscleGroup, equipment, metricType, isCustom = true)) {
+                select()
+            }
+            .decodeSingle<ExerciseDto>()
+            .toDomain()
+            .also { cache = null }
+    }
 
     private suspend fun <T> signedIn(block: suspend () -> T): Result<T> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))

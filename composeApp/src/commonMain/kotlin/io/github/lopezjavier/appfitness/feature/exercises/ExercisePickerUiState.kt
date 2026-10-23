@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.exercises
 
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 
 /** The "create exercise" sheet. Nothing is pre-selected, so a wrong default can never be submitted. */
@@ -9,6 +10,8 @@ data class CreateExerciseForm(
     val name: String,
     val muscleGroup: MuscleGroup? = null,
     val equipment: Equipment? = null,
+    /** What the exercise's sets measure; defaults to weight and reps, so it is always valid. */
+    val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     val isSubmitting: Boolean = false,
     val hasError: Boolean = false,
 ) {
@@ -59,6 +62,8 @@ sealed interface ExercisePickerEvent {
     data class SelectCreateMuscleGroup(val group: MuscleGroup) : ExercisePickerEvent
 
     data class SelectCreateEquipment(val equipment: Equipment) : ExercisePickerEvent
+
+    data class SelectCreateMetricType(val metricType: ExerciseMetricType) : ExercisePickerEvent
 
     data object SubmitCreate : ExercisePickerEvent
 }

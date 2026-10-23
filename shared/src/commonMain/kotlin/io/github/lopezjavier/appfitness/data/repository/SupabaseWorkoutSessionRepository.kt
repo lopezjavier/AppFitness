@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
+import io.github.lopezjavier.appfitness.domain.model.columns
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
@@ -90,7 +91,7 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
         setType: SetType,
         rpe: Double?,
     ): Result<Unit> = auth.ownRow {
-        val values = entry as SetEntry.WeightReps
+        val columns = entry.columns()
         val dto = WorkoutSetUpsertDto(
             sessionId = sessionId,
             exerciseId = exerciseId,
@@ -98,8 +99,13 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
             supersetGroup = supersetGroup,
             setIndex = setIndex,
             setType = setType,
-            weightKg = values.weightKg,
-            reps = values.reps,
+            // weight_kg and reps are NOT NULL in the database: metrics without them write 0.
+            weightKg = columns.weightKg ?: 0.0,
+            reps = columns.reps ?: 0,
+            durationS = columns.durationS,
+            distanceM = columns.distanceM,
+            steps = columns.steps,
+            floors = columns.floors,
             rpe = rpe,
             completedAt = completedAt?.toString(),
         )

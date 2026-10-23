@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.month_short_6
 import io.github.lopezjavier.appfitness.composeapp.resources.month_short_7
 import io.github.lopezjavier.appfitness.composeapp.resources.month_short_8
 import io.github.lopezjavier.appfitness.composeapp.resources.month_short_9
+import io.github.lopezjavier.appfitness.composeapp.resources.session_volume_none
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_volume_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weekday_short_1
 import io.github.lopezjavier.appfitness.composeapp.resources.weekday_short_2
@@ -76,7 +77,10 @@ internal fun DateLabel.text(): String = when (this) {
     )
 }
 
-/** A volume as "2.120 kg" (whole kilos, es-ES grouping). */
+/** A volume as "2.120 kg" (whole kilos, es-ES grouping); "—" when there is none (duration and distance sets). */
 @Composable
-internal fun volumeText(volumeKg: Double): String =
+internal fun volumeText(volumeKg: Double): String = if (volumeKg <= 0.0) {
+    stringResource(Res.string.session_volume_none)
+} else {
     stringResource(Res.string.summary_volume_value, AppNumberFormat.integer(volumeKg.roundToInt()))
+}

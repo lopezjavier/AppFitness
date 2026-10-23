@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -61,8 +62,11 @@ internal fun LiveExerciseCard(
                     modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
                 )
             }
-            SetTableHeader(showRpe = true)
-            exercise.sets.forEach { SessionSetRow(position, it, onEvent) }
+            val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
+            SetTableHeader(showRpe = true, fields = fields)
+            exercise.sets.forEach {
+                SessionSetRow(position, it, onEvent, metricType = exercise.metricType, equipment = exercise.equipment)
+            }
             GhostButton(
                 text = stringResource(Res.string.live_add_set),
                 onClick = { onEvent(LiveSessionEvent.AddSet(position)) },

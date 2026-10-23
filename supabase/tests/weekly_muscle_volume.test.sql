@@ -12,11 +12,11 @@ insert into auth.users (id, email) values
 
 -- Two chest exercises (c1, c2) and one back exercise (b1) from the catalog.
 create temp table cat as
-  select 'c1' as k, (select id from public.exercises where not is_custom and muscle_group = 'chest' order by key limit 1) as id
+  select 'c1' as k, (select id from public.exercises where not is_custom and metric_type = 'weight_reps' and muscle_group = 'chest' order by key limit 1) as id
   union all
-  select 'c2', (select id from public.exercises where not is_custom and muscle_group = 'chest' order by key offset 1 limit 1)
+  select 'c2', (select id from public.exercises where not is_custom and metric_type = 'weight_reps' and muscle_group = 'chest' order by key offset 1 limit 1)
   union all
-  select 'b1', (select id from public.exercises where not is_custom and muscle_group = 'back' order by key limit 1);
+  select 'b1', (select id from public.exercises where not is_custom and metric_type = 'weight_reps' and muscle_group = 'back' order by key limit 1);
 grant select on cat to authenticated;
 
 -- 2026-10-12 is a Monday. Ana:

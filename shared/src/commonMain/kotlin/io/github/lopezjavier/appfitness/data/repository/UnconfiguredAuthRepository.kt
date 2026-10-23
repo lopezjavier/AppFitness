@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -115,8 +116,12 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
 
     override suspend fun getById(id: String): Result<Exercise> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise> =
-        Result.failure(AppException(AppError.Unknown))
+    override suspend fun createCustom(
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        metricType: ExerciseMetricType,
+    ): Result<Exercise> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Routine counterpart of [UnconfiguredAuthRepository]: there is no server to read or write. */

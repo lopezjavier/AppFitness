@@ -18,15 +18,21 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_cloud_off
 import io.github.lopezjavier.appfitness.composeapp.resources.live_invalid_set
+import io.github.lopezjavier.appfitness.composeapp.resources.live_invalid_set_metric
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pending_save
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_cell_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_empty_state
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.SetFieldKind
 import io.github.lopezjavier.appfitness.designsystem.SetRow
+import io.github.lopezjavier.appfitness.designsystem.SetRowFieldActions
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -41,6 +47,11 @@ internal fun LiveSetRow.toSetRowValues() = SetRowValues(
     repsPlaceholder = repsPlaceholder,
     type = type,
     rpe = rpe,
+    distance = distance,
+    steps = steps,
+    floors = floors,
+    durationSeconds = durationSeconds,
+    stopwatchRunning = stopwatchRunning,
 )
 
 /**
@@ -53,6 +64,8 @@ internal fun SessionSetRow(
     row: LiveSetRow,
     onEvent: (LiveSessionEvent) -> Unit,
     modifier: Modifier = Modifier,
+    metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
+    equipment: Equipment? = null,
 ) {
     val tag = "live_set_${position}_${row.setIndex}"
     Column(modifier) {
@@ -70,6 +83,12 @@ internal fun SessionSetRow(
                 row.setIndex,
                 stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
             ),
+            fields = setFieldSpecs(metricType, equipment),
+            actions = SetRowFieldActions(
+                onFieldChange = { kind, text -> onEvent(fieldChanged(kind, position, row.setIndex, text)) },
+                onStopwatchToggle = { onEvent(LiveSessionEvent.StopwatchToggled(position, row.setIndex)) },
+                onDurationEdit = { onEvent(LiveSessionEvent.DurationEdited(position, row.setIndex, it)) },
+            ),
             onRpeClick = { onEvent(LiveSessionEvent.OpenRpePicker(position, row.setIndex)) },
             rpeClickLabel = stringResource(
                 Res.string.live_rpe_cell_cd,
@@ -80,7 +99,13 @@ internal fun SessionSetRow(
         if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
         if (row.invalid) {
             Text(
-                text = stringResource(Res.string.live_invalid_set),
+                text = stringResource(
+                    if (metricType == ExerciseMetricType.WeightReps) {
+                        Res.string.live_invalid_set
+                    } else {
+                        Res.string.live_invalid_set_metric
+                    },
+                ),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.error,
                 modifier = Modifier.padding(start = Spacing.xl).semantics { liveRegion = LiveRegionMode.Polite }
@@ -89,6 +114,14 @@ internal fun SessionSetRow(
         }
     }
 }
+
+/** The event of an edit of the distance, steps or floors field. */
+private fun fieldChanged(kind: SetFieldKind, position: Int, setIndex: Int, text: String): LiveSessionEvent =
+    when (kind) {
+        SetFieldKind.Distance -> LiveSessionEvent.DistanceChanged(position, setIndex, text)
+        SetFieldKind.Steps -> LiveSessionEvent.StepsChanged(position, setIndex, text)
+        else -> LiveSessionEvent.FloorsChanged(position, setIndex, text)
+    }
 
 /** "Pendiente de guardar": amber icon and text under a row whose write has not reached the server. */
 @Composable

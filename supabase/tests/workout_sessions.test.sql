@@ -15,7 +15,7 @@ insert into public.exercises (id, name, muscle_group, equipment, is_custom, crea
   ('cccccccc-0000-4000-8000-000000000001', 'Remo C', 'back', 'cable', true, '33333333-3333-4333-8333-333333333333');
 
 create temp table cat as
-  select id, row_number() over (order by key) as n from public.exercises where not is_custom limit 3;
+  select id, row_number() over (order by key) as n from public.exercises where not is_custom and metric_type = 'weight_reps' limit 3;
 grant select on cat to authenticated;
 
 -- Fixtures (as postgres)

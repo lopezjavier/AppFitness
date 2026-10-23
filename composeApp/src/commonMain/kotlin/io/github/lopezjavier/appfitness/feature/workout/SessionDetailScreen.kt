@@ -48,7 +48,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_no_s
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_volume_label
 import io.github.lopezjavier.appfitness.composeapp.resources.session_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.session_set_edit_label
-import io.github.lopezjavier.appfitness.composeapp.resources.session_set_value
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_pr
@@ -303,7 +302,7 @@ private fun SetLine(position: Int, set: DetailSet, enabled: Boolean, onClick: ()
             color = AppTheme.colors.textSecondary,
         )
         Text(
-            text = stringResource(Res.string.session_set_value, weightText(set.weightKg), set.reps),
+            text = set.text,
             style = AppTheme.typography.labelNumeric,
             color = AppTheme.colors.textPrimary,
         )

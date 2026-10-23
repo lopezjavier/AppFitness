@@ -32,6 +32,7 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
     var createCalls = 0
     var createFailure: AppError? = null
     var lastCreated: Triple<String, MuscleGroup, Equipment>? = null
+    var lastCreatedMetricType: ExerciseMetricType? = null
 
     override suspend fun getAll(): Result<List<Exercise>> =
         failure?.let { Result.failure(AppException(it)) } ?: Result.success(rows)
@@ -40,11 +41,18 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         rows.firstOrNull { it.id == id }?.let { Result.success(it) }
             ?: Result.failure(AppException(AppError.NotFound))
 
-    override suspend fun createCustom(name: String, muscleGroup: MuscleGroup, equipment: Equipment): Result<Exercise> {
+    override suspend fun createCustom(
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        metricType: ExerciseMetricType,
+    ): Result<Exercise> {
         createCalls++
         lastCreated = Triple(name, muscleGroup, equipment)
+        lastCreatedMetricType = metricType
         createFailure?.let { return Result.failure(AppException(it)) }
         val created = exerciseRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
+            .copy(metricType = metricType)
         rows = rows + created
         return Result.success(created)
     }

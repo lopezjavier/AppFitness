@@ -125,7 +125,7 @@ Every interpreted metric shows a value, a status and a short explanation. Ranges
 Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **107.5 kg**.
 
 ### 4.2 Volume
-- `volume = Σ weight × reps` over completed sets (`completed_at` not null). For bodyweight exercises without added load the volume is 0 (only the number of reps is shown).
+- `volume = Σ weight × reps` over completed sets (`completed_at` not null). Bodyweight, assisted and weighted exercises follow §4.7 (latest body weight ± the added or assisted load; `weighted` counts the added load only); duration and distance exercises have volume 0.
 - Weekly volume per muscle group: grouped by ISO week (Monday–Sunday) and the exercise's `muscle_group`.
 
 ### 4.3 Ghost data (previous performance)

@@ -120,6 +120,24 @@ class GeneratorTest(unittest.TestCase):
             self.assertEqual(gen.main([os.path.join(tmp, "missing"), "--out", out]), 1)
 
 
+class MetricTypeTest(unittest.TestCase):
+    def test_documented_examples_hold(self):
+        for (key, eq), expected in gen.SELF_CHECK_EXAMPLES.items():
+            with self.subTest(key=key):
+                self.assertEqual(gen.metric_type_of(key, eq), expected)
+
+    def test_unclassifiable_bodyweight_key_fails(self):
+        with self.assertRaises(gen.CatalogError):
+            gen.build_metric_rows([("zzz-unknown-move", "core", "bodyweight")])
+
+    def test_metrics_sql_skips_default_and_groups_per_metric(self):
+        sql = gen.render_metrics_sql(
+            [("bench-press", "weight_reps"), ("plank", "duration"), ("running", "distance_duration")])
+        self.assertIn("set metric_type = 'duration'", sql)
+        self.assertIn("'running'", sql)
+        self.assertNotIn("bench-press", sql)
+
+
 class ImportTest(unittest.TestCase):
     def test_copies_images_and_trims_json(self):
         with tempfile.TemporaryDirectory() as tmp:

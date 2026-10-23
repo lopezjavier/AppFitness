@@ -254,6 +254,7 @@ val uiModule =
                 connectivity = get(),
                 clock = get(),
                 preferences = get(),
+                bodyMeasurements = get(),
             )
         }
         viewModelOf(::StrengthViewModel)

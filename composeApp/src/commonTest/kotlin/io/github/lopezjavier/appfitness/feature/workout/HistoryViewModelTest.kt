@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
@@ -12,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -52,6 +55,7 @@ class HistoryViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeWorkoutSessionRepository()
     private val training = FakeTrainingPreferencesRepository()
+    private val bodyMeasurements = FakeWeightRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -59,7 +63,7 @@ class HistoryViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = HistoryViewModel(repository, training, MutableClock())
+    private fun viewModel() = HistoryViewModel(repository, training, MutableClock(), bodyMeasurements)
 
     private fun HistoryViewModel.content() = assertIs<HistoryUiState.Content>(uiState.value)
 
@@ -108,6 +112,46 @@ class HistoryViewModelTest {
             ),
         ),
     )
+
+    private fun bodyweightSession(id: String) = completedSession(id).copy(
+        exercises = listOf(
+            SessionExercise(
+                "e1",
+                0,
+                null,
+                listOf(WorkoutSet(1, SetType.Working, SetEntry.Bodyweight(10.0, 8), SESSION_START)),
+            ),
+        ),
+    )
+
+    private fun weighIn(kg: Double) = BodyMeasurement(
+        id = "w1",
+        measuredAt = SESSION_START,
+        weightKg = kg,
+        source = MeasurementSource.Manual,
+    )
+
+    @Test
+    fun bodyweightVolumeUsesTheLatestBodyWeight() = runTest(dispatcher) {
+        repository.completed += bodyweightSession("s1")
+        bodyMeasurements.rows += weighIn(74.0)
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(672.0, model.content().rows.single().volumeKg)
+    }
+
+    @Test
+    fun bodyweightVolumeCountsTheAddedLoadOnlyWhenTheBodyWeightCannotBeRead() = runTest(dispatcher) {
+        repository.completed += bodyweightSession("s1")
+        bodyMeasurements.failReads = true
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(80.0, model.content().rows.single().volumeKg)
+    }
 
     @Test
     fun warmUpSetsAreLeftOutOfTheRowByDefault() = runTest(dispatcher) {

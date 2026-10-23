@@ -10,12 +10,14 @@ import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
+import io.github.lopezjavier.appfitness.domain.usecase.SetEntryText
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -47,10 +49,14 @@ class SessionDetailViewModel(
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
+    private val bodyMeasurements: BodyMeasurementRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: WorkoutSession? = null
     private var names: Map<String, String> = emptyMap()
+
+    /** Latest body weight for the bodyweight and assisted volume; null when unknown. */
+    private var bodyWeightKg: Double? = null
 
     /** History of every exercise of the session; null when it could not be read (no records are shown). */
     private var history: Map<String, List<ExerciseHistoryPoint>>? = null
@@ -122,6 +128,7 @@ class SessionDetailViewModel(
                         session = loaded
                         names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: names
                         includeWarmUp = preferences.warmUpIncludedOrDefault()
+                        bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
                         history = loadHistory(loaded)
                         restoreEdit(loaded)
                         terminal = null
@@ -252,15 +259,14 @@ class SessionDetailViewModel(
         return SessionDetailUiState.Content(
             name = current.name,
             label = sessionDateLabel(sessionLocalDate(current.startedAt), clock.today()),
-            stats = ComputeSessionStats(current, includeWarmUp),
+            stats = ComputeSessionStats(current, includeWarmUp, bodyWeightKg),
             exercises = current.exercises.sortedBy { it.position }.map { exercise ->
                 DetailExercise(
                     position = exercise.position,
                     exerciseId = exercise.exerciseId,
                     name = names[exercise.exerciseId],
-                    sets = exercise.sets.sortedBy { it.setIndex }.mapNotNull { set ->
-                        (set.entry as? SetEntry.WeightReps)?.takeIf { set.isCompleted }
-                            ?.let { DetailSet(set.setIndex, set.setType, it.weightKg, it.reps) }
+                    sets = exercise.sets.sortedBy { it.setIndex }.filter { it.isCompleted }.map { set ->
+                        DetailSet(set.setIndex, set.setType, SetEntryText.format(set.entry))
                     },
                     isPersonalRecord = exercise.exerciseId in records,
                 )

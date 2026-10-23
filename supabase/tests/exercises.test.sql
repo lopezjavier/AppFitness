@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(40);
+select plan(42);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -58,9 +58,22 @@ select is(
 select is(
   (select count(*)::int from public.exercises where not is_custom and created_by is not null), 0,
   'catalog rows have no owner');
+select results_eq(
+  $$select key, metric_type::text from public.exercises
+    where key in ('pull-up', 'plank', 'treadmill-running', 'assisted-pull-ups', 'weighted-dips',
+                  'dumbbell-farmers-walk', 'stair-climber', 'crunches', 'bench-press')
+    order by key$$,
+  $$values ('assisted-pull-ups', 'assisted'), ('bench-press', 'weight_reps'), ('crunches', 'reps_only'),
+           ('dumbbell-farmers-walk', 'weight_duration'), ('plank', 'duration'), ('pull-up', 'bodyweight'),
+           ('stair-climber', 'floors_duration'), ('treadmill-running', 'distance_duration'),
+           ('weighted-dips', 'weighted')$$,
+  'catalog example keys carry their mapped metric type (T-092)');
+select cmp_ok(
+  (select count(distinct metric_type)::int from public.exercises where not is_custom), '>=', 8,
+  'the catalog uses at least eight of the ten metric types');
 select is(
-  (select count(*)::int from public.exercises where not is_custom and metric_type <> 'weight_reps'), 0,
-  'catalog rows use the weight_reps metric type');
+  (select count(*)::int from public.exercises where not is_custom and metric_type = 'steps_duration'), 0,
+  'no catalog row uses steps_duration (custom exercises only)');
 select is(
   (select count(distinct key)::int from public.exercises where key is not null),
   (select count(*)::int from public.exercises where key is not null),

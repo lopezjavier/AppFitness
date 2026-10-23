@@ -28,7 +28,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.summary_pr_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_volume_title
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_volume_value
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -38,7 +37,6 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.roundToInt
 
 /** The summary of a finished session: duration, completed sets and, per exercise, the volume and a "PR" badge. */
 @Composable
@@ -105,7 +103,7 @@ private fun StatRow(label: String, value: String, tag: String) {
 
 @Composable
 private fun ExerciseVolumeRow(exercise: ExerciseSummary, name: String?) {
-    val volume = stringResource(Res.string.summary_volume_value, AppNumberFormat.integer(exercise.volume.roundToInt()))
+    val volume = volumeText(exercise.volume)
     AppCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(

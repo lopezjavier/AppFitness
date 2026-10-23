@@ -70,6 +70,7 @@ internal fun LazyListScope.workoutInputItems() {
     item { NumberStepperSection() }
     item { SetCheckboxSection() }
     item { SetRowsSection() }
+    item { StopwatchSection() }
     setTypeItems()
     item { ReorderableSection() }
     restTimerItems()

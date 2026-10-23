@@ -11,5 +11,11 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 internal fun bestOneRepMax(rows: List<SessionExercise>, includeWarmUp: Boolean = false): Double? =
     rows.flatMap { it.sets }
         .filter { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
-        .mapNotNull { set -> (set.entry as? SetEntry.WeightReps)?.let { EstimateOneRepMax(it.weightKg, it.reps) } }
+        .mapNotNull { set ->
+            when (val entry = set.entry) {
+                is SetEntry.WeightReps -> EstimateOneRepMax(entry.weightKg, entry.reps)
+                is SetEntry.Weighted -> EstimateOneRepMax(entry.addedKg, entry.reps)
+                else -> null
+            }
+        }
         .maxOrNull()
