@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
@@ -28,6 +29,7 @@ class HistoryViewModel(
     private val repository: WorkoutSessionRepository,
     private val preferences: TrainingPreferencesRepository,
     private val clock: Clock,
+    private val bodyMeasurements: BodyMeasurementRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<HistoryUiState>(HistoryUiState.Loading)
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
@@ -41,6 +43,9 @@ class HistoryViewModel(
 
     /** The warm-up setting read with the first page; later pages use it too so the rows stay consistent. */
     private var includeWarmUp = false
+
+    /** Latest body weight read with the first page, for the bodyweight and assisted volume; null when unknown. */
+    private var bodyWeightKg: Double? = null
 
     init {
         loadFirstPage(showLoading = true)
@@ -72,6 +77,7 @@ class HistoryViewModel(
         if (showLoading) _uiState.value = HistoryUiState.Loading
         job = viewModelScope.launch {
             includeWarmUp = preferences.warmUpIncludedOrDefault()
+            bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
             repository.listCompleted(0, PAGE_SIZE).fold(
                 onSuccess = { page ->
                     nextOffset = page.size
@@ -115,7 +121,7 @@ class HistoryViewModel(
     }
 
     private fun WorkoutSession.toRow(): HistoryRow {
-        val stats = ComputeSessionStats(this, includeWarmUp)
+        val stats = ComputeSessionStats(this, includeWarmUp, bodyWeightKg)
         return HistoryRow(
             id = id,
             label = sessionDateLabel(sessionLocalDate(startedAt), clock.today()),

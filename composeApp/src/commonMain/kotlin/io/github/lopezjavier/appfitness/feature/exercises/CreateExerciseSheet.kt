@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -18,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_equipment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_error
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_metric_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_muscle_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_submit
@@ -28,8 +30,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SelectableCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import org.jetbrains.compose.resources.stringResource
 
@@ -111,6 +115,28 @@ private fun CreateChoices(form: CreateExerciseForm, onEvent: (ExercisePickerEven
                 options = equipmentOptions,
                 selectedIndex = form.equipment?.ordinal,
                 onSelect = { onEvent(ExercisePickerEvent.SelectCreateEquipment(Equipment.entries[it])) },
+            )
+        }
+        ChipGroup(stringResource(Res.string.exercise_create_metric_label)) {
+            MetricTypeChoices(form.metricType, onSelect = { onEvent(ExercisePickerEvent.SelectCreateMetricType(it)) })
+        }
+    }
+}
+
+/** Single-choice list of what the exercise logs; "Peso y repeticiones" comes first and is the default. */
+@Composable
+private fun MetricTypeChoices(selected: ExerciseMetricType, onSelect: (ExerciseMetricType) -> Unit) {
+    Column(
+        Modifier.selectableGroup().testTag("create_exercise_metric_type_picker"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        ExerciseMetricType.entries.forEach { type ->
+            SelectableCard(
+                title = stringResource(type.label),
+                description = stringResource(type.description),
+                selected = type == selected,
+                onClick = { onSelect(type) },
+                modifier = Modifier.testTag("create_exercise_metric_type_${type.tagName()}"),
             )
         }
     }

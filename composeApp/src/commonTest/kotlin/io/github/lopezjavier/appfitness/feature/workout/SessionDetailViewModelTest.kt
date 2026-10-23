@@ -6,7 +6,9 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -16,6 +18,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,6 +40,7 @@ class SessionDetailViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeWorkoutSessionRepository()
     private val trainingPreferences = FakeTrainingPreferencesRepository()
+    private val bodyMeasurements = FakeWeightRepository()
     private val connectivity = FakeConnectivityObserver()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
 
@@ -55,6 +59,7 @@ class SessionDetailViewModelTest {
             connectivity = connectivity,
             clock = MutableClock(),
             preferences = trainingPreferences,
+            bodyMeasurements = bodyMeasurements,
             savedState = savedState,
         )
 
@@ -84,8 +89,27 @@ class SessionDetailViewModelTest {
         val exercise = content.exercises.single()
         assertEquals("Press banca", exercise.name)
         assertEquals(listOf(1, 2), exercise.sets.map { it.setIndex })
-        assertEquals(87.5, exercise.sets[0].weightKg)
-        assertEquals(8, exercise.sets[0].reps)
+        assertEquals("87,5 kg × 8", exercise.sets[0].text)
+    }
+
+    @Test
+    fun bodyweightVolumeUsesTheLatestBodyWeight() = runTest(dispatcher) {
+        repository.completed += completedSession("s1").copy(
+            exercises = listOf(
+                SessionExercise(
+                    "e1",
+                    0,
+                    null,
+                    listOf(WorkoutSet(1, SetType.Working, SetEntry.Bodyweight(10.0, 8), SESSION_START)),
+                ),
+            ),
+        )
+        bodyMeasurements.rows += BodyMeasurement("w1", SESSION_START, 74.0, MeasurementSource.Manual)
+        val model = viewModel("s1")
+
+        advanceUntilIdle()
+
+        assertEquals(672.0, model.content().stats.volumeKg)
     }
 
     @Test
@@ -233,7 +257,7 @@ class SessionDetailViewModelTest {
         val content = model.content()
         assertNull(content.edit)
         assertEquals(1400.0 - 87.5, content.stats.volumeKg)
-        assertEquals(7, content.exercises.single().sets[1].reps)
+        assertEquals(true, content.exercises.single().sets[1].text.endsWith("× 7"))
     }
 
     @Test
@@ -294,7 +318,7 @@ class SessionDetailViewModelTest {
         val content = model.content()
         assertEquals("7", content.edit?.reps)
         assertEquals(false, content.busy)
-        assertEquals(8, content.exercises.single().sets[1].reps)
+        assertEquals(true, content.exercises.single().sets[1].text.endsWith("× 8"))
         assertEquals(1400.0, content.stats.volumeKg)
     }
 

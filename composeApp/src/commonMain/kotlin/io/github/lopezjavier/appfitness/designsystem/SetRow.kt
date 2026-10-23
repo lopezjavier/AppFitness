@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -31,15 +32,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.set_header_done
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_previous
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_reps
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_reps_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_weight_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_row_reps_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_use_previous_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_row_weight_cd
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
 
@@ -56,7 +51,25 @@ data class SetRowValues(
     val type: SetType = SetType.Working,
     /** The logged RPE as "7,5"; null shows the empty marker. Only rendered when the row has an RPE handler. */
     val rpe: String? = null,
-)
+    /** Kilometres as typed, for a [SetFieldKind.Distance] field. */
+    val distance: String = "",
+    /** Steps as typed, for a [SetFieldKind.Steps] field. */
+    val steps: String = "",
+    /** Floors as typed, for a [SetFieldKind.Floors] field. */
+    val floors: String = "",
+    /** Elapsed time shown by a [SetFieldKind.Duration] field (the stopwatch). */
+    val durationSeconds: Int = 0,
+    val stopwatchRunning: Boolean = false,
+) {
+    internal fun textOf(kind: SetFieldKind): String = when (kind) {
+        SetFieldKind.Weight, SetFieldKind.AddedWeight, SetFieldKind.AssistWeight -> weight
+        SetFieldKind.Reps -> reps
+        SetFieldKind.Distance -> distance
+        SetFieldKind.Steps -> steps
+        SetFieldKind.Floors -> floors
+        SetFieldKind.Duration -> ""
+    }
+}
 
 object SetRowDefaults {
     const val NO_PREVIOUS = "—"
@@ -64,6 +77,9 @@ object SetRowDefaults {
     const val WEIGHT_MAX_INTEGER_DIGITS = 4
     const val REPS_MAX_DECIMALS = 0
     const val REPS_MAX_INTEGER_DIGITS = 3
+    const val DISTANCE_MAX_DECIMALS = 2
+    const val DISTANCE_MAX_INTEGER_DIGITS = 3
+    const val STEPS_MAX_INTEGER_DIGITS = 6
     const val PREVIOUS_MAX_LINES = 2
     val IndexBadgeSize: Dp = 24.dp
     val MinHeight: Dp = 48.dp
@@ -126,6 +142,8 @@ fun SetRow(
     typeClickLabel: String? = null,
     onRpeClick: (() -> Unit)? = null,
     rpeClickLabel: String? = null,
+    fields: List<SetFieldSpec> = SetFieldSpec.WeightReps,
+    actions: SetRowFieldActions = SetRowFieldActions(),
 ) {
     val withRpe = onRpeClick != null
     val number = AppNumberFormat.integer(values.index)
@@ -150,23 +168,12 @@ fun SetRow(
             maxLines = SetRowDefaults.previousMaxLines(withRpe),
             modifier = Modifier.weight(SetRowDefaults.previousWeight(withRpe)).tag(testTagPrefix, "previous"),
         )
-        WeightInput(
+        SetFieldCells(
+            fields = fields,
             values = values,
-            number = number,
-            onChange = onWeightChange,
-            modifier = Modifier.weight(SetRowDefaults.kgWeight(withRpe)).tag(testTagPrefix, "weight"),
-        )
-        NumberInput(
-            value = values.reps,
-            onValueChange = onRepsChange,
-            label = stringResource(Res.string.set_row_reps_cd, number),
-            modifier = Modifier.weight(SetRowDefaults.repsWeight(withRpe)).tag(testTagPrefix, "reps"),
-            placeholder = values.repsPlaceholder,
-            maxDecimals = SetRowDefaults.REPS_MAX_DECIMALS,
-            maxIntegerDigits = SetRowDefaults.REPS_MAX_INTEGER_DIGITS,
-            showLabel = false,
-            readOnly = values.completed,
-            imeAction = ImeAction.Done,
+            withRpe = withRpe,
+            handlers = SetFieldHandlers(onWeightChange, onRepsChange, actions),
+            testTagPrefix = testTagPrefix,
         )
         if (onRpeClick != null) {
             RpeCell(
@@ -185,25 +192,50 @@ fun SetRow(
     }
 }
 
+/** The change handlers [SetFieldCells] routes each field's edits to. */
+private class SetFieldHandlers(
+    val onWeightChange: (String) -> Unit,
+    val onRepsChange: (String) -> Unit,
+    val actions: SetRowFieldActions,
+)
+
 @Composable
-private fun WeightInput(
+private fun RowScope.SetFieldCells(
+    fields: List<SetFieldSpec>,
     values: SetRowValues,
-    number: String,
-    onChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
+    withRpe: Boolean,
+    handlers: SetFieldHandlers,
+    testTagPrefix: String?,
 ) {
-    NumberInput(
-        value = values.weight,
-        onValueChange = onChange,
-        label = stringResource(Res.string.set_row_weight_cd, number),
-        modifier = modifier,
-        placeholder = values.weightPlaceholder,
-        maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
-        maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
-        showLabel = false,
-        readOnly = values.completed,
-        imeAction = ImeAction.Next,
-    )
+    val number = AppNumberFormat.integer(values.index)
+    val weights = SetRowFieldLayout.weights(fields, withRpe)
+    fields.forEachIndexed { position, spec ->
+        val cellModifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart)
+        if (spec.kind == SetFieldKind.Duration) {
+            StopwatchField(
+                elapsedSeconds = values.durationSeconds,
+                running = values.stopwatchRunning,
+                onToggle = handlers.actions.onStopwatchToggle,
+                onManualEntry = handlers.actions.onDurationEdit,
+                modifier = Modifier.weight(weights[position]),
+                readOnly = values.completed,
+                testTagPrefix = SetRowDefaults.childTag(testTagPrefix, "stopwatch"),
+            )
+        } else {
+            SetFieldInput(
+                spec = spec,
+                values = values,
+                number = number,
+                onChange = when (spec.kind) {
+                    SetFieldKind.Weight, SetFieldKind.AddedWeight, SetFieldKind.AssistWeight -> handlers.onWeightChange
+                    SetFieldKind.Reps -> handlers.onRepsChange
+                    else -> { text -> handlers.actions.onFieldChange(spec.kind, text) }
+                },
+                imeAction = if (position == fields.lastIndex) ImeAction.Done else ImeAction.Next,
+                modifier = cellModifier,
+            )
+        }
+    }
 }
 
 private fun Modifier.tag(prefix: String?, part: String): Modifier =
@@ -267,7 +299,11 @@ private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, m
  * [SetRow]. Not interactive: each field speaks its own label.
  */
 @Composable
-fun SetTableHeader(modifier: Modifier = Modifier, showRpe: Boolean = false) {
+fun SetTableHeader(
+    modifier: Modifier = Modifier,
+    showRpe: Boolean = false,
+    fields: List<SetFieldSpec> = SetFieldSpec.WeightReps,
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
@@ -283,18 +319,15 @@ fun SetTableHeader(modifier: Modifier = Modifier, showRpe: Boolean = false) {
             stringResource(Res.string.set_header_previous),
             Modifier.weight(SetRowDefaults.previousWeight(showRpe)),
         )
-        HeaderText(
-            text = stringResource(Res.string.set_header_weight),
-            modifier = Modifier.weight(SetRowDefaults.kgWeight(showRpe)),
-            spoken = stringResource(Res.string.set_header_weight_cd),
-            centered = true,
-        )
-        HeaderText(
-            text = stringResource(Res.string.set_header_reps),
-            modifier = Modifier.weight(SetRowDefaults.repsWeight(showRpe)),
-            spoken = stringResource(Res.string.set_header_reps_cd),
-            centered = true,
-        )
+        val weights = SetRowFieldLayout.weights(fields, showRpe)
+        fields.forEachIndexed { position, spec ->
+            HeaderText(
+                text = stringResource(spec.kind.header),
+                modifier = Modifier.weight(weights[position]),
+                spoken = stringResource(spec.kind.headerDescription),
+                centered = true,
+            )
+        }
         if (showRpe) {
             HeaderText(
                 text = stringResource(Res.string.set_header_rpe),

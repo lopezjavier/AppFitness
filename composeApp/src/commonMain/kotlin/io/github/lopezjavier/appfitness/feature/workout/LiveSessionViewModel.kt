@@ -4,21 +4,27 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
+import io.github.lopezjavier.appfitness.domain.model.SetColumns
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.domain.model.columns
+import io.github.lopezjavier.appfitness.domain.model.empty
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -30,6 +36,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
 import io.github.lopezjavier.appfitness.domain.usecase.RestTimer
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
+import io.github.lopezjavier.appfitness.domain.usecase.Stopwatch
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -65,9 +72,8 @@ private const val KEY_RPE_PICKER_POSITION = "live_rpe_picker_position"
 private const val KEY_RPE_PICKER_SET = "live_rpe_picker_set"
 private const val KEY_DRAFTS = "live_drafts"
 private const val DRAFT_SEPARATOR = ''
-private const val DRAFT_FIELDS = 4
-private const val DRAFT_WEIGHT = 2
-private const val DRAFT_REPS = 3
+private const val DRAFT_FIELDS = 9
+private const val METRES_PER_KM = 1000.0
 
 /** One set of the session as the screen edits it. */
 private data class SetState(
@@ -80,7 +86,19 @@ private data class SetState(
     val repsPlaceholder: String? = null,
     val invalid: Boolean = false,
     val rpe: Double? = null,
-)
+    val distance: String = "",
+    val steps: String = "",
+    val floors: String = "",
+    val stopwatch: Stopwatch = Stopwatch(),
+) {
+    /** Something was typed or timed: the set has a draft worth keeping. */
+    val hasDraft: Boolean
+        get() = weight.isNotEmpty() || reps.isNotEmpty() || distance.isNotEmpty() || steps.isNotEmpty() ||
+            floors.isNotEmpty() || stopwatch != Stopwatch()
+}
+
+/** What the screen needs to know about an exercise's kind: how its sets are measured and its equipment. */
+private data class ExerciseTraits(val metricType: ExerciseMetricType, val equipment: Equipment)
 
 private data class ExerciseState(
     val exerciseId: String,
@@ -102,7 +120,8 @@ private data class SessionState(
  * completed set is lost while the screen is alive. Weight and reps are local drafts until the set is checked.
  * Finishing and discarding need the server and are blocked offline; finishing sends the queue first.
  */
-@Suppress("TooManyFunctions", "LongParameterList") // One small function per event; collaborators are injected.
+// One small function per event; collaborators are injected.
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class LiveSessionViewModel(
     private val repository: WorkoutSessionRepository,
     private val exerciseRepository: ExerciseRepository,
@@ -113,6 +132,7 @@ class LiveSessionViewModel(
     private val routineRepository: RoutineRepository,
     private val alertSound: AlertSound,
     private val preferences: TrainingPreferencesRepository,
+    private val bodyMeasurements: BodyMeasurementRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: SessionState? = null
@@ -134,6 +154,8 @@ class LiveSessionViewModel(
     /** False while the screen is in the background: the rest still resolves, but without sound or vibration. */
     private var visible = true
     private var names: Map<String, String> = emptyMap()
+    private var traits: Map<String, ExerciseTraits> = emptyMap()
+    private var stopwatchJob: Job? = null
     private var online = true
     private var finishSheet: FinishSheet? = null
     private var discardAsked = false
@@ -212,6 +234,24 @@ class LiveSessionViewModel(
                 it.copy(reps = event.text, invalid = false)
             }
 
+            is LiveSessionEvent.DistanceChanged -> editSet(event.position, event.setIndex) {
+                it.copy(distance = event.text, invalid = false)
+            }
+
+            is LiveSessionEvent.StepsChanged -> editSet(event.position, event.setIndex) {
+                it.copy(steps = event.text, invalid = false)
+            }
+
+            is LiveSessionEvent.FloorsChanged -> editSet(event.position, event.setIndex) {
+                it.copy(floors = event.text, invalid = false)
+            }
+
+            is LiveSessionEvent.StopwatchToggled -> toggleStopwatch(event.position, event.setIndex)
+
+            is LiveSessionEvent.DurationEdited -> editSet(event.position, event.setIndex) {
+                it.copy(stopwatch = it.stopwatch.withElapsedSeconds(event.seconds), invalid = false)
+            }
+
             is LiveSessionEvent.SetChecked -> setChecked(event)
 
             is LiveSessionEvent.AddSet -> addSet(event.position)
@@ -227,6 +267,8 @@ class LiveSessionViewModel(
             LiveSessionEvent.Resume -> {
                 visible = true
                 tickRest()
+                publish()
+                ensureStopwatchTicker()
             }
 
             LiveSessionEvent.Pause -> visible = false
@@ -265,6 +307,7 @@ class LiveSessionViewModel(
                         typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         rpePicker = rpePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
+                        ensureStopwatchTicker()
                         ghosts = mutableMapOf()
                         coroutineScope {
                             loaded.exercises.map { it.exerciseId }.distinct().map { async { loadGhost(it) } }.awaitAll()
@@ -281,7 +324,12 @@ class LiveSessionViewModel(
     /** Catalog names come from the library by key, custom ones from their row; a failure leaves rows unnamed. */
     private suspend fun loadNames() {
         names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: return
+        traits = exerciseRepository.getAll().getOrNull()
+            ?.associate { it.id to ExerciseTraits(it.metricType, it.equipment) } ?: traits
     }
+
+    private fun metricOf(exerciseId: String): ExerciseMetricType =
+        traits[exerciseId]?.metricType ?: ExerciseMetricType.WeightReps
 
     /**
      * The planned rest and the planned sets (weight and reps, shown as placeholders) of each exercise come from the
@@ -323,8 +371,52 @@ class LiveSessionViewModel(
 
     private fun usePrevious(position: Int, setIndex: Int) {
         val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
-        val (weight, reps) = GhostData.placeholders(ghostFor(exercise.exerciseId, setIndex)) ?: return
-        editSet(position, setIndex) { it.copy(weight = weight, reps = reps, invalid = false) }
+        val ghost = ghostFor(exercise.exerciseId, setIndex) ?: return
+        val columns = SetColumns(
+            ghost.weightKg,
+            ghost.reps,
+            ghost.durationS,
+            ghost.distanceM,
+            ghost.steps,
+            ghost.floors,
+        )
+            .toEntry(metricOf(exercise.exerciseId)).columns()
+        editSet(position, setIndex) {
+            it.copy(
+                weight = columns.weightKg?.let(::weightText).orEmpty(),
+                reps = columns.reps?.toString().orEmpty(),
+                distance = columns.distanceM?.let { metres -> weightText(metres / METRES_PER_KM) }.orEmpty(),
+                steps = columns.steps?.toString().orEmpty(),
+                floors = columns.floors?.toString().orEmpty(),
+                stopwatch = columns.durationS?.let { seconds -> Stopwatch().withElapsedSeconds(seconds) }
+                    ?: it.stopwatch,
+                invalid = false,
+            )
+        }
+    }
+
+    /** Starts the set's stopwatch, or stops it keeping the time; the ticker republishes while one runs. */
+    private fun toggleStopwatch(position: Int, setIndex: Int) {
+        val now = clock.now()
+        editSet(position, setIndex) {
+            val next = if (it.stopwatch.isRunning) it.stopwatch.stop(now) else it.stopwatch.start(now)
+            it.copy(stopwatch = next, invalid = false)
+        }
+        ensureStopwatchTicker()
+    }
+
+    private fun anyStopwatchRunning() =
+        session?.exercises.orEmpty().any { e -> e.sets.any { it.completedAt == null && it.stopwatch.isRunning } }
+
+    /** One coroutine republishes every second while a stopwatch runs, so the times keep counting on screen. */
+    private fun ensureStopwatchTicker() {
+        if (stopwatchJob?.isActive == true || !anyStopwatchRunning()) return
+        stopwatchJob = viewModelScope.launch {
+            while (anyStopwatchRunning()) {
+                delay(TICK_MILLIS)
+                publish()
+            }
+        }
     }
 
     private fun startRest(position: Int) {
@@ -378,17 +470,23 @@ class LiveSessionViewModel(
     private fun setChecked(event: LiveSessionEvent.SetChecked) {
         val set = findSet(event.position, event.setIndex)
         if (set == null || event.checked == (set.completedAt != null)) return
-        if (event.checked && parseEntry(set) == null) {
+        if (event.checked && parseEntry(set, metricOf(exerciseIdAt(event.position))) == null) {
             updateSet(event.position, event.setIndex) { it.copy(invalid = true) }
             publish()
             return
         }
         if (event.checked) haptics.tick()
         val completedAt = if (event.checked) clock.now() else null
-        updateSet(event.position, event.setIndex) { it.copy(completedAt = completedAt, invalid = false) }
+        val now = clock.now()
+        updateSet(event.position, event.setIndex) {
+            it.copy(completedAt = completedAt, invalid = false, stopwatch = it.stopwatch.stop(now))
+        }
         write(event.position, event.setIndex)
         if (event.checked) startRest(event.position)
     }
+
+    private fun exerciseIdAt(position: Int): String =
+        session?.exercises?.firstOrNull { it.position == position }?.exerciseId.orEmpty()
 
     private fun openTypePicker(position: Int, setIndex: Int) {
         if (terminal == null && findSet(position, setIndex) != null) setPicker(TypePickerTarget(position, setIndex))
@@ -450,7 +548,7 @@ class LiveSessionViewModel(
     private fun addExercise(exerciseId: String) {
         if (session == null) return
         viewModelScope.launch {
-            if (exerciseId !in names) loadNames()
+            if (exerciseId !in names || exerciseId !in traits) loadNames()
             if (exerciseId !in ghosts) loadGhost(exerciseId)
             val latest = session ?: return@launch
             val position = latest.exercises.size
@@ -485,7 +583,13 @@ class LiveSessionViewModel(
             val endedAt = clock.now()
             val finished = current.toWorkoutSession(endedAt)
             val includeWarmUp = preferences.warmUpIncludedOrDefault()
-            val summary = BuildSessionSummary(finished, endedAt, loadHistory(finished), includeWarmUp)
+            val summary = BuildSessionSummary(
+                finished,
+                endedAt,
+                loadHistory(finished),
+                includeWarmUp,
+                bodyMeasurements.getLatestWeight().getOrNull()?.weightKg,
+            )
             val named = current.exercises.associate { it.position to names[it.exerciseId] }
             busy = false
             finishSheet = null
@@ -543,7 +647,7 @@ class LiveSessionViewModel(
                 exercisePosition = position,
                 supersetGroup = exercise.supersetGroup,
                 setIndex = setIndex,
-                entry = parseEntry(set) ?: SetEntry.WeightReps(0.0, 0),
+                entry = entryOf(set, exercise.exerciseId),
                 completedAt = set.completedAt,
                 setType = set.setType,
                 rpe = set.rpe,
@@ -644,8 +748,19 @@ class LiveSessionViewModel(
         savedState[KEY_RPE_PICKER_SET] = rpePicker?.setIndex
         if (terminal != null) return
         val drafts = session?.exercises.orEmpty().flatMap { exercise ->
-            exercise.sets.filter { it.completedAt == null && (it.weight.isNotEmpty() || it.reps.isNotEmpty()) }
-                .map { listOf(exercise.position, it.setIndex, it.weight, it.reps).joinToString("$DRAFT_SEPARATOR") }
+            exercise.sets.filter { it.completedAt == null && it.hasDraft }.map {
+                listOf(
+                    exercise.position,
+                    it.setIndex,
+                    it.weight,
+                    it.reps,
+                    it.distance,
+                    it.steps,
+                    it.floors,
+                    it.stopwatch.elapsedBeforeMs,
+                    it.stopwatch.startedAtMs ?: "",
+                ).joinToString("$DRAFT_SEPARATOR")
+            }
         }
         savedState[KEY_DRAFTS] = ArrayList(drafts)
     }
@@ -667,11 +782,7 @@ class LiveSessionViewModel(
             val fields = row.split(DRAFT_SEPARATOR).takeIf { it.size == DRAFT_FIELDS }
             val position = fields?.get(0)?.toIntOrNull()
             val setIndex = fields?.get(1)?.toIntOrNull()
-            if (fields == null || position == null || setIndex == null) {
-                null
-            } else {
-                (position to setIndex) to (fields[DRAFT_WEIGHT] to fields[DRAFT_REPS])
-            }
+            if (fields == null || position == null || setIndex == null) null else (position to setIndex) to fields
         }.toMap()
         if (drafts.isEmpty()) return this
         return copy(
@@ -679,18 +790,23 @@ class LiveSessionViewModel(
                 exercise.copy(
                     sets = exercise.sets.map { set ->
                         val draft = drafts[exercise.position to set.setIndex]
-                        if (draft == null ||
-                            set.completedAt != null
-                        ) {
-                            set
-                        } else {
-                            set.copy(weight = draft.first, reps = draft.second)
-                        }
+                        if (draft == null || set.completedAt != null) set else set.withDraft(draft)
                     },
                 )
             },
         )
     }
+
+    /** The set with the typed values of a saved draft row (see [persistState] for the field order). */
+    @Suppress("MagicNumber") // Indexes of the saved draft row.
+    private fun SetState.withDraft(fields: List<String>) = copy(
+        weight = fields[2],
+        reps = fields[3],
+        distance = fields[4],
+        steps = fields[5],
+        floors = fields[6],
+        stopwatch = Stopwatch(fields[7].toLongOrNull() ?: 0L, fields[8].toLongOrNull()),
+    )
 
     private fun render(): LiveSessionUiState {
         val current = session ?: return LiveSessionUiState.Loading
@@ -704,20 +820,30 @@ class LiveSessionViewModel(
                     exerciseId = exercise.exerciseId,
                     name = names[exercise.exerciseId],
                     supersetLabel = labels[index],
+                    metricType = metricOf(exercise.exerciseId),
+                    equipment = traits[exercise.exerciseId]?.equipment,
                     sets = exercise.sets.map { set ->
                         val ghost = ghostFor(exercise.exerciseId, set.setIndex)
                         val plan = planned[exercise.position to set.setIndex]
+                        val now = clock.now()
+                        val weighted = metricOf(exercise.exerciseId) == ExerciseMetricType.WeightReps
                         LiveSetRow(
                             setIndex = set.setIndex,
                             weight = set.weight,
                             reps = set.reps,
                             completed = set.completedAt != null,
+                            distance = set.distance,
+                            steps = set.steps,
+                            floors = set.floors,
+                            durationSeconds = set.stopwatch.elapsedSeconds(now),
+                            stopwatchRunning = set.stopwatch.isRunning,
                             weightPlaceholder = plan?.weightKg?.let { GhostData.weightText(it) }
-                                ?: ghost?.let { GhostData.weightText(it.weightKg) }
+                                ?: ghost?.takeIf { weighted || it.weightKg != 0.0 }
+                                    ?.let { GhostData.weightText(it.weightKg) }
                                 ?: set.weightPlaceholder,
                             repsPlaceholder = plan?.reps?.toString() ?: ghost?.reps?.toString() ?: set.repsPlaceholder,
                             type = set.setType,
-                            previous = GhostData.previousText(ghost),
+                            previous = GhostData.previousText(ghost, metricOf(exercise.exerciseId)),
                             pendingSave = (exercise.position to set.setIndex) in unsynced,
                             invalid = set.invalid,
                             rpe = set.rpe?.let(RpeScale::text),
@@ -752,15 +878,23 @@ class LiveSessionViewModel(
     )
 
     private fun WorkoutSet.toState(): SetState {
-        val entry = entry as? SetEntry.WeightReps
+        val columns = entry.columns()
         val done = completedAt != null
+        fun Double?.text(scale: Double = 1.0) =
+            this?.takeIf { done || it != 0.0 }?.let { weightText(it / scale) }.orEmpty()
+        fun Int?.text() = this?.takeIf { done || it != 0 }?.toString().orEmpty()
         return SetState(
             setIndex = setIndex,
             setType = setType,
-            weight = entry?.takeIf { done || it.weightKg != 0.0 }?.let { weightText(it.weightKg) }.orEmpty(),
-            reps = entry?.takeIf { done || it.reps != 0 }?.reps?.toString().orEmpty(),
+            weight = columns.weightKg.text(),
+            reps = columns.reps.text(),
             completedAt = completedAt,
             rpe = rpe,
+            distance = columns.distanceM.text(METRES_PER_KM),
+            steps = columns.steps.text(),
+            floors = columns.floors.text(),
+            stopwatch = columns.durationS?.takeIf { done || it != 0 }
+                ?.let { Stopwatch().withElapsedSeconds(it) } ?: Stopwatch(),
         )
     }
 
@@ -780,7 +914,7 @@ class LiveSessionViewModel(
                     WorkoutSet(
                         set.setIndex,
                         set.setType,
-                        parseEntry(set) ?: SetEntry.WeightReps(0.0, 0),
+                        entryOf(set, exercise.exerciseId),
                         set.completedAt,
                         set.rpe,
                     )
@@ -789,10 +923,45 @@ class LiveSessionViewModel(
         },
     )
 
-    /** The set's draft as an entry: reps from 1 to 999 and a weight of zero or more; null when it is not valid. */
-    private fun parseEntry(set: SetState): SetEntry.WeightReps? {
+    /** The set's draft as an entry, or an all-zero one of its metric type while it is not valid. */
+    private fun entryOf(set: SetState, exerciseId: String): SetEntry =
+        parseEntry(set, metricOf(exerciseId)) ?: SetEntry.empty(metricOf(exerciseId))
+
+    /**
+     * The set's draft as an entry of [metric]: reps from 1 to 999, a weight of zero or more (optional extra or
+     * assistance load for bodyweight, weighted and assisted), a positive time, distance, steps or floors as the
+     * metric asks; null when it is not valid.
+     */
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the metric types.
+    private fun parseEntry(set: SetState, metric: ExerciseMetricType): SetEntry? {
         val weight = NumberInputDefaults.parse(set.weight)?.takeIf { it >= 0.0 }
+        val optionalWeight = if (set.weight.isBlank()) 0.0 else weight
         val reps = set.reps.trim().toIntOrNull()?.takeIf { it in 1..MAX_REPS }
-        return if (weight != null && reps != null) SetEntry.WeightReps(weight, reps) else null
+        val seconds = set.stopwatch.elapsedSeconds(clock.now()).takeIf { it > 0 }
+        val metres = NumberInputDefaults.parse(set.distance)?.takeIf { it > 0.0 }?.let { it * METRES_PER_KM }
+        val steps = set.steps.trim().toIntOrNull()?.takeIf { it > 0 }
+        val floors = set.floors.trim().toIntOrNull()?.takeIf { it > 0 }
+        return when (metric) {
+            ExerciseMetricType.WeightReps -> weight?.let { w -> reps?.let { SetEntry.WeightReps(w, it) } }
+
+            ExerciseMetricType.RepsOnly -> reps?.let { SetEntry.RepsOnly(it) }
+
+            ExerciseMetricType.Duration -> seconds?.let { SetEntry.Duration(it) }
+
+            ExerciseMetricType.WeightDuration -> weight?.let { w -> seconds?.let { SetEntry.WeightDuration(w, it) } }
+
+            ExerciseMetricType.DistanceDuration ->
+                metres?.let { m -> seconds?.let { SetEntry.DistanceDuration(m, it) } }
+
+            ExerciseMetricType.Bodyweight -> optionalWeight?.let { w -> reps?.let { SetEntry.Bodyweight(w, it) } }
+
+            ExerciseMetricType.Assisted -> optionalWeight?.let { w -> reps?.let { SetEntry.Assisted(w, it) } }
+
+            ExerciseMetricType.Weighted -> optionalWeight?.let { w -> reps?.let { SetEntry.Weighted(w, it) } }
+
+            ExerciseMetricType.StepsDuration -> steps?.let { n -> seconds?.let { SetEntry.StepsDuration(n, it) } }
+
+            ExerciseMetricType.FloorsDuration -> floors?.let { n -> seconds?.let { SetEntry.FloorsDuration(n, it) } }
+        }
     }
 }

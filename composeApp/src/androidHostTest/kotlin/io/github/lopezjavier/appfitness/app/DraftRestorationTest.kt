@@ -15,6 +15,8 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -64,6 +66,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesEvent
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesScreen
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesUiState
+import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
@@ -302,6 +305,22 @@ class DraftRestorationTest {
         assertEquals(0, exercises.createCalls)
     }
 
+    @Test
+    fun createExerciseForm_keepsTheChosenMetricTypeAfterRecreation() {
+        val tester = StateRestorationTester(rule)
+        showPicker(tester, SavedStateHandle())
+        rule.onNodeWithTag("exercise_picker_search").performTextInput("Plancha rara")
+        rule.onNodeWithTag("exercise_picker_create_button").performClick()
+        rule.onNodeWithTag("create_exercise_metric_type_distance_duration").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_exercise_metric_type_distance_duration").performScrollTo().assertIsSelected()
+        rule.onNodeWithTag("create_exercise_metric_type_weight_reps").assertIsNotSelected()
+    }
+
     // -- "Corregir serie" sheet -------------------------------------------------------------------------------------
 
     @Test
@@ -321,6 +340,7 @@ class DraftRestorationTest {
                             connectivity,
                             MutableClock(),
                             FakeTrainingPreferencesRepository(),
+                            FakeWeightRepository(),
                             handle,
                         )
                     }

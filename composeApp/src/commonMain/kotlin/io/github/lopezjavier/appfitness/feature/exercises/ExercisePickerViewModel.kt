@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -29,6 +30,7 @@ private const val KEY_FORM_OPEN = "picker_form_open"
 private const val KEY_FORM_NAME = "picker_form_name"
 private const val KEY_FORM_MUSCLE = "picker_form_muscle"
 private const val KEY_FORM_EQUIPMENT = "picker_form_equipment"
+private const val KEY_FORM_METRIC = "picker_form_metric"
 
 /**
  * Exercise picker (US-09): the searchable, filterable list and the "create exercise" sheet. In [selectMode] a row
@@ -62,6 +64,7 @@ class ExercisePickerViewModel(
         load()
     }
 
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: ExercisePickerEvent) {
         when (event) {
             is ExercisePickerEvent.SetQuery -> filter { it.copy(query = event.query) }
@@ -94,6 +97,8 @@ class ExercisePickerViewModel(
 
             is ExercisePickerEvent.SelectCreateEquipment -> editForm { it.copy(equipment = event.equipment) }
 
+            is ExercisePickerEvent.SelectCreateMetricType -> editForm { it.copy(metricType = event.metricType) }
+
             ExercisePickerEvent.SubmitCreate -> submitCreate()
         }
     }
@@ -125,7 +130,7 @@ class ExercisePickerViewModel(
         if (form == null || group == null || equipment == null) return
         editForm { it.copy(isSubmitting = true, hasError = false) }
         viewModelScope.launch {
-            repository.createCustom(form.name.trim(), group, equipment).fold(
+            repository.createCustom(form.name.trim(), group, equipment, form.metricType).fold(
                 onSuccess = { created ->
                     updateContent { it.copy(createForm = null) }
                     reloadAfterCreate()
@@ -173,6 +178,8 @@ class ExercisePickerViewModel(
                     name = savedState.get<String>(KEY_FORM_NAME).orEmpty(),
                     muscleGroup = savedState.get<String>(KEY_FORM_MUSCLE)?.let { enumOrNull<MuscleGroup>(it) },
                     equipment = savedState.get<String>(KEY_FORM_EQUIPMENT)?.let { enumOrNull<Equipment>(it) },
+                    metricType = savedState.get<String>(KEY_FORM_METRIC)?.let { enumOrNull<ExerciseMetricType>(it) }
+                        ?: ExerciseMetricType.WeightReps,
                 )
             } else {
                 null
@@ -190,6 +197,7 @@ class ExercisePickerViewModel(
         savedState[KEY_FORM_NAME] = form?.name
         savedState[KEY_FORM_MUSCLE] = form?.muscleGroup?.name
         savedState[KEY_FORM_EQUIPMENT] = form?.equipment?.name
+        savedState[KEY_FORM_METRIC] = form?.metricType?.name
     }
 }
 

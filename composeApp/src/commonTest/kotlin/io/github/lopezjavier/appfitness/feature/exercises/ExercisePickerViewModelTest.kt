@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
@@ -254,6 +255,46 @@ class ExercisePickerViewModelTest {
         assertEquals(null, form?.equipment)
         assertEquals(false, form?.isSubmitting)
         assertEquals(0, repository.createCalls)
+    }
+
+    @Test
+    fun theCreateForm_defaultsToWeightAndReps() = runTest {
+        val vm = loaded()
+
+        vm.onEvent(ExercisePickerEvent.OpenCreate)
+
+        assertEquals(ExerciseMetricType.WeightReps, vm.content().createForm?.metricType)
+    }
+
+    @Test
+    fun aChosenMetricType_isSentWithTheCreateRequest_andTheCreatedExerciseKeepsIt() = runTest {
+        val vm = loaded()
+        vm.onEvent(ExercisePickerEvent.OpenCreate)
+        vm.onEvent(ExercisePickerEvent.SetCreateName("Plancha lastrada"))
+        vm.onEvent(ExercisePickerEvent.SelectCreateMuscleGroup(MuscleGroup.Quads))
+        vm.onEvent(ExercisePickerEvent.SelectCreateEquipment(Equipment.Bodyweight))
+        vm.onEvent(ExercisePickerEvent.SelectCreateMetricType(ExerciseMetricType.Duration))
+
+        vm.onEvent(ExercisePickerEvent.SubmitCreate)
+        advanceUntilIdle()
+
+        assertEquals(ExerciseMetricType.Duration, repository.lastCreatedMetricType)
+        assertEquals(
+            ExerciseMetricType.Duration,
+            repository.rows.single { it.name == "Plancha lastrada" }.metricType,
+        )
+    }
+
+    @Test
+    fun aChosenMetricType_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.OpenCreate)
+        first.onEvent(ExercisePickerEvent.SelectCreateMetricType(ExerciseMetricType.DistanceDuration))
+
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        assertEquals(ExerciseMetricType.DistanceDuration, second.content().createForm?.metricType)
     }
 
     @Test

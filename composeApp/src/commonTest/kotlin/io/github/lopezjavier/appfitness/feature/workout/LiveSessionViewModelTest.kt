@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
+import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -64,6 +65,7 @@ class LiveSessionViewModelTest {
     private var created: LiveSessionViewModel? = null
 
     private val trainingPreferences = FakeTrainingPreferencesRepository()
+    private val bodyMeasurements = FakeWeightRepository()
 
     private fun newViewModel(savedState: SavedStateHandle = SavedStateHandle()) = LiveSessionViewModel(
         repository,
@@ -75,6 +77,7 @@ class LiveSessionViewModelTest {
         routines,
         alertSound,
         trainingPreferences,
+        bodyMeasurements,
         savedState,
     ).also { created = it }
 

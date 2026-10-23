@@ -16,6 +16,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
@@ -210,7 +212,7 @@ class ExercisePickerScreenTest {
         rule.onNodeWithTag("exercise_create_submit").assertIsNotEnabled()
         rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
-        rule.onNodeWithTag("exercise_create_submit").assertIsEnabled().performClick()
+        rule.onNodeWithTag("exercise_create_submit").performScrollTo().assertIsEnabled().performClick()
         rule.waitForIdle()
 
         assertEquals(listOf<ExercisePickerEffect>(ExercisePickerEffect.Selected("custom-1")), effects)
@@ -239,7 +241,7 @@ class ExercisePickerScreenTest {
         rule.onNodeWithTag("exercise_picker_create_button").performClick()
         rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
-        rule.onNodeWithTag("exercise_create_submit").performClick()
+        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("exercise_create_sheet").assertExists()
@@ -319,5 +321,73 @@ class ExercisePickerScreenTest {
         val second = rule.onNodeWithTag("exercise_picker_row_incline").getUnclippedBoundsInRoot()
         assertEquals(first.top, second.top)
         assertTrue(second.left > first.left)
+    }
+
+    private fun openCreateForm() {
+        show()
+        rule.onNodeWithTag("exercise_picker_search").performTextInput("Curl raro")
+        rule.onNodeWithTag("exercise_picker_create_button").performClick()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun createForm_defaultsToWeightAndReps_andOffersEveryMetricTypeWithItsLabel() {
+        openCreateForm()
+
+        val expected = listOf(
+            "weight_reps" to "Peso y repeticiones",
+            "reps_only" to "Solo repeticiones",
+            "duration" to "Duración",
+            "weight_duration" to "Peso y duración",
+            "distance_duration" to "Distancia y duración",
+            "bodyweight" to "Peso corporal",
+            "assisted" to "Asistido",
+            "weighted" to "Con lastre",
+            "steps_duration" to "Pasos y duración",
+            "floors_duration" to "Pisos y duración",
+        )
+        rule.onNodeWithTag("create_exercise_metric_type_picker").performScrollTo().assertExists()
+        expected.forEach { (value, label) ->
+            rule.onNodeWithTag("create_exercise_metric_type_$value").performScrollTo().assertTextContains(label)
+        }
+        rule.onNodeWithTag("create_exercise_metric_type_weight_reps").assertIsSelected()
+        rule.onNodeWithTag("create_exercise_metric_type_duration").assertIsNotSelected()
+    }
+
+    @Test
+    fun createForm_showsAOneLineExplanationPerBodyweightAndAssisted() {
+        openCreateForm()
+
+        rule.onNodeWithTag("create_exercise_metric_type_bodyweight").performScrollTo()
+            .assertTextContains("Repeticiones + carga extra opcional", substring = true)
+        rule.onNodeWithTag("create_exercise_metric_type_assisted").performScrollTo()
+            .assertTextContains("Repeticiones con peso de ayuda", substring = true)
+    }
+
+    @Test
+    fun createForm_choosingDuracion_createsADurationExercise() {
+        openCreateForm()
+
+        rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
+        rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
+        rule.onNodeWithTag("create_exercise_metric_type_duration").performScrollTo().performClick()
+        rule.onNodeWithTag("create_exercise_metric_type_duration").assertIsSelected()
+        rule.onNodeWithTag("create_exercise_metric_type_weight_reps").assertIsNotSelected()
+        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        assertEquals(ExerciseMetricType.Duration, repository.lastCreatedMetricType)
+    }
+
+    @Test
+    fun createForm_withoutTouchingTheMetricType_createsAWeightAndRepsExercise() {
+        openCreateForm()
+
+        rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
+        rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
+        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        assertEquals(ExerciseMetricType.WeightReps, repository.lastCreatedMetricType)
     }
 }

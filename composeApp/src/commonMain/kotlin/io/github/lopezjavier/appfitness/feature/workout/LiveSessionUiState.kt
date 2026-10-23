@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
@@ -26,6 +28,13 @@ data class LiveSetRow(
     val invalid: Boolean = false,
     /** The logged RPE as "7,5"; null when none (the UI shows the empty marker). */
     val rpe: String? = null,
+    /** Kilometres as typed (distance and duration sets). */
+    val distance: String = "",
+    val steps: String = "",
+    val floors: String = "",
+    /** The set stopwatch's time, recomputed from the clock on every publish. */
+    val durationSeconds: Int = 0,
+    val stopwatchRunning: Boolean = false,
 )
 
 /** An exercise card. [name] is null when the library has no name for it (the UI shows a generic label). */
@@ -39,6 +48,10 @@ data class LiveExercise(
     val restSeconds: Int = RoutineBounds.DEFAULT_REST_SECONDS,
     /** The routine's target RPE as "8"; null when the exercise has none or the session is free. */
     val targetRpeText: String? = null,
+    /** What each set of this exercise measures; decides the fields of its rows. */
+    val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
+    /** Decides the hint of the weight field; null when unknown. */
+    val equipment: Equipment? = null,
 )
 
 /** The running rest countdown: [remaining] of [total] (the total grows when time is added past it). */
@@ -117,6 +130,19 @@ sealed interface LiveSessionEvent {
     data class WeightChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
 
     data class RepsChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
+
+    /** Kilometres typed in a distance field. */
+    data class DistanceChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
+
+    data class StepsChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
+
+    data class FloorsChanged(val position: Int, val setIndex: Int, val text: String) : LiveSessionEvent
+
+    /** Start or stop of the set's stopwatch; stopping only fills the draft, nothing is saved until the check. */
+    data class StopwatchToggled(val position: Int, val setIndex: Int) : LiveSessionEvent
+
+    /** A time typed as mm:ss in the stopwatch, already parsed to [seconds]. */
+    data class DurationEdited(val position: Int, val setIndex: Int, val seconds: Int) : LiveSessionEvent
 
     /** The checkbox of a set: [checked] true completes it, false makes it editable again. */
     data class SetChecked(val position: Int, val setIndex: Int, val checked: Boolean) : LiveSessionEvent

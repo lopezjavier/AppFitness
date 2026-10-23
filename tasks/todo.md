@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-091 (RPE per set, 2026-10-23). Next task: T-092 (exercise metric types), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-092 (exercise metric types, 2026-10-23). Next task: T-093 (volume options), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2338,18 +2338,18 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Catalogue: every catalogue row is `weight_reps` today (T-042). A new generated migration (`scripts/generate-exercise-catalog.py`, ADR-39; never an edit of the merged one) sets `metric_type` per catalogue exercise from a mapping the planner derives from the RepDB data. Examples: "Dominadas" `bodyweight`, "Plancha" `duration`, "Cinta de correr" `distance_duration`. The full mapping is listed in the PR body for the user. The create-custom-exercise form gets a metric-type choice (labels by ux-reviewer). The live set row (polymorphic since ADR-30) implements every `exercise_metric_type` the seeded catalogue uses. Variants: `bodyweight`/`assisted`/`weighted` (REPS + an added- or assisted-weight field), `duration` (a stopwatch with start/stop from the injected `Clock` and a manual mm:ss entry), `distance_duration` (distance + duration), `weight_duration`, `reps_only`, `steps_duration` and `floors_duration`. Only the applicable `workout_sets` columns are written; the others stay null (a check constraint, if the planner adds one, is a new migration). Ghost data per metric: `last_performance` returns the metric columns (new migration). Volume (`04` §4.2, §4.7): `bodyweight`/`assisted` use the latest `body_measurements` weight ± the added load, `weighted` counts the added load only, and duration/distance volume is 0. Domain + SQL aggregates follow (new migration). Weight hint by equipment: barbell "barra + discos"; ux-reviewer proposes the other hints. Charts for non-weight exercises stay as in E3 (max reps); richer non-weight charts are E7 (FR-4.9).
 
 **Acceptance criteria:**
-- [ ] Generated migration + pgTAP: every catalogue `metric_type` from the mapping is present; custom exercises accept any metric type; `last_performance` returns the metric columns.
-- [ ] "Dominadas": REPS + added-weight field; with latest body weight 74,0 kg and +10 kg × 8 → volume "672 kg".
-- [ ] "Plancha": the stopwatch counts and the duration reads "01:30"; a manual mm:ss entry works.
-- [ ] "Cinta de correr": distance and duration fields; its volume is 0 and it never breaks the summary.
-- [ ] A barbell exercise's weight field hints "barra + discos".
-- [ ] Every metric type used by the seeded catalogue renders a set row (epic DoD); a custom "Duración" exercise logs a duration.
-- [ ] Stopwatch state and set drafts survive leaving the app.
+- [x] Generated migration + pgTAP: every catalogue `metric_type` from the mapping is present; custom exercises accept any metric type; `last_performance` returns the metric columns.
+- [x] "Dominadas": REPS + added-weight field; with latest body weight 74,0 kg and +10 kg × 8 → volume "672 kg".
+- [x] "Plancha": the stopwatch counts and the duration reads "01:30"; a manual mm:ss entry works.
+- [x] "Cinta de correr": distance and duration fields; its volume is 0 and it never breaks the summary.
+- [x] A barbell exercise's weight field hints "barra + discos".
+- [x] Every metric type used by the seeded catalogue renders a set row (epic DoD); a custom "Duración" exercise logs a duration.
+- [x] Stopwatch state and set drafts survive leaving the app.
 
 **Host tests (per scenario):** `SetEntryMappingTest` (metric type → fields and columns); `CalculateVolumeTest` additions (bodyweight, assisted, weighted, duration); `StopwatchTest` with a test `Clock`; `LiveSessionViewModelTest` (each variant saves the right columns); `LiveSessionScreenTest` (Robolectric: one row per variant, "barra + discos", "01:30"); `CreateExerciseViewModelTest` (metric type); restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; the production catalogue has the mapped metric types.
 
 **Dependencies:** T-091
