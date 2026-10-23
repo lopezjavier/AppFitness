@@ -134,6 +134,9 @@ A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 ch
 | Weight trend: goal progress is shown visually in "Tendencia" (first-weight marker, target line, shaded band between them) instead of a percentage on the goal card | Checkpoint E5-B, 2026-10-22 |
 | Diario: a logged food added with a portion shows the portion's unit amount next to its name, e.g. "1 vaso (200 ml)" in the meal summary; the same for grams | User request, 2026-10-22 |
 | "Añadir comida" → Comidas: tapping a row adds it and the trailing button is a pencil that opens "Editar comida" (visual swap; the rest of the comida editing is T-102b in E6) | User request, 2026-10-23 |
+| Live session / routine builder: set type icon for "Normal" (replace the current one) and show that icon (an "N") instead of the set number on Normal sets | Checkpoint E6-A re-test, 2026-10-24 |
+| Live session: planned weight/reps placeholders in a darker grey, clearly different from user-entered white values | Checkpoint E6-A re-test, 2026-10-24 |
+| "Qué es el RPE?" help as a list, one line per number | Checkpoint E6-A re-test, 2026-10-24 |
 ---
 
 ### UX consistency guardrails (E4 retrospective, 2026-10-21)

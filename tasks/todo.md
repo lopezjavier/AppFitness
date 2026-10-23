@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-097e (mandatory RPE prompt, 2026-10-23). In PR: T-097f (builder calculators, double dumbbell, dumbbell handle). Next: re-present Checkpoint E6-A (after T-097f merge and deploy-supabase), then T-098 only after user feedback. E5 closed (tag `v0.5.0`).
+**Next:** T-097g (E6-A feedback 2: bugs, whole-number RPE, pause, warm-up sheet), then T-097h (disc loader, derived rounding), then T-097i (hand count per exercise; blocked until the user fills `planning/exercise-hand-count.md`); then re-present Checkpoint E6-A. Last merged: T-097f (2026-10-23). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2517,6 +2517,36 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Warm-up calculator, plate calculator and "Contar mancuerna doble" in the routine builder's exercise menu (the option persists per exercise). Dumbbell exercises: plate calculator with a 1 kg handle (training preference, editable in Preferencias, new migration + pgTAP); warm-up calculator uses it as base.
 
 **Dependencies:** T-097e · **Estimated scope:** M–L
+
+---
+
+## T-097g: E6-A feedback 2 — bugs, whole-number RPE, pause and warm-up sheet
+
+**Story:** US-29, US-30, US-33, US-38 · **Flow:** UI (+ backend for the RPE constraint) · **ADR-56**
+
+**Description:** "?" help on "Objetivo RPE" (repeated request); RPE 1–10 whole numbers (migration rounds stored half values, pgTAP); the first set of the first exercise also asks for RPE; pausing pauses the rest countdown and "Listo" while paused resumes both; warm-up sheet: "Peso objetivo (kg)", default = best past weight (fallback planned weight), bar/handle from Preferencias, no bar selector.
+
+**Dependencies:** T-097f · **Estimated scope:** M
+
+---
+
+## T-097h: Disc loader; derived rounding
+
+**Story:** US-33 · **Flow:** UI + backend · **ADR-56**
+
+**Description:** Replace the plate calculator with the disc loader (discs per side, total = bar or handle + 2 × sum); remove both rounding settings (migration drops the columns, `save_preferences` signature change, pgTAP); rounding derived as twice the smallest available plate; help texts updated.
+
+**Dependencies:** T-097g · **Estimated scope:** M–L
+
+---
+
+## T-097i: Hand count per exercise; edit and delete manual exercises
+
+**Story:** US-33, US-09 · **Flow:** UI + backend · **ADR-56**
+
+**Description:** Flag `per_hand` per exercise replaces "Contar mancuerna doble"; catalogue migration from the list the user fills in `planning/exercise-hand-count.md` (**blocked until the user returns it**); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
+
+**Dependencies:** T-097h, 👤 filled list · **Estimated scope:** L
 
 ---
 
