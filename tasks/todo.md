@@ -2544,7 +2544,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 
 **Story:** US-33, US-09 · **Flow:** UI + backend · **ADR-56**
 
-**Description:** Flag `per_hand` per exercise replaces "Contar mancuerna doble"; catalogue migration from the list the user fills in a local CSV outside the repo (`exercise-hand-count.csv`, temporary) (**blocked until the user returns it**); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
+**Description:** Value `hands` (1 or 2) per exercise replaces "Contar mancuerna doble"; catalogue migration from the list the user fills in a local CSV outside the repo (`exercise-hand-count.csv`, temporary) (**blocked until the user returns it**); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
 
 **Dependencies:** T-097h, 👤 filled list · **Estimated scope:** L
 
