@@ -31,6 +31,7 @@ internal data class TrainingPreferencesDto(
     @SerialName("plate_rounding_kg") val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
     @SerialName("dumbbell_rounding_kg") val dumbbellRoundingKg: Double =
         CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
+    @SerialName("dumbbell_handle_kg") val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
 ) {
     fun toDomain(): TrainingPreferences = TrainingPreferences(
         warmUpIncluded = warmUpIncluded,
@@ -39,10 +40,12 @@ internal data class TrainingPreferencesDto(
         plateKg = plateKg,
         plateRoundingKg = plateRoundingKg,
         dumbbellRoundingKg = dumbbellRoundingKg,
+        dumbbellHandleKg = dumbbellHandleKg,
     )
 
     companion object {
         const val COLUMNS =
-            "warm_up_included,previous_values_mode,bar_weight_kg,plate_kg,plate_rounding_kg,dumbbell_rounding_kg"
+            "warm_up_included,previous_values_mode,bar_weight_kg,plate_kg,plate_rounding_kg,dumbbell_rounding_kg," +
+                "dumbbell_handle_kg"
     }
 }

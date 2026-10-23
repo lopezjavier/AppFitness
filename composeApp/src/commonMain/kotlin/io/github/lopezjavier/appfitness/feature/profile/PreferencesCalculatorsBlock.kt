@@ -22,6 +22,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_ba
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_15
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_20
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_7_5
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle_state
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding_increase_cd
@@ -50,8 +54,8 @@ import org.jetbrains.compose.resources.stringResource
 private const val ROUNDING_STEP_KG = 0.5
 
 /**
- * "Calculadoras" block of the training card: plate and dumbbell rounding, default bar and available plates. All of it
- * is a draft until "Guardar"; switching off the last plate is refused and shows [platesError].
+ * "Calculadoras" block of the training card: plate and dumbbell rounding, dumbbell handle, default bar and available
+ * plates. All of it is a draft until "Guardar"; switching off the last plate is refused and shows [platesError].
  */
 @Composable
 internal fun CalculatorsBlock(
@@ -92,6 +96,15 @@ internal fun CalculatorsBlock(
             increaseCd = stringResource(Res.string.preferences_calc_dumbbell_rounding_increase_cd),
             tag = "preferences_dumbbell_rounding",
             onChange = { onEvent(PreferencesEvent.SetDumbbellRounding(it)) },
+        )
+        RoundingRow(
+            label = stringResource(Res.string.preferences_calc_dumbbell_handle),
+            kg = settings.dumbbellHandleKg,
+            state = Res.string.preferences_calc_dumbbell_handle_state,
+            decreaseCd = stringResource(Res.string.preferences_calc_dumbbell_handle_decrease_cd),
+            increaseCd = stringResource(Res.string.preferences_calc_dumbbell_handle_increase_cd),
+            tag = "preferences_dumbbell_handle",
+            onChange = { onEvent(PreferencesEvent.SetDumbbellHandle(it)) },
         )
         BarSelector(settings.barWeightKg) { onEvent(PreferencesEvent.SetBarWeight(it)) }
         PlateChips(settings.plateKg, platesError) { kg, on -> onEvent(PreferencesEvent.SetPlateEnabled(kg, on)) }

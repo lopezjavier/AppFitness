@@ -279,10 +279,18 @@ private fun LiveActive(
 @Composable
 private fun LiveCalculator(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
     val calculator = state.calculator ?: return
+    val prefix = "live_exercise_${calculator.draft.position}"
     val position = calculator.draft.position
+    val actions = CalculatorActions(
+        onWeight = { onEvent(LiveSessionEvent.CalculatorWeightChanged(it)) },
+        onBar = { onEvent(LiveSessionEvent.CalculatorBarChanged(it)) },
+        onWarmUpSets = { onEvent(LiveSessionEvent.CalculatorWarmUpSetsChanged(it)) },
+        onAddWarmUp = { onEvent(LiveSessionEvent.AddWarmUpSets(position, it)) },
+        onDismiss = { onEvent(LiveSessionEvent.DismissCalculator) },
+    )
     when (calculator.draft.kind) {
-        CalculatorKind.WarmUp -> WarmUpCalculatorSheet(position, calculator, onEvent)
-        CalculatorKind.Plates -> PlateCalculatorSheet(position, calculator, onEvent)
+        CalculatorKind.WarmUp -> WarmUpCalculatorSheet(prefix, calculator, actions)
+        CalculatorKind.Plates -> PlateCalculatorSheet(prefix, calculator, actions)
     }
 }
 

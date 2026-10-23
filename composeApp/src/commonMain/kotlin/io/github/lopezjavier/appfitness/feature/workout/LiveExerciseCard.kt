@@ -160,10 +160,11 @@ private fun ExerciseSheets(
         )
 
         ExerciseSheet.DoubleDumbbell -> DoubleDumbbellSheet(
-            position = position,
-            exerciseId = exercise.exerciseId,
-            options = options,
-            onEvent = onEvent,
+            tagPrefix = "live_exercise_$position",
+            state = DoubleDumbbellSheetState(options.doubleDumbbell, options.doubleDraft, options.saveFailed),
+            onDraftChange = { onEvent(LiveSessionEvent.DoubleDumbbellDraftChanged(exercise.exerciseId, it)) },
+            onSave = { onEvent(LiveSessionEvent.SetDoubleDumbbell(exercise.exerciseId, it)) },
+            onDismiss = { onEvent(LiveSessionEvent.DismissVolumeDrafts) },
             onClose = { onSheetChange(ExerciseSheet.None) },
         )
 

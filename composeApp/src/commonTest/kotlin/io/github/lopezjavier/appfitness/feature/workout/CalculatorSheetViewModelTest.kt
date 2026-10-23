@@ -220,7 +220,65 @@ class CalculatorSheetViewModelTest {
         send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
         send(vm, LiveSessionEvent.CalculatorWeightChanged("90"))
         assertEquals(5.0, vm.calculator().roundingKg)
-        assertEquals(listOf(20.0, 35.0, 55.0, 70.0), vm.calculator().warmUp.map { it.weightKg })
+        assertEquals(listOf(1.0, 35.0, 55.0, 70.0), vm.calculator().warmUp.map { it.weightKg })
+    }
+
+    // --- Dumbbell handle (ADR-55) ---
+
+    @Test
+    fun dumbbellCalculatorOpensWithTheHandle_barbellWithTheBar() = runSessionTest {
+        trainingPreferences.result = Result.success(TrainingPreferences(barWeightKg = 15.0, dumbbellHandleKg = 1.5))
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
+        assertEquals(15.0, vm.calculator().draft.barKg)
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Plates))
+        assertEquals(1.5, vm.calculator().draft.barKg)
+    }
+
+    @Test
+    fun dumbbellPlateCalculator_putsPlatesOnEachSideOfTheHandle() = runSessionTest {
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Plates))
+        send(vm, LiveSessionEvent.CalculatorWeightChanged("21"))
+
+        assertEquals(listOf(10.0), assertNotNull(vm.calculator().plates).platesPerSide)
+    }
+
+    @Test
+    fun barChangeIsIgnoredForDumbbells_butAppliesToBarbells() = runSessionTest {
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Plates))
+        send(vm, LiveSessionEvent.CalculatorBarChanged(15.0))
+        assertEquals(1.0, vm.calculator().draft.barKg)
+
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
+        send(vm, LiveSessionEvent.CalculatorBarChanged(15.0))
+        assertEquals(15.0, vm.calculator().draft.barKg)
+    }
+
+    @Test
+    fun dumbbellWarmUp_neverGoesBelowTheHandle() = runSessionTest {
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.WarmUp))
+        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
+        send(vm, LiveSessionEvent.CalculatorWeightChanged("20"))
+
+        assertEquals(listOf(1.0, 8.0, 12.0, 16.0), vm.calculator().warmUp.map { it.weightKg })
+    }
+
+    @Test
+    fun aDumbbellDraftRestoredWithTheOldBar_isRebasedToTheHandle() = runSessionTest {
+        val saved = SavedStateHandle()
+        saved.persistCalculatorDraft(CalculatorDraft(1, CalculatorKind.Plates, "21", 20.0))
+
+        val vm = loaded(saved)
+
+        assertEquals(1.0, vm.calculator().draft.barKg)
+        assertEquals(listOf(10.0), assertNotNull(vm.calculator().plates).platesPerSide)
     }
 
     // --- Plates ---

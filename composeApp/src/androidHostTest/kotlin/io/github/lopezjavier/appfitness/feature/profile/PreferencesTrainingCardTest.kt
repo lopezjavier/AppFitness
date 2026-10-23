@@ -240,6 +240,26 @@ class PreferencesTrainingCardTest {
     }
 
     @Test
+    fun dumbbellHandleStepper_showsTheDefault1kg_andSendsHalfKilogramSteps() {
+        rule.setContent { AppTheme { PreferencesScreen(loaded(), { events += it }) } }
+
+        rule.onNodeWithText("Mango de mancuerna").performScrollTo().assertExists()
+        rule.onNodeWithTag("preferences_dumbbell_handle_value").performScrollTo().assertTextEquals("1 kg")
+        rule.onNodeWithTag("preferences_dumbbell_handle_increment").performScrollTo().performClick()
+        rule.onNodeWithTag("preferences_dumbbell_handle_decrement").performScrollTo().performClick()
+
+        assertEquals(
+            listOf<PreferencesEvent>(PreferencesEvent.SetDumbbellHandle(1.5), PreferencesEvent.SetDumbbellHandle(0.5)),
+            events,
+        )
+        val state = rule.onNodeWithTag("preferences_dumbbell_handle").fetchSemanticsNode().config
+        assertEquals("Mango de mancuerna: 1 kg", state[SemanticsProperties.StateDescription])
+        val cd = rule.onNodeWithTag("preferences_dumbbell_handle_decrement").fetchSemanticsNode().config
+        assertEquals(listOf("Reducir mango de mancuerna"), cd[SemanticsProperties.ContentDescription])
+        rule.onNodeWithTag("preferences_dumbbell_handle_increment").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
     fun barSelector_sendsTheChosenBar() {
         rule.setContent { AppTheme { PreferencesScreen(loaded(), { events += it }) } }
 

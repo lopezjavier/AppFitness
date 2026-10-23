@@ -102,4 +102,21 @@ class WarmUpCalculatorTest {
         // 45 kg with a 2 kg step: 18, 27 -> 28 (tie), 36; the "bar" here is 2 kg.
         assertEquals(listOf(2.0, 18.0, 28.0, 36.0), scheme(45.0, bar = 2.0, rounding = 2.0).map { it.weightKg })
     }
+
+    @Test
+    fun dumbbellWarmUp_usesTheHandleAsBaseAndNeverGoesBelowIt() {
+        fun weights(sets: Int) = WarmUpCalculator(20.0, 1.0, 2.0, sets).map { it.weightKg }
+
+        assertEquals(listOf(12.0), weights(1))
+        assertEquals(listOf(10.0, 16.0), weights(2))
+        assertEquals(listOf(8.0, 12.0, 16.0), weights(3))
+        assertEquals(listOf(1.0, 8.0, 12.0, 16.0), weights(4))
+        assertTrue(weights(4).all { it >= 1.0 })
+    }
+
+    @Test
+    fun dumbbellWarmUp_workingAtOrBelowTheHandleIsEmpty() {
+        assertTrue(WarmUpCalculator(1.0, 1.0, 2.0, sets = 4).isEmpty())
+        assertTrue(WarmUpCalculator(0.5, 1.0, 2.0, sets = 1).isEmpty())
+    }
 }

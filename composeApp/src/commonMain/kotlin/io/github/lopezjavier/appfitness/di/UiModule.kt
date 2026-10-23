@@ -295,6 +295,8 @@ val uiModule =
                 repository = get(),
                 loadCatalog = get(),
                 connectivity = get(),
+                preferences = get(),
+                exerciseOptions = get(),
             )
         }
     }

@@ -41,17 +41,22 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Warm-up calculator: the working weight and bar produce up to four "C" rows; "Añadir series" inserts them before the
- * working sets. The rows are a draft, so closing the sheet inserts nothing.
+ * working sets. The rows are a draft, so closing the sheet inserts nothing. [capHint] (non-null) disables the action.
  */
 @Composable
-internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState, onEvent: (LiveSessionEvent) -> Unit) {
-    val tag = "live_exercise_${position}_warm_up_calc"
+internal fun WarmUpCalculatorSheet(
+    tagPrefix: String,
+    calculator: CalculatorUiState,
+    actions: CalculatorActions,
+    capHint: String? = null,
+) {
+    val tag = "${tagPrefix}_warm_up_calc"
     CalculatorSheetFrame(
         tag = tag,
         title = stringResource(Res.string.live_calc_warm_up_title),
         weightLabel = stringResource(Res.string.live_calc_working_weight),
         calculator = calculator,
-        onEvent = onEvent,
+        actions = actions,
         help = CalculatorHelp(
             stringResource(Res.string.help_warmup_calc_cd),
             stringResource(Res.string.help_warmup_calc_body),
@@ -59,7 +64,7 @@ internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState,
         ),
         results = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                WarmUpSetsStepper(calculator.draft.warmUpSets, onEvent)
+                WarmUpSetsStepper(calculator.draft.warmUpSets, actions.onWarmUpSets)
                 WarmUpResults(tag, calculator)
             }
         },
@@ -79,11 +84,19 @@ internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState,
                         modifier = Modifier.testTag("${tag}_hint"),
                     )
                 }
+                capHint?.let {
+                    Text(
+                        text = it,
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.energyAmber,
+                        modifier = Modifier.testTag("${tag}_cap_hint"),
+                    )
+                }
                 PrimaryButton(
                     text = stringResource(Res.string.live_calc_add),
-                    onClick = { onEvent(LiveSessionEvent.AddWarmUpSets(position, calculator.warmUp)) },
+                    onClick = { actions.onAddWarmUp(calculator.warmUp) },
                     modifier = Modifier.fillMaxWidth().testTag("${tag}_confirm"),
-                    enabled = calculator.canAddWarmUp,
+                    enabled = calculator.canAddWarmUp && capHint == null,
                 )
             }
         },
@@ -91,7 +104,7 @@ internal fun WarmUpCalculatorSheet(position: Int, calculator: CalculatorUiState,
 }
 
 @Composable
-private fun WarmUpSetsStepper(sets: Int, onEvent: (LiveSessionEvent) -> Unit) {
+private fun WarmUpSetsStepper(sets: Int, onChange: (Int) -> Unit) {
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -105,8 +118,8 @@ private fun WarmUpSetsStepper(sets: Int, onEvent: (LiveSessionEvent) -> Unit) {
         )
         NumberStepper(
             valueText = sets.toString(),
-            onDecrement = { onEvent(LiveSessionEvent.CalculatorWarmUpSetsChanged(sets - 1)) },
-            onIncrement = { onEvent(LiveSessionEvent.CalculatorWarmUpSetsChanged(sets + 1)) },
+            onDecrement = { onChange(sets - 1) },
+            onIncrement = { onChange(sets + 1) },
             decrementEnabled = sets > 1,
             incrementEnabled = sets < WarmUpCalculator.MAX_SETS,
             decrementContentDescription = stringResource(Res.string.live_calc_warm_up_sets_decrease_cd),

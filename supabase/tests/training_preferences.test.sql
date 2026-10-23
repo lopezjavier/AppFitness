@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(44);
+select plan(52);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -34,7 +34,7 @@ insert into public.workout_sets
 -- Schema and security
 -- ---------------------------------------------------------------------------
 select has_table('public', 'training_preferences', 'public.training_preferences exists');
-select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'plate_rounding_kg', 'dumbbell_rounding_kg'],
+select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'plate_rounding_kg', 'dumbbell_rounding_kg', 'dumbbell_handle_kg'],
   'training_preferences has exactly the planned columns');
 select fk_ok('public', 'training_preferences', 'user_id', 'auth', 'users', 'id',
   'user_id references auth.users.id');
@@ -185,6 +185,42 @@ select results_eq(
                where user_id = '22222222-2222-4222-8222-222222222222' returning 1)
     select count(*)::int from u$$,
   $$values (0)$$, 'A cannot update B''s calculator settings');
+
+-- Dumbbell handle (T-097f, ADR-55).
+select is(
+  (select dumbbell_handle_kg from public.training_preferences),
+  1.00::numeric, 'the dumbbell handle defaults to 1 kg');
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
+      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
+      null, null, null, null, 2.5)$$,
+  'A saves the dumbbell handle');
+select is(
+  (select dumbbell_handle_kg from public.training_preferences),
+  2.50::numeric, 'save_preferences wrote the dumbbell handle');
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
+      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
+      null, null, null, 3)$$,
+  'A saves with positional args up to the dumbbell rounding');
+select is(
+  (select dumbbell_handle_kg from public.training_preferences),
+  2.50::numeric, 'a null handle argument leaves the handle unchanged');
+select throws_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
+      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
+      null, null, null, null, 0)$$,
+  '23514', null, 'a zero dumbbell handle is rejected');
+select throws_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
+      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
+      null, null, null, null, 11)$$,
+  '23514', null, 'a dumbbell handle above 10 is rejected');
+select results_eq(
+  $$with u as (update public.training_preferences set dumbbell_handle_kg = 5
+               where user_id = '22222222-2222-4222-8222-222222222222' returning 1)
+    select count(*)::int from u$$,
+  $$values (0)$$, 'A cannot update B''s dumbbell handle');
 
 reset role;
 select is(

@@ -1,0 +1,403 @@
+package io.github.lopezjavier.appfitness.feature.routines
+
+import android.graphics.Color
+import androidx.activity.ComponentDialog
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import coil3.ColorImage
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.test.FakeImageLoaderEngine
+import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
+
+private const val BARBELL_ROW = 0
+private const val DUMBBELL_ROW = 1
+
+/** US-33 / ADR-55: the calculators and the double dumbbell option inside the routine builder. */
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per Gherkin scenario.
+class RoutineBuilderCalculatorsTest {
+    @get:Rule
+    val rule = createComposeRule()
+
+    private val exercises = FakeExerciseRepository(
+        listOf(
+            exerciseRow("a", "row", equipment = Equipment.Barbell),
+            exerciseRow("d", "curl", equipment = Equipment.Dumbbell),
+            exerciseRow("m", "press", equipment = Equipment.Machine),
+        ),
+    )
+    private val library = FakeExerciseLibrary(
+        mapOf(
+            "row" to exerciseInfo("row", "Remo con barra"),
+            "curl" to exerciseInfo("curl", "Curl con mancuernas"),
+            "press" to exerciseInfo("press", "Prensa"),
+        ),
+    )
+    private val connectivity = FakeConnectivityObserver()
+    private val preferences = FakeTrainingPreferencesRepository()
+    private val options = FakeExerciseOptionsRepository()
+
+    @Before
+    fun installFakeImageLoader() {
+        val engine = FakeImageLoaderEngine.Builder().default(ColorImage(Color.BLUE)).build()
+        SingletonImageLoader.setUnsafe(
+            ImageLoader.Builder(RuntimeEnvironment.getApplication()).components { add(engine) }.build(),
+        )
+    }
+
+    @After
+    fun resetImageLoader() {
+        SingletonImageLoader.reset()
+    }
+
+    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()) = RoutineBuilderViewModel(
+        null,
+        handle,
+        FakeRoutineRepository(),
+        LoadExerciseCatalog(exercises, library),
+        connectivity,
+        preferences,
+        options,
+    )
+
+    private fun screen(vm: RoutineBuilderViewModel) {
+        rule.setContent { BuilderContent(vm) }
+        rule.waitForIdle()
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun BuilderContent(vm: RoutineBuilderViewModel) {
+        AppTheme {
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                RoutineBuilderRoot(
+                    routineId = null,
+                    selectedExerciseId = null,
+                    onConsumeSelection = {},
+                    onAddExercise = {},
+                    onOpenExercise = {},
+                    onClose = {},
+                    viewModel = vm,
+                )
+            }
+        }
+    }
+
+    /** A builder with a barbell row (0) and a dumbbell row (1). */
+    private fun showWithBarbellAndDumbbell(): RoutineBuilderViewModel {
+        val vm = newViewModel()
+        screen(vm)
+        vm.onEvent(RoutineBuilderEvent.AddExercise("a"))
+        vm.onEvent(RoutineBuilderEvent.AddExercise("d"))
+        rule.waitForIdle()
+        return vm
+    }
+
+    private fun tap(tag: String) {
+        rule.onNodeWithTag(tag).performClick()
+        rule.waitForIdle()
+    }
+
+    private fun type(tag: String, text: String) {
+        rule.onNodeWithTag(tag).performTextReplacement(text)
+        rule.waitForIdle()
+    }
+
+    private fun openMenu(row: Int) = tap("routine_builder_menu_$row")
+
+    private fun openFromMenu(row: Int, entry: String) {
+        openMenu(row)
+        tap("routine_builder_${entry}_$row")
+    }
+
+    @Test
+    fun menu_barbellRow_offersBothCalculators_butNotDoubleDumbbell() {
+        showWithBarbellAndDumbbell()
+
+        openMenu(BARBELL_ROW)
+        rule.onNodeWithTag("routine_builder_warm_up_calc_0").assertExists().assertIsEnabled()
+        rule.onNodeWithTag("routine_builder_plate_calc_0").assertExists().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("routine_builder_double_dumbbell_0").assertDoesNotExist()
+    }
+
+    @Test
+    fun menu_dumbbellRow_offersAllThreeEntries() {
+        showWithBarbellAndDumbbell()
+
+        openMenu(DUMBBELL_ROW)
+
+        rule.onNodeWithTag("routine_builder_warm_up_calc_1").assertExists()
+        rule.onNodeWithTag("routine_builder_plate_calc_1").assertExists()
+        rule.onNodeWithTag("routine_builder_double_dumbbell_1").assertExists().assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun menu_machineRow_offersOnlyTheWarmUpCalculator() {
+        val vm = newViewModel()
+        screen(vm)
+        vm.onEvent(RoutineBuilderEvent.AddExercise("m"))
+        rule.waitForIdle()
+
+        openMenu(0)
+
+        rule.onNodeWithTag("routine_builder_warm_up_calc_0").assertExists()
+        rule.onNodeWithTag("routine_builder_plate_calc_0").assertDoesNotExist()
+        rule.onNodeWithTag("routine_builder_double_dumbbell_0").assertDoesNotExist()
+    }
+
+    @Test
+    fun warmUp_barbellRow_100kgWith20kgBar_addsAWarmUpSetBeforeTheWorkingSets() {
+        val vm = showWithBarbellAndDumbbell()
+        vm.onEvent(RoutineBuilderEvent.SetWeight(BARBELL_ROW, 0, "100"))
+        rule.waitForIdle()
+
+        openFromMenu(BARBELL_ROW, "warm_up_calc")
+        val tag = "routine_builder_0_warm_up_calc"
+        rule.onNodeWithTag("${tag}_weight_field").assertTextContains("100")
+        rule.onNodeWithTag("${tag}_row_0").assertTextContains("60 kg × 3")
+        tap("${tag}_confirm")
+
+        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("routine_builder_set_weight_0_0").assertTextEquals("60")
+        rule.onNodeWithTag("routine_builder_set_weight_0_1").assertTextEquals("100")
+        rule.onNodeWithTag("routine_builder_set_weight_0_3").assertExists()
+        rule.onNodeWithTag("routine_builder_set_weight_0_4").assertDoesNotExist()
+    }
+
+    @Test
+    fun warmUp_withTenSets_disablesTheActionAndExplainsTheCap() {
+        val vm = showWithBarbellAndDumbbell()
+        vm.onEvent(RoutineBuilderEvent.SetWeight(BARBELL_ROW, 0, "100"))
+        repeat(7) { vm.onEvent(RoutineBuilderEvent.AddSet(BARBELL_ROW)) }
+        rule.waitForIdle()
+
+        openFromMenu(BARBELL_ROW, "warm_up_calc")
+
+        rule.onNodeWithTag("routine_builder_0_warm_up_calc_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_0_warm_up_calc_cap_hint")
+            .assertTextEquals("Con estas series superarías el máximo de 10 series")
+    }
+
+    @Test
+    fun warmUp_inASupersetAtTheCap_namesTheCapForTheWholeGroup() {
+        val vm = showWithBarbellAndDumbbell()
+        vm.onEvent(RoutineBuilderEvent.GroupWithNext(BARBELL_ROW))
+        vm.onEvent(RoutineBuilderEvent.SetWeight(BARBELL_ROW, 0, "100"))
+        repeat(7) { vm.onEvent(RoutineBuilderEvent.AddSet(BARBELL_ROW)) }
+        rule.waitForIdle()
+
+        openFromMenu(BARBELL_ROW, "warm_up_calc")
+
+        rule.onNodeWithTag("routine_builder_0_warm_up_calc_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_0_warm_up_calc_cap_hint")
+            .assertTextContains("superserie", substring = true)
+    }
+
+    @Test
+    fun plates_barbellRow_target100kgWith20kgBar_shows25Plus15PerSide() {
+        val vm = showWithBarbellAndDumbbell()
+        vm.onEvent(RoutineBuilderEvent.SetWeight(BARBELL_ROW, 0, "100"))
+        rule.waitForIdle()
+
+        openFromMenu(BARBELL_ROW, "plate_calc")
+
+        val tag = "routine_builder_0_plate_calc"
+        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
+        rule.onNodeWithTag("${tag}_plates").assertTextEquals("25 + 15")
+        rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 20 kg")
+        tap("${tag}_close")
+        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun plates_dumbbellRow_target21kgWith1kgHandle_shows10AndNoBarSelector() {
+        showWithBarbellAndDumbbell()
+
+        openFromMenu(DUMBBELL_ROW, "plate_calc")
+        val tag = "routine_builder_1_plate_calc"
+        type("${tag}_weight_field", "21")
+
+        rule.onNodeWithTag("${tag}_plates").assertTextEquals("10")
+        rule.onNodeWithTag("${tag}_handle_label").assertTextEquals("Mango: 1 kg")
+        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_bar_label").assertDoesNotExist()
+    }
+
+    @Test
+    fun plates_dumbbellRow_usesTheSavedHandle() {
+        preferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 2.5))
+        showWithBarbellAndDumbbell()
+
+        openFromMenu(DUMBBELL_ROW, "plate_calc")
+
+        rule.onNodeWithTag("routine_builder_1_plate_calc_handle_label").assertTextEquals("Mango: 2,5 kg")
+    }
+
+    @Test
+    fun warmUp_dumbbellRow_hasNoBarSelector_andNeverGoesBelowTheHandle() {
+        val vm = showWithBarbellAndDumbbell()
+        vm.onEvent(RoutineBuilderEvent.SetWeight(DUMBBELL_ROW, 0, "20"))
+        rule.waitForIdle()
+
+        openFromMenu(DUMBBELL_ROW, "warm_up_calc")
+        val tag = "routine_builder_1_warm_up_calc"
+        repeat(2) { tap("warmup_sets_stepper_increment") }
+
+        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
+        for (i in 0..2) {
+            val text = rule.onNodeWithTag("${tag}_row_$i").fetchSemanticsNode()
+                .config[SemanticsProperties.ContentDescription].single()
+            assertTrue(text, !text.contains(": 0 kilos"))
+        }
+    }
+
+    @Test
+    fun doubleDumbbell_save_storesTheOption_andReopeningShowsItOn() {
+        showWithBarbellAndDumbbell()
+        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
+        val tag = "routine_builder_1_double_dumbbell"
+        rule.onNodeWithTag("${tag}_confirm").assertIsNotEnabled()
+
+        tap("${tag}_switch")
+        tap("${tag}_confirm")
+
+        assertEquals(listOf("d" to true), options.writes)
+        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
+        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
+        val state = rule.onNodeWithTag("${tag}_switch").fetchSemanticsNode()
+            .config[SemanticsProperties.StateDescription]
+        assertEquals("Activado", state)
+        rule.onNodeWithTag("${tag}_saves_hint").assertExists()
+    }
+
+    @Test
+    fun doubleDumbbell_closingTheSheet_discardsTheDraft() {
+        showWithBarbellAndDumbbell()
+        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
+        val tag = "routine_builder_1_double_dumbbell"
+        tap("${tag}_switch")
+
+        // The sheet lives in its own dialog window: back goes to the dialog.
+        rule.runOnUiThread {
+            (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed()
+        }
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodesWithTag("${tag}_sheet").fetchSemanticsNodes().isEmpty()
+        }
+
+        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
+        assertTrue(options.writes.isEmpty())
+    }
+
+    @Test
+    fun doubleDumbbell_saveFailure_keepsTheSheetOpenWithAnError_andRetryWorks() {
+        options.failWrite = true
+        showWithBarbellAndDumbbell()
+        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
+        val tag = "routine_builder_1_double_dumbbell"
+        tap("${tag}_switch")
+
+        tap("${tag}_confirm")
+
+        rule.onNodeWithTag("${tag}_sheet").assertExists()
+        rule.onNodeWithTag("${tag}_error").assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
+        options.failWrite = false
+        tap("${tag}_confirm")
+        assertEquals(listOf("d" to true), options.writes)
+        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun doubleDumbbell_offline_disablesGuardarWithTheReason() {
+        showWithBarbellAndDumbbell()
+        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
+        val tag = "routine_builder_1_double_dumbbell"
+        tap("${tag}_switch")
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("${tag}_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("${tag}_offline_reason")
+            .assertTextEquals("Sin conexión: no puedes guardar esta opción")
+    }
+
+    @Test
+    fun calculatorSheetAndItsInputs_surviveLeavingTheApp() {
+        val handle = SavedStateHandle()
+        var current: RoutineBuilderViewModel? = null
+        val tester = StateRestorationTester(rule)
+        tester.setContent { BuilderContent(remember { newViewModel(handle).also { current = it } }) }
+        rule.waitForIdle()
+        current?.onEvent(RoutineBuilderEvent.AddExercise("a"))
+        rule.waitForIdle()
+        openFromMenu(BARBELL_ROW, "plate_calc")
+        val tag = "routine_builder_0_plate_calc"
+        type("${tag}_weight_field", "102,5")
+        tap("${tag}_bar_15")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("${tag}_sheet").assertExists()
+        rule.onNodeWithTag("${tag}_weight_field").assertTextContains("102,5")
+        rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 15 kg")
+    }
+
+    @Test
+    fun doubleDumbbellDraft_survivesLeavingTheApp() {
+        val handle = SavedStateHandle()
+        var current: RoutineBuilderViewModel? = null
+        val tester = StateRestorationTester(rule)
+        tester.setContent { BuilderContent(remember { newViewModel(handle).also { current = it } }) }
+        rule.waitForIdle()
+        current?.onEvent(RoutineBuilderEvent.AddExercise("d"))
+        rule.waitForIdle()
+        openFromMenu(0, "double_dumbbell")
+        tap("routine_builder_0_double_dumbbell_switch")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        val state = rule.onNodeWithTag("routine_builder_0_double_dumbbell_switch").fetchSemanticsNode()
+            .config[SemanticsProperties.StateDescription]
+        assertEquals("Activado", state)
+    }
+}

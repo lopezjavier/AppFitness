@@ -122,6 +122,9 @@ sealed interface PreferencesEvent {
     /** Dumbbell rounding step in kg (clamped to 0,5..10); only a draft until [Save]. */
     data class SetDumbbellRounding(val kg: Double) : PreferencesEvent
 
+    /** Dumbbell handle weight in kg (clamped to 0,5..10, steps of 0,5); only a draft until [Save]. */
+    data class SetDumbbellHandle(val kg: Double) : PreferencesEvent
+
     /** Switches one plate of the catalogue on or off; the last plate cannot be switched off (sets `platesError`). */
     data class SetPlateEnabled(val kg: Double, val enabled: Boolean) : PreferencesEvent
 

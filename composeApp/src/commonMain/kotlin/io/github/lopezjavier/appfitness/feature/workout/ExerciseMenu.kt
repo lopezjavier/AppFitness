@@ -86,7 +86,7 @@ internal fun ExerciseMenuButton(
 
 /**
  * The exercise's actions sheet: "Descanso", "Contar mancuerna doble" (dumbbell exercises only), the warm-up calculator
- * (all exercises), the plate calculator (barbell exercises only) and "Actualizar peso
+ * (all exercises), the plate calculator (barbell and dumbbell exercises) and "Actualizar peso
  * corporal" (bodyweight and assisted ones; disabled with its reason when Health Connect owns today's weight).
  */
 @Composable
@@ -125,7 +125,7 @@ internal fun ExerciseMenuSheet(
             onClick = onWarmUpCalculator,
             testTag = "${prefix}_menu_warm_up_calc",
         )
-        if (exercise.equipment == Equipment.Barbell) {
+        if (exercise.equipment == Equipment.Barbell || exercise.equipment == Equipment.Dumbbell) {
             SheetActionRow(
                 label = stringResource(Res.string.live_exercise_menu_plate_calc),
                 onClick = onPlateCalculator,

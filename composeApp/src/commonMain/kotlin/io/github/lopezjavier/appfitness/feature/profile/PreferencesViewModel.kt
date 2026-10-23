@@ -137,6 +137,9 @@ class PreferencesViewModel(
             is PreferencesEvent.SetDumbbellRounding ->
                 edit { it.copy(calculators = it.calculators.withDumbbellRounding(event.kg)) }
 
+            is PreferencesEvent.SetDumbbellHandle ->
+                edit { it.copy(calculators = it.calculators.withDumbbellHandle(event.kg)) }
+
             is PreferencesEvent.SetPlateEnabled -> setPlate(event.kg, event.enabled)
 
             PreferencesEvent.Save -> save()

@@ -418,7 +418,8 @@
     <string name="help_plate_calc_body">Indica el peso total y la barra: verás los discos de cada lado de la barra; monta lo mismo en ambos lados. Se pueden repetir discos del mismo peso. Solo calcula, no guarda nada. Ejemplo: 100 kg con barra de 20 kg → 25 + 15 a cada lado</string>
     <string name="help_rounding_title">Redondeo</string>
     <string name="help_rounding_cd">Ayuda: redondeo de discos y mancuernas</string>
-    <string name="help_rounding_body">El peso calculado se ajusta al múltiplo más cercano que puedes montar. Discos se usa en barras y Mancuernas en ejercicios con mancuernas.</string>
+    <string name="help_rounding_body">El peso calculado se ajusta al múltiplo más cercano que puedes montar. Discos se usa en barras y Mancuernas en ejercicios con mancuernas. El mango es la «barra» de la mancuerna: su peso cuenta en la calculadora de discos y de calentamiento.</string>
+
     <string name="help_previous_mode_cd">Ayuda: valores anteriores</string>
     <string name="help_previous_mode_body">Elige de dónde sale la columna Anterior: la última vez que hiciste el ejercicio en esta rutina o la última vez en cualquier entreno.</string>
     <string name="live_title">EN VIVO</string>
@@ -1134,4 +1135,13 @@
     <string name="live_calc_bar_only">Solo la barra</string>
     <string name="live_calc_not_exact">No se puede lograr %1$s kg; el más cercano es %2$s kg</string>
     <string name="live_calc_close">Cerrar</string>
+    <string name="live_calc_handle_label">Mango: %1$s kg</string>
+    <string name="builder_warm_up_cap_hint">Con estas series superarías el máximo de %1$d series</string>
+    <string name="builder_warm_up_cap_hint_superset">En una superserie todos los ejercicios llevan las mismas series: máximo %1$d</string>
+    <string name="builder_double_dumbbell_saves_hint">Esta opción se guarda al momento, sin esperar al «Guardar» de la rutina.</string>
+    <string name="builder_double_dumbbell_offline">Sin conexión: no puedes guardar esta opción</string>
+    <string name="preferences_calc_dumbbell_handle">Mango de mancuerna</string>
+    <string name="preferences_calc_dumbbell_handle_state">Mango de mancuerna: %1$s kg</string>
+    <string name="preferences_calc_dumbbell_handle_decrease_cd">Reducir mango de mancuerna</string>
+    <string name="preferences_calc_dumbbell_handle_increase_cd">Aumentar mango de mancuerna</string>
 </resources>
