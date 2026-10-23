@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -63,7 +64,9 @@ class HistoryViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = HistoryViewModel(repository, training, MutableClock(), bodyMeasurements)
+    private val options = FakeExerciseOptionsRepository()
+
+    private fun viewModel() = HistoryViewModel(repository, training, MutableClock(), bodyMeasurements, options)
 
     private fun HistoryViewModel.content() = assertIs<HistoryUiState.Content>(uiState.value)
 
@@ -140,6 +143,32 @@ class HistoryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(672.0, model.content().rows.single().volumeKg)
+    }
+
+    @Test
+    fun doubleDumbbellDoublesTheVolumeOfEveryRowIncludingOlderPages() = runTest(dispatcher) {
+        seed(25)
+        options.ids = setOf("e1")
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(HistoryEvent.LoadMore)
+        advanceUntilIdle()
+
+        val rows = model.content().rows
+        assertEquals(25, rows.size)
+        assertTrue(rows.all { it.volumeKg == 2800.0 })
+    }
+
+    @Test
+    fun withoutTheOptionOrWhenItCannotBeReadTheVolumeIsUnchanged() = runTest(dispatcher) {
+        repository.completed += completedSession("s1")
+        options.ids = setOf("e1")
+        options.failRead = true
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(1400.0, model.content().rows.single().volumeKg)
     }
 
     @Test

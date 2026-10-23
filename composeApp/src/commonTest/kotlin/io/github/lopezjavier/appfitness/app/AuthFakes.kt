@@ -1,9 +1,12 @@
 package io.github.lopezjavier.appfitness.app
 
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
+import io.github.lopezjavier.appfitness.domain.model.ExerciseOptions
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
@@ -20,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.port.GoogleCredentialResult
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -243,6 +247,24 @@ internal class FakeAccountRepository(var outcome: DeleteAccountOutcome = DeleteA
         calls++
         gate?.await()
         return outcome
+    }
+}
+
+/** Test double of [ExerciseOptionsRepository]: [ids] holds the exercises counted double; writes can be made to fail. */
+internal class FakeExerciseOptionsRepository(ids: Set<String> = emptySet()) : ExerciseOptionsRepository {
+    var ids: Set<String> = ids
+    var failRead = false
+    var failWrite = false
+    val writes = mutableListOf<Pair<String, Boolean>>()
+
+    override suspend fun get(): Result<ExerciseOptions> =
+        if (failRead) Result.failure(AppException(AppError.Network)) else Result.success(ExerciseOptions(ids))
+
+    override suspend fun setDoubleDumbbell(exerciseId: String, enabled: Boolean): Result<Unit> {
+        if (failWrite) return Result.failure(AppException(AppError.Network))
+        writes += exerciseId to enabled
+        ids = if (enabled) ids + exerciseId else ids - exerciseId
+        return Result.success(Unit)
     }
 }
 

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
@@ -15,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
+import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -27,6 +29,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.TimeZone
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -77,6 +80,7 @@ class FullSessionTest {
                 RoutineExercise("e4", 3, null, List(1) { PlannedSet(null, 8) }, 30),
             ),
         )
+        val weights = FakeWeightRepository()
         viewModel = LiveSessionViewModel(
             repository,
             FakeExerciseRepository(listOf("e1", "e2", "e3", "e4").map { exerciseRow(it, "k$it") }),
@@ -92,7 +96,10 @@ class FullSessionTest {
             FakeRoutineRepository(listOf(routine)),
             alertSound,
             FakeTrainingPreferencesRepository(),
-            FakeWeightRepository(),
+            weights,
+            FakeExerciseOptionsRepository(),
+            SaveBodyMeasurement(weights, clock, TimeZone.UTC),
+            TimeZone.UTC,
         )
     }
 

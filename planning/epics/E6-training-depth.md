@@ -176,6 +176,7 @@ Feature: Volume options
 
 **Technical notes**
 - `04-business-rules.md` §4.7.
+- T-093 (ADR-54 amendment): option in table `exercise_options`, SQL `volume_factor`, RPC `set_exercise_double_dumbbell`; the entry is shown only for dumbbell exercises, the 1RM is not doubled. The body-weight update reuses `SaveBodyMeasurement` (today's manual weight, Health Connect write-back included) and is disabled when today already has a Health Connect weight (ADR-47). Updating the weight re-values past bodyweight sessions (volume uses the latest weight at read time).
 
 ---
 

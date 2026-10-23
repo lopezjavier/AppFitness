@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -16,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -34,6 +36,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -78,6 +81,9 @@ class LiveSessionViewModelTest {
         alertSound,
         trainingPreferences,
         bodyMeasurements,
+        FakeExerciseOptionsRepository(),
+        SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
+        TimeZone.UTC,
         savedState,
     ).also { created = it }
 

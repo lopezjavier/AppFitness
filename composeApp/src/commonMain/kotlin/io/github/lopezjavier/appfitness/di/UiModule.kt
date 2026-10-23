@@ -242,7 +242,23 @@ val uiModule =
         viewModel { (exerciseId: String) -> ExerciseDetailViewModel(exerciseId, get()) }
         viewModelOf(::RoutinesViewModel)
         viewModel { WorkoutEntryViewModel(repository = get(), connectivity = get(), savedState = get()) }
-        viewModelOf(::LiveSessionViewModel)
+        viewModel {
+            LiveSessionViewModel(
+                repository = get(),
+                exerciseRepository = get(),
+                exerciseLibrary = get(),
+                connectivity = get(),
+                clock = get(),
+                haptics = get(),
+                routineRepository = get(),
+                alertSound = get(),
+                preferences = get(),
+                bodyMeasurements = get(),
+                exerciseOptions = get(),
+                saveBodyMeasurement = get(),
+                savedState = get(),
+            )
+        }
         viewModelOf(::HistoryViewModel)
         viewModel { (sessionId: String) ->
             SessionDetailViewModel(
@@ -255,6 +271,7 @@ val uiModule =
                 clock = get(),
                 preferences = get(),
                 bodyMeasurements = get(),
+                exerciseOptions = get(),
             )
         }
         viewModelOf(::StrengthViewModel)

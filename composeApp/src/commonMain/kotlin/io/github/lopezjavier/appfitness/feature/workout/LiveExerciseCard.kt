@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
+import io.github.lopezjavier.appfitness.feature.weight.decimalText
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -44,6 +45,7 @@ internal fun LiveExerciseCard(
     onEvent: (LiveSessionEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
+    options: VolumeOptionsUi = VolumeOptionsUi(),
 ) {
     val position = exercise.position
     val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
@@ -75,28 +77,10 @@ internal fun LiveExerciseCard(
             )
         }
     }
-    when (sheet) {
-        ExerciseSheet.None -> Unit
-
-        ExerciseSheet.Menu -> ExerciseMenuSheet(
-            position = position,
-            onRest = { sheet = ExerciseSheet.Rest },
-            onDismiss = { sheet = ExerciseSheet.None },
-        )
-
-        ExerciseSheet.Rest -> ExerciseRestSheet(
-            position = position,
-            currentSeconds = exercise.restSeconds,
-            onSave = {
-                onEvent(LiveSessionEvent.SetExerciseRest(position, it))
-                sheet = ExerciseSheet.None
-            },
-            onDismiss = { sheet = ExerciseSheet.None },
-        )
-    }
+    ExerciseSheets(sheet, exercise, options, onEvent, onSheetChange = { sheet = it })
 }
 
-private enum class ExerciseSheet { None, Menu, Rest }
+private enum class ExerciseSheet { None, Menu, Rest, DoubleDumbbell, BodyWeight }
 
 /** The heading is one tap target (min 48 dp) that opens the exercise; the menu button stays a sibling. */
 @Composable
@@ -127,5 +111,61 @@ private fun ExerciseHeading(
             }
             Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
         }
+    }
+}
+
+/** The open sheet of the card (menu, rest, double dumbbell or body weight); [onSheetChange] moves between them. */
+@Composable
+private fun ExerciseSheets(
+    sheet: ExerciseSheet,
+    exercise: LiveExercise,
+    options: VolumeOptionsUi,
+    onEvent: (LiveSessionEvent) -> Unit,
+    onSheetChange: (ExerciseSheet) -> Unit,
+) {
+    val position = exercise.position
+    when (sheet) {
+        ExerciseSheet.None -> Unit
+
+        ExerciseSheet.Menu -> ExerciseMenuSheet(
+            position = position,
+            exercise = exercise,
+            healthConnectToday = options.healthConnectToday,
+            onRest = { onSheetChange(ExerciseSheet.Rest) },
+            onDoubleDumbbell = {
+                onEvent(LiveSessionEvent.DoubleDumbbellDraftChanged(exercise.exerciseId, options.doubleDumbbell))
+                onSheetChange(ExerciseSheet.DoubleDumbbell)
+            },
+            onBodyWeight = {
+                onEvent(LiveSessionEvent.BodyWeightDraftChanged(options.bodyWeightKg?.let(::decimalText).orEmpty()))
+                onSheetChange(ExerciseSheet.BodyWeight)
+            },
+            onDismiss = { onSheetChange(ExerciseSheet.None) },
+        )
+
+        ExerciseSheet.DoubleDumbbell -> DoubleDumbbellSheet(
+            position = position,
+            exerciseId = exercise.exerciseId,
+            options = options,
+            onEvent = onEvent,
+            onClose = { onSheetChange(ExerciseSheet.None) },
+        )
+
+        ExerciseSheet.BodyWeight -> BodyWeightSheet(
+            position = position,
+            options = options,
+            onEvent = onEvent,
+            onClose = { onSheetChange(ExerciseSheet.None) },
+        )
+
+        ExerciseSheet.Rest -> ExerciseRestSheet(
+            position = position,
+            currentSeconds = exercise.restSeconds,
+            onSave = {
+                onEvent(LiveSessionEvent.SetExerciseRest(position, it))
+                onSheetChange(ExerciseSheet.None)
+            },
+            onDismiss = { onSheetChange(ExerciseSheet.None) },
+        )
     }
 }

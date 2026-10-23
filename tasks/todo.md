@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-092 (exercise metric types, 2026-10-23). Next task: T-093 (volume options), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-093 (volume options, 2026-10-23). Next task: T-094 (personal-record catalogue), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2365,15 +2365,15 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** "Contar mancuerna doble" for a dumbbell exercise (`04` §4.7). Assumption, confirmed at E6-A: it is the user's setting for that exercise and applies to all its sessions, past and future. Storage is the planner's choice (training preferences or a per-user exercise-options table; a new migration with owner RLS and pgTAP). It is reached from the exercise menu in the live session, and its toggle has its own "Guardar" if it is a sheet. Volume = 2 × weight × reps in the domain and in the SQL aggregates (new migration), so the history and Fuerza follow. Body-weight update: a bodyweight-family exercise card offers updating the body weight. The value is saved as today's manual weight through `save_body_measurement` (T-076) and is used for the volume. Under ADR-47 the action is disabled with "Sincronizado desde Health Connect" when today has a Health Connect weight.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: the option is owner-only and isolated; aggregates double the dumbbell volume only for exercises with the option on.
-- [ ] 20 kg × 10 with "Contar mancuerna doble" → "400 kg"; off → "200 kg"; the history and Fuerza change accordingly, including a session older than the loaded history page.
-- [ ] Updating the body weight to 74,0 kg from "Dominadas" → 10 reps count 740 kg; the weight appears on today in Perfil → "Peso"; with a Health Connect weight today the action is disabled with the note.
-- [ ] Sheet drafts survive leaving the app.
+- [x] Migration + pgTAP: the option is owner-only and isolated; aggregates double the dumbbell volume only for exercises with the option on.
+- [x] 20 kg × 10 with "Contar mancuerna doble" → "400 kg"; off → "200 kg"; the history and Fuerza change accordingly, including a session older than the loaded history page.
+- [x] Updating the body weight to 74,0 kg from "Dominadas" → 10 reps count 740 kg; the weight appears on today in Perfil → "Peso"; with a Health Connect weight today the action is disabled with the note.
+- [x] Sheet drafts survive leaving the app.
 
 **Host tests (per scenario):** `CalculateVolumeTest` additions (Double dumbbell; Bodyweight update); `LiveSessionViewModelTest` (toggle, body-weight update, ADR-47 disabled state) with fakes; `LiveSessionScreenTest`; restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-092

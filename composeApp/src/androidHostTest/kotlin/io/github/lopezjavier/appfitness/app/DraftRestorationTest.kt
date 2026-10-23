@@ -341,6 +341,7 @@ class DraftRestorationTest {
                             MutableClock(),
                             FakeTrainingPreferencesRepository(),
                             FakeWeightRepository(),
+                            FakeExerciseOptionsRepository(),
                             handle,
                         )
                     }

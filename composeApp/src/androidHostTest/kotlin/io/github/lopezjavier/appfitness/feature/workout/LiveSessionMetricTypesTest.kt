@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
@@ -32,6 +34,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.TimeZone
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -88,6 +91,7 @@ class LiveSessionMetricTypesTest {
                 .copy(metricType = ExerciseMetricType.DistanceDuration),
             exerciseRow("e3", null, equipment = Equipment.Barbell, name = "Press banca", custom = true),
         )
+        val weights = FakeWeightRepository()
         return LiveSessionViewModel(
             repository,
             FakeExerciseRepository(rows),
@@ -98,7 +102,10 @@ class LiveSessionMetricTypesTest {
             FakeRoutineRepository(),
             FakeAlertSound(),
             FakeTrainingPreferencesRepository(),
-            FakeWeightRepository(),
+            weights,
+            FakeExerciseOptionsRepository(),
+            SaveBodyMeasurement(weights, clock, TimeZone.UTC),
+            TimeZone.UTC,
             handle,
         ).also { viewModel = it }
     }
