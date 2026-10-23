@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-096 (session controls, 2026-10-23). Next task: T-098 (routine folders, next workout and manual order), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-096 (session controls, 2026-10-23). Next task: T-097d (E6-A feedback, ADR-55), then T-097e, T-097f; then Checkpoint E6-A is re-presented before T-098. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2478,6 +2478,43 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Dependencies:** T-096
 **Files likely touched:** `supabase/migrations/<ts>_calculator_settings.sql`, `supabase/tests/training_preferences.test.sql`, `shared/…/domain/usecase/{WarmUpCalculator,PlateCalculator}.kt` + tests, `composeApp/…/feature/workout/{WarmUpCalculatorSheet,PlateCalculatorSheet,ExerciseMenu,LiveSessionViewModel}.kt`, `composeApp/…/feature/profile/Preferences*.kt`, `planning/03-data-model.md` §6, strings, tests
 **Estimated scope:** M
+
+---
+
+## T-097d: E6-A feedback — live session UX and bug
+
+**Story:** US-29, US-30, US-38 · **Flow:** UI · **ADR-55**
+
+**Description:** "?" help (RPE, Tipo de serie, calculators, roundings, previous-values mode); tap-to-apply set type picker without "Listo" or "Quitar tipo"; visible "Normal" icon; planned weight/reps pre-filled in grey, "Anterior" fills the last values; "Finalizar entreno" below "Añadir ejercicio" when all exercises are complete; pause/resume icon in the top bar next to the timer; fix first back press returning to the live exercise.
+
+**Acceptance criteria:**
+- [ ] Each "?" opens a short Spanish explanation; set type applies on tap; "Normal" icon visible on the dark background.
+- [ ] Planned values are grey, editable, and completing the set without editing logs them; "Anterior" fills the last values.
+- [ ] All exercises complete → "Finalizar entreno" below "Añadir ejercicio".
+- [ ] Pause/resume icon in the top bar; no longer in the "En vivo" menu.
+- [ ] Starting an exercise and pressing back once leaves it.
+
+**Dependencies:** T-097 · **Estimated scope:** M
+
+---
+
+## T-097e: Mandatory RPE prompt
+
+**Story:** US-30 · **Flow:** UI (+ backend if completion rules need it) · **ADR-55**
+
+**Description:** Vertical 1–10 RPE scale coloured green to red, designed by ux-reviewer. Completing a non-warm-up set with no RPE opens it; picking saves, closes and completes the set; closing leaves it pending; warm-ups exempt; tap the RPE to change it; no "Quitar RPE".
+
+**Dependencies:** T-097d · **Estimated scope:** M
+
+---
+
+## T-097f: Calculators and double dumbbell in the routine builder; dumbbell handle
+
+**Story:** US-33, US-34 · **Flow:** UI + backend (handle setting) · **ADR-55**
+
+**Description:** Warm-up calculator, plate calculator and "Contar mancuerna doble" in the routine builder's exercise menu (the option persists per exercise). Dumbbell exercises: plate calculator with a 1 kg handle (training preference, editable in Preferencias, new migration + pgTAP); warm-up calculator uses it as base.
+
+**Dependencies:** T-097e · **Estimated scope:** M–L
 
 ---
 
