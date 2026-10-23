@@ -56,6 +56,17 @@ Roles not listed above are derived so no M3 baseline color leaks (T-020): `onSec
 
 Tokens M3 does not cover (macros, ghostData, electricGreen…) are exposed through an `AppColors` `CompositionLocal` accessible via `AppTheme.colors`.
 
+### 2.5 RPE scale (only inside `RpePickerSheet`, ADR-55)
+`AppTheme.colors.rpeScale(value)` returns one colour per grid value, green (easy) to red (hard). The picker lists 10 at the top down to 6. Each row is `surfaceOverlay` tinted with the ramp colour at 16 %, with an 8 dp leading marker bar in the full colour; the number is always shown in `textPrimary` (colour is never the only cue) and the selected row adds a 1.5 dp border plus a check. Every colour is at least 3:1 against `surfaceOverlay`.
+
+| RPE | Hex | RPE | Hex |
+|---|---|---|---|
+| 6 | `#22C55E` | 8.5 | `#FB923C` |
+| 6.5 | `#65D04A` | 9 | `#EF4444` |
+| 7 | `#A3E635` | 9.5 | `#E5383B` |
+| 7.5 | `#D4D93A` | 10 | `#DC2626` |
+| 8 | `#FACC15` | | |
+
 ## 3. Typography
 
 Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (weights 400, 600, 700, 800). Every number uses `fontFeatureSettings = "tnum, lnum"`, so it is set on every style (numbers also appear in body text). `labelTechnical` UPPERCASE is not a `TextStyle` property: callers pass `text.uppercase()` and keep the original casing in `contentDescription`.
