@@ -250,6 +250,9 @@ sealed interface LiveSessionEvent {
     /** The bar selector of the open calculator changed (per use, not saved). */
     data class CalculatorBarChanged(val barKg: Double) : LiveSessionEvent
 
+    /** The warm-up set count (1..4) of the open calculator changed (per use, not saved; ADR-55). */
+    data class CalculatorWarmUpSetsChanged(val sets: Int) : LiveSessionEvent
+
     /**
      * "Añadir series": inserts [sets] (the rows the warm-up sheet shows) as `warm_up` sets before the first
      * non-warm-up set of the exercise, renumbers the rest and closes the calculator.

@@ -55,6 +55,38 @@ class WarmUpCalculatorTest {
     }
 
     @Test
+    fun threeSets_are40_60_80Percent_withoutTheBarSet() {
+        assertEquals(
+            listOf(WarmUpSet(40.0, 5), WarmUpSet(60.0, 3), WarmUpSet(80.0, 2)),
+            WarmUpCalculator(100.0, 20.0, 2.5, sets = 3),
+        )
+    }
+
+    @Test
+    fun twoSets_are50And80Percent_forFiveAndTwoReps() {
+        assertEquals(
+            listOf(WarmUpSet(50.0, 5), WarmUpSet(80.0, 2)),
+            WarmUpCalculator(100.0, 20.0, 2.5, sets = 2),
+        )
+    }
+
+    @Test
+    fun oneSet_is60Percent_forThreeReps() {
+        assertEquals(listOf(WarmUpSet(60.0, 3)), WarmUpCalculator(100.0, 20.0, 2.5, sets = 1))
+    }
+
+    @Test
+    fun fourSets_isTheDefault() {
+        assertEquals(scheme(100.0), WarmUpCalculator(100.0, 20.0, 2.5, sets = 4))
+    }
+
+    @Test
+    fun fewerSets_stillNeverGoBelowTheBarOrReachTheWorkingWeight() {
+        assertEquals(listOf(WarmUpSet(20.0, 5), WarmUpSet(25.0, 2)), WarmUpCalculator(30.0, 20.0, 2.5, sets = 2))
+        assertTrue(WarmUpCalculator(20.0, 20.0, 2.5, sets = 1).isEmpty())
+    }
+
+    @Test
     fun aLighterBarMovesTheFirstSet() {
         assertEquals(WarmUpSet(7.5, 10), scheme(100.0, bar = 7.5).first())
     }

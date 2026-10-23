@@ -2493,6 +2493,8 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 - [x] All exercises complete → "Finalizar entreno" below "Añadir ejercicio".
 - [x] Pause/resume icon in the top bar; no longer in the "En vivo" menu.
 - [x] Starting an exercise and pressing back once leaves it.
+- [x] Warm-up calculator stepper (1–4, default 4) sets how many warm-up sets are proposed; not persisted; 3 → 40/60/80 %, 2 → 50/80 %, 1 → 60 %.
+- [x] Plate calculator labels the result "Por lado"; help texts rewritten (set types, RPE 6–10 with RIR meaning, plates per side).
 
 **Dependencies:** T-097 · **Estimated scope:** M
 

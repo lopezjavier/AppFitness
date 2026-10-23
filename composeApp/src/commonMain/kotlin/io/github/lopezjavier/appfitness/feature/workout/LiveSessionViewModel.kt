@@ -48,6 +48,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SessionDuration
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import io.github.lopezjavier.appfitness.domain.usecase.Stopwatch
+import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -391,6 +392,12 @@ class LiveSessionViewModel(
             is LiveSessionEvent.CalculatorBarChanged -> updateDialogs {
                 if (event.barKg in CalculatorSettings.BARS_KG) {
                     calculatorDraft = calculatorDraft?.copy(barKg = event.barKg)
+                }
+            }
+
+            is LiveSessionEvent.CalculatorWarmUpSetsChanged -> updateDialogs {
+                if (event.sets in 1..WarmUpCalculator.MAX_SETS) {
+                    calculatorDraft = calculatorDraft?.copy(warmUpSets = event.sets)
                 }
             }
 

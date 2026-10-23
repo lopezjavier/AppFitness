@@ -462,6 +462,27 @@ class CalculatorSheetViewModelTest {
     }
 
     @Test
+    fun theWarmUpSetCountDefaultsToFour_changesTheResult_andSurvivesARecreatedViewModel() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = loaded(handle)
+        type(first, 0, 1, "100", "5")
+        send(first, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        assertEquals(4, first.calculator().draft.warmUpSets)
+
+        send(first, LiveSessionEvent.CalculatorWarmUpSetsChanged(2))
+        assertEquals(listOf(50.0, 80.0), first.calculator().warmUp.map { it.weightKg })
+        send(first, LiveSessionEvent.CalculatorWarmUpSetsChanged(9))
+        assertEquals(2, first.calculator().draft.warmUpSets, "a count outside 1..4 is ignored")
+
+        val second = loaded(handle)
+        assertEquals(2, second.calculator().draft.warmUpSets)
+
+        send(second, LiveSessionEvent.DismissCalculator)
+        send(second, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        assertEquals(4, second.calculator().draft.warmUpSets, "not persisted: the next use starts at 4")
+    }
+
+    @Test
     fun aClosedCalculatorIsNotRestored() = runSessionTest {
         val handle = SavedStateHandle()
         val first = loaded(handle)
