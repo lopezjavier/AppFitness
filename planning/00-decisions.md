@@ -471,3 +471,17 @@ Format: context → decision → consequences. A decision is only changed by add
   - Bug: the first back press after starting a live exercise returns to the live exercise (fixed in T-097d).
 - **Consequences:** `epics/E6-training-depth.md`, `04-business-rules.md` §4.9, `05-design-system.md` (help affordance), `tasks/todo.md` (T-097d, T-097e, T-097f before T-098), Checkpoint E6-A re-presented after them.
 - **Approval:** 2026-10-23, user.
+
+### ADR-56 · E6-A feedback round 2: whole-number RPE, derived rounding, disc loader, hand count per exercise (E6, T-097g…T-097i)
+- **Context:** user feedback at the re-test of Checkpoint E6-A (2026-10-24).
+- **Decision:**
+  - RPE is a whole number 1–10 (no half steps); existing half values are displayed rounded. This amends ADR-50 and ADR-55.
+  - Sets can be completed in any order (no rule added); the mandatory RPE prompt applies to every non-warm-up set, including the first set of the first exercise (bug).
+  - Pausing the workout also pauses the rest countdown; marking a set "Listo" while paused resumes both.
+  - The warm-up sheet calls the weight "Peso objetivo (kg)", defaults to the best past weight of the exercise (fallback: the planned weight) and takes the bar or handle from Preferencias (no selector in the sheet).
+  - "Redondeo de discos" and "Redondeo de mancuernas" are removed: the rounding is derived as twice the smallest available plate (barbells and dumbbells alike; no fixed dumbbells). The columns `plate_rounding_kg` and `dumbbell_rounding_kg` are dropped. This supersedes the rounding part of ADR-52 and ADR-55.
+  - The plate calculator becomes a loader: the user picks how many discs of each weight go on one side and the total is bar (or handle) + 2 × the sum (same discs on both sides). Bar, handle and available plates come from Preferencias.
+  - "Contar mancuerna doble" is replaced by a per-exercise flag `per_hand` (weight logged per hand or total) on every equipment type. The catalogue is classified by the user (`planning/exercise-hand-count.md`); the new-exercise form asks for it. Manual exercises become editable (name, equipment, muscle group, hand flag) and deletable. The `exercise_options.double_dumbbell` option and `set_exercise_double_dumbbell` are superseded; `volume_factor` reads the flag. This amends ADR-54.
+  - Look-and-feel items (Normal icon, "N" instead of the number, darker grey placeholders, RPE help as a list) go to the E8 refinement table.
+- **Consequences:** `04-business-rules.md` §4.9/§4.10, `03-data-model.md`, `epics/E6-training-depth.md`, `tasks/todo.md` (T-097g…T-097i before re-presenting E6-A).
+- **Approval:** 2026-10-24, user.
