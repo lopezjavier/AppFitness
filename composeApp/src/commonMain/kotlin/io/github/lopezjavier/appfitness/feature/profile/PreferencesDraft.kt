@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
@@ -30,6 +31,11 @@ internal data class PreferencesDraft(
     val warmUpIncluded: Boolean = false,
     /** [PreviousValuesMode] by name; absent in drafts saved by older versions. */
     val previousValuesMode: String = PreviousValuesMode.Overall.name,
+    /** Calculator settings; absent in drafts saved by older versions (the defaults then). */
+    val barWeightKg: Double = CalculatorSettings.DEFAULT_BAR_KG,
+    val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
+    val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
+    val dumbbellRoundingKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -48,6 +54,10 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         fatPct = split.fatPct,
         warmUpIncluded = warmUpIncluded,
         previousValuesMode = previousValuesMode.name,
+        barWeightKg = calculators.barWeightKg,
+        plateKg = calculators.plateKg,
+        plateRoundingKg = calculators.plateRoundingKg,
+        dumbbellRoundingKg = calculators.dumbbellRoundingKg,
     ),
 )
 
@@ -65,5 +75,11 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
         split = MacroSplit(draft.proteinPct, draft.carbsPct, draft.fatPct),
         warmUpIncluded = draft.warmUpIncluded,
         previousValuesMode = PreviousValuesMode.valueOf(draft.previousValuesMode),
+        calculators = CalculatorSettings(
+            barWeightKg = draft.barWeightKg,
+            plateKg = draft.plateKg,
+            plateRoundingKg = draft.plateRoundingKg,
+            dumbbellRoundingKg = draft.dumbbellRoundingKg,
+        ),
     )
 }.getOrNull()

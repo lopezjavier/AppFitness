@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-096 (session controls, 2026-10-23). Next task: T-097 (warm-up and plate calculators), on the user's explicit start. E5 closed (tag `v0.5.0`).
+**Next:** E6 breakdown (T-089…T-103, `tasks/plan.md`) with Q1–Q8 answered by the user (ADR-50…ADR-53) and three 👤 checkpoints (E6-A…E6-C) agreed with the user. Last merged: T-096 (session controls, 2026-10-23). Next task: T-098 (routine folders, next workout and manual order), on the user's explicit start. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2463,16 +2463,16 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** Pure domain in `shared`, defaults in `04-business-rules.md` §4.9 (ADR-52): warm-up bar × 10, 40 % × 5, 60 % × 3, 80 % × 2; bars 20, 15, 10 (EZ) and 7,5 kg (default 20); plates 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; rounding 2,5 kg plates, 2 kg dumbbells. `WarmUpCalculator`: from a working weight, a block of warm-up sets as percentages, rounded to the plate rounding. `PlateCalculator`: plates per side for a target weight and the selected bar, greedy over the available plates, showing the closest lower weight when the target cannot be made. Settings: bar, available plates, plate rounding and dumbbell rounding, stored in the training preferences (new migration + pgTAP) and edited in Preferencias with "Guardar". Both calculators open from the exercise menu of the live session (placement by ux-reviewer). The warm-up calculator inserts its proposal as `warm_up` sets before the working sets (US-29) after the user confirms it in the sheet ("Guardar"/"Añadir", ADR-45). `03` §6 lists calculator RPCs; the calculators need no data, so the planner keeps them client-side and updates `03` §6 (the settings are the only backend part).
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: the new preference columns, owner-only.
-- [ ] Working weight 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2; adding it inserts `warm_up` sets with "C" before the working sets.
-- [ ] Target 100 kg with the 20 kg bar → "25 + 15" per side; the 7,5 kg bar and the 2, 1 and 0,5 kg plates are offered; an impossible target shows the closest lower weight.
-- [ ] Changing the plate or dumbbell rounding changes both calculators' results.
-- [ ] Calculator inputs survive leaving the app.
+- [x] Migration + pgTAP: the new preference columns, owner-only.
+- [x] Working weight 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2; adding it inserts `warm_up` sets with "C" before the working sets.
+- [x] Target 100 kg with the 20 kg bar → "25 + 15" per side; the 7,5 kg bar and the 2, 1 and 0,5 kg plates are offered; an impossible target shows the closest lower weight.
+- [x] Changing the plate or dumbbell rounding changes both calculators' results.
+- [x] Calculator inputs survive leaving the app.
 
 **Host tests (per scenario):** `WarmUpCalculatorTest`, `PlateCalculatorTest` (`04` §4.9 examples, rounding, impossible target); `CalculatorSheetViewModelTest` (insert warm-ups); `PreferencesViewModelTest` (Rounding settings); screen tests; restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-096

@@ -33,8 +33,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_body_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_double_dumbbell
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_save
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_title
@@ -83,7 +85,8 @@ internal fun ExerciseMenuButton(
 }
 
 /**
- * The exercise's actions sheet: "Descanso", "Contar mancuerna doble" (dumbbell exercises only) and "Actualizar peso
+ * The exercise's actions sheet: "Descanso", "Contar mancuerna doble" (dumbbell exercises only), the warm-up calculator
+ * (all exercises), the plate calculator (barbell exercises only) and "Actualizar peso
  * corporal" (bodyweight and assisted ones; disabled with its reason when Health Connect owns today's weight).
  */
 @Composable
@@ -94,6 +97,8 @@ internal fun ExerciseMenuSheet(
     healthConnectToday: Boolean,
     onRest: () -> Unit,
     onDoubleDumbbell: () -> Unit,
+    onWarmUpCalculator: () -> Unit,
+    onPlateCalculator: () -> Unit,
     onBodyWeight: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -113,6 +118,18 @@ internal fun ExerciseMenuSheet(
                 label = stringResource(Res.string.live_exercise_menu_double_dumbbell),
                 onClick = onDoubleDumbbell,
                 testTag = "${prefix}_menu_double_dumbbell",
+            )
+        }
+        SheetActionRow(
+            label = stringResource(Res.string.live_exercise_menu_warm_up_calc),
+            onClick = onWarmUpCalculator,
+            testTag = "${prefix}_menu_warm_up_calc",
+        )
+        if (exercise.equipment == Equipment.Barbell) {
+            SheetActionRow(
+                label = stringResource(Res.string.live_exercise_menu_plate_calc),
+                onClick = onPlateCalculator,
+                testTag = "${prefix}_menu_plate_calc",
             )
         }
         if (exercise.metricType in BODY_WEIGHT_TYPES) {

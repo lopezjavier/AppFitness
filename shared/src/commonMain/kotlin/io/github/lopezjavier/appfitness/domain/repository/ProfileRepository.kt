@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -43,5 +44,6 @@ interface ProfileRepository {
         weight: WeightEntry?,
         warmUpIncluded: Boolean,
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
+        calculators: CalculatorSettings? = null,
     ): Result<Unit>
 }

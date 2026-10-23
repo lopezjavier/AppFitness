@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -37,6 +38,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         split: MacroSplit,
         warmUpIncluded: Boolean = false,
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
+        calculators: CalculatorSettings? = null,
     ): Result<Unit> {
         val name = displayName.trim()
         val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
@@ -65,7 +67,15 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         } else {
             null
         }
-        return profileRepository.savePreferences(name, biometrics, goals, weight, warmUpIncluded, previousValuesMode)
+        return profileRepository.savePreferences(
+            name,
+            biometrics,
+            goals,
+            weight,
+            warmUpIncluded,
+            previousValuesMode,
+            calculators,
+        )
     }
 
     private companion object {

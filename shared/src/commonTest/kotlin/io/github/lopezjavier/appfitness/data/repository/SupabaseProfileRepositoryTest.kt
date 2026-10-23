@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
+import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -258,6 +259,24 @@ class SupabaseProfileRepositorySavePreferencesTest {
             """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
                 """"p_activity_level":"moderate",$goalsJson,"p_warm_up_included":false,""" +
                 """"p_previous_values_mode":"overall"}""",
+            body,
+        )
+    }
+
+    @Test
+    fun withCalculatorSettings_sendsTheFourCalculatorArguments() = runTest {
+        val settings = CalculatorSettings(7.5, listOf(20.0, 2.5, 0.5), 5.0, 1.0)
+
+        assertTrue(
+            repository().savePreferences("Ana", biometrics, goals, null, false, calculators = settings).isSuccess,
+        )
+
+        val body = (requests.last().body as TextContent).text
+        assertTrue(
+            body.endsWith(
+                """"p_previous_values_mode":"overall","p_bar_weight_kg":7.5,"p_plate_kg":[20.0,2.5,0.5],""" +
+                    """"p_plate_rounding_kg":5.0,"p_dumbbell_rounding_kg":1.0}""",
+            ),
             body,
         )
     }
