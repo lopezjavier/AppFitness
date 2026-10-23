@@ -45,7 +45,6 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 - FR-2.13 Full Open Food Facts product data kept in the catalog and micronutrients shown in the food details (display only; ADR-43).
 - FR-2.14 Editing manual foods (E6, US-47): edit a manual food and its portions (add, edit, remove), for future entries only; the full label nutrient list in Spanish label order; Open Food Facts foods are not editable (ADR-53).
-- FR-2.15 Editing a comida (E8, US-48): a tap on a saved comida adds it and a pencil opens "Editar comida", where the name is a text field and foods can be removed (swipe or details) or added; all applied on "Guardar".
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.
