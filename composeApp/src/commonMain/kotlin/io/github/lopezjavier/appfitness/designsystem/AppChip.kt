@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -32,11 +33,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.chip_state_off
+import io.github.lopezjavier.appfitness.composeapp.resources.chip_state_on
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 /** Colours of one [AppChip] state. */
@@ -75,12 +81,45 @@ object AppChipDefaults {
  */
 @Composable
 fun AppChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    ChipFrame(
+        label = label,
+        selected = selected,
+        modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+    )
+}
+
+/**
+ * Pill chip for one option of a multi-select group (several can be on at once). Same look as [AppChip]; it is
+ * exposed as a checkbox with an "Activado" / "Desactivado" state description. [contentDescription], when set, is what
+ * a screen reader speaks instead of [label]. The caller's [modifier] lands on the toggleable node.
+ */
+@Composable
+fun AppToggleChip(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+) {
+    val state = stringResource(if (checked) Res.string.chip_state_on else Res.string.chip_state_off)
+    ChipFrame(
+        label = label,
+        selected = checked,
+        modifier = modifier
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .semantics {
+                stateDescription = state
+                contentDescription?.let { this.contentDescription = it }
+            },
+    )
+}
+
+@Composable
+private fun ChipFrame(label: String, selected: Boolean, modifier: Modifier = Modifier) {
     val colors = AppChipDefaults.colors(selected, AppTheme.colors)
     Box(
         modifier =
-        modifier
-            .sizeIn(minWidth = AppChipDefaults.MinTouchTarget, minHeight = AppChipDefaults.MinTouchTarget)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        modifier.sizeIn(minWidth = AppChipDefaults.MinTouchTarget, minHeight = AppChipDefaults.MinTouchTarget),
         contentAlignment = Alignment.Center,
     ) {
         Box(

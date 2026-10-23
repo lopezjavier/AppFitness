@@ -256,4 +256,16 @@ private fun LiveActive(
     LiveDialogs(state, menuOpen, onCloseMenu = { menuOpen = false }, onEvent)
     LiveTypePicker(state, onEvent)
     LiveRpePicker(state, onEvent)
+    LiveCalculator(state, onEvent)
+}
+
+/** The open warm-up or plate calculator sheet; its draft lives in the view model (survives process death). */
+@Composable
+private fun LiveCalculator(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+    val calculator = state.calculator ?: return
+    val position = calculator.draft.position
+    when (calculator.draft.kind) {
+        CalculatorKind.WarmUp -> WarmUpCalculatorSheet(position, calculator, onEvent)
+        CalculatorKind.Plates -> PlateCalculatorSheet(position, calculator, onEvent)
+    }
 }
