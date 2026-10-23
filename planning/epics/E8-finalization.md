@@ -5,7 +5,8 @@ Close Phase 1: show the in-app credits and licences, polish the whole app into a
 
 ## Scope
 - Includes: the "Acerca de · Licencias" screen; accessibility, empty/error states, tablet and release build across every screen; the deferred UI-refinement items collected at the 👤 checkpoints.
-- Out of scope: new features; AI training assistant and adaptive calorie adjustment (Phase 2).
+- Also includes: US-48, a rework of editing a comida (user request, 2026-10-23, raised during E6).
+- Out of scope: other new features; AI training assistant and adaptive calorie adjustment (Phase 2).
 - This epic depends on every previous epic (`E1`…`E7`), because its polish pass and credits cover all domains (training, food and weight).
 
 ## Dependencies
@@ -44,6 +45,56 @@ Feature: About and licences
 - The screen is defined here but its **entry point is the Profile screen** (`Perfil → "Acerca de"`): the link is wired in this epic (E2 is closed; the "Perfil" location is the product decision, recorded here).
 - Open-source licences through the `oss-licenses-plugin` (Google Play Services); catalog credits read from a single `credits` resource so RepDB and Open Food Facts live in one place.
 - The app's own licence stays **repo-only** (ADR-13); the version/build is shown for support.
+
+---
+
+## US-48 · Edit a comida: name, foods and quick add
+**As** a user
+**I want** to add a saved comida with one tap and edit its name and foods in one place
+**So that** logging is fast and fixing a comida does not need several separate actions.
+
+```gherkin
+Feature: Editing a comida
+
+  Scenario: Tapping a comida adds it
+    Given the user is in "Añadir comida" on the "Comidas" tab
+    When the user taps a comida row
+    Then the comida is added to the diary
+    And the trailing button of the row is a pencil, not a "+"
+
+  Scenario: Opening the editor
+    When the user taps the pencil of a comida row
+    Then "Editar comida" opens
+
+  Scenario: Renaming in the text field
+    Given "Editar comida" is open
+    Then there is no rename pencil and the comida name is a text field
+    When the user changes the name and taps "Guardar"
+    Then the comida has the new name
+    And an empty or duplicate name disables "Guardar" with a hint
+
+  Scenario: Removing a food
+    Given "Editar comida" is open
+    When the user swipes a food left, or taps "Eliminar" in the food details
+    Then the food disappears from the list
+    But the comida is unchanged until the user taps "Guardar"
+
+  Scenario: Adding foods
+    Given "Editar comida" is open
+    When the user taps "Añadir alimento" and picks a food with its portion
+    Then the food appears in the list
+    But the comida is unchanged until the user taps "Guardar"
+
+  Scenario: Leaving without saving
+    Given the user removed or added foods or changed the name
+    When the user leaves without tapping "Guardar"
+    Then the comida keeps its previous name and foods
+```
+
+**Technical notes**
+- Reverses the roles of row tap and trailing button set in E4 (tap edits, "+" adds). Renaming through a separate pencil is removed.
+- Name, removals and additions are staged and applied together on "Guardar" (ADR-45 explicit save); the planner decides whether an atomic RPC is needed. Draft state survives leaving the app.
+- Tasks are generated with the rest of E8 by the epic-planner.
 
 ---
 
