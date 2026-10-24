@@ -2,9 +2,11 @@ package io.github.lopezjavier.appfitness.feature.food
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.LabelNutrient
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
+import io.github.lopezjavier.appfitness.domain.usecase.BuildLabelNutrients
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 
 /** What the add-food sheet shows. */
@@ -37,6 +39,19 @@ data class AddFoodContent(
     val submitting: Boolean,
     val micronutrients: MicronutrientsState = MicronutrientsState.Loading,
 ) {
+    /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
+    val showEdit: Boolean get() = food.isManual
+
+    /** The "Editar" action is enabled: saving an edit needs the server. */
+    val canEdit: Boolean get() = showEdit && !isOffline
+
+    /** The nutrient rows in label order: the four columns of the food plus the extras once they are loaded. */
+    val labelNutrients: List<LabelNutrient>
+        get() = BuildLabelNutrients(
+            food.nutrition,
+            (micronutrients as? MicronutrientsState.Shown)?.micronutrients ?: Micronutrients.Empty,
+        )
+
     /** The add button is enabled. */
     val canSubmit: Boolean
         get() = quantityError == null && resolvedAmount != null && selectedSlotId != null && !isOffline && !submitting
@@ -65,6 +80,9 @@ sealed interface AddFoodEvent {
     data object Submit : AddFoodEvent
 
     data object Retry : AddFoodEvent
+
+    /** Reload the food without the loading state, e.g. after it was edited. */
+    data object Refresh : AddFoodEvent
 }
 
 sealed interface AddFoodEffect {

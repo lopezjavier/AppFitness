@@ -13,13 +13,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_iron
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_magnesium
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_manganese
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_molybdenum
+import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_monounsaturated_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_pantothenic_acid
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_phosphorus
+import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_polyols
+import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_polyunsaturated_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_potassium
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_salt
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_saturated_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_selenium
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_sodium
+import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_starch
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_sugars
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.micronutrient_unit_mg
@@ -53,6 +57,10 @@ internal fun micronutrientLabel(kind: MicronutrientKind): StringResource = when 
     MicronutrientKind.Sugars -> Res.string.micronutrient_sugars
     MicronutrientKind.SaturatedFat -> Res.string.micronutrient_saturated_fat
     MicronutrientKind.Salt -> Res.string.micronutrient_salt
+    MicronutrientKind.MonounsaturatedFat -> Res.string.micronutrient_monounsaturated_fat
+    MicronutrientKind.PolyunsaturatedFat -> Res.string.micronutrient_polyunsaturated_fat
+    MicronutrientKind.Polyols -> Res.string.micronutrient_polyols
+    MicronutrientKind.Starch -> Res.string.micronutrient_starch
     MicronutrientKind.Sodium -> Res.string.micronutrient_sodium
     MicronutrientKind.VitaminA -> Res.string.micronutrient_vitamin_a
     MicronutrientKind.VitaminD -> Res.string.micronutrient_vitamin_d

@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -431,7 +432,7 @@ class SupabaseFoodRepositoryTest {
                 NutritionPer100(1.0, 0.0, 0.0, 0.0),
                 null,
                 emptyList(),
-                NewMicronutrients(sugars = 4.5, fiber = 2.0),
+                NewMicronutrients(mapOf(MicronutrientKind.Fiber to 2.0, MicronutrientKind.Sugars to 4.5)),
             ),
         ).getOrThrow()
 
@@ -466,6 +467,153 @@ class SupabaseFoodRepositoryTest {
         val before = requests.size
         repo.getById("f1").getOrThrow()
         assertTrue(requests.size > before, "the food was not cached by the failed call")
+    }
+
+    @Test
+    fun createFood_sendsEveryTypedLabelNutrientInGramsPerHundred() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
+        }
+
+        repo.createFood(
+            NewFood(
+                "x",
+                null,
+                "g",
+                NutritionPer100(1.0, 0.0, 0.0, 0.0),
+                null,
+                emptyList(),
+                NewMicronutrients(
+                    mapOf(MicronutrientKind.VitaminC to 80.0, MicronutrientKind.Selenium to 55.0),
+                ),
+            ),
+        ).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_name") }
+        assertTrue(rpcBody.contains("\"vitamin-c_100g\":0.08"), rpcBody)
+        assertTrue(rpcBody.contains("\"selenium_100g\":5.5E-5"), rpcBody)
+    }
+
+    private val updated = UpdatedFood(
+        id = "f1",
+        name = "Yogur casero",
+        brand = null,
+        nutrition = NutritionPer100(70.0, 3.5, 4.7, 3.0),
+        portions = listOf(NewPortion("1 tarrina", 120.0)),
+        micronutrients = NewMicronutrients(mapOf(MicronutrientKind.Sugars to 4.7, MicronutrientKind.VitaminC to 0.8)),
+    )
+
+    @Test
+    fun updateFood_postsTheExactPayloadWithTinyValuesAsPlainJsonNumbers() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/update_personal_food")) "" else "[$EGG]"
+        }
+
+        repo.updateFood(updated).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_food_id") }
+        assertEquals(
+            """{"p_food_id":"f1","p_name":"Yogur casero","p_brand":null,"p_kcal":70.0,"p_protein":3.5,""" +
+                """"p_carbs":4.7,"p_fat":3.0,"p_portions":[{"label":"1 tarrina","amount":120.0}],""" +
+                """"p_micronutrients":{"sugars_100g":4.7,"vitamin-c_100g":8.0E-4}}""",
+            rpcBody,
+        )
+    }
+
+    @Test
+    fun updateFood_clearingEveryNutrientAndPortionSendsEmptyCollections() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/update_personal_food")) "" else "[$EGG]"
+        }
+
+        repo.updateFood(updated.copy(portions = emptyList(), micronutrients = NewMicronutrients())).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_food_id") }
+        assertTrue(rpcBody.contains("\"p_portions\":[]"), rpcBody)
+        assertTrue(rpcBody.contains("\"p_micronutrients\":{}"), rpcBody)
+    }
+
+    @Test
+    fun updateFood_returnsTheFoodReReadWithNewPortionIds() = runTest {
+        var food = EGG
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/update_personal_food")) "" else "[$food]"
+        }
+        repo.getById("f1").getOrThrow()
+        food = EGG.replace("\"kcal_100\":143", "\"kcal_100\":70")
+
+        val result = repo.updateFood(updated).getOrThrow()
+
+        assertEquals(70.0, result.nutrition.kcal)
+        assertEquals(70.0, repo.getById("f1").getOrThrow().nutrition.kcal)
+    }
+
+    @Test
+    fun updateFood_invalidatesTheKnownFoodAndTheMicronutrientsCache() = runTest {
+        var micros = """[{"source":"user","micronutrients":{"sugars_100g":1.0},"nutriments":null}]"""
+        val repo = signedIn { request ->
+            when {
+                request.url.encodedPath.endsWith("/rpc/update_personal_food") -> ""
+                request.url.parameters["select"].orEmpty().startsWith("source") -> micros
+                else -> "[$EGG]"
+            }
+        }
+        val food = repo.getById("f1").getOrThrow()
+        assertEquals(1.0, repo.micronutrients(food).getOrThrow().items.single().amount)
+        micros = """[{"source":"user","micronutrients":{"sugars_100g":4.7},"nutriments":null}]"""
+
+        repo.updateFood(updated).getOrThrow()
+
+        assertEquals(4.7, repo.micronutrients(food).getOrThrow().items.single().amount)
+    }
+
+    @Test
+    fun updateFood_noDataFoundIsNotFoundAndInvalidParameterIsValidation() = runTest {
+        val repo = signedIn { """{"code":"P0002","message":"food not found","details":null,"hint":null}""" }
+        status = HttpStatusCode.BadRequest
+
+        assertEquals(AppError.NotFound, repo.updateFood(updated).appErrorOrNull())
+
+        val invalid = signedIn { """{"code":"22023","message":"invalid name","details":null,"hint":null}""" }
+        assertEquals(AppError.Validation, invalid.updateFood(updated).appErrorOrNull())
+    }
+
+    private val manualRow =
+        """{"id":"f1","name":"Yogur","base_unit":"g","kcal_100":60,"source":"user",""" +
+            """"micronutrients":{"sugars_100g":4.7,"vitamin-c_100g":"0.0000015","unknown_100g":1},""" +
+            """"food_portions":[{"id":"p1","label":"1 tarrina","amount":125,"position":0}]}"""
+
+    @Test
+    fun editableFood_returnsRawGramsAndIsManual() = runTest {
+        val repo = signedIn { "[$manualRow]" }
+
+        val editable = repo.editableFood("f1").getOrThrow()
+
+        assertTrue(editable.food.isManual)
+        assertEquals(listOf(FoodPortion("p1", "1 tarrina", 125.0)), editable.food.portions)
+        assertEquals(
+            mapOf(MicronutrientKind.Sugars to 4.7, MicronutrientKind.VitaminC to 0.0000015),
+            editable.micronutrients,
+        )
+        assertTrue(requests.last().url.parameters["select"].orEmpty().contains("micronutrients"))
+    }
+
+    @Test
+    fun editableFood_ofAnOffFoodOrAMissingFood_isNotFound() = runTest {
+        val off = signedIn { "[${manualRow.replace("\"source\":\"user\"", "\"source\":\"off\"")}]" }
+        assertEquals(AppError.NotFound, off.editableFood("f1").appErrorOrNull())
+
+        val missing = signedIn { "[]" }
+        assertEquals(AppError.NotFound, missing.editableFood("f1").appErrorOrNull())
+    }
+
+    @Test
+    fun foodsFromTheSearchFunctionAreNotManualAndUserRowsAre() = runTest {
+        val repo = signedIn { """{"results":[$EGG],"source":"cache"}""" }
+        assertTrue(!repo.search("huevo").getOrThrow().single().isManual)
+
+        val manual = signedIn { "[${manualRow.replace("\"micronutrients\":", "\"ignored\":")}]" }
+        assertTrue(manual.getById("f1").getOrThrow().isManual)
     }
 
     @Test

@@ -6,21 +6,32 @@ private const val MAX_NUTRIENT = 9999.99
 private const val MAX_PORTION_AMOUNT = 9999.9
 private const val MAX_PORTIONS = 10
 
-/** Pure validation of a [NewFood] against the limits of the `create_personal_food` function. */
+/** Pure validation of a [NewFood] / [UpdatedFood] against the limits of the personal-food functions. */
 object NewFoodValidation {
-    fun validate(food: NewFood): NewFoodErrors = NewFoodErrors(
-        name = text(food.name, required = true),
-        brand = food.brand?.let { text(it, required = false) },
-        kcal = nutrient(food.nutrition.kcal),
-        protein = nutrient(food.nutrition.proteinG),
-        carbs = nutrient(food.nutrition.carbsG),
-        fat = nutrient(food.nutrition.fatG),
-        portions = food.portions.withIndex().mapNotNull { (i, p) -> portion(p)?.let { i to it } }.toMap(),
-        tooManyPortions = food.portions.size > MAX_PORTIONS,
-        saturatedFat = food.micronutrients.saturatedFat?.let(::nutrient),
-        sugars = food.micronutrients.sugars?.let(::nutrient),
-        fiber = food.micronutrients.fiber?.let(::nutrient),
-        salt = food.micronutrients.salt?.let(::nutrient),
+    fun validate(food: NewFood): NewFoodErrors =
+        validate(food.name, food.brand, food.nutrition, food.portions, food.micronutrients)
+
+    fun validate(food: UpdatedFood): NewFoodErrors =
+        validate(food.name, food.brand, food.nutrition, food.portions, food.micronutrients)
+
+    private fun validate(
+        name: String,
+        brand: String?,
+        nutrition: NutritionPer100,
+        portions: List<NewPortion>,
+        micronutrients: NewMicronutrients,
+    ): NewFoodErrors = NewFoodErrors(
+        name = text(name, required = true),
+        brand = brand?.let { text(it, required = false) },
+        kcal = nutrient(nutrition.kcal),
+        protein = nutrient(nutrition.proteinG),
+        carbs = nutrient(nutrition.carbsG),
+        fat = nutrient(nutrition.fatG),
+        portions = portions.withIndex().mapNotNull { (i, p) -> portion(p)?.let { i to it } }.toMap(),
+        tooManyPortions = portions.size > MAX_PORTIONS,
+        nutrients = micronutrients.values.mapNotNull { (kind, typed) ->
+            nutrient(typed, kind.labelUnit)?.let { kind to it }
+        }.toMap(),
     )
 
     private fun text(value: String, required: Boolean): NewFoodError? = when {
@@ -29,10 +40,11 @@ object NewFoodValidation {
         else -> null
     }
 
-    private fun nutrient(value: Double): NewFoodError? = when {
+    /** [value] is typed in [unit]; the limit applies to the grams it stands for. */
+    private fun nutrient(value: Double, unit: MicronutrientUnit = MicronutrientUnit.G): NewFoodError? = when {
         !value.isFinite() -> NewFoodError.NotANumber
         value < 0.0 -> NewFoodError.Negative
-        value > MAX_NUTRIENT -> NewFoodError.TooLarge
+        unit.toGrams(value) > MAX_NUTRIENT -> NewFoodError.TooLarge
         else -> null
     }
 

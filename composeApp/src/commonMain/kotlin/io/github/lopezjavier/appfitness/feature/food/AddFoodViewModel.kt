@@ -52,7 +52,7 @@ private data class Draft(val amountText: String, val portionId: String, val slot
  * and meal) lives in [savedState] (ADR-40). [initialSlotId] is the meal tapped in the Diary; without it the meal is
  * chosen by the time of day. Logging needs the server, so [AddFoodContent.canSubmit] is false offline.
  */
-@Suppress("LongParameterList") // One dependency per port.
+@Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one function per step.
 class AddFoodViewModel(
     private val foodId: String,
     private val initialSlotId: String?,
@@ -102,12 +102,15 @@ class AddFoodViewModel(
             is AddFoodEvent.SlotSelected -> updateDraft { it.copy(slotId = event.slotId) }
             AddFoodEvent.Submit -> submit()
             AddFoodEvent.Retry -> load()
+            AddFoodEvent.Refresh -> load(silent = true)
         }
     }
 
-    private fun load() {
-        loaded.value = Loaded.Loading
-        micronutrients.value = MicronutrientsState.Loading
+    private fun load(silent: Boolean = false) {
+        if (!silent) {
+            loaded.value = Loaded.Loading
+            micronutrients.value = MicronutrientsState.Loading
+        }
         viewModelScope.launch {
             val (food, slots) = coroutineScope {
                 val food = async { foodRepository.getById(foodId) }
@@ -117,12 +120,36 @@ class AddFoodViewModel(
             val loadedFood = food.getOrNull()
             val loadedSlots = slots.getOrNull()
             if (loadedFood == null || loadedSlots == null) {
-                loaded.value = Loaded.Failed
+                // A failed silent refresh keeps showing the food that was already loaded.
+                if (!silent || loaded.value !is Loaded.Ready) loaded.value = Loaded.Failed
                 return@launch
             }
-            if (draft.value == null) draft.value = initialDraft(loadedFood, loadedSlots)
+            val previous = (loaded.value as? Loaded.Ready)?.setup?.food
+            if (draft.value == null) {
+                draft.value = initialDraft(loadedFood, loadedSlots)
+            } else if (previous != null) {
+                reconcilePortion(previous, loadedFood)
+            }
             loaded.value = Loaded.Ready(Setup(loadedFood, loadedSlots))
             loadMicronutrients(loadedFood)
+        }
+    }
+
+    /**
+     * The food was reloaded (portions get new ids on every edit): the selected portion follows its label, and falls
+     * back to the base unit when it no longer exists.
+     */
+    private fun reconcilePortion(previous: Food, reloaded: Food) {
+        val current = draft.value ?: return
+        if (current.portionId.isEmpty() || reloaded.portions.any { it.id == current.portionId }) return
+        val label = previous.portions.firstOrNull { it.id == current.portionId }?.label
+        val renewed = reloaded.portions.firstOrNull { it.label == label }
+        updateDraft {
+            if (renewed != null) {
+                it.copy(portionId = renewed.id)
+            } else {
+                it.copy(portionId = "", amountText = defaultAmountText(reloaded, ""))
+            }
         }
     }
 

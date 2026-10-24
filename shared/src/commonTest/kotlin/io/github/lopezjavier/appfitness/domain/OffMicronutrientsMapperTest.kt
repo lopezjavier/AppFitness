@@ -25,8 +25,8 @@ class OffMicronutrientsMapperTest {
         }
         assertEquals(
             listOf(
-                Micronutrient(MicronutrientKind.Fiber, 2.5, MicronutrientUnit.G),
                 Micronutrient(MicronutrientKind.Sugars, 4.1, MicronutrientUnit.G),
+                Micronutrient(MicronutrientKind.Fiber, 2.5, MicronutrientUnit.G),
                 Micronutrient(MicronutrientKind.Salt, 0.5, MicronutrientUnit.G),
                 Micronutrient(MicronutrientKind.VitaminC, 12.0, MicronutrientUnit.MG),
             ),
@@ -143,6 +143,26 @@ class OffMicronutrientsMapperTest {
             listOf(MicronutrientKind.SaturatedFat, MicronutrientKind.VitaminB12, MicronutrientKind.Calcium),
             kinds,
         )
+    }
+
+    @Test
+    fun `mono and polyunsaturates polyols and starch follow label order and keep a real zero`() {
+        val items = map {
+            put("starch_100g", 0.0)
+            put("polyols_100g", 1.5)
+            put("polyunsaturated-fat_100g", 2.0)
+            put("monounsaturated-fat_100g", 3.0)
+        }
+        assertEquals(
+            listOf(
+                MicronutrientKind.MonounsaturatedFat,
+                MicronutrientKind.PolyunsaturatedFat,
+                MicronutrientKind.Polyols,
+                MicronutrientKind.Starch,
+            ),
+            items.map { it.kind },
+        )
+        assertEquals(0.0, items.last().amount)
     }
 
     @Test

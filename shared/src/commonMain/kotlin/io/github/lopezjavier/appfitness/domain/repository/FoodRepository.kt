@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
+import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import kotlinx.coroutines.flow.Flow
 
 /** The food catalogue and the signed-in user's favourites. A failure carries an `AppException`. */
+@Suppress("TooManyFunctions") // One function per catalogue operation.
 interface FoodRepository {
     /** Text search through the `food-search` Edge Function (online only). */
     suspend fun search(query: String, page: Int = 1): Result<List<Food>>
@@ -35,6 +38,15 @@ interface FoodRepository {
      * the food is not readable. Cached per food, so reopening a food needs no request.
      */
     suspend fun micronutrients(food: Food): Result<Micronutrients>
+
+    /**
+     * The personal food [id] with its stored label values in grams per 100 (no display rounding); fails with
+     * `AppError.NotFound` when it is not a manual food of the user.
+     */
+    suspend fun editableFood(id: String): Result<EditableFood>
+
+    /** Replaces the values and portions of a personal food (past diary entries are never touched). */
+    suspend fun updateFood(food: UpdatedFood): Result<Food>
 
     /** Creates a personal food with its portions in one atomic call and returns it as stored. */
     suspend fun createFood(food: NewFood): Result<Food>

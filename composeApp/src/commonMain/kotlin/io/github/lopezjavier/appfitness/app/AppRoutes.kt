@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
+import io.github.lopezjavier.appfitness.composeapp.resources.edit_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
@@ -136,6 +137,13 @@ data class CreateFoodRoute(
     val slotId: String? = null,
     val date: String,
 ) : AppRoute
+
+/**
+ * The edit form of the manual food [foodId] (US-47), opened from its add-food sheet (Navigation closes the sheet
+ * when it is left); [slotId] and [date] are carried back to the sheet that reopens after "Guardar".
+ */
+@Serializable
+data class EditFoodRoute(val foodId: String, val slotId: String? = null, val date: String) : AppRoute
 
 /** The add-food sheet of [foodId], presented over the food search; [slotId] and [date] as in [FoodSearchRoute]. */
 @Serializable
@@ -289,6 +297,8 @@ val AppRoute.chrome: ShellChrome
 
             is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
 
+            is EditFoodRoute -> ShellChrome.FullScreen(Res.string.edit_food_title, topBarTag = "edit_food")
+
             is TemplateDetailsRoute ->
                 ShellChrome.FullScreen(Res.string.template_details_title, topBarTag = "template_details")
 
@@ -331,6 +341,7 @@ object AppDestinations {
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),
             CreateFoodRoute(date = ""),
+            EditFoodRoute("", null, ""),
             TemplateDetailsRoute(""),
             MealSlotsRoute,
             DiaryHistoryRoute,

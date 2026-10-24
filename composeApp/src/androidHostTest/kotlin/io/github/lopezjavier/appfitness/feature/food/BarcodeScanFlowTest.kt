@@ -161,7 +161,7 @@ class BarcodeScanFlowTest {
 
         tap("food_search_scan_button")
 
-        rule.onNodeWithTag("add_food_micronutrient_fiber").assertExists()
+        rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
     }
 
     @Test

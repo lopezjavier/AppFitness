@@ -98,7 +98,8 @@ fun CreateFoodRoot(
     name: String?,
     onSave: (foodId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: CreateFoodViewModel = koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty()) }),
+    viewModel: CreateFoodViewModel =
+        koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty(), "") }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnSaved by rememberUpdatedState(onSave)
@@ -128,6 +129,7 @@ fun AddFoodRoot(
     onAdd: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onEdit: () -> Unit = {},
     viewModel: AddFoodViewModel = koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -155,5 +157,31 @@ fun AddFoodRoot(
         onDismiss = onDismiss,
         modifier = modifier,
         submitFailed = submitFailed,
+        onEdit = onEdit,
     )
+}
+
+/**
+ * Stateful edit form of the manual food [foodId] (US-47): connects [CreateFoodViewModel] in edit mode. [onSaved] runs
+ * after "Guardar"; leaving without it writes nothing.
+ */
+@Composable
+fun EditFoodRoot(
+    foodId: String,
+    onSave: (foodId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: CreateFoodViewModel =
+        koinViewModel(key = "edit_$foodId", parameters = { parametersOf("", "", foodId) }),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnSaved by rememberUpdatedState(onSave)
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is CreateFoodEffect.Saved -> currentOnSaved(effect.foodId)
+                CreateFoodEffect.SaveFailed -> Unit
+            }
+        }
+    }
+    CreateFoodScreen(state, viewModel::onEvent, modifier)
 }

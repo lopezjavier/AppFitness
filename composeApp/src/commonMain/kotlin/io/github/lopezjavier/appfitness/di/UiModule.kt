@@ -223,13 +223,14 @@ val uiModule =
             )
         }
         // Blank barcode / name mean "not prefilled" (Koin parameters cannot be null).
-        viewModel { (barcode: String, name: String) ->
+        viewModel { (barcode: String, name: String, editFoodId: String) ->
             CreateFoodViewModel(
                 barcode = barcode.ifBlank { null },
                 name = name.ifBlank { null },
                 foodRepository = get(),
                 connectivity = get(),
                 savedState = get(),
+                editFoodId = editFoodId.ifBlank { null },
             )
         }
         viewModelOf(::OnboardingViewModel)

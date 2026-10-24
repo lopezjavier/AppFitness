@@ -4,6 +4,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.exceptions.NotFoundRestException
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -18,12 +19,15 @@ import io.github.lopezjavier.appfitness.data.remote.FoodSearchResponseDto
 import io.github.lopezjavier.appfitness.data.remote.LoggedFoodDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenParams
+import io.github.lopezjavier.appfitness.data.remote.UpdateFoodParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.OffMicronutrientsMapper
+import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.ktor.client.statement.bodyAsText
@@ -37,6 +41,8 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
 import kotlinx.serialization.json.Json
 
+private const val INVALID_PARAMETER = "22023"
+private const val NO_DATA_FOUND = "P0002"
 private const val RECENT_ENTRIES_LIMIT = 200
 private const val RECENT_FOODS_LIMIT = 30
 
@@ -172,6 +178,34 @@ class SupabaseFoodRepository(
             ?.also { listOf(it).remembered() }
             ?: throw AppException(AppError.NotFound)
     }
+
+    override suspend fun editableFood(id: String): Result<EditableFood> = auth.ownRow {
+        val row = readFood(id, FoodDto.EDIT_COLUMNS)?.takeIf { it.source == "user" }
+            ?: throw AppException(AppError.NotFound)
+        EditableFood(row.toDomain(), row.typedMicronutrients())
+    }
+
+    override suspend fun updateFood(food: UpdatedFood): Result<Food> = auth.ownRow {
+        try {
+            postgrest.rpc("update_personal_food", UpdateFoodParams.from(food))
+        } catch (failure: PostgrestRestException) {
+            throw when (failure.code) {
+                INVALID_PARAMETER -> AppException(AppError.Validation, failure)
+                NO_DATA_FOUND -> AppException(AppError.NotFound, failure)
+                else -> failure
+            }
+        }
+        // The food and its portions changed: drop every cached copy and read it back with the new portion ids.
+        known.update { it - food.id }
+        micronutrientsCache.update { it - food.id }
+        readFood(food.id, FoodDto.COLUMNS)?.toDomain()?.also { listOf(it).remembered() }
+            ?: throw AppException(AppError.NotFound)
+    }
+
+    private suspend fun readFood(id: String, columns: String): FoodDto? = postgrest.from("foods")
+        .select(Columns.raw(columns)) { filter { eq("id", id) } }
+        .decodeList<FoodDto>()
+        .firstOrNull()
 
     private fun List<Food>.remembered(): List<Food> = also { foods ->
         known.update { it + foods.associateBy(Food::id) }

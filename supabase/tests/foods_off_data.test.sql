@@ -62,7 +62,7 @@ select throws_ok(
   '23514', null, 'micronutrients must be a JSON object, not an array');
 select throws_ok(
   $$insert into public.foods (source, name, kcal_100, created_by, micronutrients)
-    values ('user', 'Clave', 10, '11111111-1111-4111-8111-111111111111', '{"vitamin-c_100g":1}')$$,
+    values ('user', 'Clave', 10, '11111111-1111-4111-8111-111111111111', '{"vitamin-zz_100g":1}')$$,
   '23514', null, 'micronutrients rejects unknown keys');
 select throws_ok(
   $$insert into public.foods (source, name, kcal_100, created_by, micronutrients)
@@ -167,7 +167,7 @@ select is((select micronutrients from public.foods where id = (select id from re
   'the legacy 9-argument call still works and stores null');
 
 select throws_ok(
-  $$select public.create_personal_food('Mala 1', null, 'g', 1, 0, 0, 0, null, '[]'::jsonb, '{"vitamin-c_100g":1}'::jsonb)$$,
+  $$select public.create_personal_food('Mala 1', null, 'g', 1, 0, 0, 0, null, '[]'::jsonb, '{"vitamin-zz_100g":1}'::jsonb)$$,
   '22023', 'invalid micronutrients', 'an unknown key is rejected');
 select throws_ok(
   $$select public.create_personal_food('Mala 2', null, 'g', 1, 0, 0, 0, null, '[]'::jsonb, '{"salt_100g":-1}'::jsonb)$$,

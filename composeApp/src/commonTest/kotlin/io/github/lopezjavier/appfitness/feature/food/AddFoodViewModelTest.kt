@@ -5,7 +5,9 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.LabelNutrientKey
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
@@ -13,6 +15,9 @@ import io.github.lopezjavier.appfitness.domain.model.Micronutrient
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
+import io.github.lopezjavier.appfitness.domain.model.NewPortion
+import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -24,6 +29,7 @@ import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -478,5 +484,136 @@ class AddFoodViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Desayuno", "Post-entreno", "Cena"), model.content().slots.map { it.label })
+    }
+    private val yogurt = food(
+        "yogurt",
+        "Yogur casero",
+        kcal = 60.0,
+        portions = listOf(FoodPortion("p1", "1 tarrina", 125.0)),
+        isManual = true,
+    )
+
+    @Test
+    fun aManualFoodCanBeEdited_anOffFoodCannot() = runTest(dispatcher) {
+        withFood(yogurt)
+        withFood(food("rice"))
+
+        val manual = viewModel("yogurt")
+        val off = viewModel("rice")
+        advanceUntilIdle()
+
+        assertTrue(manual.content().showEdit)
+        assertTrue(manual.content().canEdit)
+        assertFalse(off.content().showEdit)
+        assertFalse(off.content().canEdit)
+    }
+
+    @Test
+    fun offline_theEditActionStaysVisibleButIsDisabled() = runTest(dispatcher) {
+        withFood(yogurt)
+        connectivity.state.value = false
+        val model = viewModel("yogurt")
+        advanceUntilIdle()
+
+        assertTrue(model.content().showEdit)
+        assertFalse(model.content().canEdit)
+    }
+
+    @Test
+    fun labelNutrients_listMacrosAndExtrasInLabelOrder() = runTest(dispatcher) {
+        withFood(yogurt)
+        foods.micronutrientResults["yogurt"] = Result.success(
+            Micronutrients(
+                listOf(
+                    Micronutrient(MicronutrientKind.Sugars, 4.7, MicronutrientUnit.G),
+                    Micronutrient(MicronutrientKind.VitaminC, 0.8, MicronutrientUnit.MG),
+                ),
+            ),
+        )
+        val model = viewModel("yogurt")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                LabelNutrientKey.Energy,
+                LabelNutrientKey.Fat,
+                LabelNutrientKey.Carbs,
+                LabelNutrientKey.Extra(MicronutrientKind.Sugars),
+                LabelNutrientKey.Protein,
+                LabelNutrientKey.Extra(MicronutrientKind.VitaminC),
+            ),
+            model.content().labelNutrients.map { it.key },
+        )
+    }
+
+    @Test
+    fun refreshAfterAnEdit_showsTheNewValuesAndLogsWithThem() = runTest(dispatcher) {
+        withFood(yogurt)
+        val model = viewModel("yogurt")
+        advanceUntilIdle()
+        assertEquals(60.0, model.content().preview?.kcal)
+
+        foods.updateFood(
+            UpdatedFood(
+                "yogurt",
+                "Yogur casero",
+                null,
+                NutritionPer100(70.0, 3.5, 4.7, 3.0),
+                listOf(NewPortion("1 tarrina", 120.0)),
+            ),
+        )
+        model.onEvent(AddFoodEvent.Refresh)
+        advanceUntilIdle()
+        model.onEvent(AddFoodEvent.Submit)
+        advanceUntilIdle()
+
+        assertEquals(70.0, diary.added.single().snapshot.kcal)
+    }
+
+    @Test
+    fun refreshAfterAnEdit_keepsTheSelectedPortionByLabelAndFallsBackWhenItIsGone() = runTest(dispatcher) {
+        withFood(yogurt)
+        val model = viewModel("yogurt")
+        advanceUntilIdle()
+        model.onEvent(AddFoodEvent.PortionSelected("p1"))
+        advanceUntilIdle()
+
+        foods.updateFood(
+            UpdatedFood(
+                "yogurt",
+                "Yogur casero",
+                null,
+                yogurt.nutrition,
+                listOf(NewPortion("1 tarrina", 120.0)),
+            ),
+        )
+        model.onEvent(AddFoodEvent.Refresh)
+        advanceUntilIdle()
+        val renewed = model.content().food.portions.single()
+        assertEquals(renewed.id, model.content().selectedPortionId)
+        assertEquals(120.0, model.content().resolvedAmount)
+
+        foods.updateFood(UpdatedFood("yogurt", "Yogur casero", null, yogurt.nutrition, emptyList()))
+        model.onEvent(AddFoodEvent.Refresh)
+        advanceUntilIdle()
+        assertNull(model.content().selectedPortionId)
+        assertEquals("100", model.content().amountText)
+    }
+
+    @Test
+    fun editingAFood_neverChangesAnAlreadyLoggedEntryEvenOutsideTheLoadedRange() = runTest(dispatcher) {
+        withFood(yogurt)
+        val oldDay = LocalDate(2024, 1, 5)
+        val old = FoodLogEntry(
+            "e1", oldDay, "lunch", "yogurt", "Yogur casero", 125.0, "1 tarrina", "g", 75.0, 4.0, 5.0, 4.0,
+        )
+        diary.server[oldDay] = listOf(old)
+        diary.refresh(oldDay)
+
+        foods.updateFood(
+            UpdatedFood("yogurt", "Yogur casero", null, NutritionPer100(70.0, 3.5, 4.7, 3.0), emptyList()),
+        )
+
+        assertEquals(listOf(old), diary.entries(oldDay).first())
     }
 }

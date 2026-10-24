@@ -3,11 +3,14 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -37,6 +40,7 @@ internal fun food(
     servingAmount: Double? = null,
     servingLabel: String? = null,
     portions: List<FoodPortion> = emptyList(),
+    isManual: Boolean = false,
 ) = Food(
     id = id,
     name = name,
@@ -47,6 +51,7 @@ internal fun food(
     servingAmount = servingAmount,
     portions = portions,
     imageUrl = null,
+    isManual = isManual,
 )
 
 /** Test double of [BarcodeScanner]: answers [result] and counts the scans. */
@@ -151,6 +156,50 @@ internal class FakeFoodRepository : FoodRepository {
             imageUrl = null,
         )
         known[stored.id] = stored
+        return Result.success(stored)
+    }
+
+    /** The stored label values (grams per 100) of the manual foods, by id. */
+    val storedMicronutrients = mutableMapOf<String, Map<MicronutrientKind, Double>>()
+
+    /** How many following [editableFood] calls fail with a network error. */
+    var editableFailures = 0
+    val editableLoads = mutableListOf<String>()
+
+    override suspend fun editableFood(id: String): Result<EditableFood> {
+        editableLoads += id
+        val manual = known[id]?.takeIf { it.isManual }
+        return when {
+            editableFailures > 0 -> {
+                editableFailures--
+                Result.failure(AppException(AppError.Network))
+            }
+
+            manual == null -> Result.failure(AppException(AppError.NotFound))
+
+            else -> Result.success(EditableFood(manual, storedMicronutrients[id].orEmpty()))
+        }
+    }
+
+    /** The foods passed to [updateFood]. */
+    val updates = mutableListOf<UpdatedFood>()
+
+    /** When set, [updateFood] fails with it; otherwise it replaces the stored food and returns it. */
+    var updateFailure: Throwable? = null
+
+    override suspend fun updateFood(food: UpdatedFood): Result<Food> {
+        updates += food
+        val failure = updateFailure ?: if (food.id in known) null else AppException(AppError.NotFound)
+        if (failure != null) return Result.failure(failure)
+        val stored = known.getValue(food.id).copy(
+            name = food.name,
+            brand = food.brand,
+            nutrition = food.nutrition,
+            portions = food.portions.mapIndexed { i, p -> FoodPortion("u${updates.size}-$i", p.label, p.amount) },
+        )
+        known[stored.id] = stored
+        storedMicronutrients[stored.id] =
+            food.micronutrients.values.mapValues { (kind, v) -> kind.labelUnit.toGrams(v) }
         return Result.success(stored)
     }
 

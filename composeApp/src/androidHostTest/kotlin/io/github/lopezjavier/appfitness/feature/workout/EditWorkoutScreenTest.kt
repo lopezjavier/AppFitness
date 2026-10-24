@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -219,6 +220,10 @@ class EditWorkoutScreenTest {
         rule.onNodeWithTag("edit_workout_name").performScrollTo().performTextInput("!")
         save()
 
+        // The snackbar is posted from an effect after the failed save; wait for it instead of racing the frame.
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodesWithTag("edit_workout_snackbar").fetchSemanticsNodes().isNotEmpty()
+        }
         rule.onNodeWithTag("edit_workout_snackbar").assertExists()
         rule.onNodeWithTag("edit_workout_name").assertTextContains("Torso!")
         assertEquals(0, closed)

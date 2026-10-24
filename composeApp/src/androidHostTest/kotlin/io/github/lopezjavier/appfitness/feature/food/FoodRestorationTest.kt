@@ -134,23 +134,24 @@ class FoodRestorationTest {
     @Test
     fun micronutrientsSection_reappearsAfterRecreation_andTheExpandedStateIsKept() {
         foods.known["egg"] = egg
-        val kinds = MicronutrientKind.entries.take(8)
+        val kinds = MicronutrientKind.entries.take(10)
         foods.micronutrientResults["egg"] = Result.success(
             Micronutrients(kinds.map { Micronutrient(it, 1.0, MicronutrientUnit.MG) }),
         )
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(addModel(SavedStateHandle())) }
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_micronutrients").assertExists()
-        rule.onNodeWithTag("add_food_micronutrients_toggle").performClick()
+        rule.onNodeWithTag("add_food_label_nutrients").assertExists()
+        rule.onNodeWithTag("add_food_label_row_${micronutrientTag(kinds.last())}").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_toggle").performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_micronutrients").assertExists()
-        rule.onNodeWithTag("add_food_micronutrient_${micronutrientTag(kinds.last())}").assertExists()
-        rule.onNodeWithTag("add_food_micronutrients_toggle").assertTextEquals("Ver menos")
+        rule.onNodeWithTag("add_food_label_nutrients").assertExists()
+        rule.onNodeWithTag("add_food_label_row_${micronutrientTag(kinds.last())}").assertExists()
+        rule.onNodeWithTag("add_food_label_toggle").assertTextEquals("Ver menos")
     }
 
     @Test
@@ -170,7 +171,7 @@ class FoodRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("add_food_amount").assertTextContains("150")
-        rule.onNodeWithTag("add_food_micronutrient_fiber").assertExists()
+        rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
     }
 
     @Test

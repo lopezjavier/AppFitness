@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
@@ -108,7 +109,7 @@ class CreateFoodScreenTest {
         show()
         rule.onNodeWithTag("create_food_label_title").assertTextContains("Información de la etiqueta (opcional)")
         listOf("saturated_fat", "sugars", "fiber", "salt").forEach {
-            rule.onNodeWithTag("create_food_$it").assertExists()
+            rule.onNodeWithTag("create_food_nutrient_$it").assertExists()
         }
 
         fillTortilla()
@@ -120,14 +121,12 @@ class CreateFoodScreenTest {
     fun labelValues_reachTheCreatedFood_withCommaOrPoint() {
         show()
         fillTortilla()
-        type("create_food_fiber", "2,5")
-        type("create_food_salt", "0.5")
+        type("create_food_nutrient_fiber", "2,5")
+        type("create_food_nutrient_salt", "0.5")
         tap("create_food_save_button")
 
         val micro = foods.created.single().micronutrients
-        assertEquals(2.5, micro.fiber)
-        assertEquals(0.5, micro.salt)
-        assertEquals(null, micro.sugars)
+        assertEquals(mapOf(MicronutrientKind.Fiber to 2.5, MicronutrientKind.Salt to 0.5), micro.values)
     }
 
     @Test
@@ -137,8 +136,8 @@ class CreateFoodScreenTest {
                 CreateFoodScreen(
                     CreateFoodUiState(
                         name = "Pan",
-                        sugars = "-3",
-                        errors = NewFoodErrors(sugars = NewFoodError.Negative),
+                        nutrients = mapOf(MicronutrientKind.Sugars to "-3"),
+                        errors = NewFoodErrors(nutrients = mapOf(MicronutrientKind.Sugars to NewFoodError.Negative)),
                     ),
                     {},
                 )
@@ -146,7 +145,7 @@ class CreateFoodScreenTest {
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("create_food_sugars_error").assertTextContains("No puede ser negativo")
+        rule.onNodeWithTag("create_food_nutrient_sugars_error").assertTextContains("No puede ser negativo")
         rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
     }
 

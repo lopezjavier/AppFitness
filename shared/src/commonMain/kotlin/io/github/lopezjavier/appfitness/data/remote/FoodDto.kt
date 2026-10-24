@@ -4,10 +4,12 @@ import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -39,6 +41,8 @@ internal data class FoodDto(
     @SerialName("image_url") val imageUrl: String? = null,
     val portions: List<FoodPortionDto> = emptyList(),
     @SerialName("food_portions") val foodPortions: List<FoodPortionDto> = emptyList(),
+    val source: String? = null,
+    val micronutrients: JsonElement? = null,
 ) {
     fun toDomain(): Food = Food(
         id = id,
@@ -50,13 +54,25 @@ internal data class FoodDto(
         servingAmount = servingAmount,
         portions = (portions + foodPortions).sortedBy { it.position }.map { FoodPortion(it.id, it.label, it.amount) },
         imageUrl = imageUrl,
+        isManual = source == "user",
     )
+
+    /** The typed label values of a personal food in grams per 100, exactly as stored; unknown keys are ignored. */
+    fun typedMicronutrients(): Map<MicronutrientKind, Double> {
+        val stored = (micronutrients as? JsonObject) ?: return emptyMap()
+        return MicronutrientKind.editableKinds.mapNotNull { kind ->
+            (stored[kind.offKey + "_100g"] as? JsonPrimitive)?.content?.toDoubleOrNull()?.let { kind to it }
+        }.toMap()
+    }
 
     companion object {
         /** PostgREST `select` of a food with its portions. */
         const val COLUMNS =
             "id,name,brand,base_unit,kcal_100,protein_100,carbs_100,fat_100,serving_label,serving_amount,image_url," +
-                "food_portions(id,label,amount,position)"
+                "source,food_portions(id,label,amount,position)"
+
+        /** [COLUMNS] plus the stored label values, to edit a personal food. */
+        const val EDIT_COLUMNS = "$COLUMNS,micronutrients"
     }
 }
 
@@ -100,12 +116,45 @@ internal data class CreateFoodParams(
         )
 
         /** Only the typed values, keyed like the `foods.micronutrients` column; null when none was typed. */
-        private fun NewMicronutrients.toParam(): Map<String, Double>? = buildMap {
-            saturatedFat?.let { put("saturated-fat_100g", it) }
-            sugars?.let { put("sugars_100g", it) }
-            fiber?.let { put("fiber_100g", it) }
-            salt?.let { put("salt_100g", it) }
-        }.ifEmpty { null }
+        private fun NewMicronutrients.toParam(): Map<String, Double>? = toGramsParam().ifEmpty { null }
+    }
+}
+
+/** The typed values in grams per 100 base units, keyed `<offKey>_100g`, in label order. */
+private fun NewMicronutrients.toGramsParam(): Map<String, Double> {
+    val typed = values
+    return buildMap {
+        MicronutrientKind.entries.forEach { kind ->
+            typed[kind]?.let { put(kind.offKey + "_100g", kind.labelUnit.toGrams(it)) }
+        }
+    }
+}
+
+/** Arguments of the `update_personal_food` function; the food and its portions are replaced in one transaction. */
+@Serializable
+internal data class UpdateFoodParams(
+    @SerialName("p_food_id") val foodId: String,
+    @SerialName("p_name") val name: String,
+    @SerialName("p_brand") val brand: String?,
+    @SerialName("p_kcal") val kcal: Double,
+    @SerialName("p_protein") val protein: Double,
+    @SerialName("p_carbs") val carbs: Double,
+    @SerialName("p_fat") val fat: Double,
+    @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
+    @SerialName("p_micronutrients") val micronutrients: Map<String, Double>,
+) {
+    companion object {
+        fun from(food: UpdatedFood) = UpdateFoodParams(
+            foodId = food.id,
+            name = food.name.trim(),
+            brand = food.brand?.trim()?.takeIf { it.isNotEmpty() },
+            kcal = food.nutrition.kcal,
+            protein = food.nutrition.proteinG,
+            carbs = food.nutrition.carbsG,
+            fat = food.nutrition.fatG,
+            portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
+            micronutrients = food.micronutrients.toGramsParam(),
+        )
     }
 }
 

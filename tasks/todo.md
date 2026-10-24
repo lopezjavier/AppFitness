@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-102 (Editing manual foods), in a fresh session, once T-101a is merged (in progress on `feature/T-101a-checkpoint-e6b-fixes`). Checkpoint E6-B 👤: the user approved all of it on 2026-10-24, except the T-101a fix checks, which moved to E6-C (item 7). Last merged: T-101 (PR #181, merged by the user 2026-10-24); main `android-ci` red after that merge, see T-101a. E5 closed (tag `v0.5.0`).
+**Next:** T-102b (Edit a comida), in a fresh session, once T-102 is merged (PR #185); then Checkpoint E6-C 👤, then T-103 (closure). Last merged: T-101a (PR #183). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2757,18 +2757,18 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 **Description:** Only manual foods (`source = 'user'`, owned by the caller) are editable, from their food details ("Editar"; placement by ux-reviewer). The edit screen reuses the manual-food creation form (T-058/T-068) with one "Guardar" (ADR-45): name, brand, kcal, protein, carbs, fat, every label nutrient and the portions (add, edit, remove). The base unit is not editable. Edits apply to **future** diary entries only; past `food_log_entries` keep their ADR-32 snapshots (values, `food_name`, `portion_label`) and nothing is recomputed. Saved comidas compute from the food, so they use the new values. Removing a portion is allowed even if past entries used it (they keep their snapshot; ADR-53 records why the user's "block" rule was dropped); editing such an old entry falls back to the amount in base units. Open Food Facts foods show no edit action. Full label: the creation and edit forms offer the full Open Food Facts nutrient list (OFF keys, values ≥ 0, a known-keys whitelist), ordered as the Spanish label (EU Reg. 1169/2011 Annex XV: energy, fat, saturates, mono-unsaturates, polyunsaturates, carbohydrates, sugars, polyols, starch, fibre, protein, salt, then vitamins and minerals in Annex XIII order; `04` §2); the usual label rows are visible and the rest are reachable without a long scroll (layout by ux-reviewer). The food details of every food (manual and OFF) list nutrients in the same order and hide absent values (the shared mapper of T-068). Backend: a new migration with an edit RPC (e.g. `update_personal_food(p_food_id, p_name, p_brand, p_kcal, p_protein, p_carbs, p_fat, p_portions jsonb, p_micronutrients jsonb)`, `security invoker`, atomic with the portions; `P0002` for a food that is not the caller's manual food) and a new `create_personal_food` accepting the full key list; pgTAP. `03` §3/§6 updated.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: the edit RPC changes only the caller's manual food and its portions, atomically (an invalid portion saves nothing); OFF foods and other users' foods are refused; existing `food_log_entries` rows are byte-identical after an edit and after a portion removal; unknown nutrient keys and negative values are refused (`22023`) in both RPCs.
-- [ ] "Yogur casero" 60 → 70 kcal and "Guardar" → a new entry uses 70 kcal per 100 g; yesterday's entry (and one on a day outside the loaded diary range) keeps 60.
-- [ ] An OFF food's details have no edit action.
-- [ ] Adding "1 tarrina" = 125 g → offered when logging; changing it to 120 g → new entries use 120 g, past ones keep 125 g; removing it → no longer offered, past entries keep "1 tarrina".
-- [ ] The form accepts every label nutrient (incl. vitamins and minerals) in label order; the details of a manual and of an OFF food list nutrients in the same order and hide absent ones.
-- [ ] Leaving the edit screen without "Guardar" changes nothing; the edit draft survives leaving the app.
+- [x] Migration + pgTAP: the edit RPC changes only the caller's manual food and its portions, atomically (an invalid portion saves nothing); OFF foods and other users' foods are refused; existing `food_log_entries` rows are byte-identical after an edit and after a portion removal; unknown nutrient keys and negative values are refused (`22023`) in both RPCs.
+- [x] "Yogur casero" 60 → 70 kcal and "Guardar" → a new entry uses 70 kcal per 100 g; yesterday's entry (and one on a day outside the loaded diary range) keeps 60.
+- [x] An OFF food's details have no edit action.
+- [x] Adding "1 tarrina" = 125 g → offered when logging; changing it to 120 g → new entries use 120 g, past ones keep 125 g; removing it → no longer offered, past entries keep "1 tarrina".
+- [x] The form accepts every label nutrient (incl. vitamins and minerals) in label order; the details of a manual and of an OFF food list nutrients in the same order and hide absent ones.
+- [x] Leaving the edit screen without "Guardar" changes nothing; the edit draft survives leaving the app.
 
 **Host tests (per scenario):** `LabelNutrientOrderTest` (order and whitelist); `EditPersonalFoodViewModelTest` with fakes + Turbine (Editing a manual food; Adding / Editing / Removing a portion; Full label; discard without "Guardar"); `FoodDetailsViewModelTest` (edit action only for manual foods; Label order for every food); `FoodRepositoryTest` (RPC payloads); screen tests (Robolectric: field order, no edit for OFF); restoration tests; pgTAP `foods.test.sql` additions.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-101 (Checkpoint E6-B); independent of the training code
 **Files likely touched:** `supabase/migrations/<ts>_edit_personal_food.sql`, `supabase/tests/foods.test.sql`, `shared/…/domain/model/{Food,LabelNutrient}.kt`, `shared/…/domain/usecase/*` + tests, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, `composeApp/…/feature/diary/{CreateFoodScreen,CreateFoodViewModel,FoodDetailsScreen,FoodDetailsViewModel,NutrientFields}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `planning/03-data-model.md`, strings, tests
@@ -2819,7 +2819,7 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 
 ### Checkpoint E6-C — Food editing, final regression and approval 👤 (6 items + leave and come back)
 Journey: fix your own foods from their label, then one last real workout over everything E6 built. Why here: food editing (T-102) is its own journey in another domain, but it yields only 3 items, below the 5-item minimum, and only the closure follows it, so it joins the closing regression instead of calling the user twice in a row.
-- [ ] T-089…T-103 merged (incl. T-102b), CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
+- [ ] T-089…T-102b merged, CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Edit a comida (T-102b): in "Añadir comida" → Comidas, tapping a row adds it and the pencil opens "Editar comida"; rename it in the text field, swipe a food away or remove it from its details, add a food, "Guardar": everything applies together; leaving without "Guardar" changes nothing.
   2. Edit a manual food (T-102): open one of your foods, "Editar", change its kcal or a macro and "Guardar": a new diary entry uses the new values; the entries you logged before keep theirs. An Open Food Facts food has no "Editar".
