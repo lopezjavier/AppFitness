@@ -17,6 +17,9 @@ internal class FakeMealTemplateRepository(val foods: MutableMap<String, Food> = 
     val templates = mutableListOf<MealTemplate>()
     var listFailure: AppError? = null
     var saveFailure: AppError? = null
+
+    /** How many times [save] was called (successful or not). */
+    var saveCalls = 0
     var renameFailure: AppError? = null
     var deleteFailure: AppError? = null
     private var nextId = 1
@@ -46,6 +49,7 @@ internal class FakeMealTemplateRepository(val foods: MutableMap<String, Food> = 
         mealSlotId: String?,
         items: List<NewTemplateItem>,
     ): Result<String> {
+        saveCalls++
         saveError(id, name, items)?.let { return failure(it) }
         val savedId = id ?: "template-${nextId++}"
         val resolved = items.map { MealTemplateItem(foods.getValue(it.foodId), it.amount, it.portionLabel) }

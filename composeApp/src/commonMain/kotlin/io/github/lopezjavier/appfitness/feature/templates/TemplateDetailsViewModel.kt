@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
-import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -32,56 +34,75 @@ import kotlinx.coroutines.launch
 private const val KEY_AMOUNT = "template_details_amount_"
 private const val KEY_REMOVED = "template_details_removed_"
 private const val KEY_NAME = "template_details_draft_name"
-private const val KEY_SHEET = "template_details_sheet"
-private const val KEY_RENAME = "template_details_rename_text"
-private const val KEY_RENAME_TAKEN = "template_details_rename_taken"
-private const val KEY_NEW_NAME = "template_details_new_name"
-private const val KEY_NEW_TAKEN = "template_details_new_taken"
+private const val KEY_TAKEN = "template_details_taken_name"
+private const val KEY_ADDED_FOODS = "template_details_added_foods"
+private const val KEY_ADDED_AMOUNTS = "template_details_added_amounts"
+private const val KEY_ADDED_LABELS = "template_details_added_labels"
 private const val KEY_OPEN_FOOD = "template_details_open_food"
 private const val KEY_OPEN_FOOD_AMOUNT = "template_details_open_food_amount"
 private const val NO_FOOD = -1
+private const val NO_LABEL = ""
 
+/** The comida as read, and the (normalised) names of the other comidas, for the duplicate check. */
 private sealed interface DetailsLoaded {
     data object Loading : DetailsLoaded
 
     data object Failed : DetailsLoaded
 
-    data class Ready(val template: MealTemplate) : DetailsLoaded
+    data class Ready(val template: MealTemplate, val otherNames: Set<String>) : DetailsLoaded
 }
 
 /**
- * The user's draft, by item index: the amounts that were typed (an absent index keeps the saved amount), the removed
- * items, the new name (null: unchanged), the open sheet with its typed names, and the open food sheet.
+ * A food added in the editor. Its row index is the saved item count plus its position in the added list (the list is
+ * append-only, removed additions stay in it and in `removed`, so an index never changes).
+ */
+private data class AddedItem(val foodId: String, val amount: Double, val portionLabel: String?, val food: Food)
+
+/**
+ * The user's draft, by row index: the amounts that were typed (an absent index keeps the original amount), the removed
+ * rows, the new name (null: unchanged), the name the server refused, the added foods, and the open food sheet.
  */
 private data class DetailsDraft(
     val amounts: Map<Int, String>,
     val removed: Set<Int>,
     val name: String?,
-    val sheet: DetailsSheet,
-    val renameText: String,
-    val renameTaken: Boolean,
-    val newNameText: String,
-    val newNameTaken: Boolean,
+    val takenName: String?,
+    val added: List<AddedItem>,
     val openFood: Int?,
     val openFoodAmount: String?,
 )
+
+/** A food of the comida as drafted (saved or added), before the draft's amount is applied. */
+private class Entry(val index: Int, val food: Food, val amount: Double, val portionLabel: String?, val added: Boolean)
 
 private fun amountKey(index: Int) = "$KEY_AMOUNT$index"
 
 private fun removedKey(index: Int) = "$KEY_REMOVED$index"
 
-/** The items left, each with its index in the saved comida (the identity of an item; a food may repeat). */
-private fun remainingItems(template: MealTemplate, draft: DetailsDraft): List<IndexedValue<MealTemplateItem>> =
-    template.items.withIndex().filter { it.index !in draft.removed }
+private fun nameKey(name: String) = name.trim().lowercase()
 
-private fun amountText(draft: DetailsDraft, index: Int, item: MealTemplateItem) =
-    draft.amounts[index] ?: formatNumber(item.amount)
+/** Every food of the draft, saved ones first, then the added ones in the order they arrived. */
+private fun entries(template: MealTemplate, draft: DetailsDraft): List<Entry> {
+    val saved = template.items.mapIndexed { index, item ->
+        Entry(index, item.food, item.amount, item.portionLabel, added = false)
+    }
+    val added = draft.added.mapIndexed { position, item ->
+        Entry(template.items.size + position, item.food, item.amount, item.portionLabel, added = true)
+    }
+    return saved + added
+}
+
+/** The foods left, with the index that identifies each (a food may repeat). */
+private fun remainingEntries(template: MealTemplate, draft: DetailsDraft): List<Entry> =
+    entries(template, draft).filter { it.index !in draft.removed }
+
+private fun amountText(draft: DetailsDraft, entry: Entry) = draft.amounts[entry.index] ?: formatNumber(entry.amount)
 
 /**
- * Details and editor of a saved comida (US-21, ADR-45). Every change (amounts, removed foods, a new name) goes into a
- * draft that survives process death ([savedState], ADR-40) and is stored only by "Guardar" ("Sobrescribir" or
- * "Guardar como nueva"); totals and rows follow the draft. Changing an amount clears that food's portion label.
- * Saving and deleting need the server, so they do nothing offline; renaming is only a draft change.
+ * Editor of a saved comida (US-21, US-47, ADR-45). Every change (name, amounts, removed and added foods) goes into a
+ * draft that survives process death ([savedState], ADR-40) and is stored only by "Guardar", in a single request;
+ * totals and rows follow the draft. Changing an amount clears that food's portion label. Saving and deleting need the
+ * server, so they do nothing offline; renaming and the other draft changes work offline.
  */
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one function per user action.
 class TemplateDetailsViewModel(
@@ -128,39 +149,19 @@ class TemplateDetailsViewModel(
 
             is TemplateDetailsEvent.RemoveFood -> removeFood(event.index)
 
-            else -> onNameOrSaveEvent(event)
+            else -> onNameAddOrSaveEvent(event)
         }
     }
 
-    private fun onNameOrSaveEvent(event: TemplateDetailsEvent) {
+    private fun onNameAddOrSaveEvent(event: TemplateDetailsEvent) {
         when (event) {
-            TemplateDetailsEvent.OpenRename -> openRename()
-
-            is TemplateDetailsEvent.RenameNameChanged ->
-                updateDraft { it.copy(renameText = event.text, renameTaken = false) }
-
-            TemplateDetailsEvent.SubmitRename -> submitRename()
-
-            TemplateDetailsEvent.DismissRename, TemplateDetailsEvent.DismissSheet ->
-                updateDraft { it.copy(sheet = DetailsSheet.None) }
-
-            TemplateDetailsEvent.SaveClicked -> openChoice()
-
-            TemplateDetailsEvent.Overwrite -> overwrite()
-
-            TemplateDetailsEvent.SaveAsNew -> updateDraft { it.copy(sheet = DetailsSheet.NewName) }
-
-            is TemplateDetailsEvent.NewNameChanged ->
-                updateDraft { it.copy(newNameText = event.text, newNameTaken = false) }
-
-            TemplateDetailsEvent.SubmitNewName -> submitNewName()
-
+            is TemplateDetailsEvent.NameChanged -> updateDraft { it.copy(name = event.text) }
+            TemplateDetailsEvent.AddFoodClicked -> effectChannel.trySend(TemplateDetailsEffect.OpenFoodPicker)
+            is TemplateDetailsEvent.FoodPicked -> addFood(event)
+            TemplateDetailsEvent.SaveClicked -> saveDraft()
             TemplateDetailsEvent.Delete -> delete()
-
             TemplateDetailsEvent.Retry -> load(showLoading = true)
-
             TemplateDetailsEvent.Refresh -> load(showLoading = false)
-
             else -> Unit
         }
     }
@@ -168,8 +169,9 @@ class TemplateDetailsViewModel(
     private fun load(showLoading: Boolean) {
         if (showLoading) loaded.value = DetailsLoaded.Loading
         viewModelScope.launch {
-            val template = mealTemplates.list().getOrNull()?.firstOrNull { it.id == templateId }
-            if (template == null) {
+            val all = mealTemplates.list().getOrNull()
+            val template = all?.firstOrNull { it.id == templateId }
+            if (all == null || template == null) {
                 loaded.value = DetailsLoaded.Failed
                 return@launch
             }
@@ -180,46 +182,65 @@ class TemplateDetailsViewModel(
                 clearSavedDraft(previous)
                 draft.value = null
             }
-            if (draft.value == null) draft.value = initialDraft(template)
-            loaded.value = DetailsLoaded.Ready(template)
-            draft.value?.openFood?.let { loadMicronutrients(template, it) }
+            if (draft.value == null) {
+                val restored = initialDraft(template)
+                if (restored == null) {
+                    loaded.value = DetailsLoaded.Failed
+                    return@launch
+                }
+                draft.value = restored
+            }
+            val others = all.filter { it.id != templateId }.map { nameKey(it.name) }.toSet()
+            loaded.value = DetailsLoaded.Ready(template, others)
+            draft.value?.openFood?.let { index -> openFoodOf(template, index)?.let(::loadMicronutrients) }
         }
     }
 
     private fun clearSavedDraft(template: MealTemplate) {
-        template.items.indices.forEach {
+        val indices = template.items.indices + (template.items.size until template.items.size + addedCount())
+        indices.forEach {
             savedState.remove<String>(amountKey(it))
             savedState.remove<Boolean>(removedKey(it))
         }
-        savedState.remove<String>(KEY_NAME)
+        listOf(KEY_NAME, KEY_TAKEN, KEY_OPEN_FOOD_AMOUNT).forEach { savedState.remove<String>(it) }
+        listOf(KEY_ADDED_FOODS, KEY_ADDED_AMOUNTS, KEY_ADDED_LABELS).forEach {
+            savedState.remove<ArrayList<String>>(it)
+        }
         savedState.remove<Int>(KEY_OPEN_FOOD)
-        savedState.remove<String>(KEY_OPEN_FOOD_AMOUNT)
     }
 
-    private fun initialDraft(template: MealTemplate): DetailsDraft {
-        val restoredOpenFood = restoredOpenFood(template)
-        return restoredDraft(template, restoredOpenFood)
+    private fun addedCount() = savedState.get<ArrayList<String>>(KEY_ADDED_FOODS)?.size ?: 0
+
+    /** The draft saved by an earlier instance (or an empty one); null when an added food cannot be read again. */
+    private suspend fun initialDraft(template: MealTemplate): DetailsDraft? {
+        val added = restoredAdded() ?: return null
+        val total = template.items.size + added.size
+        val removed = (0 until total).filter { savedState.get<Boolean>(removedKey(it)) == true }.toSet()
+        val restoredOpenFood = savedState.get<Int>(KEY_OPEN_FOOD)
+            ?.takeIf { it in 0 until total && it != NO_FOOD && it !in removed }
+        return DetailsDraft(
+            amounts = (0 until total)
+                .mapNotNull { index -> savedState.get<String>(amountKey(index))?.let { index to it } }
+                .toMap(),
+            removed = removed,
+            name = savedState.get<String>(KEY_NAME),
+            takenName = savedState.get<String>(KEY_TAKEN),
+            added = added,
+            openFood = restoredOpenFood,
+            openFoodAmount = savedState.get<String>(KEY_OPEN_FOOD_AMOUNT)?.takeIf { restoredOpenFood != null },
+        )
     }
 
-    private fun restoredDraft(template: MealTemplate, restoredOpenFood: Int?) = DetailsDraft(
-        amounts = template.items.indices
-            .mapNotNull { index -> savedState.get<String>(amountKey(index))?.let { index to it } }
-            .toMap(),
-        removed = template.items.indices.filter { savedState.get<Boolean>(removedKey(it)) == true }.toSet(),
-        name = savedState.get<String>(KEY_NAME),
-        sheet = savedState.get<String>(KEY_SHEET)
-            ?.let { name -> DetailsSheet.entries.firstOrNull { it.name == name } }
-            ?: DetailsSheet.None,
-        renameText = savedState.get<String>(KEY_RENAME).orEmpty(),
-        renameTaken = savedState.get<Boolean>(KEY_RENAME_TAKEN) == true,
-        newNameText = savedState.get<String>(KEY_NEW_NAME).orEmpty(),
-        newNameTaken = savedState.get<Boolean>(KEY_NEW_TAKEN) == true,
-        openFood = restoredOpenFood,
-        openFoodAmount = savedState.get<String>(KEY_OPEN_FOOD_AMOUNT)?.takeIf { restoredOpenFood != null },
-    )
-
-    private fun restoredOpenFood(template: MealTemplate): Int? =
-        savedState.get<Int>(KEY_OPEN_FOOD)?.takeIf { it in template.items.indices && it != NO_FOOD }
+    private suspend fun restoredAdded(): List<AddedItem>? {
+        val ids = savedState.get<ArrayList<String>>(KEY_ADDED_FOODS).orEmpty()
+        val amounts = savedState.get<ArrayList<String>>(KEY_ADDED_AMOUNTS).orEmpty()
+        val labels = savedState.get<ArrayList<String>>(KEY_ADDED_LABELS).orEmpty()
+        val restored = ids.mapIndexed { position, id ->
+            val food = foodRepository.getById(id).getOrNull() ?: return null
+            AddedItem(id, amounts[position].toDouble(), labels[position].takeIf { it != NO_LABEL }, food)
+        }
+        return restored
+    }
 
     private fun updateDraft(change: (DetailsDraft) -> DetailsDraft) {
         val updated = change(draft.value ?: return)
@@ -232,11 +253,10 @@ class TemplateDetailsViewModel(
         // Removals only grow (a removed food cannot be restored), so nothing stale is left behind.
         current.removed.forEach { savedState[removedKey(it)] = true }
         savedState[KEY_NAME] = current.name
-        savedState[KEY_SHEET] = current.sheet.name
-        savedState[KEY_RENAME] = current.renameText
-        savedState[KEY_RENAME_TAKEN] = current.renameTaken
-        savedState[KEY_NEW_NAME] = current.newNameText
-        savedState[KEY_NEW_TAKEN] = current.newNameTaken
+        savedState[KEY_TAKEN] = current.takenName
+        savedState[KEY_ADDED_FOODS] = ArrayList(current.added.map { it.foodId })
+        savedState[KEY_ADDED_AMOUNTS] = ArrayList(current.added.map { it.amount.toString() })
+        savedState[KEY_ADDED_LABELS] = ArrayList(current.added.map { it.portionLabel ?: NO_LABEL })
         savedState[KEY_OPEN_FOOD] = current.openFood ?: NO_FOOD
         if (current.openFoodAmount == null) {
             savedState.remove<String>(KEY_OPEN_FOOD_AMOUNT)
@@ -245,13 +265,20 @@ class TemplateDetailsViewModel(
         }
     }
 
+    private fun openFoodOf(template: MealTemplate, index: Int): Food? =
+        draft.value?.let { entries(template, it) }?.firstOrNull { it.index == index }?.food
+
     private fun openFood(index: Int) {
-        val template = readyTemplate() ?: return
-        val current = draft.value ?: return
-        if (remainingItems(template, current).any { it.index == index }) {
-            val committed = amountText(current, index, template.items[index])
-            updateDraft { it.copy(openFood = index, openFoodAmount = committed) }
-            loadMicronutrients(template, index)
+        val template = readyTemplate()
+        val current = draft.value
+        val entry = if (template == null || current == null) {
+            null
+        } else {
+            remainingEntries(template, current).firstOrNull { it.index == index }
+        }
+        if (current != null && entry != null) {
+            updateDraft { it.copy(openFood = index, openFoodAmount = amountText(current, entry)) }
+            loadMicronutrients(entry.food)
         }
     }
 
@@ -266,8 +293,7 @@ class TemplateDetailsViewModel(
     }
 
     /** Optional info: a failure or an empty result just hides the section. */
-    private fun loadMicronutrients(template: MealTemplate, index: Int) {
-        val food = template.items.getOrNull(index)?.food ?: return
+    private fun loadMicronutrients(food: Food) {
         if (food.id in micronutrients.value) return
         viewModelScope.launch {
             foodRepository.micronutrients(food).getOrNull()?.takeIf { !it.isEmpty }?.let { found ->
@@ -280,7 +306,7 @@ class TemplateDetailsViewModel(
     private fun removeFood(index: Int) {
         val template = readyTemplate() ?: return
         val current = draft.value ?: return
-        val remaining = remainingItems(template, current)
+        val remaining = remainingEntries(template, current)
         if (remaining.size > 1 && remaining.any { it.index == index }) {
             updateDraft {
                 val stillOpen = it.openFood != index
@@ -293,71 +319,40 @@ class TemplateDetailsViewModel(
         }
     }
 
-    private fun openRename() {
-        updateDraft {
-            val name = it.name ?: readyTemplate()?.name.orEmpty()
-            it.copy(sheet = DetailsSheet.Rename, renameText = name, renameTaken = false)
+    /** Appends the picked food to the draft; it waits for the draft when the editor is still loading. */
+    private fun addFood(picked: TemplateDetailsEvent.FoodPicked) {
+        viewModelScope.launch {
+            val result = foodRepository.getById(picked.foodId)
+            val food = result.getOrNull()
+            if (food == null) {
+                effectChannel.send(TemplateDetailsEffect.ActionFailed(result.appErrorOrNull()))
+                return@launch
+            }
+            draft.filterNotNull().first()
+            updateDraft { it.copy(added = it.added + AddedItem(food.id, picked.amount, picked.portionLabel, food)) }
         }
     }
 
-    /** Only the draft changes: the name reaches the server with "Guardar". */
-    private fun submitRename() {
-        val current = draft.value ?: return
-        if (validateTemplateName(current.renameText) == TemplateNameCheck.Valid && !current.renameTaken) {
-            updateDraft { it.copy(name = it.renameText.trim(), sheet = DetailsSheet.None) }
-        }
-    }
-
-    private fun openChoice() {
-        if (currentContent()?.canSave == true) updateDraft { it.copy(sheet = DetailsSheet.Choose) }
-    }
-
-    private fun overwrite() {
+    private fun saveDraft() {
         val template = readyTemplate() ?: return
         val items = savableItems(template) ?: return
-        val name = draft.value?.name ?: template.name
-        save(templateId, name, template.mealSlotId, items, DetailsSheet.Rename)
-    }
-
-    private fun submitNewName() {
-        val template = readyTemplate() ?: return
-        val current = draft.value ?: return
-        val nameIsFree = validateTemplateName(current.newNameText) == TemplateNameCheck.Valid && !current.newNameTaken
-        val items = savableItems(template)
-        if (nameIsFree && items != null) {
-            save(null, current.newNameText.trim(), template.mealSlotId, items, DetailsSheet.NewName)
-        }
-    }
-
-    /** [onTaken] is the sheet that shows the "name already exists" error: the one holding the saved name. */
-    private fun save(id: String?, name: String, slotId: String?, items: List<NewTemplateItem>, onTaken: DetailsSheet) {
+        val name = (draft.value?.name ?: template.name).trim()
         busy.value = true
         viewModelScope.launch {
             try {
-                val result = mealTemplates.save(id, name, slotId, items)
+                val result = mealTemplates.save(templateId, name, template.mealSlotId, items)
                 if (result.isSuccess) {
                     effectChannel.send(TemplateDetailsEffect.Saved)
                     return@launch
                 }
                 val error = result.appErrorOrNull()
                 if (error == AppError.NameAlreadyExists) {
-                    showTakenName(onTaken, name)
+                    updateDraft { it.copy(takenName = nameKey(name)) }
                 } else {
-                    updateDraft { it.copy(sheet = DetailsSheet.None) }
                     effectChannel.send(TemplateDetailsEffect.ActionFailed(error))
                 }
             } finally {
                 busy.value = false
-            }
-        }
-    }
-
-    private fun showTakenName(sheet: DetailsSheet, name: String) {
-        updateDraft {
-            if (sheet == DetailsSheet.Rename) {
-                it.copy(sheet = sheet, renameText = name, renameTaken = true)
-            } else {
-                it.copy(sheet = sheet, newNameTaken = true)
             }
         }
     }
@@ -393,14 +388,14 @@ class TemplateDetailsViewModel(
         return if (currentContent()?.canSave != true) {
             null
         } else {
-            remainingItems(template, current).map { (index, item) ->
-                val text = amountText(current, index, item)
+            remainingEntries(template, current).map { entry ->
+                val text = amountText(current, entry)
                 NewTemplateItem(
-                    foodId = item.food.id,
+                    foodId = entry.food.id,
                     // canSave guarantees that every remaining amount parses.
                     amount = parseAmount(text) ?: 0.0,
                     // Only an untouched amount keeps its portion label; the label is just a snapshot of the amount.
-                    portionLabel = item.portionLabel.takeIf { text == formatNumber(item.amount) },
+                    portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
                 )
             }
         }
@@ -419,81 +414,84 @@ class TemplateDetailsViewModel(
         DetailsLoaded.Failed -> TemplateDetailsUiState.Error
 
         is DetailsLoaded.Ready ->
-            draft?.let { buildContent(loaded.template, it, micronutrients, online, busy) }
-                ?: TemplateDetailsUiState.Loading
+            draft?.let { buildContent(loaded, it, micronutrients, online, busy) } ?: TemplateDetailsUiState.Loading
+    }
+
+    private fun nameErrorOf(ready: DetailsLoaded.Ready, name: String, takenName: String?): TemplateNameError? = when {
+        validateTemplateName(name) == TemplateNameCheck.TooLong -> TemplateNameError.TooLong
+
+        nameKey(name) in ready.otherNames || (takenName != null && nameKey(name) == takenName) ->
+            TemplateNameError.Taken
+
+        else -> null
     }
 
     private fun buildContent(
-        template: MealTemplate,
+        ready: DetailsLoaded.Ready,
         current: DetailsDraft,
         micronutrients: Map<String, Micronutrients>,
         online: Boolean,
         busy: Boolean,
     ): TemplateDetailsUiState.Content {
-        val remaining = remainingItems(template, current)
-        val rows = remaining.map { (index, item) -> buildRow(index, item, current, remaining.size > 1) }
+        val template = ready.template
+        val remaining = remainingEntries(template, current)
+        val rows = remaining.map { buildRow(it, current, remaining.size > 1) }
         val name = current.name ?: template.name
+        val nameError = nameErrorOf(ready, name, current.takenName)
+        val nameValid = validateTemplateName(name) == TemplateNameCheck.Valid && nameError == null
         val isDirty = name.trim() != template.name ||
-            current.removed.isNotEmpty() ||
-            template.items.withIndex().any { (index, item) ->
-                parseAmount(amountText(current, index, item)) != item.amount
-            }
+            remaining.size != template.items.size ||
+            remaining.any { it.added || parseAmount(amountText(current, it)) != it.amount }
         val open = current.openFood?.let { index ->
-            remaining.firstOrNull { it.index == index }?.let { (_, item) ->
+            remaining.firstOrNull { it.index == index }?.let { entry ->
                 // Live preview: the open row follows the amount typed in the sheet, not the committed one.
-                buildRow(index, item, current, remaining.size > 1, current.openFoodAmount)
+                entry to buildRow(entry, current, remaining.size > 1, current.openFoodAmount)
             }
         }
         return TemplateDetailsUiState.Content(
             name = name,
+            nameError = nameError,
             totalKcal = rows.sumOf { it.kcal },
             totalProteinG = rows.sumOf { it.proteinG },
             totalCarbsG = rows.sumOf { it.carbsG },
             totalFatG = rows.sumOf { it.fatG },
             rows = rows,
-            canSave = isDirty && rows.isNotEmpty() && rows.all { it.quantityError == null } && online && !busy,
+            canSave = isDirty && nameValid && rows.isNotEmpty() && rows.all { it.quantityError == null } &&
+                online && !busy,
             isDirty = isDirty,
             isOffline = !online,
             busy = busy,
-            sheet = current.sheet,
-            openFood = open?.let {
-                val food = template.items[it.index].food
-                OpenFood(it, food, micronutrients[food.id], canSave = it.quantityError == null)
-            },
-            rename = nameDraft(current.renameText, current.renameTaken).takeIf { current.sheet == DetailsSheet.Rename },
-            newName = nameDraft(current.newNameText, current.newNameTaken).takeIf {
-                current.sheet == DetailsSheet.NewName
+            openFood = open?.let { (entry, row) ->
+                OpenFood(row, entry.food, micronutrients[entry.food.id], canSave = row.quantityError == null)
             },
         )
     }
 
-    private fun nameDraft(text: String, taken: Boolean) = RenameDraft(text, taken, validateTemplateName(text))
-
     private fun buildRow(
-        index: Int,
-        item: MealTemplateItem,
+        entry: Entry,
         current: DetailsDraft,
         removable: Boolean,
         pendingText: String? = null,
     ): DetailsRow {
-        val text = pendingText ?: amountText(current, index, item)
+        val text = pendingText ?: amountText(current, entry)
         val amount = parseAmount(text)
         val check = amount?.let { validateQuantity(it) } ?: QuantityCheck.TooLow
         val error = check.takeUnless { it == QuantityCheck.Valid }
-        val nutrition = scaleNutrition(item.food.nutrition, if (error == null) amount ?: 0.0 else 0.0)
+        val nutrition = scaleNutrition(entry.food.nutrition, if (error == null) amount ?: 0.0 else 0.0)
         return DetailsRow(
-            index = index,
-            foodId = item.food.id,
-            name = item.food.name,
-            unit = item.food.baseUnit,
+            index = entry.index,
+            foodId = entry.food.id,
+            name = entry.food.name,
+            unit = entry.food.baseUnit,
             amountText = text,
             quantityError = error,
-            portionLabel = item.portionLabel.takeIf { text == formatNumber(item.amount) },
+            portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
             kcal = nutrition.kcal,
             proteinG = nutrition.proteinG,
             carbsG = nutrition.carbsG,
             fatG = nutrition.fatG,
             removable = removable,
+            added = entry.added,
         )
     }
 }

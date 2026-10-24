@@ -109,7 +109,7 @@ class DiaryHistoryFlowTest {
         }
     }
 
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onAdd, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onAdd, _, _ ->
         Box(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("test_search_add").clickable(onClick = onAdd))
         }

@@ -39,8 +39,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
 
 /**
- * US-21 comida details as the editor: rows and header with nutrition, the food sheet, swipe to remove, and "Guardar"
- * with "Sobrescribir" / "Guardar como nueva". Nothing is stored before "Guardar".
+ * US-21 / US-47 comida editor: name field, rows and header with nutrition, the food sheet, swipe to remove, "Añadir
+ * alimento" and a single "Guardar" that applies everything together. Nothing is stored before "Guardar".
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -92,7 +92,7 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name").assertTextContains("Desayuno A")
+        rule.onNodeWithTag("template_details_name_field").assertTextContains("Desayuno A")
         rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
         rule.onNodeWithTag("template_details_macros").assertIsDisplayed()
         rule.onNodeWithText("P 42 g").assertIsDisplayed()
@@ -106,12 +106,58 @@ class TemplateDetailsScreenTest {
     }
 
     @Test
-    fun details_haveNoEditButton() {
+    fun editor_hasTheNameField_andNoRenamePencil_andNoSaveAsNew() {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_edit").assertDoesNotExist()
-        rule.onNodeWithText("Editar").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_name_field").assertIsDisplayed()
+        rule.onNodeWithTag("template_details_rename").assertDoesNotExist()
+        rule.onNodeWithText("Guardar como nueva").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_add_food").assertIsDisplayed()
+    }
+
+    @Test
+    fun anEmptyName_disablesGuardar() {
+        templates.templates += desayunoA
+        showDetails()
+
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("   ")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun aNameTakenByAnotherComida_showsTheHint_andDisablesGuardar() {
+        templates.templates += desayunoA
+        templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
+        showDetails()
+
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("comida 2 ")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("template_details_name_hint").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun theOwnNameUnchanged_showsNoHint() {
+        templates.templates += desayunoA
+        showDetails()
+
+        rule.onNodeWithTag("template_details_name_hint").assertDoesNotExist()
+    }
+
+    @Test
+    fun anAddFoodTap_asksForThePicker() {
+        templates.templates += desayunoA
+        showDetails()
+
+        rule.onNodeWithTag("template_details_add_food").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, callbacks.pickerOpened)
+        assertEquals(2, templates.templates.single().items.size)
     }
 
     @Test
@@ -276,67 +322,37 @@ class TemplateDetailsScreenTest {
     }
 
     @Test
-    fun guardar_afterChangingAnAmountAndRemovingAFood_asksWhetherToOverwriteOrSaveAsNew() {
+    fun guardar_appliesNameRemovalAndAmountTogether_inOneSave_andLeaves() {
         templates.templates += desayunoA
         showDetails()
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
         editFirstFoodTo("150")
         swipeRowToTheEnd(1)
 
         rule.onNodeWithTag("template_details_save").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("template_save_overwrite").assertIsDisplayed()
-        rule.onNodeWithTag("template_save_as_new").assertIsDisplayed()
-    }
-
-    @Test
-    fun sobrescribir_replacesTheFoodsAndQuantities_keepsTheName_andLeaves() {
-        templates.templates += desayunoA
-        showDetails()
-        editFirstFoodTo("150")
-        swipeRowToTheEnd(1)
-
-        rule.onNodeWithTag("template_details_save").performClick()
-        rule.onNodeWithTag("template_save_overwrite").performClick()
         rule.waitForIdle()
 
         val saved = templates.templates.single()
-        assertEquals("Desayuno A", saved.name)
+        assertEquals(1, templates.saveCalls)
+        assertEquals("Desayuno B", saved.name)
         assertEquals(listOf("eggs" to 150.0), saved.items.map { it.food.id to it.amount })
         assertTrue(callbacks.saved)
     }
 
     @Test
-    fun guardarComoNueva_withANewName_createsASecondComida_andLeavesTheOriginalUntouched() {
+    fun guardar_withANameTakenOnTheServer_showsTheHint_andKeepsTheDraft() {
         templates.templates += desayunoA
         showDetails()
-        editFirstFoodTo("200")
-
-        rule.onNodeWithTag("template_details_save").performClick()
-        rule.onNodeWithTag("template_save_as_new").performClick()
-        rule.onNodeWithTag("new_template_name").performTextReplacement("Desayuno B")
-        rule.onNodeWithTag("new_template_submit").performClick()
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Cena")
+        templates.templates += desayunoA.copy(id = "t2", name = "Cena")
         rule.waitForIdle()
 
-        assertEquals(listOf("Desayuno A", "Desayuno B"), templates.templates.map { it.name }.sorted())
-        assertEquals(120.0, templates.templates.first { it.name == "Desayuno A" }.items.first().amount, 0.0)
-        assertTrue(callbacks.saved)
-    }
-
-    @Test
-    fun guardarComoNueva_withATakenName_rejectsItInline_andSavesNothing() {
-        templates.templates += desayunoA
-        showDetails()
-        editFirstFoodTo("200")
-
         rule.onNodeWithTag("template_details_save").performClick()
-        rule.onNodeWithTag("template_save_as_new").performClick()
-        rule.onNodeWithTag("new_template_name").performTextReplacement("desayuno a")
-        rule.onNodeWithTag("new_template_submit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("new_template_name_error").assertTextEquals("Ya existe una comida con ese nombre")
-        assertEquals(1, templates.templates.size)
+        rule.onNodeWithTag("template_details_name_hint").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_details_name_field").assertTextContains("Cena")
+        assertEquals("Desayuno A", templates.templates.first { it.id == "t1" }.name)
         assertFalse(callbacks.saved)
     }
 
@@ -360,7 +376,7 @@ class TemplateDetailsScreenTest {
     )
 
     @Test
-    fun sobrescribir_afterEditingOneOfTwoRowsOfTheSameFood_keepsTheOtherRowUntouched() {
+    fun guardar_afterEditingOneOfTwoRowsOfTheSameFood_keepsTheOtherRowUntouched() {
         templates.templates += twiceEggs
         showDetails()
         rule.onNodeWithTag("template_details_item_1").performClick()
@@ -369,7 +385,6 @@ class TemplateDetailsScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("template_details_save").performClick()
-        rule.onNodeWithTag("template_save_overwrite").performClick()
         rule.waitForIdle()
 
         val saved = templates.templates.single()

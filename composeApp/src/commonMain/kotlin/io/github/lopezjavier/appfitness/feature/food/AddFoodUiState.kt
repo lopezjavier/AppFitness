@@ -38,6 +38,7 @@ data class AddFoodContent(
     val isOffline: Boolean,
     val submitting: Boolean,
     val micronutrients: MicronutrientsState = MicronutrientsState.Loading,
+    val pick: Boolean = false,
 ) {
     /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
     val showEdit: Boolean get() = food.isManual
@@ -52,9 +53,13 @@ data class AddFoodContent(
             (micronutrients as? MicronutrientsState.Shown)?.micronutrients ?: Micronutrients.Empty,
         )
 
-    /** The add button is enabled. */
+    /**
+     * The add button is enabled. In [pick] mode (choosing a food for a comida draft) no meal and no server are needed:
+     * nothing is logged.
+     */
     val canSubmit: Boolean
-        get() = quantityError == null && resolvedAmount != null && selectedSlotId != null && !isOffline && !submitting
+        get() = quantityError == null && resolvedAmount != null && !submitting &&
+            (pick || (selectedSlotId != null && !isOffline))
 }
 
 /**
@@ -88,6 +93,9 @@ sealed interface AddFoodEvent {
 sealed interface AddFoodEffect {
     /** The entry was logged: give haptic feedback and close back to the Diary. */
     data object Added : AddFoodEffect
+
+    /** Pick mode: the user confirmed [foodId] with [amount] (base unit) and a [portionLabel]; nothing is logged. */
+    data class Picked(val foodId: String, val amount: Double, val portionLabel: String?) : AddFoodEffect
 
     /** Logging failed; the sheet stays open with the user's input. */
     data class SubmitFailed(val error: AppError?) : AddFoodEffect

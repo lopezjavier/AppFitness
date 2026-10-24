@@ -121,10 +121,11 @@ data class ExerciseProgressRoute(val exerciseId: String) : AppRoute
 
 /**
  * Food search (US-17), opened from the Diary. [slotId] is the meal tapped there (null = the Diary-level add action)
- * and [date] the ISO day the food is logged to.
+ * and [date] the ISO day the food is logged to. With [pick] (also on the food routes it opens) it chooses a food for a
+ * comida draft instead: [slotId] and [date] are then unused and the result goes back to the comida editor.
  */
 @Serializable
-data class FoodSearchRoute(val slotId: String? = null, val date: String) : AppRoute
+data class FoodSearchRoute(val slotId: String? = null, val date: String, val pick: Boolean = false) : AppRoute
 
 /**
  * Create-food form (US-18), opened from the search with the scanned [barcode] and/or the typed [name]; [slotId] and
@@ -136,6 +137,7 @@ data class CreateFoodRoute(
     val name: String? = null,
     val slotId: String? = null,
     val date: String,
+    val pick: Boolean = false,
 ) : AppRoute
 
 /**
@@ -143,11 +145,13 @@ data class CreateFoodRoute(
  * when it is left); [slotId] and [date] are carried back to the sheet that reopens after "Guardar".
  */
 @Serializable
-data class EditFoodRoute(val foodId: String, val slotId: String? = null, val date: String) : AppRoute
+data class EditFoodRoute(val foodId: String, val slotId: String? = null, val date: String, val pick: Boolean = false) :
+    AppRoute
 
 /** The add-food sheet of [foodId], presented over the food search; [slotId] and [date] as in [FoodSearchRoute]. */
 @Serializable
-data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date: String) : AppRoute
+data class AddFoodRoute(val foodId: String, val slotId: String? = null, val date: String, val pick: Boolean = false) :
+    AppRoute
 
 /**
  * The edit sheet of the diary entry [entryId] of the ISO day [date] (US-19), presented over the Diary. It keeps the

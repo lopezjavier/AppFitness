@@ -12,10 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
-import io.github.lopezjavier.appfitness.composeapp.resources.template_add_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.template_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.template_items_count
 import io.github.lopezjavier.appfitness.composeapp.resources.template_summary
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -27,8 +28,9 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One comida: its name and "N alimentos · X kcal" (the total is neutral text, not a macro); tapping the text opens the
- * details ([onOpen]) and the separate "+" button adds it ([onAdd]), disabled offline ([enabled] false).
+ * One comida: its name and "N alimentos · X kcal" (the total is neutral text, not a macro). Tapping the row adds it
+ * ([onAdd], disabled offline: [enabled] false) and the trailing pencil opens its editor ([onOpen]). This departs from
+ * the "row opens details" rule on purpose (US-47).
  */
 @Composable
 internal fun TemplateRow(
@@ -55,7 +57,7 @@ internal fun TemplateRow(
         Column(
             Modifier
                 .weight(1f)
-                .clickable(onClick = onOpen)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onAdd)
                 .testTag("food_search_template_$id")
                 .padding(vertical = Spacing.sm),
         ) {
@@ -73,11 +75,10 @@ internal fun TemplateRow(
             )
         }
         AppIconButton(
-            contentDescription = stringResource(Res.string.template_add_cd, row.template.name),
-            icon = Res.drawable.ic_add,
-            testTag = "food_search_template_${id}_add",
-            onClick = onAdd,
-            enabled = enabled,
+            contentDescription = stringResource(Res.string.template_edit_cd, row.template.name),
+            icon = Res.drawable.ic_edit,
+            testTag = "food_search_template_${id}_edit",
+            onClick = onOpen,
         )
     }
 }

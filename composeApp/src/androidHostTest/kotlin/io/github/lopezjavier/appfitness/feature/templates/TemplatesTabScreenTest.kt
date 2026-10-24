@@ -151,7 +151,7 @@ class TemplatesTabScreenTest {
         rule.waitForIdle()
         openComidasTab()
 
-        rule.onNodeWithTag("food_search_template_t1_add").performClick()
+        rule.onNodeWithTag("food_search_template_t1").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("diary_screen").assertIsDisplayed()
@@ -179,21 +179,36 @@ class TemplatesTabScreenTest {
     }
 
     @Test
-    fun comidasTab_rowHasOnlyThePlusButton_noMenuOrManageButtons() {
+    fun comidasTab_rowHasOnlyThePencil_noPlusMenuOrDeleteButtons() {
         templates.templates += DesayunoA
         rule.setContent { SearchHost(search()) }
         rule.waitForIdle()
 
         openComidasTab()
 
-        rule.onNodeWithTag("food_search_template_t1_add").assertIsDisplayed()
+        rule.onNodeWithTag("food_search_template_t1_edit").assertIsDisplayed()
+        rule.onNodeWithTag("food_search_template_t1_add").assertDoesNotExist()
         rule.onNodeWithTag("food_search_template_t1_menu").assertDoesNotExist()
-        rule.onNodeWithTag("food_search_template_t1_edit").assertDoesNotExist()
         rule.onNodeWithTag("food_search_template_t1_delete").assertDoesNotExist()
     }
 
     @Test
-    fun tappingTheRow_opensTheDetailsOfTheComida() {
+    fun tappingThePencil_opensTheEditorOfTheComida_andAddsNothing() {
+        templates.templates += DesayunoA
+        var opened: String? = null
+        rule.setContent { RootHost(search()) { opened = it } }
+        rule.waitForIdle()
+        openComidasTab()
+
+        rule.onNodeWithTag("food_search_template_t1_edit").performClick()
+        rule.waitForIdle()
+
+        assertEquals("t1", opened)
+        assertEquals(emptyList<Any>(), diary.addedBatches)
+    }
+
+    @Test
+    fun tappingTheRow_addsTheComida_andDoesNotOpenTheEditor() {
         templates.templates += DesayunoA
         var opened: String? = null
         rule.setContent { RootHost(search()) { opened = it } }
@@ -203,7 +218,33 @@ class TemplatesTabScreenTest {
         rule.onNodeWithTag("food_search_template_t1").performClick()
         rule.waitForIdle()
 
-        assertEquals("t1", opened)
+        assertEquals(1, diary.addedBatches.size)
+        assertEquals(null, opened)
+    }
+
+    @Test
+    fun offline_tappingTheRow_addsNothing() {
+        templates.templates += DesayunoA
+        rule.setContent { SearchHost(search()) }
+        rule.waitForIdle()
+        openComidasTab()
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_search_template_t1").performClick()
+        rule.waitForIdle()
+
+        assertEquals(emptyList<Any>(), diary.addedBatches)
+    }
+
+    @Test
+    fun pickMode_hidesTheComidasTab_andKeepsTheOthers() {
+        rule.setContent { SearchHost(foodSearchModel(foods, connectivity, FakeBarcodeScanner(), pick = true)) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_search_tab_templates").assertDoesNotExist()
+        rule.onNodeWithTag("food_search_tab_recent").assertIsDisplayed()
+        rule.onNodeWithTag("food_search_tab_favourites").assertIsDisplayed()
     }
 
     @Test

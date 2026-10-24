@@ -221,7 +221,9 @@ internal fun foodSearchModel(
     templates: MealTemplateRepository = FakeMealTemplateRepository(),
     diary: FoodDiaryRepository = FakeFoodDiaryRepository(),
     clock: Clock = MutableClock(),
+    pick: Boolean = false,
 ) = FoodSearchViewModel(
+    pick = pick,
     foodRepository = repository,
     connectivity = connectivity,
     barcodeScanner = scanner,
