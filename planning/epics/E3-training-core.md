@@ -5,7 +5,7 @@ Plan routines calmly and run them at the gym with a "sweat-proof" interface: qui
 
 ## Scope
 - Includes: exercise catalog (with the RepDB asset bundle), a lightweight exercise detail, routines (with supersets), live session, ghost data, timer, history, and strength progress charts.
-- Out of scope: RPE, set types (warm-up/working), per-exercise metric types beyond weight × reps, warm-up/plate calculators, microcycles or weekly programs, cardio, public routine templates, advanced statistics. These arrive in **E6/E7** (`07-roadmap.md`).
+- Out of scope: RPE, set types (warm-up/working), per-exercise metric types beyond weight × reps, warm-up/plate calculators, microcycles or weekly programs, cardio, public routine templates, advanced statistics. These arrive in **E6/E8** (`07-roadmap.md`).
 - The training tables ship **forward-compatible** (ADR-30): E3 renders weight × reps and `working` sets, but the model already carries the types and columns marked *(E6)* in `03-data-model.md` §5 and the live set row is built **polymorphic**, so E6 adds features without a migration.
 
 ## Dependencies
@@ -442,7 +442,7 @@ Feature: Strength analytics
 
 **Technical notes**
 - `exercise_history` and `weekly_muscle_volume` RPCs + pgTAP with the examples from `04-business-rules.md` §4 (same values as the `EstimateOneRepMax` domain tests).
-- Vico charts in athleticCyan (training domain). E7 extends these charts with record markers and the non-weight metric families (US-39).
+- Vico charts in athleticCyan (training domain). E8 extends these charts with record markers and the non-weight metric families (US-39).
 
 ---
 

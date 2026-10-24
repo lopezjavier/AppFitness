@@ -1,4 +1,4 @@
-# E7 · Training insights → `v0.7.0`
+# E8 · Training insights → `v0.8.0`
 
 ## Goal
 Show real progress: per-exercise evolution, advanced statistics, muscle distribution and periodic reports, so the user can see whether they are getting stronger.
@@ -8,7 +8,7 @@ Show real progress: per-exercise evolution, advanced statistics, muscle distribu
 - Out of scope: the algorithmic program generator / trainer (Phase 2); social features, cardio plans and publishing/monetization limits (out of Phase 1, `01-phase1-scope.md` §4).
 
 ## Dependencies
-E3 (training core, the strength charts of US-15) and E6 (training depth).
+E3 (training core, the strength charts of US-15) and E6 (training depth). E7 precedes it in the roadmap but is not a functional dependency.
 
 ## Tables and RPC
 Built on `workout_sessions`/`workout_sets` and the exercise catalog. New statistics RPCs (time frames, sets per muscle group, current-vs-previous distribution) in `03-data-model.md` §6.
@@ -168,4 +168,4 @@ Feature: Streaks
 - The statistics RPCs are covered by unit and pgTAP tests with the `04-business-rules.md` examples.
 - Every screen has loading, empty and error states (`US-46`).
 - Numbers use tabular numerals and Spanish formatting (`04-business-rules.md` §5).
-- `prodDebug` APK validated by the user. Tag `v0.7.0`.
+- `prodDebug` APK validated by the user. Tag `v0.8.0`.

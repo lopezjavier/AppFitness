@@ -5,7 +5,7 @@ Turn the Phase 1 workout into a complete gym experience: typed sets and RPE, eve
 
 ## Scope
 - Includes: per-set routine targets (weight, reps and set type per planned set, moved from E3 by the user, 2026-10-19; first task of the epic; ADR-50), exercise detail (history and PR tabs), set types, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue, routine folders and next workout, routine tracking and "Actualizar rutina", workout detail/calendar and editing, past workouts, session controls, and **food editing** (US-47; user request 2026-10-22; ADR-53): edit manual foods and their portions, carry the full label nutrient list, and show nutrients in label order.
-- Out of scope: advanced statistics and reports (E7); the algorithmic program generator and trainer; social features, cardio plans and publishing/monetization limits (all out of Phase 1, `01-phase1-scope.md` §4).
+- Out of scope: advanced statistics and reports (E8); the algorithmic program generator and trainer; social features, cardio plans and publishing/monetization limits (all out of Phase 1, `01-phase1-scope.md` §4).
 - Deferred by the user at the E6 breakdown (2026-10-22, ADR-52; scenario text kept in `01-phase1-scope.md` §4.1): the live "¡Nuevo récord!" notification and its strength levels; the streak and rest days in the training calendar; copying a workout. Editing Open Food Facts foods is not allowed (ADR-53).
 
 ## Dependencies

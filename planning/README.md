@@ -2,7 +2,7 @@
 
 This folder is the **source of truth** for Phase 1 planning. It supersedes the original high-level documents (requirements, frontend features, user stories, orchestrator, workflow and local development notes), which are kept outside the repository. Claude Code operating rules live in `../CLAUDE.md`.
 
-Phase 2 (web client and AI) is out of scope for this planning; only what is deferred is noted.
+Phase 2 (web client, whole-meal photo estimation, adaptive calorie adjustment and the AI training assistant) is out of scope for this planning; only what is deferred is noted. Phase 1 does include single-food photo estimation, label/barcode photos, default comidas and cooking methods (E7).
 
 ## Index
 
