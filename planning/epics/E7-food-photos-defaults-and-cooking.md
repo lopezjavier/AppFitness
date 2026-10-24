@@ -5,12 +5,12 @@ Cut the typing out of food logging: create a personal food from a photo, fill a 
 
 ## Scope
 - Includes:
-  - **Photo food creation**: an "Añadir desde foto" action in the add-food screen with three modes (AI estimate of a dish, nutrition-label photo, barcode photo). A fixed prompt per mode, an optional comment for the dish estimate, editable AI values and portions, saved as a personal food and then logged through the normal add-to-meal sheet.
+  - **Photo food creation**: an "Añadir desde foto" action in the add-food screen with three modes (AI estimate of a dish, nutrition-label photo, barcode photo), using the system camera or the Android photo picker. A fixed prompt per mode, an optional comment for the dish estimate, editable AI values and portions, saved as a personal food and then logged through the normal add-to-meal sheet.
   - **Default comidas**: from Preferencias → Comidas, assign saved comidas (the user's "Comidas", not Open Food Facts foods) to a meal on selected weekdays; the first time a new day's Diary is opened, their foods are added automatically.
   - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat of the retained olive oil are added; the amounts are configurable in Preferencias. Saved comidas store an editable method per item; adding one or applying a default copies that method.
 - Out of scope:
   - Estimating a whole meal (several foods) from one photo; Phase 1 handles one food per photo.
-  - Storing, uploading or browsing food photos (no gallery, no Supabase Storage, no photo history).
+  - Storing, uploading or browsing food photos (no in-app gallery or photo history; the system photo picker only selects an image for inference, and no Supabase Storage is used).
   - The AI training assistant and adaptive calorie adjustment (Phase 2).
   - Micronutrient targets or totals (display only, ADR-43).
   - Midnight application, backfill of days the app was not opened, notifications and reminders.
@@ -42,7 +42,15 @@ Feature: Food from a photo
     Then the photo icon is shown directly below the barcode icon, with the description "Añadir desde foto"
     When they tap it
     Then they see "Estimar con IA", "Etiqueta nutricional" and "Código de barras"
-    And they can go back without taking a photo
+    And they can go back without choosing a photo
+
+  Scenario: Photo source
+    Given the user chooses a photo mode
+    Then they see "Hacer foto" and "Elegir de la galería"
+    When they choose "Elegir de la galería"
+    Then the Android photo picker opens
+    And selecting an image shows it with "Repetir" and "Usar foto"
+    And no media permission is requested
 
   Scenario: Dish estimate
     Given the user chooses "Estimar con IA"
@@ -51,6 +59,11 @@ Feature: Food from a photo
     And the manual-food form opens with the name "Tortilla de patatas", 180 kcal, 6 g protein, 15 g carbohydrates and 10 g fat per 100 g
     And the form includes the micronutrients the AI could estimate
     And a suggested portion "1 ración" of 250 g is prefilled
+
+  Scenario: Estimate from a gallery image
+    Given the user chooses "Estimar con IA"
+    When they choose "Elegir de la galería" and select a dish photo
+    Then the same estimate runs with that image
 
   Scenario: Optional comment
     When they write "Lleva poca cebolla y está hecha con aceite de oliva" before sending the photo
@@ -87,7 +100,7 @@ Feature: Food from a photo
 
 **Technical notes**
 - The add-food screen adds an `AppIconButton` with the photo action directly below the scanner button; the plus ("Crear alimento") action stays where it is.
-- `PhotoCapture` in the domain with an Android implementation using the system camera (`ActivityResultContracts.TakePicture` + `FileProvider`), so no camera permission or CameraX is introduced. Images are downscaled to at most 1600 px and compressed to JPEG (about 1.5 MB) before upload; the temporary file is deleted in all outcomes.
+- `PhotoCapture` in the domain with an Android implementation using the system camera (`ActivityResultContracts.TakePicture` + `FileProvider`) or the Android photo picker (`ActivityResultContracts.PickVisualMedia`). Both sources feed the same downscale/compress path; no camera or media permission and no CameraX are introduced. Images are downscaled to at most 1600 px and compressed to JPEG (about 1.5 MB) before upload; the temporary file is deleted in all outcomes.
 - The flow reuses `CreateFoodScreen`: an optional prefill (`NewFoodDraft`) opens it with the AI values instead of an empty form. Saving calls the existing `create_personal_food`; on success the current `AddFoodSheet` opens as after a manual creation.
 - `food-photo` is a Supabase Edge Function (`verify_jwt = true`). Request: `POST` JSON `{ image_base64, mode: "dish" | "label" | "barcode", comment?: string }`; the comment is optional, dish-only and at most 200 characters, and is passed as data, never as instructions. The fixed prompts live in the function, not in the app.
 - The function uses a **fixed response schema**: name, brand, base unit, nutrients per 100 base units, micronutrients keyed by OFF keys, optional estimated total grams and confidence. For a dish it converts the estimate to per-100 values and proposes `1 ración` with the estimated weight; for a label it extracts the printed per-100 values and does not invent missing ones; for a barcode it identifies the product and returns its per-100 values. Negatives are rejected or clamped to 0; a response without kcal and macros is an error.
@@ -326,7 +339,7 @@ Feature: Default comidas
 ## Epic Definition of Done
 - `food-photo` is covered by `deno test` with recorded Gemini fixtures (dish, label, barcode, unreadable, invalid input, provider error); CI never calls the network.
 - pgTAP covers `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the unique meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency (including no re-add after deleting entries).
-- Domain tests cover the cooking calculations and the weekday/selection helpers; host (Robolectric) tests cover the photo modes, the prefilled manual form, the cooking selector (add-to-meal, save-as-comida and edit-comida) and the default-comidas screen.
+- Domain tests cover the cooking calculations and the weekday/selection helpers; host (Robolectric) tests cover the camera/gallery sources, the photo modes, the prefilled manual form, the cooking selector (add-to-meal, save-as-comida and edit-comida) and the default-comidas screen.
 - No food photo, comment or provider response is stored or logged; the Gemini key exists only in Supabase secrets.
 - Every new screen has loading, empty, error and offline states; the photo and defaults flows survive leaving the app and coming back where a draft exists.
 - `prodDebug` APK validated by the user. Tag `v0.7.0`.

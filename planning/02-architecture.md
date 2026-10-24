@@ -133,7 +133,7 @@
 - **Migrations:** SQL in `supabase/migrations/`, at most one per story. A merged migration is never edited; a new one is created.
 - **pgTAP tests** (`supabase test db`): for every table, RLS is enabled and user A cannot read/write user B's data.
 - **Edge Functions** (Deno/TypeScript) with `verify_jwt = true` except `health`. Tested with `deno test`. Details in `03-data-model.md`.
-- **AI food photos (E7, ADR-59):** the app sends a downscaled JPEG to `food-photo`, which calls Gemini with a fixed mode prompt (dish, label or barcode) and returns a normalized draft; the app never holds the key or an AI SDK. The function has no storage dependency: the image exists only in the request/response lifetime. Barcode photos use the AI mode and never call `food-barcode`; the live scanner is unchanged.
+- **AI food photos (E7, ADR-59):** the app takes an image from the system camera or the Android photo picker (`PickVisualMedia`, no media permission) and sends a downscaled JPEG to `food-photo`, which calls Gemini with a fixed mode prompt (dish, label or barcode) and returns a normalized draft; the app never holds the key or an AI SDK. The function has no storage dependency: the image exists only in the request/response lifetime. Barcode photos use the AI mode and never call `food-barcode`; the live scanner is unchanged.
 - **Seed** (`seed.sql`): the `test@appfitness.local` user (local only; never applied in production). The exercise catalog rows are a generated migration, so they reach every database (ADR-39).
 - **Exercise assets** (gitignored RepDB bundle): `composeApp/src/commonMain/composeResources/files/exercises/`, written by `scripts/import-repdb.py`; `scripts/generate-exercise-catalog.py` produces the catalog migration (ADR-39).
 
