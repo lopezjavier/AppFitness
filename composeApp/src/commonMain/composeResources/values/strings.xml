@@ -251,6 +251,8 @@
     <string name="catalog_section_logo">Logotipo</string>
     <string name="catalog_section_exercise_media">Imágenes de ejercicio</string>
     <string name="routines_title">Mis rutinas</string>
+    <string name="routines_group_none">Sin carpeta</string>
+    <string name="routines_folder_name_duplicate">Ya existe una carpeta con ese nombre</string>
     <string name="routines_new">Nueva rutina</string>
     <plurals name="routines_count">
         <item quantity="one">%1$d ejercicio</item>
@@ -1245,9 +1247,7 @@
     <string name="calendar_empty_title">Aún no has entrenado</string>
     <string name="calendar_empty_message">Los días que entrenes aparecerán aquí.</string>
     <string name="calendar_error">No se pudo cargar el calendario.</string>
-    <string name="calendar_choices_title">Elige un entreno</string>
-    <string name="calendar_choices_close_cd">Cerrar sin elegir</string>
-    <string name="calendar_choice_cd">%1$s, %2$s</string>
+    <string name="calendar_day_cards_error">No se pudieron cargar los entrenos de ese día.</string>
     <string name="session_detail_split_title">Reparto muscular</string>
     <plurals name="session_detail_split_sets">
         <item quantity="one">%1$d serie</item>

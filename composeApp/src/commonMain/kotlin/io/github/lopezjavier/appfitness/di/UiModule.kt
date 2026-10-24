@@ -264,7 +264,16 @@ val uiModule =
             )
         }
         viewModelOf(::HistoryViewModel)
-        viewModel { WorkoutCalendarViewModel(repository = get(), clock = get(), savedState = get()) }
+        viewModel {
+            WorkoutCalendarViewModel(
+                repository = get(),
+                preferences = get(),
+                clock = get(),
+                bodyMeasurements = get(),
+                exercises = get(),
+                savedState = get(),
+            )
+        }
         viewModel { (sessionId: String) ->
             SessionDetailViewModel(
                 sessionId = sessionId,

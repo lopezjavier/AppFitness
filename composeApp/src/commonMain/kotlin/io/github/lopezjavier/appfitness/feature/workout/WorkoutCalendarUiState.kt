@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
-import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 
@@ -18,7 +17,7 @@ sealed interface WorkoutCalendarUiState {
     /**
      * The training calendar. [markedDays] are the days of the shown [month] with a workout ([dayCounts] says how many);
      * [yearCounts] feeds the multi-year list and [monthCounts] (month number 1-12 of [year]) the year view.
-     * [dayChoices] is non-empty while the picker of a day with 2+ workouts is open.
+     * [dayCards] are the summary cards of the [selectedDay]'s workouts.
      */
     data class Content(
         val view: WorkoutCalendarView,
@@ -32,8 +31,21 @@ sealed interface WorkoutCalendarUiState {
         val canGoNext: Boolean,
         /** The current day: later days of the grid are inert. */
         val today: LocalDate,
-        val dayChoices: List<TrainedSession> = emptyList(),
+        val dayCards: DayCardsState = DayCardsState.None,
     ) : WorkoutCalendarUiState
+}
+
+/** The summary cards below the grid for the selected day (ordered by start time). */
+sealed interface DayCardsState {
+    /** No day selected. */
+    data object None : DayCardsState
+
+    data object Loading : DayCardsState
+
+    /** Loading the day's sessions failed; [WorkoutCalendarEvent.RetryDayCards] tries again. */
+    data object Error : DayCardsState
+
+    data class Loaded(val rows: List<HistoryRow>) : DayCardsState
 }
 
 sealed interface WorkoutCalendarEvent {
@@ -57,12 +69,14 @@ sealed interface WorkoutCalendarEvent {
     /** From the multi-year list: shows that year's months. */
     data class SelectYear(val year: Int) : WorkoutCalendarEvent
 
-    /** Tap on a day: opens its workout, or the picker when there are two or more. */
+    /** Tap on a day with workouts: selects it and shows its cards (no navigation). */
     data class SelectDay(val date: LocalDate) : WorkoutCalendarEvent
 
-    data object DismissChoices : WorkoutCalendarEvent
+    /** Tap on a day card: opens that workout's detail. Ignored when it is not one of the selected day's. */
+    data class OpenSession(val sessionId: String) : WorkoutCalendarEvent
 
-    data class PickSession(val sessionId: String) : WorkoutCalendarEvent
+    /** Retries loading the selected day's cards. */
+    data object RetryDayCards : WorkoutCalendarEvent
 }
 
 sealed interface WorkoutCalendarEffect {

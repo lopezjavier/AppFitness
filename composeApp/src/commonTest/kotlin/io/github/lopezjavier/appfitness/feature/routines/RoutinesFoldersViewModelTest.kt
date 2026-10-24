@@ -141,6 +141,97 @@ class RoutinesFoldersViewModelTest {
         assertEquals("Brazos", vm.content().folderSheet?.name)
     }
 
+    // ---- Unique folder names ----
+
+    @Test
+    fun creatingWithAnExistingName_isRejected_andTheSheetStaysOpen() = runTest {
+        withFolder("f1", "Push")
+        val vm = started()
+
+        vm.onEvent(RoutinesEvent.NewFolder)
+        vm.onEvent(RoutinesEvent.FolderNameChanged("Push"))
+        vm.onEvent(RoutinesEvent.SaveFolder)
+        advanceUntilIdle()
+
+        assertTrue(vm.content().folderSheet!!.showDuplicateError)
+        assertTrue(!vm.content().folderSheet!!.canSave)
+        assertTrue(repository.createdFolders.isEmpty())
+    }
+
+    @Test
+    fun creatingWithAnExistingNameInOtherCaseAndSpaces_isRejected() = runTest {
+        withFolder("f1", "Push")
+        val vm = started()
+
+        vm.onEvent(RoutinesEvent.NewFolder)
+        vm.onEvent(RoutinesEvent.FolderNameChanged("  PUSH "))
+        vm.onEvent(RoutinesEvent.SaveFolder)
+        advanceUntilIdle()
+
+        assertTrue(vm.content().folderSheet!!.showDuplicateError)
+        assertTrue(repository.createdFolders.isEmpty())
+    }
+
+    @Test
+    fun renamingToAnotherFoldersName_isRejected() = runTest {
+        withFolder("f1", "Push")
+        withFolder("f2", "Pull")
+        val vm = started()
+
+        vm.onEvent(RoutinesEvent.RenameFolder("f2"))
+        vm.onEvent(RoutinesEvent.FolderNameChanged("push"))
+        vm.onEvent(RoutinesEvent.SaveFolder)
+        advanceUntilIdle()
+
+        assertTrue(vm.content().folderSheet!!.showDuplicateError)
+        assertEquals(listOf("Push", "Pull"), vm.content().folders.map { it.name })
+    }
+
+    @Test
+    fun renamingToItsOwnName_orChangingOnlyItsCase_isAllowed() = runTest {
+        withFolder("f1", "Push")
+        withFolder("f2", "Pull")
+        val vm = started()
+
+        vm.onEvent(RoutinesEvent.RenameFolder("f1"))
+        assertTrue(vm.content().folderSheet!!.canSave)
+        vm.onEvent(RoutinesEvent.FolderNameChanged("PUSH"))
+        assertTrue(!vm.content().folderSheet!!.showDuplicateError)
+        vm.onEvent(RoutinesEvent.SaveFolder)
+        advanceUntilIdle()
+
+        assertEquals(listOf("PUSH", "Pull"), vm.content().folders.map { it.name })
+        assertNull(vm.content().folderSheet)
+    }
+
+    @Test
+    fun typingADifferentName_clearsTheDuplicateError_andSaves() = runTest {
+        withFolder("f1", "Push")
+        val vm = started()
+
+        vm.onEvent(RoutinesEvent.NewFolder)
+        vm.onEvent(RoutinesEvent.FolderNameChanged("Push"))
+        vm.onEvent(RoutinesEvent.FolderNameChanged("Legs"))
+        assertTrue(!vm.content().folderSheet!!.showDuplicateError)
+        vm.onEvent(RoutinesEvent.SaveFolder)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Legs"), repository.createdFolders)
+    }
+
+    @Test
+    fun aRestoredSheetWithADuplicateName_stillShowsTheError() = runTest {
+        withFolder("f1", "Push")
+        val first = started()
+        first.onEvent(RoutinesEvent.NewFolder)
+        first.onEvent(RoutinesEvent.FolderNameChanged("push"))
+
+        val second = viewModel(savedState)
+        advanceUntilIdle()
+
+        assertTrue(second.content().folderSheet!!.showDuplicateError)
+    }
+
     // ---- Deleting a folder ----
 
     @Test

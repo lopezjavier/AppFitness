@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-101a (Checkpoint E6-B fixes), in a fresh session, after the user's OK on its open points. Checkpoint E6-B 👤 is open (presented 2026-10-24; feedback received, fixes first). Last merged: T-101 (PR #181, merged by the user 2026-10-24); main `android-ci` red after that merge, see T-101a. E5 closed (tag `v0.5.0`).
+**Next:** T-102 (Editing manual foods), in a fresh session, once T-101a is merged (in progress on `feature/T-101a-checkpoint-e6b-fixes`). Checkpoint E6-B 👤: the user approved all of it on 2026-10-24, except the T-101a fix checks, which moved to E6-C (item 7). Last merged: T-101 (PR #181, merged by the user 2026-10-24); main `android-ci` red after that merge, see T-101a. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2723,8 +2723,8 @@ Journey: everything about a gym session, from planning the sets to the records a
 3. History calendar: tapping a day no longer opens the workout detail directly. The day is selected and a summary card per workout of that day (name, duration, volume) appears below the calendar; tapping a card opens the detail. The selected day survives leaving the app. **Open: the user has not confirmed this behaviour.**
 
 **Acceptance criteria:**
-- [ ] Host tests: the "Sin carpeta" label in the list and the picker; a duplicate folder name is rejected on create and rename (case and space insensitive); a day tap shows the summary cards (one or two) and only a card tap opens the detail; the selected day is restored after leaving the app.
-- [ ] Lint + `testLocalDebugUnitTest` green; main `android-ci` red after the T-101 merge (`3a692c4`) diagnosed first by the user's retry or shared error (CI-red rule).
+- [x] Host tests: the "Sin carpeta" label in the list and the picker; a duplicate folder name is rejected on create and rename (case and space insensitive); a day tap shows the summary cards (one or two) and only a card tap opens the detail; the selected day is restored after leaving the app.
+- [x] Lint + `testLocalDebugUnitTest` green; main `android-ci` red after the T-101 merge (`3a692c4`) diagnosed first by the user's retry or shared error (CI-red rule).
 
 **Dependencies:** T-101 · **Estimated scope:** S–M
 
@@ -2737,7 +2737,7 @@ Journey: everything about a gym session, from planning the sets to the records a
 ### Checkpoint E6-B — Organise routines and manage past workouts 👤 (7 items + leave and come back)
 Journey: the work around the session, outside the gym ("Mis rutinas" and "Historial"): arrange routines, keep them up to date, and review, fix, reuse or back-fill workouts. Why here: T-098…T-101 are that journey; "Guardar como rutina" and past workouts from a routine feed the routine tools, so they are tried together. Only food editing (another domain) and the closure follow. Items are merged per thing to try: create/rename/delete folder together, next workout with order, the three tracking outcomes together, detail with calendar, edit with delete.
 - [ ] T-098…T-101 merged, CI green, `deploy-supabase` applied the migrations, every reported bug fixed; production routines keep their order.
-- [ ] 👤 Install the APK and try:
+- [x] 👤 Install the APK and try (the rest of E6-B approved by the user 2026-10-24; only the T-101a fix checks moved to E6-C):
   1. Folders (T-098): create "Push/Pull/Legs", move two routines into it and rename it; then delete a test folder with a few routines: the confirmation says how many will be deleted; cancel changes nothing; confirm deletes the folder and its routines, and their past workouts stay in "Historial". An empty folder goes at once.
   2. Next workout and order (T-098): set "Torso fuerza" as the next workout: it is highlighted (setting another moves it); drag routines into your order (or "Subir"/"Bajar"); a new or duplicated routine goes at the end.
   3. Routine tracking (T-099): train a routine exactly as planned: nothing is asked. Train it adding a set and changing a rest with "Descanso": "Actualizar rutina" updates it, "Mantener rutina original" leaves it; with "Actualizar automáticamente" on, it updates without asking.
@@ -2827,6 +2827,7 @@ Journey: fix your own foods from their label, then one last real workout over ev
   4. Full label (T-102): create or edit a manual food from a real Spanish label, filling energy, fat, saturates, carbohydrates, sugars, fibre, protein, salt and some vitamins or minerals: the fields and the food details follow the label order; an Open Food Facts food's details use the same order.
   5. One real workout end to end (epic DoD): start your next workout from its folder, with planned sets and a warm-up from the calculator, log RPE, a bodyweight or timed exercise, pause and resume, delete a set, beat a record, finish and choose "Actualizar rutina".
   6. Afterwards check the exercise detail, the workout detail and the calendar, and Fuerza with "Incluir calentamiento" on and off.
+  7. Carried over from Checkpoint E6-B (T-101a fixes, user decision 2026-10-24): the unfoldered routines are labelled "Sin carpeta" (list and move picker); creating or renaming a folder to an existing name (any case, extra spaces) shows "Ya existe una carpeta con ese nombre" and cannot be saved; in the calendar a day tap selects the day and shows one card per workout (name, duration, volume), a card tap opens the detail, and the selected day survives leaving the app.
   - Leave the app and come back mid-workout and with a food edit half done: the same tab, screen and draft are restored.
   - Approval → `git tag -a v0.6.0 -m "Epic E6"` + `git push --tags` + retrospective (T-103).
 

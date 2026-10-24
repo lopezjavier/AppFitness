@@ -27,6 +27,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_del
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_message
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_title
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_group_none
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_move_close_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_move_down
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_move_sheet_title
@@ -35,7 +36,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_move_up
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_next_clear
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_next_set
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_offline_reason
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_title
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -163,7 +163,7 @@ private fun MoveSheet(routine: RoutineSummary, state: RoutinesUiState.Content, o
             }
             val currentFolder = state.folders.firstOrNull { it.id == routine.folderId }?.id
             SheetActionRow(
-                label = stringResource(Res.string.routines_title),
+                label = stringResource(Res.string.routines_group_none),
                 onClick = { onEvent(RoutinesEvent.MoveToFolder(routine.id, null)) },
                 testTag = "routines_move_target_none",
                 enabled = currentFolder != null,

@@ -2,7 +2,11 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -35,8 +39,17 @@ class WorkoutCalendarViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) =
-        WorkoutCalendarViewModel(repository, MutableClock(), savedState, TimeZone.UTC)
+    private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
+
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) = WorkoutCalendarViewModel(
+        repository,
+        FakeTrainingPreferencesRepository(),
+        MutableClock(),
+        FakeWeightRepository(),
+        exercises,
+        savedState,
+        TimeZone.UTC,
+    )
 
     private fun WorkoutCalendarViewModel.content() = assertIs<WorkoutCalendarUiState.Content>(uiState.value)
 
@@ -94,8 +107,10 @@ class WorkoutCalendarViewModelTest {
         assertEquals(WorkoutCalendarView.Month, model.content().view)
         assertEquals(setOf(oldDay), model.content().markedDays)
 
+        model.onEvent(WorkoutCalendarEvent.SelectDay(oldDay))
+        advanceUntilIdle()
         model.effects.test {
-            model.onEvent(WorkoutCalendarEvent.SelectDay(oldDay))
+            model.onEvent(WorkoutCalendarEvent.OpenSession("old"))
             assertEquals(WorkoutCalendarEffect.OpenSession("old"), awaitItem())
         }
     }
@@ -124,21 +139,30 @@ class WorkoutCalendarViewModelTest {
         assertEquals(YearMonth(2026, 10), model.content().month)
     }
 
+    private fun WorkoutCalendarViewModel.rows() = assertIs<DayCardsState.Loaded>(content().dayCards).rows
+
     @Test
-    fun tappingADayWithOneWorkoutOpensItDirectly() = runTest(dispatcher) {
-        repository.completed += completedSession("a", 0)
+    fun tappingADayWithOneWorkoutSelectsItAndShowsItsCardWithoutNavigating() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0, name = "Pierna")
         val model = viewModel()
         advanceUntilIdle()
 
         model.effects.test {
             model.onEvent(WorkoutCalendarEvent.SelectDay(today))
-            assertEquals(WorkoutCalendarEffect.OpenSession("a"), awaitItem())
+            assertEquals(DayCardsState.Loading, model.content().dayCards)
+            advanceUntilIdle()
+            expectNoEvents()
         }
-        assertTrue(model.content().dayChoices.isEmpty())
+        assertEquals(today, model.content().selectedDay)
+        val card = model.rows().single()
+        assertEquals("a", card.id)
+        assertEquals("Pierna", card.name)
+        assertEquals(52 * 60L, card.durationSeconds)
+        assertEquals(1400.0, card.volumeKg)
     }
 
     @Test
-    fun tappingADayWithTwoWorkoutsShowsChoicesAndPickingOneOpensIt() = runTest(dispatcher) {
+    fun tappingADayWithTwoWorkoutsShowsTwoCardsOrderedByStart() = runTest(dispatcher) {
         repository.completed += listOf(
             completedSession("late", 0, hourOffset = 8),
             completedSession("early", 0),
@@ -147,29 +171,26 @@ class WorkoutCalendarViewModelTest {
         advanceUntilIdle()
         assertEquals(2, model.content().dayCounts.getValue(today))
 
-        model.effects.test {
-            model.onEvent(WorkoutCalendarEvent.SelectDay(today))
-            expectNoEvents()
-            assertEquals(listOf("early", "late"), model.content().dayChoices.map { it.id })
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+        advanceUntilIdle()
 
-            model.onEvent(WorkoutCalendarEvent.PickSession("late"))
-            assertEquals(WorkoutCalendarEffect.OpenSession("late"), awaitItem())
-        }
-        assertTrue(model.content().dayChoices.isEmpty())
+        assertEquals(listOf("early", "late"), model.rows().map { it.id })
     }
 
     @Test
-    fun dismissingTheChoicesClosesThemWithoutOpeningAnything() = runTest(dispatcher) {
-        repository.completed += listOf(completedSession("late", 0, hourOffset = 8), completedSession("early", 0))
+    fun openSessionFromACardEmitsTheEffect_andAnIdOutsideTheDayIsIgnored() = runTest(dispatcher) {
+        repository.completed += listOf(completedSession("a", 0), completedSession("other", 2))
         val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
         advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(WorkoutCalendarEvent.SelectDay(today))
-            model.onEvent(WorkoutCalendarEvent.DismissChoices)
+            model.onEvent(WorkoutCalendarEvent.OpenSession("other"))
             expectNoEvents()
+            model.onEvent(WorkoutCalendarEvent.OpenSession("a"))
+            assertEquals(WorkoutCalendarEffect.OpenSession("a"), awaitItem())
         }
-        assertTrue(model.content().dayChoices.isEmpty())
     }
 
     @Test
@@ -183,7 +204,62 @@ class WorkoutCalendarViewModelTest {
             model.onEvent(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 25)))
             expectNoEvents()
         }
-        assertTrue(model.content().dayChoices.isEmpty())
+        assertEquals(null, model.content().selectedDay)
+        assertEquals(DayCardsState.None, model.content().dayCards)
+    }
+
+    @Test
+    fun tappingTheSameDayTwiceKeepsItSelectedWithItsCards() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+        advanceUntilIdle()
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+        advanceUntilIdle()
+
+        assertEquals(today, model.content().selectedDay)
+        assertEquals(listOf("a"), model.rows().map { it.id })
+    }
+
+    @Test
+    fun aCardLoadFailureShowsTheErrorAndRetryRecovers() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+        repository.getSessionFailure = AppError.Network
+
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+        advanceUntilIdle()
+        assertEquals(DayCardsState.Error, model.content().dayCards)
+
+        repository.getSessionFailure = null
+        model.onEvent(WorkoutCalendarEvent.RetryDayCards)
+        advanceUntilIdle()
+
+        assertEquals(listOf("a"), model.rows().map { it.id })
+    }
+
+    @Test
+    fun refreshDropsADeletedWorkoutsCard_andClearsTheSelectionWhenTheDayEmpties() = runTest(dispatcher) {
+        repository.completed += listOf(completedSession("a", 0), completedSession("b", 0, hourOffset = 3))
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+        advanceUntilIdle()
+
+        repository.completed.removeAll { it.id == "b" }
+        model.onEvent(WorkoutCalendarEvent.Refresh)
+        advanceUntilIdle()
+        assertEquals(listOf("a"), model.rows().map { it.id })
+
+        repository.completed.removeAll { it.id == "a" }
+        repository.completed += completedSession("c", 2)
+        model.onEvent(WorkoutCalendarEvent.Refresh)
+        advanceUntilIdle()
+        assertEquals(null, model.content().selectedDay)
+        assertEquals(DayCardsState.None, model.content().dayCards)
     }
 
     @Test
@@ -217,7 +293,7 @@ class WorkoutCalendarViewModelTest {
     }
 
     @Test
-    fun viewMonthYearAndOpenChoicesSurviveARecreatedViewModel() = runTest(dispatcher) {
+    fun viewMonthYearAndSelectedDayWithItsCardsSurviveARecreatedViewModel() = runTest(dispatcher) {
         repository.completed += listOf(
             completedSession("late", 0, hourOffset = 8),
             completedSession("early", 0),
@@ -239,7 +315,7 @@ class WorkoutCalendarViewModelTest {
         assertEquals(YearMonth(2026, 10), content.month)
         assertEquals(2026, content.year)
         assertEquals(today, content.selectedDay)
-        assertEquals(listOf("early", "late"), content.dayChoices.map { it.id })
+        assertEquals(listOf("early", "late"), second.rows().map { it.id })
     }
 
     @Test
@@ -265,7 +341,6 @@ class WorkoutCalendarViewModelTest {
                 "calendar_month" to "banana",
                 "calendar_year" to "x",
                 "calendar_selected_day" to "2026-13-45",
-                "calendar_choices_open" to "maybe",
             ),
         )
 
@@ -277,7 +352,7 @@ class WorkoutCalendarViewModelTest {
         assertEquals(YearMonth(2026, 10), content.month)
         assertEquals(2026, content.year)
         assertEquals(null, content.selectedDay)
-        assertTrue(content.dayChoices.isEmpty())
+        assertEquals(DayCardsState.None, content.dayCards)
     }
 
     @Test

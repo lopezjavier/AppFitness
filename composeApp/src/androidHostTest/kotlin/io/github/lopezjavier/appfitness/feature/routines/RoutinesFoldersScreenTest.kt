@@ -16,6 +16,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -80,7 +81,7 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithTag("routines_folder_f1").assertTextContains("Fuerza")
         rule.onNodeWithTag("routines_folder_f1").assertTextContains("3 rutinas")
         rule.onNodeWithTag("routines_row_r1").assertTextContains("Torso A")
-        rule.onNodeWithTag("routines_group_none").assertTextContains("Mis rutinas")
+        rule.onNodeWithTag("routines_group_none").assertTextContains("Sin carpeta")
         rule.onNodeWithTag("routines_row_r4").assertTextContains("Pierna")
     }
 
@@ -149,6 +150,30 @@ class RoutinesFoldersScreenTest {
         assertEquals(listOf("Piernas"), repository.createdFolders)
         rule.onNodeWithTag("routines_folder_save_button").assertDoesNotExist()
         rule.onNodeWithText("Piernas").assertExists()
+    }
+
+    @Test
+    fun creatingAFolderWithAnExistingName_showsTheErrorAndDisablesGuardar() {
+        show()
+        click("routines_new_folder_button")
+
+        rule.onNodeWithTag("routines_folder_name_field").performTextInput(" fuerza ")
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Ya existe una carpeta con ese nombre").assertExists()
+        rule.onNodeWithTag("routines_folder_save_button").assertIsNotEnabled()
+    }
+
+    @Test
+    fun renamingAFolderToAnotherFoldersName_showsTheErrorAndDisablesGuardar() {
+        show()
+        click("routines_folder_rename_f2")
+        rule.onNodeWithTag("routines_folder_name_field").performTextClearance()
+        rule.onNodeWithTag("routines_folder_name_field").performTextInput("Fuerza")
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Ya existe una carpeta con ese nombre").assertExists()
+        rule.onNodeWithTag("routines_folder_save_button").assertIsNotEnabled()
     }
 
     @Test
@@ -289,6 +314,7 @@ class RoutinesFoldersScreenTest {
         openMenu("r4")
         click("routines_menu_move_r4")
         rule.onNodeWithTag("routines_move_target_none").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_move_target_none").assertTextContains("Sin carpeta")
 
         click("routines_move_target_f2")
 
