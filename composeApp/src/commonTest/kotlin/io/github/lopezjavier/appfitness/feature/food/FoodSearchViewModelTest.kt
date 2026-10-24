@@ -48,6 +48,35 @@ class FoodSearchViewModelTest {
     private fun FoodSearchViewModel.type(text: String) = onEvent(FoodSearchEvent.QueryChanged(text))
 
     @Test
+    fun pickMode_flagsTheState_andIgnoresTheComidasTab() = runTest(dispatcher) {
+        val model = foodSearchModel(repository, connectivity, scanner, pick = true)
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.Templates))
+        advanceUntilIdle()
+
+        assertTrue(model.uiState.value.pick)
+        assertEquals(FoodSearchTab.Recent, model.uiState.value.tab)
+    }
+
+    @Test
+    fun pickMode_aRestoredComidasTabFallsBackToRecent() = runTest(dispatcher) {
+        savedState["food_search_tab"] = FoodSearchTab.Templates.name
+        val model = foodSearchModel(repository, connectivity, scanner, savedState, pick = true)
+        advanceUntilIdle()
+
+        assertEquals(FoodSearchTab.Recent, model.uiState.value.tab)
+    }
+
+    @Test
+    fun normalMode_isNotPick() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(false, model.uiState.value.pick)
+    }
+
+    @Test
     fun emptyQuery_showsTheRecentFoodsWithoutSearching() = runTest(dispatcher) {
         repository.recentFoods = Result.success(listOf(rice, chicken))
         val model = viewModel()

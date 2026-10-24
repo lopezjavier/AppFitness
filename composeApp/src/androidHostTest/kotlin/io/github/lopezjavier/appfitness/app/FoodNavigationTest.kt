@@ -44,7 +44,7 @@ class FoodNavigationTest {
             Box(Modifier.size(48.dp).testTag("diary_add_dinner").clickable { onAddFood("dinner", Day) })
         }
     }
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, onCreateFood, _, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, onCreateFood, _, _, _ ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("search_pick").clickable { onOpenFood("chicken") })
             Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla") })
@@ -56,7 +56,7 @@ class FoodNavigationTest {
             Box(Modifier.size(48.dp).testTag("create_save").clickable { onSaved(editFoodId ?: "new-1") })
         }
     }
-    private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss, onEdit ->
+    private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss, onEdit, _, _ ->
         Column(Modifier.testTag("add_food_sheet")) {
             Box(Modifier.size(48.dp).testTag("sheet_edit").clickable(onClick = onEdit))
             Text("$foodId|$slotId|$date", Modifier.testTag("sheet_args"))

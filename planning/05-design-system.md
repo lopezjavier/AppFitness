@@ -192,5 +192,6 @@ Generic rules for every screen; ux-reviewer rejects a plan that breaks them.
 - **Swipe-to-delete** uses the shared designsystem component: slow, heavy, fires only at the end of the travel; a shorter drag snaps back.
 - **Editing** screens have one "Guardar" that saves all changes together; nothing is saved per action (delete excepted). This includes bottom sheets and modals that edit a value: they have their own "Guardar", and closing them (X, back, swipe down, scrim) discards the change; nothing is applied on dismiss.
 - **Lists:** a row opens its details; editing starts from the details. Rows of the same kind show the same information everywhere.
+  - **Exception (US-47):** a row of "Comidas" in "Añadir comida" adds the comida on tap (the list exists to add it); its trailing pencil (`AppIconButton`, 48 dp, "Editar <nombre>") opens "Editar comida". The editor's "Añadir alimento" is an add `AppIconButton` next to the totals, and its food picker reuses the food search without the Comidas tab.
 - **Wording:** the same concept has the same label on every screen and period.
 - **Sweep:** before approving, search the app for other instances of the pattern the task touches.

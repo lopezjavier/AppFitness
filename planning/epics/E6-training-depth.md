@@ -497,12 +497,53 @@ Feature: Editing manual foods
   Scenario: Label order for every food
     When the user opens the details of any food (manual or Open Food Facts)
     Then the nutrients are listed in the label order and absent values are hidden
+
+  Scenario: Tapping a comida adds it
+    Given the "Comidas" tab of "Añadir comida" lists "Desayuno A"
+    When the user taps its row
+    Then its foods are added to the chosen meal
+    And the trailing button is a pencil, not a "+"
+
+  Scenario: Opening the editor
+    When the user taps the pencil of "Desayuno A"
+    Then "Editar comida" opens with the name in a text field, its foods and "Añadir alimento"
+    And there is no rename pencil
+
+  Scenario: Renaming a comida
+    When the user changes the name to "Desayuno B" and taps "Guardar"
+    Then the comida is called "Desayuno B"
+
+  Scenario: Invalid name
+    When the name is empty or equals another comida's name
+    Then "Guardar" is disabled and a hint says why
+
+  Scenario: Removing a food
+    When the user swipes a food left, or taps "Eliminar" in its details, and then taps "Guardar"
+    Then the food is no longer in the comida
+    And the last food of a comida cannot be removed
+
+  Scenario: Adding a food
+    When the user taps "Añadir alimento", picks a food and its amount, and taps "Guardar"
+    Then the food is in the comida with that amount
+
+  Scenario: Everything applies together
+    Given the user renamed the comida, removed a food and added another
+    When the user taps "Guardar"
+    Then the name, the removal and the addition are stored in a single save
+    And diary entries already created from the comida do not change
+
+  Scenario: Leaving without saving
+    Given the user changed the name or the foods
+    When they leave "Editar comida" without tapping "Guardar"
+    Then the comida is unchanged
+    And if they only left the app and came back, the draft is restored
 ```
 
 **Technical notes**
 - ADR-53. Only `source = 'user'` foods owned by the caller are editable (the existing `foods` RLS already restricts writes to them). Edits apply to **future** entries only: past `food_log_entries` keep their snapshots (ADR-32), including `food_name` and `portion_label`.
 - Removing a portion is allowed even when past entries used it: entries and comida items store the resolved amount and the label as a snapshot and have no link to the portion row, so nothing changes for them (user rule of 2026-10-22 dropped as pointless under the snapshots; see ADR-53). Editing an old entry whose portion no longer exists falls back to the amount in base units.
 - Manual foods accept the full Open Food Facts nutrient list in `foods.micronutrients` (OFF keys, values ≥ 0, a known-keys whitelist; amends ADR-43, which allowed four keys). Label order follows EU Regulation 1169/2011 Annex XV: energy (kJ / kcal), fat, saturates, mono-unsaturates, polyunsaturates, carbohydrates, sugars, polyols, starch, fibre, protein, salt, then vitamins and minerals in the Annex XIII order. The base unit (`g`/`ml`) is not editable (assumption: changing it would invalidate the portions).
+- Comida editing (T-102b) supersedes the US-21 scenarios "Editing a comida" and "Renaming and deleting a comida" of `E4-food-diary.md`: one "Guardar" overwrites the comida (no "Sobrescribir" / "Guardar como nueva" choice, no rename sheet); it needs no new migration, the existing atomic `save_meal_template(id, name, slot, items)` applies name, removals and additions together (ADR-45).
 - A new edit RPC (e.g. `update_personal_food(p_food_id, …, p_portions jsonb, p_micronutrients jsonb)`, atomic with the portions) and `create_personal_food` accepting the full key list; `03-data-model.md` §3/§6.
 
 ---

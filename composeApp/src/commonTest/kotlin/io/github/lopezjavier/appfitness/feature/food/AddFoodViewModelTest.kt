@@ -71,23 +71,28 @@ class AddFoodViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(foodId: String, initialSlotId: String? = null, state: SavedStateHandle = savedState) =
-        AddFoodViewModel(
-            foodId = foodId,
-            initialSlotId = initialSlotId,
-            date = today,
-            foodRepository = foods,
-            foodDiary = diary,
-            mealSlots = slots,
-            resolvePortion = ResolvePortion(),
-            scaleNutrition = ScaleNutrition(),
-            validateQuantity = ValidateQuantity(),
-            defaultMealSlot = DefaultMealSlot(),
-            clock = clock,
-            connectivity = connectivity,
-            savedState = state,
-            timeZone = TimeZone.UTC,
-        )
+    private fun viewModel(
+        foodId: String,
+        initialSlotId: String? = null,
+        state: SavedStateHandle = savedState,
+        pick: Boolean = false,
+    ) = AddFoodViewModel(
+        pick = pick,
+        foodId = foodId,
+        initialSlotId = initialSlotId,
+        date = today,
+        foodRepository = foods,
+        foodDiary = diary,
+        mealSlots = slots,
+        resolvePortion = ResolvePortion(),
+        scaleNutrition = ScaleNutrition(),
+        validateQuantity = ValidateQuantity(),
+        defaultMealSlot = DefaultMealSlot(),
+        clock = clock,
+        connectivity = connectivity,
+        savedState = state,
+        timeZone = TimeZone.UTC,
+    )
 
     private fun AddFoodViewModel.content() = assertIs<AddFoodUiState.Content>(uiState.value).content
 
@@ -311,6 +316,59 @@ class AddFoodViewModelTest {
         advanceUntilIdle()
 
         assertEquals("huevo", diary.added.single().portionLabel)
+    }
+
+    @Test
+    fun pickMode_submitEmitsPickedWithTheResolvedAmount_andNeverLogs() = runTest(dispatcher) {
+        withFood(egg)
+        val model = viewModel("egg", pick = true)
+        advanceUntilIdle()
+        model.onEvent(AddFoodEvent.PortionSelected("p1"))
+        model.onEvent(AddFoodEvent.AmountChanged("2"))
+
+        model.effects.test {
+            model.onEvent(AddFoodEvent.Submit)
+            advanceUntilIdle()
+
+            assertEquals(AddFoodEffect.Picked("egg", 110.0, "2 × huevo"), awaitItem())
+        }
+        assertTrue(diary.added.isEmpty())
+    }
+
+    @Test
+    fun pickMode_needsNoMealSlot() = runTest(dispatcher) {
+        withFood(food("rice"))
+        slots.result = Result.failure(AppException(AppError.Network))
+        val model = viewModel("rice", pick = true)
+        advanceUntilIdle()
+
+        assertTrue(model.content().pick)
+        assertTrue(model.content().canSubmit)
+    }
+
+    @Test
+    fun pickMode_baseUnitAmountHasNoPortionLabel() = runTest(dispatcher) {
+        withFood(food("rice"))
+        val model = viewModel("rice", pick = true)
+        advanceUntilIdle()
+        model.onEvent(AddFoodEvent.AmountChanged("180"))
+
+        model.effects.test {
+            model.onEvent(AddFoodEvent.Submit)
+            advanceUntilIdle()
+
+            assertEquals(AddFoodEffect.Picked("rice", 180.0, null), awaitItem())
+        }
+    }
+
+    @Test
+    fun pickMode_offlineStillAllowsPicking() = runTest(dispatcher) {
+        withFood(food("rice"))
+        connectivity.state.value = false
+        val model = viewModel("rice", pick = true)
+        advanceUntilIdle()
+
+        assertTrue(model.content().canSubmit)
     }
 
     @Test

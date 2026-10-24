@@ -42,6 +42,9 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
+/** The day handed to the food screens in pick mode (choosing a food for a comida), where it is not used. */
+private const val PICK_MODE_DATE = "1970-01-01"
+
 /** Koin module of the UI layer (ViewModels). */
 val uiModule =
     module {
@@ -163,13 +166,16 @@ val uiModule =
             )
         }
         // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
-        viewModel { (slotId: String, date: String) ->
+        // An optional trailing Boolean parameter turns on pick mode (choosing a food for a comida draft, T-102b).
+        viewModel { params ->
+            val (slotId: String, date: String) = params
             FoodSearchViewModel(
+                pick = params.getOrNull<Boolean>() ?: false,
                 foodRepository = get(),
                 connectivity = get(),
                 barcodeScanner = get(),
                 slotId = slotId.ifBlank { null },
-                date = LocalDate.parse(date),
+                date = LocalDate.parse(date.ifBlank { PICK_MODE_DATE }),
                 mealTemplates = get(),
                 addTemplateToDiary = get(),
                 scaleNutrition = get(),
@@ -205,11 +211,13 @@ val uiModule =
             )
         }
         // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
-        viewModel { (foodId: String, slotId: String, date: String) ->
+        viewModel { params ->
+            val (foodId: String, slotId: String, date: String) = params
             AddFoodViewModel(
+                pick = params.getOrNull<Boolean>() ?: false,
                 foodId = foodId,
                 initialSlotId = slotId.ifBlank { null },
-                date = LocalDate.parse(date),
+                date = LocalDate.parse(date.ifBlank { PICK_MODE_DATE }),
                 foodRepository = get(),
                 foodDiary = get(),
                 mealSlots = get(),

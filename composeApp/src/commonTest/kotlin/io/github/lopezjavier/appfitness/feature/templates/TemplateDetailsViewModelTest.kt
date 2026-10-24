@@ -34,14 +34,15 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** US-21 comida details as the editor (ADR-45): the draft, its totals, "Guardar" and the immediate delete. */
+/** US-21 / US-47 comida editor (ADR-45): the draft, its totals, the single "Guardar" and the immediate delete. */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("TooManyFunctions") // One method per scenario.
+@Suppress("TooManyFunctions", "LargeClass") // One method per scenario.
 class TemplateDetailsViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val eggs = food("eggs", "Huevos revueltos", kcal = 100.0)
     private val shake = food("shake", "Batido de proteína", kcal = 50.0)
-    private val repository = FakeMealTemplateRepository(mutableMapOf("eggs" to eggs, "shake" to shake))
+    private val rice = food("rice", "Arroz cocido", kcal = 130.0)
+    private val repository = FakeMealTemplateRepository(mutableMapOf("eggs" to eggs, "shake" to shake, "rice" to rice))
     private val foods = FakeFoodRepository()
     private val connectivity = FakeConnectivityObserver()
     private val desayunoA = MealTemplate(
@@ -58,7 +59,10 @@ class TemplateDetailsViewModelTest {
     )
 
     @BeforeTest
-    fun setUp() = Dispatchers.setMain(dispatcher)
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+        foods.known["rice"] = rice
+    }
 
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
@@ -224,9 +228,7 @@ class TemplateDetailsViewModelTest {
         val model = loaded()
         model.onEvent(TemplateDetailsEvent.AmountChanged(0, "150"))
         model.onEvent(TemplateDetailsEvent.RemoveFood(1))
-        model.onEvent(TemplateDetailsEvent.OpenRename)
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("Mi desayuno"))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
+        model.onEvent(TemplateDetailsEvent.NameChanged("Mi desayuno"))
 
         model.onEvent(TemplateDetailsEvent.Refresh)
         advanceUntilIdle()
@@ -286,93 +288,119 @@ class TemplateDetailsViewModelTest {
         connectivity.state.value = false
         advanceUntilIdle()
         model.onEvent(TemplateDetailsEvent.SaveClicked)
+        advanceUntilIdle()
 
         val content = contentOf(model)
         assertTrue(content.isOffline)
         assertFalse(content.canSave)
-        assertEquals(DetailsSheet.None, content.sheet)
+        assertEquals(120.0, repository.templates.single().items.first().amount, 0.0)
     }
 
-    // --- Rename (draft only) and save ---
+    // --- Name ---
 
     @Test
-    fun rename_isDraftOnly_untilGuardar() = runTest(dispatcher) {
+    fun editingTheName_marksTheDraftDirty_andDoesNotTouchTheRepository() = runTest(dispatcher) {
         val model = loaded()
-        model.onEvent(TemplateDetailsEvent.OpenRename)
-        assertEquals("Desayuno A", contentOf(model).rename?.name)
 
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("Desayuno B"))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
+        model.onEvent(TemplateDetailsEvent.NameChanged("Desayuno B"))
 
         val content = contentOf(model)
         assertEquals("Desayuno B", content.name)
-        assertEquals(DetailsSheet.None, content.sheet)
+        assertNull(content.nameError)
+        assertTrue(content.isDirty)
         assertTrue(content.canSave)
         assertEquals("Desayuno A", repository.templates.single().name)
     }
 
     @Test
-    fun rename_worksOffline_becauseItOnlyChangesTheDraft() = runTest(dispatcher) {
+    fun typingTheSameNameWithSpaces_isNotDirty() = runTest(dispatcher) {
         val model = loaded()
-        connectivity.state.value = false
-        advanceUntilIdle()
 
-        model.onEvent(TemplateDetailsEvent.OpenRename)
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("Otra"))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
+        model.onEvent(TemplateDetailsEvent.NameChanged("  Desayuno A "))
 
-        assertEquals("Otra", contentOf(model).name)
+        assertFalse(contentOf(model).isDirty)
     }
 
     @Test
-    fun aBlankOrTooLongRename_isBlocked() = runTest(dispatcher) {
+    fun anEmptyName_cannotBeSaved() = runTest(dispatcher) {
         val model = loaded()
-        model.onEvent(TemplateDetailsEvent.OpenRename)
 
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("   "))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
-        assertEquals(DetailsSheet.Rename, contentOf(model).sheet)
-        assertEquals("Desayuno A", contentOf(model).name)
+        model.onEvent(TemplateDetailsEvent.NameChanged("   "))
 
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("x".repeat(61)))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
-        assertEquals(TemplateNameError.TooLong, contentOf(model).rename?.nameError)
-        assertEquals("Desayuno A", contentOf(model).name)
+        val content = contentOf(model)
+        assertTrue(content.isDirty)
+        assertFalse(content.canSave)
     }
 
     @Test
-    fun overwrite_savesTheDraftName_slotAndRemainingItems() = runTest(dispatcher) {
+    fun aTooLongName_showsTheHint_andCannotBeSaved() = runTest(dispatcher) {
         val model = loaded()
-        model.onEvent(TemplateDetailsEvent.OpenRename)
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("Desayuno B"))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
+
+        model.onEvent(TemplateDetailsEvent.NameChanged("x".repeat(61)))
+
+        val content = contentOf(model)
+        assertEquals(TemplateNameError.TooLong, content.nameError)
+        assertFalse(content.canSave)
+    }
+
+    @Test
+    fun aNameOfAnotherComida_ignoringCaseAndSpaces_showsTheHint_andCannotBeSaved() = runTest(dispatcher) {
+        repository.templates += desayunoA.copy(id = "t2", name = "Comida 2")
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.NameChanged("  comida 2 "))
+
+        val content = contentOf(model)
+        assertEquals(TemplateNameError.Taken, content.nameError)
+        assertFalse(content.canSave)
+        model.onEvent(TemplateDetailsEvent.NameChanged("Comida 3"))
+        assertNull(contentOf(model).nameError)
+        assertTrue(contentOf(model).canSave)
+    }
+
+    @Test
+    fun theOwnUnchangedName_isNotADuplicate() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.NameChanged("desayuno a"))
+        val content = contentOf(model)
+
+        assertNull(content.nameError)
+    }
+
+    // --- Save ---
+
+    @Test
+    fun save_storesNameRemovalsAdditionsAndAmounts_inOneCall() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.NameChanged("Desayuno B"))
         model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
         model.onEvent(TemplateDetailsEvent.RemoveFood(1))
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 80.0, "1 taza"))
+        advanceUntilIdle()
 
         model.effects.test {
             model.onEvent(TemplateDetailsEvent.SaveClicked)
-            assertEquals(DetailsSheet.Choose, contentOf(model).sheet)
-            model.onEvent(TemplateDetailsEvent.Overwrite)
             advanceUntilIdle()
             assertEquals(TemplateDetailsEffect.Saved, awaitItem())
         }
 
+        assertEquals(1, repository.saveCalls)
         val saved = repository.templates.single()
         assertEquals("t1", saved.id)
         assertEquals("Desayuno B", saved.name)
         assertEquals("breakfast", saved.mealSlotId)
-        assertEquals(listOf("eggs"), saved.items.map { it.food.id })
-        assertEquals(200.0, saved.items.single().amount, 0.0)
-        assertNull(saved.items.single().portionLabel)
+        assertEquals(listOf("eggs", "rice"), saved.items.map { it.food.id })
+        assertEquals(listOf(200.0, 80.0), saved.items.map { it.amount })
+        assertEquals(listOf(null, "1 taza"), saved.items.map { it.portionLabel })
     }
 
     @Test
-    fun overwrite_keepsThePortionLabel_ofAnUntouchedAmount() = runTest(dispatcher) {
+    fun save_keepsThePortionLabel_ofAnUntouchedAmount() = runTest(dispatcher) {
         val model = loaded()
         model.onEvent(TemplateDetailsEvent.AmountChanged(0, "150"))
 
         model.onEvent(TemplateDetailsEvent.SaveClicked)
-        model.onEvent(TemplateDetailsEvent.Overwrite)
         advanceUntilIdle()
 
         val items = repository.templates.single().items
@@ -381,60 +409,58 @@ class TemplateDetailsViewModelTest {
     }
 
     @Test
-    fun overwrite_withARenamedTakenName_showsTheInlineError_andKeepsTheRenameSheetOpen() = runTest(dispatcher) {
+    fun save_withoutChanges_doesNothing() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(0, repository.saveCalls)
+    }
+
+    @Test
+    fun save_withAnInvalidName_doesNothing() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.NameChanged(""))
+
+        model.onEvent(TemplateDetailsEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(0, repository.saveCalls)
+    }
+
+    @Test
+    fun leavingWithoutGuardar_neverSaves() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.NameChanged("Otro"))
+        model.onEvent(TemplateDetailsEvent.RemoveFood(0))
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 80.0, null))
+        advanceUntilIdle()
+
+        assertEquals(0, repository.saveCalls)
+        assertEquals(desayunoA, repository.templates.single())
+    }
+
+    @Test
+    fun aServerNameConflict_showsTheHint_andKeepsTheDraft() = runTest(dispatcher) {
+        // The list read at load time did not know the other comida yet.
+        val model = loaded()
         repository.templates += desayunoA.copy(id = "t2", name = "Comida 2")
-        val model = loaded()
-        model.onEvent(TemplateDetailsEvent.OpenRename)
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("comida 2"))
-        model.onEvent(TemplateDetailsEvent.SubmitRename)
+        model.onEvent(TemplateDetailsEvent.NameChanged("Comida 2"))
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
 
         model.onEvent(TemplateDetailsEvent.SaveClicked)
-        model.onEvent(TemplateDetailsEvent.Overwrite)
         advanceUntilIdle()
 
         val content = contentOf(model)
-        assertEquals(DetailsSheet.Rename, content.sheet)
-        assertEquals(TemplateNameError.Taken, content.rename?.nameError)
-        assertFalse(content.rename?.canSubmit ?: true)
-        assertEquals("Desayuno A", repository.templates.first { it.id == "t1" }.name)
-        model.onEvent(TemplateDetailsEvent.RenameNameChanged("Comida 3"))
-        assertNull(contentOf(model).rename?.nameError)
-    }
-
-    @Test
-    fun saveAsNew_withANewName_createsASecondComida_andLeavesTheOriginalUntouched() = runTest(dispatcher) {
-        val model = loaded()
-        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
-
-        model.effects.test {
-            model.onEvent(TemplateDetailsEvent.SaveClicked)
-            model.onEvent(TemplateDetailsEvent.SaveAsNew)
-            model.onEvent(TemplateDetailsEvent.NewNameChanged("Desayuno B"))
-            model.onEvent(TemplateDetailsEvent.SubmitNewName)
-            advanceUntilIdle()
-            assertEquals(TemplateDetailsEffect.Saved, awaitItem())
-        }
-
-        assertEquals(listOf("Desayuno A", "Desayuno B"), repository.templates.map { it.name })
-        assertEquals(120.0, repository.templates.first { it.name == "Desayuno A" }.items.first().amount, 0.0)
-        assertEquals(200.0, repository.templates.first { it.name == "Desayuno B" }.items.first().amount, 0.0)
-    }
-
-    @Test
-    fun saveAsNew_withATakenName_showsTheDuplicateError_andSavesNothing() = runTest(dispatcher) {
-        val model = loaded()
-        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
-        model.onEvent(TemplateDetailsEvent.SaveClicked)
-        model.onEvent(TemplateDetailsEvent.SaveAsNew)
-        model.onEvent(TemplateDetailsEvent.NewNameChanged("desayuno a"))
-
-        model.onEvent(TemplateDetailsEvent.SubmitNewName)
-        advanceUntilIdle()
-
-        val content = contentOf(model)
-        assertEquals(DetailsSheet.NewName, content.sheet)
-        assertEquals(TemplateNameError.Taken, content.newName?.nameError)
-        assertEquals(1, repository.templates.size)
+        assertEquals(TemplateNameError.Taken, content.nameError)
+        assertFalse(content.canSave)
+        assertEquals("Comida 2", content.name)
+        assertEquals("200", content.rows.first().amountText)
+        assertFalse(content.busy)
+        model.onEvent(TemplateDetailsEvent.NameChanged("Comida 3"))
+        assertNull(contentOf(model).nameError)
+        assertTrue(contentOf(model).canSave)
     }
 
     @Test
@@ -445,7 +471,6 @@ class TemplateDetailsViewModelTest {
 
         model.effects.test {
             model.onEvent(TemplateDetailsEvent.SaveClicked)
-            model.onEvent(TemplateDetailsEvent.Overwrite)
             advanceUntilIdle()
             assertEquals(TemplateDetailsEffect.ActionFailed(AppError.Network), awaitItem())
         }
@@ -455,6 +480,79 @@ class TemplateDetailsViewModelTest {
         assertTrue(content.canSave)
         assertFalse(content.busy)
         assertEquals(120.0, repository.templates.single().items.first().amount, 0.0)
+    }
+
+    // --- Adding foods ---
+
+    @Test
+    fun addFoodClicked_asksForThePicker() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.effects.test {
+            model.onEvent(TemplateDetailsEvent.AddFoodClicked)
+            advanceUntilIdle()
+            assertEquals(TemplateDetailsEffect.OpenFoodPicker, awaitItem())
+        }
+    }
+
+    @Test
+    fun aPickedFood_appendsARow_withItsKcal_andTheTotals() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 200.0, "2 × taza"))
+
+        val content = contentOf(model)
+        val added = content.rows.last()
+        assertEquals(3, content.rows.size)
+        assertEquals(2, added.index)
+        assertTrue(added.added)
+        assertEquals("rice", added.foodId)
+        assertEquals("200", added.amountText)
+        assertEquals("2 × taza", added.portionLabel)
+        assertEquals(260.0, added.kcal, 0.001)
+        assertEquals(270.0 + 260.0, content.totalKcal, 0.001)
+        assertTrue(content.isDirty)
+        assertTrue(content.canSave)
+    }
+
+    @Test
+    fun anAddedRow_canBeEdited_andRemoved() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 200.0, null))
+        advanceUntilIdle()
+
+        model.onEvent(TemplateDetailsEvent.AmountChanged(2, "100"))
+        assertEquals(130.0, contentOf(model).rows.last().kcal, 0.001)
+        model.onEvent(TemplateDetailsEvent.RemoveFood(2))
+
+        val content = contentOf(model)
+        assertEquals(listOf(0, 1), content.rows.map { it.index })
+        assertFalse(content.isDirty)
+    }
+
+    @Test
+    fun removingASavedFood_thenAddingAnother_keepsTheNewRowIdentity() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.RemoveFood(0))
+
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 50.0, null))
+
+        val content = contentOf(model)
+        assertEquals(listOf(1, 2), content.rows.map { it.index })
+        assertEquals(listOf("shake", "rice"), content.rows.map { it.foodId })
+    }
+
+    @Test
+    fun aPickedFoodThatCannotBeRead_emitsActionFailed_andAddsNothing() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.effects.test {
+            model.onEvent(TemplateDetailsEvent.FoodPicked("ghost", 50.0, null))
+            advanceUntilIdle()
+            assertEquals(TemplateDetailsEffect.ActionFailed(AppError.NotFound), awaitItem())
+        }
+
+        assertEquals(2, contentOf(model).rows.size)
     }
 
     // --- Delete ---
@@ -524,6 +622,19 @@ class TemplateDetailsViewModelTest {
 
         val open = assertNotNull(contentOf(model).openFood)
         assertNull(open.micronutrients)
+    }
+
+    @Test
+    fun theSheetOfAnAddedFood_opens() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 200.0, null))
+        advanceUntilIdle()
+
+        model.onEvent(TemplateDetailsEvent.OpenFood(2))
+
+        val open = assertNotNull(contentOf(model).openFood)
+        assertEquals("rice", open.food.id)
+        assertEquals("200", open.row.amountText)
     }
 
     @Test
@@ -684,9 +795,7 @@ class TemplateDetailsViewModelTest {
         advanceUntilIdle()
         first.onEvent(TemplateDetailsEvent.AmountChanged(0, "150"))
         first.onEvent(TemplateDetailsEvent.RemoveFood(1))
-        first.onEvent(TemplateDetailsEvent.OpenRename)
-        first.onEvent(TemplateDetailsEvent.RenameNameChanged("Mi comida"))
-        first.onEvent(TemplateDetailsEvent.SubmitRename)
+        first.onEvent(TemplateDetailsEvent.NameChanged("Mi comida"))
         first.onEvent(TemplateDetailsEvent.OpenFood(0))
 
         val content = contentOf(viewModel(state))
@@ -698,36 +807,24 @@ class TemplateDetailsViewModelTest {
     }
 
     @Test
-    fun theOpenRenameSheet_withItsTypedTextAndTakenFlag_survivesRecreation() = runTest(dispatcher) {
+    fun addedFoods_withTheirAmountsAndLabels_surviveRecreation() = runTest(dispatcher) {
         repository.templates += desayunoA
         val state = SavedStateHandle()
         val first = viewModel(state)
         advanceUntilIdle()
-        first.onEvent(TemplateDetailsEvent.OpenRename)
-        first.onEvent(TemplateDetailsEvent.RenameNameChanged("Typed"))
-
-        val content = contentOf(viewModel(state))
-
-        assertEquals(DetailsSheet.Rename, content.sheet)
-        assertEquals("Typed", content.rename?.name)
-    }
-
-    @Test
-    fun theOpenChoiceAndTheTypedNewName_surviveRecreation() = runTest(dispatcher) {
-        repository.templates += desayunoA
-        val state = SavedStateHandle()
-        val first = viewModel(state)
+        first.onEvent(TemplateDetailsEvent.FoodPicked("rice", 200.0, "2 × taza"))
         advanceUntilIdle()
-        first.onEvent(TemplateDetailsEvent.AmountChanged(0, "150"))
-        first.onEvent(TemplateDetailsEvent.SaveClicked)
-        assertEquals(DetailsSheet.Choose, contentOf(viewModel(state)).sheet)
+        first.onEvent(TemplateDetailsEvent.AmountChanged(2, "150"))
+        first.onEvent(TemplateDetailsEvent.FoodPicked("rice", 40.0, null))
+        advanceUntilIdle()
+        first.onEvent(TemplateDetailsEvent.RemoveFood(3))
 
-        first.onEvent(TemplateDetailsEvent.SaveAsNew)
-        first.onEvent(TemplateDetailsEvent.NewNameChanged("Mi comida"))
         val content = contentOf(viewModel(state))
 
-        assertEquals(DetailsSheet.NewName, content.sheet)
-        assertEquals("Mi comida", content.newName?.name)
+        assertEquals(listOf(0, 1, 2), content.rows.map { it.index })
+        assertEquals("150", content.rows.last().amountText)
+        assertNull(content.rows.last().portionLabel)
+        assertTrue(content.rows.last().added)
         assertTrue(content.canSave)
     }
 
@@ -747,21 +844,18 @@ class TemplateDetailsViewModelTest {
     }
 
     @Test
-    fun aTakenNameError_survivesRecreation() = runTest(dispatcher) {
-        repository.templates += desayunoA.copy(id = "t2", name = "Comida 2")
-        val state = SavedStateHandle()
+    fun aTakenNameHint_survivesRecreation() = runTest(dispatcher) {
         repository.templates += desayunoA
+        val state = SavedStateHandle()
         val first = viewModel(state)
         advanceUntilIdle()
-        first.onEvent(TemplateDetailsEvent.OpenRename)
-        first.onEvent(TemplateDetailsEvent.RenameNameChanged("Comida 2"))
-        first.onEvent(TemplateDetailsEvent.SubmitRename)
+        repository.templates += desayunoA.copy(id = "t2", name = "Comida 2")
+        first.onEvent(TemplateDetailsEvent.NameChanged("Comida 2"))
         first.onEvent(TemplateDetailsEvent.SaveClicked)
-        first.onEvent(TemplateDetailsEvent.Overwrite)
         advanceUntilIdle()
 
         val content = contentOf(viewModel(state))
 
-        assertEquals(TemplateNameError.Taken, content.rename?.nameError)
+        assertEquals(TemplateNameError.Taken, content.nameError)
     }
 }

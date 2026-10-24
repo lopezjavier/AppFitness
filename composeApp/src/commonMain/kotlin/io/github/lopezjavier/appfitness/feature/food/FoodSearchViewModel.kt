@@ -71,10 +71,12 @@ class FoodSearchViewModel(
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val pick: Boolean = false,
 ) : ViewModel() {
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
     private val tab = MutableStateFlow(
         savedState.get<String>(KEY_TAB)?.let { name -> FoodSearchTab.entries.firstOrNull { it.name == name } }
+            ?.takeUnless { pick && it == FoodSearchTab.Templates }
             ?: FoodSearchTab.Recent,
     )
     private val attempt = MutableStateFlow(0)
@@ -110,7 +112,7 @@ class FoodSearchViewModel(
             },
             notFoundBarcode,
             combine(templates, deleting, ::withoutDeleting),
-        ) { state, code, rows -> state.copy(notFoundBarcode = code, templates = rows) }
+        ) { state, code, rows -> state.copy(notFoundBarcode = code, templates = rows, pick = pick) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -119,6 +121,7 @@ class FoodSearchViewModel(
                     tab = tab.value,
                     notFoundBarcode = notFoundBarcode.value,
                     templates = templates.value,
+                    pick = pick,
                 ),
             )
 
@@ -137,7 +140,7 @@ class FoodSearchViewModel(
                 setNotFound(null)
             }
 
-            is FoodSearchEvent.TabSelected -> {
+            is FoodSearchEvent.TabSelected -> if (!(pick && event.tab == FoodSearchTab.Templates)) {
                 tab.value = event.tab
                 savedState[KEY_TAB] = event.tab.name
                 if (event.tab == FoodSearchTab.Templates) loadTemplates()

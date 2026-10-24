@@ -76,7 +76,8 @@ object AppTextFieldDefaults {
  * Single-line text field. The caller owns [value]; the text handed to [onValueChange] is already cut to [maxLength].
  * [label] is drawn above the field and spoken as its content description; [placeholder] is ghost text, not spoken.
  * While [errorText] is not null the border turns to the error colour and the text shows below as a polite live
- * region. "Hecho" on the keyboard clears the focus and hides the keyboard, then calls [onDone].
+ * region (tagged `<testTagPrefix>_error`, or [errorTestTag] when given). "Hecho" on the keyboard clears the focus and
+ * hides the keyboard, then calls [onDone].
  *
  * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`), as for [NumberInput].
  */
@@ -92,6 +93,7 @@ fun AppTextField(
     enabled: Boolean = true,
     onDone: () -> Unit = {},
     testTagPrefix: String? = null,
+    errorTestTag: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -145,7 +147,7 @@ fun AppTextField(
                 TextFieldBox(focused, hasError, placeholder.takeIf { value.isEmpty() }, textStyle, innerTextField)
             },
         )
-        if (errorText != null) FieldError(errorText, childTestTag(testTagPrefix, "error"))
+        if (errorText != null) FieldError(errorText, errorTestTag ?: childTestTag(testTagPrefix, "error"))
     }
 }
 

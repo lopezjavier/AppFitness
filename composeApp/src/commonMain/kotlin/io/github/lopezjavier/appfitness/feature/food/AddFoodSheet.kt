@@ -150,14 +150,16 @@ private fun SheetContent(
             testTagPrefix = "add_food",
         )
         content.preview?.let { Preview(it.kcal, it.proteinG, it.carbsG, it.fatG, "add_food_preview") }
-        MealSelector(
-            slots = content.slots,
-            selectedSlotId = content.selectedSlotId,
-            onSelect = { onEvent(AddFoodEvent.SlotSelected(it)) },
-            containerTag = "add_food_meals",
-            optionTagPrefix = "add_food_meal",
-            emptyTag = "add_food_no_meal",
-        )
+        if (!content.pick) {
+            MealSelector(
+                slots = content.slots,
+                selectedSlotId = content.selectedSlotId,
+                onSelect = { onEvent(AddFoodEvent.SlotSelected(it)) },
+                containerTag = "add_food_meals",
+                optionTagPrefix = "add_food_meal",
+                emptyTag = "add_food_no_meal",
+            )
+        }
         if (submitFailed) {
             Text(
                 text = stringResource(Res.string.add_food_submit_error),

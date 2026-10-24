@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
@@ -12,6 +13,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
+import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
 import org.junit.Rule
 import org.junit.Test
@@ -19,7 +21,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** ADR-40 for the comida details: the draft (amounts, removals, name) and the open sheets survive recreation. */
+/**
+ * ADR-40 for the comida editor: the draft (name, amounts, removals, added foods), the open food sheet and a picked food
+ * on its way back from the picker survive recreation.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class TemplateDetailsRestorationTest {
@@ -28,7 +33,10 @@ class TemplateDetailsRestorationTest {
 
     private val eggs = food("eggs", "Huevos revueltos", kcal = 100.0)
     private val shake = food("shake", "Batido de proteína", kcal = 50.0)
-    private val templates = FakeMealTemplateRepository(mutableMapOf("eggs" to eggs, "shake" to shake))
+    private val rice = food("rice", "Arroz", kcal = 130.0)
+    private val templates = FakeMealTemplateRepository(mutableMapOf("eggs" to eggs, "shake" to shake, "rice" to rice))
+    private val foods = FakeFoodRepository().apply { known["rice"] = rice }
+    private var model: TemplateDetailsViewModel? = null
     private val connectivity = FakeConnectivityObserver()
 
     init {
@@ -40,11 +48,13 @@ class TemplateDetailsRestorationTest {
         )
     }
 
-    private fun restorable(saved: SavedStateHandle): StateRestorationTester {
+    private fun restorable(saved: SavedStateHandle, pickedFrom: SavedStateHandle? = null): StateRestorationTester {
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            val model = remember { detailsModel(templates, connectivity, saved) }
-            DetailsHost(model)
+            val current = remember { detailsModel(templates, connectivity, saved, foods = foods) }
+            model = current
+            val picked = pickedFrom?.getStateFlow<ArrayList<String>?>(PICKED_FOOD_KEY, null)?.collectAsState()?.value
+            DetailsHost(current, pickedFood = picked, onConsumePickedFood = { pickedFrom?.set(PICKED_FOOD_KEY, null) })
         }
         rule.waitForIdle()
         return tester
@@ -56,15 +66,14 @@ class TemplateDetailsRestorationTest {
     }
 
     @Test
-    fun typedRenameName_survivesRecreation() {
+    fun typedName_survivesRecreation() {
         val tester = restorable(SavedStateHandle())
-        rule.onNodeWithTag("template_details_rename").performClick()
-        rule.onNodeWithTag("rename_template_name").performTextReplacement("Mi comida")
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Mi comida")
         rule.waitForIdle()
 
         recreate(tester)
 
-        rule.onNodeWithTag("rename_template_name").assertTextContains("Mi comida")
+        rule.onNodeWithTag("template_details_name_field").assertTextContains("Mi comida")
     }
 
     @Test
@@ -74,16 +83,41 @@ class TemplateDetailsRestorationTest {
         rule.onNodeWithTag("template_details_item_0").performClick()
         rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("180")
         rule.onNodeWithTag("template_food_sheet_save").performClick()
-        rule.onNodeWithTag("template_details_rename").performClick()
-        rule.onNodeWithTag("rename_template_name").performTextReplacement("Desayuno B")
-        rule.onNodeWithTag("rename_template_submit").performClick()
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
         rule.waitForIdle()
 
         recreate(tester)
 
-        rule.onNodeWithTag("template_details_name").assertTextContains("Desayuno B")
+        rule.onNodeWithTag("template_details_name_field").assertTextContains("Desayuno B")
         rule.onNodeWithTag("template_details_item_0").assertTextContains("180 g")
         rule.onNodeWithTag("template_details_save").assertIsDisplayed()
+    }
+
+    @Test
+    fun anAddedFood_survivesRecreation() {
+        val tester = restorable(SavedStateHandle())
+        rule.runOnUiThread { model?.onEvent(TemplateDetailsEvent.FoodPicked("rice", 150.0, null)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("template_details_item_2").assertTextContains("Arroz")
+
+        recreate(tester)
+
+        rule.onNodeWithTag("template_details_item_2").assertTextContains("Arroz")
+        rule.onNodeWithTag("template_details_item_2").assertTextContains("150 g")
+    }
+
+    @Test
+    fun aPickedFoodWaitingInTheBackStack_isAppliedOnce_evenAcrossRecreation() {
+        val navHandle = SavedStateHandle()
+        navHandle[PICKED_FOOD_KEY] = pickedFoodResult("rice", 150.0, null)
+        val tester = restorable(SavedStateHandle(), pickedFrom = navHandle)
+        rule.waitForIdle()
+        rule.onNodeWithTag("template_details_item_2").assertTextContains("Arroz")
+
+        recreate(tester)
+
+        rule.onNodeWithTag("template_details_item_2").assertTextContains("Arroz")
+        rule.onNodeWithTag("template_details_item_3").assertDoesNotExist()
     }
 
     @Test
@@ -127,19 +161,5 @@ class TemplateDetailsRestorationTest {
         rule.onNodeWithTag("template_food_sheet_close").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("template_details_item_0").assertTextContains("120 g")
-    }
-
-    @Test
-    fun openChoiceSheet_survivesRecreation() {
-        val tester = restorable(SavedStateHandle())
-        rule.onNodeWithTag("template_details_item_0").performClick()
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("150")
-        rule.onNodeWithTag("template_food_sheet_save").performClick()
-        rule.onNodeWithTag("template_details_save").performClick()
-        rule.waitForIdle()
-
-        recreate(tester)
-
-        rule.onNodeWithTag("template_save_overwrite").assertIsDisplayed()
     }
 }
