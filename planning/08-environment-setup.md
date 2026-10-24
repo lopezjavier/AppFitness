@@ -34,7 +34,7 @@ Supersedes the original local development notes (kept outside the repository). S
 ### 2.2 Supabase (Free plan)
 1. Create the project (Free plan, EU region). ✅ Created as `AppFitness` in `eu-west-3` (Paris; T-014 replaced a first project in `eu-north-1`); the local CLI `project_id` is `appfitness`.
 2. Auth → Providers: enable **Google** (Client ID and Secret of the web client from 2.3). **Disable Email** (ADR-02).
-3. Edge Functions → Secrets: `OFF_USER_AGENT` (e.g. `AppFitness/1.0 (<contact email>)`).
+3. Edge Functions → Secrets: `OFF_USER_AGENT` (e.g. `AppFitness/1.0 (<contact email>)`) and `GEMINI_API_KEY` (Google AI Studio API key, free tier, used only by `food-photo`; ADR-59). Set the latter in the user's own terminal with `npx supabase secrets set GEMINI_API_KEY=...`; it is a **Supabase** secret, never a GitHub Actions secret, and never reaches the app or `local.properties`.
 
 ### 2.3 Google Cloud Console
 No billing account or free trial is needed: OAuth and Sign in with Google are free. Do not activate the free trial.
@@ -74,7 +74,7 @@ deno check supabase/functions/health/index.ts                          # type-ch
 deno test --allow-all supabase/functions                               # Edge Function unit tests
 npx supabase stop
 ```
-- `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...`.
+- `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...` and `GEMINI_API_KEY=...` (local functions only). The key is never committed; `supabase/.env.example` lists the name with an empty value.
 - The root `deno.json` only configures Deno tooling for `supabase/functions/` (fmt/lint/test scope, no lockfile, no `node_modules` resolution: the root `package.json` only pins the Supabase CLI). Functions import external code with exact inline specifiers (`npm:postgres@3.4.9`, `jsr:@std/assert@1.0.19`), bumped manually.
 - Locally the Email provider is enabled and `supabase/seed.sql` creates the test user used by the `local` flavor's "Test login" button:
   - email `test@appfitness.local`, password `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`;
@@ -119,10 +119,12 @@ CI and the unit tests build without the bundle (the catalog then shows only cust
 | Supabase Free | 500 MB DB, 500K Edge Function invocations/month, paused after 7 days without activity | Plenty for 1–5 users; keep-alive covers the pause |
 | GitHub Actions (public repo) | Unlimited minutes on standard runners | Keep CI fast anyway (Gradle cache; `supabase-ci` only when `supabase/**` changes) |
 | Open Food Facts | ~10 searches/min, ~100 product reads/min | Cache in `foods` + debounce in the app |
+| Google Gemini (free tier) | Model-dependent per-minute and per-day request caps; free tier only | One request per photo, 1–5 users; the function surfaces `429` with "Reintentar" and never retries automatically. No billing account is enabled (ADR-59) |
 
 ## 6. Hardening and accepted risks (T-097c)
 
 - **Exposed API schemas:** only `public` (no `graphql_public`; nothing in the app, tests or functions uses GraphQL). `supabase/config.toml` covers local only: in the hosted project, set Dashboard → Project Settings → API → Exposed schemas to `public` only (👤 console step).
 - **Email sign-up disabled** (`[auth.email] enable_signup = false`), password minimum 8. The top-level `[auth] enable_signup` stays `true` because Google sign-in creates users through it. The seeded local test user is inserted by `seed.sql`, so password sign-in for it still works. On the hosted project, also disable email sign-ups in the Dashboard (Authentication → Sign In / Providers → Email) (👤).
 - **Accepted risk (owner decision 2026-10-23, only the owner uses the app):** no per-user rate limit on the food-search Edge Function (Free plan, one user).
+- **Accepted risk (same decision, extended to `food-photo` in E7):** no per-user rate limit on the AI photo function; the provider's free-tier quota is the effective cap. Photos are not stored and the provider key stays in Supabase secrets.
 - **Accepted risk (same decision):** no privacy policy or health-data note; revisit before any distribution beyond the owner.

@@ -5,7 +5,7 @@ Turn the Phase 1 workout into a complete gym experience. Routines are planned se
 
 Sources: `planning/epics/E6-training-depth.md` (US-28…US-38, US-47), `planning/01-phase1-scope.md` FR-2.14, FR-4.8 and §4.1, `planning/03-data-model.md` §3/§5/§6, `planning/04-business-rules.md` §2 and §4 (incl. §4.9 calculators), `planning/05-design-system.md` (§6 `SetRow`, `ReorderableColumn`, `MonthCalendarGrid`, `SwipeToDeleteRow`; §8 interaction rules), ADR-30, ADR-32, ADR-38, ADR-39, ADR-40, ADR-43, ADR-45, ADR-47, ADR-50…ADR-53, and the E5 retrospective actions. Tasks: `tasks/todo.md` (T-089…T-103). Earlier plans are in the git history.
 
-Out of scope (epic file and `01` §4): advanced statistics, record charts and non-weight charts (E7); the program generator and trainer; microcycles; cardio plans; social features; background rest alerts (Phase 2). Deferred by the user at this breakdown (ADR-52, text kept in `01` §4.1): the live "¡Nuevo récord!" notification and its levels; the calendar streak, rest days and rewards; copying a workout. Editing Open Food Facts foods is not allowed (ADR-53).
+Out of scope (epic file and `01` §4): advanced statistics, record charts and non-weight charts (E8); the program generator and trainer; microcycles; cardio plans; social features; background rest alerts (Phase 2). Deferred by the user at this breakdown (ADR-52, text kept in `01` §4.1): the live "¡Nuevo récord!" notification and its levels; the calendar streak, rest days and rewards; copying a workout. Editing Open Food Facts foods is not allowed (ADR-53).
 
 ## Architecture Decisions
 - **Vertical slices, sequential.** One task per story. US-29 splits into planning (T-089) and logging (T-090). US-34 (PR catalogue, backend + summary marks) and US-28 (exercise detail UI) stay separate. US-37 splits into detail and calendar (T-100) and management (T-101). US-47 is one task (T-102); without past-entry recomputation its backend is one RPC and a key whitelist.
@@ -88,7 +88,7 @@ v0.5.0 ─► T-089 ─► T-090 ─► T-091 ─► T-092 ─► T-093 ─► T
 | The catalogue metric mapping is wrong for some exercises (RepDB has no metric field) | Medium | Mapping listed in the T-092 PR; the user checks it at E6-A; later fixes are a new generated migration |
 | Bodyweight volume depends on the latest body weight, which changes over time | Medium | Rule from `04` §4.7 (latest weight); the T-092 planner states whether past sessions use the latest or the then-current weight and asks if it is not clear |
 | Per-session rests are not stored today, so "Actualizar rutina" cannot see rest changes | Medium | T-099 stores them (new migration) before building the diff |
-| Live-session screen grows with every task (types, RPE, metrics, pause, calculators) and becomes hard to change | Medium | Additive set-row variants; planners extract sheets and keep `LiveSessionViewModel` slices small; E5 lesson of UI consistency (E8 guardrails) |
+| Live-session screen grows with every task (types, RPE, metrics, pause, calculators) and becomes hard to change | Medium | Additive set-row variants; planners extract sheets and keep `LiveSessionViewModel` slices small; E5 lesson of UI consistency (E9 guardrails) |
 | The full nutrient list makes the food form very long | Medium | ux-reviewer groups it (label rows first, vitamins and minerals collapsible) without breaking the label order |
 | UI inconsistencies between new sheets and existing ones (E4/E5 retrospectives) | Medium | ux-reviewer sweep per ADR-45; reuse existing sheets and components first |
 | A delete or edit outside the loaded range crashes (T-086 class) | Medium | Required out-of-range test in every editing/deleting task |
@@ -107,7 +107,7 @@ None blocking: Q1–Q8 were answered by the user on 2026-10-22 (`planning/09-ope
 - A manual food's base unit (`g`/`ml`) is not editable; editing an old entry whose portion was removed falls back to the amount in base units (T-102, E6-C).
 - The "Incluir calentamiento", previous-values and calculator settings live in Preferencias under an "Entrenamiento" block (placement by ux-reviewer).
 - ux-reviewer aligns the set-type labels ("Al fallo" in the Gherkin vs "Fallo" in `03`) and the badge letters, proposes the metric-type labels and per-equipment hints, and words the folder-delete confirmation.
-- E7 US-44 (streaks and weekly check-ins) is not changed by ADR-52; the E7 breakdown confirms it with the user.
+- E8 US-44 (streaks and weekly check-ins) is not changed by ADR-52; the E8 breakdown confirms it with the user.
 
 ---
 
