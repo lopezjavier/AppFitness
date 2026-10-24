@@ -123,6 +123,31 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun listCompletedSummaries_mapsTheLightRowsNewestFirst() = runTest {
+        val repo = signedIn()
+        getBody = """[{"id":"s2","name":"Pierna","started_at":"2026-10-20T10:00:00+00:00"},""" +
+            """{"id":"s1","name":"Torso","started_at":"2026-10-19T10:00:00+00:00"}]"""
+
+        val summaries = repo.listCompletedSummaries().getOrThrow()
+
+        assertEquals(listOf("s2", "s1"), summaries.map { it.id })
+        assertEquals("Pierna", summaries.first().name)
+        assertEquals(Instant.parse("2026-10-20T10:00:00Z"), summaries.first().startedAt)
+        val url = rest().single().url.toString()
+        assertTrue(url.contains("status=eq.completed"))
+        assertTrue(url.contains("started_at.desc"))
+        assertTrue(!url.contains("workout_sets"))
+    }
+
+    @Test
+    fun listCompletedSummaries_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.listCompletedSummaries().appErrorOrNull())
+    }
+
+    @Test
     fun getInProgress_readsThePauseState() = runTest {
         val repo = signedIn()
         getBody = SESSION_ROW.replace(

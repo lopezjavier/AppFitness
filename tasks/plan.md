@@ -48,7 +48,7 @@ Checkpoint rule: every user-testable item of the epic's tasks is collected first
 ### Phase 2: Around the session (routines and past workouts)
 - [ ] T-098: Routine folders, next workout and manual order (US-35) — UI + backend — L
 - [ ] T-099: Routine tracking and "Actualizar rutina" (US-36) — UI + backend — L
-- [ ] T-100: Workout detail and training calendar (US-37) — UI — M–L
+- [x] T-100: Workout detail and training calendar (US-37) — UI — M–L
 - [ ] T-101: Workout editing, "Guardar como rutina" and past workouts (US-37) — UI + backend — L
   - **Checkpoint E6-B 👤 Organise routines and manage past workouts (7 items):** folders incl. delete with confirmation; next workout and order; routine tracking; workout detail and calendar; edit and delete; "Guardar como rutina"; past workouts. Why here: the whole "Mis rutinas" + "Historial" journey outside the gym; "Guardar como rutina" and past workouts from a routine feed the routine tools.
 

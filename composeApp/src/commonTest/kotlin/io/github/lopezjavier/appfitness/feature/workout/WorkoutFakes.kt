@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
@@ -158,6 +159,18 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
             }.thenByDescending { it.id },
         )
         return Result.success(ordered.drop(offset).take(limit))
+    }
+
+    var summariesFailure: AppError? = null
+    var summariesCalls = 0
+
+    override suspend fun listCompletedSummaries(): Result<List<TrainedSession>> {
+        summariesCalls++
+        failing(summariesFailure)?.let { return it }
+        return Result.success(
+            completed.sortedWith(compareByDescending<WorkoutSession> { it.startedAt }.thenByDescending { it.id })
+                .map { TrainedSession(it.id, it.name, it.startedAt) },
+        )
     }
 
     /** Overrides what [exerciseSessions] returns for an offset (e.g. to repeat a session); null uses [completed]. */

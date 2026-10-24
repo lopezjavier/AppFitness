@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -565,5 +566,51 @@ class SessionDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(null, second.content().edit)
+    }
+
+    @Test
+    fun showsTheMuscleSplitOfCompletedSetsByPrimaryGroup() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val split = model.content().split
+        assertEquals(listOf(MuscleGroup.Chest), split.map { it.group })
+        assertEquals(2, split.single().sets)
+        assertEquals(1.0, split.single().fraction)
+    }
+
+    @Test
+    fun theSplitIsEmptyWhenTheExerciseGroupsCannotBeRead() = runTest(dispatcher) {
+        seed()
+        exercises.failure = AppError.Network
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().split.isEmpty())
+    }
+
+    @Test
+    fun setsExposeTheirRpeOnlyWhenTheyHaveOne() = runTest(dispatcher) {
+        repository.completed += completedSession("s1").copy(
+            exercises = listOf(
+                SessionExercise(
+                    "e1",
+                    0,
+                    null,
+                    listOf(
+                        WorkoutSet(1, SetType.Working, SetEntry.WeightReps(80.0, 8), SESSION_START, rpe = 8.5),
+                        WorkoutSet(2, SetType.Working, SetEntry.WeightReps(80.0, 8), SESSION_START),
+                    ),
+                ),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(8.5, null), model.content().exercises.single().sets.map { it.rpe })
     }
 }

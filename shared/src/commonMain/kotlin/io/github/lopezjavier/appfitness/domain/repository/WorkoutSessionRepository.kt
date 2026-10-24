@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
@@ -34,6 +35,9 @@ interface WorkoutSessionRepository {
 
     /** Completed sessions, newest first; a page is [limit] rows starting at [offset]. */
     suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>>
+
+    /** Every completed session without its sets, newest first (training calendar). */
+    suspend fun listCompletedSummaries(): Result<List<TrainedSession>>
 
     /**
      * Completed sessions containing the exercise, newest first; each holds one exercise entry with only that

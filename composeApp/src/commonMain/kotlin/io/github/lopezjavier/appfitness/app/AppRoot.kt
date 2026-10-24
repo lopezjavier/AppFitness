@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
+import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryRoot
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -91,7 +92,10 @@ fun AppRoot(
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)
         },
         saveTemplate = { slotId, date, onSave, onDismiss -> SaveTemplateRoot(slotId, date, onSave, onDismiss) },
-        history = { historyModifier, onOpenSession -> HistoryRoot(onOpenSession, historyModifier) },
+        history = { historyModifier, onOpenSession, onOpenCalendar ->
+            HistoryRoot(onOpenSession, onOpenCalendar, historyModifier)
+        },
+        calendar = { calendarModifier, onOpenSession -> WorkoutCalendarRoot(onOpenSession, calendarModifier) },
         sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->
             SessionDetailRoot(sessionId, onClose, detailModifier, onOpenProgress)
         },

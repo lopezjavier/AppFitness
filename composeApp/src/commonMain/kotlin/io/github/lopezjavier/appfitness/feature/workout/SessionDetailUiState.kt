@@ -2,10 +2,11 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.usecase.MuscleShare
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 
 /** One completed set of a past session; [text] is the shared set text ("85 kg × 8", "8 reps", "01:30"). */
-data class DetailSet(val setIndex: Int, val setType: SetType, val text: String)
+data class DetailSet(val setIndex: Int, val setType: SetType, val text: String, val rpe: Double? = null)
 
 /** An exercise of the session; [name] is null when the library has none (the UI shows a generic label). */
 data class DetailExercise(
@@ -45,6 +46,8 @@ sealed interface SessionDetailUiState {
         val isOnline: Boolean = true,
         val edit: EditSetState? = null,
         val busy: Boolean = false,
+        /** Completed sets per primary muscle group, most first; empty (section hidden) when groups are unknown. */
+        val split: List<MuscleShare> = emptyList(),
     ) : SessionDetailUiState
 }
 

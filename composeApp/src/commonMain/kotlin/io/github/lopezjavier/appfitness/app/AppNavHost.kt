@@ -164,7 +164,11 @@ internal typealias AddFoodSlot =
     ) -> Unit
 
 /** History content: modifier (full-screen insets) and the opener of a session detail (by session id). */
-internal typealias HistorySlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
+internal typealias HistorySlot =
+    @Composable (modifier: Modifier, onOpenSession: (String) -> Unit, onOpenCalendar: () -> Unit) -> Unit
+
+/** Training calendar content: modifier (full-screen insets) and the opener of a session detail (by session id). */
+internal typealias CalendarSlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
 
 /**
  * Session detail content: modifier (full-screen insets), the session id, how to leave after a deletion and the opener
@@ -301,8 +305,13 @@ internal val DefaultEditEntrySlot: EditEntrySlot = { _, _, _, _, _ -> }
 internal val DefaultSaveTemplateSlot: SaveTemplateSlot = { _, _, _, _ -> }
 
 /** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultHistorySlot: HistorySlot = { modifier, _ ->
+internal val DefaultHistorySlot: HistorySlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("history_screen"))
+}
+
+/** Empty training calendar for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultCalendarSlot: CalendarSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("calendar_screen"))
 }
 
 /** Empty session detail for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -359,6 +368,7 @@ internal fun AppNavHost(
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
     history: HistorySlot = DefaultHistorySlot,
+    calendar: CalendarSlot = DefaultCalendarSlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
@@ -498,7 +508,7 @@ internal fun AppNavHost(
         composable<MealSlotsRoute> {
             mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
-        historyDestinations(navController, fullScreenPadding, history, sessionDetail, openProgress)
+        historyDestinations(navController, fullScreenPadding, history, calendar, sessionDetail, openProgress)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
@@ -596,15 +606,23 @@ private fun NavGraphBuilder.foodDestinations(
 }
 
 /** The history list and the detail of one of its sessions; deleting a session pops back to the list. */
+@Suppress("LongParameterList") // One slot per destination.
 private fun NavGraphBuilder.historyDestinations(
     navController: NavHostController,
     fullScreenPadding: PaddingValues,
     history: HistorySlot,
+    calendar: CalendarSlot,
     sessionDetail: SessionDetailSlot,
     openProgress: (String) -> Unit,
 ) {
     composable<HistoryRoute> {
-        history(Modifier.padding(fullScreenPadding)) { navController.navigateToFullScreen(SessionDetailRoute(it)) }
+        history(
+            Modifier.padding(fullScreenPadding),
+            { navController.navigateToFullScreen(SessionDetailRoute(it)) },
+        ) { navController.navigateToFullScreen(WorkoutCalendarRoute) }
+    }
+    composable<WorkoutCalendarRoute> {
+        calendar(Modifier.padding(fullScreenPadding)) { navController.navigateToFullScreen(SessionDetailRoute(it)) }
     }
     composable<SessionDetailRoute> { entry ->
         sessionDetail(
