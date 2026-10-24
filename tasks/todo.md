@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** Checkpoint E6-B 👤 (after T-101 merges and `deploy-supabase` is green), then T-102. Last merged: T-100 (2026-10-24). T-101 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-101a (Checkpoint E6-B fixes), in a fresh session, after the user's OK on its open points. Checkpoint E6-B 👤 is open (presented 2026-10-24; feedback received, fixes first). Last merged: T-101 (PR #181, merged by the user 2026-10-24); main `android-ci` red after that merge, see T-101a. E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2710,6 +2710,27 @@ Journey: everything about a gym session, from planning the sets to the records a
 **Dependencies:** T-100
 **Files likely touched:** `supabase/migrations/<ts>_workout_management.sql`, `supabase/tests/workout_management.test.sql`, `shared/…/domain/usecase/*` + tests, `shared/…/domain/repository/{WorkoutSessionRepository,RoutineRepository}.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/workout/{SessionDetailScreen,EditWorkoutScreen,EditWorkoutViewModel,PastWorkoutScreen,PastWorkoutViewModel,HistoryScreen}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
 **Estimated scope:** L (the planner slices it: backend + domain, then UI)
+
+---
+
+## T-101a: Checkpoint E6-B fixes (folder names, calendar day summary, "Sin carpeta")
+
+**Story:** US-35 / US-37 · **Flow:** UI (+ domain validation) · Source: Checkpoint E6-B feedback, 2026-10-24. Start only after the user's OK; the three open points below are still unanswered.
+
+**Description:**
+1. The label of routines without a folder, "Mis rutinas", becomes "Sin carpeta", also in the move-to-folder picker (requested inside this task, trivial).
+2. A folder cannot be created, or renamed to, a name that already exists. Proposed message "Ya existe una carpeta con ese nombre", compared ignoring case and surrounding spaces. **Open: the user has not confirmed the wording.**
+3. History calendar: tapping a day no longer opens the workout detail directly. The day is selected and a summary card per workout of that day (name, duration, volume) appears below the calendar; tapping a card opens the detail. The selected day survives leaving the app. **Open: the user has not confirmed this behaviour.**
+
+**Acceptance criteria:**
+- [ ] Host tests: the "Sin carpeta" label in the list and the picker; a duplicate folder name is rejected on create and rename (case and space insensitive); a day tap shows the summary cards (one or two) and only a card tap opens the detail; the selected day is restored after leaving the app.
+- [ ] Lint + `testLocalDebugUnitTest` green; main `android-ci` red after the T-101 merge (`3a692c4`) diagnosed first by the user's retry or shared error (CI-red rule).
+
+**Dependencies:** T-101 · **Estimated scope:** S–M
+
+**Deferred / pending (not in this task):**
+- "Actualizar automáticamente" moves to Preferencias as one global setting, off by default (E6-B Q1 in `planning/09-open-questions.md`). Needs the user's A/B answer and a new ADR, then its own task.
+- The stray horizontal line behind "Nueva carpeta" is in the E9 UI-refinement table.
 
 ---
 
