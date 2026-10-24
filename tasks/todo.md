@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-102b (Edit a comida), in a fresh session, once T-102 is merged (PR #185). Last merged: T-101a (PR #183). Checkpoint E6-C 👤 follows T-103 prerequisites. E5 closed (tag `v0.5.0`).
+**Next:** T-102b (Edit a comida), in a fresh session, once T-102 is merged (PR #185); then Checkpoint E6-C 👤, then T-103 (closure). Last merged: T-101a (PR #183). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2819,7 +2819,7 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 
 ### Checkpoint E6-C — Food editing, final regression and approval 👤 (6 items + leave and come back)
 Journey: fix your own foods from their label, then one last real workout over everything E6 built. Why here: food editing (T-102) is its own journey in another domain, but it yields only 3 items, below the 5-item minimum, and only the closure follows it, so it joins the closing regression instead of calling the user twice in a row.
-- [ ] T-089…T-103 merged (incl. T-102b), CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
+- [ ] T-089…T-102b merged, CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Edit a comida (T-102b): in "Añadir comida" → Comidas, tapping a row adds it and the pencil opens "Editar comida"; rename it in the text field, swipe a food away or remove it from its details, add a food, "Guardar": everything applies together; leaving without "Guardar" changes nothing.
   2. Edit a manual food (T-102): open one of your foods, "Editar", change its kcal or a macro and "Guardar": a new diary entry uses the new values; the entries you logged before keep theirs. An Open Food Facts food has no "Editar".
