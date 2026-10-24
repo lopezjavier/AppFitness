@@ -3,26 +3,67 @@ package io.github.lopezjavier.appfitness.feature.exercises
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetEntryText
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlin.time.Instant
 
 private const val PAGE_SIZE = 20
 private const val KEY_TAB = "tab"
+private const val KEY_EDIT_OPEN = "detail_edit_open"
+private const val KEY_EDIT_NAME = "detail_edit_name"
+private const val KEY_EDIT_MUSCLE = "detail_edit_muscle"
+private const val KEY_EDIT_EQUIPMENT = "detail_edit_equipment"
+private const val KEY_EDIT_PER_HAND = "detail_edit_per_hand"
+private const val KEY_DELETE_OPEN = "detail_delete_open"
+
+/** Longest exercise name, matching the DB check. */
+private const val NAME_MAX_LENGTH = 100
+
+/**
+ * The edit sheet of a manual exercise (same fields as the create sheet, minus the metric type, which cannot change).
+ * Nothing is applied until "Guardar" ([ExerciseDetailViewModel.submitEdit]).
+ */
+data class EditExerciseForm(
+    val name: String,
+    val muscleGroup: MuscleGroup,
+    val equipment: Equipment,
+    val perHand: Boolean,
+    val isSubmitting: Boolean = false,
+    val hasError: Boolean = false,
+) {
+    val canSubmit: Boolean get() = name.isNotBlank() && !isSubmitting
+}
+
+/** The open "Eliminar" confirmation; [hasError] after a failed attempt (network), [isDeleting] while it runs. */
+data class DeleteDialog(val isDeleting: Boolean = false, val hasError: Boolean = false)
+
+/** One-off results of the detail screen. */
+sealed interface ExerciseDetailEffect {
+    /** The manual exercise was deleted: leave the screen and show "Ejercicio eliminado". */
+    data object Deleted : ExerciseDetailEffect
+}
 
 /** The tabs of the exercise detail; the selected one is kept in the saved state by name. */
 enum class ExerciseDetailTab { Summary, History, HowTo }
@@ -78,22 +119,35 @@ sealed interface ExerciseDetailUiState {
         val tab: ExerciseDetailTab = ExerciseDetailTab.Summary,
         val records: RecordsState = RecordsState.Loading,
         val history: HistoryState = HistoryState.Loading,
-    ) : ExerciseDetailUiState
+        /** The edit sheet (manual exercises only); null when closed. Survives process death (ADR-40). */
+        val editForm: EditExerciseForm? = null,
+        /** The delete confirmation (manual exercises only); null when closed. Survives process death (ADR-40). */
+        val deleteDialog: DeleteDialog? = null,
+        /** Set when a delete was refused because the exercise is in use; the UI shows the blocked message. */
+        val inUse: AppError.InUse? = null,
+    ) : ExerciseDetailUiState {
+        /** Only the user's own manual exercises can be edited or deleted. */
+        val canManage: Boolean get() = detail.exercise.isCustom
+    }
 }
 
 /**
  * Loads one exercise for the detail screen (US-28): the detail, its personal records, and the paged history of the
  * sessions that contain it (loaded when the History tab is first shown). The selected tab survives recreation.
  */
-@Suppress("TooManyFunctions") // One function per event of the three tabs.
+@Suppress("TooManyFunctions") // One function per event of the three tabs and the edit/delete actions.
 class ExerciseDetailViewModel(
     private val exerciseId: String,
     private val loadCatalog: LoadExerciseCatalog,
+    private val repository: ExerciseRepository,
     private val workoutSessions: WorkoutSessionRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ExerciseDetailUiState>(ExerciseDetailUiState.Loading)
     val uiState: StateFlow<ExerciseDetailUiState> = _uiState.asStateFlow()
+
+    private val effectChannel = Channel<ExerciseDetailEffect>(Channel.BUFFERED)
+    val effects: Flow<ExerciseDetailEffect> = effectChannel.receiveAsFlow()
 
     /** Sessions the server returned so far; the next page starts here (deduplicated rows still count). */
     private var nextOffset = 0
@@ -139,6 +193,104 @@ class ExerciseDetailViewModel(
         if (!content.loadingMore && content.pageError) loadNextPage(content)
     }
 
+    fun openEdit() {
+        val exercise = loaded()?.detail?.exercise?.takeIf { it.isCustom } ?: return
+        setEditForm(
+            EditExerciseForm(exercise.name.orEmpty(), exercise.muscleGroup, exercise.equipment, exercise.perHand),
+        )
+    }
+
+    fun dismissEdit() = setEditForm(null)
+
+    fun setEditName(name: String) = editForm { it.copy(name = name.take(NAME_MAX_LENGTH), hasError = false) }
+
+    fun selectEditMuscleGroup(group: MuscleGroup) = editForm { it.copy(muscleGroup = group) }
+
+    fun selectEditEquipment(equipment: Equipment) = editForm { it.copy(equipment = equipment) }
+
+    fun setEditPerHand(perHand: Boolean) = editForm { it.copy(perHand = perHand) }
+
+    /** "Guardar": applies the edit; on success the form closes and the detail shows the new values. */
+    fun submitEdit() {
+        val form = loaded()?.editForm?.takeIf { it.canSubmit } ?: return
+        setEditForm(form.copy(isSubmitting = true, hasError = false))
+        viewModelScope.launch {
+            repository.updateCustom(exerciseId, form.name.trim(), form.muscleGroup, form.equipment, form.perHand).fold(
+                onSuccess = {
+                    loadCatalog.detail(exerciseId).onSuccess { detail -> updateLoaded { it.copy(detail = detail) } }
+                    setEditForm(null)
+                },
+                onFailure = { setEditForm(form.copy(isSubmitting = false, hasError = true)) },
+            )
+        }
+    }
+
+    fun openDelete() {
+        if (loaded()?.canManage != true) return
+        setDeleteDialog(DeleteDialog())
+    }
+
+    fun dismissDelete() {
+        if (loaded()?.deleteDialog?.isDeleting == true) return
+        setDeleteDialog(null)
+    }
+
+    /** Confirms "Eliminar": an exercise in use is refused (nothing deleted) and reported through `inUse`. */
+    fun confirmDelete() {
+        val dialog = loaded()?.deleteDialog?.takeIf { !it.isDeleting } ?: return
+        setDeleteDialog(dialog.copy(isDeleting = true, hasError = false))
+        viewModelScope.launch {
+            val result = repository.deleteCustom(exerciseId)
+            val error = result.appErrorOrNull()
+            when {
+                result.isSuccess -> {
+                    setDeleteDialog(null)
+                    effectChannel.trySend(ExerciseDetailEffect.Deleted)
+                }
+
+                error is AppError.InUse -> {
+                    setDeleteDialog(null)
+                    updateLoaded { it.copy(inUse = error) }
+                }
+
+                else -> setDeleteDialog(DeleteDialog(isDeleting = false, hasError = true))
+            }
+        }
+    }
+
+    fun dismissInUse() = updateLoaded { it.copy(inUse = null) }
+
+    private fun editForm(change: (EditExerciseForm) -> EditExerciseForm) {
+        loaded()?.editForm?.let { setEditForm(change(it)) }
+    }
+
+    private fun setEditForm(form: EditExerciseForm?) {
+        updateLoaded { it.copy(editForm = form) }
+        savedState[KEY_EDIT_OPEN] = form != null
+        savedState[KEY_EDIT_NAME] = form?.name
+        savedState[KEY_EDIT_MUSCLE] = form?.muscleGroup?.name
+        savedState[KEY_EDIT_EQUIPMENT] = form?.equipment?.name
+        savedState[KEY_EDIT_PER_HAND] = form?.perHand
+    }
+
+    private fun setDeleteDialog(dialog: DeleteDialog?) {
+        updateLoaded { it.copy(deleteDialog = dialog) }
+        savedState[KEY_DELETE_OPEN] = dialog != null
+    }
+
+    private fun restoredEditForm(detail: ExerciseDetail): EditExerciseForm? {
+        if (!detail.exercise.isCustom || savedState.get<Boolean>(KEY_EDIT_OPEN) != true) return null
+        val exercise = detail.exercise
+        return EditExerciseForm(
+            name = savedState.get<String>(KEY_EDIT_NAME) ?: exercise.name.orEmpty(),
+            muscleGroup = MuscleGroup.entries.firstOrNull { it.name == savedState.get<String>(KEY_EDIT_MUSCLE) }
+                ?: exercise.muscleGroup,
+            equipment = Equipment.entries.firstOrNull { it.name == savedState.get<String>(KEY_EDIT_EQUIPMENT) }
+                ?: exercise.equipment,
+            perHand = savedState.get<Boolean>(KEY_EDIT_PER_HAND) ?: exercise.perHand,
+        )
+    }
+
     private fun loaded() = _uiState.value as? ExerciseDetailUiState.Loaded
 
     private fun updateLoaded(change: (ExerciseDetailUiState.Loaded) -> ExerciseDetailUiState.Loaded) {
@@ -153,7 +305,18 @@ class ExerciseDetailViewModel(
         viewModelScope.launch {
             loadCatalog.detail(exerciseId).fold(
                 onSuccess = { detail ->
-                    _uiState.value = ExerciseDetailUiState.Loaded(detail, tab = storedTab())
+                    _uiState.value = ExerciseDetailUiState.Loaded(
+                        detail,
+                        tab = storedTab(),
+                        editForm = restoredEditForm(detail),
+                        deleteDialog = if (detail.exercise.isCustom &&
+                            savedState.get<Boolean>(KEY_DELETE_OPEN) == true
+                        ) {
+                            DeleteDialog()
+                        } else {
+                            null
+                        },
+                    )
                     loadRecords()
                     if (storedTab() == ExerciseDetailTab.History) loadHistoryIfNeeded()
                 },

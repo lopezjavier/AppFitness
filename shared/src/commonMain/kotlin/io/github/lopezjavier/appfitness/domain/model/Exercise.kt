@@ -118,6 +118,8 @@ data class Exercise(
     val equipment: Equipment,
     val metricType: ExerciseMetricType,
     val isCustom: Boolean,
+    /** The logged weight is per hand/side: volume counts it twice (1RM is never doubled, 04 §4.7). */
+    val perHand: Boolean = false,
 )
 
 /** Client library entry of one catalog exercise (Spanish texts from the RepDB bundle). */

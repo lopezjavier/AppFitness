@@ -17,7 +17,7 @@ insert into public.training_preferences (user_id, warm_up_included) values
   ('33333333-3333-4333-8333-333333333333', true);
 
 create temp table cat as
-  select id from public.exercises where not is_custom and metric_type = 'weight_reps' order by key limit 1;
+  select id from public.exercises where not is_custom and not per_hand and metric_type = 'weight_reps' order by key limit 1;
 grant select on cat to authenticated;
 
 -- Ana has one completed session far in the past (older than any "first page"):

@@ -45,7 +45,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
-import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_double_dumbbell
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_decrease_cd
@@ -388,13 +387,6 @@ private fun CalculatorMenuRows(
             label = stringResource(Res.string.live_exercise_menu_plate_calc),
             onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Discs)) },
             testTag = "routine_builder_plate_calc_$index",
-        )
-    }
-    if (row.equipment == Equipment.Dumbbell) {
-        SheetActionRow(
-            label = stringResource(Res.string.live_exercise_menu_double_dumbbell),
-            onClick = { open(RoutineBuilderEvent.OpenDoubleDumbbell(index)) },
-            testTag = "routine_builder_double_dumbbell_$index",
         )
     }
 }

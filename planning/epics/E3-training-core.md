@@ -98,6 +98,28 @@ Feature: Exercise catalog
     And they choose the group "Pecho" and the equipment "Máquina"
     Then the exercise is created as custom and stays selected
 
+  Scenario: Editing a manual exercise
+    Given the manual exercise "Press Hammer unilateral"
+    When the user opens it, changes name, equipment, muscle group or the flag and taps "Guardar"
+    Then the new values show in the picker, routines, live sessions and history, and past volume is recalculated
+
+  Scenario: Catalogue exercises are not editable
+    Given a catalogue exercise
+    Then its detail has no "Editar" or "Eliminar"
+
+  Scenario: Deleting a manual exercise that was never used
+    When the user taps "Eliminar" and confirms
+    Then it disappears from the picker
+
+  Scenario: Deleting a manual exercise that is in use
+    Given the manual exercise has logged sets or routine entries
+    When the user confirms "Eliminar"
+    Then nothing is deleted and the message "Este ejercicio está en uso (N series, M rutinas) y no se puede eliminar" is shown
+
+  Scenario: Other users unaffected (pgTAP)
+    Given user A created "Press Hammer unilateral"
+    Then user B cannot update or delete it
+
   Scenario: Custom exercise privacy
     Given user A created "Press Hammer unilateral"
     When user B searches for "Hammer"
@@ -105,6 +127,7 @@ Feature: Exercise catalog
 ```
 
 **Technical notes**
+- T-097i (ADR-56): the new-exercise form asks "Se usa una pesa en cada mano" (`exercises.per_hand`); manual exercises are edited and deleted from their detail (icon buttons, explicit "Guardar", destructive confirmation); the metric type cannot change; the catalogue flag is read-only.
 - `exercises` migration + a generated catalog migration (`key`, `muscle_group`, `equipment`, `metric_type`; no name, ADR-38/ADR-39) + pgTAP. Names, instructions and images are **not** in the DB: they live in `library.json` in the client (ADR-30).
 - Assets bundled in `composeApp/src/commonMain/composeResources/files/exercises/` (`start`/`peak` poses), ≈16 MB; the animation is a 3 s start↔peak crossfade.
 - In-memory local search after loading the catalog once (it is small), with accent normalization.

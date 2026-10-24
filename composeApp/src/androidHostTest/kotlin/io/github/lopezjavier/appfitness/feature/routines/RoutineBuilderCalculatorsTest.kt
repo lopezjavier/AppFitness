@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
 import android.graphics.Color
-import androidx.activity.ComponentDialog
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -12,7 +11,6 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -22,7 +20,6 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.test.FakeImageLoaderEngine
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -35,7 +32,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -44,12 +40,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowDialog
 
 private const val BARBELL_ROW = 0
 private const val DUMBBELL_ROW = 1
 
-/** US-33 / ADR-55: the calculators and the double dumbbell option inside the routine builder. */
+/** US-33 / ADR-55: the calculators inside the routine builder. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
@@ -73,7 +68,6 @@ class RoutineBuilderCalculatorsTest {
     )
     private val connectivity = FakeConnectivityObserver()
     private val preferences = FakeTrainingPreferencesRepository()
-    private val options = FakeExerciseOptionsRepository()
 
     @Before
     fun installFakeImageLoader() {
@@ -95,7 +89,6 @@ class RoutineBuilderCalculatorsTest {
         LoadExerciseCatalog(exercises, library),
         connectivity,
         preferences,
-        options,
     )
 
     private fun screen(vm: RoutineBuilderViewModel) {
@@ -143,24 +136,22 @@ class RoutineBuilderCalculatorsTest {
     }
 
     @Test
-    fun menu_barbellRow_offersBothCalculators_butNotDoubleDumbbell() {
+    fun menu_barbellRow_offersBothCalculators() {
         showWithBarbellAndDumbbell()
 
         openMenu(BARBELL_ROW)
         rule.onNodeWithTag("routine_builder_warm_up_calc_0").assertExists().assertIsEnabled()
         rule.onNodeWithTag("routine_builder_plate_calc_0").assertExists().assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithTag("routine_builder_double_dumbbell_0").assertDoesNotExist()
     }
 
     @Test
-    fun menu_dumbbellRow_offersAllThreeEntries() {
+    fun menu_dumbbellRow_offersBothCalculators() {
         showWithBarbellAndDumbbell()
 
         openMenu(DUMBBELL_ROW)
 
         rule.onNodeWithTag("routine_builder_warm_up_calc_1").assertExists()
         rule.onNodeWithTag("routine_builder_plate_calc_1").assertExists()
-        rule.onNodeWithTag("routine_builder_double_dumbbell_1").assertExists().assertHeightIsAtLeast(48.dp)
     }
 
     @Test
@@ -174,7 +165,6 @@ class RoutineBuilderCalculatorsTest {
 
         rule.onNodeWithTag("routine_builder_warm_up_calc_0").assertExists()
         rule.onNodeWithTag("routine_builder_plate_calc_0").assertDoesNotExist()
-        rule.onNodeWithTag("routine_builder_double_dumbbell_0").assertDoesNotExist()
     }
 
     @Test
@@ -293,76 +283,6 @@ class RoutineBuilderCalculatorsTest {
     }
 
     @Test
-    fun doubleDumbbell_save_storesTheOption_andReopeningShowsItOn() {
-        showWithBarbellAndDumbbell()
-        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
-        val tag = "routine_builder_1_double_dumbbell"
-        rule.onNodeWithTag("${tag}_confirm").assertIsNotEnabled()
-
-        tap("${tag}_switch")
-        tap("${tag}_confirm")
-
-        assertEquals(listOf("d" to true), options.writes)
-        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
-        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
-        val state = rule.onNodeWithTag("${tag}_switch").fetchSemanticsNode()
-            .config[SemanticsProperties.StateDescription]
-        assertEquals("Activado", state)
-        rule.onNodeWithTag("${tag}_saves_hint").assertExists()
-    }
-
-    @Test
-    fun doubleDumbbell_closingTheSheet_discardsTheDraft() {
-        showWithBarbellAndDumbbell()
-        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
-        val tag = "routine_builder_1_double_dumbbell"
-        tap("${tag}_switch")
-
-        // The sheet lives in its own dialog window: back goes to the dialog.
-        rule.runOnUiThread {
-            (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed()
-        }
-        rule.waitUntil(timeoutMillis = 5_000) {
-            rule.onAllNodesWithTag("${tag}_sheet").fetchSemanticsNodes().isEmpty()
-        }
-
-        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
-        assertTrue(options.writes.isEmpty())
-    }
-
-    @Test
-    fun doubleDumbbell_saveFailure_keepsTheSheetOpenWithAnError_andRetryWorks() {
-        options.failWrite = true
-        showWithBarbellAndDumbbell()
-        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
-        val tag = "routine_builder_1_double_dumbbell"
-        tap("${tag}_switch")
-
-        tap("${tag}_confirm")
-
-        rule.onNodeWithTag("${tag}_sheet").assertExists()
-        rule.onNodeWithTag("${tag}_error").assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
-        options.failWrite = false
-        tap("${tag}_confirm")
-        assertEquals(listOf("d" to true), options.writes)
-        rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
-    }
-
-    @Test
-    fun doubleDumbbell_offline_disablesGuardarWithTheReason() {
-        showWithBarbellAndDumbbell()
-        openFromMenu(DUMBBELL_ROW, "double_dumbbell")
-        val tag = "routine_builder_1_double_dumbbell"
-        tap("${tag}_switch")
-        connectivity.state.value = false
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("${tag}_confirm").assertIsNotEnabled()
-        rule.onNodeWithTag("${tag}_offline_reason")
-            .assertTextEquals("Sin conexión: no puedes guardar esta opción")
-    }
-
-    @Test
     fun discLoaderAndItsCounts_surviveLeavingTheApp() {
         val handle = SavedStateHandle()
         var current: RoutineBuilderViewModel? = null
@@ -383,25 +303,5 @@ class RoutineBuilderCalculatorsTest {
         rule.onNodeWithTag("${tag}_plate_25_value").assertTextEquals("2")
         rule.onNodeWithTag("${tag}_plate_15_value").assertTextEquals("1")
         rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 150 kg")
-    }
-
-    @Test
-    fun doubleDumbbellDraft_survivesLeavingTheApp() {
-        val handle = SavedStateHandle()
-        var current: RoutineBuilderViewModel? = null
-        val tester = StateRestorationTester(rule)
-        tester.setContent { BuilderContent(remember { newViewModel(handle).also { current = it } }) }
-        rule.waitForIdle()
-        current?.onEvent(RoutineBuilderEvent.AddExercise("d"))
-        rule.waitForIdle()
-        openFromMenu(0, "double_dumbbell")
-        tap("routine_builder_0_double_dumbbell_switch")
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        val state = rule.onNodeWithTag("routine_builder_0_double_dumbbell_switch").fetchSemanticsNode()
-            .config[SemanticsProperties.StateDescription]
-        assertEquals("Activado", state)
     }
 }

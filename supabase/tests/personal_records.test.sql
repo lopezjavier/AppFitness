@@ -11,14 +11,14 @@ insert into auth.users (id, email) values
 
 -- The catalogue has no steps exercise yet: use a custom one.
 insert into public.exercises (name, muscle_group, equipment, metric_type, is_custom, created_by) values
-  ('Escalador', 'full_body', 'other', 'steps_duration', true, '11111111-1111-4111-8111-111111111111');
+  ('Escalador', 'full_body', 'other', 'steps_duration', true, '11111111-1111-4111-8111-111111111111'),
+  ('Curl por mano', 'biceps', 'dumbbell', 'weight_reps', true, '11111111-1111-4111-8111-111111111111');
 
 create temp table cat as
   select 'b' as k, (select id from public.exercises where not is_custom and equipment = 'barbell'
                       and metric_type = 'weight_reps' order by key limit 1) as id
   union all
-  select 'd', (select id from public.exercises where not is_custom and equipment = 'dumbbell'
-                 and metric_type = 'weight_reps' order by key limit 1)
+  select 'd', (select id from public.exercises where is_custom and name = 'Curl por mano')
   union all
   select 'bw', (select id from public.exercises where not is_custom and metric_type = 'bodyweight' order by key limit 1)
   union all
@@ -129,14 +129,14 @@ update public.training_preferences set warm_up_included = false;
 select is((select value from public.personal_records((select id from cat where k = 'b')) where record_type = 'heaviest_lift'),
   110::numeric, 'warm-up excluded again: heaviest lift back to 110');
 
--- Double dumbbell and bodyweight
+-- Per-hand exercise and bodyweight
 select results_eq(
   $$select best_set, session_volume, best_one_rm from public.exercise_session_records((select id from cat where k = 'd'))$$,
-  $$values (200::numeric, 200::numeric, 26.5::numeric)$$, 'dumbbell off: volume 200');
-select lives_ok($$select public.set_exercise_double_dumbbell((select id from cat where k = 'd'), true)$$, 'enable double dumbbell');
+  $$values (200::numeric, 200::numeric, 26.5::numeric)$$, 'per_hand off: volume 200');
+select lives_ok($$update public.exercises set per_hand = true where id = (select id from cat where k = 'd')$$, 'flag the exercise per hand');
 select results_eq(
   $$select best_set, session_volume, best_one_rm from public.exercise_session_records((select id from cat where k = 'd'))$$,
-  $$values (400::numeric, 400::numeric, 26.5::numeric)$$, 'double dumbbell doubles volume records but not the 1RM');
+  $$values (400::numeric, 400::numeric, 26.5::numeric)$$, 'per_hand doubles volume records but not the 1RM');
 select results_eq(
   $$select record_type, value from public.personal_records((select id from cat where k = 'bw')) order by 1$$,
   $$values ('best_set', 800::numeric), ('max_volume', 800::numeric), ('total_reps', 10::numeric)$$,

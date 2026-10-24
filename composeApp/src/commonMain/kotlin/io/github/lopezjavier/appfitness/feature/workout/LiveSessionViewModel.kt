@@ -30,12 +30,10 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
-import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
-import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
@@ -49,6 +47,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SessionDuration
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
 import io.github.lopezjavier.appfitness.domain.usecase.Stopwatch
 import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
+import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -95,8 +94,6 @@ private const val KEY_PAUSED_AT = "live_paused_at"
 private const val KEY_PAUSED_TOTAL = "live_paused_total"
 private const val KEY_REST_PAUSED_REMAINING = "live_rest_paused_remaining"
 private const val KEY_REST_PAUSED_TOTAL = "live_rest_paused_total"
-private const val KEY_DOUBLE_DRAFT_EXERCISE = "live_double_dumbbell_exercise"
-private const val KEY_DOUBLE_DRAFT_ENABLED = "live_double_dumbbell_enabled"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
 private const val DRAFT_SEPARATOR = ''
 private const val DRAFT_FIELDS = 9
@@ -183,7 +180,6 @@ class LiveSessionViewModel(
     private val alertSound: AlertSound,
     private val preferences: TrainingPreferencesRepository,
     private val bodyMeasurements: BodyMeasurementRepository,
-    private val exerciseOptions: ExerciseOptionsRepository,
     private val saveBodyMeasurement: SaveBodyMeasurement,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -226,11 +222,10 @@ class LiveSessionViewModel(
     private var rpePicker: RpePickerTarget? = restoredRpePicker()
     private var terminal: LiveSessionUiState? = LiveSessionUiState.Loading
 
-    /** Volume options (US-32): exercises counted double, latest body weight and whether today's weight is synced. */
-    private var doubleDumbbellIds: Set<String> = emptySet()
+    /** Volume options (US-32): per-hand exercises (volume x2), latest body weight, whether today is synced. */
+    private var perHandIds: Set<String> = emptySet()
     private var bodyWeightKg: Double? = null
     private var todayHasHealthConnectWeight = false
-    private var doubleDumbbellDraft: DoubleDumbbellDraft? = restoredDoubleDumbbellDraft()
     private var bodyWeightDraft: String? = savedState.get<String>(KEY_BODY_WEIGHT_DRAFT)
     private var bodyWeightInvalid = false
     private var calculatorDraft: CalculatorDraft? = savedState.restoredCalculatorDraft()
@@ -368,12 +363,6 @@ class LiveSessionViewModel(
 
             LiveSessionEvent.ConfirmDiscard -> confirmDiscard()
 
-            is LiveSessionEvent.DoubleDumbbellDraftChanged -> updateDialogs {
-                doubleDumbbellDraft = DoubleDumbbellDraft(event.exerciseId, event.enabled)
-            }
-
-            is LiveSessionEvent.SetDoubleDumbbell -> saveDoubleDumbbell(event.exerciseId, event.enabled)
-
             is LiveSessionEvent.BodyWeightDraftChanged -> updateDialogs {
                 bodyWeightDraft = event.text
                 bodyWeightInvalid = false
@@ -382,7 +371,6 @@ class LiveSessionViewModel(
             is LiveSessionEvent.SaveBodyWeight -> saveBodyWeight(event.text)
 
             LiveSessionEvent.DismissVolumeDrafts -> updateDialogs {
-                doubleDumbbellDraft = null
                 bodyWeightDraft = null
                 bodyWeightInvalid = false
             }
@@ -416,7 +404,7 @@ class LiveSessionViewModel(
 
     /** Reads the options, the latest weight and today's Health Connect weight; a failed read leaves the defaults. */
     private suspend fun loadVolumeOptions() {
-        doubleDumbbellIds = exerciseOptions.doubleDumbbellIdsOrDefault()
+        perHandIds = exerciseRepository.perHandIdsOrDefault()
         bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
         val today = clock.now().toLocalDateTime(timeZone).date
         val rows = bodyMeasurements.getMeasurements(
@@ -424,19 +412,6 @@ class LiveSessionViewModel(
             today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone),
         ).getOrNull().orEmpty()
         todayHasHealthConnectWeight = MeasurementsByDay()(rows, timeZone)[today]?.healthConnect.orEmpty().isNotEmpty()
-    }
-
-    private fun saveDoubleDumbbell(exerciseId: String, enabled: Boolean) {
-        if (session == null) return
-        viewModelScope.launch {
-            if (exerciseOptions.setDoubleDumbbell(exerciseId, enabled).isFailure) {
-                effectChannel.trySend(LiveSessionEffect.OptionSaveFailed)
-                return@launch
-            }
-            doubleDumbbellIds = if (enabled) doubleDumbbellIds + exerciseId else doubleDumbbellIds - exerciseId
-            doubleDumbbellDraft = null
-            publish()
-        }
     }
 
     /** Stores [text] as today's manual weight ([SaveBodyMeasurement]); blocked when Health Connect owns today. */
@@ -998,7 +973,7 @@ class LiveSessionViewModel(
                 loadHistory(finished),
                 includeWarmUp,
                 bodyMeasurements.getLatestWeight().getOrNull()?.weightKg,
-                exerciseOptions.doubleDumbbellIdsOrDefault(),
+                exerciseRepository.perHandIdsOrDefault(),
                 loadRecordHistory(finished),
             )
             val named = current.exercises.associate { it.position to names[it.exerciseId] }
@@ -1204,15 +1179,8 @@ class LiveSessionViewModel(
         return if (position != null && setIndex != null) RpePickerTarget(position, setIndex, completes) else null
     }
 
-    private fun restoredDoubleDumbbellDraft(): DoubleDumbbellDraft? {
-        val exerciseId = savedState.get<String>(KEY_DOUBLE_DRAFT_EXERCISE) ?: return null
-        return DoubleDumbbellDraft(exerciseId, savedState.get<Boolean>(KEY_DOUBLE_DRAFT_ENABLED) ?: false)
-    }
-
     /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
     private fun persistState() {
-        savedState[KEY_DOUBLE_DRAFT_EXERCISE] = doubleDumbbellDraft?.exerciseId
-        savedState[KEY_DOUBLE_DRAFT_ENABLED] = doubleDumbbellDraft?.enabled
         savedState[KEY_BODY_WEIGHT_DRAFT] = bodyWeightDraft
         savedState.persistCalculatorDraft(calculatorDraft)
         savedState[KEY_PICKER_POSITION] = typePicker?.position
@@ -1251,12 +1219,9 @@ class LiveSessionViewModel(
     private fun clearSavedState() {
         typePicker = null
         rpePicker = null
-        doubleDumbbellDraft = null
         bodyWeightDraft = null
         calculatorDraft = null
         savedState.persistCalculatorDraft(null)
-        savedState.remove<String>(KEY_DOUBLE_DRAFT_EXERCISE)
-        savedState.remove<Boolean>(KEY_DOUBLE_DRAFT_ENABLED)
         savedState.remove<String>(KEY_BODY_WEIGHT_DRAFT)
         savedState.remove<Int>(KEY_PICKER_POSITION)
         savedState.remove<Int>(KEY_PICKER_SET)
@@ -1361,10 +1326,9 @@ class LiveSessionViewModel(
             busy = busy,
             typePicker = typePicker,
             rpePicker = rpePicker,
-            doubleDumbbellIds = doubleDumbbellIds,
+            perHandIds = perHandIds,
             bodyWeightKg = bodyWeightKg,
             todayHasHealthConnectWeight = todayHasHealthConnectWeight,
-            doubleDumbbellDraft = doubleDumbbellDraft,
             bodyWeightDraft = bodyWeightDraft,
             bodyWeightInvalid = bodyWeightInvalid,
             pausedAt = current.pausedAt,

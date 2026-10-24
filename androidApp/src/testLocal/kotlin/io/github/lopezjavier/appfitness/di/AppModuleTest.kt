@@ -16,7 +16,6 @@ import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
-import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -117,7 +116,6 @@ class AppModuleTest {
                 BodyMeasurementRepository::class,
                 NutritionGoalsRepository::class,
                 TrainingPreferencesRepository::class,
-                ExerciseOptionsRepository::class,
                 MealSlotRepository::class,
                 FoodDiaryRepository::class,
                 FoodRepository::class,

@@ -40,6 +40,14 @@ class SupabaseExerciseRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var rows = "[$CATALOG_ROW]"
     private var failing = false
+    private var rpcError: Pair<HttpStatusCode, String>? = null
+
+    private fun rpcFails(status: HttpStatusCode, code: String, message: String, details: String? = null) {
+        val detailsJson = details?.let { "\"$it\"" } ?: "null"
+        rpcError = status to """{"code":"$code","message":"$message","details":$detailsJson,"hint":null}"""
+    }
+
+    private fun rpcPosts() = requests.filter { it.method == HttpMethod.Post && it.url.encodedPath.contains("/rpc/") }
 
     private suspend fun signedIn(): SupabaseExerciseRepository {
         val engine =
@@ -48,8 +56,14 @@ class SupabaseExerciseRepositoryTest {
                 val headers = headersOf(HttpHeaders.ContentType, "application/json")
                 when {
                     request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
+
                     failing -> throw IOException("offline")
+
+                    rpcError != null && request.url.encodedPath.contains("/rpc/") ->
+                        respond(rpcError!!.second, rpcError!!.first, headers)
+
                     request.method == HttpMethod.Get -> respond(rows, HttpStatusCode.OK, headers)
+
                     else -> respond("[$CUSTOM_ROW]", HttpStatusCode.Created, headers)
                 }
             }
@@ -95,13 +109,118 @@ class SupabaseExerciseRepositoryTest {
         val post = requests.single { it.method == HttpMethod.Post && !it.url.encodedPath.contains("/auth/") }
         assertEquals(
             """[{"name":"Press Hammer","muscle_group":"chest","equipment":"machine",""" +
-                """"metric_type":"weight_reps","is_custom":true}]""",
+                """"metric_type":"weight_reps","is_custom":true,"per_hand":false}]""",
             (post.body as TextContent).text,
         )
         assertEquals("Press Hammer", created.name)
         assertTrue(created.isCustom)
         repo.getAll().getOrThrow()
         assertEquals(2, reads().size)
+    }
+
+    @Test
+    fun createCustom_sendsThePerHandFlag() = runTest {
+        val repo = signedIn()
+
+        repo.createCustom("Press", MuscleGroup.Chest, Equipment.Machine, perHand = true).getOrThrow()
+
+        val post = requests.single { it.method == HttpMethod.Post && !it.url.encodedPath.contains("/auth/") }
+        assertTrue((post.body as TextContent).text.contains(""""per_hand":true"""))
+    }
+
+    @Test
+    fun getAll_missingPerHandColumn_defaultsToFalse() = runTest {
+        val repo = signedIn()
+
+        assertTrue(!repo.getAll().getOrThrow().single().perHand)
+    }
+
+    @Test
+    fun getAll_mapsPerHand() = runTest {
+        val repo = signedIn()
+        rows = "[" + CATALOG_ROW.replace("\"is_custom\":false", "\"is_custom\":false,\"per_hand\":true") + "]"
+
+        assertTrue(repo.getAll().getOrThrow().single().perHand)
+    }
+
+    @Test
+    fun updateCustom_callsTheRpcAndInvalidatesTheCache() = runTest {
+        val repo = signedIn()
+        repo.getAll().getOrThrow()
+
+        repo.updateCustom("e2", "Press", MuscleGroup.Back, Equipment.Cable, perHand = true).getOrThrow()
+
+        val call = rpcPosts().single()
+        assertTrue(call.url.encodedPath.endsWith("/rpc/update_custom_exercise"))
+        val body = (call.body as TextContent).text
+        assertTrue(body.contains(""""p_id":"e2"""") && body.contains(""""p_per_hand":true"""))
+        repo.getAll().getOrThrow()
+        assertEquals(2, reads().size)
+    }
+
+    @Test
+    fun updateCustom_notOwnExercise_isNotFound() = runTest {
+        val repo = signedIn()
+        rpcFails(HttpStatusCode.BadRequest, "P0002", "exercise not found")
+
+        val result = repo.updateCustom("e1", "x", MuscleGroup.Back, Equipment.Cable, perHand = false)
+
+        assertEquals(AppError.NotFound, result.appErrorOrNull())
+    }
+
+    @Test
+    fun updateCustom_invalidName_isValidation() = runTest {
+        val repo = signedIn()
+        rpcFails(HttpStatusCode.BadRequest, "22023", "name must be 1-100 characters")
+
+        val result = repo.updateCustom("e2", " ", MuscleGroup.Back, Equipment.Cable, perHand = false)
+
+        assertEquals(AppError.Validation, result.appErrorOrNull())
+    }
+
+    @Test
+    fun deleteCustom_callsTheRpcAndInvalidatesTheCache() = runTest {
+        val repo = signedIn()
+        repo.getAll().getOrThrow()
+
+        repo.deleteCustom("e2").getOrThrow()
+
+        assertTrue(rpcPosts().single().url.encodedPath.endsWith("/rpc/delete_custom_exercise"))
+        repo.getAll().getOrThrow()
+        assertEquals(2, reads().size)
+    }
+
+    @Test
+    fun deleteCustom_inUse_carriesBothCounts() = runTest {
+        val repo = signedIn()
+        rpcFails(
+            HttpStatusCode.Conflict,
+            "23503",
+            "exercise in use (3 sets, 2 routines)",
+            "sets=3;routines=2",
+        )
+
+        assertEquals(AppError.InUse(3, 2), repo.deleteCustom("e2").appErrorOrNull())
+    }
+
+    @Test
+    fun deleteCustom_notFound_isNotFound() = runTest {
+        val repo = signedIn()
+        rpcFails(HttpStatusCode.BadRequest, "P0002", "exercise not found")
+
+        assertEquals(AppError.NotFound, repo.deleteCustom("zzz").appErrorOrNull())
+    }
+
+    @Test
+    fun deleteCustom_inUse_keepsTheCache() = runTest {
+        val repo = signedIn()
+        repo.getAll().getOrThrow()
+        rpcFails(HttpStatusCode.Conflict, "23503", "exercise in use (1 sets, 0 routines)", "sets=1;routines=0")
+
+        repo.deleteCustom("e2")
+        repo.getAll().getOrThrow()
+
+        assertEquals(1, reads().size)
     }
 
     @Test

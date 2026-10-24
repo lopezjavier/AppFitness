@@ -1,9 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
@@ -49,7 +52,7 @@ class ExerciseDetailViewModelTest {
     }
 
     private fun viewModel(id: String = "1") =
-        ExerciseDetailViewModel(id, LoadExerciseCatalog(repository, library), sessions, savedState)
+        ExerciseDetailViewModel(id, LoadExerciseCatalog(repository, library), repository, sessions, savedState)
 
     private fun TestScope.loaded(vm: ExerciseDetailViewModel): ExerciseDetailUiState.Loaded {
         advanceUntilIdle()
@@ -448,5 +451,216 @@ class ExerciseDetailViewModelTest {
 
         assertEquals(2, content.rows.size)
         assertTrue(content.rows.all { it.records.isEmpty() })
+    }
+
+    // Manual exercises: edit and delete (US-09)
+
+    private fun custom() {
+        repository.rows = listOf(
+            exerciseRow("c1", null, MuscleGroup.Chest, Equipment.Machine, "Press Hammer", custom = true),
+        )
+    }
+
+    @Test
+    fun aCatalogueExercise_cannotBeEditedOrDeleted() = runTest {
+        val vm = viewModel("1")
+        advanceUntilIdle()
+
+        vm.openEdit()
+        vm.openDelete()
+
+        val state = loaded(vm)
+        assertNull(state.editForm)
+        assertNull(state.deleteDialog)
+    }
+
+    @Test
+    fun openingTheEdit_prefillsTheForm_andNothingIsSavedUntilGuardar() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+
+        vm.openEdit()
+        vm.setEditName("Press Hammer 2")
+        vm.setEditPerHand(true)
+
+        val form = loaded(vm).editForm!!
+        assertEquals("Press Hammer 2", form.name)
+        assertEquals(MuscleGroup.Chest, form.muscleGroup)
+        assertEquals(Equipment.Machine, form.equipment)
+        assertTrue(form.perHand)
+        assertEquals(0, repository.updateCalls)
+    }
+
+    @Test
+    fun dismissingTheEdit_discardsTheChanges() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        vm.setEditName("Otro")
+
+        vm.dismissEdit()
+
+        assertNull(loaded(vm).editForm)
+        assertEquals("Press Hammer", repository.rows.single().name)
+    }
+
+    @Test
+    fun savingTheEdit_updatesTheExercise_closesTheForm_andShowsTheNewValues() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        vm.setEditName("  Press Hammer unilateral ")
+        vm.selectEditMuscleGroup(MuscleGroup.Back)
+        vm.selectEditEquipment(Equipment.Cable)
+        vm.setEditPerHand(true)
+
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        val state = loaded(vm)
+        assertNull(state.editForm)
+        val row = repository.rows.single()
+        assertEquals(MuscleGroup.Back, row.muscleGroup)
+        assertEquals(Equipment.Cable, row.equipment)
+        assertTrue(row.perHand)
+        assertEquals("Press Hammer unilateral", state.detail.name)
+        assertEquals(MuscleGroup.Back, state.detail.exercise.muscleGroup)
+    }
+
+    @Test
+    fun aBlankName_disablesGuardar_andSubmitDoesNothing() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        vm.setEditName("   ")
+
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        assertFalse(loaded(vm).editForm!!.canSubmit)
+        assertEquals(0, repository.updateCalls)
+    }
+
+    @Test
+    fun aFailedSave_keepsTheFormOpenWithAnError_andRetrySucceeds() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        vm.setEditPerHand(true)
+        repository.updateFailure = AppError.Network
+
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        val failed = loaded(vm).editForm!!
+        assertTrue(failed.hasError)
+        assertFalse(failed.isSubmitting)
+        repository.updateFailure = null
+        vm.submitEdit()
+        advanceUntilIdle()
+        assertNull(loaded(vm).editForm)
+        assertTrue(repository.rows.single().perHand)
+    }
+
+    @Test
+    fun theEditForm_survivesARecreatedViewModel() = runTest {
+        custom()
+        val first = viewModel("c1")
+        advanceUntilIdle()
+        first.openEdit()
+        first.setEditName("Borrador")
+        first.setEditPerHand(true)
+
+        val second = viewModel("c1")
+        val form = loaded(second).editForm!!
+
+        assertEquals("Borrador", form.name)
+        assertTrue(form.perHand)
+    }
+
+    @Test
+    fun confirmingTheDelete_removesTheExercise_andEmitsDeleted() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openDelete()
+        assertEquals(DeleteDialog(), loaded(vm).deleteDialog)
+
+        vm.effects.test {
+            vm.confirmDelete()
+            advanceUntilIdle()
+
+            assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
+        }
+        assertTrue(repository.rows.isEmpty())
+    }
+
+    @Test
+    fun cancellingTheDelete_deletesNothing() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openDelete()
+
+        vm.dismissDelete()
+
+        assertNull(loaded(vm).deleteDialog)
+        assertEquals(0, repository.deleteCalls)
+    }
+
+    @Test
+    fun anExerciseInUse_closesTheDialog_andShowsTheBlockedCounts() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openDelete()
+        repository.deleteFailure = AppError.InUse(sets = 3, routines = 2)
+
+        vm.confirmDelete()
+        advanceUntilIdle()
+
+        val state = loaded(vm)
+        assertNull(state.deleteDialog)
+        assertEquals(AppError.InUse(3, 2), state.inUse)
+        assertEquals(1, repository.rows.size)
+        vm.dismissInUse()
+        assertNull(loaded(vm).inUse)
+    }
+
+    @Test
+    fun aFailedDelete_keepsTheDialogWithAnError_andRetrySucceeds() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openDelete()
+        repository.deleteFailure = AppError.Network
+
+        vm.confirmDelete()
+        advanceUntilIdle()
+
+        assertEquals(DeleteDialog(isDeleting = false, hasError = true), loaded(vm).deleteDialog)
+        repository.deleteFailure = null
+        vm.effects.test {
+            vm.confirmDelete()
+            advanceUntilIdle()
+            assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
+        }
+    }
+
+    @Test
+    fun theDeleteDialog_survivesARecreatedViewModel() = runTest {
+        custom()
+        val first = viewModel("c1")
+        advanceUntilIdle()
+        first.openDelete()
+
+        val second = viewModel("c1")
+
+        assertEquals(DeleteDialog(), loaded(second).deleteDialog)
     }
 }

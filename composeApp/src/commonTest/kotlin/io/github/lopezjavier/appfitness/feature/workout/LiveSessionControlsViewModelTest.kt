@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
@@ -62,7 +61,6 @@ class LiveSessionControlsViewModelTest {
         FakeAlertSound(),
         trainingPreferences,
         bodyMeasurements,
-        FakeExerciseOptionsRepository(),
         SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
         TimeZone.UTC,
         savedState,

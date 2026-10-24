@@ -2,21 +2,17 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.compose.runtime.Composable
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_double_dumbbell_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_double_dumbbell_saves_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_warm_up_cap_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_warm_up_cap_hint_superset
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorActions
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.DiscLoaderSheet
-import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellSheet
-import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellSheetState
 import io.github.lopezjavier.appfitness.feature.workout.WarmUpCalculatorSheet
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The open warm-up or plate calculator and the "Contar mancuerna doble" sheet of the builder. Their state lives in the
+ * The open warm-up or plate calculator of the builder. Their state lives in the
  * view model (it survives leaving the app); the sheets are the ones the live session uses, tagged
  * `routine_builder_<row>_...`.
  */
@@ -43,12 +39,6 @@ internal fun BuilderOptionSheets(state: RoutineBuilderUiState.Editing, onEvent: 
             CalculatorKind.Discs -> DiscLoaderSheet(prefix, calculator, actions)
         }
     }
-    state.doubleDumbbellDraft?.let { draft ->
-        val index = state.rows.indexOfFirst { it.exerciseId == draft.exerciseId }
-        if (index >= 0) {
-            BuilderDoubleDumbbell(state, index, draft.enabled, onEvent)
-        }
-    }
 }
 
 @Composable
@@ -59,28 +49,4 @@ private fun capHint(state: RoutineBuilderUiState.Editing, index: Int): String? =
         stringResource(Res.string.builder_warm_up_cap_hint_superset, RoutineBounds.SETS_MAX)
 
     else -> stringResource(Res.string.builder_warm_up_cap_hint, RoutineBounds.SETS_MAX)
-}
-
-@Composable
-private fun BuilderDoubleDumbbell(
-    state: RoutineBuilderUiState.Editing,
-    index: Int,
-    draftEnabled: Boolean,
-    onEvent: (RoutineBuilderEvent) -> Unit,
-) {
-    val exerciseId = state.rows[index].exerciseId
-    DoubleDumbbellSheet(
-        tagPrefix = "routine_builder_$index",
-        state = DoubleDumbbellSheetState(
-            current = state.rows[index].isDoubleDumbbell,
-            draft = draftEnabled,
-            saveFailed = state.doubleDumbbellError,
-            blockedReason = if (state.isOnline) null else stringResource(Res.string.builder_double_dumbbell_offline),
-            savesImmediatelyHint = stringResource(Res.string.builder_double_dumbbell_saves_hint),
-        ),
-        onDraftChange = { onEvent(RoutineBuilderEvent.DoubleDumbbellDraftChanged(exerciseId, it)) },
-        onSave = { onEvent(RoutineBuilderEvent.SetDoubleDumbbell(exerciseId, it)) },
-        onDismiss = { onEvent(RoutineBuilderEvent.DismissOptionSheets) },
-        onClose = {},
-    )
 }

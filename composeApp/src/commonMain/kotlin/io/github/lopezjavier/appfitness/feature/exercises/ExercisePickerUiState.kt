@@ -12,6 +12,8 @@ data class CreateExerciseForm(
     val equipment: Equipment? = null,
     /** What the exercise's sets measure; defaults to weight and reps, so it is always valid. */
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
+    /** The logged weight is per hand/side (volume counts twice); off by default. */
+    val perHand: Boolean = false,
     val isSubmitting: Boolean = false,
     val hasError: Boolean = false,
 ) {
@@ -64,6 +66,8 @@ sealed interface ExercisePickerEvent {
     data class SelectCreateEquipment(val equipment: Equipment) : ExercisePickerEvent
 
     data class SelectCreateMetricType(val metricType: ExerciseMetricType) : ExercisePickerEvent
+
+    data class SetCreatePerHand(val perHand: Boolean) : ExercisePickerEvent
 
     data object SubmitCreate : ExercisePickerEvent
 }

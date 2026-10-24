@@ -3,8 +3,8 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -38,12 +38,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-/** US-32: "Contar mancuerna doble" and the body-weight update from the exercise menu. */
+/** US-32: per-hand volume (exercise flag) and the body-weight update from the exercise menu. */
 class LiveSessionVolumeOptionsViewModelTest {
     private val repository = FakeWorkoutSessionRepository()
     private val clock = MutableClock()
     private val weights = FakeWeightRepository()
-    private val options = FakeExerciseOptionsRepository()
     private val exercises = FakeExerciseRepository(
         listOf(
             exerciseRow("curl", null, equipment = Equipment.Dumbbell, name = "Curl", custom = true),
@@ -88,7 +87,6 @@ class LiveSessionVolumeOptionsViewModelTest {
         FakeAlertSound(),
         FakeTrainingPreferencesRepository(),
         weights,
-        options,
         SaveBodyMeasurement(weights, clock, TimeZone.UTC),
         TimeZone.UTC,
         savedState,
@@ -118,64 +116,41 @@ class LiveSessionVolumeOptionsViewModelTest {
         BodyMeasurement(id, Instant.parse(at), kg, source)
 
     @Test
-    fun stateStartsWithTheSavedOptionsAndTheLatestBodyWeight() = runTest {
-        options.ids = setOf("curl")
+    fun stateStartsWithThePerHandExercisesAndTheLatestBodyWeight() = runTest {
+        exercises.rows = exercises.rows.map { if (it.id == "curl") it.copy(perHand = true) else it }
         weights.rows += weighIn("w1", "2026-10-18T08:00:00Z", 74.0, MeasurementSource.Manual)
 
         val state = loaded().active()
 
-        assertEquals(setOf("curl"), state.doubleDumbbellIds)
+        assertEquals(setOf("curl"), state.perHandIds)
         assertEquals(74.0, state.bodyWeightKg)
         assertFalse(state.todayHasHealthConnectWeight)
     }
 
     @Test
-    fun anUnreadableOptionsOrWeightLeavesTheDefaultsWithoutBlocking() = runTest {
-        options.failRead = true
+    fun anUnreadableCatalogOrWeightLeavesTheDefaultsWithoutBlocking() = runTest {
+        exercises.failure = AppError.Network
         weights.failReads = true
 
         val state = loaded().active()
 
-        assertTrue(state.doubleDumbbellIds.isEmpty())
+        assertTrue(state.perHandIds.isEmpty())
         assertNull(state.bodyWeightKg)
     }
 
     @Test
-    fun enablingDoubleDumbbellSavesItAndTheSummaryDoublesThatExerciseOnly() = runTest {
+    fun aPerHandExerciseDoublesItsVolumeInTheSummaryOnly() = runTest {
+        exercises.rows = exercises.rows.map { if (it.id == "curl") it.copy(perHand = true) else it }
         val vm = loaded()
 
-        send(vm, LiveSessionEvent.SetDoubleDumbbell("curl", true))
-
-        assertEquals(listOf("curl" to true), options.writes)
-        assertEquals(setOf("curl"), vm.active().doubleDumbbellIds)
         assertEquals(listOf(400.0, 0.0), summaryVolumes(vm))
     }
 
     @Test
-    fun disablingDoubleDumbbellRestoresTheLoggedWeight() = runTest {
-        options.ids = setOf("curl")
+    fun withoutTheFlagTheLoggedWeightCountsOnce() = runTest {
         val vm = loaded()
 
-        send(vm, LiveSessionEvent.SetDoubleDumbbell("curl", false))
-
-        assertTrue(vm.active().doubleDumbbellIds.isEmpty())
         assertEquals(listOf(200.0, 0.0), summaryVolumes(vm))
-    }
-
-    @Test
-    fun aFailedToggleKeepsTheStateAndTheDraftAndTellsTheUser() = runTest {
-        val vm = loaded()
-        options.failWrite = true
-        send(vm, LiveSessionEvent.DoubleDumbbellDraftChanged("curl", true))
-
-        vm.effects.test {
-            vm.onEvent(LiveSessionEvent.SetDoubleDumbbell("curl", true))
-            advanceUntilIdle()
-
-            assertEquals(LiveSessionEffect.OptionSaveFailed, awaitItem())
-        }
-        assertTrue(vm.active().doubleDumbbellIds.isEmpty())
-        assertEquals(DoubleDumbbellDraft("curl", true), vm.active().doubleDumbbellDraft)
     }
 
     @Test
@@ -253,50 +228,35 @@ class LiveSessionVolumeOptionsViewModelTest {
     }
 
     @Test
-    fun dismissingTheSheetsDropsBothDrafts() = runTest {
+    fun dismissingTheSheetDropsTheBodyWeightDraft() = runTest {
         val vm = loaded()
-        send(
-            vm,
-            LiveSessionEvent.BodyWeightDraftChanged("74"),
-            LiveSessionEvent.DoubleDumbbellDraftChanged("curl", true),
-        )
+        send(vm, LiveSessionEvent.BodyWeightDraftChanged("74"))
 
         send(vm, LiveSessionEvent.DismissVolumeDrafts)
 
         assertNull(vm.active().bodyWeightDraft)
-        assertNull(vm.active().doubleDumbbellDraft)
     }
 
     @Test
-    fun theDraftsSurviveRecreationFromTheSameSavedState() = runTest {
+    fun theDraftSurvivesRecreationFromTheSameSavedState() = runTest {
         val handle = SavedStateHandle()
         val first = loaded(handle)
-        send(
-            first,
-            LiveSessionEvent.BodyWeightDraftChanged("74,5"),
-            LiveSessionEvent.DoubleDumbbellDraftChanged("curl", true),
-        )
+        send(first, LiveSessionEvent.BodyWeightDraftChanged("74,5"))
 
         val second = loaded(handle)
 
         assertEquals("74,5", second.active().bodyWeightDraft)
-        assertEquals(DoubleDumbbellDraft("curl", true), second.active().doubleDumbbellDraft)
     }
 
     @Test
-    fun aSavedToggleOrWeightClearsItsDraftFromTheSavedState() = runTest {
+    fun aSavedWeightClearsItsDraftFromTheSavedState() = runTest {
         val handle = SavedStateHandle()
         val first = loaded(handle)
-        send(
-            first,
-            LiveSessionEvent.BodyWeightDraftChanged("74"),
-            LiveSessionEvent.DoubleDumbbellDraftChanged("curl", true),
-        )
-        send(first, LiveSessionEvent.SaveBodyWeight("74"), LiveSessionEvent.SetDoubleDumbbell("curl", true))
+        send(first, LiveSessionEvent.BodyWeightDraftChanged("74"))
+        send(first, LiveSessionEvent.SaveBodyWeight("74"))
 
         val second = loaded(handle)
 
         assertNull(second.active().bodyWeightDraft)
-        assertNull(second.active().doubleDumbbellDraft)
     }
 }

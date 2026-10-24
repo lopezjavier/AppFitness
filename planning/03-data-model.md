@@ -192,6 +192,7 @@ The training model is **forward-compatible** (ADR-30): the columns marked *(E6)*
 | secondary_muscles | muscle_group[] | default `'{}'` *(E6)* |
 | equipment | equipment | |
 | metric_type | exercise_metric_type | default `weight_reps` *(E6 uses the non-weight variants)* |
+| per_hand | boolean | not null, default false; the logged weight is per hand/side and volume counts x2 *(T-097i, ADR-56)*; catalogue flags are set by migration, read-only |
 | is_custom | boolean | |
 | created_by | uuid null | custom only |
 
@@ -254,15 +255,10 @@ RLS via the parent routine exercise -> routine owner, forced. Existing routines 
 
 Owner-only RLS (enabled and forced). Helper `warm_up_included()` returns the caller's flag (false without a row). No row = default.
 
-### `exercise_options` (E6, T-093, ADR-54)
-| Column | Type | Notes |
-|---|---|---|
-| user_id | uuid | default `auth.uid()`, FK `auth.users` on delete cascade |
-| exercise_id | uuid | FK `exercises` on delete cascade; PK `(user_id, exercise_id)` |
-| double_dumbbell | boolean | not null, default false; "Contar mancuerna doble", only meaningful for `equipment = 'dumbbell'` |
-| updated_at | timestamptz | trigger |
+### `exercise_options` (dropped)
+Created by T-093 (ADR-54) and dropped by T-097i (ADR-56): the per-user "double dumbbell" toggles were discarded; the flag now lives on the exercise (`exercises.per_hand`, see the `exercises` table).
 
-Owner-only RLS (enabled and forced). Helper `volume_factor(exercise_id)` returns 2 when the caller's flag is on and the exercise is a dumbbell exercise, else 1; it multiplies `set_volume` in `exercise_history` and `weekly_muscle_volume`. Written through `set_exercise_double_dumbbell(p_exercise_id uuid, p_enabled boolean) returns void` (security invoker, upsert; `22023` for a non-dumbbell exercise, `P0002` when the exercise is not found). No row = defaults (off).
+`volume_factor(exercise_id)` returns 2 when `exercises.per_hand` is true for that exercise, else 1 (no equipment condition, not per user); it multiplies `set_volume` in `exercise_history` and `weekly_muscle_volume`. Manual exercises are written through `update_custom_exercise(p_id, p_name, p_muscle_group, p_equipment, p_per_hand)` and `delete_custom_exercise(p_id)` (security invoker; `P0002` when not found or not the caller's own; `22023` for an invalid name; `23503` with the set and routine counts when the exercise is in use, nothing is deleted). The metric type cannot change.
 
 ### `workout_sessions` (US-11, extended in E6)
 | Column | Type | Notes |

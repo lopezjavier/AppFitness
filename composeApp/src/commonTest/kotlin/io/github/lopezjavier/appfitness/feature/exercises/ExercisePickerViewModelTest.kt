@@ -166,6 +166,18 @@ class ExercisePickerViewModelTest {
     }
 
     @Test
+    fun refresh_dropsAnExerciseDeletedElsewhere() = runTest {
+        val vm = loaded()
+        val victim = vm.content().visible.first()
+        repository.rows = repository.rows.filter { it.id != victim.id }
+
+        vm.refresh()
+        advanceUntilIdle()
+
+        assertTrue(vm.content().visible.none { it.id == victim.id })
+    }
+
+    @Test
     fun createInBrowseMode_emitsOpenDetail() = runTest {
         val vm = loaded(selectMode = false)
         vm.effects.test {
@@ -283,6 +295,35 @@ class ExercisePickerViewModelTest {
             ExerciseMetricType.Duration,
             repository.rows.single { it.name == "Plancha lastrada" }.metricType,
         )
+    }
+
+    @Test
+    fun thePerHandFlag_defaultsToOff_isSentWithTheCreateRequest_andTheCreatedExerciseKeepsIt() = runTest {
+        val vm = loaded()
+        vm.onEvent(ExercisePickerEvent.OpenCreate)
+        assertFalse(vm.content().createForm!!.perHand)
+        vm.onEvent(ExercisePickerEvent.SetCreateName("Press Hammer"))
+        vm.onEvent(ExercisePickerEvent.SelectCreateMuscleGroup(MuscleGroup.Chest))
+        vm.onEvent(ExercisePickerEvent.SelectCreateEquipment(Equipment.Machine))
+        vm.onEvent(ExercisePickerEvent.SetCreatePerHand(true))
+
+        vm.onEvent(ExercisePickerEvent.SubmitCreate)
+        advanceUntilIdle()
+
+        assertEquals(true, repository.lastCreatedPerHand)
+        assertTrue(repository.rows.single { it.name == "Press Hammer" }.perHand)
+    }
+
+    @Test
+    fun thePerHandFlag_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.OpenCreate)
+        first.onEvent(ExercisePickerEvent.SetCreatePerHand(true))
+
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        assertTrue(second.content().createForm!!.perHand)
     }
 
     @Test

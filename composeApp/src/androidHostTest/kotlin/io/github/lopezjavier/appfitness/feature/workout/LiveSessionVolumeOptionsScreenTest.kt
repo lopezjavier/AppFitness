@@ -8,8 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -20,7 +18,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
@@ -58,7 +55,7 @@ private const val PULL_UPS = 0
 private const val CURL = 1
 private const val BENCH = 2
 
-/** US-32: "Contar mancuerna doble" and "Actualizar peso corporal" from the exercise menu. */
+/** US-32: "Actualizar peso corporal" from the exercise menu; volume follows the per-hand flag of the exercise. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -76,7 +73,7 @@ class LiveSessionVolumeOptionsScreenTest {
             SessionExercise("e2", BENCH, null, listOf(doneSet(1, 60.0, 5))),
         ),
     )
-    private val options = FakeExerciseOptionsRepository()
+    private var curlPerHand = false
     private val weights = FakeWeightRepository(measurement("w1", "2026-10-10T08:00:00Z", MeasurementSource.Manual))
     private lateinit var viewModel: LiveSessionViewModel
 
@@ -94,7 +91,8 @@ class LiveSessionVolumeOptionsScreenTest {
         val rows = listOf(
             exerciseRow("e0", null, equipment = Equipment.Bodyweight, name = "Dominadas", custom = true)
                 .copy(metricType = ExerciseMetricType.Bodyweight),
-            exerciseRow("e1", null, equipment = Equipment.Dumbbell, name = "Curl con mancuernas", custom = true),
+            exerciseRow("e1", null, equipment = Equipment.Dumbbell, name = "Curl con mancuernas", custom = true)
+                .copy(perHand = curlPerHand),
             exerciseRow("e2", null, equipment = Equipment.Barbell, name = "Press banca", custom = true),
         )
         return LiveSessionViewModel(
@@ -108,7 +106,6 @@ class LiveSessionVolumeOptionsScreenTest {
             FakeAlertSound(),
             FakeTrainingPreferencesRepository(),
             weights,
-            options,
             SaveBodyMeasurement(weights, clock, TimeZone.UTC),
             TimeZone.UTC,
             handle,
@@ -156,73 +153,31 @@ class LiveSessionVolumeOptionsScreenTest {
     }
 
     @Test
-    fun doubleDumbbell_isOnlyOfferedForDumbbellExercises() {
-        show()
-
-        openMenu(CURL)
-        rule.onNodeWithTag("live_exercise_1_menu_double_dumbbell").assertExists()
-        rule.onNodeWithTag("live_exercise_1_menu_body_weight").assertDoesNotExist()
-    }
-
-    @Test
-    fun menuOfABarbellExercise_hasNeitherVolumeOption() {
+    fun menuOfABarbellExercise_hasNoBodyWeightOption() {
         show()
 
         openMenu(BENCH)
         rule.onNodeWithTag("live_exercise_2_menu_rest").assertExists()
-        rule.onNodeWithTag("live_exercise_2_menu_double_dumbbell").assertDoesNotExist()
         rule.onNodeWithTag("live_exercise_2_menu_body_weight").assertDoesNotExist()
     }
 
     @Test
-    fun doubleDumbbellOn_countsTwiceTheLoggedWeight() {
+    fun perHandExercise_countsTwiceTheLoggedWeight() {
+        curlPerHand = true
         show()
 
-        openMenu(CURL)
-        tap("live_exercise_1_menu_double_dumbbell")
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_switch").assertIsOff()
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_confirm").assertIsNotEnabled()
-        tap("live_exercise_1_double_dumbbell_switch")
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_switch").assertIsOn()
-        assertEquals(emptyList<Pair<String, Boolean>>(), options.writes)
-        tap("live_exercise_1_double_dumbbell_confirm")
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_sheet").assertDoesNotExist()
         finishAndShowSummary()
 
-        assertEquals(listOf("e1" to true), options.writes)
         rule.onNodeWithTag("summary_volume_1").assertTextContains("400 kg")
     }
 
     @Test
-    fun doubleDumbbellOff_countsTheLoggedWeightOnce() {
-        options.ids = setOf("e1")
+    fun exerciseWithoutTheFlag_countsTheLoggedWeightOnce() {
         show()
 
-        openMenu(CURL)
-        tap("live_exercise_1_menu_double_dumbbell")
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_switch").assertIsOn()
-        tap("live_exercise_1_double_dumbbell_switch")
-        tap("live_exercise_1_double_dumbbell_confirm")
         finishAndShowSummary()
 
         rule.onNodeWithTag("summary_volume_1").assertTextContains("200 kg")
-    }
-
-    @Test
-    fun doubleDumbbell_aFailedSaveKeepsTheSheetOpenWithAMessage() {
-        options.failWrite = true
-        show()
-
-        openMenu(CURL)
-        tap("live_exercise_1_menu_double_dumbbell")
-        tap("live_exercise_1_double_dumbbell_switch")
-        tap("live_exercise_1_double_dumbbell_confirm")
-
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_sheet").assertExists()
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_switch").assertIsOn()
-        rule.onNodeWithTag(
-            "live_exercise_1_double_dumbbell_error",
-        ).assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
     }
 
     @Test
@@ -230,7 +185,6 @@ class LiveSessionVolumeOptionsScreenTest {
         show()
 
         openMenu(PULL_UPS)
-        rule.onNodeWithTag("live_exercise_0_menu_double_dumbbell").assertDoesNotExist()
         tap("live_exercise_0_menu_body_weight")
         rule.onNodeWithTag("live_exercise_0_body_weight_field").assertTextContains("74,0")
         tap("live_exercise_0_body_weight_confirm")
@@ -290,30 +244,6 @@ class LiveSessionVolumeOptionsScreenTest {
 
         rule.onNodeWithTag("live_exercise_0_menu_body_weight").assertIsNotEnabled()
         rule.onNodeWithTag("live_exercise_0_body_weight_hc_note").assertTextEquals("Sincronizado desde Health Connect")
-    }
-
-    @Test
-    fun doubleDumbbellSheet_andItsDraft_surviveLeavingTheApp() {
-        val handle = SavedStateHandle()
-        val tester = StateRestorationTester(rule)
-        tester.setContent {
-            AppTheme {
-                val vm = remember { newViewModel(handle) }
-                val state by vm.uiState.collectAsState()
-                LiveSessionScreen(state, 0, vm::onEvent, {}, onOpenExercise = {})
-            }
-        }
-        settle()
-        openMenu(CURL)
-        tap("live_exercise_1_menu_double_dumbbell")
-        tap("live_exercise_1_double_dumbbell_switch")
-
-        tester.emulateSavedInstanceStateRestore()
-        settle()
-
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_sheet").assertExists()
-        rule.onNodeWithTag("live_exercise_1_double_dumbbell_switch").assertIsOn()
-        assertEquals(emptyList<Pair<String, Boolean>>(), options.writes)
     }
 
     @Test

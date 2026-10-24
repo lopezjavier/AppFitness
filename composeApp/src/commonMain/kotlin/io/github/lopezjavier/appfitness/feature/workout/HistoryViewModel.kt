@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
-import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
-import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
+import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +32,7 @@ class HistoryViewModel(
     private val preferences: TrainingPreferencesRepository,
     private val clock: Clock,
     private val bodyMeasurements: BodyMeasurementRepository,
-    private val exerciseOptions: ExerciseOptionsRepository,
+    private val exercises: ExerciseRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<HistoryUiState>(HistoryUiState.Loading)
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
@@ -50,8 +50,8 @@ class HistoryViewModel(
     /** Latest body weight read with the first page, for the bodyweight and assisted volume; null when unknown. */
     private var bodyWeightKg: Double? = null
 
-    /** Exercises counted double, read once with the first page and applied to every page (older sessions too). */
-    private var doubleDumbbellIds: Set<String> = emptySet()
+    /** Per-hand exercises (volume counts twice), read with the first page and applied to every page. */
+    private var perHandIds: Set<String> = emptySet()
 
     init {
         loadFirstPage(showLoading = true)
@@ -84,7 +84,7 @@ class HistoryViewModel(
         job = viewModelScope.launch {
             includeWarmUp = preferences.warmUpIncludedOrDefault()
             bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
-            doubleDumbbellIds = exerciseOptions.doubleDumbbellIdsOrDefault()
+            perHandIds = exercises.perHandIdsOrDefault()
             repository.listCompleted(0, PAGE_SIZE).fold(
                 onSuccess = { page ->
                     nextOffset = page.size
@@ -128,7 +128,7 @@ class HistoryViewModel(
     }
 
     private fun WorkoutSession.toRow(): HistoryRow {
-        val stats = ComputeSessionStats(this, includeWarmUp, bodyWeightKg, doubleDumbbellIds)
+        val stats = ComputeSessionStats(this, includeWarmUp, bodyWeightKg, perHandIds)
         return HistoryRow(
             id = id,
             label = sessionDateLabel(sessionLocalDate(startedAt), clock.today()),

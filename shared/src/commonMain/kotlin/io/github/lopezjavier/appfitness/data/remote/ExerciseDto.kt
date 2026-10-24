@@ -18,11 +18,13 @@ internal data class ExerciseDto(
     val equipment: Equipment,
     @SerialName("metric_type") val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     @SerialName("is_custom") val isCustom: Boolean = false,
+    @SerialName("per_hand") val perHand: Boolean = false,
 ) {
-    fun toDomain(): Exercise = Exercise(id, key, name, muscleGroup, secondaryMuscles, equipment, metricType, isCustom)
+    fun toDomain(): Exercise =
+        Exercise(id, key, name, muscleGroup, secondaryMuscles, equipment, metricType, isCustom, perHand)
 
     companion object {
-        const val COLUMNS = "id,key,name,muscle_group,secondary_muscles,equipment,metric_type,is_custom"
+        const val COLUMNS = "id,key,name,muscle_group,secondary_muscles,equipment,metric_type,is_custom,per_hand"
     }
 }
 
@@ -34,4 +36,19 @@ internal data class ExerciseInsertDto(
     val equipment: Equipment,
     @SerialName("metric_type") val metricType: ExerciseMetricType,
     @SerialName("is_custom") val isCustom: Boolean,
+    @SerialName("per_hand") val perHand: Boolean,
 )
+
+/** Params of the `update_custom_exercise` RPC. */
+@Serializable
+internal data class UpdateCustomExerciseParams(
+    @SerialName("p_id") val id: String,
+    @SerialName("p_name") val name: String,
+    @SerialName("p_muscle_group") val muscleGroup: MuscleGroup,
+    @SerialName("p_equipment") val equipment: Equipment,
+    @SerialName("p_per_hand") val perHand: Boolean,
+)
+
+/** Params of the `delete_custom_exercise` RPC. */
+@Serializable
+internal data class DeleteCustomExerciseParams(@SerialName("p_id") val id: String)

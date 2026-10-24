@@ -19,10 +19,14 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,10 +34,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_attribution
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_button
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_deleted
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_catalog
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_results
@@ -93,7 +99,25 @@ fun ExercisePickerRoot(
             }
         }
     }
-    ExercisePickerScreen(state, viewModel::onEvent, modifier)
+    val deleted by ExerciseDeletedNotice.pending.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refresh()
+        onPauseOrDispose {}
+    }
+    val snackbarHost = remember { SnackbarHostState() }
+    val deletedMessage = stringResource(Res.string.exercise_deleted)
+    LaunchedEffect(deleted) {
+        if (deleted) {
+            ExerciseDeletedNotice.consume()
+            snackbarHost.showSnackbar(deletedMessage)
+        }
+    }
+    Box(modifier.fillMaxSize()) {
+        ExercisePickerScreen(state, viewModel::onEvent, Modifier)
+        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin)) { data ->
+            Snackbar { Text(data.visuals.message, Modifier.testTag("exercise_picker_deleted_message")) }
+        }
+    }
 }
 
 /**

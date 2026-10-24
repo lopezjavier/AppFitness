@@ -10,7 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
 
-class DoubleDumbbellVolumeTest {
+class PerHandVolumeTest {
     private val start = Instant.parse("2026-10-19T10:00:00Z")
 
     private fun set(entry: SetEntry, type: SetType = SetType.Working) = WorkoutSet(1, type, entry, start)
@@ -21,34 +21,34 @@ class DoubleDumbbellVolumeTest {
     private val twentyByTen = listOf(set(SetEntry.WeightReps(20.0, 10)))
 
     @Test
-    fun doubleDumbbell_doublesWeightRepsVolume() {
-        assertEquals(400.0, CalculateVolume(twentyByTen, doubleDumbbell = true))
+    fun perHand_doublesWeightRepsVolume() {
+        assertEquals(400.0, CalculateVolume(twentyByTen, perHand = true))
     }
 
     @Test
-    fun doubleDumbbell_offKeepsTheLoggedWeight() {
-        assertEquals(200.0, CalculateVolume(twentyByTen, doubleDumbbell = false))
+    fun perHand_offKeepsTheLoggedWeight() {
+        assertEquals(200.0, CalculateVolume(twentyByTen, perHand = false))
         assertEquals(200.0, CalculateVolume(twentyByTen))
     }
 
     @Test
-    fun doubleDumbbell_doublesWeightedVolume() {
-        assertEquals(160.0, CalculateVolume(listOf(set(SetEntry.Weighted(8.0, 10))), doubleDumbbell = true))
+    fun perHand_doublesWeightedVolume() {
+        assertEquals(160.0, CalculateVolume(listOf(set(SetEntry.Weighted(8.0, 10))), perHand = true))
     }
 
     @Test
-    fun doubleDumbbell_neverChangesNoLoadMetrics() {
+    fun perHand_neverChangesNoLoadMetrics() {
         val sets = listOf(set(SetEntry.RepsOnly(15)), set(SetEntry.Duration(60)))
 
-        assertEquals(0.0, CalculateVolume(sets, doubleDumbbell = true))
+        assertEquals(0.0, CalculateVolume(sets, perHand = true))
     }
 
     @Test
-    fun doubleDumbbell_stillExcludesWarmUpUnlessIncluded() {
+    fun perHand_stillExcludesWarmUpUnlessIncluded() {
         val sets = listOf(set(SetEntry.WeightReps(10.0, 10), SetType.WarmUp), set(SetEntry.WeightReps(20.0, 10)))
 
-        assertEquals(400.0, CalculateVolume(sets, doubleDumbbell = true))
-        assertEquals(600.0, CalculateVolume(sets, includeWarmUp = true, doubleDumbbell = true))
+        assertEquals(400.0, CalculateVolume(sets, perHand = true))
+        assertEquals(600.0, CalculateVolume(sets, includeWarmUp = true, perHand = true))
     }
 
     @Test
@@ -71,7 +71,7 @@ class DoubleDumbbellVolumeTest {
             ),
         )
 
-        assertEquals(600.0, ComputeSessionStats(session, doubleDumbbellExerciseIds = setOf("curl")).volumeKg)
+        assertEquals(600.0, ComputeSessionStats(session, perHandExerciseIds = setOf("curl")).volumeKg)
         assertEquals(400.0, ComputeSessionStats(session).volumeKg)
     }
 
@@ -90,8 +90,20 @@ class DoubleDumbbellVolumeTest {
             ),
         )
 
-        val summary = BuildSessionSummary(session, start, emptyMap(), doubleDumbbellExerciseIds = setOf("curl"))
+        val summary = BuildSessionSummary(session, start, emptyMap(), perHandExerciseIds = setOf("curl"))
 
         assertEquals(listOf(400.0, 200.0), summary.exercises.map { it.volume })
+    }
+}
+
+class PerHandIdsTest {
+    @Test
+    fun perHandIds_listsOnlyTheFlaggedExercises() {
+        val rows = listOf(
+            catalogRow("a", "k-a").copy(perHand = true),
+            catalogRow("b", "k-b"),
+        )
+
+        assertEquals(setOf("a"), rows.perHandIds())
     }
 }

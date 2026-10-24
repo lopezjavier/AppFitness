@@ -56,10 +56,10 @@ object PersonalRecordCatalogue {
         sets: List<WorkoutSet>,
         includeWarmUp: Boolean = false,
         bodyWeightKg: Double? = null,
-        doubleDumbbell: Boolean = false,
+        perHand: Boolean = false,
     ): ExerciseSessionRecords {
         val eligible = sets.filter { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
-        val volumes = eligible.map { CalculateVolume(listOf(it), includeWarmUp, bodyWeightKg, doubleDumbbell) }
+        val volumes = eligible.map { CalculateVolume(listOf(it), includeWarmUp, bodyWeightKg, perHand) }
         val columns = eligible.map { it.entry.columns() }
         return ExerciseSessionRecords(
             sessionId = sessionId,
@@ -124,7 +124,7 @@ object PersonalRecordCatalogue {
         history: Map<String, List<ExerciseSessionRecords>>?,
         includeWarmUp: Boolean = false,
         bodyWeightKg: Double? = null,
-        doubleDumbbellExerciseIds: Set<String> = emptySet(),
+        perHandExerciseIds: Set<String> = emptySet(),
     ): Map<String, Set<PersonalRecordType>> {
         if (history == null) return emptyMap()
         return session.exercises.groupBy { it.exerciseId }.mapValues { (id, rows) ->
@@ -134,7 +134,7 @@ object PersonalRecordCatalogue {
                 rows.flatMap { it.sets },
                 includeWarmUp,
                 bodyWeightKg,
-                id in doubleDumbbellExerciseIds,
+                id in perHandExerciseIds,
             )
             beatenBy(current, history[id].orEmpty())
         }

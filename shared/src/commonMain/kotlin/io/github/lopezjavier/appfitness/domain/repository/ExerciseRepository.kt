@@ -19,5 +19,18 @@ interface ExerciseRepository {
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
+        perHand: Boolean = false,
     ): Result<Exercise>
+
+    /** Edits an own custom exercise (the metric type is fixed); `NotFound` when it is not an own custom one. */
+    suspend fun updateCustom(
+        id: String,
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        perHand: Boolean,
+    ): Result<Unit>
+
+    /** Deletes an own custom exercise; `InUse(sets, routines)` (nothing deleted) while something references it. */
+    suspend fun deleteCustom(id: String): Result<Unit>
 }

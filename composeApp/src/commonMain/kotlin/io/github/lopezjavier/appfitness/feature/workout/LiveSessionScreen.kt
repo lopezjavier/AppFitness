@@ -121,9 +121,7 @@ fun LiveSessionRoot(
     )
 }
 
-private fun LiveSessionEvent.isOptionEdit() = this is LiveSessionEvent.DoubleDumbbellDraftChanged ||
-    this is LiveSessionEvent.SetDoubleDumbbell ||
-    this is LiveSessionEvent.BodyWeightDraftChanged ||
+private fun LiveSessionEvent.isOptionEdit() = this is LiveSessionEvent.BodyWeightDraftChanged ||
     this is LiveSessionEvent.SaveBodyWeight ||
     this is LiveSessionEvent.DismissVolumeDrafts
 
@@ -252,7 +250,7 @@ private fun LiveActive(
                         it,
                         onEvent,
                         onOpenExercise,
-                        options = state.volumeOptionsFor(it, optionSaveFailed),
+                        options = state.volumeOptionsFor(optionSaveFailed),
                         deleteEnabled = !state.busy,
                     )
                 }
