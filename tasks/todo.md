@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-102b (Edit a comida), in a fresh session, once T-102 is merged (PR #185); then Checkpoint E6-C 👤, then T-103 (closure). Last merged: T-101a (PR #183). E5 closed (tag `v0.5.0`).
+**Next:** Checkpoint E6-C 👤 (hard gate), then T-103 (closure). Last merged: T-102b (PR #186). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2783,14 +2783,14 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 **Description:** In "Añadir comida" → Comidas, tapping a row adds the comida to the diary and the trailing button is a pencil that opens "Editar comida" (inverts today's "+" adds / row tap edits). In "Editar comida" the rename pencil is removed: the name is a text field, saved with "Guardar" (an empty or duplicate name disables "Guardar" with a hint). A food is removed by swiping its row left or from the food details ("Eliminar"), and "Añadir alimento" adds foods through the existing food picker. Name, removals and additions are staged and applied together on "Guardar" (ADR-45); leaving without it changes nothing and the draft survives leaving the app.
 
 **Acceptance criteria:**
-- [ ] Tapping a comida row adds it; the trailing pencil opens "Editar comida".
-- [ ] The name is a text field saved by "Guardar"; no rename pencil.
-- [ ] Swipe-left and "Eliminar" in the details remove a food, applied on "Guardar".
-- [ ] "Añadir alimento" adds foods, applied on "Guardar".
-- [ ] Leaving without "Guardar" changes nothing; the draft survives leaving the app.
+- [x] Tapping a comida row adds it; the trailing pencil opens "Editar comida".
+- [x] The name is a text field saved by "Guardar"; no rename pencil.
+- [x] Swipe-left and "Eliminar" in the details remove a food, applied on "Guardar".
+- [x] "Añadir alimento" adds foods, applied on "Guardar".
+- [x] Leaving without "Guardar" changes nothing; the draft survives leaving the app.
 
 **Verification:**
-- [ ] lint + `testLocalDebugUnitTest` green (plus pgTAP if a migration is added).
+- [x] lint + `testLocalDebugUnitTest` green (plus pgTAP if a migration is added).
 
 **Dependencies:** T-102
 **Estimated scope:** M
