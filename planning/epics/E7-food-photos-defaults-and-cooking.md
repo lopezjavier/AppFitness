@@ -7,15 +7,14 @@ Cut the typing out of food logging: create a personal food from a photo, fill a 
 - Includes:
   - **Photo food creation**: an "Añadir desde foto" action in the add-food screen with three modes (AI estimate of a dish, nutrition-label photo, barcode photo). A fixed prompt per mode, an optional comment for the dish estimate, editable AI values and portions, saved as a personal food and then logged through the normal add-to-meal sheet.
   - **Default comidas**: from Preferencias → Comidas, assign saved comidas (the user's "Comidas", not Open Food Facts foods) to a meal on selected weekdays; the first time a new day's Diary is opened, their foods are added automatically.
-  - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat of the retained olive oil are added; the amounts are configurable in Preferencias.
+  - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat of the retained olive oil are added; the amounts are configurable in Preferencias. Saved comidas store an editable method per item; adding one or applying a default copies that method.
 - Out of scope:
   - Estimating a whole meal (several foods) from one photo; Phase 1 handles one food per photo.
   - Storing, uploading or browsing food photos (no gallery, no Supabase Storage, no photo history).
   - The AI training assistant and adaptive calorie adjustment (Phase 2).
   - Micronutrient targets or totals (display only, ADR-43).
-  - Cooking methods inside saved comidas/templates; a comida added from the "Comidas" tab or a default comida is logged raw.
   - Midnight application, backfill of days the app was not opened, notifications and reminders.
-  - A separate food source for AI: an AI-created food is a normal personal food (`source = 'user'`).
+  - A separate food source for AI: an AI-created food is a normal personal food (`source = 'user'`). Source describes ownership/cache, not how the values were entered; provenance, if ever needed, would be a separate field.
 
 ## Dependencies
 E2 (Preferencias), E4 (food catalog, portions, diary and saved comidas) and E6 US-47 (the manual-food form that carries the full label nutrient list and its editing rules). The Edge Function infrastructure comes from E1.
@@ -173,6 +172,18 @@ Feature: Cooking methods
     Then the entry stores the cooking method, the retained oil and the adjusted kcal and fat snapshots
     And the diary totals include them
 
+  Scenario: Cooking in a saved comida
+    Given a saved comida with "Pechuga de pollo 200 g" and "Patatas 150 g"
+    When the user edits the comida and sets the chicken to "A la plancha" and the potatoes to "Frito"
+    Then each item keeps its own method
+    When they add the comida to a meal
+    Then each entry keeps its saved method and includes the corresponding retained oil
+
+  Scenario: Saving a meal with cooking
+    Given today's Comida has "Pechuga de pollo 200 g" cooked "A la plancha"
+    When the user saves that meal as a comida
+    Then the comida stores "A la plancha" for that food
+
   Scenario: Drinks are not cooked
     Given a food whose base unit is "ml"
     Then the cooking methods are not offered
@@ -192,6 +203,8 @@ Feature: Cooking methods
 - Enum `food_cooking_method` (`raw`, `griddle`, `air_fryer`, `fried`); UI labels Crudo, A la plancha, Air fryer, Frito. Only foods with `base_unit = 'g'` offer it; drinks stay raw.
 - Fixed retention factors: A la plancha 50 %, Air fryer 100 %, Frito 10 %. Defaults for the oil used: 5 g, 5 g and 50 g. The amounts are stored in `food_preferences` and edited from a new "Cocina" section in Preferencias; the factors are not configurable.
 - Domain pure function: `retained_g = used_g × factor`; `added_fat_g = retained_g`; `added_kcal = 9 × retained_g`; protein, carbohydrates and micronutrients do not change. Entries store `cooking_method`, `cooking_oil_retained_g` and the adjusted kcal/fat snapshots; the food itself is unchanged.
+- `meal_template_items.cooking_method` stores the method per item (default `raw`); it is editable when saving a meal as a comida and in "Editar comida", and `save_meal_template` accepts it per item. The template does not store oil: adding a comida from the "Comidas" tab, copying it or applying a default computes `cooking_oil_retained_g` with the current `food_preferences`. A saved comida's shown total kcal includes that cooking impact.
+- `save_meal_template` and the client validate that only `g` foods carry a non-raw method; an `ml` item stays raw. Existing template items are backfilled to `raw`.
 - The add-to-meal sheet shows the impact before saving. Editing an entry's amount keeps the stored method and retained oil; re-selecting the method on an existing entry is out of scope for this epic.
 - `save_preferences` carries the three oil amounts so Preferencias keeps its single "Guardar"; a missing `food_preferences` row reads as the defaults.
 
@@ -262,7 +275,7 @@ Feature: Default comidas
   Scenario: The saved comida changes later
     Given "Desayuno A" is edited after it was applied
     Then the entries already added keep their snapshots
-    And a future application uses the current foods and amounts of "Desayuno A"
+    And a future application uses the current foods, amounts and cooking methods of "Desayuno A"
 
   Scenario: One comida per meal and day
     Given "Desayuno A" is assigned to Lunes
@@ -302,7 +315,7 @@ Feature: Default comidas
 ```
 
 **Technical notes**
-- Source of truth is the saved comidas: `meal_templates` + `meal_template_items`. The picker never lists `foods` or Open Food Facts results. Applying a default inserts one `food_log_entries` row per template item, with the same amount, portion label and nutrition snapshots as adding a comida from the "Comidas" tab (US-21).
+- Source of truth is the saved comidas: `meal_templates` + `meal_template_items`. The picker never lists `foods` or Open Food Facts results. Applying a default inserts one `food_log_entries` row per template item, with the same amount, portion label, saved cooking method, retained oil (from the current `food_preferences`) and nutrition snapshots as adding a comida from the "Comidas" tab (US-21).
 - The assignment's meal slot is authoritative; the template's suggested `meal_slot_id` is ignored. One saved comida may be assigned to several meals and days.
 - `meal_defaults` stores one row per `(user_id, meal_slot_id, weekday)`, unique, so a meal can have different comidas on different weekdays but never two on the same day. Weekday is ISO (Lunes = 1 … Domingo = 7).
 - `save_meal_defaults(p_defaults jsonb)` replaces all assignments for the caller atomically (`[{meal_slot_id, template_id, weekdays:[1,3,5]}]`). It validates ownership, weekday range/duplicates and rejects empty saved comidas.
@@ -316,8 +329,8 @@ Feature: Default comidas
 
 ## Epic Definition of Done
 - `food-photo` is covered by `deno test` with recorded Gemini fixtures (dish, label, unreadable, invalid input, provider error); CI never calls the network.
-- pgTAP covers `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the unique meal/weekday constraint, cascades, `save_meal_defaults` validation and `apply_meal_defaults` idempotency (including no re-add after deleting entries).
-- Domain tests cover the cooking calculations and the weekday/selection helpers; host (Robolectric) tests cover the photo modes, the prefilled manual form, the cooking selector and the default-comidas screen.
+- pgTAP covers `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the unique meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency (including no re-add after deleting entries).
+- Domain tests cover the cooking calculations and the weekday/selection helpers; host (Robolectric) tests cover the photo modes, the prefilled manual form, the cooking selector (add-to-meal, save-as-comida and edit-comida) and the default-comidas screen.
 - No food photo, comment or provider response is stored or logged; the Gemini key exists only in Supabase secrets.
 - Every new screen has loading, empty, error and offline states; the photo and defaults flows survive leaving the app and coming back where a draft exists.
 - `prodDebug` APK validated by the user. Tag `v0.7.0`.

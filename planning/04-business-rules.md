@@ -75,6 +75,7 @@ Only foods whose base unit is `g` are cooked; drinks stay raw. The default is al
 - `retained_g = used_g × factor`; `added_fat_g = retained_g`; `added_kcal = 9 × retained_g`.
 - Protein, carbohydrates and micronutrients do not change.
 - The entry snapshot stores the adjusted `kcal` and `fat_g` plus `cooking_method` and `cooking_oil_retained_g`; the food's per-100 values are never modified.
+- Saved comidas store a method per item (`meal_template_items.cooking_method`, default raw), editable when saving or editing a comida. Adding a comida from the "Comidas" tab, copying it or applying a default uses that method and computes the retained oil with the current Preferencias; the template does not store oil.
 - Amounts are configured in Preferencias → "Cocina" (0–500 g); factors are fixed. A change applies to future entries only.
 
 Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g fat. A la plancha with 5 g used × 50 % = 2,5 g retained → 220 + 22,5 = **242,5 kcal** and 6 + 2,5 = **8,5 g fat**.
@@ -86,9 +87,9 @@ Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g f
 - The app evaluates **today only**, on the first load of the Diary, before reading entries:
   - If `diary_default_applications` already has the day, nothing happens (no duplicate, and deleted entries never come back).
   - If the day already has any entry, the day is marked and nothing is added.
-  - Otherwise the matching saved comidas are copied as normal entries, with their current amounts and nutrition snapshots, cooked raw, and the day is marked.
+  - Otherwise the matching saved comidas are copied as normal entries, with their current amounts, saved cooking methods, retained oil from the current Preferencias and nutrition snapshots, and the day is marked.
 - No backfill and no past days: a day the app was not opened on stays empty. Configuring or changing defaults after today's Diary was opened applies from the next new day.
-- Deleting a meal or a saved comida removes its assignments (cascade); entries already logged do not change. Editing a saved comida does not change entries already added, and a future application uses its current items.
+- Deleting a meal or a saved comida removes its assignments (cascade); entries already logged do not change. Editing a saved comida does not change entries already added, and a future application uses its current items and cooking methods.
 - If the apply call fails, the Diary still opens and shows a non-blocking retry; retrying is safe because the marker makes it idempotent.
 
 ## 3. Weight

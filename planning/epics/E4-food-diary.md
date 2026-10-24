@@ -327,6 +327,7 @@ Feature: Saved meals
 - Backend and code keep the name `meal_templates` / `meal_template_items` (only the UI wording is "comida", ADR-42).
 - No quick-add chips on the Diary (user decision 2026-10-21, ADR-42): the "Comidas" tab of the search is the only way to add a saved meal.
 - Adding a comida is a batch insert of `food_log_entries` (one request) with snapshots from current food values.
+- E7 extends saved comidas with a cooking method per item (US-50): the method is captured when saving and editable in "Editar comida"; adding the comida copies it and computes the retained oil with the current Preferencias.
 
 ---
 

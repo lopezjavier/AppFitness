@@ -11,7 +11,7 @@
 | E4 | Food diary | US-16 … US-24 | Full UI + backend | `v0.4.0` — meal logging, portions and diary history |
 | E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, body composition, Health Connect and goal |
 | E6 | Training depth | US-28 … US-38, US-47 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management, manual-food editing |
-| E7 | Food photos, defaults and cooking | US-48 … US-51 | Full UI + backend | `v0.7.0` — photo food creation, default comidas and cooking methods |
+| E7 | Food photos, defaults and cooking | US-48 … US-51 | Full UI + backend | `v0.7.0` — photo food creation, default comidas and cooking methods (including saved comidas) |
 | E8 | Training insights | US-39 … US-44 | Full UI | `v0.8.0` — advanced stats, muscle distribution, reports |
 | E9 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
 
@@ -86,7 +86,7 @@ E1 … E8 ───────────────────────�
 | US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
 | US-48 | E7 | Add a food from a photo with the AI estimate (added 2026-10-24, ADR-59) | UI + backend |
 | US-49 | E7 | Nutrition-label and barcode photos (added 2026-10-24, ADR-59) | UI |
-| US-50 | E7 | Cooking methods with olive oil (added 2026-10-24, ADR-60) | UI + backend |
+| US-50 | E7 | Cooking methods with olive oil, including saved comidas (added 2026-10-24, ADR-60) | UI + backend |
 | US-51 | E7 | Default comidas per meal and weekday (added 2026-10-24, ADR-61) | UI + backend |
 
 ## 4. Traceability: requirements → stories
