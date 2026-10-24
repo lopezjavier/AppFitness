@@ -55,8 +55,11 @@ data class LiveExercise(
     val equipment: Equipment? = null,
 )
 
-/** The running rest countdown: [remaining] of [total] (the total grows when time is added past it). */
-data class RestTimerUi(val remaining: Duration, val total: Duration)
+/**
+ * The rest countdown: [remaining] of [total] (the total grows when time is added past it); [paused] while the session
+ * is paused, when [remaining] stays frozen.
+ */
+data class RestTimerUi(val remaining: Duration, val total: Duration, val paused: Boolean = false)
 
 /** The set (exercise [position], [setIndex]) whose type picker is open. */
 data class TypePickerTarget(val position: Int, val setIndex: Int)

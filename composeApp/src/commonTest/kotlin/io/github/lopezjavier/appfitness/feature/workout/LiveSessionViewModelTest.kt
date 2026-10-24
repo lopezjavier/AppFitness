@@ -1477,12 +1477,12 @@ class LiveSessionViewModelTest {
         val vm = loaded()
         vm.onEvent(LiveSessionEvent.OpenRpePicker(0, 1))
 
-        vm.chooseRpe(0, 1, 7.5)
+        vm.chooseRpe(0, 1, 7.0)
         runCurrent()
 
-        assertEquals("7,5", vm.row(0, 1).rpe)
+        assertEquals("7", vm.row(0, 1).rpe)
         assertNull(vm.active().rpePicker)
-        assertEquals(7.5, repository.upserts.single().rpe)
+        assertEquals(7.0, repository.upserts.single().rpe)
     }
 
     @Test
@@ -1562,7 +1562,7 @@ class LiveSessionViewModelTest {
     @Test
     fun checkingASetThatAlreadyHasRpe_completesAtOnce() = runSessionTest {
         val vm = loaded()
-        vm.chooseRpe(0, 1, 7.5)
+        vm.chooseRpe(0, 1, 7.0)
         type(vm, 0, 1, "60", "12")
 
         checkWithoutAnswering(vm, 0, 1)
@@ -1592,10 +1592,10 @@ class LiveSessionViewModelTest {
 
         vm.onEvent(LiveSessionEvent.OpenRpePicker(0, 1))
         assertEquals(RpePickerTarget(0, 1, completesSet = false), vm.active().rpePicker)
-        vm.chooseRpe(0, 1, 9.5)
+        vm.chooseRpe(0, 1, 9.0)
         runCurrent()
 
-        assertEquals(9.5, repository.upserts.last().rpe)
+        assertEquals(9.0, repository.upserts.last().rpe)
         assertEquals(completedAt, repository.upserts.last().completedAt)
         assertEquals(2, repository.upserts.size)
         assertEquals(1, haptics.ticks)
@@ -1658,21 +1658,21 @@ class LiveSessionViewModelTest {
     @Test
     fun checkingAndUncheckingASet_keepsItsRpe() = runSessionTest {
         val vm = loaded()
-        vm.chooseRpe(0, 1, 7.5)
+        vm.chooseRpe(0, 1, 7.0)
         runCurrent()
         type(vm, 0, 1, "60", "12")
 
         check(vm, 0, 1)
         check(vm, 0, 1, checked = false)
 
-        assertEquals(listOf(7.5, 7.5, 7.5), repository.upserts.map { it.rpe })
-        assertEquals("7,5", vm.row(0, 1).rpe)
+        assertEquals(listOf(7.0, 7.0, 7.0), repository.upserts.map { it.rpe })
+        assertEquals("7", vm.row(0, 1).rpe)
     }
 
     @Test
     fun anAddedSet_hasNoRpe() = runSessionTest {
         val vm = loaded()
-        vm.chooseRpe(0, 1, 7.5)
+        vm.chooseRpe(0, 1, 7.0)
         runCurrent()
 
         vm.onEvent(LiveSessionEvent.AddSet(0))
@@ -1687,26 +1687,26 @@ class LiveSessionViewModelTest {
         connectivity.state.value = false
         runCurrent()
 
-        vm.chooseRpe(0, 1, 8.5)
+        vm.chooseRpe(0, 1, 6.0)
         runCurrent()
         assertTrue(repository.upserts.isEmpty())
-        assertEquals("8,5", vm.row(0, 1).rpe)
+        assertEquals("6", vm.row(0, 1).rpe)
 
         connectivity.state.value = true
         advanceUntilIdle()
 
-        assertEquals(listOf(8.5), repository.upserts.map { it.rpe })
+        assertEquals(listOf(6.0), repository.upserts.map { it.rpe })
     }
 
     @Test
     fun theLoggedRpe_survivesAReload() = runSessionTest {
         val first = loaded()
-        first.chooseRpe(0, 1, 7.5)
+        first.chooseRpe(0, 1, 7.0)
         runCurrent()
 
         val reloaded = loaded()
 
-        assertEquals("7,5", reloaded.row(0, 1).rpe)
+        assertEquals("7", reloaded.row(0, 1).rpe)
     }
 
     @Test
@@ -1739,13 +1739,13 @@ class LiveSessionViewModelTest {
             false,
             listOf(
                 RoutineExercise("e1", 0, null, List(3) { PlannedSet(null, 8) }, 90, targetRpe = 8.0),
-                RoutineExercise("e2", 1, null, List(3) { PlannedSet(null, 8) }, 90, targetRpe = 7.5),
+                RoutineExercise("e2", 1, null, List(3) { PlannedSet(null, 8) }, 90, targetRpe = 7.0),
             ),
         )
 
         val vm = loaded()
 
-        assertEquals(listOf("8", "7,5"), vm.active().exercises.map { it.targetRpeText })
+        assertEquals(listOf("8", "7"), vm.active().exercises.map { it.targetRpeText })
     }
 
     @Test
@@ -1774,6 +1774,56 @@ class LiveSessionViewModelTest {
         assertEquals("85 kg × 8\nRPE 8", vm.row(0, 2).previous)
         assertEquals("85" to "8", vm.row(0, 2).weightPlaceholder to vm.row(0, 2).repsPlaceholder)
         assertNull(vm.row(0, 2).rpe)
+    }
+
+    @Test
+    fun theFirstSetOfTheFirstExercise_opensThePromptAndCompletesOnlyWithAnRpe() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 1, "60", "12")
+
+        checkWithoutAnswering(vm, 0, 1)
+
+        assertEquals(RpePickerTarget(0, 1, completesSet = true), vm.active().rpePicker)
+        assertFalse(vm.row(0, 1).completed)
+        vm.chooseRpe(0, 1, 8.0)
+        runCurrent()
+        assertTrue(vm.row(0, 1).completed)
+        assertEquals(8.0, repository.upserts.single().rpe)
+    }
+
+    @Test
+    fun theFirstSetWithPlannedValuesAndAGhostRpe_stillAsksForTheRpe() = runSessionTest {
+        routines.routines.clear()
+        routines.routines += listOf(
+            routineWithRests(60, 60).let { routine ->
+                routine.copy(
+                    exercises = routine.exercises.map {
+                        it.copy(targetRpe = 8.0, plannedSets = List(3) { PlannedSet(60.0, 8) })
+                    },
+                )
+            },
+        )
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10, rpe = 9.0)))
+        val vm = loaded()
+
+        checkWithoutAnswering(vm, 0, 1)
+
+        assertEquals(RpePickerTarget(0, 1, completesSet = true), vm.active().rpePicker)
+        assertFalse(vm.row(0, 1).completed)
+        assertNull(vm.row(0, 1).rpe)
+    }
+
+    @Test
+    fun theFirstSetAsksForTheRpe_whateverOrderTheSetsAreChecked() = runSessionTest {
+        val vm = loaded()
+        type(vm, 0, 2, "60", "12")
+        check(vm, 0, 2)
+        type(vm, 0, 1, "60", "12")
+
+        checkWithoutAnswering(vm, 0, 1)
+
+        assertEquals(RpePickerTarget(0, 1, completesSet = true), vm.active().rpePicker)
+        assertFalse(vm.row(0, 1).completed)
     }
 
     private companion object {

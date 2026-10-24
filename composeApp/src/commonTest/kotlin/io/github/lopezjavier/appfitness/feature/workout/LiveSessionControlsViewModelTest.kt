@@ -69,9 +69,12 @@ class LiveSessionControlsViewModelTest {
     ).also { created = it }
 
     private fun runSessionTest(body: suspend TestScope.() -> Unit) = runTest {
-        body()
-        created?.onEvent(LiveSessionEvent.RestSkip)
-        runCurrent()
+        try {
+            body()
+        } finally {
+            created?.onEvent(LiveSessionEvent.RestSkip)
+            runCurrent()
+        }
     }
 
     @BeforeTest
@@ -219,6 +222,111 @@ class LiveSessionControlsViewModelTest {
             assertEquals(480L, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // --- Pause freezes the rest countdown (ADR-56) ---
+
+    private fun TestScope.restRunning(handle: SavedStateHandle = SavedStateHandle()): LiveSessionViewModel {
+        val vm = loaded(handle)
+        type(vm, 0, 1, "60", "10")
+        check(vm, 0, 1)
+        clock.advance(70.seconds) // 120 s default rest: 50 s left
+        return vm
+    }
+
+    @Test
+    fun pausing_freezesTheRestCountdown() = runSessionTest {
+        val vm = restRunning()
+
+        send(vm, LiveSessionEvent.PauseSession)
+        clock.advance(30.seconds)
+        advanceTimeBy(5000)
+        runCurrent()
+
+        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
+    }
+
+    @Test
+    fun resuming_runsTheFrozenCountdownAgain() = runSessionTest {
+        val vm = restRunning()
+        send(vm, LiveSessionEvent.PauseSession)
+        clock.advance(30.seconds)
+
+        send(vm, LiveSessionEvent.ResumeSession)
+        clock.advance(10.seconds)
+        advanceTimeBy(1001)
+
+        assertEquals(RestTimerUi(40.seconds, 120.seconds), vm.active().restTimer)
+    }
+
+    @Test
+    fun markingASetDoneWhilePaused_resumesTheSessionAndStartsANewRest() = runSessionTest {
+        val vm = restRunning()
+        send(vm, LiveSessionEvent.PauseSession)
+        clock.advance(30.seconds)
+        type(vm, 0, 2, "60", "10")
+
+        check(vm, 0, 2)
+
+        assertNull(vm.active().pausedAt)
+        assertEquals(30L, vm.active().pausedTotalSeconds)
+        assertEquals(RestTimerUi(120.seconds, 120.seconds), vm.active().restTimer)
+        assertEquals(1, repository.resumes.size)
+    }
+
+    @Test
+    fun aResumeTheServerRefuses_keepsTheCountdownFrozen() = runSessionTest {
+        val vm = restRunning()
+        send(vm, LiveSessionEvent.PauseSession)
+        repository.resumeFailure = AppError.Network
+        clock.advance(30.seconds)
+
+        send(vm, LiveSessionEvent.ResumeSession)
+        clock.advance(30.seconds)
+        advanceTimeBy(2000)
+
+        assertTrue(vm.active().isPaused)
+        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
+    }
+
+    @Test
+    fun aPauseTheServerRefuses_leavesTheCountdownRunning() = runSessionTest {
+        val vm = restRunning()
+        repository.pauseFailure = AppError.Network
+
+        send(vm, LiveSessionEvent.PauseSession)
+        clock.advance(10.seconds)
+        advanceTimeBy(1001)
+
+        assertFalse(vm.active().isPaused)
+        assertEquals(RestTimerUi(40.seconds, 120.seconds), vm.active().restTimer)
+    }
+
+    @Test
+    fun pausingWithoutARest_changesNothingElseAndResumeWorks() = runSessionTest {
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.PauseSession)
+        assertNull(vm.active().restTimer)
+        send(vm, LiveSessionEvent.ResumeSession)
+
+        assertNull(vm.active().restTimer)
+        assertNull(vm.active().pausedAt)
+    }
+
+    @Test
+    fun theFrozenCountdown_survivesARecreatedViewModel() = runSessionTest {
+        val handle = SavedStateHandle()
+        val first = restRunning(handle)
+        send(first, LiveSessionEvent.PauseSession)
+        clock.advance(30.seconds)
+
+        val second = loaded(handle)
+        advanceTimeBy(5000)
+
+        assertTrue(second.active().isPaused)
+        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), second.active().restTimer)
+        assertEquals(50_000L, handle.get<Long>("live_rest_paused_remaining"))
     }
 
     @Test

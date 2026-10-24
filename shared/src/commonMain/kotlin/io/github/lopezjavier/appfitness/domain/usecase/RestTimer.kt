@@ -9,16 +9,25 @@ import kotlin.time.Instant
  * The rest countdown as a pure function of instants: it never counts down, so it stays exact when the app is in the
  * background. [total] is the length the progress bar is drawn against and grows when time is added past it.
  */
-data class RestTimer(val endsAt: Instant, val total: Duration) {
-    fun remaining(now: Instant): Duration = (endsAt - now).coerceAtLeast(Duration.ZERO)
+data class RestTimer(val endsAt: Instant, val total: Duration, val pausedRemaining: Duration? = null) {
+    val isPaused: Boolean get() = pausedRemaining != null
 
-    fun isFinished(now: Instant): Boolean = now >= endsAt
+    fun remaining(now: Instant): Duration = pausedRemaining ?: (endsAt - now).coerceAtLeast(Duration.ZERO)
 
-    /** Adds [by] to what is left; [total] grows when the new remaining time exceeds it. */
+    /** A paused timer never finishes. */
+    fun isFinished(now: Instant): Boolean = !isPaused && now >= endsAt
+
+    /** Adds [by] to what is left; [total] grows when the new remaining time exceeds it. Keeps the paused state. */
     fun extend(now: Instant, by: Duration = EXTENSION): RestTimer {
         val left = remaining(now) + by
-        return RestTimer(now + left, maxOf(total, left))
+        return RestTimer(now + left, maxOf(total, left), pausedRemaining?.let { left })
     }
+
+    /** Freezes the countdown at what is left now. Pausing a paused timer changes nothing. */
+    fun pause(now: Instant): RestTimer = if (isPaused) this else copy(pausedRemaining = remaining(now))
+
+    /** Runs again from the frozen remaining time. Resuming a running timer changes nothing. */
+    fun resume(now: Instant): RestTimer = pausedRemaining?.let { RestTimer(now + it, total) } ?: this
 
     companion object {
         val EXTENSION: Duration = 30.seconds

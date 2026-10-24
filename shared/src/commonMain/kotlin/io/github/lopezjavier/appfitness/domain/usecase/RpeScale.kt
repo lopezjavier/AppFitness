@@ -1,19 +1,28 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
-/** The RPE (rate of perceived exertion) grid of a set: 6 to 10 in half points (US-30, ADR-50). */
+import kotlin.math.floor
+
+/** The RPE (rate of perceived exertion) scale of a set: whole numbers 1 to 10 (US-30, ADR-56). */
 object RpeScale {
-    const val MIN = 6.0
+    const val MIN = 1.0
     const val MAX = 10.0
-    const val STEP = 0.5
+    const val STEP = 1.0
+    private const val HALF = 0.5
 
     val values: List<Double> = generateSequence(MIN) { it + STEP }.takeWhile { it <= MAX }.toList()
 
     fun isValid(value: Double): Boolean = value in values
 
-    /** "8" or "7,5": decimal comma, no trailing ",0". */
-    fun text(value: Double): String =
-        if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString().replace('.', ',')
+    /** Rounds half up (stored 7.5 reads as 8). */
+    fun round(value: Double): Double = floor(value + HALF)
 
-    /** Parses "7,5" or "7.5"; null when it is not a grid value. */
-    fun parse(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()?.takeIf(::isValid)
+    /** The whole number as text, e.g. "8"; no decimals. */
+    fun text(value: Double): String = round(value).toLong().toString()
+
+    /** Parses "8", "7,5" or "7.5" (rounded half up); null when the result is outside 1..10. */
+    fun parse(text: String): Double? {
+        val number = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
+        val rounded = round(number)
+        return rounded.takeIf(::isValid)
+    }
 }

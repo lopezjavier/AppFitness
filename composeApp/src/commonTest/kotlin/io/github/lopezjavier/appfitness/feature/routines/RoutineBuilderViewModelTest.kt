@@ -853,25 +853,25 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun targetRpe_movesInHalfPoints_andClampsAtTen() = runTest {
+    fun targetRpe_movesInWholePoints_andClampsAtTen() = runTest {
         val vm = builder()
         vm.add("a")
 
         vm.stepRpe(+1)
         vm.stepRpe(+1)
-        assertEquals(8.5, vm.form().rows.single().targetRpe)
+        assertEquals(9.0, vm.form().rows.single().targetRpe)
         vm.stepRpe(+1, times = 10)
 
         assertEquals(10.0, vm.form().rows.single().targetRpe)
     }
 
     @Test
-    fun targetRpe_steppingDownFromSix_clearsIt() = runTest {
+    fun targetRpe_steppingDownFromOne_clearsIt() = runTest {
         val vm = builder()
         vm.add("a")
         vm.stepRpe(+1)
-        vm.stepRpe(-1, times = 4)
-        assertEquals(6.0, vm.form().rows.single().targetRpe)
+        vm.stepRpe(-1, times = 7)
+        assertEquals(1.0, vm.form().rows.single().targetRpe)
 
         vm.stepRpe(-1)
 
@@ -914,12 +914,20 @@ class RoutineBuilderViewModelTest {
             ),
         )
         val first = builder("r1")
-        assertEquals(7.5, first.form().rows.single().targetRpe)
+        assertEquals(8.0, first.form().rows.single().targetRpe)
         first.stepRpe(+1)
 
         val second = builder("r1", handle)
 
-        assertEquals(8.0, second.form().rows.single().targetRpe)
+        assertEquals(9.0, second.form().rows.single().targetRpe)
+    }
+
+    @Test
+    fun aDraftSavedWithAHalfTarget_isRestoredRounded() {
+        val old = """{"name":"X","rows":[{"rowId":0,"exerciseId":"a","sets":[],"restSeconds":90,"group":null,""" +
+            """"targetRpe":7.5}]}"""
+
+        assertEquals(8.0, decode(old)!!.rows.single().targetRpe)
     }
 
     @Test

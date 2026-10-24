@@ -203,7 +203,7 @@ internal fun Routine.toDraft(): RoutineDraft {
                 sets = exercise.plannedSets.map { it.toDraft(setId++) },
                 restSeconds = exercise.restSeconds,
                 group = groups[index],
-                targetRpe = exercise.targetRpe,
+                targetRpe = exercise.targetRpe?.let(RpeScale::round),
             )
         }
     return RoutineDraft(name = name, notes = notes, rows = rows, nextRowId = rows.size.toLong(), nextSetId = setId)
@@ -211,14 +211,18 @@ internal fun Routine.toDraft(): RoutineDraft {
 
 private const val DEFAULT_TARGET_RPE = 8.0
 
-/** One half-point step of a target RPE: none + up = 8, 10 + up stays 10, 6 + down = none. */
+/** One whole-point step of a target RPE: none + up = 8, 10 + up stays 10, 1 + down = none (a half value rounds). */
 internal fun steppedRpe(current: Double?, delta: Int): Double? {
     if (current == null) return if (delta > 0) DEFAULT_TARGET_RPE else null
-    val next = current + delta * RpeScale.STEP
+    val next = RpeScale.round(current) + delta * RpeScale.STEP
     return if (next < RpeScale.MIN) null else next.coerceAtMost(RpeScale.MAX)
 }
 
 internal fun encode(draft: RoutineDraft): String = Json.encodeToString(RoutineDraft.serializer(), draft)
 
 internal fun decode(json: String): RoutineDraft? =
-    runCatching { Json.decodeFromString(RoutineDraft.serializer(), json) }.getOrNull()
+    runCatching { Json.decodeFromString(RoutineDraft.serializer(), json) }.getOrNull()?.withWholeTargetRpes()
+
+/** A draft saved with a half target RPE (before ADR-56) shows and keeps the rounded value. */
+private fun RoutineDraft.withWholeTargetRpes() =
+    copy(rows = rows.map { row -> row.copy(targetRpe = row.targetRpe?.let(RpeScale::round)) })
