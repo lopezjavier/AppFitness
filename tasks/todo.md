@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** E7 breakdown by `epic-planner` in a fresh session (E6 retrospective held and recorded in `retrospectives/E6.md`). Last merged: T-102b (PR #186). E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** T-104 (E7), once the user agrees the proposed E7 checkpoints (E7-A, E7-B) and the breakdown PR is merged. Last merged: T-102b (PR #186). E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
@@ -2830,6 +2830,237 @@ Journey: fix your own foods from their label, then one last real workout over ev
   7. Carried over from Checkpoint E6-B (T-101a fixes, user decision 2026-10-24): the unfoldered routines are labelled "Sin carpeta" (list and move picker); creating or renaming a folder to an existing name (any case, extra spaces) shows "Ya existe una carpeta con ese nombre" and cannot be saved; in the calendar a day tap selects the day and shows one card per workout (name, duration, volume), a card tap opens the detail, and the selected day survives leaving the app.
   - Leave the app and come back mid-workout and with a food edit half done: the same tab, screen and draft are restored.
   - Approval → `git tag -a v0.6.0 -m "Epic E6"` + `git push --tags` + retrospective (T-103).
+
+---
+
+# E7 · Food photos, defaults and cooking
+
+Stories: `planning/epics/E7-food-photos-defaults-and-cooking.md` (US-48…US-51; US-52/US-53 added by ADR-62 from Checkpoint E6-C). Plan: [tasks/plan.md](plan.md). One task per story as a vertical slice, with these merges and splits: US-52 and US-53 (both small fixes of food/comida editing) share T-104; US-48 and US-49 share one Edge Function and one capture flow, split into backend (T-105) and UI (T-106); US-50 splits into backend + domain (T-107) and UI (T-108); US-51 into backend + domain (T-109) and UI (T-110).
+Product decisions: ADR-59 (Gemini through `food-photo`, three fixed prompts, camera or Android photo picker, no photo stored or logged, result = editable manual-food form, no `ai` source), ADR-60 (only the retained olive oil counts; fixed factors; amounts in Preferencias → "Cocina"; method per comida item), ADR-61 (a saved comida per meal and ISO weekday, applied once on the first open of today's Diary; no backfill, no re-add), ADR-62 (unit editable while unused; comida row opens its details).
+Flow: backend tasks are verified with pgTAP, `deno test` and `deploy-supabase`; UI tasks with host (Robolectric) tests; the app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
+Schema: new migrations only (never edit a merged one): `update_personal_food` with the unit (T-104); `food_cooking_method`, the `food_log_entries` and `meal_template_items` columns, `food_preferences`, `save_preferences` and `save_meal_template` versions (T-107); `meal_defaults`, `diary_default_applications`, `save_meal_defaults`, `apply_meal_defaults` (T-109). Every user-owned row cascades from `auth.users` (ADR-29). A changed RPC signature ships with its Kotlin caller in the same PR.
+Rules for every task: ADR-45 / `05-design-system.md` §8 (one explicit "Guardar" per edit surface, nothing applied on dismiss; delete at once through `SwipeToDeleteRow`; one label per concept; after US-53 a row opens its details and editing starts there), ADR-40 restoration tests. E5 retrospective actions: (a) every task that edits or deletes records has a test with a record outside the screen's loaded range; (b) rules over user data state the assumed usage frequency, which the user confirms at the checkpoint. E6 retrospective: keep host-test time in check.
+Questions in `tasks/plan.md`: none blocking (E7 Q1–Q4 resolved on 2026-10-24; ADR-62).
+Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of the tasks was collected first (13 feature items) and grouped by journey into checkpoints of 5–7 items ("leave the app and come back" listed in every checkpoint but not counted), each placed right after the last task of its journey: E7-A after T-106 (create and fix foods, 7 items), E7-B after T-110, the last implementation task (cook and plan your meals, 6 items). T-111 is the closure and has no checkpoint: E7-B's approval releases it.
+
+## T-104: Unit of an unused manual food and comida details
+
+**Story:** US-52, US-53 (ADR-62, Checkpoint E6-C change requests) · **Flow:** UI + backend · **Scenarios:** Changing the unit of an unused food; A used food keeps its unit; Favourites do not block the change; The server refuses a stale change; Open Food Facts foods (US-52) · Tapping a comida opens its details; Adding from the details; Editing from the details; No pencil on the row; State survives leaving the app (US-53)
+
+**Description:** US-52: in the manual-food edit form (T-102) the base unit (`g`/`ml`) becomes editable while no `food_log_entries` row and no `meal_template_items` row references the food; favourites do not block it. Nutrition values, portion amounts and labels are kept as typed (they are per 100 base units). When the food is already used, the unit control is disabled with a hint (wording by ux-reviewer). Backend: a new migration with a new `update_personal_food` version that accepts the unit and, inside its locked transaction, refuses a unit change for a referenced food (error code proposed by the planner, e.g. `23514`), so a stale form opened before another device logged the food saves nothing; the client shows why. The client learns whether the food is referenced when the form opens (a small RPC or a column of the details query; planner's choice). OFF foods stay non-editable. US-53: in "Añadir comida" → Comidas a row tap opens a comida details screen (each food with its amount, the totals) with "Añadir" (adds the comida to the selected meal and day exactly as the T-102b row tap did, same offline rule) and "Editar" (opens "Editar comida", T-102b, with its single "Guardar"); the row has no pencil and no trailing add button. This replaces the T-102b row behaviour; `05` §8 drops the US-47 exception. The edit draft and the open comida details survive leaving the app.
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP: the unit changes for the caller's unreferenced manual food; a food referenced by an entry (including one dated a year ago, outside any loaded range) or by a comida item is refused and nothing in the call is saved; a favourite alone does not block; OFF and other users' foods still `P0002`; past entries byte-identical.
+- [ ] "Patata" in `ml`, unused → "Editar", unit "g", "Guardar" → per 100 g with the same values and portion amounts.
+- [ ] A used food shows the unit control disabled with the hint; a favourite-only food can change it.
+- [ ] A refused stale change shows the reason and leaves the form open with the draft intact.
+- [ ] Tapping "Desayuno A" opens its details (foods, amounts, totals) and adds nothing; "Añadir" adds its foods to the selected meal and day; "Editar" opens "Editar comida"; no pencil or add button on the rows.
+- [ ] The unit edit draft and the open comida details survive background and process death.
+
+**Host tests (per scenario):** `EditPersonalFoodViewModelTest` additions with fakes + Turbine (unit change, used food disabled, favourite-only, stale refusal); `FoodRepositoryTest` (payload with the unit, error mapping); `TemplateDetails…`/comida details ViewModel and screen tests (Robolectric: opens details, "Añadir", "Editar", no pencil); `FoodSearchTemplates` row test; restoration tests for both; pgTAP `update_personal_food.test.sql` additions.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** E6 (`v0.6.0`)
+**Files likely touched:** `supabase/migrations/<ts>_update_personal_food_unit.sql`, `supabase/tests/update_personal_food.test.sql`, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, `composeApp/…/feature/food/{CreateFoodScreen,CreateFoodSections,CreateFoodViewModel,CreateFoodDraft,FoodSearchTemplates}.kt`, `composeApp/…/feature/templates/{TemplateRow,TemplateDetailsScreen,TemplateDetailsViewModel,TemplateDetailsUiState,TemplateDetailsRoot}.kt` (or a new comida details screen), `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `planning/03-data-model.md` §6, `planning/05-design-system.md` §8, strings, tests
+**Estimated scope:** M
+
+---
+
+## T-105: `food-photo` Edge Function: dish, label and barcode
+
+**Story:** US-48, US-49 (backend; ADR-59) · **Flow:** backend · **Scenarios (server side):** Dish estimate; Optional comment; AI failure; No photo is kept (server part); Nutrition label; Barcode photo; Product not identified
+
+**Description:** New Supabase Edge Function `food-photo` (`verify_jwt = true`), `POST` JSON `{ image_base64, mode: "dish" | "label" | "barcode", comment? }`. Validation: known mode, base64 JPEG within the size cap (`413` above it), comment only for `dish`, ≤ 200 chars, passed to the model as data inside the fixed prompt, never as instructions (`400` otherwise). Three fixed prompts live in the function: a single dish (estimate per-100 values, an estimated weight and `1 ración`), a label (transcribe only the printed per-100 values, leave the rest empty, read name and brand), a barcode (identify the product and its per-100 values; never calls `food-barcode`, never saves the code). The Gemini vision model (free tier) is called with a fixed response schema; the function normalises it to the app draft: name, brand, base unit, kcal/protein/carbs/fat per 100, micronutrients keyed by the T-102 whitelist (unknown keys dropped), optional grams and confidence; negatives rejected or clamped to 0; no kcal or macros = `422`. Errors: `422` no food recognised (dish) / product not identified (label, barcode; the app maps each to its message), `429` quota, `502` provider failure or timeout, `503` `GEMINI_API_KEY` missing. Nothing (image, comment, provider body) is logged or stored. Shared helpers in `functions/_shared/` (JSON errors, validation). The Kotlin side of this task: domain `FoodPhotoDraft` model, `FoodPhotoRepository` calling the function, error mapping to domain errors, and the `NewFoodDraft` mapping (per-100 values, portions from the estimated weight) with unit tests; no UI. `supabase/.env.example` lists `GEMINI_API_KEY` with an empty value. `03` §7 and `08` updated if the contract changes.
+
+**Acceptance criteria:**
+- [ ] `deno test` with recorded Gemini fixtures covers dish (incl. comment and `1 ración` grams), label (absent values stay empty), barcode, unreadable photo, invalid input (mode, size, comment on a non-dish mode, comment > 200), provider error, quota and missing key; CI never calls the network.
+- [ ] The response schema is enforced: negatives clamped or rejected, unknown micronutrient keys dropped, a response without kcal and macros is `422`.
+- [ ] A code review check (and a test spying on the logger) shows no image, comment or provider body is logged.
+- [ ] Kotlin: the repository maps each status to a domain error; the draft maps to a `NewFoodDraft` with per-100 values and the suggested portion.
+
+**Host tests (per scenario):** `FoodPhotoRepositoryTest` (payload, status → error mapping); `FoodPhotoDraftMapperTest` (Dish estimate: 180 kcal / 6 / 15 / 10 and `1 ración` 250 g; label with missing values; barcode); deno tests as above.
+
+**Verification:**
+- [ ] `deno test --allow-all supabase/functions` green; lint + `testLocalDebugUnitTest` green.
+- [ ] 👤 The user sets the secret in their own terminal: `npx supabase secrets set GEMINI_API_KEY=...` (Google AI Studio key, free tier, no billing account); the PM only verifies the name with `npx supabase secrets list` (through a subagent).
+- [ ] After the merge: `deploy-supabase` green; `food-photo` deployed.
+
+**Dependencies:** T-104
+**Files likely touched:** `supabase/functions/food-photo/{index.ts,prompts.ts,schema.ts,index.test.ts,fixtures/*}`, `supabase/functions/_shared/*`, `supabase/config.toml`, `supabase/.env.example`, `shared/…/domain/model/FoodPhotoDraft.kt`, `shared/…/domain/repository/FoodPhotoRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, `planning/03-data-model.md` §7, tests
+**Estimated scope:** M
+
+---
+
+## T-106: Add a food from a photo
+
+**Story:** US-48, US-49 (UI; ADR-59) · **Flow:** UI · **Scenarios:** Photo action and mode picker; Photo source; Dish estimate; Estimate from a gallery image; Optional comment; Edit before saving; Save and log; AI failure; No photo is kept; Offline (US-48) · Nutrition label; Barcode photo; Product not identified; The live scanner is unchanged (US-49)
+
+**Description:** In the add-food screen an `AppIconButton` "Añadir desde foto" sits directly below the scanner icon (same size and alignment; "Crear alimento" stays where it is). It opens the mode sheet ("Estimar con IA", "Etiqueta nutricional", "Código de barras", icon + title + one-line hint; closing returns to the search), then the source sheet ("Hacer foto", "Elegir de la galería"). `PhotoCapture` (domain) with the Android implementation: `ActivityResultContracts.TakePicture` + `FileProvider`, and `PickVisualMedia`; no camera or media permission, no CameraX. Both feed one downscale/compress path (≤ 1600 px, JPEG ≈ 1.5 MB). Preview with "Repetir" and "Usar foto"; dish mode adds the optional comment ("Añade un detalle: ingredientes, aliño…", max 200). "Estimando…" while waiting (cancel disabled). Success opens `CreateFoodScreen` prefilled from the T-105 draft (`NewFoodDraft`), with the "Estimado por IA · revisa los valores" note removed on the first edit; every field, the unit (T-104 rules: a new food is unused) and the portions are editable; "Guardar" (non-empty name, values ≥ 0) calls `create_personal_food` and then opens the normal `AddFoodSheet`. Failure: `ErrorState` "No hemos podido estimar este alimento" (dish) or "No hemos podido identificar este producto" (label, barcode) with "Reintentar" (same photo) and "Crear manualmente" (empty form); no food is created. Cancelling the camera or the picker returns to the source sheet without error. Offline disables the action with the standard offline message. The temporary file is deleted on success, failure, cancel and when the flow is abandoned. The existing scanner icon, live scanner and `food-barcode` lookup are untouched. The flow state (mode, source step, comment, prefilled form) survives leaving the app; an image discarded by process death returns the user to the source sheet (planner states the exact rule).
+
+**Acceptance criteria:**
+- [ ] The photo icon is below the scanner icon with the description "Añadir desde foto"; the mode sheet shows the three modes and can be closed without a photo.
+- [ ] "Elegir de la galería" opens the Android photo picker with no permission request; camera and gallery both reach the preview with "Repetir" and "Usar foto".
+- [ ] A dish photo (with or without the comment) shows "Estimando…" and opens the prefilled form ("Tortilla de patatas", 180 kcal, 6/15/10 g per 100 g, micronutrients, "1 ración" 250 g in the fixture); edits are kept; "Guardar" creates a `source = 'user'` food and opens the add-to-meal sheet; the food appears in later searches.
+- [ ] A label photo prefills name, brand and only the printed values; a barcode photo prefills the identified product; neither calls `food-barcode`.
+- [ ] Each failure shows its message with "Reintentar" and "Crear manualmente"; no food is created; offline disables the action.
+- [ ] The temporary photo file is gone after every outcome; nothing is uploaded except the one `food-photo` request.
+- [ ] The scanner icon still opens the live Google code scanner with the existing lookup.
+- [ ] The flow state and the prefilled form survive background and process death.
+
+**Host tests (per scenario):** `FoodPhotoViewModelTest` with fakes + Turbine (every scenario above, temp-file deletion per outcome, retry with the same image, offline); `PhotoCompressorTest` (downscale bounds, JPEG size); `FoodSearchScreen` Robolectric tests (icon placement and description, mode and source sheets, cancel paths, scanner unchanged); `CreateFoodScreen` prefill tests (note removed on edit, "Guardar" rules, add-to-meal opens); restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green; no new permission in the merged manifest (checked in the PR).
+
+**Dependencies:** T-105 (deployed, `GEMINI_API_KEY` set)
+**Files likely touched:** `shared/…/domain/{PhotoCapture,model/*}.kt`, `composeApp/src/androidMain/…/platform/{AndroidPhotoCapture,PhotoCompressor}.kt`, `composeApp/src/androidMain/AndroidManifest.xml` (`FileProvider`), `composeApp/src/androidMain/res/xml/file_paths.xml`, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel,FoodRoots,CreateFoodScreen,CreateFoodViewModel,CreateFoodDraft}.kt`, new `composeApp/…/feature/food/photo/{FoodPhotoViewModel,FoodPhotoUiState,PhotoModeSheet,PhotoSourceSheet,PhotoPreview}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
+**Estimated scope:** L (the planner may slice it: capture + ViewModel, then sheets and form)
+
+### Checkpoint E7-A — Create and fix foods 👤 (7 items + leave and come back) *(agreed)*
+Journey: add a new food without typing (from a photo of a dish, a label or a barcode), and fix your own foods and comidas. Why here: the "add a new food" journey is complete; cooking and defaults do not build on the photo flow, so feedback on the form and the comida details lands before T-108 adds cooking chips to them.
+- [ ] T-104…T-106 merged, CI green, `deploy-supabase` applied the T-104 migration and `food-photo`, `GEMINI_API_KEY` set, every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Unit of a manual food (T-104): create a test food in "ml" by mistake and change it to "g" from "Editar" (values and portions unchanged); open a food you already logged or have in a comida: the unit is disabled and the hint says why; a food that is only a favourite can still change it.
+  2. Comida details (T-104): in "Añadir comida" → Comidas tap a comida: its details open (foods, amounts, totals) and nothing is added; "Añadir" adds it to the meal; "Editar" opens "Editar comida"; the rows have no pencil.
+  3. Photo action, modes and sources (T-106): the photo icon sits under the scanner icon; it offers "Estimar con IA", "Etiqueta nutricional" and "Código de barras" and closes without choosing; "Hacer foto" and "Elegir de la galería" both reach the preview with "Repetir" and "Usar foto"; no permission is asked; cancelling the camera or the gallery goes back without an error.
+  4. Dish estimate (T-106): photograph a real plate, once with a comment ("Lleva poca cebolla…") and once from the gallery without it: "Estimando…", then the prefilled form with a "1 ración" portion and the "Estimado por IA" note; change a value, "Guardar": the add-to-meal sheet opens and the food is found in later searches.
+  5. Label photo (T-106): photograph a real Spanish label: name, brand and the printed values are filled, the rest stays empty.
+  6. Barcode photo (T-106): photograph a product's barcode: the form is prefilled with that product; the scanner icon still opens the live scanner as before.
+  7. Failures and offline (T-106): photograph something that is not food or a blurry label: the error with "Reintentar" and "Crear manualmente" (empty form), and no food is created; in airplane mode the photo action is disabled with the offline message.
+  - Leave the app and come back with a unit change half done, with a comida's details open, and with the AI-prefilled form edited: the same tab, screen and draft are restored.
+  - Out of scope: a whole meal from one photo; keeping or browsing photos (`planning/01-phase1-scope.md` §4).
+
+---
+
+## T-107: Cooking methods backend
+
+**Story:** US-50 (backend + domain; ADR-60) · **Flow:** backend · **Scenarios (server and domain side):** Default is raw; Pan-seared impact; Air fryer impact; Fried impact; Save; Cooking in a saved comida; Saving a meal with cooking; Drinks are not cooked; Changing the preferences; Invalid amount
+
+**Description:** New migration: enum `food_cooking_method` (`raw`, `griddle`, `air_fryer`, `fried`); `food_log_entries.cooking_method` (not null, default `raw`) and `cooking_oil_retained_g` with the `03` §3 check, existing rows backfilled to `raw`/null; `meal_template_items.cooking_method` (default `raw`, backfilled); table `food_preferences` (three oil amounts, defaults 5/5/50, check 0–500, RLS owner policy forced, cascade from `auth.users`); a SQL helper that computes the retained oil and the adjusted kcal/fat for a method with the caller's amounts (missing row = defaults), with the same cases as the domain; a new `save_preferences` version with `p_olive_oil_griddle_g`, `p_olive_oil_air_fryer_g`, `p_olive_oil_fried_g` (defaulted, null = unchanged, `23514` out of range; old signature dropped; Kotlin DTO in the same PR); a new `save_meal_template` version accepting `cooking_method` per item (missing = `raw`; a non-raw method on an `ml` food = `22023`). Entry writes (insert, comida add, copy) carry the method and the retained oil; the planner states whether they stay client-computed inserts (RLS) or need an RPC, and how "Añadir" a comida (T-104) computes the oil with the current amounts. Domain: `CookingMethod`, `FoodPreferences` (defaults), the pure `CookingImpact` function (`04` §2.2: plancha 5 g × 50 % = +22,5 kcal / +2,5 g fat; air fryer +45 / +5; frito +45 / +5; the 200 g chicken example 242,5 kcal / 8,5 g), validation (0–500, only `g` foods), repository reads/writes and DTOs. Editing an entry's amount keeps its method and retained oil. No UI in this task. `03` §3/§6 and `04` §2.2 updated if anything changes.
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP: enum and columns exist; existing entries and template items are `raw`; the entry check rejects oil on a raw entry; `food_preferences` RLS forced with cross-user isolation and cascade on user delete; `save_preferences` writes the three amounts (null = unchanged, out of range `23514`) and still works without them; `save_meal_template` stores a method per item and rejects a non-raw `ml` item; the SQL helper and the domain give the same results for the `04` §2.2 cases.
+- [ ] Domain: `CookingImpact` matches every Gherkin example and the chicken example; protein, carbs and micronutrients unchanged; drinks always raw.
+- [ ] An entry's amount edit keeps its method and retained oil (domain/repository test with an entry on a day outside the loaded range).
+
+**Host tests (per scenario):** `CookingImpactTest` (shared cases with pgTAP), `FoodPreferencesTest` (defaults, 0–500 validation), `FoodRepositoryTest` / `MealTemplateRepositoryTest` / `PreferencesRepositoryTest` payloads; pgTAP `food_preferences.test.sql`, `food_log_entries.test.sql`, `meal_templates.test.sql`, `save_preferences.test.sql` additions.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote; production entries and template items are `raw`.
+
+**Dependencies:** Checkpoint E7-A
+**Files likely touched:** `supabase/migrations/<ts>_cooking_methods.sql`, `supabase/tests/{food_preferences,food_log_entries,meal_templates,save_preferences}.test.sql`, `shared/…/domain/model/{CookingMethod,FoodPreferences,FoodLogEntry,MealTemplate}.kt`, `shared/…/domain/usecase/CookingImpact.kt` + tests, `shared/…/domain/repository/*`, `shared/…/data/repository/*`, `shared/…/data/remote/{NutritionGoalsDto,*Dto}.kt`, `planning/03-data-model.md`, tests
+**Estimated scope:** M
+
+---
+
+## T-108: Cooking selector, "Cocina" and cooking in comidas
+
+**Story:** US-50 (UI; ADR-60) · **Flow:** UI · **Scenarios:** Default is raw; Pan-seared impact; Air fryer impact; Fried impact; Save; Cooking in a saved comida; Saving a meal with cooking; Drinks are not cooked; Changing the preferences; Invalid amount
+
+**Description:** New design-system `CookingMethodSelector` (`05` §6: four single-select chips Crudo / A la plancha / Air fryer / Frito, `Role.RadioButton`, 2×2 grid at large font scales) with a catalog entry. In `AddFoodSheet`, under the amount/portion, only for `g` foods: Crudo by default, the impact line ("+22,5 kcal y +2,5 g de grasa", fat in the macro colour, kcal in `textSecondary`; none for Crudo) and the totals update live; "Añadir" saves method, retained oil and adjusted snapshots; hidden for `ml`. Editing an entry's amount keeps its method and oil (no method re-selection, epic note). Preferencias gets the "Cocina" card (`05` §6.2: "Aceite a la plancha (g)", "Aceite en air fryer (g)", "Aceite al freír (g)", 0–500 with `NumberInput`, the fixed percentages as supporting text, helper "El aceite que no se retiene no cuenta.") saved with the single "Guardar"; a negative or > 500 value shows the error and disables "Guardar"; changes apply to future entries only. Saving today's meal as a comida (`SaveTemplateSheet`) and "Editar comida" show a compact method chip per solid food ("Crudo" by default) that opens the same selector; the comida total kcal (rows, the T-104 details, the defaults picker later) includes the cooking impact with the current amounts. Adding a comida (from its details) creates each entry with its saved method and the current oil. The diary entry row shows a non-raw method (placement by ux-reviewer). Every new draft (sheet method, Cocina amounts, comida chips) survives leaving the app.
+
+**Acceptance criteria:**
+- [ ] A solid food's add-to-meal sheet starts on "Crudo" with totals equal to the food values; "A la plancha" shows "+22,5 kcal y +2,5 g de grasa", "Air fryer" and "Frito" "+45 kcal y +5 g de grasa" with the defaults; "Añadir" → the diary and dashboard totals include it.
+- [ ] An `ml` food shows no selector.
+- [ ] "Cocina" saves new amounts with "Guardar"; new entries use them, existing entries keep their snapshots; −1 or 501 disables "Guardar" with the field error.
+- [ ] A comida with "Pechuga de pollo 200 g" "A la plancha" and "Patatas 150 g" "Frito" keeps each method; adding it creates entries with those methods and the current oil; saving today's meal with a cooked food as a comida stores its method.
+- [ ] Editing the amount of a cooked entry (also one on another day) keeps its method and oil.
+- [ ] The cooking choice, the Cocina draft and the comida chips survive background and process death.
+
+**Host tests (per scenario):** `CookingMethodSelectorTest` + catalog entry; `AddFoodViewModelTest` additions with fakes + Turbine (every impact scenario, drinks, save payload); `PreferencesViewModelTest` + `PreferencesScreen` Robolectric (Cocina card, validation, single "Guardar"); `SaveTemplateViewModelTest` and `TemplateDetailsViewModelTest` (method per item, totals); `EditEntryViewModelTest` (amount edit keeps oil); restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-107
+**Files likely touched:** `composeApp/…/designsystem/CookingMethodSelector.kt`, catalog, `composeApp/…/feature/food/{AddFoodSheet,AddFoodViewModel,AddFoodUiState}.kt`, `composeApp/…/feature/profile/{PreferencesScreen,PreferencesDraft,PreferencesUiState,PreferencesViewModel}.kt` (+ a `PreferencesCookingCard.kt`), `composeApp/…/feature/templates/{SaveTemplateSheet,SaveTemplateViewModel,TemplateDetailsScreen,TemplateDetailsViewModel,TemplateFoodSheet,TemplateRow}.kt`, `composeApp/…/feature/diary/{DiaryEntryRow,EditEntryViewModel}.kt`, strings, tests
+**Estimated scope:** L (the planner may slice it: add-to-meal + Cocina, then comidas)
+
+---
+
+## T-109: Default comidas backend
+
+**Story:** US-51 (backend + domain; ADR-61) · **Flow:** backend · **Scenarios (server and domain side):** Assigning a saved comida; Different comidas on different weekdays; A new day starts with the defaults; Another weekday without a default; No duplication; Deleted entries do not come back; Past days are not filled; A day that already has entries is not filled; Changes apply to future days; The saved comida changes later; One comida per meal and day; Removing a default; Deleting a meal or a comida
+
+**Description:** New migration: `meal_defaults` (PK `(user_id, meal_slot_id, weekday)`, ISO weekday 1–7, composite FKs to `meal_slots` and `meal_templates` on delete cascade, RLS owner policy forced) and `diary_default_applications` (`(user_id, log_date)` unique marker, RLS owner policy forced), both cascading from `auth.users`. `save_meal_defaults(p_defaults jsonb)` replaces all the caller's rows atomically (`[]` clears; validates ownership, weekday range and duplicates, non-empty template; `22023` / `P0002` / `23514` per `03` §6). `apply_meal_defaults(p_log_date date)` inserts the marker (`on conflict do nothing`); already evaluated → 0; the day has any entry → keeps the marker, 0; otherwise copies the items of the templates assigned for that date's ISO weekday into the assignment's meal slot (the template's suggested slot is ignored) with their current amounts, portion labels, saved methods, retained oil from the current `food_preferences` (T-107 helper) and nutrition snapshots, in one transaction, and returns the count. The client only calls it for today (the server does not guard past dates; the planner decides whether it should refuse dates other than the client's today, and states it). Domain: `MealDefault` model, the ISO weekday helper from a local date, the selection helpers (available/conflicting days per meal, "every day assigned") and repository methods. No UI. `03` §3/§6 and `04` §2.3 updated if anything changes.
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP: RLS forced and cross-user isolation on both tables; the unique meal/weekday constraint; cascades when a meal, a saved comida or the user is deleted (entries unchanged); `save_meal_defaults` validation and atomic replace (`[]` clears); `apply_meal_defaults` adds the Lunes comida on a Monday date, nothing on a Tuesday without defaults, is idempotent on re-run, never re-adds after the entries are deleted, only marks a day with an existing entry, and uses the template's current items and methods and the current oil amounts.
+- [ ] Domain: weekday helper (Lunes = 1 … Domingo = 7, local date), available and conflicting days, all-days-assigned.
+
+**Host tests (per scenario):** `IsoWeekdayTest`, `MealDefaultSelectionTest`, `MealDefaultsRepositoryTest` (payloads, error mapping); pgTAP `meal_defaults.test.sql` (incl. a template edited after an application and a deleted comida whose entries are on an earlier day).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-108
+**Files likely touched:** `supabase/migrations/<ts>_meal_defaults.sql`, `supabase/tests/meal_defaults.test.sql`, `supabase/tests/delete_account_cascade.test.sql`, `shared/…/domain/model/MealDefault.kt`, `shared/…/domain/usecase/{IsoWeekday,MealDefaultSelection}.kt` + tests, `shared/…/domain/repository/MealDefaultsRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, DI module, `planning/03-data-model.md`, tests
+**Estimated scope:** M
+
+---
+
+## T-110: "Comidas por defecto" and a new day's Diary
+
+**Story:** US-51 (UI; ADR-61) · **Flow:** UI · **Scenarios:** Opening the defaults screen; Assigning a saved comida; Different comidas on different weekdays; A new day starts with the defaults; Another weekday without a default; No duplication; Deleted entries do not come back; Past days are not filled; Changes apply to future days; One comida per meal and day; At least one day; Removing a default; Every day already assigned; No saved comidas; Deleting a meal or a comida; Saving defaults and going back
+
+**Description:** New design-system `WeekdaySelector` (`05` §6: chips "L M X J V S D", 48 dp, `Role.Checkbox`, full day names as `stateDescription`, assigned days disabled naming the comida, horizontal scroll, never wraps) with a catalog entry. In Preferencias → Comidas (`MealSlotsScreen`) a `SecondaryButton` "Comidas por defecto" at the end, disabled while the meal structure has unsaved changes. The full-screen destination ("Comidas por defecto", back arrow, pinned "Guardar"): one card per meal in its saved order with its assigned comidas (name, food count, kcal incl. cooking) and "Añadir comida"; the picker sheet lists saved comidas only (name, food count, kcal); the assignment sheet with the `WeekdaySelector` preselecting every available day, conflicts disabled with the current comida named, an empty selection disabling "Guardar" with "Selecciona al menos un día"; "Añadir comida" disabled with "Todos los días ya tienen una comida" when the seven days are taken; a remove icon per assignment (no confirmation); the note "Se añadirán al abrir el Diario de cada día seleccionado. Los cambios se aplican a partir del próximo día."; empty state "No tienes comidas guardadas" with the hint about "Añadir comida" → "Comidas"; loading, error and offline states; leaving with unsaved changes asks to discard; "Guardar" calls `save_meal_defaults`. Diary: on the first load of **today** (not other days), `DiaryViewModel` calls `apply_meal_defaults` with the device-local date before reading the entries; on failure the Diary still loads with a non-blocking message and "Reintentar". The defaults draft (including an open assignment sheet) survives leaving the app.
+
+**Acceptance criteria:**
+- [ ] "Comidas por defecto" opens the meals in their order with their comidas and days; it is disabled while the meals editor has unsaved changes.
+- [ ] Adding "Desayuno A" to "Desayuno" preselects Lunes…Domingo; keeping Lunes, Miércoles and Viernes and "Guardar" saves it; "Desayuno B" can take Martes and Jueves, while Lunes shows as taken by "Desayuno A".
+- [ ] Deselecting every day disables "Guardar" with "Selecciona al menos un día"; with all seven days assigned "Añadir comida" is disabled with "Todos los días ya tienen una comida"; removing an assignment and "Guardar" clears it; with no saved comidas "No tienes comidas guardadas" and the hint are shown.
+- [ ] Opening today's Diary on an assigned weekday shows the comida's foods (with their cooking) in that meal and the dashboard includes them; reopening adds nothing; deleted entries stay deleted; yesterday's Diary is not filled; a failed apply shows "Reintentar" and the Diary still loads.
+- [ ] Leaving with unsaved changes asks to discard; the draft and an open assignment sheet survive background and process death.
+
+**Host tests (per scenario):** `WeekdaySelectorTest` + catalog entry; `MealDefaultsViewModelTest` with fakes + Turbine (every editor scenario, discard, save payload); `MealDefaultsScreen` Robolectric tests (states, disabled rules, texts); `MealSlotsEditor` test (button disabled while dirty); `DiaryViewModelTest` additions (apply only for today, before reading entries, once per load, retry, past day untouched); restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-109
+**Files likely touched:** `composeApp/…/designsystem/WeekdaySelector.kt`, catalog, new `composeApp/…/feature/meals/defaults/{MealDefaultsScreen,MealDefaultsViewModel,MealDefaultsUiState,MealDefaultsRoot,AssignDefaultSheet,DefaultComidaPickerSheet}.kt`, `composeApp/…/feature/meals/{MealSlotsScreen,MealSlotsEditorViewModel}.kt`, `composeApp/…/feature/diary/{DiaryViewModel,DiaryUiState,DiaryScreen}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
+**Estimated scope:** L (the planner may slice it: editor, then the Diary apply)
+
+### Checkpoint E7-B — Cook and plan your meals 👤 (6 items + leave and come back) *(agreed)*
+Journey: log what you cook with its oil, and let your usual comidas fill a new day. Why here: cooking alone gives 3 items (below the minimum) and the defaults copy the cooking methods, so both form one journey. The new-day item needs the next morning: configure the defaults, then open the Diary the following day.
+- [ ] T-107…T-110 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Cooking when logging (T-108): add a solid food: "Crudo" is selected and the totals equal the food; "A la plancha", "Air fryer" and "Frito" show their "+… kcal y +… g de grasa" line and change the totals; "Añadir" and check the diary and dashboard; a drink (ml) shows no cooking options; edit the amount of a cooked entry: the oil stays.
+  2. "Cocina" (T-108): in Preferencias change the oil for one method and "Guardar": a new entry uses it, earlier ones keep theirs; a negative value or more than 500 g disables "Guardar".
+  3. Cooking in comidas (T-108): set different methods for two foods in "Editar comida", save a meal with a cooked food as a comida, then add both comidas: each entry keeps its method and its oil; the comida totals include the cooking; copy a meal with cooked foods to another day: methods and oil are kept.
+  4. The defaults editor (T-110): Preferencias → Comidas → "Comidas por defecto" (disabled while the meals have unsaved changes): assign one comida to a meal on some days and another to the other days (a taken day shows which comida has it), remove one, try with no day selected and with all seven taken, leave with unsaved changes (it asks to discard), "Guardar".
+  5. A new day starts with its defaults (T-110, next morning): open the Diary: the assigned comida's foods are in their meal with their cooking and the dashboard counts them; leave and reopen: nothing is added again; delete them: they stay deleted; yesterday's Diary was not filled.
+  6. Changes after applying (T-109/T-110): change today's assignment after it was applied: today's entries do not change; delete a meal or a saved comida that had an assignment: the assignment disappears and logged entries stay.
+  - Leave the app and come back with a cooking method chosen in the add sheet, the Cocina amounts edited and an assignment sheet half filled: the same tab, screen and draft are restored.
+  - Out of scope: applying defaults at midnight or to days the app was not opened, notifications, changing the cooking method of an existing entry (`planning/epics/E7-food-photos-defaults-and-cooking.md`).
+
+---
+
+## T-111: E7 closure
+
+**Story:** E7 Definition of Done · **Flow:** PM
+
+**Description:** Closes E7 once Checkpoint E7-B is approved: tag `v0.7.0` and the retrospective. No 👤 checkpoint here.
+
+**Acceptance criteria:**
+- [ ] T-104…T-110 (and any fix tasks) merged with green CI; pgTAP green for the unit change, `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency; `deno test` green for `food-photo` with recorded fixtures; `deploy-supabase` green after the last migration.
+- [ ] Domain tests for the cooking calculations and the weekday/selection helpers; host tests for every E7 Gherkin scenario (epic DoD).
+- [ ] No food photo, comment or provider response is stored or logged; `GEMINI_API_KEY` exists only in Supabase secrets (epic DoD).
+- [ ] Checkpoints E7-A and E7-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog.
+- [ ] `tasks/todo.md` (E7 ✅, next-task pointer) updated through a PR.
+
+**Verification:**
+- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.7.0` after approval.
+
+**Dependencies:** T-110 (and Checkpoints E7-A and E7-B approved)
+**Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E7.md`
+**Estimated scope:** S
 
 ---
 
