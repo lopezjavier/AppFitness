@@ -445,7 +445,7 @@
     <string name="help_set_type_body">Normal: serie de trabajo; cuenta para volumen, 1RM y récords. Calentamiento (C): serie ligera para prepararte; por defecto no cuenta para volumen ni récords. Fallo (F): serie llevada hasta no poder hacer otra repetición; cuenta. Drop (D): serie justo después de otra, bajando el peso para seguir sin descansar; cuenta.</string>
     <string name="help_rpe_title">¿Qué es el RPE?</string>
     <string name="help_rpe_cd">Ayuda: RPE</string>
-    <string name="help_rpe_body">Esfuerzo percibido, de 1 a 10. 10: no podías hacer ni una repetición más. 9: quedaba 1 repetición en reserva. 8: unas 2 en reserva. 7: unas 3 en reserva, la velocidad era buena. 6: unas 4 en reserva. 5: unas 5 en reserva. 4 a 2: esfuerzo ligero. 1: muy ligero, casi sin esfuerzo.</string>
+    <string name="help_rpe_body">Esfuerzo percibido, de 6 a 10. 10: no podías hacer ni una repetición más. 9: quedaba 1 repetición en reserva. 8: unas 2 en reserva. 7: unas 3 en reserva, la velocidad era buena. 6: unas 4 en reserva.</string>
     <string name="help_warmup_calc_cd">Ayuda: calculadora de calentamiento</string>
     <string name="help_warmup_calc_body">Indica el peso objetivo de tu primera serie de trabajo; se rellena con el mejor peso que has levantado en este ejercicio. La barra (o el mango, en mancuernas) es la de Preferencias. Con el contador eliges de 1 a 4 series de calentamiento con pesos crecientes, que se añaden antes de tus series.</string>
     <string name="help_disc_loader_cd">Ayuda: cargador de discos</string>

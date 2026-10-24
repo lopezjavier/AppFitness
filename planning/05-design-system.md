@@ -57,7 +57,7 @@ Roles not listed above are derived so no M3 baseline color leaks (T-020): `onSec
 Tokens M3 does not cover (macros, ghostData, electricGreen…) are exposed through an `AppColors` `CompositionLocal` accessible via `AppTheme.colors`.
 
 ### 2.5 RPE scale (only inside `RpePickerSheet`, ADR-55)
-`AppTheme.colors.rpeScale(value)` returns one colour per grid value, green (easy) to red (hard). The picker lists 10 at the top down to 1 (whole numbers, ADR-56). The nine stops below are spread over the ten values and interpolated (RPE 1 = first stop, RPE 10 = last). Each row is `surfaceOverlay` tinted with the ramp colour at 16 %, with an 8 dp leading marker bar in the full colour; the number is always shown in `textPrimary` (colour is never the only cue) and the selected row adds a 1.5 dp border plus a check. Every colour is at least 3:1 against `surfaceOverlay`.
+`AppTheme.colors.rpeScale(value)` returns one colour per grid value, green (easy) to red (hard). The picker lists 10 at the top down to 6 (whole numbers, ADR-56). The nine stops below are spread over the five values and interpolated (RPE 6 = first stop, RPE 10 = last). Each row is `surfaceOverlay` tinted with the ramp colour at 16 %, with an 8 dp leading marker bar in the full colour; the number is always shown in `textPrimary` (colour is never the only cue) and the selected row adds a 1.5 dp border plus a check. Every colour is at least 3:1 against `surfaceOverlay`.
 
 | Stop | Hex | Stop | Hex |
 |---|---|---|---|

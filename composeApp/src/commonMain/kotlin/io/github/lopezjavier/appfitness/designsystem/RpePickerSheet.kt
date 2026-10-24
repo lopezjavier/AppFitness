@@ -39,7 +39,7 @@ object RpePickerDefaults {
 }
 
 /**
- * Bottom sheet to choose the RPE (whole numbers 1 to 10) of set [setNumber] (single choice, ADR-55): a tap reports
+ * Bottom sheet to choose the RPE (whole numbers 6 to 10) of set [setNumber] (single choice, ADR-55): a tap reports
  * the value through [onSelect] and the caller applies it and closes the sheet. The close button, back, scrim and a
  * swipe call [onDismiss] without changing anything. [completesSet] shows the hint that picking also completes the set.
  */
