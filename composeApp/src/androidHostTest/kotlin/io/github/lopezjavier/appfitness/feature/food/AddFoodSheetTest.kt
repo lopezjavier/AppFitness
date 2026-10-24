@@ -40,6 +40,7 @@ private fun content(
     slots: List<MealSlot> = Slots,
     offline: Boolean = false,
     submitting: Boolean = false,
+    pick: Boolean = false,
 ) = AddFoodUiState.Content(
     AddFoodContent(
         food = food,
@@ -52,6 +53,7 @@ private fun content(
         quantityError = error,
         isOffline = offline,
         submitting = submitting,
+        pick = pick,
     ),
 )
 
@@ -83,6 +85,23 @@ class AddFoodSheetTest {
         rule.onNodeWithText("Por 100 g").assertExists()
         rule.onNodeWithTag("add_food_amount").assertTextContains("100")
         rule.onNodeWithTag("add_food_preview").assertTextContains("110 kcal", substring = true)
+    }
+
+    @Test
+    fun pickMode_hidesTheMealSelector_andKeepsAddEnabledOffline() {
+        show(content(chicken, slotId = null, slots = emptyList(), offline = true, pick = true))
+
+        rule.onNodeWithTag("add_food_meals").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_no_meal").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_submit").assertTextEquals("Añadir")
+        rule.onNodeWithTag("add_food_submit").assertIsEnabled()
+    }
+
+    @Test
+    fun normalMode_stillShowsTheMealSelector() {
+        show(content(chicken))
+
+        rule.onNodeWithTag("add_food_meals").assertExists()
     }
 
     @Test

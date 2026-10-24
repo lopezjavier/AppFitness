@@ -22,7 +22,8 @@ import org.koin.core.parameter.parametersOf
  * [date]. [onOpenFood] receives the id of the food to log (a tapped row or a scanned product; the add-food sheet is
  * opened by navigation, so it survives process death). [onCreateFood] opens the create-food form with the scanned
  * barcode and/or the typed name. [onAdd] runs after a comida was logged (with haptic feedback). [onOpenTemplate] opens
- * the details of a comida; the list is reloaded when the search is shown again (the editor may have changed it).
+ * the details of a comida; the list is reloaded when the search is shown again (the editor may have changed it). In
+ * [pick] mode the search chooses a food for a comida draft (no Comidas tab; [slotId] and [date] are irrelevant).
  */
 @Suppress("LongParameterList") // One callback per navigation event of the search.
 @Composable
@@ -34,7 +35,8 @@ fun FoodSearchRoot(
     onAdd: () -> Unit,
     onOpenTemplate: (templateId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date) }),
+    pick: Boolean = false,
+    viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date, pick) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var scanFailed by remember { mutableStateOf(false) }
@@ -119,9 +121,11 @@ fun CreateFoodRoot(
 /**
  * Stateful add-food sheet for [foodId]: connects [AddFoodViewModel]. [slotId] is the meal tapped in the Diary (null =
  * chosen by the time of day) and [date] its ISO day. [onAdd] runs after the entry was logged (with haptic
- * feedback), [onDismiss] when the sheet is dismissed.
+ * feedback), [onDismiss] when the sheet is dismissed. In [pick] mode nothing is logged: "Añadir" hands the chosen
+ * amount to [onPick] (a comida draft) instead.
  */
 @Composable
+@Suppress("LongParameterList") // One callback per outcome of the sheet.
 fun AddFoodRoot(
     foodId: String,
     slotId: String?,
@@ -130,12 +134,16 @@ fun AddFoodRoot(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit = {},
-    viewModel: AddFoodViewModel = koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date) }),
+    pick: Boolean = false,
+    onPick: (AddFoodEffect.Picked) -> Unit = {},
+    viewModel: AddFoodViewModel =
+        koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date, pick) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var submitFailed by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val currentOnAdded by rememberUpdatedState(onAdd)
+    val currentOnPicked by rememberUpdatedState(onPick)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -145,6 +153,8 @@ fun AddFoodRoot(
                 }
 
                 is AddFoodEffect.SubmitFailed -> submitFailed = true
+
+                is AddFoodEffect.Picked -> currentOnPicked(effect)
             }
         }
     }

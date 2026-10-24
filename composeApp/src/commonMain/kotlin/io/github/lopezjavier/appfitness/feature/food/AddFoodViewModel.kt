@@ -68,6 +68,7 @@ class AddFoodViewModel(
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val pick: Boolean = false,
 ) : ViewModel() {
     private sealed interface Loaded {
         data object Loading : Loaded
@@ -114,7 +115,8 @@ class AddFoodViewModel(
         viewModelScope.launch {
             val (food, slots) = coroutineScope {
                 val food = async { foodRepository.getById(foodId) }
-                val slots = async { mealSlots.listEnabled() }
+                // Pick mode logs nothing, so it needs no meals.
+                val slots = async { if (pick) Result.success(emptyList()) else mealSlots.listEnabled() }
                 food.await() to slots.await()
             }
             val loadedFood = food.getOrNull()
@@ -188,6 +190,10 @@ class AddFoodViewModel(
 
     private fun submit() {
         val ready = (loaded.value as? Loaded.Ready)?.setup ?: return
+        if (pick) pickFood(ready) else logEntry(ready)
+    }
+
+    private fun logEntry(ready: Setup) {
         val entry = draft.value?.let { newEntry(ready, it) } ?: return
         submitting.value = true
         viewModelScope.launch {
@@ -197,6 +203,20 @@ class AddFoodViewModel(
                 if (result.isSuccess) AddFoodEffect.Added else AddFoodEffect.SubmitFailed(result.appErrorOrNull()),
             )
         }
+    }
+
+    private fun pickFood(setup: Setup) {
+        val current = draft.value ?: return
+        val content = buildContent(setup, current, online.value, submitting.value).takeIf { it.canSubmit }
+        val amount = content?.resolvedAmount ?: return
+        val portion = setup.food.portions.firstOrNull { it.id == current.portionId }
+        effectChannel.trySend(
+            AddFoodEffect.Picked(
+                foodId = setup.food.id,
+                amount = amount,
+                portionLabel = portion?.let { portionLabel(it, parseAmount(current.amountText)) },
+            ),
+        )
     }
 
     /** The entry to log for [current], or null when the sheet cannot be submitted now. */
@@ -258,6 +278,7 @@ class AddFoodViewModel(
             isOffline = !online,
             submitting = submitting,
             micronutrients = micronutrients,
+            pick = pick,
         )
     }
 }

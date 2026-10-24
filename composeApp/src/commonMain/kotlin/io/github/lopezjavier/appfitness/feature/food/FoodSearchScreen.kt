@@ -185,12 +185,12 @@ private fun SearchBox(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Un
 /** The empty-box tabs as a scrollable chip row (four chips do not fit the width of a segmented control). */
 @Composable
 private fun Tabs(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
+    val templatesTab = AppOption(stringResource(Res.string.food_tab_templates), "food_search_tab_templates")
     val options = listOf(
         AppOption(stringResource(Res.string.food_tab_recent), "food_search_tab_recent"),
         AppOption(stringResource(Res.string.food_tab_most_eaten), "food_search_tab_most_eaten"),
         AppOption(stringResource(Res.string.food_tab_favourites), "food_search_tab_favourites"),
-        AppOption(stringResource(Res.string.food_tab_templates), "food_search_tab_templates"),
-    )
+    ) + listOfNotNull(templatesTab.takeUnless { state.pick })
     FilterChipRow(
         options = options,
         selectedIndex = state.tab.ordinal,

@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * US-21 "Renaming and deleting a comida" from the details: the pencil's rename sheet with the duplicate-name error, the
+ * US-21 / US-47 renaming and deleting a comida from the editor: the name field with its duplicate-name hint, the
  * immediate delete, and the entries already in the Diary keeping their values.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -53,42 +53,43 @@ class TemplateManageScreenTest {
     }
 
     @Test
-    fun renamingAComida_changesOnlyTheHeader_andGuardarPersistsIt() {
+    fun renamingAComida_changesOnlyTheDraft_andGuardarPersistsIt() {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_rename").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("rename_template_name").performTextReplacement("Desayuno B")
-        rule.onNodeWithTag("rename_template_submit").performClick()
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_name").assertTextEquals("Desayuno B")
-        rule.onNodeWithTag("rename_template_name").assertDoesNotExist()
         assertEquals("Desayuno A", templates.templates.single().name)
         rule.onNodeWithTag("template_details_save").performClick()
-        rule.onNodeWithTag("template_save_overwrite").performClick()
         rule.waitForIdle()
         assertEquals("Desayuno B", templates.templates.single().name)
         assertTrue(callbacks.saved)
     }
 
     @Test
-    fun renamingToATakenName_showsTheDuplicateError_whenSaving_andKeepsTheDraft() {
+    fun leavingWithoutGuardar_changesNothing() {
+        templates.templates += desayunoA
+        showDetails()
+
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
+        rule.waitForIdle()
+
+        assertEquals(0, templates.saveCalls)
+        assertEquals(desayunoA, templates.templates.single())
+    }
+
+    @Test
+    fun renamingToATakenName_showsTheDuplicateHint_andCannotBeSaved() {
         templates.templates += desayunoA
         templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
         showDetails()
-        rule.onNodeWithTag("template_details_rename").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("rename_template_name").performTextReplacement("comida 2")
-        rule.onNodeWithTag("rename_template_submit").performClick()
+
+        rule.onNodeWithTag("template_details_name_field").performTextReplacement("comida 2")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_save").performClick()
-        rule.onNodeWithTag("template_save_overwrite").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("rename_template_name_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_details_name_hint").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
         assertEquals("Desayuno A", templates.templates.first { it.id == "t1" }.name)
     }
 

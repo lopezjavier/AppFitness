@@ -23,23 +23,21 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_quantity_error
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_taken
+import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_too_long
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_add_food
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_item_amount
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_load_error
-import io.github.lopezjavier.appfitness.composeapp.resources.template_details_rename_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_save
 import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.template_rename_name_label
-import io.github.lopezjavier.appfitness.composeapp.resources.template_rename_submit
-import io.github.lopezjavier.appfitness.composeapp.resources.template_rename_title
-import io.github.lopezjavier.appfitness.composeapp.resources.template_save_new_name_label
-import io.github.lopezjavier.appfitness.composeapp.resources.template_save_new_name_submit
-import io.github.lopezjavier.appfitness.composeapp.resources.template_save_new_name_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
@@ -58,8 +56,8 @@ private const val LOADING_ROWS = 4
 private val SkeletonHeight = Spacing.xl * 2
 
 /**
- * The details of a comida (US-21), which is also its editor: the name with the pencil, the total kcal and macros of the
- * draft, one swipeable row per food (tap opens its sheet), "Guardar" pinned at the bottom and "Eliminar comida".
+ * The editor of a comida (US-21, US-47): the name field, the total kcal and macros of the draft with "Añadir alimento",
+ * one swipeable row per food (tap opens its sheet), "Guardar" pinned at the bottom and "Eliminar comida".
  * Nothing is stored until "Guardar"; writes are disabled offline. The top bar (title and back) belongs to the shell.
  */
 @Composable
@@ -156,34 +154,43 @@ private fun DetailsContent(
     DetailsSheets(content, onEvent)
 }
 
-/** The name with the pencil, and the total kcal and macros of the draft under it. */
+/** The name field with its inline hint, and under it the total kcal and macros of the draft with "Añadir alimento". */
 @Composable
 private fun DetailsHeader(content: TemplateDetailsUiState.Content, onEvent: (TemplateDetailsEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = content.name,
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).testTag("template_details_name"),
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        AppTextField(
+            value = content.name,
+            onValueChange = { onEvent(TemplateDetailsEvent.NameChanged(it)) },
+            label = stringResource(Res.string.template_details_name_label),
+            errorText = content.nameError?.let { stringResource(nameErrorText(it)) },
+            testTagPrefix = "template_details_name_field",
+            errorTestTag = "template_details_name_hint",
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                KcalText(content.totalKcal, Modifier.testTag("template_details_kcal"))
+                Box(Modifier.testTag("template_details_macros")) {
+                    MacroTexts(content.totalProteinG, content.totalCarbsG, content.totalFatG)
+                }
+            }
             AppIconButton(
-                contentDescription = stringResource(Res.string.template_details_rename_cd, content.name),
-                icon = Res.drawable.ic_edit,
-                testTag = "template_details_rename",
-                onClick = { onEvent(TemplateDetailsEvent.OpenRename) },
+                contentDescription = stringResource(Res.string.template_details_add_food),
+                icon = Res.drawable.ic_add,
+                testTag = "template_details_add_food",
+                onClick = { onEvent(TemplateDetailsEvent.AddFoodClicked) },
                 enabled = !content.busy,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            KcalText(content.totalKcal, Modifier.testTag("template_details_kcal"))
-            Box(Modifier.testTag("template_details_macros")) {
-                MacroTexts(content.totalProteinG, content.totalCarbsG, content.totalFatG)
-            }
-        }
     }
+}
+
+private fun nameErrorText(error: TemplateNameError) = when (error) {
+    TemplateNameError.Taken -> Res.string.save_template_error_taken
+    TemplateNameError.TooLong -> Res.string.save_template_error_too_long
 }
 
 /** One food, swipeable to the start to remove it: tap opens its sheet. */
@@ -242,7 +249,7 @@ private fun DetailsRowItem(row: DetailsRow, onEvent: (TemplateDetailsEvent) -> U
     }
 }
 
-/** The food sheet, the rename sheet, the "Guardar" choice and the new-name sheet, each only while its state is set. */
+/** The food sheet, only while a food is open. */
 @Composable
 private fun DetailsSheets(content: TemplateDetailsUiState.Content, onEvent: (TemplateDetailsEvent) -> Unit) {
     content.openFood?.let { open ->
@@ -253,45 +260,5 @@ private fun DetailsSheets(content: TemplateDetailsUiState.Content, onEvent: (Tem
             onRemove = { onEvent(TemplateDetailsEvent.RemoveFood(open.row.index)) },
             onDismiss = { onEvent(TemplateDetailsEvent.DismissFood) },
         )
-    }
-    content.rename?.let { draft ->
-        TemplateNameSheet(
-            copy = NameSheetCopy(
-                title = stringResource(Res.string.template_rename_title),
-                label = stringResource(Res.string.template_rename_name_label),
-                submitText = stringResource(Res.string.template_rename_submit),
-                fieldTag = "rename_template_name",
-                submitTag = "rename_template_submit",
-            ),
-            field = NameSheetField(draft.name, draft.nameError, canSubmit = draft.canSubmit && !content.busy),
-            onNameChange = { onEvent(TemplateDetailsEvent.RenameNameChanged(it)) },
-            onSubmit = { onEvent(TemplateDetailsEvent.SubmitRename) },
-            onDismiss = { onEvent(TemplateDetailsEvent.DismissRename) },
-        )
-    }
-    when (content.sheet) {
-        DetailsSheet.Choose -> SaveChoiceSheet(
-            onOverwrite = { onEvent(TemplateDetailsEvent.Overwrite) },
-            onSaveAsNew = { onEvent(TemplateDetailsEvent.SaveAsNew) },
-            onDismiss = { onEvent(TemplateDetailsEvent.DismissSheet) },
-        )
-
-        DetailsSheet.NewName -> content.newName?.let { draft ->
-            TemplateNameSheet(
-                copy = NameSheetCopy(
-                    title = stringResource(Res.string.template_save_new_name_title),
-                    label = stringResource(Res.string.template_save_new_name_label),
-                    submitText = stringResource(Res.string.template_save_new_name_submit),
-                    fieldTag = "new_template_name",
-                    submitTag = "new_template_submit",
-                ),
-                field = NameSheetField(draft.name, draft.nameError, canSubmit = draft.canSubmit && !content.busy),
-                onNameChange = { onEvent(TemplateDetailsEvent.NewNameChanged(it)) },
-                onSubmit = { onEvent(TemplateDetailsEvent.SubmitNewName) },
-                onDismiss = { onEvent(TemplateDetailsEvent.DismissSheet) },
-            )
-        }
-
-        DetailsSheet.None, DetailsSheet.Rename -> Unit
     }
 }

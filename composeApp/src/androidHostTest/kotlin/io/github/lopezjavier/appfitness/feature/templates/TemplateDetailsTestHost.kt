@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -38,19 +40,41 @@ internal fun detailsModel(
 internal class DetailsCallbacks {
     var saved by mutableStateOf(false)
     var deleted by mutableStateOf(false)
+    var pickerOpened by mutableIntStateOf(0)
 }
 
-/** The details screen wired to [model] the way [TemplateDetailsRoot] does it, without Koin or navigation. */
+/** The editor wired to [model] the way [TemplateDetailsRoot] does it, without Koin (navigation is the caller's). */
 @Composable
-internal fun DetailsHost(model: TemplateDetailsViewModel, callbacks: DetailsCallbacks = DetailsCallbacks()) {
+internal fun DetailsHost(
+    model: TemplateDetailsViewModel,
+    callbacks: DetailsCallbacks = DetailsCallbacks(),
+    pickedFood: List<String>? = null,
+    onConsumePickedFood: () -> Unit = {},
+    onAddFood: () -> Unit = {},
+) {
     val state by model.uiState.collectAsState()
     var actionFailed by remember { mutableStateOf(false) }
+    val currentConsume by rememberUpdatedState(onConsumePickedFood)
+    val currentAddFood by rememberUpdatedState(onAddFood)
+    LaunchedEffect(pickedFood) {
+        pickedFoodOf(pickedFood)?.let {
+            model.onEvent(it)
+            currentConsume()
+        }
+    }
     LaunchedEffect(model) {
         model.effects.collect { effect ->
             when (effect) {
                 TemplateDetailsEffect.Saved -> callbacks.saved = true
+
                 TemplateDetailsEffect.Deleted -> callbacks.deleted = true
+
                 is TemplateDetailsEffect.ActionFailed -> actionFailed = true
+
+                TemplateDetailsEffect.OpenFoodPicker -> {
+                    callbacks.pickerOpened++
+                    currentAddFood()
+                }
             }
         }
     }

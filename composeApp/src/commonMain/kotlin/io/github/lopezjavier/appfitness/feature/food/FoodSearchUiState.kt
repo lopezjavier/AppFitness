@@ -39,7 +39,7 @@ sealed interface TemplatesResults {
 /**
  * State of the food search. With a non-blank [query] [results] are the search results and [tab] is ignored; with a
  * blank one they are the content of [tab] (or [templates] on the Comidas tab). [favouriteIds] drives the stars;
- * [isOffline] disables the search box.
+ * [isOffline] disables the search box. In [pick] mode (choosing a food for a comida) the Comidas tab is not offered.
  */
 data class FoodSearchUiState(
     val query: String = "",
@@ -49,6 +49,7 @@ data class FoodSearchUiState(
     val isOffline: Boolean = false,
     val notFoundBarcode: String? = null,
     val templates: TemplatesResults = TemplatesResults.Loading,
+    val pick: Boolean = false,
 )
 
 sealed interface FoodSearchEvent {

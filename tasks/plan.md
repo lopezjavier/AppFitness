@@ -54,7 +54,7 @@ Checkpoint rule: every user-testable item of the epic's tasks is collected first
 
 ### Phase 3: Food editing and closure
 - [ ] T-102: Editing manual foods (US-47) — UI + backend — L
-- [ ] T-102b: Edit a comida (US-47, user request 2026-10-23) — UI — M
+- [x] T-102b: Edit a comida (US-47, user request 2026-10-23) — UI — M
 - [ ] T-103: E6 closure — PM — S
   - **Checkpoint E6-C 👤 Food editing, final regression and approval (5 items):** edit a manual food (future entries only; no edit for OFF); portions; the full label in label order; one real workout end to end; the exercise detail, workout detail, calendar and Fuerza with warm-ups on and off. Approval → `v0.6.0` and the retrospective. Why here: food editing alone gives 3 items and only the closure follows it.
 
