@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-097g (E6-A feedback 2: bugs, whole-number RPE, pause, warm-up sheet), then T-097h (disc loader, derived rounding), then T-097i (hand count per exercise; blocked until the user fills a local CSV outside the repo (`exercise-hand-count.csv`, temporary)); then re-present Checkpoint E6-A. Last merged: T-097f (2026-10-23). E5 closed (tag `v0.5.0`).
+**Next:** T-097h (disc loader, derived rounding), then T-097i (hand count per exercise; blocked until the user fills a local CSV outside the repo (`exercise-hand-count.csv`, temporary)); then re-present Checkpoint E6-A. Last merged: T-097g (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
