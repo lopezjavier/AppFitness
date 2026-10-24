@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** re-present Checkpoint E6-A (open 👤 gate; after T-097l, set `PROTECTED_EMAILS` secret). Last merged: T-097l (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-098 (routine folders, next workout and manual order). Last merged: T-097l (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2593,7 +2593,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 
 ---
 
-### Checkpoint E6-A — Plan a routine, train it and see your records 👤 (7 items + leave and come back)
+### Checkpoint E6-A — Plan a routine, train it and see your records 👤 **approved 2026-10-24** (7 items + leave and come back)
 Journey: everything about a gym session, from planning the sets to the records afterwards, tried in one or two real workouts. Why here: T-089…T-097 all shape the live session (planned sets, types, RPE, metrics, volume, records, controls, calculators); T-098…T-101 build on them ("Actualizar rutina" compares planned sets with sessions that deleted sets, the workout detail shows the records), so feedback lands first. Items are merged per thing to try: types + RPE in one session, the two volume settings together, the four session controls together, records + exercise detail together.
 - [ ] T-089…T-097 merged, CI green, `deploy-supabase` applied the migrations, every reported bug fixed; production routines keep their sets and the catalogue has its metric types.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
