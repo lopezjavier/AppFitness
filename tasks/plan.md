@@ -28,7 +28,7 @@ Out of scope (epic file and `01` §4): estimating a whole meal from one photo; s
 Checkpoint rule: every user-testable item of the epic is collected first, then grouped by journey into checkpoints of 5–7 items, each placed right after the last task of its journey. An item is one coherent thing to try on the phone; "leave the app and come back" is in every checkpoint but not counted. E7 yields 13 feature items in two journeys (create and fix foods: 7; cook and plan meals: 6) plus the closing multi-day regression (5). Full item lists are in `tasks/todo.md`.
 
 ### Phase 1: Create and fix foods (photos, unit, comida details)
-- [ ] T-104: Unit of an unused manual food and comida details (US-52, US-53) — UI + backend — M
+- [x] T-104: Unit of an unused manual food and comida details (US-52, US-53) — UI + backend — M
 - [ ] T-105: `food-photo` Edge Function: dish, label and barcode (US-48/US-49 backend) — backend — M
 - [ ] T-106: Add a food from a photo (US-48/US-49 UI) — UI — L
   - **Checkpoint E7-A 👤 Create and fix foods (7 items):** unit change of an unused food; comida details; photo action, modes and sources; dish estimate; label photo; barcode photo; failures and offline. Why here: the whole "add a new food" journey is complete, and cooking and defaults do not build on the photo flow, so feedback on the form and the comida details lands before T-108 adds cooking chips to them.
