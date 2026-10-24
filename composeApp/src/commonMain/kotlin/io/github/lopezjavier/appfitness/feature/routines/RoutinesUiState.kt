@@ -17,9 +17,18 @@ data class FolderSheetState(
     val folderId: String? = null,
     val name: String = "",
     val edited: Boolean = false,
+    /** Derived by the ViewModel (never persisted): another folder already has this name. */
+    val duplicateName: Boolean = false,
 ) {
-    val canSave: Boolean get() = name.isNotBlank()
+    val canSave: Boolean get() = name.isNotBlank() && !duplicateName
     val showBlankError: Boolean get() = edited && name.isBlank()
+    val showDuplicateError: Boolean get() = duplicateName && name.isNotBlank()
+}
+
+/** True when [name] (trimmed, ignoring case) matches a folder other than [ignoreId]. */
+fun isDuplicateFolderName(name: String, folders: List<RoutineFolder>, ignoreId: String?): Boolean {
+    val wanted = name.trim()
+    return wanted.isNotEmpty() && folders.any { it.id != ignoreId && it.name.trim().equals(wanted, ignoreCase = true) }
 }
 
 /** State of "Mis rutinas". */

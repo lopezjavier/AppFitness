@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,17 +10,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.calendar_day_cards_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_error
@@ -39,12 +44,12 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private val SkeletonCalendarHeight = Spacing.xl * 11
+private val SkeletonCardHeight = Spacing.xl * 3
 
 /** Stateful training calendar: connects [WorkoutCalendarViewModel] and opens a workout through [onOpenSession]. */
 @Composable
@@ -67,14 +72,14 @@ fun WorkoutCalendarRoot(
 
 /**
  * Training calendar (US-37): a Mes / Año / Años selector over the month grid, the 12 month tiles or the list of years.
- * Trained days carry a dot; a tap opens the workout of that day (or the picker when there are two). No streaks.
+ * Trained days carry a dot; a tap selects the day and shows one summary card per workout below the grid, and a
+ * card tap opens the detail. No streaks.
  */
 @Composable
 fun WorkoutCalendarScreen(
     state: WorkoutCalendarUiState,
     onEvent: (WorkoutCalendarEvent) -> Unit,
     modifier: Modifier = Modifier,
-    zone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     Box(modifier.fillMaxSize().testTag("calendar_screen"), contentAlignment = Alignment.TopCenter) {
         when (state) {
@@ -98,7 +103,7 @@ fun WorkoutCalendarScreen(
                 )
             }
 
-            is WorkoutCalendarUiState.Content -> CalendarContent(state, onEvent, zone)
+            is WorkoutCalendarUiState.Content -> CalendarContent(state, onEvent)
         }
     }
 }
@@ -109,11 +114,7 @@ private fun Centered(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun CalendarContent(
-    state: WorkoutCalendarUiState.Content,
-    onEvent: (WorkoutCalendarEvent) -> Unit,
-    zone: TimeZone,
-) {
+private fun CalendarContent(state: WorkoutCalendarUiState.Content, onEvent: (WorkoutCalendarEvent) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
         Column(
@@ -126,16 +127,19 @@ private fun CalendarContent(
         ) {
             ViewSelector(state.view, onEvent)
             when (state.view) {
-                WorkoutCalendarView.Month -> MonthCalendarGrid(
-                    month = state.month,
-                    markedDays = state.markedDays,
-                    selected = state.selectedDay,
-                    today = state.today,
-                    onSelect = { onEvent(WorkoutCalendarEvent.SelectDay(it)) },
-                    onPrevMonth = { onEvent(WorkoutCalendarEvent.PreviousMonth) },
-                    onNextMonth = { onEvent(WorkoutCalendarEvent.NextMonth) },
-                    canGoNext = state.canGoNext,
-                )
+                WorkoutCalendarView.Month -> {
+                    MonthCalendarGrid(
+                        month = state.month,
+                        markedDays = state.markedDays,
+                        selected = state.selectedDay,
+                        today = state.today,
+                        onSelect = { onEvent(WorkoutCalendarEvent.SelectDay(it)) },
+                        onPrevMonth = { onEvent(WorkoutCalendarEvent.PreviousMonth) },
+                        onNextMonth = { onEvent(WorkoutCalendarEvent.NextMonth) },
+                        canGoNext = state.canGoNext,
+                    )
+                    DayCards(state.dayCards, onEvent)
+                }
 
                 WorkoutCalendarView.Year -> YearMonthTiles(
                     year = state.year,
@@ -151,13 +155,43 @@ private fun CalendarContent(
             }
         }
     }
-    if (state.dayChoices.isNotEmpty()) {
-        WorkoutChoicesSheet(
-            sessions = state.dayChoices,
-            zone = zone,
-            onPick = { onEvent(WorkoutCalendarEvent.PickSession(it)) },
-            onDismiss = { onEvent(WorkoutCalendarEvent.DismissChoices) },
-        )
+}
+
+/** The summary cards of the selected day; each is a [HistoryRowCard], so it shows what a History row shows. */
+@OptIn(ExperimentalFoundationApi::class) // bringIntoView keeps the first card reachable with one hand.
+@Composable
+private fun DayCards(cards: DayCardsState, onEvent: (WorkoutCalendarEvent) -> Unit) {
+    if (cards == DayCardsState.None) return
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(cards) { if (cards is DayCardsState.Loaded) requester.bringIntoView() }
+    Column(
+        Modifier.fillMaxWidth().bringIntoViewRequester(requester).testTag("calendar_day_cards"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+    ) {
+        when (cards) {
+            DayCardsState.None -> Unit
+
+            DayCardsState.Loading -> SkeletonBox(
+                Modifier.fillMaxWidth().height(SkeletonCardHeight).testTag("calendar_day_cards_loading"),
+                AppShapes.lg,
+            )
+
+            DayCardsState.Error -> ErrorState(
+                message = stringResource(Res.string.calendar_day_cards_error),
+                action = AppStateAction(stringResource(Res.string.state_retry)) {
+                    onEvent(WorkoutCalendarEvent.RetryDayCards)
+                },
+                testTagPrefix = "calendar_day_cards_error",
+            )
+
+            is DayCardsState.Loaded -> cards.rows.forEach { row ->
+                HistoryRowCard(
+                    row = row,
+                    onClick = { onEvent(WorkoutCalendarEvent.OpenSession(row.id)) },
+                    tag = "calendar_day_card_${row.id}",
+                )
+            }
+        }
     }
 }
 

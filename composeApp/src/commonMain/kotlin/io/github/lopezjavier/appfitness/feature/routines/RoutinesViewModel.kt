@@ -162,14 +162,16 @@ class RoutinesViewModel(
             val list = routines.getOrThrow()
             val folderList = folders.getOrThrow()
             _uiState.update { current ->
-                (current as? RoutinesUiState.Content)?.copy(routines = list, folders = folderList)
-                    ?: RoutinesUiState.Content(
-                        routines = list,
-                        isOnline = online,
-                        folders = folderList,
-                        collapsedFolderIds = restoredCollapsed(),
-                        folderSheet = restoredSheet(),
-                    )
+                (
+                    (current as? RoutinesUiState.Content)?.copy(routines = list, folders = folderList)
+                        ?: RoutinesUiState.Content(
+                            routines = list,
+                            isOnline = online,
+                            folders = folderList,
+                            collapsedFolderIds = restoredCollapsed(),
+                            folderSheet = restoredSheet(),
+                        )
+                    ).withDuplicateCheck()
             }
         }
     }
@@ -366,6 +368,13 @@ class RoutinesViewModel(
     private fun RoutinesUiState.Content.find(id: String): RoutineSummary? = routines.firstOrNull { it.id == id }
 
     private fun updateContent(transform: (RoutinesUiState.Content) -> RoutinesUiState.Content) {
-        _uiState.update { if (it is RoutinesUiState.Content) transform(it) else it }
+        _uiState.update { if (it is RoutinesUiState.Content) transform(it).withDuplicateCheck() else it }
     }
+
+    /** Derives [FolderSheetState.duplicateName] from the typed name and the folders (nothing extra is persisted). */
+    private fun RoutinesUiState.Content.withDuplicateCheck(): RoutinesUiState.Content = copy(
+        folderSheet = folderSheet?.let {
+            it.copy(duplicateName = isDuplicateFolderName(it.name, folders, ignoreId = it.folderId))
+        },
+    )
 }

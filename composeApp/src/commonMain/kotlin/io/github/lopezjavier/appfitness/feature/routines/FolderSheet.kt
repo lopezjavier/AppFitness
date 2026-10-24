@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_close_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_name_blank
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_name_duplicate
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_save
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_sheet_title_create
@@ -70,7 +71,11 @@ internal fun FolderSheet(sheet: FolderSheetState, onEvent: (RoutinesEvent) -> Un
                 label = stringResource(Res.string.routines_folder_name_label),
                 modifier = Modifier.fillMaxWidth(),
                 maxLength = RoutineBounds.NAME_MAX_LENGTH,
-                errorText = if (sheet.showBlankError) stringResource(Res.string.routines_folder_name_blank) else null,
+                errorText = when {
+                    sheet.showBlankError -> stringResource(Res.string.routines_folder_name_blank)
+                    sheet.showDuplicateError -> stringResource(Res.string.routines_folder_name_duplicate)
+                    else -> null
+                },
                 testTagPrefix = "routines_folder_name_field",
             )
             PrimaryButton(

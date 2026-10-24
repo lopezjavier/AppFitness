@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
@@ -8,9 +9,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.TrainedSession
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
+import kotlinx.datetime.Month
 import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -18,14 +19,22 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.time.Instant
 
 private val Today = LocalDate(2026, 10, 19)
 private val TrainedDay = LocalDate(2026, 10, 17)
 
+private fun card(id: String, name: String) = HistoryRow(
+    id = id,
+    label = DateLabel.Other(DayOfWeek.SATURDAY, 17, Month.OCTOBER),
+    name = name,
+    durationSeconds = 3_725,
+    volumeKg = 2_120.0,
+    completedSets = 3,
+)
+
 private fun content(
     view: WorkoutCalendarView = WorkoutCalendarView.Month,
-    dayChoices: List<TrainedSession> = emptyList(),
+    dayCards: DayCardsState = DayCardsState.None,
 ) = WorkoutCalendarUiState.Content(
     view = view,
     month = YearMonth(2026, 10),
@@ -37,7 +46,7 @@ private fun content(
     monthCounts = mapOf(3 to 5, 10 to 2),
     canGoNext = false,
     today = Today,
-    dayChoices = dayChoices,
+    dayCards = dayCards,
 )
 
 /** US-37 training calendar: trained days in month, year and multi-year views, and opening a workout. */
@@ -51,7 +60,7 @@ class WorkoutCalendarScreenTest {
     private val events = mutableListOf<WorkoutCalendarEvent>()
 
     private fun show(state: WorkoutCalendarUiState) {
-        rule.setContent { AppTheme { WorkoutCalendarScreen(state, { events += it }, zone = TimeZone.UTC) } }
+        rule.setContent { AppTheme { WorkoutCalendarScreen(state, { events += it }) } }
         rule.waitForIdle()
     }
 
@@ -117,27 +126,6 @@ class WorkoutCalendarScreenTest {
     }
 
     @Test
-    fun twoWorkoutsOnADay_offerAPicker_andPickingOneOpensIt() {
-        show(content(dayChoices = twoSessions()))
-
-        rule.onNodeWithTag("calendar_choices_sheet").assertExists()
-        rule.onNodeWithTag("calendar_choice_a").assert(hasContentDescription("Torso, 08:00"))
-        rule.onNodeWithTag("calendar_choice_b").assert(hasContentDescription("Pierna, 18:30"))
-        rule.onNodeWithTag("calendar_choice_b").performClick()
-
-        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.PickSession("b")), events)
-    }
-
-    @Test
-    fun picker_closesWithoutOpeningAnything() {
-        show(content(dayChoices = twoSessions()))
-
-        rule.onNodeWithTag("calendar_choices_close").performClick()
-
-        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.DismissChoices), events)
-    }
-
-    @Test
     fun loading_showsASkeleton() {
         show(WorkoutCalendarUiState.Loading)
 
@@ -160,8 +148,51 @@ class WorkoutCalendarScreenTest {
         assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.Retry), events)
     }
 
-    private fun twoSessions() = listOf(
-        TrainedSession("a", "Torso", Instant.parse("2026-10-17T08:00:00Z")),
-        TrainedSession("b", "Pierna", Instant.parse("2026-10-17T18:30:00Z")),
-    )
+    @Test
+    fun selectedDayWithOneWorkout_showsItsCard_andOnlyTheCardTapOpensIt() {
+        show(content(dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso")))))
+
+        rule.onNodeWithTag("calendar_day_cards").assertExists()
+        rule.onNodeWithTag("calendar_day_card_s1").assertIsDisplayed()
+        assertEquals(emptyList<WorkoutCalendarEvent>(), events)
+        rule.onNodeWithTag("calendar_day_card_s1").performClick()
+
+        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.OpenSession("s1")), events)
+    }
+
+    @Test
+    fun selectedDayWithTwoWorkouts_showsBothCardsWithNameDurationAndVolume() {
+        show(content(dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso"), card("s2", "Pierna")))))
+
+        val summary = "duración 1:02:05, volumen 2.120 kg"
+        rule.onNodeWithTag("calendar_day_card_s1").assert(hasContentDescription(summary, substring = true))
+        rule.onNodeWithTag("calendar_day_card_s2").assert(hasContentDescription("Pierna", substring = true))
+        rule.onNodeWithTag("calendar_day_card_s2").performClick()
+
+        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.OpenSession("s2")), events)
+    }
+
+    @Test
+    fun noSelectedDay_showsNoCardsAndNoChoicesSheet() {
+        show(content())
+
+        rule.onNodeWithTag("calendar_day_cards").assertDoesNotExist()
+        rule.onNodeWithTag("calendar_choices_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun loadingCards_showsASkeleton() {
+        show(content(dayCards = DayCardsState.Loading))
+
+        rule.onNodeWithTag("calendar_day_cards_loading").assertExists()
+    }
+
+    @Test
+    fun failedCards_offerRetry() {
+        show(content(dayCards = DayCardsState.Error))
+
+        rule.onNodeWithTag("calendar_day_cards_error_action").performClick()
+
+        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.RetryDayCards), events)
+    }
 }

@@ -13,7 +13,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_empty
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_title
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_group_none
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -46,7 +46,7 @@ internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent
                     )
 
                     hasFolders -> Text(
-                        text = stringResource(Res.string.routines_title),
+                        text = stringResource(Res.string.routines_group_none),
                         style = AppTheme.typography.titleMedium,
                         color = AppTheme.colors.textPrimary,
                         modifier = Modifier.semantics { heading() }.testTag("routines_group_none"),

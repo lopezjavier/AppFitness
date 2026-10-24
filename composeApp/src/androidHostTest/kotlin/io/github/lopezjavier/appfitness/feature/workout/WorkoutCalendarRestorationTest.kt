@@ -10,7 +10,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.datetime.TimeZone
 import org.junit.Rule
 import org.junit.Test
@@ -29,13 +33,20 @@ class WorkoutCalendarRestorationTest {
         completed += completedSession("a", 0)
     }
 
-    private fun viewModel(state: SavedStateHandle) =
-        WorkoutCalendarViewModel(repository, MutableClock(), state, TimeZone.UTC)
+    private fun viewModel(state: SavedStateHandle) = WorkoutCalendarViewModel(
+        repository,
+        FakeTrainingPreferencesRepository(),
+        MutableClock(),
+        FakeWeightRepository(),
+        FakeExerciseRepository(listOf(exerciseRow("e1", "bench"))),
+        state,
+        TimeZone.UTC,
+    )
 
     @Composable
     private fun Host(model: WorkoutCalendarViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { WorkoutCalendarScreen(state, model::onEvent, zone = TimeZone.UTC) }
+        AppTheme { WorkoutCalendarScreen(state, model::onEvent) }
     }
 
     @Test
@@ -56,5 +67,22 @@ class WorkoutCalendarRestorationTest {
         rule.onNodeWithTag("calendar_view_month").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("month_calendar_title").assertTextEquals("septiembre 2026")
+    }
+
+    @Test
+    fun selectedDayAndItsCard_surviveRecreationFromTheSameSavedState() {
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_day_2026-10-19").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("calendar_day_card_a").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("month_calendar_day_2026-10-19").assertIsSelected()
+        rule.onNodeWithTag("calendar_day_card_a").assertExists()
     }
 }
