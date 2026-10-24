@@ -224,7 +224,7 @@ Catalog: one row per RepDB free exercise (`key`, `muscle_group`, `equipment`, `m
 | target_sets | smallint | 1–10 |
 | target_reps | smallint | 1–50 (lower bound of the range) |
 | target_reps_max | smallint null | Upper bound of the rep range *(E6)*; when null the target is `target_reps` |
-| target_rpe | numeric(3,1) null | 1–10 *(E6)* |
+| target_rpe | numeric(3,1) null | 6–10 *(E6)* |
 | planned_set_type | set_type | default `working` *(E6)* |
 | target_weight_kg | numeric(6,2) null | *(E6)* |
 | rest_seconds | smallint | default 120, 0–600 |
@@ -285,7 +285,7 @@ Constraint: at most one `in_progress` session per user (partial unique index).
 | superset_group | smallint null | |
 | set_index | smallint | 1..n within the exercise |
 | set_type | set_type | default `working` *(E6 uses warm_up/failure/drop)* |
-| rpe | numeric(3,1) null | 1–10 *(E6)* |
+| rpe | numeric(3,1) null | 6–10 *(E6)* |
 | weight_kg | numeric(6,2) | ≥ 0 (for weighted pull-ups = added kg) |
 | reps | smallint | ≥ 0 |
 | duration_s | int null | *(E6)* |

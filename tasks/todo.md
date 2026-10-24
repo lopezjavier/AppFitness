@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** re-present Checkpoint E6-A (T-097i, hand count and manual exercise edit/delete, is done; PR pending). Last merged: T-097h (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-097j (RPE range back to 6–10, user bug); then re-present Checkpoint E6-A. Last merged: T-097i (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2549,6 +2549,16 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Dependencies:** T-097h · **Estimated scope:** L
 
 **Status:** done (2026-10-24, PR pending).
+
+---
+
+## T-097j: Fix RPE range back to 6–10
+
+**Story:** US-30 · **Flow:** UI + backend · **ADR-56 (corrected)**
+
+**Description:** User bug at the E6-A re-test: T-097g widened the RPE to 1–10 by mistake; the agreed scale is whole numbers 6–10 (ADR-55). Restore it everywhere: `RpeScale` (MIN 6), picker, routine builder "Objetivo RPE" stepper, parsing, ghost and history; stored values below 6 display as 6; migration changes the check on `workout_sets.rpe` and `routine_exercises.target_rpe` to 6–10 (clamping existing values below 6 to 6). Update the E6 scenarios that mention 1 to 10.
+
+**Dependencies:** T-097i · **Estimated scope:** S
 
 ---
 
