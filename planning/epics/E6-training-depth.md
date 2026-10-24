@@ -215,7 +215,7 @@ Feature: Volume options
 
 ---
 
-## US-33 · Warm-up and plate calculators
+## US-33 · Warm-up calculator and disc loader
 **As** a lifter
 **I want** help choosing warm-up sets and plates
 **So that** I do not calculate them by hand.
@@ -230,14 +230,27 @@ Feature: Calculators
     And the bar (or the handle for dumbbells) is the one from Preferencias, not selectable in the sheet
     And it proposes a block of warm-up sets as percentages, rounded to the available plates
 
-  Scenario: Plate calculator
-    Given a barbell exercise
-    When the user enters a target weight
-    Then it shows the plates needed per side for the selected bar
+  Scenario: Disc loader
+    Given a barbell exercise and the 20 kg bar
+    When the user opens "Cargador de discos" and adds a 25 kg and a 15 kg disc
+    Then the total reads "100 kg"
 
-  Scenario: Rounding settings
-    When the user sets the plate and dumbbell rounding
-    Then the calculators use those values
+  Scenario: Disc loader for dumbbells
+    Given a dumbbell exercise with a 1 kg handle
+    When the user adds one 10 kg disc
+    Then the total reads "21 kg"
+
+  Scenario: Only enabled plates, no bar selector
+    Given some plates are switched off in Preferencias
+    When the user opens the disc loader
+    Then only the enabled plates are offered
+    And the bar or handle is shown but cannot be changed
+
+  Scenario: Derived rounding
+    Given the smallest enabled plate is 0,5 kg
+    Then the warm-up weights round to multiples of 1 kg
+    And when the smallest enabled plate is 1,25 kg they round to multiples of 2,5 kg
+    And Preferencias has no rounding settings, only the read-only line "Redondeo: X kg"
 ```
 
   Scenario: Default warm-up scheme
@@ -245,9 +258,6 @@ Feature: Calculators
     When the user opens the warm-up calculator
     Then it proposes 20 kg × 10, 40 kg × 5, 60 kg × 3 and 80 kg × 2
 
-  Scenario: Default plates
-    Given a target of 100 kg with the 20 kg bar
-    Then it shows "25 + 15" per side
 ```
 
 **Technical notes**

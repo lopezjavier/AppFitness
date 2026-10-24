@@ -161,12 +161,12 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - PRs respect the warm-up inclusion setting (§4.6).
 
 ### 4.9 Calculators (defaults, ADR-52)
-- Warm-up scheme from the working weight W: bar × 10, 40 % W × 5, 60 % W × 3, 80 % W × 2; each weight rounded to the nearest multiple of the plate rounding and never below the bar. Example: W = 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2. The user picks 1–4 sets in the sheet (ADR-55, per use, not stored; default 1, so only the 60 % × 3 set is shown at first): 3 → 40/60/80 %, 2 → 50/80 % (× 5, × 2), 1 → 60 % (× 3); the bar set (× 10) only appears with 4.
+- Warm-up scheme from the working weight W: bar × 10, 40 % W × 5, 60 % W × 3, 80 % W × 2; each weight rounded to the nearest multiple of the derived rounding (below) and never below the bar. Example: W = 100 kg, 20 kg bar → 20 × 10, 40 × 5, 60 × 3, 80 × 2. The user picks 1–4 sets in the sheet (ADR-55, per use, not stored; default 1, so only the 60 % × 3 set is shown at first): 3 → 40/60/80 %, 2 → 50/80 % (× 5, × 2), 1 → 60 % (× 3); the bar set (× 10) only appears with 4.
 - Bars: 20, 15, 10 (EZ) and 7,5 kg; default 20 kg.
 - Available plates (per side): 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; all on by default.
-- Plate calculator: plates per side = greedy from the heaviest available plate over `(target − bar) / 2`; when the target cannot be made, the closest lower weight is shown. Example: 100 kg with the 20 kg bar → "25 + 15" per side.
-- Rounding: plates 2,5 kg, dumbbells 2 kg (both user settings).
-- Dumbbell handle (ADR-55, T-097f): dumbbell exercises use the plate calculator with the handle as the bar (per dumbbell; default 1 kg, range 0,5-10 kg in 0,5 steps, user setting, no bar selector). Example: target 21 kg, handle 1 kg → 10 per side. The dumbbell warm-up uses the handle as its base (never below the handle). Rule: bar used = handle for dumbbells, the selected bar otherwise.
+- Disc loader (ADR-56, T-097h; replaces the plate calculator): the user picks how many discs of each enabled weight go on ONE side (0-10 per weight, starts empty) and the same go on the other side. Total = bar (or handle) + 2 × the sum of the discs of a side. Read-only: nothing is stored. Example: 20 kg bar with a 25 and a 15 kg disc per side → 100 kg; 1 kg handle with one 10 kg disc → 21 kg. The bar or handle comes from Preferencias, never from the sheet.
+- Rounding (ADR-56): derived, not a setting: 2 × the smallest enabled plate, for barbells and dumbbells alike (default plates → 1 kg; smallest 1,25 → 2,5 kg). Preferencias shows it read-only.
+- Dumbbell handle (ADR-55, T-097f): dumbbell exercises use the disc loader with the handle as the bar (per dumbbell; default 1 kg, range 0,5-10 kg in 0,5 steps, user setting, no bar selector). Example: target 21 kg, handle 1 kg → 10 per side. The dumbbell warm-up uses the handle as its base (never below the handle). Rule: bar used = handle for dumbbells, the selected bar otherwise.
 
 ### 4.10 Session duration and pauses (US-38, T-096)
 - `duration = end - started_at - paused_total_s`, never below 0, where `end` = `ended_at` when finished, else `paused_at` while paused (the display freezes), else now. A pause still open when the session finishes counts as paused until `ended_at`.

@@ -72,7 +72,7 @@ sealed interface RoutineBuilderUiState {
         val isDirty: Boolean = false,
         val showDiscardConfirm: Boolean = false,
         val typePicker: TypePickerUi? = null,
-        /** The open warm-up or plate calculator sheet; its inputs are never part of the routine draft. */
+        /** The open warm-up calculator or disc loader sheet; its inputs are never part of the routine draft. */
         val calculator: CalculatorUiState? = null,
         /** True when inserting the calculator's warm-ups would exceed the sets cap (the action is disabled). */
         val warmUpBlockedByCap: Boolean = false,
@@ -130,13 +130,13 @@ sealed interface RoutineBuilderEvent {
     /** [delta] is -1 or +1 half point of the target RPE: from none +1 gives 8, below 6 clears it. */
     data class StepTargetRpe(val index: Int, val delta: Int) : RoutineBuilderEvent
 
-    /** Opens the warm-up or plate calculator of row [index], prefilled with its first working weight. */
+    /** Opens the warm-up calculator or disc loader of row [index], prefilled with its first working weight. */
     data class OpenCalculator(val index: Int, val kind: CalculatorKind) : RoutineBuilderEvent
 
     data class CalculatorWeightChanged(val text: String) : RoutineBuilderEvent
 
-    /** Ignored for dumbbells: their bar is the handle. */
-    data class CalculatorBarChanged(val barKg: Double) : RoutineBuilderEvent
+    /** The disc loader: the count of [weightKg] discs per side changed (0..10, ignored for disabled plates). */
+    data class DiscCountChanged(val weightKg: Double, val count: Int) : RoutineBuilderEvent
 
     data class CalculatorWarmUpSetsChanged(val sets: Int) : RoutineBuilderEvent
 

@@ -68,14 +68,13 @@ class SupabaseTrainingPreferencesRepositoryTest {
     @Test
     fun get_readsTheCalculatorColumns() = runTest {
         body = """[{"warm_up_included":false,"previous_values_mode":"overall","bar_weight_kg":7.5,""" +
-            """"plate_kg":[20,2.5,0.5],"plate_rounding_kg":5.0,"dumbbell_rounding_kg":1.0,"dumbbell_handle_kg":1.5}]"""
+            """"plate_kg":[20,2.5,0.5],"dumbbell_handle_kg":1.5}]"""
 
         val result = repository().get().getOrThrow()
 
         assertEquals(7.5, result.barWeightKg)
         assertEquals(listOf(20.0, 2.5, 0.5), result.plateKg)
-        assertEquals(5.0, result.plateRoundingKg)
-        assertEquals(1.0, result.dumbbellRoundingKg)
+        assertEquals(1.0, result.calculators.roundingKg)
         assertEquals(1.5, result.dumbbellHandleKg)
         assertTrue(rest().single().url.toString().contains("plate_kg"))
     }

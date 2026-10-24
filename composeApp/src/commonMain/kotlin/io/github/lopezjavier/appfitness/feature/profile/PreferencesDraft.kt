@@ -34,8 +34,6 @@ internal data class PreferencesDraft(
     /** Calculator settings; absent in drafts saved by older versions (the defaults then). */
     val barWeightKg: Double = CalculatorSettings.DEFAULT_BAR_KG,
     val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
-    val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
-    val dumbbellRoundingKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
     val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
 )
 
@@ -57,14 +55,13 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         previousValuesMode = previousValuesMode.name,
         barWeightKg = calculators.barWeightKg,
         plateKg = calculators.plateKg,
-        plateRoundingKg = calculators.plateRoundingKg,
-        dumbbellRoundingKg = calculators.dumbbellRoundingKg,
         dumbbellHandleKg = calculators.dumbbellHandleKg,
     ),
 )
 
 internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
-    val draft = Json.decodeFromString(PreferencesDraft.serializer(), json)
+    // Drafts saved before ADR-56 still carry the two rounding fields.
+    val draft = Json { ignoreUnknownKeys = true }.decodeFromString(PreferencesDraft.serializer(), json)
     PreferencesForm(
         name = draft.name,
         sex = Sex.valueOf(draft.sex),
@@ -80,8 +77,6 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
         calculators = CalculatorSettings(
             barWeightKg = draft.barWeightKg,
             plateKg = draft.plateKg,
-            plateRoundingKg = draft.plateRoundingKg,
-            dumbbellRoundingKg = draft.dumbbellRoundingKg,
             dumbbellHandleKg = draft.dumbbellHandleKg,
         ),
     )

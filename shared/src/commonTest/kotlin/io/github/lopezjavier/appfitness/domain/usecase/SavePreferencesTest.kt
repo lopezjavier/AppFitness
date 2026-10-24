@@ -212,7 +212,7 @@ class SavePreferencesTest {
 
     @Test
     fun theCalculatorSettingsArePassedThrough_andNullMeansUnchanged() = runTest {
-        val settings = CalculatorSettings(7.5, listOf(20.0, 2.5), 5.0, 1.0)
+        val settings = CalculatorSettings(7.5, listOf(20.0, 2.5), 1.0)
         save(calculators = settings)
         save()
 

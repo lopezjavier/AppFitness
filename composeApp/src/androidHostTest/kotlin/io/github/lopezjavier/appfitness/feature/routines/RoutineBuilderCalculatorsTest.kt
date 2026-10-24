@@ -15,7 +15,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import coil3.ColorImage
@@ -136,11 +135,6 @@ class RoutineBuilderCalculatorsTest {
         rule.waitForIdle()
     }
 
-    private fun type(tag: String, text: String) {
-        rule.onNodeWithTag(tag).performTextReplacement(text)
-        rule.waitForIdle()
-    }
-
     private fun openMenu(row: Int) = tap("routine_builder_menu_$row")
 
     private fun openFromMenu(row: Int, entry: String) {
@@ -232,43 +226,52 @@ class RoutineBuilderCalculatorsTest {
     }
 
     @Test
-    fun plates_barbellRow_target100kgWith20kgBar_shows25Plus15PerSide() {
-        val vm = showWithBarbellAndDumbbell()
-        vm.onEvent(RoutineBuilderEvent.SetWeight(BARBELL_ROW, 0, "100"))
-        rule.waitForIdle()
+    fun discLoader_barbellRow_25And15OnABar20_totals100kg() {
+        showWithBarbellAndDumbbell()
 
         openFromMenu(BARBELL_ROW, "plate_calc")
 
-        val tag = "routine_builder_0_plate_calc"
-        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
-        rule.onNodeWithTag("${tag}_plates").assertTextEquals("25 + 15")
+        val tag = "routine_builder_0_disc_loader"
         rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 20 kg")
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 20 kg")
+        rule.onNodeWithTag("${tag}_weight_field").assertDoesNotExist()
+        tap("${tag}_plate_25_increment")
+        tap("${tag}_plate_15_increment")
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 100 kg")
         tap("${tag}_close")
         rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
     }
 
     @Test
-    fun plates_dumbbellRow_target21kgWith1kgHandle_shows10AndNoBarSelector() {
+    fun discLoader_dumbbellRow_oneDisc10kgOnAOneKgHandle_totals21kg() {
         showWithBarbellAndDumbbell()
 
         openFromMenu(DUMBBELL_ROW, "plate_calc")
-        val tag = "routine_builder_1_plate_calc"
-        type("${tag}_weight_field", "21")
+        val tag = "routine_builder_1_disc_loader"
+        tap("${tag}_plate_10_increment")
 
-        rule.onNodeWithTag("${tag}_plates").assertTextEquals("10")
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 21 kg")
         rule.onNodeWithTag("${tag}_handle_label").assertTextEquals("Mango: 1 kg")
-        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
         rule.onNodeWithTag("${tag}_bar_label").assertDoesNotExist()
     }
 
     @Test
-    fun plates_dumbbellRow_usesTheSavedHandle() {
+    fun discLoader_dumbbellRow_usesTheSavedHandle() {
         preferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 2.5))
         showWithBarbellAndDumbbell()
 
         openFromMenu(DUMBBELL_ROW, "plate_calc")
 
-        rule.onNodeWithTag("routine_builder_1_plate_calc_handle_label").assertTextEquals("Mango: 2,5 kg")
+        rule.onNodeWithTag("routine_builder_1_disc_loader_handle_label").assertTextEquals("Mango: 2,5 kg")
+    }
+
+    @Test
+    fun menu_namesTheEntryCargadorDeDiscos() {
+        showWithBarbellAndDumbbell()
+
+        openMenu(BARBELL_ROW)
+
+        rule.onNodeWithTag("routine_builder_plate_calc_0").assertTextContains("Cargador de discos")
     }
 
     @Test
@@ -360,7 +363,7 @@ class RoutineBuilderCalculatorsTest {
     }
 
     @Test
-    fun calculatorSheetAndItsInputs_surviveLeavingTheApp() {
+    fun discLoaderAndItsCounts_surviveLeavingTheApp() {
         val handle = SavedStateHandle()
         var current: RoutineBuilderViewModel? = null
         val tester = StateRestorationTester(rule)
@@ -369,16 +372,17 @@ class RoutineBuilderCalculatorsTest {
         current?.onEvent(RoutineBuilderEvent.AddExercise("a"))
         rule.waitForIdle()
         openFromMenu(BARBELL_ROW, "plate_calc")
-        val tag = "routine_builder_0_plate_calc"
-        type("${tag}_weight_field", "102,5")
-        tap("${tag}_bar_15")
+        val tag = "routine_builder_0_disc_loader"
+        repeat(2) { tap("${tag}_plate_25_increment") }
+        tap("${tag}_plate_15_increment")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("${tag}_sheet").assertExists()
-        rule.onNodeWithTag("${tag}_weight_field").assertTextContains("102,5")
-        rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 15 kg")
+        rule.onNodeWithTag("${tag}_plate_25_value").assertTextEquals("2")
+        rule.onNodeWithTag("${tag}_plate_15_value").assertTextEquals("1")
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 150 kg")
     }
 
     @Test

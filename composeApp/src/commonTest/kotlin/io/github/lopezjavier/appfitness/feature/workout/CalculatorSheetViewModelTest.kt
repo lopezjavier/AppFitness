@@ -37,7 +37,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** US-33: the warm-up and plate calculators of the live session and the insertion of warm-up sets. */
+/** US-33: the warm-up calculator and the disc loader of the live session and the insertion of warm-up sets. */
 class CalculatorSheetViewModelTest {
     private val repository = FakeWorkoutSessionRepository(
         sessionOf(
@@ -140,7 +140,7 @@ class CalculatorSheetViewModelTest {
         repository.previous = mapOf("e1" to listOf(PreviousSet(1, 82.5, 5)))
         val vm = loaded()
 
-        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
 
         assertEquals("82,5", vm.calculator().draft.weightText)
     }
@@ -169,27 +169,26 @@ class CalculatorSheetViewModelTest {
     }
 
     @Test
-    fun theWarmUpBarIsThePreferencesBar_andBarChangesAreIgnored() = runSessionTest {
+    fun theWarmUpBarIsThePreferencesBar() = runSessionTest {
         trainingPreferences.result = Result.success(TrainingPreferences(barWeightKg = 15.0))
         val vm = loaded()
         type(vm, 0, 1, "100", "5")
+
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
-        assertEquals(15.0, vm.calculator().draft.barKg)
 
-        send(vm, LiveSessionEvent.CalculatorBarChanged(7.5))
-
-        assertEquals(15.0, vm.calculator().draft.barKg)
+        assertEquals(15.0, vm.calculator().barKg)
     }
 
     @Test
-    fun theWarmUpBarIsRebasedOnARestoredDraftWithAnOldBar() = runSessionTest {
+    fun aDraftSavedWithAnOldBar_usesThePreferencesBar() = runSessionTest {
         trainingPreferences.result = Result.success(TrainingPreferences(barWeightKg = 15.0))
         val handle = SavedStateHandle()
-        handle.persistCalculatorDraft(CalculatorDraft(0, CalculatorKind.WarmUp, "100", 7.5))
+        handle.persistCalculatorDraft(CalculatorDraft(0, CalculatorKind.WarmUp, "100"))
+        handle["live_calc_bar"] = 7.5
 
         val vm = loaded(handle)
 
-        assertEquals(15.0, vm.calculator().draft.barKg)
+        assertEquals(15.0, vm.calculator().barKg)
     }
 
     @Test
@@ -237,7 +236,7 @@ class CalculatorSheetViewModelTest {
 
         send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.WarmUp))
 
-        assertEquals(1.5, vm.calculator().draft.barKg)
+        assertEquals(1.5, vm.calculator().barKg)
     }
 
     private fun bestWeight(kg: Double) =
@@ -257,61 +256,44 @@ class CalculatorSheetViewModelTest {
         assertTrue(vm.calculator().warmUp.isEmpty())
     }
 
-    // --- Rounding by equipment ---
+    // --- Derived rounding (ADR-56) ---
 
     @Test
-    fun barbellExercisesUseThePlateRounding_dumbbellExercisesTheDumbbellRounding() = runSessionTest {
+    fun theRoundingIsTwiceTheSmallestEnabledPlate_forBarbellsAndDumbbells() = runSessionTest {
         trainingPreferences.result =
-            Result.success(TrainingPreferences(plateRoundingKg = 2.5, dumbbellRoundingKg = 5.0))
+            Result.success(TrainingPreferences(plateKg = listOf(25.0, 5.0, 2.5)))
         val vm = loaded()
 
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
         send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
         send(vm, LiveSessionEvent.CalculatorWeightChanged("90"))
-        assertEquals(2.5, vm.calculator().roundingKg)
-        assertEquals(listOf(20.0, 35.0, 55.0, 72.5), vm.calculator().warmUp.map { it.weightKg })
+        assertEquals(5.0, vm.calculator().roundingKg)
+        assertTrue(vm.calculator().warmUp.all { it.weightKg % 5.0 == 0.0 })
 
         send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.WarmUp))
-        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
-        send(vm, LiveSessionEvent.CalculatorWeightChanged("90"))
         assertEquals(5.0, vm.calculator().roundingKg)
-        assertEquals(listOf(1.0, 35.0, 55.0, 70.0), vm.calculator().warmUp.map { it.weightKg })
+    }
+
+    @Test
+    fun withTheDefaultPlates_theRoundingIsOneKg() = runSessionTest {
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+
+        assertEquals(1.0, vm.calculator().roundingKg)
     }
 
     // --- Dumbbell handle (ADR-55) ---
 
     @Test
-    fun dumbbellCalculatorOpensWithTheHandle_barbellWithTheBar() = runSessionTest {
+    fun dumbbellDiscLoaderOpensWithTheHandle_barbellWithTheBar() = runSessionTest {
         trainingPreferences.result = Result.success(TrainingPreferences(barWeightKg = 15.0, dumbbellHandleKg = 1.5))
         val vm = loaded()
 
-        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
-        assertEquals(15.0, vm.calculator().draft.barKg)
-        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Plates))
-        assertEquals(1.5, vm.calculator().draft.barKg)
-    }
-
-    @Test
-    fun dumbbellPlateCalculator_putsPlatesOnEachSideOfTheHandle() = runSessionTest {
-        val vm = loaded()
-
-        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Plates))
-        send(vm, LiveSessionEvent.CalculatorWeightChanged("21"))
-
-        assertEquals(listOf(10.0), assertNotNull(vm.calculator().plates).platesPerSide)
-    }
-
-    @Test
-    fun barChangeIsIgnoredForDumbbells_butAppliesToBarbells() = runSessionTest {
-        val vm = loaded()
-
-        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Plates))
-        send(vm, LiveSessionEvent.CalculatorBarChanged(15.0))
-        assertEquals(1.0, vm.calculator().draft.barKg)
-
-        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
-        send(vm, LiveSessionEvent.CalculatorBarChanged(15.0))
-        assertEquals(15.0, vm.calculator().draft.barKg)
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+        assertEquals(15.0, vm.calculator().barKg)
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Discs))
+        assertEquals(1.5, vm.calculator().barKg)
     }
 
     @Test
@@ -325,46 +307,103 @@ class CalculatorSheetViewModelTest {
         assertEquals(listOf(1.0, 8.0, 12.0, 16.0), vm.calculator().warmUp.map { it.weightKg })
     }
 
+    // --- Disc loader (ADR-56) ---
+
     @Test
-    fun aDumbbellDraftRestoredWithTheOldBar_isRebasedToTheHandle() = runSessionTest {
+    fun theDiscLoaderStartsEmpty_withTheBarAsTotal() = runSessionTest {
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+
+        assertTrue(vm.calculator().draft.discs.isEmpty())
+        assertEquals(20.0, vm.calculator().totalKg)
+        assertEquals("", vm.calculator().draft.weightText)
+    }
+
+    @Test
+    fun discCounts_changeTheTotal_twoSidesAtATime() = runSessionTest {
+        val vm = loaded()
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+
+        send(vm, LiveSessionEvent.DiscCountChanged(25.0, 1))
+        send(vm, LiveSessionEvent.DiscCountChanged(15.0, 1))
+
+        assertEquals(100.0, vm.calculator().totalKg)
+        send(vm, LiveSessionEvent.DiscCountChanged(25.0, 0))
+        assertEquals(50.0, vm.calculator().totalKg)
+        assertEquals(mapOf(15.0 to 1), vm.calculator().draft.discs)
+    }
+
+    @Test
+    fun aDumbbellLoaderAddsDiscsToTheHandle() = runSessionTest {
+        val vm = loaded()
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.Discs))
+
+        send(vm, LiveSessionEvent.DiscCountChanged(10.0, 1))
+
+        assertEquals(21.0, vm.calculator().totalKg)
+    }
+
+    @Test
+    fun discCounts_areCappedAtTenAndNeverNegative() = runSessionTest {
+        val vm = loaded()
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+
+        send(vm, LiveSessionEvent.DiscCountChanged(25.0, 99))
+        assertEquals(10, vm.calculator().draft.discs[25.0])
+        send(vm, LiveSessionEvent.DiscCountChanged(25.0, -3))
+        assertTrue(vm.calculator().draft.discs.isEmpty())
+    }
+
+    @Test
+    fun aDiscOfADisabledPlate_isIgnored_andDroppedWhenThePlateIsDisabled() = runSessionTest {
+        trainingPreferences.result = Result.success(TrainingPreferences(plateKg = listOf(20.0, 5.0)))
+        val vm = loaded()
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+
+        send(vm, LiveSessionEvent.DiscCountChanged(25.0, 1))
+        assertTrue(vm.calculator().draft.discs.isEmpty())
+        assertEquals(listOf(20.0, 5.0), vm.calculator().availableDiscs)
+
+        val handle = SavedStateHandle()
+        handle.persistCalculatorDraft(CalculatorDraft(0, CalculatorKind.Discs, discs = mapOf(25.0 to 1, 5.0 to 2)))
+        val restored = loaded(handle)
+        assertEquals(mapOf(5.0 to 2), restored.calculator().draft.discs)
+        assertEquals(40.0, restored.calculator().totalKg)
+    }
+
+    @Test
+    fun discCountsAreIgnoredWhileTheWarmUpIsOpen() = runSessionTest {
+        val vm = loaded()
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+
+        send(vm, LiveSessionEvent.DiscCountChanged(25.0, 1))
+
+        assertTrue(vm.calculator().draft.discs.isEmpty())
+    }
+
+    @Test
+    fun aDraftSavedBeforeTheDiscLoader_restoresAsAnEmptyLoader() = runSessionTest {
         val saved = SavedStateHandle()
-        saved.persistCalculatorDraft(CalculatorDraft(1, CalculatorKind.Plates, "21", 20.0))
+        saved["live_calc_position"] = 1
+        saved["live_calc_kind"] = "Plates"
+        saved["live_calc_weight"] = "21"
+        saved["live_calc_bar"] = 20.0
 
         val vm = loaded(saved)
 
-        assertEquals(1.0, vm.calculator().draft.barKg)
-        assertEquals(listOf(10.0), assertNotNull(vm.calculator().plates).platesPerSide)
-    }
-
-    // --- Plates ---
-
-    @Test
-    fun theSavedPlatesDecideThePlateResult() = runSessionTest {
-        trainingPreferences.result = Result.success(
-            TrainingPreferences(plateKg = listOf(20.0, 10.0, 5.0, 2.5, 1.25, 0.5)),
-        )
-        val vm = loaded()
-
-        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
-        send(vm, LiveSessionEvent.CalculatorWeightChanged("100"))
-
-        val result = assertNotNull(vm.calculator().plates)
-        assertEquals(listOf(20.0, 20.0), result.platesPerSide)
-        assertTrue(result.exact)
+        assertEquals(CalculatorKind.Discs, vm.calculator().draft.kind)
+        assertTrue(vm.calculator().draft.discs.isEmpty())
+        assertEquals(1.0, vm.calculator().barKg)
     }
 
     @Test
-    fun anImpossibleTarget_reportsTheClosestLowerWeight() = runSessionTest {
-        trainingPreferences.result = Result.success(TrainingPreferences(plateKg = listOf(25.0, 15.0, 5.0, 2.5)))
-        val vm = loaded()
+    fun aDraftWithAnUnknownKind_isNotRestored() = runSessionTest {
+        val saved = SavedStateHandle()
+        saved["live_calc_position"] = 0
+        saved["live_calc_kind"] = "Unknown"
 
-        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
-        send(vm, LiveSessionEvent.CalculatorWeightChanged("101"))
-
-        val result = assertNotNull(vm.calculator().plates)
-        assertEquals(100.0, result.achievedKg)
-        assertFalse(result.exact)
-        assertTrue(vm.calculator().warmUp.isEmpty())
+        assertNull(loaded(saved).active().calculator)
     }
 
     // --- Inserting warm-up sets ---
@@ -572,17 +611,17 @@ class CalculatorSheetViewModelTest {
     fun theOpenCalculatorSurvivesARecreatedViewModel() = runSessionTest {
         val handle = SavedStateHandle()
         val first = loaded(handle)
-        send(first, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Plates))
-        send(first, LiveSessionEvent.CalculatorWeightChanged("102,5"))
-        send(first, LiveSessionEvent.CalculatorBarChanged(10.0))
+        send(first, LiveSessionEvent.OpenCalculator(0, CalculatorKind.Discs))
+        send(first, LiveSessionEvent.DiscCountChanged(25.0, 2))
+        send(first, LiveSessionEvent.DiscCountChanged(1.25, 1))
 
         val second = loaded(handle)
 
         assertEquals(
-            CalculatorDraft(0, CalculatorKind.Plates, "102,5", 10.0, weightEdited = true),
+            CalculatorDraft(0, CalculatorKind.Discs, discs = mapOf(25.0 to 2, 1.25 to 1)),
             second.calculator().draft,
         )
-        assertEquals(listOf(25.0, 20.0, 1.25), assertNotNull(second.calculator().plates).platesPerSide.take(3))
+        assertEquals(122.5, second.calculator().totalKg)
     }
 
     @Test

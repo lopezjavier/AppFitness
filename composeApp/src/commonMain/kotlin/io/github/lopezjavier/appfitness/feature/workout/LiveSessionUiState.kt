@@ -120,7 +120,7 @@ sealed interface LiveSessionUiState {
         val pausedAt: Instant? = null,
         /** Seconds of earlier, already closed pauses; the duration excludes them. */
         val pausedTotalSeconds: Long = 0,
-        /** The open warm-up or plate calculator; null when closed. Survives process death (ADR-40). */
+        /** The open warm-up calculator or disc loader; null when closed. Survives process death (ADR-40). */
         val calculator: CalculatorUiState? = null,
     ) : LiveSessionUiState {
         val isPaused: Boolean get() = pausedAt != null
@@ -244,14 +244,14 @@ sealed interface LiveSessionEvent {
     /** Either options sheet was closed without saving (X, back, scrim, swipe): both drafts are dropped. */
     data object DismissVolumeDrafts : LiveSessionEvent
 
-    /** The exercise menu's warm-up or plate calculator: opens the sheet prefilled from the exercise. */
+    /** The exercise menu's warm-up calculator or disc loader: opens the sheet prefilled from the exercise. */
     data class OpenCalculator(val position: Int, val kind: CalculatorKind) : LiveSessionEvent
 
     /** The weight field of the open calculator changed (draft only). */
     data class CalculatorWeightChanged(val text: String) : LiveSessionEvent
 
-    /** The bar selector of the open calculator changed (per use, not saved). */
-    data class CalculatorBarChanged(val barKg: Double) : LiveSessionEvent
+    /** The disc loader: the count of [weightKg] discs per side changed (0..10, ignored for disabled plates). */
+    data class DiscCountChanged(val weightKg: Double, val count: Int) : LiveSessionEvent
 
     /** The warm-up set count (1..4) of the open calculator changed (per use, not saved; ADR-55). */
     data class CalculatorWarmUpSetsChanged(val sets: Int) : LiveSessionEvent

@@ -22,19 +22,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_ba
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_15
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_20
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_7_5
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_derived_rounding
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_handle_state
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding_decrease_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_dumbbell_rounding_state
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plate_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plate_rounding
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plate_rounding_decrease_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plate_rounding_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plate_rounding_state
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plates
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plates_error
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_rounding_value
@@ -54,8 +47,9 @@ import org.jetbrains.compose.resources.stringResource
 private const val ROUNDING_STEP_KG = 0.5
 
 /**
- * "Calculadoras" block of the training card: plate and dumbbell rounding, dumbbell handle, default bar and available
- * plates. All of it is a draft until "Guardar"; switching off the last plate is refused and shows [platesError].
+ * "Calculadoras" block of the training card: dumbbell handle, default bar, available plates and the derived rounding
+ * (read-only, twice the smallest plate; ADR-56). All of it is a draft until "Guardar"; switching off the last plate
+ * is refused and shows [platesError].
  */
 @Composable
 internal fun CalculatorsBlock(
@@ -80,24 +74,6 @@ internal fun CalculatorsBlock(
             )
         }
         RoundingRow(
-            label = stringResource(Res.string.preferences_calc_plate_rounding),
-            kg = settings.plateRoundingKg,
-            state = Res.string.preferences_calc_plate_rounding_state,
-            decreaseCd = stringResource(Res.string.preferences_calc_plate_rounding_decrease_cd),
-            increaseCd = stringResource(Res.string.preferences_calc_plate_rounding_increase_cd),
-            tag = "preferences_plate_rounding",
-            onChange = { onEvent(PreferencesEvent.SetPlateRounding(it)) },
-        )
-        RoundingRow(
-            label = stringResource(Res.string.preferences_calc_dumbbell_rounding),
-            kg = settings.dumbbellRoundingKg,
-            state = Res.string.preferences_calc_dumbbell_rounding_state,
-            decreaseCd = stringResource(Res.string.preferences_calc_dumbbell_rounding_decrease_cd),
-            increaseCd = stringResource(Res.string.preferences_calc_dumbbell_rounding_increase_cd),
-            tag = "preferences_dumbbell_rounding",
-            onChange = { onEvent(PreferencesEvent.SetDumbbellRounding(it)) },
-        )
-        RoundingRow(
             label = stringResource(Res.string.preferences_calc_dumbbell_handle),
             kg = settings.dumbbellHandleKg,
             state = Res.string.preferences_calc_dumbbell_handle_state,
@@ -108,6 +84,15 @@ internal fun CalculatorsBlock(
         )
         BarSelector(settings.barWeightKg) { onEvent(PreferencesEvent.SetBarWeight(it)) }
         PlateChips(settings.plateKg, platesError) { kg, on -> onEvent(PreferencesEvent.SetPlateEnabled(kg, on)) }
+        Text(
+            text = stringResource(
+                Res.string.preferences_calc_derived_rounding,
+                GhostData.weightText(settings.roundingKg),
+            ),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.testTag("preferences_derived_rounding"),
+        )
     }
 }
 

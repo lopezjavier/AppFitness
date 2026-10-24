@@ -110,7 +110,7 @@ class RoutineBuilderCalculatorsViewModelTest {
 
         val calculator = assertNotNull(vm.form().calculator)
         assertEquals("100", calculator.draft.weightText)
-        assertEquals(20.0, calculator.draft.barKg)
+        assertEquals(20.0, calculator.barKg)
         assertEquals(listOf(WarmUpSet(60.0, 3)), calculator.warmUp)
     }
 
@@ -132,38 +132,64 @@ class RoutineBuilderCalculatorsViewModelTest {
     }
 
     @Test
-    fun plateCalculator_showsTwentyFiveAndFifteenForHundredKilos() = runTest {
+    fun discLoader_startsEmpty_andTwentyFiveAndFifteenMakeHundredKilos() = runTest {
         val vm = withRows("bar")
-        send(vm, RoutineBuilderEvent.SetWeight(0, 0, "100"))
 
-        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Plates))
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
+        assertEquals(20.0, vm.form().calculator?.totalKg)
+        assertEquals(emptyMap(), vm.form().calculator?.draft?.discs)
 
-        assertEquals(listOf(25.0, 15.0), vm.form().calculator?.plates?.platesPerSide)
+        send(vm, RoutineBuilderEvent.DiscCountChanged(25.0, 1))
+        send(vm, RoutineBuilderEvent.DiscCountChanged(15.0, 1))
+        assertEquals(100.0, vm.form().calculator?.totalKg)
     }
 
     @Test
-    fun barbellBarCanBeChanged_dumbbellUsesTheHandleAndIgnoresBarChanges() = runTest {
-        preferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 1.5))
+    fun barbellUsesThePreferencesBar_dumbbellUsesTheHandle() = runTest {
+        preferences.result =
+            Result.success(TrainingPreferences(barWeightKg = 15.0, dumbbellHandleKg = 1.5))
         val vm = withRows("bar", "db")
 
-        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Plates))
-        send(vm, RoutineBuilderEvent.CalculatorBarChanged(15.0))
-        assertEquals(15.0, vm.form().calculator?.draft?.barKg)
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
+        assertEquals(15.0, vm.form().calculator?.barKg)
 
-        send(vm, RoutineBuilderEvent.OpenCalculator(1, CalculatorKind.Plates))
-        assertEquals(1.5, vm.form().calculator?.draft?.barKg)
-        send(vm, RoutineBuilderEvent.CalculatorBarChanged(15.0))
-        assertEquals(1.5, vm.form().calculator?.draft?.barKg)
+        send(vm, RoutineBuilderEvent.OpenCalculator(1, CalculatorKind.Discs))
+        assertEquals(1.5, vm.form().calculator?.barKg)
     }
 
     @Test
-    fun dumbbellTwentyOneKilos_hasTenPerSideOnTheHandle() = runTest {
+    fun dumbbellWithATenKiloDisc_totalsTwentyOneKilos() = runTest {
         val vm = withRows("db")
-        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Plates))
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
 
-        send(vm, RoutineBuilderEvent.CalculatorWeightChanged("21"))
+        send(vm, RoutineBuilderEvent.DiscCountChanged(10.0, 1))
 
-        assertEquals(listOf(10.0), vm.form().calculator?.plates?.platesPerSide)
+        assertEquals(21.0, vm.form().calculator?.totalKg)
+    }
+
+    @Test
+    fun discCounts_areCapped_andDisabledPlatesIgnored() = runTest {
+        preferences.result = Result.success(TrainingPreferences(plateKg = listOf(20.0, 5.0)))
+        val vm = withRows("bar")
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
+
+        send(vm, RoutineBuilderEvent.DiscCountChanged(20.0, 50))
+        send(vm, RoutineBuilderEvent.DiscCountChanged(25.0, 1))
+
+        assertEquals(mapOf(20.0 to 10), vm.form().calculator?.draft?.discs)
+        assertEquals(listOf(20.0, 5.0), vm.form().calculator?.availableDiscs)
+    }
+
+    @Test
+    fun discCounts_surviveARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = withRows("bar", handle = handle)
+        send(first, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
+        send(first, RoutineBuilderEvent.DiscCountChanged(25.0, 2))
+
+        val second = builder(handle)
+
+        assertEquals(mapOf(25.0 to 2), assertNotNull(second.form().calculator).draft.discs)
     }
 
     @Test
@@ -171,9 +197,9 @@ class RoutineBuilderCalculatorsViewModelTest {
         preferences.result = Result.failure(IllegalStateException("offline"))
         val vm = withRows("db")
 
-        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Plates))
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
 
-        assertEquals(1.0, vm.form().calculator?.draft?.barKg)
+        assertEquals(1.0, vm.form().calculator?.barKg)
     }
 
     @Test
@@ -211,7 +237,7 @@ class RoutineBuilderCalculatorsViewModelTest {
     fun dismissingTheCalculator_closesItWithoutTouchingTheRoutine() = runTest {
         val vm = withRows("bar")
         val before = vm.form().rows
-        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Plates))
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
 
         send(vm, RoutineBuilderEvent.DismissCalculator)
 
@@ -243,8 +269,8 @@ class RoutineBuilderCalculatorsViewModelTest {
         vm.onEvent(RoutineBuilderEvent.AddExercise("bar"))
         advanceUntilIdle()
         val before = vm.form().isDirty
-        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Plates))
-        send(vm, RoutineBuilderEvent.CalculatorWeightChanged("55"))
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
+        send(vm, RoutineBuilderEvent.DiscCountChanged(25.0, 1))
 
         assertEquals(before, vm.form().isDirty)
     }

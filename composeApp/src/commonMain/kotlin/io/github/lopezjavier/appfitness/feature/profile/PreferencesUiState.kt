@@ -116,12 +116,6 @@ sealed interface PreferencesEvent {
     /** Default bar of the calculators (20, 15, 10 or 7,5 kg); only a draft until [Save]. */
     data class SetBarWeight(val kg: Double) : PreferencesEvent
 
-    /** Plate rounding step in kg (clamped to 0,5..10); only a draft until [Save]. */
-    data class SetPlateRounding(val kg: Double) : PreferencesEvent
-
-    /** Dumbbell rounding step in kg (clamped to 0,5..10); only a draft until [Save]. */
-    data class SetDumbbellRounding(val kg: Double) : PreferencesEvent
-
     /** Dumbbell handle weight in kg (clamped to 0,5..10, steps of 0,5); only a draft until [Save]. */
     data class SetDumbbellHandle(val kg: Double) : PreferencesEvent
 

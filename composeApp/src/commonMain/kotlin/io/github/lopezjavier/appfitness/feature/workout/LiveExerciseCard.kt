@@ -161,7 +161,7 @@ private fun ExerciseSheets(
                 onSheetChange(ExerciseSheet.None)
             },
             onPlateCalculator = {
-                onEvent(LiveSessionEvent.OpenCalculator(position, CalculatorKind.Plates))
+                onEvent(LiveSessionEvent.OpenCalculator(position, CalculatorKind.Discs))
                 onSheetChange(ExerciseSheet.None)
             },
             onBodyWeight = {

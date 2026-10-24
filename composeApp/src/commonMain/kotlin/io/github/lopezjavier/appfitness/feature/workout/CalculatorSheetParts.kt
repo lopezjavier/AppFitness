@@ -19,23 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_10
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_15
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_20
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_7_5
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
-import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
-import org.jetbrains.compose.resources.stringResource
 
 private const val WEIGHT_MAX_DECIMALS = 1
 private const val WEIGHT_MAX_INTEGER_DIGITS = 3
@@ -49,17 +39,17 @@ internal class CalculatorHelp(val contentDescription: String, val body: String, 
  */
 internal class CalculatorActions(
     val onWeight: (String) -> Unit,
-    val onBar: (Double) -> Unit,
+    val onDiscCount: (weightKg: Double, count: Int) -> Unit,
     val onWarmUpSets: (Int) -> Unit,
     val onAddWarmUp: (List<WarmUpSet>) -> Unit,
     val onDismiss: () -> Unit,
 )
 
 /**
- * Shared frame of both calculator sheets: heading, a scrolling body (weight field, bar selector, [results]) and the
+ * Shared frame of both calculator sheets: heading, a scrolling body (weight field, [results]) and the
  * [action] pinned below it. Closing the sheet (X, back, swipe, scrim) calls `actions.onDismiss` and inserts nothing.
- * Dumbbell exercises have no bar selector: the handle is the bar (shown by the plate sheet). The warm-up sheet passes
- * [barSelectable] = false: its bar comes from Preferencias (ADR-56).
+ * There is no bar selector: the bar comes from Preferencias (ADR-56). The disc loader passes
+ * [showWeightField] = false.
  */
 @Composable
 @Suppress("LongParameterList") // Frame slots of two sheets.
@@ -72,7 +62,7 @@ internal fun CalculatorSheetFrame(
     help: CalculatorHelp,
     results: @Composable () -> Unit,
     action: @Composable () -> Unit,
-    barSelectable: Boolean = true,
+    showWeightField: Boolean = true,
 ) {
     AppBottomSheet(
         onDismissRequest = actions.onDismiss,
@@ -106,42 +96,19 @@ internal fun CalculatorSheetFrame(
                         testTag = help.testTag,
                     )
                 }
-                NumberInput(
-                    value = calculator.draft.weightText,
-                    onValueChange = actions.onWeight,
-                    label = weightLabel,
-                    modifier = Modifier.fillMaxWidth().testTag("${tag}_weight_field"),
-                    maxDecimals = WEIGHT_MAX_DECIMALS,
-                    maxIntegerDigits = WEIGHT_MAX_INTEGER_DIGITS,
-                )
-                if (barSelectable && !calculator.isDumbbell) BarSelector(tag, calculator.draft.barKg, actions.onBar)
+                if (showWeightField) {
+                    NumberInput(
+                        value = calculator.draft.weightText,
+                        onValueChange = actions.onWeight,
+                        label = weightLabel,
+                        modifier = Modifier.fillMaxWidth().testTag("${tag}_weight_field"),
+                        maxDecimals = WEIGHT_MAX_DECIMALS,
+                        maxIntegerDigits = WEIGHT_MAX_INTEGER_DIGITS,
+                    )
+                }
                 results()
             }
             action()
         }
-    }
-}
-
-@Composable
-private fun BarSelector(tag: String, barKg: Double, onSelect: (Double) -> Unit) {
-    val bars = CalculatorSettings.BARS_KG
-    val options = listOf(
-        AppOption(stringResource(Res.string.preferences_calc_bar_20), "${tag}_bar_20"),
-        AppOption(stringResource(Res.string.preferences_calc_bar_15), "${tag}_bar_15"),
-        AppOption(stringResource(Res.string.preferences_calc_bar_10), "${tag}_bar_10"),
-        AppOption(stringResource(Res.string.preferences_calc_bar_7_5), "${tag}_bar_7_5"),
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
-            text = stringResource(Res.string.live_calc_bar_title),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
-        SegmentedSelector(
-            options = options,
-            selectedIndex = bars.indexOf(barKg).takeIf { it >= 0 },
-            onSelect = { onSelect(bars[it]) },
-            modifier = Modifier.testTag("${tag}_bar"),
-        )
     }
 }
