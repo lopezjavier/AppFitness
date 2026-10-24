@@ -485,3 +485,12 @@ Format: context → decision → consequences. A decision is only changed by add
   - Look-and-feel items (Normal icon, "N" instead of the number, darker grey placeholders, RPE help as a list) go to the E8 refinement table.
 - **Consequences:** `04-business-rules.md` §4.9/§4.10, `03-data-model.md`, `epics/E6-training-depth.md`, `tasks/todo.md` (T-097g…T-097i before re-presenting E6-A).
 - **Approval:** 2026-10-24, user.
+
+### ADR-57 · Protected accounts cannot be deleted from the app (E6, T-097l)
+- **Context:** the user keeps a testing account (deleted and recreated often) and a personal account, and fears deleting the personal one by mistake (2026-10-24).
+- **Decision:**
+  - The Edge Function `delete-account` refuses (403, code `account_protected`) when the caller's email is in the Edge Function secret `PROTECTED_EMAILS` (comma-separated, case-insensitive). Emails never live in the repo (public); the user sets the secret with `npx supabase secrets set`.
+  - The Profile screen shows "Borrar cuenta" disabled with the note "Esta cuenta está protegida" for a protected account; the app learns it from a refusal or a check the planner defines (no email in the app).
+  - Permanent: no unlock in the app; changing the secret is the only switch. Deleting the user from the Supabase console is not covered.
+- **Consequences:** ADR-29, `tasks/todo.md` (T-097l).
+- **Approval:** 2026-10-24, user.
