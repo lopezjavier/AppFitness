@@ -148,7 +148,7 @@ Feature: RPE
   Scenario: Target RPE
     Given a planned exercise with a target RPE
     Then the set shows "Objetivo RPE 8" with a "?" help that explains the scale
-    And the routine builder's "Objetivo RPE" stepper (steps of 1, 1 to 10) has the same "?" help
+    And the routine builder's "Objetivo RPE" stepper (steps of 1, 6 to 10) has the same "?" help
 
   Scenario: Existing half values are shown rounded
     Given a set or target stored with RPE 7,5
@@ -156,7 +156,7 @@ Feature: RPE
 ```
 
 **Technical notes**
-- `workout_sets.rpe` and `routine_exercises.target_rpe` with a whole-number 1–10 check (ADR-56; stored half values are rounded half up by a migration).
+- `workout_sets.rpe` and `routine_exercises.target_rpe` with a whole-number 6–10 check (ADR-56; stored half values are rounded half up by a migration).
 - The target RPE is set **per exercise** in the routine (`routine_exercises.target_rpe`, already in the forward-compatible schema) and shown on every working set of that exercise (ADR-50).
 
 ---

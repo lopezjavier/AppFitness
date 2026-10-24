@@ -475,7 +475,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### ADR-56 · E6-A feedback round 2: whole-number RPE, derived rounding, disc loader, hand count per exercise (E6, T-097g…T-097i)
 - **Context:** user feedback at the re-test of Checkpoint E6-A (2026-10-24).
 - **Decision:**
-  - RPE is a whole number 1–10 (no half steps); existing half values are displayed rounded. This amends ADR-50 and ADR-55.
+  - RPE is a whole number 6–10 (no half steps; the scale stays 6–10 as in ADR-55); existing half values are displayed rounded and values below 6 are shown as 6. This amends ADR-50 and ADR-55. *(Corrected 2026-10-24: the first wording said 1–10, a mistake; fixed in T-097j.)*
   - Sets can be completed in any order (no rule added); the mandatory RPE prompt applies to every non-warm-up set, including the first set of the first exercise (bug).
   - Pausing the workout also pauses the rest countdown; marking a set "Listo" while paused resumes both.
   - The warm-up sheet calls the weight "Peso objetivo (kg)", defaults to the best past weight of the exercise (fallback: the planned weight) and takes the bar or handle from Preferencias (no selector in the sheet).
