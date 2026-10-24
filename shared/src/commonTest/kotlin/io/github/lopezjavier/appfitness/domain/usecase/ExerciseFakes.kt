@@ -52,11 +52,39 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         metricType: ExerciseMetricType,
+        perHand: Boolean,
     ): Result<Exercise> {
         createCalls++
         createFailure?.let { return Result.failure(AppException(it)) }
         val created = catalogRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
+            .copy(perHand = perHand)
         rows = rows + created
         return Result.success(created)
+    }
+
+    override suspend fun updateCustom(
+        id: String,
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        perHand: Boolean,
+    ): Result<Unit> {
+        if (rows.none { it.id == id && it.isCustom }) return Result.failure(AppException(AppError.NotFound))
+        rows = rows.map {
+            if (it.id ==
+                id
+            ) {
+                it.copy(name = name, muscleGroup = muscleGroup, equipment = equipment, perHand = perHand)
+            } else {
+                it
+            }
+        }
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteCustom(id: String): Result<Unit> {
+        if (rows.none { it.id == id && it.isCustom }) return Result.failure(AppException(AppError.NotFound))
+        rows = rows.filter { it.id != id }
+        return Result.success(Unit)
     }
 }

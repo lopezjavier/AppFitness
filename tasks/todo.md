@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-097i (hand count per exercise; blocked until the user fills a local CSV outside the repo (`exercise-hand-count.csv`, temporary)); then re-present Checkpoint E6-A. Last merged: T-097h (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** re-present Checkpoint E6-A (T-097i, hand count and manual exercise edit/delete, is done; PR pending). Last merged: T-097h (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2544,9 +2544,11 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 
 **Story:** US-33, US-09 · **Flow:** UI + backend · **ADR-56**
 
-**Description:** Flag `per_hand` per exercise replaces "Contar mancuerna doble"; catalogue migration from the list the user fills in a local CSV outside the repo (`exercise-hand-count.csv`, temporary) (**blocked until the user returns it**); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
+**Description:** Flag `per_hand` per exercise replaces "Contar mancuerna doble"; catalogue migration from the user's list (done; the CSV stays outside the repo); new-exercise form asks for it; manual exercises can be edited (name, equipment, muscle group, flag) and deleted; volume follows the flag.
 
-**Dependencies:** T-097h, 👤 filled list · **Estimated scope:** L
+**Dependencies:** T-097h · **Estimated scope:** L
+
+**Status:** done (2026-10-24, PR pending).
 
 ---
 
@@ -2557,7 +2559,7 @@ Journey: everything about a gym session, from planning the sets to the records a
   1. Plan a routine set by set (T-089, T-091): give "Press de banca con barra" one "Calentamiento" set and three "Normal" sets with their own weight and reps, and a target RPE 8; "Guardar" and reopen: the same sets. Your existing routines still have their sets and reps.
   2. Train it (T-089…T-091): the session starts with those sets, "C" on the warm-up, the planned weight and reps as dim placeholders and "Objetivo RPE 8"; change a set to "Fallo" or "Drop" and back with "Quitar tipo"; log RPE "7,5"; in the next session the ghost shows that RPE.
   3. Every kind of exercise (T-092): add "Dominadas" (reps + added weight), "Plancha" (stopwatch or mm:ss) and "Cinta de correr" (distance + duration); a barbell exercise hints "barra + discos"; log a custom exercise with a non-weight metric; next time the ghost shows the previous values.
-  4. Volume settings (T-090, T-093): the warm-up does not count in volume or 1RM; turn on "Incluir calentamiento" in Preferencias and turn on "Contar mancuerna doble" on a dumbbell exercise: Fuerza, muscle volume and the history follow, also for old sessions; turn both off again. From "Dominadas" update your body weight: the volume uses it and Perfil → "Peso" shows it (disabled on a day with a Health Connect weight).
+  4. Volume settings (T-090, T-093): the warm-up does not count in volume or 1RM; turn on "Incluir calentamiento" in Preferencias and check a per-hand exercise ("Pesas por mano", T-097i): Fuerza, muscle volume and the history follow, also for old sessions; turn both off again. From "Dominadas" update your body weight: the volume uses it and Perfil → "Peso" shows it (disabled on a day with a Health Connect weight).
   5. Session controls (T-096): "Finalizar entreno" is disabled until a set is completed; pause, wait and resume: the duration skips the pause (also after closing the app); swipe a set away: gone at once, no "Deshacer", the rest renumber; switch to "Última vez en esta rutina" and see the ghost change.
   6. Calculators (T-097): the warm-up calculator for 100 kg proposes 20 × 10, 40 × 5, 60 × 3, 80 × 2 and adds them as "C" sets; the plate calculator for 100 kg on the 20 kg bar shows "25 + 15" per side (try the 7,5 kg bar); change the rounding in Preferencias and both follow.
   7. Records and exercise detail (T-094, T-095): beat a mark and finish: the summary and the history mark it (a warm-up never does while excluded). Open the exercise: "Resumen" with "Récord de peso", "Mejor serie", "1RM estimado", "Volumen máximo"; "Historial" newest first; "Cómo hacerlo"; a never-logged exercise shows the empty history; a timed or distance exercise shows "Mejor tiempo" / "Mayor distancia".

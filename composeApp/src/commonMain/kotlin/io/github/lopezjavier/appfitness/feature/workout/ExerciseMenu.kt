@@ -32,7 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increa
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_body_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_double_dumbbell
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
@@ -85,7 +84,7 @@ internal fun ExerciseMenuButton(
 }
 
 /**
- * The exercise's actions sheet: "Descanso", "Contar mancuerna doble" (dumbbell exercises only), the warm-up calculator
+ * The exercise's actions sheet: "Descanso", the warm-up calculator
  * (all exercises), the plate calculator (barbell and dumbbell exercises) and "Actualizar peso
  * corporal" (bodyweight and assisted ones; disabled with its reason when Health Connect owns today's weight).
  */
@@ -96,7 +95,6 @@ internal fun ExerciseMenuSheet(
     exercise: LiveExercise,
     healthConnectToday: Boolean,
     onRest: () -> Unit,
-    onDoubleDumbbell: () -> Unit,
     onWarmUpCalculator: () -> Unit,
     onPlateCalculator: () -> Unit,
     onBodyWeight: () -> Unit,
@@ -113,13 +111,6 @@ internal fun ExerciseMenuSheet(
             onClick = onRest,
             testTag = "${prefix}_menu_rest",
         )
-        if (exercise.equipment == Equipment.Dumbbell) {
-            SheetActionRow(
-                label = stringResource(Res.string.live_exercise_menu_double_dumbbell),
-                onClick = onDoubleDumbbell,
-                testTag = "${prefix}_menu_double_dumbbell",
-            )
-        }
         SheetActionRow(
             label = stringResource(Res.string.live_exercise_menu_warm_up_calc),
             onClick = onWarmUpCalculator,

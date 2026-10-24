@@ -46,7 +46,7 @@ class ExerciseNavigationTest {
             Box(Modifier.size(48.dp).testTag("picker_select").clickable { onSelected("ex-9") })
         }
     }
-    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect, _ ->
+    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect, _, _ ->
         Column(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
             Text("$exerciseId $selectMode", Modifier.testTag("detail_args"))
             Box(Modifier.size(48.dp).testTag("detail_select").clickable(onClick = onSelect))

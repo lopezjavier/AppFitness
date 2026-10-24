@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
@@ -68,7 +67,6 @@ class CalculatorSheetViewModelTest {
         FakeAlertSound(),
         trainingPreferences,
         bodyMeasurements,
-        FakeExerciseOptionsRepository(),
         SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
         TimeZone.UTC,
         savedState,

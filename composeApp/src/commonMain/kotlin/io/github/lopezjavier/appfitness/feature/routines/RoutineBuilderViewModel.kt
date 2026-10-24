@@ -11,10 +11,8 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
-import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
-import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.groupWithNext
@@ -22,7 +20,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import io.github.lopezjavier.appfitness.domain.usecase.ungroup
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
-import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellDraft
 import io.github.lopezjavier.appfitness.feature.workout.calculatorUiState
 import io.github.lopezjavier.appfitness.feature.workout.persistCalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.restoredCalculatorDraft
@@ -38,8 +35,6 @@ import kotlinx.coroutines.launch
 private const val KEY_DRAFT = "builder_draft"
 private const val KEY_BASELINE = "builder_baseline"
 private const val KEY_PICKER = "builder_type_picker"
-private const val KEY_DOUBLE_EXERCISE = "builder_double_dumbbell_exercise"
-private const val KEY_DOUBLE_ENABLED = "builder_double_dumbbell_enabled"
 
 /**
  * Routine builder (US-10, US-29): name, exercises with per-set weight, reps and type, rest, reorder (drag or move
@@ -58,7 +53,6 @@ class RoutineBuilderViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     connectivity: ConnectivityObserver,
     private val preferences: TrainingPreferencesRepository,
-    private val exerciseOptions: ExerciseOptionsRepository,
 ) : ViewModel() {
     private val restored = savedState.get<String>(KEY_DRAFT)?.let { decode(it) }
     private var draft: RoutineDraft = restored ?: RoutineDraft()
@@ -80,14 +74,7 @@ class RoutineBuilderViewModel(
         }
 
     private var trainingPreferences = TrainingPreferences()
-    private var doubleDumbbellIds: Set<String> = emptySet()
     private var calculatorDraft: CalculatorDraft? = savedState.restoredCalculatorDraft()
-    private var doubleDumbbellDraft: DoubleDumbbellDraft? =
-        savedState.get<String>(KEY_DOUBLE_EXERCISE)?.let {
-            DoubleDumbbellDraft(it, savedState.get<Boolean>(KEY_DOUBLE_ENABLED) ?: false)
-        }
-    private var doubleDumbbellSaving = false
-    private var doubleDumbbellError = false
 
     init {
         // A new routine is compared against the empty draft; without a stored baseline a restored draft would
@@ -166,20 +153,7 @@ class RoutineBuilderViewModel(
 
             RoutineBuilderEvent.DismissCalculator -> updateSheets { calculatorDraft = null }
 
-            is RoutineBuilderEvent.OpenDoubleDumbbell -> openDoubleDumbbell(event.index)
-
-            is RoutineBuilderEvent.DoubleDumbbellDraftChanged -> updateSheets {
-                doubleDumbbellDraft = DoubleDumbbellDraft(event.exerciseId, event.enabled)
-                doubleDumbbellError = false
-            }
-
-            is RoutineBuilderEvent.SetDoubleDumbbell -> saveDoubleDumbbell(event.exerciseId, event.enabled)
-
-            RoutineBuilderEvent.DismissOptionSheets -> updateSheets {
-                calculatorDraft = null
-                doubleDumbbellDraft = null
-                doubleDumbbellError = false
-            }
+            RoutineBuilderEvent.DismissOptionSheets -> updateSheets { calculatorDraft = null }
 
             else -> return false
         }
@@ -286,19 +260,16 @@ class RoutineBuilderViewModel(
         }
     }
 
-    /** Best effort: a failed read keeps the defaults (1 kg handle, no double dumbbell) and never blocks. */
+    /** Best effort: a failed read keeps the defaults (1 kg handle) and never blocks. */
     private fun loadSheetData() {
         viewModelScope.launch {
             trainingPreferences = preferences.get().getOrNull() ?: TrainingPreferences()
-            doubleDumbbellIds = exerciseOptions.doubleDumbbellIdsOrDefault()
             publish()
         }
     }
 
     private fun equipmentOf(index: Int): Equipment? =
         draft.rows.getOrNull(index)?.let { catalog[it.exerciseId]?.exercise?.equipment }
-
-    private fun isDumbbell(index: Int) = equipmentOf(index) == Equipment.Dumbbell
 
     private fun updateSheets(change: () -> Unit) {
         if (phase != Phase.Editing) return
@@ -309,8 +280,6 @@ class RoutineBuilderViewModel(
 
     private fun persistSheets() {
         savedState.persistCalculatorDraft(calculatorDraft)
-        savedState[KEY_DOUBLE_EXERCISE] = doubleDumbbellDraft?.exerciseId
-        savedState[KEY_DOUBLE_ENABLED] = doubleDumbbellDraft?.enabled
     }
 
     /** Opens the calculator with the first working set's weight (empty if none) and the bar for the equipment. */
@@ -318,8 +287,6 @@ class RoutineBuilderViewModel(
         val row = draft.rows.getOrNull(index) ?: return
         val weight = row.sets.firstOrNull { it.type != SetType.WarmUp }?.weight.orEmpty()
         updateSheets {
-            doubleDumbbellDraft = null
-            doubleDumbbellError = false
             calculatorDraft =
                 CalculatorDraft(index, kind, weightText = if (kind == CalculatorKind.WarmUp) weight else "")
         }
@@ -330,37 +297,6 @@ class RoutineBuilderViewModel(
         draft = draft.withWarmUpSets(index, event.sets)
         persist()
         updateSheets { calculatorDraft = null }
-    }
-
-    private fun openDoubleDumbbell(index: Int) {
-        val row = draft.rows.getOrNull(index) ?: return
-        if (!isDumbbell(index)) return
-        updateSheets {
-            calculatorDraft = null
-            doubleDumbbellError = false
-            doubleDumbbellDraft = DoubleDumbbellDraft(row.exerciseId, row.exerciseId in doubleDumbbellIds)
-        }
-    }
-
-    private fun saveDoubleDumbbell(exerciseId: String, enabled: Boolean) {
-        if (phase != Phase.Editing || doubleDumbbellSaving) return
-        if (!online) {
-            updateSheets { doubleDumbbellError = true }
-            return
-        }
-        doubleDumbbellSaving = true
-        publish()
-        viewModelScope.launch {
-            val saved = exerciseOptions.setDoubleDumbbell(exerciseId, enabled).isSuccess
-            doubleDumbbellSaving = false
-            updateSheets {
-                doubleDumbbellError = !saved
-                if (saved) {
-                    doubleDumbbellIds = if (enabled) doubleDumbbellIds + exerciseId else doubleDumbbellIds - exerciseId
-                    doubleDumbbellDraft = null
-                }
-            }
-        }
     }
 
     private fun renderCalculator() = calculatorDraft?.takeIf { it.position in draft.rows.indices }?.let {
@@ -471,7 +407,7 @@ class RoutineBuilderViewModel(
                         canMoveDown = index < lastIndex,
                         canGroupWithNext = index < lastIndex,
                         equipment = exercise?.exercise?.equipment,
-                        isDoubleDumbbell = row.exerciseId in doubleDumbbellIds,
+                        isPerHand = exercise?.exercise?.perHand == true,
                     )
                 },
                 isOnline = online,
@@ -482,11 +418,6 @@ class RoutineBuilderViewModel(
                 calculator = calculator,
                 warmUpBlockedByCap = calculator != null && calculator.draft.kind == CalculatorKind.WarmUp &&
                     !draft.canAddWarmUps(calculator.draft.position, calculator.warmUp.size.coerceAtLeast(1)),
-                doubleDumbbellDraft = doubleDumbbellDraft?.takeIf { d ->
-                    draft.rows.any { it.exerciseId == d.exerciseId }
-                },
-                doubleDumbbellSaving = doubleDumbbellSaving,
-                doubleDumbbellError = doubleDumbbellError,
             )
         }
     }

@@ -100,7 +100,7 @@ internal fun LiveExerciseCard(
     ExerciseSheets(sheet, exercise, options, onEvent, onSheetChange = { sheet = it })
 }
 
-private enum class ExerciseSheet { None, Menu, Rest, DoubleDumbbell, BodyWeight }
+private enum class ExerciseSheet { None, Menu, Rest, BodyWeight }
 
 /** The heading is one tap target (min 48 dp) that opens the exercise; the menu button stays a sibling. */
 @Composable
@@ -134,7 +134,7 @@ private fun ExerciseHeading(
     }
 }
 
-/** The open sheet of the card (menu, rest, double dumbbell or body weight); [onSheetChange] moves between them. */
+/** The open sheet of the card (menu, rest or body weight); [onSheetChange] moves between them. */
 @Composable
 private fun ExerciseSheets(
     sheet: ExerciseSheet,
@@ -152,10 +152,6 @@ private fun ExerciseSheets(
             exercise = exercise,
             healthConnectToday = options.healthConnectToday,
             onRest = { onSheetChange(ExerciseSheet.Rest) },
-            onDoubleDumbbell = {
-                onEvent(LiveSessionEvent.DoubleDumbbellDraftChanged(exercise.exerciseId, options.doubleDumbbell))
-                onSheetChange(ExerciseSheet.DoubleDumbbell)
-            },
             onWarmUpCalculator = {
                 onEvent(LiveSessionEvent.OpenCalculator(position, CalculatorKind.WarmUp))
                 onSheetChange(ExerciseSheet.None)
@@ -169,15 +165,6 @@ private fun ExerciseSheets(
                 onSheetChange(ExerciseSheet.BodyWeight)
             },
             onDismiss = { onSheetChange(ExerciseSheet.None) },
-        )
-
-        ExerciseSheet.DoubleDumbbell -> DoubleDumbbellSheet(
-            tagPrefix = "live_exercise_$position",
-            state = DoubleDumbbellSheetState(options.doubleDumbbell, options.doubleDraft, options.saveFailed),
-            onDraftChange = { onEvent(LiveSessionEvent.DoubleDumbbellDraftChanged(exercise.exerciseId, it)) },
-            onSave = { onEvent(LiveSessionEvent.SetDoubleDumbbell(exercise.exerciseId, it)) },
-            onDismiss = { onEvent(LiveSessionEvent.DismissVolumeDrafts) },
-            onClose = { onSheetChange(ExerciseSheet.None) },
         )
 
         ExerciseSheet.BodyWeight -> BodyWeightSheet(

@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import app.cash.turbine.test
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -15,6 +14,8 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -64,9 +65,9 @@ class HistoryViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private val options = FakeExerciseOptionsRepository()
+    private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
 
-    private fun viewModel() = HistoryViewModel(repository, training, MutableClock(), bodyMeasurements, options)
+    private fun viewModel() = HistoryViewModel(repository, training, MutableClock(), bodyMeasurements, exercises)
 
     private fun HistoryViewModel.content() = assertIs<HistoryUiState.Content>(uiState.value)
 
@@ -146,9 +147,9 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun doubleDumbbellDoublesTheVolumeOfEveryRowIncludingOlderPages() = runTest(dispatcher) {
+    fun perHandDoublesTheVolumeOfEveryRowIncludingOlderPages() = runTest(dispatcher) {
         seed(25)
-        options.ids = setOf("e1")
+        exercises.rows = listOf(exerciseRow("e1", "bench").copy(perHand = true))
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(HistoryEvent.LoadMore)
@@ -160,10 +161,10 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun withoutTheOptionOrWhenItCannotBeReadTheVolumeIsUnchanged() = runTest(dispatcher) {
+    fun withoutTheFlagOrWhenTheCatalogCannotBeReadTheVolumeIsUnchanged() = runTest(dispatcher) {
         repository.completed += completedSession("s1")
-        options.ids = setOf("e1")
-        options.failRead = true
+        exercises.rows = listOf(exerciseRow("e1", "bench").copy(perHand = true))
+        exercises.failure = AppError.Network
         val model = viewModel()
 
         advanceUntilIdle()

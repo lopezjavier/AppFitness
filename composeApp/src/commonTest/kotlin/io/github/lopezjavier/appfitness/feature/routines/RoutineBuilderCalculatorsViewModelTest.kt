@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -16,7 +15,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorHint
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
-import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellDraft
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -28,13 +26,12 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** T-097f: calculators and double dumbbell in the routine builder (ADR-55). */
+/** T-097f: calculators and per-hand volume in the routine builder (ADR-55, ADR-56). */
 @Suppress("TooManyFunctions") // One method per scenario.
 class RoutineBuilderCalculatorsViewModelTest {
     private val exercises = FakeExerciseRepository(
@@ -44,7 +41,6 @@ class RoutineBuilderCalculatorsViewModelTest {
         ),
     )
     private val preferences = FakeTrainingPreferencesRepository()
-    private val options = FakeExerciseOptionsRepository()
     private val connectivity = FakeConnectivityObserver()
 
     @BeforeTest
@@ -73,7 +69,6 @@ class RoutineBuilderCalculatorsViewModelTest {
             ),
             connectivity,
             preferences,
-            options,
         )
         advanceUntilIdle()
         return vm
@@ -93,12 +88,12 @@ class RoutineBuilderCalculatorsViewModelTest {
     }
 
     @Test
-    fun rowsExposeTheirEquipment_andDoubleDumbbellState() = runTest {
-        options.ids = setOf("db")
+    fun rowsExposeTheirEquipment_andPerHandFlag() = runTest {
+        exercises.rows = exercises.rows.map { if (it.id == "db") it.copy(perHand = true) else it }
         val vm = withRows("bar", "db")
 
         assertEquals(listOf(Equipment.Barbell, Equipment.Dumbbell), vm.form().rows.map { it.equipment })
-        assertEquals(listOf(false, true), vm.form().rows.map { it.isDoubleDumbbell })
+        assertEquals(listOf(false, true), vm.form().rows.map { it.isPerHand })
     }
 
     @Test
@@ -276,76 +271,12 @@ class RoutineBuilderCalculatorsViewModelTest {
     }
 
     @Test
-    fun doubleDumbbell_opensWithTheCurrentValue_andSavesThenCloses() = runTest {
+    fun dismissingTheOptionSheets_closesTheCalculator() = runTest {
         val vm = withRows("db")
-        send(vm, RoutineBuilderEvent.OpenDoubleDumbbell(0))
-        assertEquals(DoubleDumbbellDraft("db", false), vm.form().doubleDumbbellDraft)
-
-        send(vm, RoutineBuilderEvent.DoubleDumbbellDraftChanged("db", true))
-        assertTrue(options.writes.isEmpty(), "nothing is written before Guardar")
-        send(vm, RoutineBuilderEvent.SetDoubleDumbbell("db", true))
-
-        assertEquals(listOf("db" to true), options.writes)
-        assertNull(vm.form().doubleDumbbellDraft)
-        assertTrue(vm.form().rows[0].isDoubleDumbbell)
-    }
-
-    @Test
-    fun doubleDumbbell_failureKeepsTheSheetOpenWithAnError_andRetrySucceeds() = runTest {
-        val vm = withRows("db")
-        send(vm, RoutineBuilderEvent.OpenDoubleDumbbell(0))
-        send(vm, RoutineBuilderEvent.DoubleDumbbellDraftChanged("db", true))
-        options.failWrite = true
-
-        send(vm, RoutineBuilderEvent.SetDoubleDumbbell("db", true))
-
-        assertNotNull(vm.form().doubleDumbbellDraft)
-        assertTrue(vm.form().doubleDumbbellError)
-        assertFalse(vm.form().rows[0].isDoubleDumbbell)
-
-        options.failWrite = false
-        send(vm, RoutineBuilderEvent.SetDoubleDumbbell("db", true))
-        assertNull(vm.form().doubleDumbbellDraft)
-        assertFalse(vm.form().doubleDumbbellError)
-        assertTrue(vm.form().rows[0].isDoubleDumbbell)
-    }
-
-    @Test
-    fun doubleDumbbell_offlineWritesNothing_andKeepsTheSheet() = runTest {
-        val vm = withRows("db")
-        send(vm, RoutineBuilderEvent.OpenDoubleDumbbell(0))
-        connectivity.state.value = false
-        advanceUntilIdle()
-
-        send(vm, RoutineBuilderEvent.SetDoubleDumbbell("db", true))
-
-        assertTrue(options.writes.isEmpty())
-        assertNotNull(vm.form().doubleDumbbellDraft)
-    }
-
-    @Test
-    fun doubleDumbbell_isOnlyOpenedForDumbbells_andTheDraftSurvivesRecreation() = runTest {
-        val handle = SavedStateHandle()
-        val first = withRows("bar", "db", handle = handle)
-        send(first, RoutineBuilderEvent.OpenDoubleDumbbell(0))
-        assertNull(first.form().doubleDumbbellDraft)
-
-        send(first, RoutineBuilderEvent.OpenDoubleDumbbell(1))
-        send(first, RoutineBuilderEvent.DoubleDumbbellDraftChanged("db", true))
-        val second = builder(handle)
-
-        assertEquals(DoubleDumbbellDraft("db", true), second.form().doubleDumbbellDraft)
-    }
-
-    @Test
-    fun dismissingTheOptionSheets_discardsTheDraft() = runTest {
-        val vm = withRows("db")
-        send(vm, RoutineBuilderEvent.OpenDoubleDumbbell(0))
-        send(vm, RoutineBuilderEvent.DoubleDumbbellDraftChanged("db", true))
+        send(vm, RoutineBuilderEvent.OpenCalculator(0, CalculatorKind.Discs))
 
         send(vm, RoutineBuilderEvent.DismissOptionSheets)
 
-        assertNull(vm.form().doubleDumbbellDraft)
-        assertTrue(options.writes.isEmpty())
+        assertNull(vm.form().calculator)
     }
 }

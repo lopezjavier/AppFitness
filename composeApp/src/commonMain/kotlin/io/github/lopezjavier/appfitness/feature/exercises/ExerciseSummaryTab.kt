@@ -19,6 +19,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_animation_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_no
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_yes
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_value_km
@@ -149,6 +152,21 @@ private fun DetailHeader(detail: ExerciseDetail, name: String) {
             TextPill(stringResource(detail.exercise.muscleGroup.label))
             TextPill(stringResource(detail.exercise.equipment.label))
         }
+        Text(
+            text = stringResource(
+                Res.string.exercise_detail_per_hand,
+                stringResource(
+                    if (detail.exercise.perHand) {
+                        Res.string.exercise_detail_per_hand_yes
+                    } else {
+                        Res.string.exercise_detail_per_hand_no
+                    },
+                ),
+            ),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.testTag("exercise_detail_per_hand_value"),
+        )
     }
 }
 

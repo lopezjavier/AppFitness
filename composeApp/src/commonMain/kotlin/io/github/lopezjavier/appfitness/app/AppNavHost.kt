@@ -58,7 +58,7 @@ internal typealias ExercisePickerSlot =
         onSelected: (String) -> Unit,
     ) -> Unit
 
-/** Exercise detail content: modifier, exercise id, select mode, the select action and the progress opener. */
+/** Exercise detail: modifier, id, select mode, and the select, progress and close actions. */
 internal typealias ExerciseDetailSlot =
     @Composable (
         modifier: Modifier,
@@ -66,6 +66,7 @@ internal typealias ExerciseDetailSlot =
         selectMode: Boolean,
         onSelect: () -> Unit,
         onOpenProgress: () -> Unit,
+        onClose: () -> Unit,
     ) -> Unit
 
 /** "Mis rutinas" content: its modifier (tab insets) and the opener of the builder (null id = new routine). */
@@ -241,7 +242,7 @@ internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _
 }
 
 /** Empty detail for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _, _ ->
+internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_detail_screen"))
 }
 
@@ -472,6 +473,7 @@ internal fun AppNavHost(
                 route.selectMode,
                 { navController.returnSelectedExercise(route.exerciseId) },
                 { openProgress(route.exerciseId) },
+                { navController.popBackStack() },
             )
         }
         composable<RoutineBuilderRoute> { entry ->

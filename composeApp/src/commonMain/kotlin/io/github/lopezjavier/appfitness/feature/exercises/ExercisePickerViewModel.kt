@@ -31,12 +31,14 @@ private const val KEY_FORM_NAME = "picker_form_name"
 private const val KEY_FORM_MUSCLE = "picker_form_muscle"
 private const val KEY_FORM_EQUIPMENT = "picker_form_equipment"
 private const val KEY_FORM_METRIC = "picker_form_metric"
+private const val KEY_FORM_PER_HAND = "picker_form_per_hand"
 
 /**
  * Exercise picker (US-09): the searchable, filterable list and the "create exercise" sheet. In [selectMode] a row
  * (or a freshly created exercise) is returned to the caller; otherwise it opens the detail. The search, the filters
  * and an open create form are kept in [savedState], so they survive process death (never submitted on their own).
  */
+@Suppress("TooManyFunctions") // One function per picker event plus the refresh.
 class ExercisePickerViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     private val searchExercises: SearchExercises,
@@ -99,6 +101,8 @@ class ExercisePickerViewModel(
 
             is ExercisePickerEvent.SelectCreateMetricType -> editForm { it.copy(metricType = event.metricType) }
 
+            is ExercisePickerEvent.SetCreatePerHand -> editForm { it.copy(perHand = event.perHand) }
+
             ExercisePickerEvent.SubmitCreate -> submitCreate()
         }
     }
@@ -130,7 +134,7 @@ class ExercisePickerViewModel(
         if (form == null || group == null || equipment == null) return
         editForm { it.copy(isSubmitting = true, hasError = false) }
         viewModelScope.launch {
-            repository.createCustom(form.name.trim(), group, equipment, form.metricType).fold(
+            repository.createCustom(form.name.trim(), group, equipment, form.metricType, form.perHand).fold(
                 onSuccess = { created ->
                     updateContent { it.copy(createForm = null) }
                     reloadAfterCreate()
@@ -139,6 +143,11 @@ class ExercisePickerViewModel(
                 onFailure = { editForm { it.copy(isSubmitting = false, hasError = true) } },
             )
         }
+    }
+
+    /** Reloads the catalogue after an edit or a delete made elsewhere (the session cache was invalidated). */
+    fun refresh() {
+        viewModelScope.launch { reloadAfterCreate() }
     }
 
     private suspend fun reloadAfterCreate() {
@@ -180,6 +189,7 @@ class ExercisePickerViewModel(
                     equipment = savedState.get<String>(KEY_FORM_EQUIPMENT)?.let { enumOrNull<Equipment>(it) },
                     metricType = savedState.get<String>(KEY_FORM_METRIC)?.let { enumOrNull<ExerciseMetricType>(it) }
                         ?: ExerciseMetricType.WeightReps,
+                    perHand = savedState.get<Boolean>(KEY_FORM_PER_HAND) == true,
                 )
             } else {
                 null
@@ -198,6 +208,7 @@ class ExercisePickerViewModel(
         savedState[KEY_FORM_MUSCLE] = form?.muscleGroup?.name
         savedState[KEY_FORM_EQUIPMENT] = form?.equipment?.name
         savedState[KEY_FORM_METRIC] = form?.metricType?.name
+        savedState[KEY_FORM_PER_HAND] = form?.perHand
     }
 }
 

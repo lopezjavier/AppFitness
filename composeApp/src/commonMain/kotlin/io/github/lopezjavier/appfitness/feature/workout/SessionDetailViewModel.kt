@@ -12,16 +12,15 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
-import io.github.lopezjavier.appfitness.domain.repository.ExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
-import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetEntryText
+import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -54,7 +53,6 @@ class SessionDetailViewModel(
     private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
     private val bodyMeasurements: BodyMeasurementRepository,
-    private val exerciseOptions: ExerciseOptionsRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: WorkoutSession? = null
@@ -63,8 +61,8 @@ class SessionDetailViewModel(
     /** Latest body weight for the bodyweight and assisted volume; null when unknown. */
     private var bodyWeightKg: Double? = null
 
-    /** Exercises counted double (dumbbell option); empty when none or unreadable. */
-    private var doubleDumbbellIds: Set<String> = emptySet()
+    /** Per-hand exercises (volume counts twice); empty when none or unreadable. */
+    private var perHandIds: Set<String> = emptySet()
 
     /** History of every exercise of the session; null when it could not be read (no records are shown). */
     private var history: Map<String, List<ExerciseHistoryPoint>>? = null
@@ -140,7 +138,7 @@ class SessionDetailViewModel(
                         names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: names
                         includeWarmUp = preferences.warmUpIncludedOrDefault()
                         bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
-                        doubleDumbbellIds = exerciseOptions.doubleDumbbellIdsOrDefault()
+                        perHandIds = exerciseRepository.perHandIdsOrDefault()
                         history = loadHistory(loaded)
                         recordHistory = loadRecordHistory(loaded)
                         restoreEdit(loaded)
@@ -282,12 +280,12 @@ class SessionDetailViewModel(
             recordHistory,
             includeWarmUp,
             bodyWeightKg,
-            doubleDumbbellIds,
+            perHandIds,
         )
         return SessionDetailUiState.Content(
             name = current.name,
             label = sessionDateLabel(sessionLocalDate(current.startedAt), clock.today()),
-            stats = ComputeSessionStats(current, includeWarmUp, bodyWeightKg, doubleDumbbellIds),
+            stats = ComputeSessionStats(current, includeWarmUp, bodyWeightKg, perHandIds),
             exercises = current.exercises.sortedBy { it.position }.map { exercise ->
                 DetailExercise(
                     position = exercise.position,

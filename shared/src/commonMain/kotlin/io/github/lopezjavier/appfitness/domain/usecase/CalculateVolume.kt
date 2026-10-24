@@ -10,17 +10,17 @@ import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
  * [SetEntry.Bodyweight]; max(body weight - assistance, 0) x reps for [SetEntry.Assisted]; 0 for every other variant.
  * [bodyWeightKg] is the user's latest body weight; when null it counts as 0 (bodyweight sets then carry the added load
  * only and assisted sets carry none).
- * With [doubleDumbbell] the weight x reps variants count twice (the logged weight is per dumbbell, 04 §4.7).
+ * With [perHand] the weight x reps variants count twice (the logged weight is per hand, 04 §4.7).
  */
 object CalculateVolume {
     operator fun invoke(
         sets: List<WorkoutSet>,
         includeWarmUp: Boolean = false,
         bodyWeightKg: Double? = null,
-        doubleDumbbell: Boolean = false,
+        perHand: Boolean = false,
     ): Double = sets
         .filter { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
-        .sumOf { volumeOf(it.entry, bodyWeightKg ?: 0.0, if (doubleDumbbell) 2.0 else 1.0) }
+        .sumOf { volumeOf(it.entry, bodyWeightKg ?: 0.0, if (perHand) 2.0 else 1.0) }
 
     private fun volumeOf(entry: SetEntry, bodyWeightKg: Double, factor: Double): Double = when (entry) {
         is SetEntry.WeightReps -> entry.weightKg * entry.reps * factor

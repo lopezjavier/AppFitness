@@ -152,7 +152,7 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - The type can be assigned and removed while planning (routine) and while logging.
 
 ### 4.7 Volume options
-- **Double dumbbell** (`doubleDumbbellVolume`): for a dumbbell exercise done with two dumbbells, the logged weight is per dumbbell, so `volume = 2 × weight × reps`. It is a per-exercise option stored in `exercise_options` (T-093), offered only for `equipment = dumbbell` exercises, applies to past and future sessions and to the muscle volume, and does not change the 1RM (per-dumbbell weight). Example: 20 kg × 10 → 400 kg with the option on, 200 kg off.
+- **Per-hand exercises** (`perHandVolume`): when the logged weight is per hand/side, `volume = 2 × weight × reps`. It is a flag on the exercise (`exercises.per_hand`, ADR-56): set for the catalogue by migration (any equipment, including machines and cables) and chosen by the user for manual exercises (editable later); it applies to past and future sessions and to the muscle volume, and does not change the 1RM (weight per hand). Example: 20 kg × 10 → 400 kg per hand, 200 kg without the flag.
 - **Bodyweight** (`bodyweight`/`assisted` metric types): `volume = (latest body weight ± added/assisted weight) × reps`; the latest body weight is the newest `body_measurements` row. `weighted` counts the added load only.
 
 ### 4.8 PR catalogue

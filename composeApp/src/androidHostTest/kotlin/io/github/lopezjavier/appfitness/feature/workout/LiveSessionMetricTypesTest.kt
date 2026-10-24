@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -104,7 +103,6 @@ class LiveSessionMetricTypesTest {
             FakeAlertSound(),
             FakeTrainingPreferencesRepository(),
             weights,
-            FakeExerciseOptionsRepository(),
             SaveBodyMeasurement(weights, clock, TimeZone.UTC),
             TimeZone.UTC,
             handle,

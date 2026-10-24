@@ -33,6 +33,11 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
     var createFailure: AppError? = null
     var lastCreated: Triple<String, MuscleGroup, Equipment>? = null
     var lastCreatedMetricType: ExerciseMetricType? = null
+    var lastCreatedPerHand: Boolean? = null
+    var updateCalls = 0
+    var updateFailure: AppError? = null
+    var deleteCalls = 0
+    var deleteFailure: AppError? = null
 
     override suspend fun getAll(): Result<List<Exercise>> =
         failure?.let { Result.failure(AppException(it)) } ?: Result.success(rows)
@@ -46,15 +51,45 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         metricType: ExerciseMetricType,
+        perHand: Boolean,
     ): Result<Exercise> {
         createCalls++
         lastCreated = Triple(name, muscleGroup, equipment)
         lastCreatedMetricType = metricType
+        lastCreatedPerHand = perHand
         createFailure?.let { return Result.failure(AppException(it)) }
         val created = exerciseRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
-            .copy(metricType = metricType)
+            .copy(metricType = metricType, perHand = perHand)
         rows = rows + created
         return Result.success(created)
+    }
+
+    override suspend fun updateCustom(
+        id: String,
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        perHand: Boolean,
+    ): Result<Unit> {
+        updateCalls++
+        val failure = updateFailure ?: AppError.NotFound.takeIf { rows.none { it.id == id && it.isCustom } }
+        if (failure != null) return Result.failure(AppException(failure))
+        rows = rows.map {
+            if (it.id == id) {
+                it.copy(name = name, muscleGroup = muscleGroup, equipment = equipment, perHand = perHand)
+            } else {
+                it
+            }
+        }
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteCustom(id: String): Result<Unit> {
+        deleteCalls++
+        val failure = deleteFailure ?: AppError.NotFound.takeIf { rows.none { it.id == id && it.isCustom } }
+        if (failure != null) return Result.failure(AppException(failure))
+        rows = rows.filter { it.id != id }
+        return Result.success(Unit)
     }
 }
 

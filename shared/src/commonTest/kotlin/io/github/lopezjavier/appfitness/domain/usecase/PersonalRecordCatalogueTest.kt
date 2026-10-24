@@ -29,8 +29,8 @@ class PersonalRecordCatalogueTest {
         startedAt: Instant = t0,
         includeWarmUp: Boolean = false,
         bodyWeightKg: Double? = null,
-        doubleDumbbell: Boolean = false,
-    ) = PersonalRecordCatalogue.fromSets(id, startedAt, sets, includeWarmUp, bodyWeightKg, doubleDumbbell)
+        perHand: Boolean = false,
+    ) = PersonalRecordCatalogue.fromSets(id, startedAt, sets, includeWarmUp, bodyWeightKg, perHand)
 
     private val squat = listOf(lift(1, 100.0, 5), lift(2, 85.0, 8))
 
@@ -88,9 +88,9 @@ class PersonalRecordCatalogueTest {
     }
 
     @Test
-    fun doubleDumbbellRaisesVolumeButNotTheOneRepMax() {
+    fun perHandRaisesVolumeButNotTheOneRepMax() {
         val single = records(listOf(lift(1, 20.0, 10)))
-        val double = records(listOf(lift(1, 20.0, 10)), doubleDumbbell = true)
+        val double = records(listOf(lift(1, 20.0, 10)), perHand = true)
 
         assertEquals(400.0, double.sessionVolume)
         assertEquals(400.0, double.bestSet)

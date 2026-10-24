@@ -13,7 +13,7 @@ object ComputeSessionStats {
         session: WorkoutSession,
         includeWarmUp: Boolean = false,
         bodyWeightKg: Double? = null,
-        doubleDumbbellExerciseIds: Set<String> = emptySet(),
+        perHandExerciseIds: Set<String> = emptySet(),
     ): SessionStats = SessionStats(
         durationSeconds = session.endedAt?.let {
             SessionDuration.seconds(session.startedAt, it, session.pausedAt, session.pausedTotalSeconds, it)
@@ -22,7 +22,7 @@ object ComputeSessionStats {
             exercise.sets.count { it.isCompleted && (includeWarmUp || it.setType != SetType.WarmUp) }
         },
         volumeKg = session.exercises.sumOf {
-            CalculateVolume(it.sets, includeWarmUp, bodyWeightKg, it.exerciseId in doubleDumbbellExerciseIds)
+            CalculateVolume(it.sets, includeWarmUp, bodyWeightKg, it.exerciseId in perHandExerciseIds)
         },
     )
 }

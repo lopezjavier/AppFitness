@@ -200,9 +200,14 @@ Feature: Exercise metrics
 ```gherkin
 Feature: Volume options
 
-  Scenario: Double dumbbell
-    When the user enables "Contar mancuerna doble" for a dumbbell exercise
-    Then the volume doubles the logged weight
+  Scenario: Volume of a per-hand exercise
+    Given "Curl martillo" is marked "Pesas por mano" (catalogue)
+    When the user logs 20 kg x 10
+    Then its volume is 400 kg (and 200 kg for an exercise without the flag)
+
+  Scenario: Hand count when creating an exercise
+    When the user creates an exercise and switches on "Se usa una pesa en cada mano"
+    Then the exercise is created with the flag and its volume doubles the logged weight
 
   Scenario: Bodyweight update
     When the user logs a bodyweight exercise
@@ -211,7 +216,7 @@ Feature: Volume options
 
 **Technical notes**
 - `04-business-rules.md` §4.7.
-- T-093 (ADR-54 amendment): option in table `exercise_options`, SQL `volume_factor`, RPC `set_exercise_double_dumbbell`; the entry is shown only for dumbbell exercises, the 1RM is not doubled. The body-weight update reuses `SaveBodyMeasurement` (today's manual weight, Health Connect write-back included) and is disabled when today already has a Health Connect weight (ADR-47). Updating the weight re-values past bodyweight sessions (volume uses the latest weight at read time).
+- T-093 / T-097i (ADR-54, ADR-56): the volume doubling is the flag `exercises.per_hand` (SQL `volume_factor`); the per-user `exercise_options` table and its RPC were dropped; the 1RM is not doubled. The body-weight update reuses `SaveBodyMeasurement` (today's manual weight, Health Connect write-back included) and is disabled when today already has a Health Connect weight (ADR-47). Updating the weight re-values past bodyweight sessions (volume uses the latest weight at read time).
 
 ---
 

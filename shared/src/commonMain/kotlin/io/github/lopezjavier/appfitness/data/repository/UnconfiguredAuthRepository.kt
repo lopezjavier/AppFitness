@@ -125,7 +125,18 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         metricType: ExerciseMetricType,
+        perHand: Boolean,
     ): Result<Exercise> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun updateCustom(
+        id: String,
+        name: String,
+        muscleGroup: MuscleGroup,
+        equipment: Equipment,
+        perHand: Boolean,
+    ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun deleteCustom(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Routine counterpart of [UnconfiguredAuthRepository]: there is no server to read or write. */

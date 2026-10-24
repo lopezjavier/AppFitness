@@ -7,7 +7,6 @@ import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorUiState
-import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellDraft
 
 /**
  * One planned set of a row. [setId] is stable while editing (the list key). [weight] and [reps] are the text as typed
@@ -44,8 +43,8 @@ data class BuilderRowUi(
     val targetRpe: Double? = null,
     /** Equipment of the exercise; null while the catalog loads (equipment-dependent menu entries stay hidden). */
     val equipment: Equipment? = null,
-    /** "Contar mancuerna doble" is on for this exercise (exercise_options, ADR-54). */
-    val isDoubleDumbbell: Boolean = false,
+    /** The logged weight is per hand (`Exercise.perHand`): volume counts it twice. */
+    val isPerHand: Boolean = false,
 ) {
     val canAddSet: Boolean get() = plannedSets.size < RoutineBounds.SETS_MAX
     val canRemoveSet: Boolean get() = plannedSets.size > RoutineBounds.SETS_MIN
@@ -76,10 +75,6 @@ sealed interface RoutineBuilderUiState {
         val calculator: CalculatorUiState? = null,
         /** True when inserting the calculator's warm-ups would exceed the sets cap (the action is disabled). */
         val warmUpBlockedByCap: Boolean = false,
-        /** The open "Contar mancuerna doble" sheet; saved immediately with its own Guardar, not with the routine. */
-        val doubleDumbbellDraft: DoubleDumbbellDraft? = null,
-        val doubleDumbbellSaving: Boolean = false,
-        val doubleDumbbellError: Boolean = false,
     ) : RoutineBuilderUiState {
         val canSave: Boolean
             get() = name.isNotBlank() && rows.isNotEmpty() && isOnline && !isSaving &&
@@ -145,15 +140,7 @@ sealed interface RoutineBuilderEvent {
 
     data object DismissCalculator : RoutineBuilderEvent
 
-    /** Opens "Contar mancuerna doble" for the dumbbell row [index]. */
-    data class OpenDoubleDumbbell(val index: Int) : RoutineBuilderEvent
-
-    data class DoubleDumbbellDraftChanged(val exerciseId: String, val enabled: Boolean) : RoutineBuilderEvent
-
-    /** Writes the exercise option now (needs a connection); on failure the sheet stays open with an error. */
-    data class SetDoubleDumbbell(val exerciseId: String, val enabled: Boolean) : RoutineBuilderEvent
-
-    /** Closes every option sheet (calculators and double dumbbell), discarding their drafts. */
+    /** Closes every option sheet (calculators), discarding their drafts. */
     data object DismissOptionSheets : RoutineBuilderEvent
 
     data object Save : RoutineBuilderEvent

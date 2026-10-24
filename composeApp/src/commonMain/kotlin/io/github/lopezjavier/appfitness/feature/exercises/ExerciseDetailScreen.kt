@@ -6,29 +6,52 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_confirm
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_deleting
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_error
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_delete_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
@@ -36,8 +59,15 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -50,7 +80,32 @@ class ExerciseDetailActions(
     val onLoadMoreHistory: () -> Unit = {},
     val onRetryHistory: () -> Unit = {},
     val onRetryHistoryPage: () -> Unit = {},
+    val onOpenEdit: () -> Unit = {},
+    val onDismissEdit: () -> Unit = {},
+    val onEditName: (String) -> Unit = {},
+    val onEditMuscleGroup: (MuscleGroup) -> Unit = {},
+    val onEditEquipment: (Equipment) -> Unit = {},
+    val onEditPerHand: (Boolean) -> Unit = {},
+    val onSubmitEdit: () -> Unit = {},
+    val onOpenDelete: () -> Unit = {},
+    val onConfirmDelete: () -> Unit = {},
+    val onDismissDelete: () -> Unit = {},
+    val onDismissInUse: () -> Unit = {},
 )
+
+/** Carries "Ejercicio eliminado" from the detail that deleted an exercise to the list it returns to. */
+object ExerciseDeletedNotice {
+    private val pendingFlow = MutableStateFlow(false)
+    val pending: StateFlow<Boolean> = pendingFlow.asStateFlow()
+
+    fun post() {
+        pendingFlow.value = true
+    }
+
+    fun consume() {
+        pendingFlow.value = false
+    }
+}
 
 /** Stateful detail: connects [ExerciseDetailViewModel] to the stateless [ExerciseDetailScreen]. */
 @Composable
@@ -60,10 +115,22 @@ fun ExerciseDetailRoot(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenProgress: () -> Unit = {},
+    onClose: () -> Unit = {},
     viewModel: ExerciseDetailViewModel = koinViewModel(key = exerciseId, parameters = { parametersOf(exerciseId) }),
     clock: Clock = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentClose by rememberUpdatedState(onClose)
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                ExerciseDetailEffect.Deleted -> {
+                    ExerciseDeletedNotice.post()
+                    currentClose()
+                }
+            }
+        }
+    }
     val actions = remember(viewModel) {
         ExerciseDetailActions(
             onSelectTab = viewModel::selectTab,
@@ -71,6 +138,17 @@ fun ExerciseDetailRoot(
             onLoadMoreHistory = viewModel::loadMoreHistory,
             onRetryHistory = viewModel::retryHistory,
             onRetryHistoryPage = viewModel::retryHistoryPage,
+            onOpenEdit = viewModel::openEdit,
+            onDismissEdit = viewModel::dismissEdit,
+            onEditName = viewModel::setEditName,
+            onEditMuscleGroup = viewModel::selectEditMuscleGroup,
+            onEditEquipment = viewModel::selectEditEquipment,
+            onEditPerHand = viewModel::setEditPerHand,
+            onSubmitEdit = viewModel::submitEdit,
+            onOpenDelete = viewModel::openDelete,
+            onConfirmDelete = viewModel::confirmDelete,
+            onDismissDelete = viewModel::dismissDelete,
+            onDismissInUse = viewModel::dismissInUse,
         )
     }
     ExerciseDetailScreen(
@@ -115,7 +193,15 @@ fun ExerciseDetailScreen(
                         )
                     }
 
-                is ExerciseDetailUiState.Loaded -> DetailContent(state, today, onOpenProgress, actions)
+                is ExerciseDetailUiState.Loaded -> {
+                    Column(Modifier.fillMaxSize()) {
+                        if (state.canManage) ManageActions(actions)
+                        Box(Modifier.weight(1f).fillMaxWidth()) {
+                            DetailContent(state, today, onOpenProgress, actions)
+                        }
+                    }
+                    ManageOverlays(state, actions)
+                }
             }
         }
         if (selectMode && state is ExerciseDetailUiState.Loaded) {
@@ -144,6 +230,88 @@ private fun DetailLoading() {
 }
 
 private const val NAME_FRACTION = 0.6f
+
+/** "Editar" and "Eliminar" icon buttons (48 dp each) under the top bar; manual exercises only. */
+@Composable
+private fun ManageActions(actions: ExerciseDetailActions) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        AppIconButton(
+            contentDescription = stringResource(Res.string.exercise_detail_edit_cd),
+            icon = Res.drawable.ic_edit,
+            testTag = "exercise_detail_edit",
+            onClick = actions.onOpenEdit,
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.exercise_detail_delete_cd),
+            icon = Res.drawable.ic_delete,
+            testTag = "exercise_detail_delete",
+            onClick = actions.onOpenDelete,
+            tint = AppTheme.colors.error,
+        )
+    }
+}
+
+/** The edit sheet, the delete confirmation and the "en uso" snackbar of a manual exercise. */
+@Composable
+private fun ManageOverlays(state: ExerciseDetailUiState.Loaded, actions: ExerciseDetailActions) {
+    state.editForm?.let { form ->
+        EditExerciseSheet(
+            form = form,
+            actions = ExerciseFormActions(
+                onName = actions.onEditName,
+                onMuscleGroup = actions.onEditMuscleGroup,
+                onEquipment = actions.onEditEquipment,
+                onPerHand = actions.onEditPerHand,
+                onMetricType = {},
+                onSubmit = actions.onSubmitEdit,
+                onDismiss = actions.onDismissEdit,
+            ),
+        )
+    }
+    state.deleteDialog?.let { dialog ->
+        AppConfirmDialog(
+            title = stringResource(Res.string.exercise_delete_title),
+            message = if (dialog.hasError) {
+                stringResource(Res.string.exercise_delete_error)
+            } else {
+                stringResource(Res.string.exercise_delete_message, state.detail.name)
+            },
+            confirmLabel = stringResource(
+                if (dialog.isDeleting) Res.string.exercise_delete_deleting else Res.string.exercise_delete_confirm,
+            ),
+            cancelLabel = stringResource(Res.string.exercise_delete_cancel),
+            onConfirm = actions.onConfirmDelete,
+            onDismiss = actions.onDismissDelete,
+            testTagPrefix = "exercise_detail_delete",
+        )
+    }
+    state.inUse?.let { inUse -> InUseMessage(inUse, actions.onDismissInUse) }
+}
+
+@Composable
+private fun InUseMessage(inUse: AppError.InUse, onDismiss: () -> Unit) {
+    val message = stringResource(
+        Res.string.exercise_in_use_message,
+        pluralStringResource(Res.plurals.exercise_in_use_sets, inUse.sets, inUse.sets),
+        pluralStringResource(Res.plurals.exercise_in_use_routines, inUse.routines, inUse.routines),
+    )
+    val host = remember { SnackbarHostState() }
+    val currentDismiss by rememberUpdatedState(onDismiss)
+    LaunchedEffect(inUse) {
+        host.showSnackbar(message)
+        currentDismiss()
+    }
+    Box(Modifier.fillMaxSize().padding(Spacing.screenMargin), contentAlignment = Alignment.BottomCenter) {
+        SnackbarHost(host) { data ->
+            Snackbar {
+                Text(data.visuals.message, Modifier.testTag("exercise_detail_in_use_message"))
+            }
+        }
+    }
+}
 
 @Composable
 private fun DetailContent(

@@ -17,6 +17,9 @@ sealed interface AppError {
 
     /** A saved meal ("comida") with that name already exists (unique violation on the user's template names). */
     data object NameAlreadyExists : AppError
+
+    /** A custom exercise cannot be deleted while [sets] logged sets or [routines] routine entries reference it. */
+    data class InUse(val sets: Int, val routines: Int) : AppError
 }
 
 /** Throwable carrier of an [AppError], used as the failure of a [Result]. */

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
@@ -49,6 +50,8 @@ import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
+import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
+import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -147,7 +150,6 @@ class DraftRestorationTest {
                                 LoadExerciseCatalog(exercises, library),
                                 connectivity,
                                 FakeTrainingPreferencesRepository(),
-                                FakeExerciseOptionsRepository(),
                             ).also {
                                 current =
                                     it
@@ -201,7 +203,6 @@ class DraftRestorationTest {
                                 LoadExerciseCatalog(repo, library),
                                 connectivity,
                                 FakeTrainingPreferencesRepository(),
-                                FakeExerciseOptionsRepository(),
                             )
                         }
                     RoutineBuilderRoot(
@@ -328,6 +329,86 @@ class DraftRestorationTest {
         rule.onNodeWithTag("create_exercise_metric_type_weight_reps").assertIsNotSelected()
     }
 
+    @Test
+    fun createExerciseForm_keepsThePerHandSwitchAfterRecreation() {
+        val tester = StateRestorationTester(rule)
+        showPicker(tester, SavedStateHandle())
+        rule.onNodeWithTag("exercise_picker_search").performTextInput("Curl unilateral")
+        rule.onNodeWithTag("exercise_picker_create_button").performClick()
+        rule.onNodeWithTag("exercise_create_per_hand_switch").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_create_per_hand_switch").performScrollTo().assertIsOn()
+    }
+
+    private fun showDetail(tester: StateRestorationTester, handle: SavedStateHandle) {
+        tester.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    val vm =
+                        remember {
+                            ExerciseDetailViewModel(
+                                "mine",
+                                LoadExerciseCatalog(exercises, library),
+                                exercises,
+                                FakeWorkoutSessionRepository(),
+                                handle,
+                            )
+                        }
+                    ExerciseDetailRoot(
+                        exerciseId = "mine",
+                        selectMode = false,
+                        onSelect = {},
+                        viewModel = vm,
+                        clock = MutableClock(),
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun editExerciseForm_keepsTheEditedValuesAfterRecreation() {
+        exercises.rows = exercises.rows +
+            exerciseRow("mine", null, MuscleGroup.Chest, Equipment.Machine, "Press Hammer", custom = true)
+        val tester = StateRestorationTester(rule)
+        showDetail(tester, SavedStateHandle())
+        rule.onNodeWithTag("exercise_detail_edit").performClick()
+        rule.onNodeWithTag("exercise_edit_name").performTextClearance()
+        rule.onNodeWithTag("exercise_edit_name").performTextInput("Press unilateral")
+        rule.onNodeWithTag("exercise_edit_muscle_back").performClick()
+        rule.onNodeWithTag("exercise_edit_per_hand_switch").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_edit_sheet").assertIsDisplayed()
+        rule.onNodeWithTag("exercise_edit_name").assertTextContains("Press unilateral")
+        rule.onNodeWithTag("exercise_edit_per_hand_switch").performScrollTo().assertIsOn()
+        assertEquals(0, exercises.updateCalls)
+    }
+
+    @Test
+    fun deleteConfirmation_staysOpenAfterRecreation() {
+        exercises.rows = exercises.rows +
+            exerciseRow("mine", null, MuscleGroup.Chest, Equipment.Machine, "Press Hammer", custom = true)
+        val tester = StateRestorationTester(rule)
+        showDetail(tester, SavedStateHandle())
+        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_detail_delete_confirm").assertIsDisplayed()
+        assertEquals(0, exercises.deleteCalls)
+    }
+
     // -- "Corregir serie" sheet -------------------------------------------------------------------------------------
 
     @Test
@@ -348,7 +429,6 @@ class DraftRestorationTest {
                             MutableClock(),
                             FakeTrainingPreferencesRepository(),
                             FakeWeightRepository(),
-                            FakeExerciseOptionsRepository(),
                             handle,
                         )
                     }
