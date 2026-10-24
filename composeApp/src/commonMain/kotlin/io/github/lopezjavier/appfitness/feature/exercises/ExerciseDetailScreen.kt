@@ -194,11 +194,8 @@ fun ExerciseDetailScreen(
                     }
 
                 is ExerciseDetailUiState.Loaded -> {
-                    Column(Modifier.fillMaxSize()) {
-                        if (state.canManage) ManageActions(actions)
-                        Box(Modifier.weight(1f).fillMaxWidth()) {
-                            DetailContent(state, today, onOpenProgress, actions)
-                        }
+                    Box(Modifier.fillMaxSize()) {
+                        DetailContent(state, today, onOpenProgress, actions)
                     }
                     ManageOverlays(state, actions)
                 }
@@ -231,13 +228,10 @@ private fun DetailLoading() {
 
 private const val NAME_FRACTION = 0.6f
 
-/** "Editar" and "Eliminar" icon buttons (48 dp each) under the top bar; manual exercises only. */
+/** "Editar" and "Eliminar" icon buttons (48 dp each) in the exercise name row; manual exercises only. */
 @Composable
 private fun ManageActions(actions: ExerciseDetailActions) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
-        horizontalArrangement = Arrangement.End,
-    ) {
+    Row {
         AppIconButton(
             contentDescription = stringResource(Res.string.exercise_detail_edit_cd),
             icon = Res.drawable.ic_edit,
@@ -347,6 +341,11 @@ private fun DetailContent(
                         onRetryRecords = actions.onRetryRecords,
                         modifier = Modifier.fillMaxSize(),
                         scrollState = summaryScroll,
+                        nameActions = if (state.canManage) {
+                            { ManageActions(actions) }
+                        } else {
+                            null
+                        },
                     )
 
                     ExerciseDetailTab.History -> ExerciseHistoryTab(

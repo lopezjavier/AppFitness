@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** re-present Checkpoint E6-A (T-097j done). Last merged: T-097i (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-097k (E6-A feedback), then re-present Checkpoint E6-A. Last merged: T-097j (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2561,6 +2561,18 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Status:** done (2026-10-24, PR pending).
 
 **Dependencies:** T-097i · **Estimated scope:** S
+
+---
+
+## T-097k: Edit and delete buttons in the exercise name row
+
+**Story:** US-09 · **Flow:** UI · **Scenarios:** Editing a manual exercise; Deleting a manual exercise (T-097i)
+
+**Description:** User feedback at the E6-A re-test: on the detail of a manual exercise, "Editar" and "Eliminar" sit in their own row above the content. Move them into the same row as the exercise name (end-aligned, 48 dp targets, same testTags and descriptions). Built-in exercises show no buttons. Layout only; no behaviour change.
+
+**Status:** pending.
+
+**Dependencies:** T-097j · **Estimated scope:** XS
 
 ---
 
