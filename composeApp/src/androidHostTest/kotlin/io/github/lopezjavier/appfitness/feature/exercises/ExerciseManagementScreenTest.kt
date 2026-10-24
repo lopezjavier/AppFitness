@@ -183,6 +183,22 @@ class ExerciseManagementScreenTest {
     }
 
     @Test
+    fun aManualExercise_showsEditAndDeleteInTheSameRowAsTheName_endAligned() {
+        showDetail("mine")
+
+        val name = rule.onNodeWithTag("exercise_detail_name").getUnclippedBoundsInRoot()
+        val edit = rule.onNodeWithTag("exercise_detail_edit").getUnclippedBoundsInRoot()
+        val delete = rule.onNodeWithTag("exercise_detail_delete").getUnclippedBoundsInRoot()
+        val rowTop = minOf(name.top, edit.top)
+        val rowBottom = maxOf(name.bottom, edit.bottom)
+        assertTrue(edit.top < name.bottom && name.top < edit.bottom)
+        assertTrue(delete.top < name.bottom && name.top < delete.bottom)
+        assertTrue(rowBottom - rowTop <= 56.dp)
+        assertTrue(name.right <= edit.left)
+        assertTrue(edit.right <= delete.left)
+    }
+
+    @Test
     fun aCatalogueExercise_hasNoEditOrDelete_andShowsThePerHandValue() {
         showDetail("cat")
 
