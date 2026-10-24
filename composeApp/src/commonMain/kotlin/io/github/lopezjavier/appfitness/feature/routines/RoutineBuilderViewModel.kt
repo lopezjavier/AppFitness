@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -24,10 +23,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.ungroup
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellDraft
-import io.github.lopezjavier.appfitness.feature.workout.barFor
 import io.github.lopezjavier.appfitness.feature.workout.calculatorUiState
 import io.github.lopezjavier.appfitness.feature.workout.persistCalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.restoredCalculatorDraft
+import io.github.lopezjavier.appfitness.feature.workout.withDiscCount
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -150,11 +149,10 @@ class RoutineBuilderViewModel(
             is RoutineBuilderEvent.CalculatorWeightChanged ->
                 updateSheets { calculatorDraft = calculatorDraft?.copy(weightText = event.text) }
 
-            is RoutineBuilderEvent.CalculatorBarChanged -> updateSheets {
+            is RoutineBuilderEvent.DiscCountChanged -> updateSheets {
                 val draft = calculatorDraft
-                val picksBar = draft?.kind == CalculatorKind.Plates && event.barKg in CalculatorSettings.BARS_KG
-                if (draft != null && picksBar && !isDumbbell(draft.position)) {
-                    calculatorDraft = draft.copy(barKg = event.barKg)
+                if (draft?.kind == CalculatorKind.Discs && event.weightKg in trainingPreferences.plateKg) {
+                    calculatorDraft = draft.withDiscCount(event.weightKg, event.count)
                 }
             }
 
@@ -319,11 +317,11 @@ class RoutineBuilderViewModel(
     private fun openCalculator(index: Int, kind: CalculatorKind) {
         val row = draft.rows.getOrNull(index) ?: return
         val weight = row.sets.firstOrNull { it.type != SetType.WarmUp }?.weight.orEmpty()
-        val bar = barFor(trainingPreferences.barWeightKg, equipmentOf(index), trainingPreferences)
         updateSheets {
             doubleDumbbellDraft = null
             doubleDumbbellError = false
-            calculatorDraft = CalculatorDraft(index, kind, weight, bar)
+            calculatorDraft =
+                CalculatorDraft(index, kind, weightText = if (kind == CalculatorKind.WarmUp) weight else "")
         }
     }
 

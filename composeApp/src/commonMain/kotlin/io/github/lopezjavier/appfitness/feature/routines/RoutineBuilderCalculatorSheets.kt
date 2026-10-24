@@ -9,9 +9,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_warm_up_cap
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorActions
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
+import io.github.lopezjavier.appfitness.feature.workout.DiscLoaderSheet
 import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellSheet
 import io.github.lopezjavier.appfitness.feature.workout.DoubleDumbbellSheetState
-import io.github.lopezjavier.appfitness.feature.workout.PlateCalculatorSheet
 import io.github.lopezjavier.appfitness.feature.workout.WarmUpCalculatorSheet
 import org.jetbrains.compose.resources.stringResource
 
@@ -27,7 +27,7 @@ internal fun BuilderOptionSheets(state: RoutineBuilderUiState.Editing, onEvent: 
         val prefix = "routine_builder_$index"
         val actions = CalculatorActions(
             onWeight = { onEvent(RoutineBuilderEvent.CalculatorWeightChanged(it)) },
-            onBar = { onEvent(RoutineBuilderEvent.CalculatorBarChanged(it)) },
+            onDiscCount = { kg, count -> onEvent(RoutineBuilderEvent.DiscCountChanged(kg, count)) },
             onWarmUpSets = { onEvent(RoutineBuilderEvent.CalculatorWarmUpSetsChanged(it)) },
             onAddWarmUp = { onEvent(RoutineBuilderEvent.AddWarmUpSets(index, it)) },
             onDismiss = { onEvent(RoutineBuilderEvent.DismissCalculator) },
@@ -40,7 +40,7 @@ internal fun BuilderOptionSheets(state: RoutineBuilderUiState.Editing, onEvent: 
                 capHint = capHint(state, index),
             )
 
-            CalculatorKind.Plates -> PlateCalculatorSheet(prefix, calculator, actions)
+            CalculatorKind.Discs -> DiscLoaderSheet(prefix, calculator, actions)
         }
     }
     state.doubleDumbbellDraft?.let { draft ->

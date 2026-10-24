@@ -386,7 +386,7 @@ private fun CalculatorMenuRows(
     if (row.equipment == Equipment.Barbell || row.equipment == Equipment.Dumbbell) {
         SheetActionRow(
             label = stringResource(Res.string.live_exercise_menu_plate_calc),
-            onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Plates)) },
+            onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Discs)) },
             testTag = "routine_builder_plate_calc_$index",
         )
     }

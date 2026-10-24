@@ -131,12 +131,6 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetBarWeight -> edit { it.copy(calculators = it.calculators.withBar(event.kg)) }
 
-            is PreferencesEvent.SetPlateRounding ->
-                edit { it.copy(calculators = it.calculators.withPlateRounding(event.kg)) }
-
-            is PreferencesEvent.SetDumbbellRounding ->
-                edit { it.copy(calculators = it.calculators.withDumbbellRounding(event.kg)) }
-
             is PreferencesEvent.SetDumbbellHandle ->
                 edit { it.copy(calculators = it.calculators.withDumbbellHandle(event.kg)) }
 

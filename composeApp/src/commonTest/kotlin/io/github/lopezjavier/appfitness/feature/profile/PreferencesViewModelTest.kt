@@ -879,12 +879,13 @@ class PreferencesViewModelTest {
     @Test
     fun calculators_loadTheSavedValues() = runTest {
         training.result = Result.success(
-            TrainingPreferences(barWeightKg = 15.0, plateKg = listOf(20.0, 5.0), plateRoundingKg = 5.0),
+            TrainingPreferences(barWeightKg = 15.0, plateKg = listOf(20.0, 5.0)),
         )
 
         val (_, state) = loaded()
 
-        assertEquals(CalculatorSettings(15.0, listOf(20.0, 5.0), 5.0, 2.0), state().form.calculators)
+        assertEquals(CalculatorSettings(15.0, listOf(20.0, 5.0)), state().form.calculators)
+        assertEquals(10.0, state().form.calculators.roundingKg)
         assertFalse(state().canSave)
     }
 
@@ -893,8 +894,6 @@ class PreferencesViewModelTest {
         val (viewModel, state) = loaded()
 
         viewModel.onEvent(PreferencesEvent.SetBarWeight(7.5))
-        viewModel.onEvent(PreferencesEvent.SetPlateRounding(5.0))
-        viewModel.onEvent(PreferencesEvent.SetDumbbellRounding(1.0))
         viewModel.onEvent(PreferencesEvent.SetPlateEnabled(25.0, enabled = false))
         advanceUntilIdle()
 
@@ -903,24 +902,18 @@ class PreferencesViewModelTest {
         viewModel.onEvent(PreferencesEvent.Save)
         advanceUntilIdle()
 
-        val expected = CalculatorSettings(
-            7.5,
-            CalculatorSettings.PLATE_CATALOGUE - 25.0,
-            5.0,
-            1.0,
-        )
+        val expected = CalculatorSettings(7.5, CalculatorSettings.PLATE_CATALOGUE - 25.0)
         assertEquals(expected, profile.preferenceSaves.single().calculators)
         assertFalse(state().canSave)
     }
 
     @Test
-    fun roundingSteps_areClampedToTheOfferedRange() = runTest {
-        val (viewModel, state) = loaded()
+    fun aDraftSavedBeforeAdr56_withRoundingFields_stillRestores() {
+        val old = """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","strategy":"Deficit","adjustment":-400,""" +
+            """"proteinPct":30,"carbsPct":40,"fatPct":30,"plateRoundingKg":5.0,"dumbbellRoundingKg":1.0}"""
 
-        viewModel.onEvent(PreferencesEvent.SetPlateRounding(0.0))
-        assertEquals(0.5, state().form.calculators.plateRoundingKg)
-        viewModel.onEvent(PreferencesEvent.SetDumbbellRounding(40.0))
-        assertEquals(10.0, state().form.calculators.dumbbellRoundingKg)
+        assertEquals("Ana", decodeDraft(old)?.name)
     }
 
     @Test

@@ -2,15 +2,9 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 
-/** Practical range of the rounding steppers (the database allows up to 25 kg). */
+/** Practical range of the dumbbell handle stepper (the database allows up to 25 kg). */
 internal const val MIN_ROUNDING_KG = 0.5
 internal const val MAX_ROUNDING_KG = 10.0
-
-internal fun CalculatorSettings.withPlateRounding(kg: Double) =
-    copy(plateRoundingKg = kg.coerceIn(MIN_ROUNDING_KG, MAX_ROUNDING_KG))
-
-internal fun CalculatorSettings.withDumbbellRounding(kg: Double) =
-    copy(dumbbellRoundingKg = kg.coerceIn(MIN_ROUNDING_KG, MAX_ROUNDING_KG))
 
 internal fun CalculatorSettings.withDumbbellHandle(kg: Double) =
     copy(dumbbellHandleKg = kg.coerceIn(MIN_ROUNDING_KG, MAX_ROUNDING_KG))

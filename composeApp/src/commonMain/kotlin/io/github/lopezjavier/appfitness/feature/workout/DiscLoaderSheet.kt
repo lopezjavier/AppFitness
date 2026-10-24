@@ -1,101 +1,119 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.help_plate_calc_body
-import io.github.lopezjavier.appfitness.composeapp.resources.help_plate_calc_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_add_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_disc_label
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_per_side
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_remove_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_state
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_title
+import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_total
+import io.github.lopezjavier.appfitness.composeapp.resources.help_disc_loader_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_disc_loader_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_label
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_only
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_close
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_handle_label
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_missing
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_not_exact
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_plate_title
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_plates_line_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_plates_per_side
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_target_weight
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DiscStepperRow
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.domain.model.PlateResult
+import io.github.lopezjavier.appfitness.domain.usecase.DiscLoader
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
-import io.github.lopezjavier.appfitness.domain.usecase.perSideText
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Plate calculator: read-only, the result follows the target weight and bar as they change. "Cerrar" is the pinned
- * action; nothing is stored.
+ * Disc loader (US-33, ADR-56): one stepper per enabled plate (heaviest first) with the discs on ONE side; the same
+ * go on the other side. The total (bar or handle plus both sides) and "Cerrar" are pinned below the scrolling list.
+ * Read-only: nothing is stored or applied.
  */
 @Composable
-internal fun PlateCalculatorSheet(tagPrefix: String, calculator: CalculatorUiState, actions: CalculatorActions) {
-    val tag = "${tagPrefix}_plate_calc"
+internal fun DiscLoaderSheet(tagPrefix: String, calculator: CalculatorUiState, actions: CalculatorActions) {
+    val tag = "${tagPrefix}_disc_loader"
     CalculatorSheetFrame(
         tag = tag,
-        title = stringResource(Res.string.live_calc_plate_title),
-        weightLabel = stringResource(Res.string.live_calc_target_weight),
+        title = stringResource(Res.string.disc_loader_title),
+        weightLabel = "",
+        showWeightField = false,
         calculator = calculator,
         actions = actions,
         help = CalculatorHelp(
-            stringResource(Res.string.help_plate_calc_cd),
-            stringResource(Res.string.help_plate_calc_body),
-            "plate_calc_help",
+            stringResource(Res.string.help_disc_loader_cd),
+            stringResource(Res.string.help_disc_loader_body),
+            "${tag}_help",
         ),
-        results = { PlateResults(tag, calculator) },
+        results = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                BarLabel(tag, calculator)
+                calculator.availableDiscs.forEach { kg -> DiscRow(tag, kg, calculator, actions) }
+            }
+        },
         action = {
-            SecondaryButton(
-                text = stringResource(Res.string.live_calc_close),
-                onClick = actions.onDismiss,
-                modifier = Modifier.fillMaxWidth().testTag("${tag}_close"),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                DiscTotals(tag, calculator)
+                SecondaryButton(
+                    text = stringResource(Res.string.live_calc_close),
+                    onClick = actions.onDismiss,
+                    modifier = Modifier.fillMaxWidth().testTag("${tag}_close"),
+                )
+            }
         },
     )
 }
 
 @Composable
-private fun PlateResults(tag: String, calculator: CalculatorUiState) {
-    val plates = calculator.plates
-    val target = calculator.weightKg
+private fun DiscRow(tag: String, kg: Double, calculator: CalculatorUiState, actions: CalculatorActions) {
+    val kgText = GhostData.weightText(kg)
+    val count = calculator.draft.discs[kg] ?: 0
+    DiscStepperRow(
+        label = stringResource(Res.string.disc_loader_disc_label, kgText),
+        count = count,
+        maxCount = DiscLoader.MAX_DISCS_PER_WEIGHT,
+        onCountChange = { actions.onDiscCount(kg, it) },
+        decrementContentDescription = stringResource(Res.string.disc_loader_remove_cd, kgText),
+        incrementContentDescription = stringResource(Res.string.disc_loader_add_cd, kgText),
+        stateDescription = pluralStringResource(Res.plurals.disc_loader_state, count, count, kgText),
+        tag = "${tag}_plate_${kgText.replace(',', '_')}",
+    )
+}
+
+@Composable
+private fun DiscTotals(tag: String, calculator: CalculatorUiState) {
+    val total = GhostData.weightText(calculator.totalKg ?: calculator.barKg)
+    val perSide = GhostData.weightText(DiscLoader.perSideKg(calculator.draft.discs))
     Column(
         Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }.testTag("${tag}_results"),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        if (plates == null || target == null) {
-            Text(
-                text = stringResource(Res.string.live_calc_hint_missing),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("${tag}_hint"),
-            )
-            if (calculator.isDumbbell) BarLabel(tag, calculator)
-            return@Column
-        }
-        PlatesLine(tag, plates)
-        BarLabel(tag, calculator)
-        if (!plates.exact && target > calculator.draft.barKg) {
-            NotExactNote(tag, target, plates.achievedKg)
-        }
+        Text(
+            text = stringResource(Res.string.disc_loader_total, total),
+            style = AppTheme.typography.headlineMetric,
+            color = AppTheme.colors.athleticCyan,
+            modifier = Modifier.testTag("${tag}_total"),
+        )
+        Text(
+            text = stringResource(Res.string.disc_loader_per_side, perSide),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.testTag("${tag}_per_side"),
+        )
     }
 }
 
 /** "Barra 20 kg", or "Mango: 1 kg" for dumbbells (the handle actually used). */
 @Composable
 internal fun BarLabel(tag: String, calculator: CalculatorUiState) {
-    val barKg = GhostData.weightText(calculator.draft.barKg)
+    val barKg = GhostData.weightText(calculator.barKg)
     val dumbbell = calculator.isDumbbell
     Text(
         text = stringResource(
@@ -105,55 +123,5 @@ internal fun BarLabel(tag: String, calculator: CalculatorUiState) {
         style = AppTheme.typography.bodyMedium,
         color = AppTheme.colors.textSecondary,
         modifier = Modifier.testTag(if (dumbbell) "${tag}_handle_label" else "${tag}_bar_label"),
-    )
-}
-
-@Composable
-private fun PlatesLine(tag: String, plates: PlateResult) {
-    if (plates.platesPerSide.isEmpty()) {
-        Text(
-            text = stringResource(Res.string.live_calc_bar_only),
-            style = AppTheme.typography.headlineMetric,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("${tag}_plates"),
-        )
-        return
-    }
-    val line = plates.perSideText()
-    val description = stringResource(Res.string.live_calc_plates_line_cd, line)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            text = stringResource(Res.string.live_calc_plates_per_side),
-            style = AppTheme.typography.bodyLarge,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("${tag}_per_side_label"),
-        )
-        Text(
-            text = line,
-            style = AppTheme.typography.headlineMetric,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { contentDescription = description }.testTag("${tag}_plates"),
-        )
-    }
-}
-
-@Composable
-private fun NotExactNote(tag: String, targetKg: Double, achievedKg: Double) {
-    Text(
-        text = stringResource(
-            Res.string.live_calc_not_exact,
-            GhostData.weightText(targetKg),
-            GhostData.weightText(achievedKg),
-        ),
-        style = AppTheme.typography.bodyMedium,
-        color = AppTheme.colors.energyAmber,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AppTheme.colors.surfaceOverlay, AppShapes.sm)
-            .padding(Spacing.md)
-            .testTag("${tag}_note"),
     )
 }

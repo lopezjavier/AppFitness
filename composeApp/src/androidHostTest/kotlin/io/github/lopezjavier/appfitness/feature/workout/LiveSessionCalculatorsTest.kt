@@ -8,7 +8,6 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -153,18 +152,6 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun plateHelp_opensItsExplanation_andCloses() {
-        show()
-        openPlates()
-
-        tap("plate_calc_help")
-        rule.onNodeWithTag("plate_calc_help_sheet").assertExists()
-        tap("plate_calc_help_sheet_close")
-
-        rule.onNodeWithTag("plate_calc_help_sheet").assertDoesNotExist()
-    }
-
-    @Test
     fun warmUp_100kgWith20kgBar_showsOnlyTheSixtyPercentRowByDefault() {
         show()
 
@@ -288,90 +275,180 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun plates_100kgWith20kgBar_shows25Plus15PerSide() {
+    fun discLoader_startsWithOnlyTheBar_andOffersEveryEnabledPlateHeaviestFirst() {
         show()
 
         openPlates()
 
-        val tag = "live_exercise_1_plate_calc"
-        rule.onNodeWithTag("${tag}_plates").assertTextEquals("25 + 15")
-        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
+        val tag = "live_exercise_1_disc_loader"
         rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 20 kg")
-        rule.onNodeWithTag("${tag}_note").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 20 kg")
+        rule.onNodeWithTag("${tag}_per_side").assertTextEquals("Por lado: 0 kg")
+        listOf("25", "20", "15", "10", "5", "2_5", "2", "1_25", "1", "0_5").forEach {
+            rule.onNodeWithTag("${tag}_plate_$it").assertExists()
+        }
+        rule.onNodeWithTag("${tag}_plate_25_value").assertTextEquals("0")
+        rule.onNodeWithTag("${tag}_plate_25_decrement").assertIsNotEnabled()
         rule.onNodeWithTag("${tag}_close").assertExists()
     }
 
     @Test
-    fun plates_theResultFollowsTheTypedWeight() {
+    fun discLoader_has_noWeightFieldAndNoBarSelector() {
         show()
+
         openPlates()
 
-        type("live_exercise_1_plate_calc_weight_field", "102,5")
-
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("25 + 15 + 1,25")
+        val tag = "live_exercise_1_disc_loader"
+        rule.onNodeWithTag("${tag}_weight_field").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_bar_7_5").assertDoesNotExist()
     }
 
     @Test
-    fun plates_smallPlatesAreAvailable() {
+    fun discLoader_25And15OnABar20_totals100kg() {
         show()
         openPlates()
 
-        type("live_exercise_1_plate_calc_weight_field", "21")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("0,5")
-        type("live_exercise_1_plate_calc_weight_field", "22")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("1")
-        type("live_exercise_1_plate_calc_weight_field", "24")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("2")
+        tap("live_exercise_1_disc_loader_plate_25_increment")
+        tap("live_exercise_1_disc_loader_plate_15_increment")
+
+        val tag = "live_exercise_1_disc_loader"
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 100 kg")
+        rule.onNodeWithTag("${tag}_per_side").assertTextEquals("Por lado: 40 kg")
     }
 
     @Test
-    fun plates_the7_5kgBar_changesTheResult() {
+    fun discLoader_repeatedDiscsAndFractions_useTheSpanishDecimalFormat() {
         show()
         openPlates()
 
-        tap("live_exercise_1_plate_calc_bar_7_5")
+        repeat(2) { tap("live_exercise_1_disc_loader_plate_25_increment") }
+        tap("live_exercise_1_disc_loader_plate_1_25_increment")
 
-        rule.onNodeWithTag("live_exercise_1_plate_calc_bar_7_5").assertIsSelected()
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("25 + 20 + 1,25")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_bar_label").assertTextEquals("Barra 7,5 kg")
+        val tag = "live_exercise_1_disc_loader"
+        rule.onNodeWithTag("${tag}_plate_25_value").assertTextEquals("2")
+        rule.onNodeWithTag("${tag}_per_side").assertTextEquals("Por lado: 51,25 kg")
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 122,5 kg")
     }
 
     @Test
-    fun plates_impossibleTarget_showsTheClosestLowerWeight() {
-        preferences.result = Result.success(TrainingPreferences(plateKg = listOf(25.0, 20.0, 15.0, 10.0, 5.0, 2.5)))
+    fun discLoader_removingADisc_updatesTheTotal_andNeverGoesBelowZero() {
+        show()
+        openPlates()
+        tap("live_exercise_1_disc_loader_plate_10_increment")
+
+        tap("live_exercise_1_disc_loader_plate_10_decrement")
+
+        val tag = "live_exercise_1_disc_loader"
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 20 kg")
+        rule.onNodeWithTag("${tag}_plate_10_decrement").assertIsNotEnabled()
+    }
+
+    @Test
+    fun discLoader_capsEachWeightAtTenDiscsPerSide() {
         show()
         openPlates()
 
-        type("live_exercise_1_plate_calc_weight_field", "101")
+        repeat(10) { tap("live_exercise_1_disc_loader_plate_5_increment") }
 
-        rule.onNodeWithTag("live_exercise_1_plate_calc_note")
-            .assertTextEquals("No se puede lograr 101 kg; el más cercano es 100 kg")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("25 + 15")
+        val tag = "live_exercise_1_disc_loader"
+        rule.onNodeWithTag("${tag}_plate_5_value").assertTextEquals("10")
+        rule.onNodeWithTag("${tag}_plate_5_increment").assertIsNotEnabled()
     }
 
     @Test
-    fun plates_targetAtTheBar_showsOnlyTheBar() {
+    fun discLoader_stepperButtons_are48dpAndSpeakTheDisc() {
+        show()
+        openPlates()
+        val tag = "live_exercise_1_disc_loader_plate_25"
+
+        rule.onNodeWithTag("${tag}_increment").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("${tag}_decrement").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("${tag}_increment").assertContentDescriptionEquals("Añadir disco de 25 kg")
+        rule.onNodeWithTag("${tag}_decrement").assertContentDescriptionEquals("Quitar disco de 25 kg")
+        tap("${tag}_increment")
+        rule.onNode(
+            androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                androidx.compose.ui.semantics.SemanticsProperties.StateDescription,
+                "1 disco de 25 kg por lado",
+            ),
+        ).assertExists()
+    }
+
+    @Test
+    fun discLoader_onlyOffersThePlatesEnabledInPreferencias() {
+        preferences.result = Result.success(TrainingPreferences(plateKg = listOf(20.0, 10.0), barWeightKg = 15.0))
+        show()
+
+        openPlates()
+
+        val tag = "live_exercise_1_disc_loader"
+        rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 15 kg")
+        rule.onNodeWithTag("${tag}_plate_20").assertExists()
+        rule.onNodeWithTag("${tag}_plate_10").assertExists()
+        rule.onNodeWithTag("${tag}_plate_25").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_plate_0_5").assertDoesNotExist()
+    }
+
+    @Test
+    fun discLoader_dumbbellOneDisc10kgOnAOneKgHandle_totals21kg() {
+        show()
+        tap("live_exercise_0_menu")
+        tap("live_exercise_0_menu_plate_calc")
+
+        tap("live_exercise_0_disc_loader_plate_10_increment")
+
+        val tag = "live_exercise_0_disc_loader"
+        rule.onNodeWithTag("${tag}_handle_label").assertTextEquals("Mango: 1 kg")
+        rule.onNodeWithTag("${tag}_bar_label").assertDoesNotExist()
+        rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 21 kg")
+    }
+
+    @Test
+    fun discLoader_theHandleShowsTheSavedValue() {
+        preferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 2.5))
+        show()
+        tap("live_exercise_0_menu")
+        tap("live_exercise_0_menu_plate_calc")
+
+        rule.onNodeWithTag("live_exercise_0_disc_loader_handle_label").assertTextEquals("Mango: 2,5 kg")
+        rule.onNodeWithTag("live_exercise_0_disc_loader_total").assertTextEquals("Total: 2,5 kg")
+    }
+
+    @Test
+    fun discLoader_help_opensItsExplanation_andCloses() {
         show()
         openPlates()
 
-        type("live_exercise_1_plate_calc_weight_field", "20")
+        tap("live_exercise_1_disc_loader_help")
+        rule.onNodeWithTag("live_exercise_1_disc_loader_help_sheet").assertExists()
+        tap("live_exercise_1_disc_loader_help_sheet_close")
 
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("Solo la barra")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_note").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_1_disc_loader_help_sheet").assertDoesNotExist()
     }
 
     @Test
-    fun plates_closeButtonClosesTheSheet() {
+    fun discLoader_closeButtonClosesTheSheet() {
         show()
         openPlates()
 
-        tap("live_exercise_1_plate_calc_close")
+        tap("live_exercise_1_disc_loader_close")
 
-        rule.onNodeWithTag("live_exercise_1_plate_calc_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_1_disc_loader_sheet").assertDoesNotExist()
     }
 
     @Test
-    fun plateCalculator_isOfferedForBarbellAndDumbbellExercises() {
+    fun menu_namesTheEntryCargadorDeDiscos() {
+        show()
+
+        tap("live_exercise_0_menu")
+
+        rule.onAllNodesWithText("Cargador de discos").assertCountEquals(1)
+        rule.onAllNodesWithText("Calculadora de discos").assertCountEquals(0)
+    }
+
+    @Test
+    fun discLoader_isOfferedForBarbellAndDumbbellExercises() {
         show()
 
         tap("live_exercise_0_menu")
@@ -381,29 +458,16 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun dumbbellPlates_target21kgWith1kgHandle_shows10PerSideAndNoBarSelector() {
+    fun warmUp_roundsByTheDerivedValue_afterTheSmallestPlateChanges() {
+        preferences.result = Result.success(
+            TrainingPreferences(plateKg = listOf(25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 1.25)),
+        )
         show()
-        tap("live_exercise_0_menu")
-        tap("live_exercise_0_menu_plate_calc")
+        openWarmUp()
+        type("live_exercise_1_warm_up_calc_weight_field", "103")
 
-        type("live_exercise_0_plate_calc_weight_field", "21")
-
-        val tag = "live_exercise_0_plate_calc"
-        rule.onNodeWithTag("${tag}_plates").assertTextEquals("10")
-        rule.onNodeWithTag("${tag}_per_side_label").assertTextEquals("A cada lado de la barra:")
-        rule.onNodeWithTag("${tag}_handle_label").assertTextEquals("Mango: 1 kg")
-        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
-        rule.onNodeWithTag("${tag}_bar_label").assertDoesNotExist()
-    }
-
-    @Test
-    fun dumbbellPlates_theHandleShowsTheSavedValue() {
-        preferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 2.5))
-        show()
-        tap("live_exercise_0_menu")
-        tap("live_exercise_0_menu_plate_calc")
-
-        rule.onNodeWithTag("live_exercise_0_plate_calc_handle_label").assertTextEquals("Mango: 2,5 kg")
+        // 60% of 103 kg is 61,8 kg; the derived rounding is 2 x 1,25 = 2,5 kg, so 62,5 kg (1 kg would give 62).
+        rule.onNodeWithTag("live_exercise_1_warm_up_calc_row_0").assertTextContains("62,5 kg × 3")
     }
 
     @Test
@@ -426,19 +490,7 @@ class LiveSessionCalculatorsTest {
     }
 
     @Test
-    fun savedPlates_reachTheCalculator() {
-        preferences.result = Result.success(TrainingPreferences(plateKg = listOf(20.0, 10.0), barWeightKg = 15.0))
-        show()
-
-        openPlates()
-
-        rule.onNodeWithTag("live_exercise_1_plate_calc_bar_15").assertIsSelected()
-        rule.onNodeWithTag("live_exercise_1_plate_calc_plates").assertTextEquals("20 + 20")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_note").assertExists()
-    }
-
-    @Test
-    fun sheetsAndTheirInputs_surviveLeavingTheApp() {
+    fun discLoaderAndItsCounts_surviveLeavingTheApp() {
         val handle = SavedStateHandle()
         val tester = StateRestorationTester(rule)
         tester.setContent {
@@ -450,15 +502,34 @@ class LiveSessionCalculatorsTest {
         }
         settle()
         openPlates()
-        type("live_exercise_1_plate_calc_weight_field", "102,5")
-        tap("live_exercise_1_plate_calc_bar_15")
+        repeat(2) { tap("live_exercise_1_disc_loader_plate_25_increment") }
+        tap("live_exercise_1_disc_loader_plate_15_increment")
 
         tester.emulateSavedInstanceStateRestore()
         settle()
 
-        rule.onNodeWithTag("live_exercise_1_plate_calc_sheet").assertExists()
-        rule.onNodeWithTag("live_exercise_1_plate_calc_weight_field").assertTextContains("102,5")
-        rule.onNodeWithTag("live_exercise_1_plate_calc_bar_15").assertIsSelected()
+        rule.onNodeWithTag("live_exercise_1_disc_loader_sheet").assertExists()
+        rule.onNodeWithTag("live_exercise_1_disc_loader_plate_25_value").assertTextEquals("2")
+        rule.onNodeWithTag("live_exercise_1_disc_loader_plate_15_value").assertTextEquals("1")
+        rule.onNodeWithTag("live_exercise_1_disc_loader_total").assertTextEquals("Total: 150 kg")
+    }
+
+    @Test
+    fun aDraftSavedBeforeTheDiscLoader_restoresAsAnEmptyLoader() {
+        val handle = SavedStateHandle()
+        handle["live_calc_position"] = BENCH
+        handle["live_calc_kind"] = "Plates"
+        handle["live_calc_weight"] = "100"
+        val vm = newViewModel(handle)
+        rule.setContent {
+            AppTheme {
+                val state by vm.uiState.collectAsState()
+                LiveSessionScreen(state, 0, vm::onEvent, {}, onOpenExercise = {})
+            }
+        }
+        settle()
+
+        rule.onNodeWithTag("live_exercise_1_disc_loader_total").assertTextEquals("Total: 20 kg")
     }
 
     @Test

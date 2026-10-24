@@ -285,14 +285,14 @@ private fun LiveCalculator(state: LiveSessionUiState.Active, onEvent: (LiveSessi
     val position = calculator.draft.position
     val actions = CalculatorActions(
         onWeight = { onEvent(LiveSessionEvent.CalculatorWeightChanged(it)) },
-        onBar = { onEvent(LiveSessionEvent.CalculatorBarChanged(it)) },
+        onDiscCount = { kg, count -> onEvent(LiveSessionEvent.DiscCountChanged(kg, count)) },
         onWarmUpSets = { onEvent(LiveSessionEvent.CalculatorWarmUpSetsChanged(it)) },
         onAddWarmUp = { onEvent(LiveSessionEvent.AddWarmUpSets(position, it)) },
         onDismiss = { onEvent(LiveSessionEvent.DismissCalculator) },
     )
     when (calculator.draft.kind) {
         CalculatorKind.WarmUp -> WarmUpCalculatorSheet(prefix, calculator, actions)
-        CalculatorKind.Plates -> PlateCalculatorSheet(prefix, calculator, actions)
+        CalculatorKind.Discs -> DiscLoaderSheet(prefix, calculator, actions)
     }
 }
 

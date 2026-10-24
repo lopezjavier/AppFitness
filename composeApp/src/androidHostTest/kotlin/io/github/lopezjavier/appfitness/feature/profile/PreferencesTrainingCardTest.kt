@@ -209,8 +209,6 @@ class PreferencesTrainingCardTest {
     fun calculatorsBlock_showsTheDefaultsInsideTheTrainingCard() {
         rule.setContent { AppTheme { PreferencesScreen(loaded(), {}) } }
 
-        rule.onNodeWithTag("preferences_plate_rounding_value").performScrollTo().assertTextEquals("2,5 kg")
-        rule.onNodeWithTag("preferences_dumbbell_rounding_value").performScrollTo().assertTextEquals("2 kg")
         rule.onNodeWithText("Calculadoras").assertExists()
         rule.onNodeWithTag("preferences_bar_default_20").performScrollTo().assertIsSelected()
         listOf("25", "20", "15", "10", "5", "2_5", "2", "1_25", "1", "0_5").forEach {
@@ -219,24 +217,33 @@ class PreferencesTrainingCardTest {
     }
 
     @Test
-    fun roundingSteppers_sendTheNewStep_withTheirDescriptions() {
-        rule.setContent { AppTheme { PreferencesScreen(loaded(), { events += it }) } }
+    fun calculatorsBlock_hasNoRoundingSteppers_butShowsTheDerivedRounding() {
+        rule.setContent { AppTheme { PreferencesScreen(loaded(), {}) } }
 
-        rule.onNodeWithTag("preferences_plate_rounding_increment").performScrollTo().performClick()
-        rule.onNodeWithTag("preferences_dumbbell_rounding_decrement").performScrollTo().performClick()
+        rule.onNodeWithTag("preferences_plate_rounding").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_dumbbell_rounding").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_derived_rounding").performScrollTo()
+            .assertTextEquals("Redondeo: 1 kg (el doble del disco más pequeño)")
+    }
 
-        assertEquals(
-            listOf<PreferencesEvent>(
-                PreferencesEvent.SetPlateRounding(3.0),
-                PreferencesEvent.SetDumbbellRounding(1.5),
-            ),
-            events,
-        )
-        val state = rule.onNodeWithTag("preferences_plate_rounding").fetchSemanticsNode().config
-        assertEquals("Redondeo de discos: 2,5 kg", state[SemanticsProperties.StateDescription])
-        val cd = rule.onNodeWithTag("preferences_plate_rounding_decrement").fetchSemanticsNode().config
-        assertEquals(listOf("Reducir redondeo de discos"), cd[SemanticsProperties.ContentDescription])
-        rule.onNodeWithTag("preferences_plate_rounding_increment").assertHeightIsAtLeast(48.dp)
+    @Test
+    fun derivedRounding_followsTheSmallestEnabledPlate() {
+        val settings = CalculatorSettings(plateKg = listOf(25.0, 10.0, 1.25))
+        rule.setContent {
+            AppTheme {
+                PreferencesScreen(
+                    PreferencesUiState.Loaded(
+                        form = form(false, calculators = settings),
+                        saved = form(false, calculators = settings),
+                        today = LocalDate(2026, 10, 14),
+                    ),
+                    {},
+                )
+            }
+        }
+
+        rule.onNodeWithTag("preferences_derived_rounding").performScrollTo()
+            .assertTextEquals("Redondeo: 2,5 kg (el doble del disco más pequeño)")
     }
 
     @Test

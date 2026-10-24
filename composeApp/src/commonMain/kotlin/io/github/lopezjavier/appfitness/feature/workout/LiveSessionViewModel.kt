@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
-import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -394,12 +393,10 @@ class LiveSessionViewModel(
                 calculatorDraft = calculatorDraft?.copy(weightText = event.text, weightEdited = true)
             }
 
-            is LiveSessionEvent.CalculatorBarChanged -> updateDialogs {
-                // The warm-up bar is a preference (ADR-56); only the plate calculator still picks one.
-                if (calculatorDraft?.kind == CalculatorKind.Plates && event.barKg in CalculatorSettings.BARS_KG &&
-                    !isDumbbell(calculatorDraft?.position)
-                ) {
-                    calculatorDraft = calculatorDraft?.copy(barKg = event.barKg)
+            is LiveSessionEvent.DiscCountChanged -> updateDialogs {
+                val draft = calculatorDraft
+                if (draft?.kind == CalculatorKind.Discs && event.weightKg in trainingPreferences.plateKg) {
+                    calculatorDraft = draft.withDiscCount(event.weightKg, event.count)
                 }
             }
 
@@ -917,9 +914,9 @@ class LiveSessionViewModel(
     }
 
     /**
-     * Opens the calculator with the first working weight (typed, else the placeholder) and the bar (the handle for
-     * dumbbells). The warm-up one starts from the best past weight of the exercise once it loads, as long as the user
-     * has not typed their own.
+     * Opens the calculator: the warm-up one with the first working weight (typed, else the placeholder), the disc
+     * loader empty (the bar comes from the preferences, ADR-56). The warm-up one starts from the best past weight of
+     * the exercise once it loads, as long as the user has not typed their own.
      */
     private fun openCalculator(position: Int, kind: CalculatorKind) {
         val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
@@ -930,8 +927,7 @@ class LiveSessionViewModel(
             calculatorDraft = CalculatorDraft(
                 position,
                 kind,
-                weight,
-                barFor(trainingPreferences.barWeightKg, traits[exercise.exerciseId]?.equipment, trainingPreferences),
+                weightText = if (kind == CalculatorKind.WarmUp) weight else "",
             )
         }
         if (kind == CalculatorKind.WarmUp) applyBestPastWeight(position, exercise.exerciseId)
@@ -948,11 +944,6 @@ class LiveSessionViewModel(
                 publish()
             }
         }
-    }
-
-    private fun isDumbbell(position: Int?): Boolean {
-        val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return false
-        return traits[exercise.exerciseId]?.equipment == Equipment.Dumbbell
     }
 
     /**
