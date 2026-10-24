@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,6 +47,7 @@ class SessionDetailViewModelTest {
     private val trainingPreferences = FakeTrainingPreferencesRepository()
     private val bodyMeasurements = FakeWeightRepository()
     private val connectivity = FakeConnectivityObserver()
+    private val routines = FakeRoutineRepository()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
 
     @BeforeTest
@@ -64,6 +66,7 @@ class SessionDetailViewModelTest {
             clock = MutableClock(),
             preferences = trainingPreferences,
             bodyMeasurements = bodyMeasurements,
+            routineRepository = routines,
             savedState = savedState,
         )
 
@@ -303,196 +306,6 @@ class SessionDetailViewModelTest {
     }
 
     @Test
-    fun editingASetOpensTheSheetPrefilledWithItsValues() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-
-        val edit = model.content().edit
-        assertEquals(EditSetState(0, 2, "87,5", "8", invalid = false), edit)
-    }
-
-    @Test
-    fun savingACorrectedSetWritesItKeepingTheOriginalsAndRecalculatesTheVolume() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-
-        model.onEvent(SessionDetailEvent.RepsChanged("7"))
-        model.onEvent(SessionDetailEvent.SaveSet)
-        advanceUntilIdle()
-
-        val write = repository.upserts.single()
-        assertEquals("s1", write.sessionId)
-        assertEquals("e1", write.exerciseId)
-        assertEquals(0, write.exercisePosition)
-        assertEquals(2, write.setIndex)
-        assertEquals(SetEntry.WeightReps(87.5, 7), write.entry)
-        assertEquals(SESSION_START, write.completedAt)
-        assertEquals(SetType.Working, write.setType)
-        val content = model.content()
-        assertNull(content.edit)
-        assertEquals(1400.0 - 87.5, content.stats.volumeKg)
-        assertEquals(true, content.exercises.single().sets[1].text.endsWith("× 7"))
-    }
-
-    @Test
-    fun correctingASet_keepsItsLoggedRpe() = runTest(dispatcher) {
-        val base = completedSession("s1")
-        val exercise = base.exercises.single()
-        repository.completed += base.copy(
-            exercises = listOf(
-                exercise.copy(sets = exercise.sets.map { if (it.setIndex == 2) it.copy(rpe = 8.5) else it }),
-            ),
-        )
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-
-        model.onEvent(SessionDetailEvent.RepsChanged("7"))
-        model.onEvent(SessionDetailEvent.SaveSet)
-        advanceUntilIdle()
-
-        assertEquals(8.5, repository.upserts.single().rpe)
-    }
-
-    @Test
-    fun correctingASetRecomputesTheRecordMark() = runTest(dispatcher) {
-        seed()
-        // 87.5 x 8 -> 1RM 110.5 beats 110.0; after correcting both sets to 5 reps (102) it no longer does.
-        repository.history = mapOf("e1" to listOf(point("old", 10, 110.0)))
-        val model = viewModel()
-        advanceUntilIdle()
-        assertTrue(model.content().exercises.single().isPersonalRecord)
-
-        for (setIndex in 1..2) {
-            model.onEvent(SessionDetailEvent.EditSet(0, setIndex))
-            model.onEvent(SessionDetailEvent.RepsChanged("5"))
-            model.onEvent(SessionDetailEvent.SaveSet)
-            advanceUntilIdle()
-        }
-
-        assertEquals(false, model.content().exercises.single().isPersonalRecord)
-    }
-
-    @Test
-    fun aSaveFailureKeepsTheTypedValuesAndEmitsActionFailed() = runTest(dispatcher) {
-        seed()
-        repository.upsertFailure = AppError.Network
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-        model.onEvent(SessionDetailEvent.RepsChanged("7"))
-
-        model.effects.test {
-            model.onEvent(SessionDetailEvent.SaveSet)
-            advanceUntilIdle()
-
-            assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
-        }
-
-        val content = model.content()
-        assertEquals("7", content.edit?.reps)
-        assertEquals(false, content.busy)
-        assertEquals(true, content.exercises.single().sets[1].text.endsWith("× 8"))
-        assertEquals(1400.0, content.stats.volumeKg)
-    }
-
-    @Test
-    fun invalidRepsKeepTheSheetOpenWithoutWriting() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        for (reps in listOf("0", "", "1000")) {
-            model.onEvent(SessionDetailEvent.EditSet(0, 2))
-            model.onEvent(SessionDetailEvent.RepsChanged(reps))
-            model.onEvent(SessionDetailEvent.SaveSet)
-            advanceUntilIdle()
-
-            assertEquals(true, model.content().edit?.invalid, "reps '$reps'")
-        }
-        assertTrue(repository.upserts.isEmpty())
-    }
-
-    @Test
-    fun editingTheTextClearsTheInvalidMark() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-        model.onEvent(SessionDetailEvent.RepsChanged(""))
-        model.onEvent(SessionDetailEvent.SaveSet)
-
-        model.onEvent(SessionDetailEvent.RepsChanged("6"))
-
-        assertEquals(false, model.content().edit?.invalid)
-    }
-
-    @Test
-    fun dismissingTheEditClosesTheSheetWithoutWriting() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-
-        model.onEvent(SessionDetailEvent.DismissEdit)
-
-        assertNull(model.content().edit)
-        assertTrue(repository.upserts.isEmpty())
-    }
-
-    @Test
-    fun offlineEditingAndSavingDoNothing() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-        model.onEvent(SessionDetailEvent.RepsChanged("7"))
-
-        connectivity.state.value = false
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.SaveSet)
-        model.onEvent(SessionDetailEvent.DismissEdit)
-        model.onEvent(SessionDetailEvent.EditSet(0, 1))
-        advanceUntilIdle()
-
-        assertEquals(false, model.content().isOnline)
-        assertNull(model.content().edit)
-        assertTrue(repository.upserts.isEmpty())
-    }
-
-    @Test
-    fun savingOrConfirmingDeletionWhenOfflineEmitsActionFailed() = runTest(dispatcher) {
-        seed()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.EditSet(0, 2))
-        connectivity.state.value = false
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(SessionDetailEvent.SaveSet)
-            assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
-        }
-        assertTrue(repository.upserts.isEmpty())
-
-        connectivity.state.value = true
-        advanceUntilIdle()
-        model.onEvent(SessionDetailEvent.DismissEdit)
-        connectivity.state.value = false
-        advanceUntilIdle()
-        model.effects.test {
-            model.onEvent(SessionDetailEvent.Delete)
-            assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
-        }
-        assertTrue(repository.deleted.isEmpty())
-    }
-
-    @Test
     fun offlineDeletionCannotBeRequested() = runTest(dispatcher) {
         seed()
         connectivity.state.value = false
@@ -502,6 +315,21 @@ class SessionDetailViewModelTest {
         model.onEvent(SessionDetailEvent.Delete)
         advanceUntilIdle()
 
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
+    fun deletingWhenOfflineEmitsActionFailedWithoutDeleting() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(SessionDetailEvent.Delete)
+            assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
+        }
         assertTrue(repository.deleted.isEmpty())
     }
 
@@ -534,38 +362,6 @@ class SessionDetailViewModelTest {
             assertEquals(SessionDetailEffect.ActionFailed, awaitItem())
         }
         assertEquals(false, model.content().busy)
-    }
-
-    @Test
-    fun aTypedCorrection_survivesARecreatedViewModel_withoutWriting() = runTest(dispatcher) {
-        seed()
-        val handle = SavedStateHandle()
-        val first = viewModel(savedState = handle)
-        advanceUntilIdle()
-        first.onEvent(SessionDetailEvent.EditSet(0, 2))
-        first.onEvent(SessionDetailEvent.WeightChanged("92,5"))
-        first.onEvent(SessionDetailEvent.RepsChanged("6"))
-
-        val second = viewModel(savedState = handle)
-        advanceUntilIdle()
-
-        assertEquals(EditSetState(0, 2, "92,5", "6"), second.content().edit)
-        assertEquals(0, repository.upserts.size)
-    }
-
-    @Test
-    fun aDismissedCorrection_isNotRestored() = runTest(dispatcher) {
-        seed()
-        val handle = SavedStateHandle()
-        val first = viewModel(savedState = handle)
-        advanceUntilIdle()
-        first.onEvent(SessionDetailEvent.EditSet(0, 2))
-        first.onEvent(SessionDetailEvent.DismissEdit)
-
-        val second = viewModel(savedState = handle)
-        advanceUntilIdle()
-
-        assertEquals(null, second.content().edit)
     }
 
     @Test
@@ -612,5 +408,130 @@ class SessionDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(8.5, null), model.content().exercises.single().sets.map { it.rpe })
+    }
+
+    @Test
+    fun openingSaveAsRoutinePrefillsTheWorkoutName() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+
+        assertEquals(SaveAsRoutineState("Torso", tooManySets = false), model.content().saveAsRoutine)
+    }
+
+    @Test
+    fun confirmingCreatesTheRoutineAndEmitsItsIdClosingTheSheet() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
+
+        model.effects.test {
+            model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+            advanceUntilIdle()
+
+            assertEquals(SessionDetailEffect.SavedAsRoutine("r-from-session"), awaitItem())
+        }
+        assertEquals(listOf("s1" to "Mi torso"), routines.createdFromSession)
+        assertNull(model.content().saveAsRoutine)
+        assertTrue(repository.upserts.isEmpty())
+    }
+
+    @Test
+    fun aBlankNameDoesNotCallTheServer() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("   "))
+
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        advanceUntilIdle()
+
+        assertEquals(false, model.content().saveAsRoutine?.canConfirm)
+        assertTrue(routines.createdFromSession.isEmpty())
+    }
+
+    @Test
+    fun anExerciseWithMoreThanTenSetsBlocksSavingAsRoutineUpFront() = runTest(dispatcher) {
+        val sets = (1..11).map { doneSet(it, 50.0, 10) }
+        repository.completed += completedSession("s1").copy(exercises = listOf(SessionExercise("e1", 0, null, sets)))
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        advanceUntilIdle()
+
+        val sheet = model.content().saveAsRoutine
+        assertEquals(true, sheet?.tooManySets)
+        assertEquals(false, sheet?.canConfirm)
+        assertTrue(routines.createdFromSession.isEmpty())
+    }
+
+    @Test
+    fun aFailureKeepsTheSheetOpenWithTheNameAndFlagsIt() = runTest(dispatcher) {
+        seed()
+        routines.createFromSessionFailure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
+
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        advanceUntilIdle()
+
+        assertEquals(SaveAsRoutineState("Mi torso", tooManySets = false, failed = true), model.content().saveAsRoutine)
+    }
+
+    @Test
+    fun offlineConfirmingFlagsTheSheetWithoutCallingTheServer() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        advanceUntilIdle()
+
+        assertEquals(true, model.content().saveAsRoutine?.failed)
+        assertTrue(routines.createdFromSession.isEmpty())
+    }
+
+    @Test
+    fun dismissingTheSheetDiscardsTheName() = runTest(dispatcher) {
+        seed()
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle)
+        advanceUntilIdle()
+        first.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        first.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
+        first.onEvent(SessionDetailEvent.DismissSaveAsRoutine)
+
+        val second = viewModel(savedState = handle)
+        advanceUntilIdle()
+
+        assertNull(second.content().saveAsRoutine)
+    }
+
+    @Test
+    fun theOpenSheetAndItsTypedNameSurviveARecreatedViewModel() = runTest(dispatcher) {
+        seed()
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle)
+        advanceUntilIdle()
+        first.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        first.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
+
+        val second = viewModel(savedState = handle)
+        advanceUntilIdle()
+
+        assertEquals("Mi torso", second.content().saveAsRoutine?.name)
+        assertTrue(routines.createdFromSession.isEmpty())
     }
 }

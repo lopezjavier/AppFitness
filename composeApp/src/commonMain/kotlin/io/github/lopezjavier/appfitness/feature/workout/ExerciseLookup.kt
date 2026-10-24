@@ -1,13 +1,18 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 
 /** Display names and primary muscle groups by exercise id, from a single read of the exercises. */
-internal class ExerciseLookup(val names: Map<String, String>, val groups: Map<String, MuscleGroup>)
+internal class ExerciseLookup(
+    val names: Map<String, String>,
+    val groups: Map<String, MuscleGroup>,
+    val metricTypes: Map<String, ExerciseMetricType> = emptyMap(),
+)
 
-/** Names and groups of every exercise; null when the exercises cannot be read. */
+/** Names, groups and metric types of every exercise; null when the exercises cannot be read. */
 internal suspend fun loadExerciseLookup(repository: ExerciseRepository, library: ExerciseLibrary): ExerciseLookup? {
     val rows = repository.getAll().getOrNull() ?: return null
     val catalog = library.load()
@@ -15,7 +20,7 @@ internal suspend fun loadExerciseLookup(repository: ExerciseRepository, library:
         val name = if (row.isCustom) row.name else row.key?.let { catalog[it]?.name }
         name?.let { row.id to it }
     }.toMap()
-    return ExerciseLookup(names, rows.associate { it.id to it.muscleGroup })
+    return ExerciseLookup(names, rows.associate { it.id to it.muscleGroup }, rows.associate { it.id to it.metricType })
 }
 
 /**

@@ -21,8 +21,10 @@ import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
+import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
+import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutRoot
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryRoot
@@ -92,12 +94,34 @@ fun AppRoot(
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)
         },
         saveTemplate = { slotId, date, onSave, onDismiss -> SaveTemplateRoot(slotId, date, onSave, onDismiss) },
-        history = { historyModifier, onOpenSession, onOpenCalendar ->
-            HistoryRoot(onOpenSession, onOpenCalendar, historyModifier)
+        history = { historyModifier, onOpenSession, onOpenCalendar, onStartPastWorkout ->
+            HistoryRoot(onOpenSession, onOpenCalendar, onStartPastWorkout, historyModifier)
         },
         calendar = { calendarModifier, onOpenSession -> WorkoutCalendarRoot(onOpenSession, calendarModifier) },
-        sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress ->
-            SessionDetailRoot(sessionId, onClose, detailModifier, onOpenProgress)
+        sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress, onEdit ->
+            SessionDetailRoot(sessionId, onClose, detailModifier, onOpenProgress, onEdit)
+        },
+        editWorkout = { formModifier, sessionId, host, onDeleted ->
+            EditWorkoutRoot(
+                sessionId = sessionId,
+                selectedExerciseId = host.selectedExerciseId,
+                onConsumeSelection = host.onConsumeSelection,
+                onAddExercise = host.onAddExercise,
+                onClose = host.onClose,
+                onDeleted = onDeleted,
+                modifier = formModifier,
+            )
+        },
+        pastWorkout = { formModifier, routineId, sessionId, host ->
+            PastWorkoutRoot(
+                routineId = routineId,
+                sessionId = sessionId,
+                selectedExerciseId = host.selectedExerciseId,
+                onConsumeSelection = host.onConsumeSelection,
+                onAddExercise = host.onAddExercise,
+                onSaved = { host.onClose() },
+                modifier = formModifier,
+            )
         },
         routineBuilder = { builderModifier, host ->
             RoutineBuilderRoot(

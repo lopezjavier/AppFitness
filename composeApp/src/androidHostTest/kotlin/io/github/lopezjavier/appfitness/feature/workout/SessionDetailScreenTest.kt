@@ -1,14 +1,10 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -17,29 +13,21 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.height
-import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.math.abs
 
 private fun detail(
     isOnline: Boolean = true,
     volumeKg: Double = 2_120.0,
-    edit: EditSetState? = null,
     busy: Boolean = false,
     firstRecord: Boolean = true,
 ) = SessionDetailUiState.Content(
@@ -61,7 +49,6 @@ private fun detail(
         DetailExercise(1, "e2", "Remo", listOf(DetailSet(1, SetType.Working, "87,5 kg × 8")), isPersonalRecord = false),
     ),
     isOnline = isOnline,
-    edit = edit,
     busy = busy,
 )
 
@@ -133,7 +120,6 @@ class SessionDetailScreenTest {
                 stats = SessionStats(durationSeconds = 1_800, completedSets = 1, volumeKg = 0.0),
                 exercises = listOf(DetailExercise(0, "e1", "Cinta", emptyList(), false, records)),
                 isOnline = true,
-                edit = null,
                 busy = false,
             ),
         )
@@ -160,131 +146,6 @@ class SessionDetailScreenTest {
     }
 
     @Test
-    fun tappingASet_emitsEditSet() {
-        show(detail())
-
-        rule.onNodeWithTag("session_detail_set_0_2").performClick()
-
-        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.EditSet(0, 2)), events)
-    }
-
-    @Test
-    fun editSheet_isPrefilled_andSaveEmitsSaveSet() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        rule.onNodeWithTag("session_edit_weight").assertTextContains("87,5")
-        rule.onNodeWithTag("session_edit_reps").assertTextContains("8")
-        rule.onNodeWithTag("session_edit_save").performClick()
-
-        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.SaveSet), events)
-    }
-
-    @Test
-    fun editSheet_changingReps_emitsTheTypedText() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        rule.onNodeWithTag("session_edit_reps").performTextClearance()
-        rule.onNodeWithTag("session_edit_reps").performTextInput("7")
-
-        assertEquals(SessionDetailEvent.RepsChanged("7"), events.last())
-    }
-
-    @Test
-    fun editSheet_bothFieldsHaveUsableWidth() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        assertBothFieldsUsable()
-    }
-
-    @Test
-    fun editSheet_labelsSitInsideTheirFields_at360dp() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        assertLabelsSitInsideTheirFields()
-    }
-
-    @Test
-    fun editSheet_atLargestFontScale_fieldsAndLabelsStayUsable() {
-        showScaled(2f)
-
-        assertBothFieldsUsable()
-        assertLabelsSitInsideTheirFields()
-    }
-
-    @Test
-    @Config(qualifiers = "w720dp-h1000dp-xxhdpi")
-    fun editSheet_atTabletWidth_fieldsAndLabelsStayUsable() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        assertBothFieldsUsable()
-        assertLabelsSitInsideTheirFields()
-    }
-
-    @Test
-    fun editSheet_tappingReps_thenTyping_emitsTheTypedText() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        rule.onNodeWithTag("session_edit_reps").performClick()
-        rule.onNodeWithTag("session_edit_reps").performTextClearance()
-        rule.onNodeWithTag("session_edit_reps").performTextInput("7")
-
-        assertEquals(SessionDetailEvent.RepsChanged("7"), events.last())
-    }
-
-    private fun showScaled(fontScale: Float) {
-        rule.setContent {
-            val base = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale)) {
-                AppTheme {
-                    SessionDetailScreen(
-                        detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")),
-                        { events += it },
-                        snackbarHost = snackbarHost,
-                    )
-                }
-            }
-        }
-        rule.waitForIdle()
-    }
-
-    private fun assertBothFieldsUsable() {
-        val weight = rule.onNodeWithTag("session_edit_weight").getBoundsInRoot()
-        val reps = rule.onNodeWithTag("session_edit_reps").getBoundsInRoot()
-        listOf(weight, reps).forEach {
-            assertTrue("field too narrow: ${it.width}", it.width >= 48.dp)
-            assertTrue("field too short: ${it.height}", it.height >= 48.dp)
-        }
-        assertTrue("fields differ in width", abs((weight.width - reps.width).value) <= 4f)
-    }
-
-    /** Robolectric measures glyphs unreliably, so the label is checked to sit inside its own, wide field. */
-    private fun assertLabelsSitInsideTheirFields() {
-        mapOf("Kilos" to "session_edit_weight", "Repeticiones" to "session_edit_reps").forEach { (label, tag) ->
-            val field = rule.onNodeWithTag(tag).getBoundsInRoot()
-            val text = rule.onNodeWithText(label, ignoreCase = true, useUnmergedTree = true).getBoundsInRoot()
-            assertTrue("label '$label' starts outside its field", text.left >= field.left)
-            assertTrue("label '$label' ends outside its field", text.right <= field.right)
-            assertTrue("label '$label' is not above the input", text.bottom <= field.bottom)
-        }
-    }
-
-    @Test
-    fun editSheet_invalidDraft_showsInlineError() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "", invalid = true)))
-
-        rule.onNodeWithTag("session_edit_invalid").assertExists()
-    }
-
-    @Test
-    fun editSheet_cancelEmitsDismissEdit() {
-        show(detail(edit = EditSetState(0, 2, weight = "87,5", reps = "8")))
-
-        rule.onNodeWithTag("session_edit_cancel").performClick()
-
-        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.DismissEdit), events)
-    }
-
-    @Test
     fun recalculatedVolume_isShownFromTheState() {
         show(detail(volumeKg = 2_032.5))
 
@@ -292,31 +153,10 @@ class SessionDetailScreenTest {
     }
 
     @Test
-    fun saveError_showsTheMessageInASnackbar_andTheSheetStaysOpen() {
-        rule.setContent {
-            AppTheme {
-                LaunchedEffect(Unit) {
-                    snackbarHost.showSnackbar("No se pudo completar la acción. Inténtalo de nuevo.")
-                }
-                SessionDetailScreen(
-                    detail(edit = EditSetState(0, 2, weight = "87,5", reps = "7")),
-                    { events += it },
-                    snackbarHost = snackbarHost,
-                )
-            }
-        }
-        rule.waitForIdle()
-
-        rule.onNodeWithText("No se pudo completar la acción. Inténtalo de nuevo.").assertExists()
-        rule.onNodeWithTag("session_edit_reps").assertTextContains("7")
-    }
-
-    @Test
-    fun deleteButton_isAtTheEndOfTheScroll_andDeletesAtOnceWithoutADialog() {
+    fun deleteAction_isInTheTopBarRow_andDeletesAtOnceWithoutADialog() {
         show(detail())
 
-        rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_delete"))
-        rule.onNodeWithTag("session_detail_delete").assertTextContains("Eliminar sesión")
+        rule.onNodeWithTag("session_detail_delete").assert(hasContentDescription("Eliminar"))
         rule.onNodeWithTag("session_detail_delete").performClick()
 
         assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.Delete), events)
@@ -324,22 +164,97 @@ class SessionDetailScreenTest {
     }
 
     @Test
-    fun offline_disablesEditAndDelete_andShowsTheReason() {
-        show(detail(isOnline = false))
+    fun editAction_opensTheEditScreen_andThereIsNoCopyAction() {
+        var edits = 0
+        rule.setContent {
+            AppTheme {
+                SessionDetailScreen(detail(), { events += it }, snackbarHost = snackbarHost, onEdit = { edits++ })
+            }
+        }
+        rule.waitForIdle()
 
-        rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_delete"))
-        rule.onNodeWithTag("session_detail_delete").assertIsNotEnabled()
-        rule.onNodeWithTag("session_detail_set_0_2").assertIsNotEnabled()
-        rule.onNodeWithTag("session_detail_offline_reason")
-            .assertTextContains("Sin conexión: no puedes corregir ni eliminar sesiones")
+        rule.onNodeWithTag("session_detail_edit").assert(hasContentDescription("Editar")).performClick()
+
+        assertEquals(1, edits)
+        rule.onNode(hasContentDescription("Copiar")).assertDoesNotExist()
+        rule.onNode(hasText("Copiar")).assertDoesNotExist()
     }
 
     @Test
-    fun online_enablesEditAndDelete_withoutReason() {
+    fun saveAsRoutineAction_emitsOpenSaveAsRoutine() {
         show(detail())
 
-        rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_delete"))
+        rule.onNodeWithTag("session_detail_save_as_routine").assert(hasContentDescription("Guardar como rutina"))
+        rule.onNodeWithTag("session_detail_save_as_routine").performClick()
+
+        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.OpenSaveAsRoutine), events)
+    }
+
+    @Test
+    fun noSetEditSheetExists_tappingASetDoesNothing() {
+        show(detail())
+
+        rule.onNodeWithTag("session_detail_set_0_2").performClick()
+
+        assertEquals(emptyList<SessionDetailEvent>(), events)
+        rule.onNodeWithTag("session_edit_save").assertDoesNotExist()
+    }
+
+    @Test
+    fun offline_disablesTheActions_andShowsTheReason() {
+        show(detail(isOnline = false))
+
+        rule.onNodeWithTag("session_detail_delete").assertIsNotEnabled()
+        rule.onNodeWithTag("session_detail_edit").assertIsNotEnabled()
+        rule.onNodeWithTag("session_detail_save_as_routine").assertIsNotEnabled()
+        rule.onNodeWithTag("session_detail_offline_reason")
+            .assertTextContains("Sin conexión: no puedes editar ni eliminar entrenos")
+    }
+
+    @Test
+    fun online_enablesTheActions_withoutReason() {
+        show(detail())
+
         rule.onNodeWithTag("session_detail_delete").assertIsEnabled()
+        rule.onNodeWithTag("session_detail_edit").assertIsEnabled()
         rule.onNodeWithTag("session_detail_offline_reason").assertDoesNotExist()
+    }
+
+    @Test
+    fun saveAsRoutineSheet_isPrefilled_confirmEmitsEvent_andTypingEmitsTheName() {
+        show(detail().copy(saveAsRoutine = SaveAsRoutineState(name = "Torso", tooManySets = false)))
+
+        rule.onNodeWithTag("save_as_routine_name").assertTextContains("Torso")
+        rule.onNodeWithTag("save_as_routine_name").performTextInput("2")
+        rule.onNodeWithTag("save_as_routine_confirm").assertIsEnabled().performClick()
+
+        assertEquals(SessionDetailEvent.SaveAsRoutineNameChanged("Torso2"), events.first())
+        assertEquals(SessionDetailEvent.ConfirmSaveAsRoutine, events.last())
+    }
+
+    @Test
+    fun saveAsRoutineSheet_closeDiscards() {
+        show(detail().copy(saveAsRoutine = SaveAsRoutineState(name = "Torso", tooManySets = false)))
+
+        rule.onNodeWithTag("save_as_routine_close").performClick()
+
+        assertEquals(listOf<SessionDetailEvent>(SessionDetailEvent.DismissSaveAsRoutine), events)
+    }
+
+    @Test
+    fun saveAsRoutineSheet_tooManySets_explainsAndBlocksSaving() {
+        show(detail().copy(saveAsRoutine = SaveAsRoutineState(name = "Torso", tooManySets = true)))
+
+        rule.onNodeWithTag("save_as_routine_too_many_sets")
+            .assertTextContains("Un ejercicio tiene más de 10 series; no se puede guardar como rutina")
+        rule.onNodeWithTag("save_as_routine_confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun saveAsRoutineSheet_failure_showsTheInlineMessage_andBlankNameBlocksSaving() {
+        show(detail().copy(saveAsRoutine = SaveAsRoutineState(name = " ", tooManySets = false, failed = true)))
+
+        rule.onNodeWithTag("save_as_routine_failed").assertExists()
+        rule.onNodeWithTag("save_as_routine_confirm").assertIsNotEnabled()
     }
 }

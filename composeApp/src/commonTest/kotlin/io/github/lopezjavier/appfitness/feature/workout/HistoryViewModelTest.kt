@@ -445,4 +445,19 @@ class HistoryViewModelTest {
             assertEquals(HistoryEffect.OpenDetail("s00"), awaitItem())
         }
     }
+
+    @Test
+    fun refreshingShowsAPastWorkoutSavedMeanwhileAndDropsADeletedOne() = runTest(dispatcher) {
+        repository.completed += listOf(completedSession("a", 0), completedSession("b", 1))
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(listOf("a", "b"), model.content().rows.map { it.id })
+
+        repository.completed += completedSession("past", daysAgo = 400)
+        repository.completed.removeAll { it.id == "a" }
+        model.onEvent(HistoryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(listOf("b", "past"), model.content().rows.map { it.id })
+    }
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Outlined (weight 400, 24px): bookmark_add. Apache-2.0, see files/licenses/MaterialSymbols-LICENSE.txt -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FF000000"
+            android:pathData="M680-80 440-160 200-80v-640q0-33 23.5-56.5T280-800h200v80H280v518l160-68 160 68v-198h80v320Zm40-560v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z" />
+    </group>
+</vector>

@@ -39,6 +39,12 @@ sealed interface WorkoutCalendarUiState {
 sealed interface WorkoutCalendarEvent {
     data object Retry : WorkoutCalendarEvent
 
+    /**
+     * Reloads the workouts without a loading state (on resume: a workout saved, edited or deleted elsewhere appears or
+     * disappears). A failed refresh keeps what is shown.
+     */
+    data object Refresh : WorkoutCalendarEvent
+
     data class SelectView(val view: WorkoutCalendarView) : WorkoutCalendarEvent
 
     data object PreviousMonth : WorkoutCalendarEvent

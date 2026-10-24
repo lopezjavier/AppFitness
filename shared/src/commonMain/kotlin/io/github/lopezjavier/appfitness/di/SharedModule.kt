@@ -178,7 +178,7 @@ val sharedModule =
         single<WorkoutSessionRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
-                SupabaseWorkoutSessionRepository(client.auth, client.postgrest)
+                SupabaseWorkoutSessionRepository(client.auth, client.postgrest, get())
             } else {
                 UnconfiguredWorkoutSessionRepository()
             }

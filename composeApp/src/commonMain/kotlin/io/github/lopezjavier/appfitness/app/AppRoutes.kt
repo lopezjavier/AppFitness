@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
+import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
@@ -18,6 +19,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.past_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_title
@@ -92,6 +94,17 @@ data object WorkoutCalendarRoute : AppRoute
 /** Detail of one completed session: sets, records, correction and deletion. */
 @Serializable
 data class SessionDetailRoute(val sessionId: String) : AppRoute
+
+/** Edit screen of a completed session (US-37): name, description, gym, rests, exercises and sets, one "Guardar". */
+@Serializable
+data class EditWorkoutRoute(val sessionId: String) : AppRoute
+
+/**
+ * Form to log a workout of a past date (US-37), prefilled from the routine [routineId] or from the finished workout
+ * [sessionId] used as a template; both null = an empty workout.
+ */
+@Serializable
+data class PastWorkoutRoute(val routineId: String? = null, val sessionId: String? = null) : AppRoute
 
 /** "Fuerza": the strength summary card, opened from the Perfil root (US-15). */
 @Serializable
@@ -257,6 +270,12 @@ val AppRoute.chrome: ShellChrome
             is SessionDetailRoute ->
                 ShellChrome.FullScreen(Res.string.session_detail_title, topBarTag = "session_detail_top_bar")
 
+            is EditWorkoutRoute ->
+                ShellChrome.FullScreen(Res.string.edit_workout_title, topBarTag = "edit_workout_top_bar")
+
+            is PastWorkoutRoute ->
+                ShellChrome.FullScreen(Res.string.past_workout_title, topBarTag = "past_workout_top_bar")
+
             StrengthRoute -> ShellChrome.FullScreen(Res.string.strength_title, topBarTag = "strength")
 
             MuscleVolumeRoute -> ShellChrome.FullScreen(Res.string.muscle_volume_title, topBarTag = "muscle_volume")
@@ -304,6 +323,8 @@ object AppDestinations {
             HistoryRoute,
             WorkoutCalendarRoute,
             SessionDetailRoute(""),
+            EditWorkoutRoute(""),
+            PastWorkoutRoute(),
             StrengthRoute,
             MuscleVolumeRoute,
             ExerciseProgressRoute(""),

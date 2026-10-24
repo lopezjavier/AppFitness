@@ -8,6 +8,7 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.SystemClock
 import io.github.lopezjavier.appfitness.data.remote.DeleteSetParams
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
@@ -16,6 +17,8 @@ import io.github.lopezjavier.appfitness.data.remote.LastPerformanceParams
 import io.github.lopezjavier.appfitness.data.remote.PauseParams
 import io.github.lopezjavier.appfitness.data.remote.PersonalRecordDto
 import io.github.lopezjavier.appfitness.data.remote.PreviousSetDto
+import io.github.lopezjavier.appfitness.data.remote.SaveCompletedWorkoutParams
+import io.github.lopezjavier.appfitness.data.remote.SaveCompletedWorkoutRequest
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.SetSessionRestParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
@@ -31,18 +34,25 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
+import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.columns
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 private const val UNIQUE_VIOLATION = "23505"
 
 /** Workout sessions of the signed-in user (RLS scopes every query); lifecycle changes use atomic RPCs. */
 @Suppress("TooManyFunctions") // One small function per repository operation.
-class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postgrest: Postgrest) :
-    WorkoutSessionRepository {
+class SupabaseWorkoutSessionRepository(
+    private val auth: Auth,
+    private val postgrest: Postgrest,
+    private val clock: Clock = SystemClock(),
+    private val zone: () -> TimeZone = { TimeZone.currentSystemDefault() },
+) : WorkoutSessionRepository {
     override suspend fun startFromRoutine(routineId: String): Result<String> = auth.ownRow {
         postgrest.rpc("start_workout_session", StartSessionParams(routineId)).decodeAs<String>()
     }.recoverCatching { failure ->
@@ -112,6 +122,11 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
             .decodeList<WorkoutSessionDto>()
             .firstOrNull()
             ?.toDomain()
+    }
+
+    override suspend fun saveCompleted(draft: WorkoutDraft, sessionId: String?): Result<String> = auth.ownRow {
+        val request = SaveCompletedWorkoutRequest.from(draft, sessionId, clock.now(), zone())
+        postgrest.rpc("save_completed_workout", SaveCompletedWorkoutParams(request)).decodeAs<String>()
     }
 
     override suspend fun deleteSession(sessionId: String): Result<Unit> = auth.ownRow {

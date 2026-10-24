@@ -57,6 +57,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
+import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -163,6 +164,7 @@ class AppModuleTest {
                 InterpretMetric::class,
                 WeightChartPreferences::class,
                 WeightTrend::class,
+                PastWorkoutSource::class,
             ),
         )
     }

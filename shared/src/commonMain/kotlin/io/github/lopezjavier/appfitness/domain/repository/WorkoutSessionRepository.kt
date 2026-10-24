@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
+import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
@@ -47,6 +48,13 @@ interface WorkoutSessionRepository {
 
     /** A completed session with its sets; null when it does not exist or is not completed. */
     suspend fun getSession(sessionId: String): Result<WorkoutSession?>
+
+    /**
+     * Creates a completed session from [draft] (past workout, [sessionId] null) or replaces the content of the
+     * completed session [sessionId] (edit; its date does not change). Atomic; never touches the live session.
+     * Returns the session id.
+     */
+    suspend fun saveCompleted(draft: WorkoutDraft, sessionId: String? = null): Result<String>
 
     /** Deletes the session and its sets. */
     suspend fun deleteSession(sessionId: String): Result<Unit>

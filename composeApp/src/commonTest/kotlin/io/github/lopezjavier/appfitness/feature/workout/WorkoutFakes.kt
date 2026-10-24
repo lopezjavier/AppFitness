@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
+import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
@@ -114,6 +115,11 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var getSessionFailure: AppError? = null
     var deleteFailure: AppError? = null
 
+    /** (draft, sessionId) of every [saveCompleted] call, in order. */
+    val savedDrafts = mutableListOf<Pair<WorkoutDraft, String?>>()
+    var saveCompletedFailure: AppError? = null
+    var savedId = "s-saved"
+
     private fun failing(error: AppError?) = error?.let { Result.failure<Nothing>(AppException(it)) }
 
     override suspend fun startFromRoutine(routineId: String): Result<String> {
@@ -202,6 +208,34 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     override suspend fun getSession(sessionId: String): Result<WorkoutSession?> {
         getSessionCalls++
         return failing(getSessionFailure) ?: Result.success(completed.firstOrNull { it.id == sessionId })
+    }
+
+    override suspend fun saveCompleted(draft: WorkoutDraft, sessionId: String?): Result<String> {
+        failing(saveCompletedFailure)?.let { return it }
+        savedDrafts += draft to sessionId
+        val id = sessionId ?: savedId
+        val started = Instant.parse("${draft.date}T12:00:00Z")
+        val stored = WorkoutSession(
+            id = id,
+            routineId = draft.routineId,
+            name = draft.name,
+            status = SessionStatus.Completed,
+            startedAt = started,
+            endedAt = started,
+            exercises = draft.exercises.mapIndexed { position, exercise ->
+                SessionExercise(
+                    exercise.exerciseId,
+                    position,
+                    exercise.supersetGroup,
+                    exercise.sets.mapIndexed { index, set ->
+                        WorkoutSet(index + 1, set.setType, set.entry, started, set.rpe)
+                    },
+                )
+            },
+        )
+        val index = completed.indexOfFirst { it.id == id }
+        if (index >= 0) completed[index] = stored.copy(startedAt = completed[index].startedAt) else completed += stored
+        return Result.success(id)
     }
 
     override suspend fun deleteSession(sessionId: String): Result<Unit> {

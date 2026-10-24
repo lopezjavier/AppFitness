@@ -80,6 +80,8 @@ internal fun AppScaffold(
     history: HistorySlot = DefaultHistorySlot,
     calendar: CalendarSlot = DefaultCalendarSlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
+    editWorkout: EditWorkoutSlot = DefaultEditWorkoutSlot,
+    pastWorkout: PastWorkoutSlot = DefaultPastWorkoutSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
@@ -142,6 +144,8 @@ internal fun AppScaffold(
                     history = history,
                     calendar = calendar,
                     sessionDetail = sessionDetail,
+                    editWorkout = editWorkout,
+                    pastWorkout = pastWorkout,
                     strength = strength,
                     exerciseProgress = exerciseProgress,
                     muscleVolume = muscleVolume,
@@ -220,7 +224,7 @@ private fun ShellRail(
  * corrupts the restored list position. The bar layout keeps the same trick with its constant bar height.
  * The top of `innerPadding` is expected to be zero because `BelowTopBar` consumes the top inset.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LongMethod") // One slot per destination.
 @Composable
 private fun ShellContent(
     navController: NavHostController,
@@ -247,6 +251,8 @@ private fun ShellContent(
     history: HistorySlot,
     calendar: CalendarSlot,
     sessionDetail: SessionDetailSlot,
+    editWorkout: EditWorkoutSlot,
+    pastWorkout: PastWorkoutSlot,
     strength: StrengthSlot,
     exerciseProgress: ExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot,
@@ -295,6 +301,8 @@ private fun ShellContent(
             history = history,
             calendar = calendar,
             sessionDetail = sessionDetail,
+            editWorkout = editWorkout,
+            pastWorkout = pastWorkout,
             strength = strength,
             exerciseProgress = exerciseProgress,
             muscleVolume = muscleVolume,

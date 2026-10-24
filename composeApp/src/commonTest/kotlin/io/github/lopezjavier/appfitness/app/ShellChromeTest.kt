@@ -56,6 +56,8 @@ class ShellChromeTest {
                 HistoryRoute,
                 WorkoutCalendarRoute,
                 SessionDetailRoute::class,
+                EditWorkoutRoute::class,
+                PastWorkoutRoute::class,
                 StrengthRoute,
                 MuscleVolumeRoute,
                 ExerciseProgressRoute::class,
@@ -105,6 +107,8 @@ class ShellChromeTest {
         assertEquals("history_top_bar", (HistoryRoute.chrome as ShellChrome.FullScreen).topBarTag)
         assertEquals("calendar_top_bar", (WorkoutCalendarRoute.chrome as ShellChrome.FullScreen).topBarTag)
         assertEquals("session_detail_top_bar", (SessionDetailRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
+        assertEquals("edit_workout_top_bar", (EditWorkoutRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
+        assertEquals("past_workout_top_bar", (PastWorkoutRoute().chrome as ShellChrome.FullScreen).topBarTag)
     }
 
     @Test

@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.data.remote.RoutineSummaryDto
 import io.github.lopezjavier.appfitness.data.remote.SaveRoutineOrderParams
 import io.github.lopezjavier.appfitness.data.remote.SaveRoutineParams
 import io.github.lopezjavier.appfitness.data.remote.SaveRoutineRequest
+import io.github.lopezjavier.appfitness.data.remote.SaveWorkoutAsRoutineParams
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.SetNextRoutineParams
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -63,6 +64,10 @@ class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun updateFromSession(sessionId: String): Result<String> = auth.ownRow {
         postgrest.rpc("update_routine_from_session", SessionIdParams(sessionId)).decodeAs<String>()
+    }
+
+    override suspend fun createFromSession(sessionId: String, name: String): Result<String> = auth.ownRow {
+        postgrest.rpc("save_workout_as_routine", SaveWorkoutAsRoutineParams(sessionId, name.trim())).decodeAs<String>()
     }
 
     override suspend fun archive(id: String): Result<Unit> = auth.ownRow {

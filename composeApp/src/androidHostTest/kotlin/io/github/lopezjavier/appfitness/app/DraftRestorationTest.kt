@@ -72,12 +72,8 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutinesScreen
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesUiState
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.routines.routineOf
-import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
-import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
-import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
-import io.github.lopezjavier.appfitness.feature.workout.completedSession
 import kotlinx.datetime.TimeZone
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -414,45 +410,6 @@ class DraftRestorationTest {
     }
 
     // -- "Corregir serie" sheet -------------------------------------------------------------------------------------
-
-    @Test
-    fun correctSetSheet_keepsTheTypedValuesAfterRecreation_withoutSaving() {
-        val handle = SavedStateHandle()
-        val sessions = FakeWorkoutSessionRepository().apply { completed += completedSession("s1") }
-        val tester = StateRestorationTester(rule)
-        tester.setContent {
-            AppTheme {
-                val vm =
-                    remember {
-                        SessionDetailViewModel(
-                            "s1",
-                            sessions,
-                            exercises,
-                            library,
-                            connectivity,
-                            MutableClock(),
-                            FakeTrainingPreferencesRepository(),
-                            FakeWeightRepository(),
-                            handle,
-                        )
-                    }
-                SessionDetailRoot(sessionId = "s1", onClose = {}, viewModel = vm)
-            }
-        }
-        rule.waitForIdle()
-        rule.onNodeWithTag("session_detail_set_0_1").performClick()
-        rule.onNodeWithTag("session_edit_weight").performTextClearance()
-        rule.onNodeWithTag("session_edit_weight").performTextInput("92,5")
-        rule.waitForIdle()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("session_edit_weight").assertTextContains("92,5")
-        assertEquals(0, sessions.upserts.size)
-    }
-
-    // -- Perfil edit form and picker sheets -----------------------------------------------------------------------
 
     private fun showPreferences(tester: StateRestorationTester, handle: SavedStateHandle) {
         val profile =
