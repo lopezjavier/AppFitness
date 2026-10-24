@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-104 (E7), once the user agrees the proposed E7 checkpoints (E7-A, E7-B) and the breakdown PR is merged. Last merged: T-102b (PR #186). E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** T-105 (E7). Last merged: T-104 (PR #193). Carry to checkpoint E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
@@ -2850,18 +2850,18 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 **Description:** US-52: in the manual-food edit form (T-102) the base unit (`g`/`ml`) becomes editable while no `food_log_entries` row and no `meal_template_items` row references the food; favourites do not block it. Nutrition values, portion amounts and labels are kept as typed (they are per 100 base units). When the food is already used, the unit control is disabled with a hint (wording by ux-reviewer). Backend: a new migration with a new `update_personal_food` version that accepts the unit and, inside its locked transaction, refuses a unit change for a referenced food (error code proposed by the planner, e.g. `23514`), so a stale form opened before another device logged the food saves nothing; the client shows why. The client learns whether the food is referenced when the form opens (a small RPC or a column of the details query; planner's choice). OFF foods stay non-editable. US-53: in "Añadir comida" → Comidas a row tap opens a comida details screen (each food with its amount, the totals) with "Añadir" (adds the comida to the selected meal and day exactly as the T-102b row tap did, same offline rule) and "Editar" (opens "Editar comida", T-102b, with its single "Guardar"); the row has no pencil and no trailing add button. This replaces the T-102b row behaviour; `05` §8 drops the US-47 exception. The edit draft and the open comida details survive leaving the app.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: the unit changes for the caller's unreferenced manual food; a food referenced by an entry (including one dated a year ago, outside any loaded range) or by a comida item is refused and nothing in the call is saved; a favourite alone does not block; OFF and other users' foods still `P0002`; past entries byte-identical.
-- [ ] "Patata" in `ml`, unused → "Editar", unit "g", "Guardar" → per 100 g with the same values and portion amounts.
-- [ ] A used food shows the unit control disabled with the hint; a favourite-only food can change it.
-- [ ] A refused stale change shows the reason and leaves the form open with the draft intact.
-- [ ] Tapping "Desayuno A" opens its details (foods, amounts, totals) and adds nothing; "Añadir" adds its foods to the selected meal and day; "Editar" opens "Editar comida"; no pencil or add button on the rows.
-- [ ] The unit edit draft and the open comida details survive background and process death.
+- [x] Migration + pgTAP: the unit changes for the caller's unreferenced manual food; a food referenced by an entry (including one dated a year ago, outside any loaded range) or by a comida item is refused and nothing in the call is saved; a favourite alone does not block; OFF and other users' foods still `P0002`; past entries byte-identical.
+- [x] "Patata" in `ml`, unused → "Editar", unit "g", "Guardar" → per 100 g with the same values and portion amounts.
+- [x] A used food shows the unit control disabled with the hint; a favourite-only food can change it.
+- [x] A refused stale change shows the reason and leaves the form open with the draft intact.
+- [x] Tapping "Desayuno A" opens its details (foods, amounts, totals) and adds nothing; "Añadir" adds its foods to the selected meal and day; "Editar" opens "Editar comida"; no pencil or add button on the rows.
+- [x] The unit edit draft and the open comida details survive background and process death.
 
 **Host tests (per scenario):** `EditPersonalFoodViewModelTest` additions with fakes + Turbine (unit change, used food disabled, favourite-only, stale refusal); `FoodRepositoryTest` (payload with the unit, error mapping); `TemplateDetails…`/comida details ViewModel and screen tests (Robolectric: opens details, "Añadir", "Editar", no pencil); `FoodSearchTemplates` row test; restoration tests for both; pgTAP `update_personal_food.test.sql` additions.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** E6 (`v0.6.0`)
 **Files likely touched:** `supabase/migrations/<ts>_update_personal_food_unit.sql`, `supabase/tests/update_personal_food.test.sql`, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, `composeApp/…/feature/food/{CreateFoodScreen,CreateFoodSections,CreateFoodViewModel,CreateFoodDraft,FoodSearchTemplates}.kt`, `composeApp/…/feature/templates/{TemplateRow,TemplateDetailsScreen,TemplateDetailsViewModel,TemplateDetailsUiState,TemplateDetailsRoot}.kt` (or a new comida details screen), `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, `planning/03-data-model.md` §6, `planning/05-design-system.md` §8, strings, tests
