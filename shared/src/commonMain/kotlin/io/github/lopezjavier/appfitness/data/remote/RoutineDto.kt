@@ -47,13 +47,24 @@ internal data class RoutineDto(
     val name: String,
     val notes: String? = null,
     val archived: Boolean = false,
+    @SerialName("track_as_routine") val trackAsRoutine: Boolean = true,
+    @SerialName("auto_update_routine") val autoUpdateRoutine: Boolean = false,
     @SerialName("routine_exercises") val exercises: List<RoutineExerciseDto> = emptyList(),
 ) {
-    fun toDomain() = Routine(id, name, notes, archived, exercises.sortedBy { it.position }.map { it.toDomain() })
+    fun toDomain() = Routine(
+        id,
+        name,
+        notes,
+        archived,
+        exercises.sortedBy { it.position }.map { it.toDomain() },
+        trackAsRoutine,
+        autoUpdateRoutine,
+    )
 
     companion object {
         const val COLUMNS =
-            "id,name,notes,archived,routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
+            "id,name,notes,archived,track_as_routine,auto_update_routine," +
+                "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
                 "target_weight_kg,planned_set_type,target_rpe,rest_seconds," +
                 "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
     }
@@ -108,6 +119,8 @@ internal data class SaveRoutineRequest(
     val id: String? = null,
     val name: String,
     val notes: String? = null,
+    @SerialName("track_as_routine") val trackAsRoutine: Boolean,
+    @SerialName("auto_update_routine") val autoUpdateRoutine: Boolean,
     val exercises: List<SaveRoutineExerciseRequest>,
 ) {
     companion object {
@@ -115,6 +128,8 @@ internal data class SaveRoutineRequest(
             id = routine.id,
             name = routine.name.trim(),
             notes = routine.notes,
+            trackAsRoutine = routine.trackAsRoutine,
+            autoUpdateRoutine = routine.autoUpdateRoutine,
             exercises = routine.exercises.mapIndexed { index, exercise ->
                 SaveRoutineExerciseRequest(
                     exerciseId = exercise.exerciseId,

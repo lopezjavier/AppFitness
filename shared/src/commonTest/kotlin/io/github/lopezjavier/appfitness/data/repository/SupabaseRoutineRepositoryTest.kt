@@ -111,7 +111,8 @@ class SupabaseRoutineRepositoryTest {
         val call = rest().single()
         assertEquals("/rest/v1/rpc/save_routine", call.url.encodedPath)
         assertEquals(
-            """{"p_routine":{"name":"Torso fuerza","exercises":[""" +
+            """{"p_routine":{"name":"Torso fuerza","track_as_routine":true,"auto_update_routine":false,""" +
+                """"exercises":[""" +
                 """{"exercise_id":"e1","position":0,"superset_group":2,"rest_seconds":120,"target_rpe":8.5,""" +
                 """"sets":[{"weight_kg":40.0,"reps":10,"set_type":"warm_up"},{"reps":8,"set_type":"working"}]},""" +
                 """{"exercise_id":"e2","position":1,"superset_group":2,"rest_seconds":90,""" +
@@ -120,6 +121,40 @@ class SupabaseRoutineRepositoryTest {
             (call.body as TextContent).text,
         )
         assertEquals("new-id", id)
+    }
+
+    @Test
+    fun save_sendsTheTrackingFlags() = runTest {
+        val repo = signedIn()
+
+        repo.save(routine().copy(trackAsRoutine = false, autoUpdateRoutine = true)).getOrThrow()
+
+        val text = body(rest().single())
+        assertTrue(""""track_as_routine":false,"auto_update_routine":true""" in text, text)
+    }
+
+    @Test
+    fun get_mapsTheTrackingFlags() = runTest {
+        val repo = signedIn()
+        getBody =
+            """[{"id":"r1","name":"A","track_as_routine":false,"auto_update_routine":true,"routine_exercises":[]}]"""
+
+        val routine = repo.get("r1").getOrThrow()
+
+        assertEquals(false to true, routine.trackAsRoutine to routine.autoUpdateRoutine)
+    }
+
+    @Test
+    fun updateFromSession_callsTheRpcAndReturnsTheRoutineId() = runTest {
+        val repo = signedIn()
+        rpcBody = "\"r1\""
+
+        val id = repo.updateFromSession("s1").getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/update_routine_from_session", call.url.encodedPath)
+        assertEquals("""{"p_session_id":"s1"}""", body(call))
+        assertEquals("r1", id)
     }
 
     @Test
@@ -344,7 +379,7 @@ class SupabaseRoutineRepositoryTest {
         assertEquals("new-id", id)
         val rpc = rest().last()
         val body = (rpc.body as TextContent).text
-        assertTrue(body.startsWith("""{"p_routine":{"name":"Torso fuerza (copia)","exercises":["""), body)
+        assertTrue(body.startsWith("""{"p_routine":{"name":"Torso fuerza (copia)","track_as_routine":true"""), body)
         assertTrue(""""position":0""" in body && """"position":1""" in body, body)
     }
 

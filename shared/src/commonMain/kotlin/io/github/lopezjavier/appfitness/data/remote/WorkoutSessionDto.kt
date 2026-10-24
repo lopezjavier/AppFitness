@@ -69,6 +69,7 @@ internal data class WorkoutSessionDto(
     @SerialName("ended_at") val endedAt: String? = null,
     @SerialName("paused_at") val pausedAt: String? = null,
     @SerialName("paused_total_s") val pausedTotalS: Int = 0,
+    @SerialName("exercise_rests") val exerciseRests: Map<String, Int> = emptyMap(),
     @SerialName("workout_sets") val sets: List<WorkoutSetDto> = emptyList(),
 ) {
     fun toDomain() = WorkoutSession(
@@ -80,6 +81,7 @@ internal data class WorkoutSessionDto(
         endedAt = endedAt?.let(Instant::parse),
         pausedAt = pausedAt?.let(Instant::parse),
         pausedTotalSeconds = pausedTotalS.toLong(),
+        exerciseRests = exerciseRests.mapNotNull { (key, seconds) -> key.toIntOrNull()?.let { it to seconds } }.toMap(),
         exercises = sets.groupBy { it.exercisePosition }.toSortedMap().map { (position, rows) ->
             val ordered = rows.sortedBy { it.setIndex }
             SessionExercise(
@@ -93,12 +95,12 @@ internal data class WorkoutSessionDto(
 
     companion object {
         const val COLUMNS =
-            "id,routine_id,name,status,started_at,ended_at,paused_at,paused_total_s," +
+            "id,routine_id,name,status,started_at,ended_at,paused_at,paused_total_s,exercise_rests," +
                 "workout_sets(${WorkoutSetDto.COLUMNS})"
 
         /** Only the sessions that contain a matching set (filtered through the embed), embedding just those sets. */
         const val INNER_COLUMNS =
-            "id,routine_id,name,status,started_at,ended_at,paused_at,paused_total_s," +
+            "id,routine_id,name,status,started_at,ended_at,paused_at,paused_total_s,exercise_rests," +
                 "workout_sets!inner(${WorkoutSetDto.COLUMNS})"
     }
 }
@@ -154,6 +156,14 @@ internal data class DeleteSetParams(
     @SerialName("p_session_id") val sessionId: String,
     @SerialName("p_exercise_position") val exercisePosition: Int,
     @SerialName("p_set_index") val setIndex: Int,
+)
+
+/** Arguments of the `set_session_rest` RPC. */
+@Serializable
+internal data class SetSessionRestParams(
+    @SerialName("p_session_id") val sessionId: String,
+    @SerialName("p_exercise_position") val exercisePosition: Int,
+    @SerialName("p_rest_seconds") val restSeconds: Int,
 )
 
 /** Row returned by the `last_performance` RPC. */

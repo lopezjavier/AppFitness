@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.data.remote.PauseParams
 import io.github.lopezjavier.appfitness.data.remote.PersonalRecordDto
 import io.github.lopezjavier.appfitness.data.remote.PreviousSetDto
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
+import io.github.lopezjavier.appfitness.data.remote.SetSessionRestParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
@@ -135,6 +136,11 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
         )
         postgrest.from("workout_sets").upsert(dto) { onConflict = "session_id,exercise_position,set_index" }
     }.map {}
+
+    override suspend fun setExerciseRest(sessionId: String, exercisePosition: Int, seconds: Int): Result<Unit> =
+        auth.ownRow {
+            postgrest.rpc("set_session_rest", SetSessionRestParams(sessionId, exercisePosition, seconds))
+        }.map {}
 
     override suspend fun finish(sessionId: String): Result<Unit> = auth.ownRow {
         postgrest.rpc("finish_workout_session", SessionIdParams(sessionId))

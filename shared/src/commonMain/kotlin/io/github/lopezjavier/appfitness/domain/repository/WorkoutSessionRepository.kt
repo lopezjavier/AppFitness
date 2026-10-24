@@ -47,6 +47,9 @@ interface WorkoutSessionRepository {
     /** Deletes the session and its sets. */
     suspend fun deleteSession(sessionId: String): Result<Unit>
 
+    /** Persists the rest of one exercise of the in-progress session (survives closing the app). */
+    suspend fun setExerciseRest(sessionId: String, exercisePosition: Int, seconds: Int): Result<Unit>
+
     /** Closes the session as completed and drops its pending sets. */
     suspend fun finish(sessionId: String): Result<Unit>
 

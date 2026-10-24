@@ -138,6 +138,36 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun getInProgress_readsTheExerciseRestsByPosition() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW.replace(""""ended_at":null,"""", """"ended_at":null,"exercise_rests":{"0":90,"3":45},"""")
+
+        val session = repo.getInProgress().getOrThrow()!!
+
+        assertEquals(mapOf(0 to 90, 3 to 45), session.exerciseRests)
+        assertTrue(rest().single().url.toString().contains("exercise_rests"))
+    }
+
+    @Test
+    fun getInProgress_withoutRestsHasAnEmptyMap() = runTest {
+        val repo = signedIn()
+        getBody = SESSION_ROW
+
+        assertEquals(emptyMap(), repo.getInProgress().getOrThrow()!!.exerciseRests)
+    }
+
+    @Test
+    fun setExerciseRest_callsTheRpc() = runTest {
+        val repo = signedIn()
+
+        repo.setExerciseRest("s1", 2, 90).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/set_session_rest", call.url.encodedPath)
+        assertEquals("""{"p_session_id":"s1","p_exercise_position":2,"p_rest_seconds":90}""", bodyOf(call))
+    }
+
+    @Test
     fun getInProgress_withoutPauseColumnsIsNotPaused() = runTest {
         val repo = signedIn()
         getBody = SESSION_ROW
