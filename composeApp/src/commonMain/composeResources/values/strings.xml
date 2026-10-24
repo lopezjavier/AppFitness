@@ -819,7 +819,7 @@
     <string name="create_food_section_fats">Grasas y carbohidratos detallados</string>
     <string name="create_food_section_vitamins">Vitaminas</string>
     <string name="create_food_section_minerals">Minerales</string>
-    <string name="create_food_section_filled">%1$d rellenos</string>
+    <string name="create_food_section_filled">Rellenos: %1$d</string>
     <string name="create_food_nutrient_cd">%1$s, %2$s</string>
     <string name="create_food_nutrient_label">%1$s (%2$s)</string>
     <string name="create_food_unit_word_g">gramos</string>

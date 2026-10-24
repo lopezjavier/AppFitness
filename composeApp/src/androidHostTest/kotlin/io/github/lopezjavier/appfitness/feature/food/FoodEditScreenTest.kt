@@ -209,7 +209,7 @@ class FoodEditScreenTest {
         assertEquals(55.0, values.getValue(MicronutrientKind.Selenium), 0.0)
         assertEquals(1.5, values.getValue(MicronutrientKind.Polyols), 0.0)
         rule.onNodeWithTag("create_food_section_vitamins_filled", useUnmergedTree = true)
-            .assertTextContains("1 rellenos")
+            .assertTextContains("Rellenos: 1")
     }
 
     @Test
