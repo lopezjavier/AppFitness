@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import kotlinx.datetime.LocalDate
@@ -55,6 +56,20 @@ internal data class WorkoutSetDto(
         const val COLUMNS =
             "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,duration_s,distance_m," +
                 "steps,floors,rpe,completed_at,exercises(metric_type)"
+    }
+}
+
+/** Light `workout_sessions` row (no sets) for the training calendar. */
+@Serializable
+internal data class TrainedSessionDto(
+    val id: String,
+    val name: String,
+    @SerialName("started_at") val startedAt: String,
+) {
+    fun toDomain() = TrainedSession(id, name, Instant.parse(startedAt))
+
+    companion object {
+        const val COLUMNS = "id,name,started_at"
     }
 }
 

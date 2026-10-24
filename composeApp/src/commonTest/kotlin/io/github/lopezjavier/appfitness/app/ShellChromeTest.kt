@@ -54,6 +54,7 @@ class ShellChromeTest {
                 RoutineBuilderRoute::class,
                 LiveSessionRoute,
                 HistoryRoute,
+                WorkoutCalendarRoute,
                 SessionDetailRoute::class,
                 StrengthRoute,
                 MuscleVolumeRoute,
@@ -73,6 +74,7 @@ class ShellChromeTest {
                     it is MealSlotsRoute ||
                     it is LiveSessionRoute ||
                     it is HistoryRoute ||
+                    it is WorkoutCalendarRoute ||
                     it is StrengthRoute ||
                     it is MuscleVolumeRoute ||
                     it is DiaryHistoryRoute ||
@@ -101,6 +103,7 @@ class ShellChromeTest {
     @Test
     fun historyRoutes_haveFullScreenChrome_withTheirTopBarTags() {
         assertEquals("history_top_bar", (HistoryRoute.chrome as ShellChrome.FullScreen).topBarTag)
+        assertEquals("calendar_top_bar", (WorkoutCalendarRoute.chrome as ShellChrome.FullScreen).topBarTag)
         assertEquals("session_detail_top_bar", (SessionDetailRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
     }
 

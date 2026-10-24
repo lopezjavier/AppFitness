@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-100 (workout detail and training calendar). Last merged: T-098 (2026-10-24). T-099 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-101 (workout editing, "Guardar como rutina" and past workouts). Last merged: T-099 (2026-10-24). T-100 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2669,15 +2669,15 @@ Journey: everything about a gym session, from planning the sets to the records a
 **Description:** The history session detail (T-047) shows each exercise with its sets (type badge, RPE, metric values), the muscle split of the workout and the records from the T-094 catalogue. Assumption for the split: the share of completed sets per primary muscle group, confirmed at E6-B. A training calendar opens from "Historial". It has a month grid reusing `MonthCalendarGrid` (check every caller) with the trained days marked, a year view and a multi-year view. No streak, rest days or rewards (deferred, ADR-52). Tapping a trained day opens its workout(s); a day with two workouts lets the user pick one. The calendar range and the opened day survive leaving the app.
 
 **Acceptance criteria:**
-- [ ] The detail shows exercises, sets with type and RPE, the muscle split and the record marks consistent with T-094.
-- [ ] The calendar marks trained days in month, year and multi-year views; a workout in an older month than the loaded one opens correctly; a day with two workouts offers both.
-- [ ] No streak or rest-day marks.
-- [ ] View and month restored after leaving the app.
+- [x] The detail shows exercises, sets with type and RPE, the muscle split and the record marks consistent with T-094.
+- [x] The calendar marks trained days in month, year and multi-year views; a workout in an older month than the loaded one opens correctly; a day with two workouts offers both.
+- [x] No streak or rest-day marks.
+- [x] View and month restored after leaving the app.
 
 **Host tests (per scenario):** `MuscleSplitTest`; `WorkoutCalendarViewModelTest` (Calendar; out-of-range month; two workouts on a day); `SessionDetailViewModelTest` additions (Detail); screen tests; restoration tests; pgTAP only if SQL is added.
 
 **Verification:**
-- [ ] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ pgTAP and `deploy-supabase` if a migration is added).
+- [x] Lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green (+ pgTAP and `deploy-supabase` if a migration is added).
 
 **Dependencies:** T-099
 **Files likely touched:** `shared/…/domain/usecase/MuscleSplit.kt` + tests, `shared/…/domain/repository/WorkoutSessionRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/workout/{SessionDetailScreen,SessionDetailViewModel,WorkoutCalendarScreen,WorkoutCalendarViewModel,HistoryScreen}.kt`, `composeApp/…/designsystem/MonthCalendarGrid.kt` (+ callers), `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests

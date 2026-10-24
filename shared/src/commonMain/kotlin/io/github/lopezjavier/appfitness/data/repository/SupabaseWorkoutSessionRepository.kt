@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.data.remote.PreviousSetDto
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.SetSessionRestParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
+import io.github.lopezjavier.appfitness.data.remote.TrainedSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -29,6 +30,7 @@ import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.columns
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
@@ -68,6 +70,17 @@ class SupabaseWorkoutSessionRepository(private val auth: Auth, private val postg
                 range(offset.toLong(), (offset + limit - 1).toLong())
             }
             .decodeList<WorkoutSessionDto>()
+            .map { it.toDomain() }
+    }
+
+    override suspend fun listCompletedSummaries(): Result<List<TrainedSession>> = auth.ownRow {
+        postgrest.from("workout_sessions")
+            .select(Columns.raw(TrainedSessionDto.COLUMNS)) {
+                filter { eq("status", "completed") }
+                order("started_at", Order.DESCENDING)
+                order("id", Order.DESCENDING)
+            }
+            .decodeList<TrainedSessionDto>()
             .map { it.toDomain() }
     }
 

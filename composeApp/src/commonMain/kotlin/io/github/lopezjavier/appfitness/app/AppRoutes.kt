@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
@@ -83,6 +84,10 @@ data object LiveSessionRoute : AppRoute
 /** The history of completed sessions (US-14), opened from the Entreno tab. */
 @Serializable
 data object HistoryRoute : AppRoute
+
+/** The training calendar (US-37): trained days by month, year and years, opened from the history. */
+@Serializable
+data object WorkoutCalendarRoute : AppRoute
 
 /** Detail of one completed session: sets, records, correction and deletion. */
 @Serializable
@@ -247,6 +252,8 @@ val AppRoute.chrome: ShellChrome
 
             HistoryRoute -> ShellChrome.FullScreen(Res.string.history_title, topBarTag = "history_top_bar")
 
+            WorkoutCalendarRoute -> ShellChrome.FullScreen(Res.string.calendar_title, topBarTag = "calendar_top_bar")
+
             is SessionDetailRoute ->
                 ShellChrome.FullScreen(Res.string.session_detail_title, topBarTag = "session_detail_top_bar")
 
@@ -295,6 +302,7 @@ object AppDestinations {
             RoutineBuilderRoute(),
             LiveSessionRoute,
             HistoryRoute,
+            WorkoutCalendarRoute,
             SessionDetailRoute(""),
             StrengthRoute,
             MuscleVolumeRoute,

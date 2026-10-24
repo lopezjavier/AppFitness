@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import kotlinx.datetime.LocalDate
@@ -35,6 +36,8 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
     ): Result<Unit> = fail()
 
     override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> = fail()
+
+    override suspend fun listCompletedSummaries(): Result<List<TrainedSession>> = fail()
 
     override suspend fun exerciseSessions(exerciseId: String, offset: Int, limit: Int): Result<List<WorkoutSession>> =
         fail()

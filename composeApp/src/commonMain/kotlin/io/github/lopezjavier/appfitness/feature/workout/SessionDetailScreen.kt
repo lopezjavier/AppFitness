@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
@@ -58,9 +59,11 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
+import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -138,6 +141,7 @@ private fun DetailContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         item(key = "header") { DetailHeader(state) }
+        if (state.split.isNotEmpty()) item(key = "split") { MuscleSplitSection(state.split) }
         item(key = "exercises_title") {
             Text(
                 text = stringResource(Res.string.session_detail_exercises),
@@ -278,16 +282,21 @@ private fun SetLine(position: Int, set: DetailSet, enabled: Boolean, onClick: ()
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = AppNumberFormat.integer(set.setIndex),
-            style = AppTheme.typography.labelNumeric,
-            color = AppTheme.colors.textSecondary,
-        )
+        SetTypeBadge(type = set.setType, number = AppNumberFormat.integer(set.setIndex))
         Text(
             text = set.text,
             style = AppTheme.typography.labelNumeric,
             color = AppTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f),
         )
+        set.rpe?.let { rpe ->
+            Text(
+                text = stringResource(Res.string.exercise_history_rpe, RpeScale.text(rpe)),
+                style = AppTheme.typography.labelNumeric,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("session_detail_set_rpe_${position}_${set.setIndex}"),
+            )
+        }
     }
 }
 
