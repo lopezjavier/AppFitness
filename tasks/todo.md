@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** Checkpoint E6-C 👤 (hard gate), then T-103 (closure). Last merged: T-102b (PR #186). E5 closed (tag `v0.5.0`).
+**Next:** T-103 (E6 closure), in a fresh session. Checkpoint E6-C approved 2026-10-24 (change requests US-52/US-53 go to E7, ADR-62). Last merged: T-102b (PR #186). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2817,10 +2817,10 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E6.md`
 **Estimated scope:** S
 
-### Checkpoint E6-C — Food editing, final regression and approval 👤 (6 items + leave and come back)
+### Checkpoint E6-C — Food editing, final regression and approval 👤 (6 items + leave and come back) *(approved 2026-10-24; follow-ups US-52/US-53 → E7, ADR-62)*
 Journey: fix your own foods from their label, then one last real workout over everything E6 built. Why here: food editing (T-102) is its own journey in another domain, but it yields only 3 items, below the 5-item minimum, and only the closure follows it, so it joins the closing regression instead of calling the user twice in a row.
-- [ ] T-089…T-102b merged, CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
-- [ ] 👤 Install the APK and try:
+- [x] T-089…T-102b merged, CI green, `deploy-supabase` applied the last migration, every reported bug fixed.
+- [x] 👤 Install the APK and try:
   1. Edit a comida (T-102b): in "Añadir comida" → Comidas, tapping a row adds it and the pencil opens "Editar comida"; rename it in the text field, swipe a food away or remove it from its details, add a food, "Guardar": everything applies together; leaving without "Guardar" changes nothing.
   2. Edit a manual food (T-102): open one of your foods, "Editar", change its kcal or a macro and "Guardar": a new diary entry uses the new values; the entries you logged before keep theirs. An Open Food Facts food has no "Editar".
   3. Portions (T-102): add a portion (it is offered when logging), change another (new entries use the new amount, old ones keep theirs) and remove one (no longer offered; past entries keep it).

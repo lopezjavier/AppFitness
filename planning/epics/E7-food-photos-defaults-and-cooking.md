@@ -8,6 +8,7 @@ Cut the typing out of food logging: create a personal food from a photo, fill a 
   - **Photo food creation**: an "Añadir desde foto" action in the add-food screen with three modes (AI estimate of a dish, nutrition-label photo, barcode photo), using the system camera or the Android photo picker. A fixed prompt per mode, an optional comment for the dish estimate, editable AI values and portions, saved as a personal food and then logged through the normal add-to-meal sheet.
   - **Default comidas**: from Preferencias → Comidas, assign saved comidas (the user's "Comidas", not Open Food Facts foods) to a meal on selected weekdays; the first time a new day's Diary is opened, their foods are added automatically.
   - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat of the retained olive oil are added; the amounts are configurable in Preferencias. Saved comidas store an editable method per item; adding one or applying a default copies that method.
+  - **Checkpoint E6-C change requests (ADR-62)**: change the unit of a manual food while nothing references it (US-52); a saved comida opens its details with "Añadir" and "Editar" (US-53).
 - Out of scope:
   - Estimating a whole meal (several foods) from one photo; Phase 1 handles one food per photo.
   - Storing, uploading or browsing food photos (no in-app gallery or photo history; the system photo picker only selects an image for inference, and no Supabase Storage is used).
@@ -336,10 +337,85 @@ Feature: Default comidas
 
 ---
 
+## US-52 · Change the unit of an unused manual food
+**As** a user who picked the wrong unit when creating a food
+**I want** to change `g`/`ml` while the food is not used anywhere
+**So that** I can fix the mistake in the app instead of the database.
+
+```gherkin
+Feature: Unit of a manual food (ADR-62)
+
+  Scenario: Changing the unit of an unused food
+    Given the manual food "Patata" with unit "ml" and no diary entry or saved comida using it
+    When the user opens "Editar", changes the unit to "g" and taps "Guardar"
+    Then "Patata" is per 100 g, with the same nutrition values and portion amounts
+
+  Scenario: A used food keeps its unit
+    Given the manual food "Patata" is in a diary entry or in a saved comida
+    When the user opens "Editar"
+    Then the unit control is disabled with a hint explaining why
+
+  Scenario: Favourites do not block the change
+    Given the manual food "Patata" is only a favourite
+    When the user opens "Editar"
+    Then the unit can be changed
+
+  Scenario: The server refuses a stale change
+    Given the food was added to a diary entry from another device after the form opened
+    When the user taps "Guardar" with a different unit
+    Then the change is refused, nothing is saved and the user sees why
+
+  Scenario: Open Food Facts foods
+    Given an Open Food Facts food
+    Then it has no "Editar" and its unit cannot be changed
+```
+
+**Technical notes:** new migration extending `update_personal_food` with the unit and the "unreferenced" check (entries, comida items), with pgTAP; the draft survives leaving the app (ADR-45).
+
+---
+
+## US-53 · A comida opens its details, like any other food list
+**As** a user adding a saved comida
+**I want** tapping it to show its details with "Añadir" and "Editar"
+**So that** it behaves like Recientes, Más comidos and Favoritos and I never add one by accident.
+
+```gherkin
+Feature: Comida details (ADR-62)
+
+  Scenario: Tapping a comida opens its details
+    Given the user is in "Añadir comida" → "Comidas"
+    When they tap the row "Desayuno A"
+    Then they see its details: each food with its amount, and the totals
+    And nothing has been added to the diary
+
+  Scenario: Adding from the details
+    Given the details of "Desayuno A" are open
+    When the user taps "Añadir"
+    Then its foods are added to the diary in the selected meal and day, as when adding a comida today
+
+  Scenario: Editing from the details
+    Given the details of "Desayuno A" are open
+    When the user taps "Editar"
+    Then "Editar comida" opens, with its single "Guardar" (US-47)
+
+  Scenario: No pencil on the row
+    Then a row of "Comidas" has no pencil and no trailing add button
+
+  Scenario: State survives leaving the app
+    Given the details of a comida are open
+    When the user leaves the app and comes back
+    Then the same details are shown
+```
+
+**Technical notes:** replaces the T-102b row behaviour; removes the US-47 exception in `05-design-system.md` §8; the offline rule for adding stays as today.
+
+---
+
 ## Epic Definition of Done
 - `food-photo` is covered by `deno test` with recorded Gemini fixtures (dish, label, barcode, unreadable, invalid input, provider error); CI never calls the network.
 - pgTAP covers `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the unique meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency (including no re-add after deleting entries).
 - Domain tests cover the cooking calculations and the weekday/selection helpers; host (Robolectric) tests cover the camera/gallery sources, the photo modes, the prefilled manual form, the cooking selector (add-to-meal, save-as-comida and edit-comida) and the default-comidas screen.
 - No food photo, comment or provider response is stored or logged; the Gemini key exists only in Supabase secrets.
 - Every new screen has loading, empty, error and offline states; the photo and defaults flows survive leaving the app and coming back where a draft exists.
+- Unit change of unused manual foods (US-52) is covered by pgTAP (referenced vs unreferenced) and host tests; the comida details (US-53) by host tests.
 - `prodDebug` APK validated by the user. Tag `v0.7.0`.
