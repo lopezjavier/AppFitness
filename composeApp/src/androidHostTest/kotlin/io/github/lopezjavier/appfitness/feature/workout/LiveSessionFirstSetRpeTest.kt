@@ -154,6 +154,42 @@ class LiveSessionFirstSetRpeTest {
     }
 
     @Test
+    fun firstSet_rpeSheetOpenedAndDismissedWithoutPicking_thenListo_stillAsksForRpe() {
+        setContent()
+        rule.onNodeWithTag("live_set_0_1_weight").performTextInput("60")
+        rule.onNodeWithTag("live_set_0_1_reps").performTextInput("8")
+        rule.onNodeWithTag("live_set_0_1_rpe").performClick()
+        settle()
+        rule.onNodeWithTag("rpe_picker").assertExists()
+        rule.onNodeWithTag("rpe_picker_close").performClick()
+        settle()
+        rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
+
+        rule.onNodeWithTag("live_set_0_1_check").performClick()
+        settle()
+
+        rule.onNodeWithTag("rpe_picker").assertExists()
+        rule.onNodeWithTag("live_set_0_1_check").assertIsOff()
+    }
+
+    @Test
+    fun firstSetOfAnExerciseAddedToAnEmptySession_listo_asksForRpe() {
+        repository.session = sessionOf()
+        viewModel = newViewModel()
+        setContent()
+        viewModel.onEvent(LiveSessionEvent.ExerciseSelected("e1"))
+        settle()
+        rule.onNodeWithTag("live_set_0_1_weight").performTextInput("60")
+        rule.onNodeWithTag("live_set_0_1_reps").performTextInput("8")
+
+        rule.onNodeWithTag("live_set_0_1_check").performClick()
+        settle()
+
+        rule.onNodeWithTag("rpe_picker").assertExists()
+        rule.onNodeWithTag("live_set_0_1_check").assertIsOff()
+    }
+
+    @Test
     fun pausingFreezesTheRestChip_andCheckingASetWhilePausedResumesBoth() {
         setContent()
         rule.onNodeWithTag("live_set_0_1_weight").performTextInput("60")
