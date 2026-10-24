@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(52);
+select plan(50);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -34,8 +34,13 @@ insert into public.workout_sets
 -- Schema and security
 -- ---------------------------------------------------------------------------
 select has_table('public', 'training_preferences', 'public.training_preferences exists');
-select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'plate_rounding_kg', 'dumbbell_rounding_kg', 'dumbbell_handle_kg'],
+select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'dumbbell_handle_kg'],
   'training_preferences has exactly the planned columns');
+select hasnt_function('public', 'save_preferences',
+  array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',
+        'smallint', 'smallint', 'smallint', 'numeric', 'timestamp with time zone',
+        'timestamp with time zone', 'timestamp with time zone', 'boolean', 'previous_values_mode', 'numeric', 'numeric[]', 'numeric', 'numeric', 'numeric'],
+  'the 22-argument save_preferences no longer exists');
 select fk_ok('public', 'training_preferences', 'user_id', 'auth', 'users', 'id',
   'user_id references auth.users.id');
 select has_pk('public', 'training_preferences', 'training_preferences has a primary key');
@@ -129,28 +134,28 @@ select is(public.warm_up_included(), false, 'the flag can be turned off again');
 
 -- Calculator settings (T-097): defaults, save_preferences params, constraints, isolation.
 select results_eq(
-  $$select bar_weight_kg, plate_kg::numeric[], plate_rounding_kg, dumbbell_rounding_kg
+  $$select bar_weight_kg, plate_kg::numeric[]
     from public.training_preferences$$,
-  $$values (20.0::numeric, '{25,20,15,10,5,2.5,2,1.25,1,0.5}'::numeric[], 2.50::numeric, 2.00::numeric)$$,
-  'the calculator columns default to the section 4.9 values');
+  $$values (20.0::numeric, '{25,20,15,10,5,2.5,2,1.25,1,0.5}'::numeric[])$$,
+  'the bar and plate columns default to the section 4.9 values');
 select lives_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
-      7.5, '{20,10,2.5,0.5}'::numeric[], 5, 1)$$,
+      7.5, '{20,10,2.5,0.5}'::numeric[])$$,
   'A saves the calculator settings');
 select results_eq(
-  $$select bar_weight_kg, plate_kg::numeric[], plate_rounding_kg, dumbbell_rounding_kg
+  $$select bar_weight_kg, plate_kg::numeric[]
     from public.training_preferences$$,
-  $$values (7.5::numeric, '{20,10,2.5,0.5}'::numeric[], 5.00::numeric, 1.00::numeric)$$,
-  'save_preferences wrote the four calculator columns');
+  $$values (7.5::numeric, '{20,10,2.5,0.5}'::numeric[])$$,
+  'save_preferences wrote the bar and plate columns');
 select lives_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint)$$,
   'A saves without the calculator arguments');
 select results_eq(
-  $$select bar_weight_kg, plate_kg::numeric[], plate_rounding_kg, dumbbell_rounding_kg
+  $$select bar_weight_kg, plate_kg::numeric[]
     from public.training_preferences$$,
-  $$values (7.5::numeric, '{20,10,2.5,0.5}'::numeric[], 5.00::numeric, 1.00::numeric)$$,
+  $$values (7.5::numeric, '{20,10,2.5,0.5}'::numeric[])$$,
   'null calculator arguments leave the columns unchanged');
 select throws_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
@@ -168,20 +173,8 @@ select throws_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null, null, '{25,3}'::numeric[])$$,
   '23514', null, 'an unknown plate is rejected');
-select throws_ok(
-  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
-      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null, null, null, 0)$$,
-  '23514', null, 'a zero plate rounding is rejected');
-select throws_ok(
-  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
-      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null, null, null, 26)$$,
-  '23514', null, 'a plate rounding above 25 is rejected');
-select throws_ok(
-  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
-      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null, null, null, null, 0)$$,
-  '23514', null, 'a zero dumbbell rounding is rejected');
 select results_eq(
-  $$with u as (update public.training_preferences set plate_rounding_kg = 10
+  $$with u as (update public.training_preferences set plate_kg = '{25}'
                where user_id = '22222222-2222-4222-8222-222222222222' returning 1)
     select count(*)::int from u$$,
   $$values (0)$$, 'A cannot update B''s calculator settings');
@@ -193,7 +186,7 @@ select is(
 select lives_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
-      null, null, null, null, 2.5)$$,
+      null, null, 2.5)$$,
   'A saves the dumbbell handle');
 select is(
   (select dumbbell_handle_kg from public.training_preferences),
@@ -201,20 +194,20 @@ select is(
 select lives_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
-      null, null, null, 3)$$,
-  'A saves with positional args up to the dumbbell rounding');
+      20)$$,
+  'A saves with positional args up to the bar weight');
 select is(
   (select dumbbell_handle_kg from public.training_preferences),
   2.50::numeric, 'a null handle argument leaves the handle unchanged');
 select throws_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
-      null, null, null, null, 0)$$,
+      null, null, 0)$$,
   '23514', null, 'a zero dumbbell handle is rejected');
 select throws_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
       35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
-      null, null, null, null, 11)$$,
+      null, null, 11)$$,
   '23514', null, 'a dumbbell handle above 10 is rejected');
 select results_eq(
   $$with u as (update public.training_preferences set dumbbell_handle_kg = 5

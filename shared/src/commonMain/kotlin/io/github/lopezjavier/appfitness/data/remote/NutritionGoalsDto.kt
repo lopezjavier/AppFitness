@@ -91,8 +91,6 @@ internal data class SavePreferencesParams(
     @SerialName("p_previous_values_mode") val previousValuesMode: PreviousValuesModeDto? = null,
     @SerialName("p_bar_weight_kg") val barWeightKg: Double? = null,
     @SerialName("p_plate_kg") val plateKg: List<Double>? = null,
-    @SerialName("p_plate_rounding_kg") val plateRoundingKg: Double? = null,
-    @SerialName("p_dumbbell_rounding_kg") val dumbbellRoundingKg: Double? = null,
     @SerialName("p_dumbbell_handle_kg") val dumbbellHandleKg: Double? = null,
 ) {
     companion object {
@@ -127,8 +125,6 @@ internal data class SavePreferencesParams(
                 previousValuesMode = PreviousValuesModeDto.of(previousValuesMode),
                 barWeightKg = calculators?.barWeightKg,
                 plateKg = calculators?.plateKg,
-                plateRoundingKg = calculators?.plateRoundingKg,
-                dumbbellRoundingKg = calculators?.dumbbellRoundingKg,
                 dumbbellHandleKg = calculators?.dumbbellHandleKg,
             )
         }

@@ -28,9 +28,6 @@ internal data class TrainingPreferencesDto(
     @SerialName("previous_values_mode") val previousValuesMode: PreviousValuesModeDto = PreviousValuesModeDto.Overall,
     @SerialName("bar_weight_kg") val barWeightKg: Double = CalculatorSettings.DEFAULT_BAR_KG,
     @SerialName("plate_kg") val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
-    @SerialName("plate_rounding_kg") val plateRoundingKg: Double = CalculatorSettings.DEFAULT_PLATE_ROUNDING_KG,
-    @SerialName("dumbbell_rounding_kg") val dumbbellRoundingKg: Double =
-        CalculatorSettings.DEFAULT_DUMBBELL_ROUNDING_KG,
     @SerialName("dumbbell_handle_kg") val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
 ) {
     fun toDomain(): TrainingPreferences = TrainingPreferences(
@@ -38,14 +35,11 @@ internal data class TrainingPreferencesDto(
         previousValuesMode = previousValuesMode.domain,
         barWeightKg = barWeightKg,
         plateKg = plateKg,
-        plateRoundingKg = plateRoundingKg,
-        dumbbellRoundingKg = dumbbellRoundingKg,
         dumbbellHandleKg = dumbbellHandleKg,
     )
 
     companion object {
         const val COLUMNS =
-            "warm_up_included,previous_values_mode,bar_weight_kg,plate_kg,plate_rounding_kg,dumbbell_rounding_kg," +
-                "dumbbell_handle_kg"
+            "warm_up_included,previous_values_mode,bar_weight_kg,plate_kg,dumbbell_handle_kg"
     }
 }
