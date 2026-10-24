@@ -47,7 +47,7 @@ class RoutinesViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(listOf("Pierna" to 1, "Torso" to 2), vm.content().routines.map { it.name to it.exerciseCount })
+        assertEquals(listOf("Torso" to 2, "Pierna" to 1), vm.content().routines.map { it.name to it.exerciseCount })
     }
 
     @Test
@@ -84,7 +84,7 @@ class RoutinesViewModelTest {
 
         assertIs<RoutinesUiState.Content>(vm.uiState.value)
         advanceUntilIdle()
-        assertEquals(listOf("Empuje", "Pierna", "Torso"), vm.content().routines.map { it.name })
+        assertEquals(listOf("Torso", "Pierna", "Empuje"), vm.content().routines.map { it.name })
     }
 
     @Test
@@ -120,31 +120,12 @@ class RoutinesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("r1"), repository.duplicated)
-        assertEquals(listOf("Pierna", "Torso", "Torso (copia)"), vm.content().routines.map { it.name })
+        assertEquals(listOf("Torso", "Pierna", "Torso (copia)"), vm.content().routines.map { it.name })
         assertNull(vm.content().menuFor)
     }
 
     @Test
-    fun routines_areSortedAtoZ_ignoringCaseAndAccents() = runTest {
-        repository.routines.clear()
-        repository.routines += listOf(
-            routineOf("1", "Torso fuerza", "a"),
-            routineOf("2", "Énfasis pierna", "a"),
-            routineOf("3", "brazos", "a"),
-            routineOf("4", "Abdominales", "a"),
-        )
-        val vm = viewModel()
-
-        advanceUntilIdle()
-
-        assertEquals(
-            listOf("Abdominales", "brazos", "Énfasis pierna", "Torso fuerza"),
-            vm.content().routines.map { it.name },
-        )
-    }
-
-    @Test
-    fun theOrder_isKeptAfterACreatedRoutineAppears() = runTest {
+    fun aCreatedRoutine_appearsAtTheEnd() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
         repository.routines += routineOf("r3", "Brazos", "a")
@@ -152,7 +133,7 @@ class RoutinesViewModelTest {
         vm.onEvent(RoutinesEvent.Refresh)
         advanceUntilIdle()
 
-        assertEquals(listOf("Brazos", "Pierna", "Torso"), vm.content().routines.map { it.name })
+        assertEquals(listOf("Torso", "Pierna", "Brazos"), vm.content().routines.map { it.name })
     }
 
     @Test

@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-098 (routine folders, next workout and manual order). Last merged: T-097l (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-099 (routine tracking and "Actualizar rutina"). Last merged: T-097l (2026-10-24). T-098 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -1936,7 +1936,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Host tests (per scenario):** `ValidateBodyMeasurementTest` (Validation outline, boundaries 20/400 and 2/75); `MeasurementsByDayTest` (manual and Health Connect rows per day, local-day edges); `BodyMeasurementRepositoryTest`; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** E4 (`v0.4.0`)
@@ -1989,7 +1989,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Host tests (per scenario):** `WaistHipRatioTest` (84.5 / 98.0 → 0.86; a missing site → none; the latest row per site is used); `ValidateCircumferenceTest` (Circumference validation outline); `CircumferencesViewModelTest` with fakes + Turbine (Logging a circumference; Editing and deleting; ratio recalculated); `CircumferenceSectionTest` (Robolectric: "0,86", "Sin datos suficientes", disabled "Guardar" with the range, swipe delete); `CircumferenceRow` catalog entry and test; restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-077
@@ -2042,7 +2042,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Host tests (per scenario):** `PairHealthReadingsTest` (Weight and fat from the same weigh-in incl. the ± 2 min boundary; Extra composition metrics; own-origin records skipped); `SyncHealthMeasurementsTest` (First sync 90 days; Incremental sync; idempotent re-run); `HealthSyncViewModelTest` with `FakeHealthDataSource`, a test `Clock` and Turbine (First sync and permissions; Permissions denied; Health Connect unavailable; Last sync status); `MeasurementSheetViewModelTest` additions (Writing back a manual entry; Editing or deleting a written-back entry; Writing back without permission; a failing write keeps the save); `HealthConnectBannerTest` (Robolectric: every banner state and text); pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [x] `assembleProdDebug` merged manifest lists the twelve Health Connect permissions, the `<queries>` entry and the rationale activity.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
@@ -2096,7 +2096,7 @@ Checkpoint (one, user decision 2026-10-22; it was two, the E5-A feedback became 
 **Host tests (per scenario):** `BmiTest`, `TargetDistanceTest`, `GoalProgressTest`, `InterpretMetricTest`, `CompareMeasurementsTest` (`04` §3 examples); `GoalViewModelTest` with a fake profile repository and Turbine (BMI; Target weight and distance; Target distance on maintenance; Setting the target weight; Compare two measurements; Metric interpretation); `GoalCardTest`, `ComparisonDeltaRowTest`, `MetricInterpretationRowTest` and the target sheet (Robolectric: texts, states, disabled "Guardar", disclaimer); restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-080
@@ -2272,7 +2272,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `PlannedSetsTest` (validation, data-migration mapping); `RoutineBuilderViewModelTest` additions with fakes + Turbine (Planning sets in a routine; add/remove set; type per set); `RoutineBuilderScreenTest` (Robolectric: per-set rows, badge, picker, "Quitar tipo"); `SetTypeBadgeTest` + catalog entry; `LiveSessionViewModelTest` + `LiveSessionScreenTest` (Planned targets in the live session: placeholders, type, ghost fallback); `RoutineRepositoryTest` (`save_routine` payload with planned sets); restoration tests; pgTAP `routines.test.sql` additions.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; migration remote; production routines keep their sets.
 
 **Dependencies:** E5 (`v0.5.0`)
@@ -2297,7 +2297,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `CalculateVolumeTest`, `EstimateOneRepMaxTest`, `DetectPersonalRecordsTest` additions (Warm-up excluded by default; Toggling inclusion); `LiveSessionViewModelTest` (Assigning a type; Removing a type; header totals); `LiveSessionScreenTest` (badge, picker); `PreferencesViewModelTest`/screen test (switch saved with "Guardar"); `StrengthViewModelTest` (recalculated values, incl. an old session); restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-089
@@ -2322,7 +2322,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `RpeScaleTest` (6–10 half points, "7,5" format); `GhostDataTest` additions (Previous RPE); `LiveSessionViewModelTest` (Logging the RPE; Target RPE); `LiveSessionScreenTest` (cell text, "Objetivo RPE 8"); `RoutineBuilderViewModelTest` (target RPE); restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-090
@@ -2349,7 +2349,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `SetEntryMappingTest` (metric type → fields and columns); `CalculateVolumeTest` additions (bodyweight, assisted, weighted, duration); `StopwatchTest` with a test `Clock`; `LiveSessionViewModelTest` (each variant saves the right columns); `LiveSessionScreenTest` (Robolectric: one row per variant, "barra + discos", "01:30"); `CreateExerciseViewModelTest` (metric type); restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; the production catalogue has the mapped metric types.
 
 **Dependencies:** T-091
@@ -2373,7 +2373,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `CalculateVolumeTest` additions (Double dumbbell; Bodyweight update); `LiveSessionViewModelTest` (toggle, body-weight update, ADR-47 disabled state) with fakes; `LiveSessionScreenTest`; restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-092
@@ -2397,7 +2397,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `PersonalRecordCatalogueTest` (Record types; Duration/distance family; §4 examples; all-time total reps); `SessionSummaryViewModelTest` / `SessionDetailViewModelTest` additions (Records in the summary and the history); screen tests (record labels); pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-093
@@ -2447,7 +2447,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `SessionDurationTest` (paused time, test `Clock`); `LiveSessionViewModelTest` additions (Pause and resume; Finishing an empty workout; Deleting a set incl. re-indexing; Previous-values mode); `LiveSessionScreenTest` (disabled "Finalizar entreno", swipe); `GhostDataTest` (routine mode); restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-095
@@ -2472,7 +2472,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Host tests (per scenario):** `WarmUpCalculatorTest`, `PlateCalculatorTest` (`04` §4.9 examples, rounding, impossible target); `CalculatorSheetViewModelTest` (insert warm-ups); `PreferencesViewModelTest` (Rounding settings); screen tests; restoration tests; pgTAP.
 
 **Verification:**
-- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-096
@@ -2616,18 +2616,20 @@ Journey: everything about a gym session, from planning the sets to the records a
 **Description:** Backend: a new migration adds `routines.position` (epic note; exception to ADR-30). Existing routines are backfilled in the current A→Z order, per folder. New and duplicated routines go at the end. Atomic RPCs (the planner names them) for folder create/rename/delete, moving routines between folders, saving the order, and setting the next workout (the partial unique index keeps at most one `is_next`). Deleting a folder deletes the folder and all its routines in one transaction (ADR-51); their past sessions stay (`workout_sessions.routine_id` set null), exactly as for a single routine delete. pgTAP. UI: "Mis rutinas" groups routines by folder ("Mis rutinas" itself is the no-folder group), with create, rename and delete folder, move a routine to a folder, drag to reorder inside a group with `ReorderableColumn` plus "Subir"/"Bajar", and "Siguiente entreno" highlighted. Replaces the A→Z sort of T-051 once the user reorders. Edits that are not a plain delete use one "Guardar" (ADR-45). Deleting a non-empty folder shows a confirmation dialog (the one ADR-45 exception in training, ADR-51) that states how many routines will be deleted (wording by ux-reviewer, e.g. "Se eliminarán la carpeta y sus 3 rutinas"; singular/plural handled); an empty folder is deleted at once (assumption, confirmed at E6-B).
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: `routine_folders` and the new RPCs isolated per user; deleting a folder deletes exactly its routines (none of another folder or user) and keeps their past sessions with `routine_id` null; at most one next workout; the backfill keeps the A→Z order; deleting a user with folders succeeds.
-- [ ] Creating "Push/Pull/Legs" and moving two routines into it → "Mis rutinas" shows them under that folder.
-- [ ] Deleting a folder with 3 routines asks for confirmation naming 3 routines; confirming deletes the folder and all 3, including a routine not visible on screen (collapsed folder or off-screen); cancelling deletes nothing; the past workouts of those routines stay in "Historial".
-- [ ] "Torso fuerza" set as next workout is highlighted; setting another moves the highlight.
-- [ ] Dragging a routine (or "Subir"/"Bajar") saves the order, kept after leaving the app; a new or duplicated routine goes at the end; untouched lists keep A→Z.
-- [ ] Folder name drafts survive leaving the app.
+- [x] Migration + pgTAP: `routine_folders` and the new RPCs isolated per user; deleting a folder deletes exactly its routines (none of another folder or user) and keeps their past sessions with `routine_id` null; at most one next workout; the backfill keeps the A→Z order; deleting a user with folders succeeds.
+- [x] Creating "Push/Pull/Legs" and moving two routines into it → "Mis rutinas" shows them under that folder.
+- [x] Deleting a folder with 3 routines asks for confirmation naming 3 routines; confirming deletes the folder and all 3, including a routine not visible on screen (collapsed folder or off-screen); cancelling deletes nothing; the past workouts of those routines stay in "Historial".
+- [x] "Torso fuerza" set as next workout is highlighted; setting another moves the highlight.
+- [x] Dragging a routine (or "Subir"/"Bajar") saves the order, kept after leaving the app; a new or duplicated routine goes at the end; untouched lists keep A→Z.
+- [x] Folder name drafts survive leaving the app.
 
 **Host tests (per scenario):** `RoutinesViewModelTest` additions with fakes + Turbine (Creating a folder; Deleting a folder incl. an off-screen routine; Cancelling a folder deletion; empty folder; Next workout; Ordering routines manually); `RoutinesScreenTest` (grouping, highlight, reorder handles, Subir/Bajar, confirmation text with the count); `RoutineRepositoryTest` (RPC payloads); restoration tests; pgTAP.
 
 **Verification:**
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green; production routines keep their order.
+
+**Status:** done in its PR (2026-10-24); `deploy-supabase` still to confirm after the merge.
 
 **Dependencies:** T-097 (Checkpoint E6-A)
 **Files likely touched:** `supabase/migrations/<ts>_routine_folders_order.sql`, `supabase/tests/routines.test.sql`, `shared/…/domain/model/{Routine,RoutineFolder}.kt`, `shared/…/domain/repository/RoutineRepository.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/routines/{RoutinesScreen,RoutinesViewModel,RoutinesUiState,FolderSheet}.kt`, strings, tests

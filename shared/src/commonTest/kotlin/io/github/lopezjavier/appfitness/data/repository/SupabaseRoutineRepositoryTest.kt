@@ -148,19 +148,131 @@ class SupabaseRoutineRepositoryTest {
     }
 
     @Test
-    fun listActive_mapsTheEmbeddedCount_andAsksForNewestFirstNonArchived() = runTest {
+    fun listActive_mapsCountFolderAndNext_andAsksForPositionOrderNonArchived() = runTest {
         val repo = signedIn()
         getBody =
-            """[{"id":"r1","name":"A","routine_exercises":[{"count":3}]},""" +
-            """{"id":"r2","name":"B","routine_exercises":[]}]"""
+            """[{"id":"r1","name":"A","folder_id":"f1","is_next":true,"routine_exercises":[{"count":3}]},""" +
+            """{"id":"r2","name":"B","folder_id":null,"is_next":false,"routine_exercises":[]}]"""
 
         val list = repo.listActive().getOrThrow()
 
         assertEquals(listOf("A" to 3, "B" to 0), list.map { it.name to it.exerciseCount })
+        assertEquals(listOf("f1", null), list.map { it.folderId })
+        assertEquals(listOf(true, false), list.map { it.isNext })
         val query = rest().single().url.encodedQuery
         assertTrue("archived=eq.false" in query, query)
-        assertTrue("order=created_at.desc" in query, query)
+        assertTrue(
+            "order=position.asc.nullslast%2Ccreated_at.asc.nullslast" in query,
+            query,
+        )
+        assertTrue("folder_id,is_next" in query || "folder_id%2Cis_next" in query, query)
         assertTrue("routine_exercises(count)" in query || "routine_exercises%28count%29" in query, query)
+    }
+
+    @Test
+    fun listFolders_mapsRowsInPositionOrder() = runTest {
+        val repo = signedIn()
+        getBody = """[{"id":"f1","name":"Pierna"},{"id":"f2","name":"Empuje"}]"""
+
+        val folders = repo.listFolders().getOrThrow()
+
+        assertEquals(listOf("f1" to "Pierna", "f2" to "Empuje"), folders.map { it.id to it.name })
+        val call = rest().single()
+        assertEquals("/rest/v1/routine_folders", call.url.encodedPath)
+        assertTrue("order=position.asc" in call.url.encodedQuery, call.url.encodedQuery)
+    }
+
+    private fun body(call: HttpRequestData) = (call.body as TextContent).text
+
+    @Test
+    fun createFolder_callsTheRpcAndReturnsTheId() = runTest {
+        val repo = signedIn()
+
+        val id = repo.createFolder("Pierna").getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/create_routine_folder", call.url.encodedPath)
+        assertEquals("""{"p_name":"Pierna"}""", body(call))
+        assertEquals("new-id", id)
+    }
+
+    @Test
+    fun renameFolder_callsTheRpc() = runTest {
+        val repo = signedIn()
+
+        repo.renameFolder("f1", "Push").getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/rename_routine_folder", call.url.encodedPath)
+        assertEquals("""{"p_id":"f1","p_name":"Push"}""", body(call))
+    }
+
+    @Test
+    fun deleteFolder_returnsTheNumberOfDeletedRoutines() = runTest {
+        val repo = signedIn()
+        rpcBody = "3"
+
+        val count = repo.deleteFolder("f1").getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/delete_routine_folder", call.url.encodedPath)
+        assertEquals("""{"p_id":"f1"}""", body(call))
+        assertEquals(3, count)
+    }
+
+    @Test
+    fun moveToFolder_sendsAnExplicitNullForTheNoFolderGroup() = runTest {
+        val repo = signedIn()
+
+        repo.moveToFolder("r1", null).getOrThrow()
+        repo.moveToFolder("r2", "f1").getOrThrow()
+
+        val calls = rest()
+        assertEquals("/rest/v1/rpc/move_routine_to_folder", calls[0].url.encodedPath)
+        assertEquals("""{"p_routine_id":"r1","p_folder_id":null}""", body(calls[0]))
+        assertEquals("""{"p_routine_id":"r2","p_folder_id":"f1"}""", body(calls[1]))
+    }
+
+    @Test
+    fun saveOrder_sendsTheOrderedIdsAndAnExplicitNullFolder() = runTest {
+        val repo = signedIn()
+
+        repo.saveOrder(null, listOf("b", "a")).getOrThrow()
+
+        val call = rest().single()
+        assertEquals("/rest/v1/rpc/save_routine_order", call.url.encodedPath)
+        assertEquals("""{"p_folder_id":null,"p_routine_ids":["b","a"]}""", body(call))
+    }
+
+    @Test
+    fun setNext_sendsTheIdOrAnExplicitNullToClear() = runTest {
+        val repo = signedIn()
+
+        repo.setNext("r1").getOrThrow()
+        repo.setNext(null).getOrThrow()
+
+        val calls = rest()
+        assertEquals("/rest/v1/rpc/set_next_routine", calls[0].url.encodedPath)
+        assertEquals("""{"p_routine_id":"r1"}""", body(calls[0]))
+        assertEquals("""{"p_routine_id":null}""", body(calls[1]))
+    }
+
+    @Test
+    fun folderWrites_offline_areNetworkErrors() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.createFolder("x").appErrorOrNull())
+        assertEquals(AppError.Network, repo.deleteFolder("f1").appErrorOrNull())
+        assertEquals(AppError.Network, repo.setNext("r1").appErrorOrNull())
+    }
+
+    @Test
+    fun folderWrites_signedOut_areUnauthorized() = runTest {
+        val repo = signedIn(signIn = false)
+
+        assertEquals(AppError.Unauthorized, repo.saveOrder(null, listOf("a")).appErrorOrNull())
+        assertTrue(rest().isEmpty())
     }
 
     @Test

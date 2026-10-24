@@ -44,6 +44,7 @@ import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -69,6 +70,8 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesEvent
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesScreen
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesUiState
+import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
+import io.github.lopezjavier.appfitness.feature.routines.routineOf
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -78,6 +81,7 @@ import io.github.lopezjavier.appfitness.feature.workout.completedSession
 import kotlinx.datetime.TimeZone
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -536,6 +540,39 @@ class DraftRestorationTest {
 
         rule.onNodeWithTag("routines_row_r30").assertIsDisplayed()
         rule.onNodeWithTag("routines_title").assertDoesNotExist()
+    }
+
+    @Test
+    fun routinesFolderSheet_keepsTheTypedNameAndTheCollapsedFoldersAfterRecreation() {
+        val repository = FakeRoutineRepository(listOf(routineOf("r1", "Torso", "a"))).apply {
+            folders += RoutineFolder("f1", "Fuerza")
+            folders += RoutineFolder("f2", "Otra")
+            folderOf["r1"] = "f1"
+        }
+        val handle = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                val vm =
+                    remember { RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, handle) }
+                val state by vm.uiState.collectAsState()
+                RoutinesScreen(state, vm::onEvent)
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("routines_folder_toggle_f1").performClick()
+        rule.onNodeWithTag("routines_new_folder_button").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routines_folder_name_field").performTextInput("Piernas")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routines_folder_name_field").assertTextContains("Piernas")
+        rule.onNodeWithTag("routines_folder_save_button").assertIsEnabled()
+        rule.onNodeWithTag("routines_row_r1").assertDoesNotExist()
+        assertTrue(repository.createdFolders.isEmpty())
     }
 
     // -- process death at the root -----------------------------------------------------------------------------

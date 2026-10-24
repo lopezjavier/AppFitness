@@ -7,26 +7,36 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.ArchiveRoutineUpdateDto
+import io.github.lopezjavier.appfitness.data.remote.CreateRoutineFolderParams
+import io.github.lopezjavier.appfitness.data.remote.DeleteRoutineFolderParams
+import io.github.lopezjavier.appfitness.data.remote.MoveRoutineToFolderParams
+import io.github.lopezjavier.appfitness.data.remote.RenameRoutineFolderParams
 import io.github.lopezjavier.appfitness.data.remote.RoutineDto
+import io.github.lopezjavier.appfitness.data.remote.RoutineFolderDto
 import io.github.lopezjavier.appfitness.data.remote.RoutineSummaryDto
+import io.github.lopezjavier.appfitness.data.remote.SaveRoutineOrderParams
 import io.github.lopezjavier.appfitness.data.remote.SaveRoutineParams
 import io.github.lopezjavier.appfitness.data.remote.SaveRoutineRequest
+import io.github.lopezjavier.appfitness.data.remote.SetNextRoutineParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 
 private const val COPY_SUFFIX = " (copia)"
 
 /** Routines of the signed-in user (RLS scopes every query). Writes go through the atomic `save_routine` RPC. */
+@Suppress("TooManyFunctions") // One method per port operation.
 class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: Postgrest) : RoutineRepository {
     override suspend fun listActive(): Result<List<RoutineSummary>> = auth.ownRow {
         postgrest.from("routines")
             .select(Columns.raw(RoutineSummaryDto.COLUMNS)) {
                 filter { eq("archived", false) }
-                order("created_at", Order.DESCENDING)
+                order("position", Order.ASCENDING)
+                order("created_at", Order.ASCENDING)
             }
             .decodeList<RoutineSummaryDto>()
             .map { it.toDomain() }
@@ -52,5 +62,39 @@ class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun archive(id: String): Result<Unit> = auth.ownRow {
         postgrest.from("routines").update(ArchiveRoutineUpdateDto(archived = true)) { filter { eq("id", id) } }
+    }.map {}
+
+    override suspend fun listFolders(): Result<List<RoutineFolder>> = auth.ownRow {
+        postgrest.from("routine_folders")
+            .select(Columns.raw(RoutineFolderDto.COLUMNS)) {
+                order("position", Order.ASCENDING)
+                order("created_at", Order.ASCENDING)
+            }
+            .decodeList<RoutineFolderDto>()
+            .map { it.toDomain() }
+    }
+
+    override suspend fun createFolder(name: String): Result<String> = auth.ownRow {
+        postgrest.rpc("create_routine_folder", CreateRoutineFolderParams(name)).decodeAs<String>()
+    }
+
+    override suspend fun renameFolder(id: String, name: String): Result<Unit> = auth.ownRow {
+        postgrest.rpc("rename_routine_folder", RenameRoutineFolderParams(id, name))
+    }.map {}
+
+    override suspend fun deleteFolder(id: String): Result<Int> = auth.ownRow {
+        postgrest.rpc("delete_routine_folder", DeleteRoutineFolderParams(id)).decodeAs<Int>()
+    }
+
+    override suspend fun moveToFolder(routineId: String, folderId: String?): Result<Unit> = auth.ownRow {
+        postgrest.rpc("move_routine_to_folder", MoveRoutineToFolderParams(routineId, folderId))
+    }.map {}
+
+    override suspend fun saveOrder(folderId: String?, orderedIds: List<String>): Result<Unit> = auth.ownRow {
+        postgrest.rpc("save_routine_order", SaveRoutineOrderParams(folderId, orderedIds))
+    }.map {}
+
+    override suspend fun setNext(routineId: String?): Result<Unit> = auth.ownRow {
+        postgrest.rpc("set_next_routine", SetNextRoutineParams(routineId))
     }.map {}
 }

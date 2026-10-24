@@ -25,23 +25,30 @@ object AppCardDefaults {
     val Padding: Dp = Spacing.cardPadding
     val BorderWidth: Dp = AppBorder.thin
 
-    fun colors(appColors: AppColors): AppCardColors =
-        AppCardColors(container = appColors.surfaceRaised, border = appColors.borderSubtle)
+    /** Border of a [highlighted] card (training domain: cyan, 1.5 dp). */
+    val HighlightBorderWidth: Dp = AppBorder.focus
+
+    fun colors(appColors: AppColors, highlighted: Boolean = false): AppCardColors = AppCardColors(
+        container = appColors.surfaceRaised,
+        border = if (highlighted) appColors.athleticCyan else appColors.borderSubtle,
+    )
 }
 
 /**
  * Tier-1 card: `surfaceRaised` with a 1 dp border at 8% white and a 16 dp radius. It draws no shadow;
- * depth comes from the tonal step and the border.
+ * depth comes from the tonal step and the border. [highlighted] swaps the border for a 1.5 dp cyan one (callers
+ * add a non-colour cue too).
  */
 @Composable
-fun AppCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    val colors = AppCardDefaults.colors(AppTheme.colors)
+fun AppCard(modifier: Modifier = Modifier, highlighted: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val colors = AppCardDefaults.colors(AppTheme.colors, highlighted)
+    val borderWidth = if (highlighted) AppCardDefaults.HighlightBorderWidth else AppCardDefaults.BorderWidth
     Column(
         modifier =
         modifier
             .clip(AppCardDefaults.Shape)
             .background(colors.container)
-            .border(AppCardDefaults.BorderWidth, colors.border, AppCardDefaults.Shape)
+            .border(borderWidth, colors.border, AppCardDefaults.Shape)
             .padding(AppCardDefaults.Padding),
         content = content,
     )
