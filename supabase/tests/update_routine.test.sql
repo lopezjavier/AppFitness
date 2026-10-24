@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(36);
+select plan(38);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -158,6 +158,21 @@ select results_eq(
   $$select e.position::int, e.rest_seconds::int, (select count(*)::int from public.routine_exercise_sets s where s.routine_exercise_id = e.id)
     from public.routine_exercises e where e.routine_id = 'a0000000-0000-4000-8000-0000000000a3'$$,
   $$values (0, 45, 1)$$, 'a failed update leaves the routine intact');
+
+-- A completed session with zero completed sets is rejected and the routine is kept (SZ, routine RZ).
+reset role;
+insert into public.routines (id, user_id, name) values
+  ('a0000000-0000-4000-8000-0000000000a4', '11111111-1111-4111-8111-111111111111', 'Rutina Z');
+insert into public.routine_exercises (id, routine_id, exercise_id, position, target_sets, target_reps, rest_seconds) values
+  ('e4000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-0000000000a4', (select id from cat where n = 1), 0, 1, 5, 45);
+insert into public.workout_sessions (id, user_id, routine_id, name, status, started_at, ended_at, exercise_rests) values
+  ('c0000000-0000-4000-8000-0000000000a4', '11111111-1111-4111-8111-111111111111', 'a0000000-0000-4000-8000-0000000000a4',
+   'Rutina Z', 'completed', '2026-03-06 10:00+00', '2026-03-06 11:00+00', '{}');
+set local role authenticated;
+select throws_ok($$select public.update_routine_from_session('c0000000-0000-4000-8000-0000000000a4')$$,
+  '22023', null, 'a session with no completed sets is rejected');
+select is((select count(*)::int from public.routine_exercises where routine_id = 'a0000000-0000-4000-8000-0000000000a4'), 1,
+  'the routine is not emptied by a rejected update');
 
 -- Previous rest and rpe carried by exercise_id; superset with unequal counts is nulled; reps clamped.
 select lives_ok($$select public.update_routine_from_session('c0000000-0000-4000-8000-000000000003')$$,

@@ -41,6 +41,12 @@ begin
     order by re.exercise_id, re.position
   ) x;
 
+  -- A session with no completed sets would empty the routine: reject it.
+  if not exists (select 1 from public.workout_sets ws
+                 where ws.session_id = p_session_id and ws.completed_at is not null) then
+    raise exception 'session has no completed sets' using errcode = '22023';
+  end if;
+
   -- Sets-per-exercise limit, before touching anything.
   if exists (
     select 1 from public.workout_sets ws
