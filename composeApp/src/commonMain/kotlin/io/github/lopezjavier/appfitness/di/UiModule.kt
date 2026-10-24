@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
+import io.github.lopezjavier.appfitness.feature.templates.TemplatePreviewViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncViewModel
@@ -168,20 +169,13 @@ val uiModule =
         // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
         // An optional trailing Boolean parameter turns on pick mode (choosing a food for a comida draft, T-102b).
         viewModel { params ->
-            val (slotId: String, date: String) = params
             FoodSearchViewModel(
                 pick = params.getOrNull<Boolean>() ?: false,
                 foodRepository = get(),
                 connectivity = get(),
                 barcodeScanner = get(),
-                slotId = slotId.ifBlank { null },
-                date = LocalDate.parse(date.ifBlank { PICK_MODE_DATE }),
                 mealTemplates = get(),
-                addTemplateToDiary = get(),
                 scaleNutrition = get(),
-                mealSlots = get(),
-                defaultMealSlot = get(),
-                clock = get(),
                 savedState = get(),
             )
         }
@@ -194,6 +188,22 @@ val uiModule =
                 buildTemplateItems = get(),
                 validateTemplateName = get(),
                 mealTemplates = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
+        // A blank slotId means no meal is preselected; date is an ISO yyyy-MM-dd string.
+        viewModel { (templateId: String, slotId: String, date: String) ->
+            TemplatePreviewViewModel(
+                templateId = templateId,
+                slotId = slotId.ifBlank { null },
+                date = LocalDate.parse(date),
+                mealTemplates = get(),
+                scaleNutrition = get(),
+                addTemplateToDiary = get(),
+                mealSlots = get(),
+                defaultMealSlot = get(),
+                clock = get(),
                 connectivity = get(),
                 savedState = get(),
             )

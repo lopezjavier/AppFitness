@@ -20,7 +20,10 @@ data class NewFood(
     val micronutrients: NewMicronutrients = NewMicronutrients(),
 )
 
-/** The new values of an existing personal food; its base unit, barcode and owner never change. */
+/**
+ * The new values of an existing personal food; its barcode and owner never change. [baseUnit] ("g" or "ml") only
+ * changes while no diary entry or comida references the food; otherwise the server refuses with `AppError.FoodInUse`.
+ */
 data class UpdatedFood(
     val id: String,
     val name: String,
@@ -28,10 +31,14 @@ data class UpdatedFood(
     val nutrition: NutritionPer100,
     val portions: List<NewPortion>,
     val micronutrients: NewMicronutrients = NewMicronutrients(),
+    val baseUnit: String,
 )
 
-/** A personal food as stored: [micronutrients] are grams per 100 base units exactly as saved (no display rounding). */
-data class EditableFood(val food: Food, val micronutrients: Map<MicronutrientKind, Double>)
+/**
+ * A personal food as stored: [micronutrients] are grams per 100 base units exactly as saved (no display rounding).
+ * [inUse] is true while a diary entry or a comida references it (its unit is then locked); favourites do not count.
+ */
+data class EditableFood(val food: Food, val micronutrients: Map<MicronutrientKind, Double>, val inUse: Boolean)
 
 /** Why a portion is invalid. */
 enum class PortionError { LabelInvalid, AmountInvalid }

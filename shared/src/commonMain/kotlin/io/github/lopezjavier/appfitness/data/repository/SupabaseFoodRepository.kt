@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.data.remote.FoodSearchResponseDto
 import io.github.lopezjavier.appfitness.data.remote.LoggedFoodDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenParams
+import io.github.lopezjavier.appfitness.data.remote.PersonalFoodInUseParams
 import io.github.lopezjavier.appfitness.data.remote.UpdateFoodParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -43,6 +44,7 @@ import kotlinx.serialization.json.Json
 
 private const val INVALID_PARAMETER = "22023"
 private const val NO_DATA_FOUND = "P0002"
+private const val CHECK_VIOLATION = "23514"
 private const val RECENT_ENTRIES_LIMIT = 200
 private const val RECENT_FOODS_LIMIT = 30
 
@@ -182,7 +184,11 @@ class SupabaseFoodRepository(
     override suspend fun editableFood(id: String): Result<EditableFood> = auth.ownRow {
         val row = readFood(id, FoodDto.EDIT_COLUMNS)?.takeIf { it.source == "user" }
             ?: throw AppException(AppError.NotFound)
-        EditableFood(row.toDomain(), row.typedMicronutrients())
+        // A failing call fails the whole read: never guess "unused", that would unlock the unit.
+        val inUse = json.decodeFromString<Boolean>(
+            postgrest.rpc("personal_food_in_use", PersonalFoodInUseParams(id)).data,
+        )
+        EditableFood(row.toDomain(), row.typedMicronutrients(), inUse)
     }
 
     override suspend fun updateFood(food: UpdatedFood): Result<Food> = auth.ownRow {
@@ -192,6 +198,7 @@ class SupabaseFoodRepository(
             throw when (failure.code) {
                 INVALID_PARAMETER -> AppException(AppError.Validation, failure)
                 NO_DATA_FOUND -> AppException(AppError.NotFound, failure)
+                CHECK_VIOLATION -> AppException(AppError.FoodInUse, failure)
                 else -> failure
             }
         }

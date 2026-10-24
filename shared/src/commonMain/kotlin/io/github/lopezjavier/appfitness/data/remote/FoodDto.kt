@@ -142,6 +142,7 @@ internal data class UpdateFoodParams(
     @SerialName("p_fat") val fat: Double,
     @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
     @SerialName("p_micronutrients") val micronutrients: Map<String, Double>,
+    @SerialName("p_base_unit") val baseUnit: String,
 ) {
     companion object {
         fun from(food: UpdatedFood) = UpdateFoodParams(
@@ -154,9 +155,14 @@ internal data class UpdateFoodParams(
             fat = food.nutrition.fatG,
             portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
             micronutrients = food.micronutrients.toGramsParam(),
+            baseUnit = food.baseUnit,
         )
     }
 }
+
+/** Arguments of the `personal_food_in_use` function. */
+@Serializable
+internal data class PersonalFoodInUseParams(@SerialName("p_food_id") val foodId: String)
 
 /**
  * The nutrient columns of one `foods` row read for the details: `micronutrients` (personal foods) and the

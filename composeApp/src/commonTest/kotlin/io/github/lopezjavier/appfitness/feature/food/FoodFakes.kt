@@ -12,25 +12,16 @@ import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
-import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
-import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
-import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
-import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
-import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
-import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.templates.FakeMealTemplateRepository
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 
 internal fun food(
     id: String,
@@ -162,6 +153,9 @@ internal class FakeFoodRepository : FoodRepository {
     /** The stored label values (grams per 100) of the manual foods, by id. */
     val storedMicronutrients = mutableMapOf<String, Map<MicronutrientKind, Double>>()
 
+    /** Ids referenced by an entry or a comida: their unit cannot change (the fake server refuses it). */
+    val inUse = mutableSetOf<String>()
+
     /** How many following [editableFood] calls fail with a network error. */
     var editableFailures = 0
     val editableLoads = mutableListOf<String>()
@@ -177,7 +171,7 @@ internal class FakeFoodRepository : FoodRepository {
 
             manual == null -> Result.failure(AppException(AppError.NotFound))
 
-            else -> Result.success(EditableFood(manual, storedMicronutrients[id].orEmpty()))
+            else -> Result.success(EditableFood(manual, storedMicronutrients[id].orEmpty(), id in inUse))
         }
     }
 
@@ -189,11 +183,20 @@ internal class FakeFoodRepository : FoodRepository {
 
     override suspend fun updateFood(food: UpdatedFood): Result<Food> {
         updates += food
-        val failure = updateFailure ?: if (food.id in known) null else AppException(AppError.NotFound)
+        val unitRefused = food.id in inUse && known[food.id]?.baseUnit != food.baseUnit
+        val failure = updateFailure
+            ?: if (food.id !in known) {
+                AppException(AppError.NotFound)
+            } else if (unitRefused) {
+                AppException(AppError.FoodInUse)
+            } else {
+                null
+            }
         if (failure != null) return Result.failure(failure)
         val stored = known.getValue(food.id).copy(
             name = food.name,
             brand = food.brand,
+            baseUnit = food.baseUnit,
             nutrition = food.nutrition,
             portions = food.portions.mapIndexed { i, p -> FoodPortion("u${updates.size}-$i", p.label, p.amount) },
         )
@@ -209,32 +212,21 @@ internal class FakeFoodRepository : FoodRepository {
 }
 
 /**
- * A [FoodSearchViewModel] with the template collaborators faked by default: no meal preselected ([slotId] null) on
- * 2026-10-19 with an empty comidas list and a diary that accepts every write.
+ * A [FoodSearchViewModel] with the template collaborators faked by default: an empty comidas list.
  */
 internal fun foodSearchModel(
     repository: FoodRepository,
     connectivity: ConnectivityObserver,
     scanner: BarcodeScanner,
     state: SavedStateHandle = SavedStateHandle(),
-    slotId: String? = null,
     templates: MealTemplateRepository = FakeMealTemplateRepository(),
-    diary: FoodDiaryRepository = FakeFoodDiaryRepository(),
-    clock: Clock = MutableClock(),
     pick: Boolean = false,
 ) = FoodSearchViewModel(
     pick = pick,
     foodRepository = repository,
     connectivity = connectivity,
     barcodeScanner = scanner,
-    slotId = slotId,
-    date = LocalDate(2026, 10, 19),
     mealTemplates = templates,
-    addTemplateToDiary = AddTemplateToDiary(diary, ScaleNutrition()),
     scaleNutrition = ScaleNutrition(),
-    mealSlots = FakeMealSlotRepository(),
-    defaultMealSlot = DefaultMealSlot(),
-    clock = clock,
     savedState = state,
-    timeZone = TimeZone.UTC,
 )

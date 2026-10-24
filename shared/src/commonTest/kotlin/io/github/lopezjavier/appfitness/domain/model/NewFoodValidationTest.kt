@@ -143,6 +143,7 @@ class NewFoodValidationTest {
             nutrition = NutritionPer100(-1.0, 0.0, 0.0, 0.0),
             portions = listOf(NewPortion("", 1.0)),
             micronutrients = NewMicronutrients(mapOf(MicronutrientKind.VitaminC to -2.0)),
+            baseUnit = "g",
         )
         val errors = NewFoodValidation.validate(updated)
         assertEquals(NewFoodError.Required, errors.name)

@@ -3,6 +3,9 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -122,6 +125,62 @@ class CreateFoodRestorationTest {
         rule.onNodeWithTag("create_food_nutrient_vitamin_c").assertTextContains("12")
         rule.onNodeWithTag("create_food_nutrient_calcium").assertDoesNotExist()
         assertEquals(loads, foods.editableLoads.size)
+    }
+
+    @Test
+    fun editForm_keepsTheChangedUnitAndTheName_afterRecreation() {
+        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, isManual = true)
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved, "yogurt")) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_unit_ml").performClick()
+        rule.onNodeWithTag("create_food_name_field").performTextReplacement("Yogur líquido")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_unit_ml").assertIsSelected()
+        rule.onNodeWithTag("create_food_unit_ml").assertIsEnabled()
+        rule.onNodeWithTag("create_food_name_field").assertTextContains("Yogur líquido")
+    }
+
+    @Test
+    fun editForm_keepsTheLockedUnitAndTheRefusal_afterRecreation() {
+        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, isManual = true)
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved, "yogurt")) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_unit_ml").performClick()
+        foods.inUse += "yogurt"
+        rule.onNodeWithTag("create_food_save_button").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_unit_refused").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_unit_refused").assertExists()
+        rule.onNodeWithTag("create_food_unit_g").assertIsSelected()
+        rule.onNodeWithTag("create_food_unit_g").assertIsNotEnabled()
+    }
+
+    @Test
+    fun usedFood_staysLocked_afterRecreation() {
+        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, isManual = true)
+        foods.inUse += "yogurt"
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved, "yogurt")) }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_unit_locked").assertExists()
+        rule.onNodeWithTag("create_food_unit_ml").assertIsNotEnabled()
     }
 
     @Test

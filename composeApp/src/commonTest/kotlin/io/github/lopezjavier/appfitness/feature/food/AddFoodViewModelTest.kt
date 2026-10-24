@@ -618,6 +618,7 @@ class AddFoodViewModelTest {
                 null,
                 NutritionPer100(70.0, 3.5, 4.7, 3.0),
                 listOf(NewPortion("1 tarrina", 120.0)),
+                baseUnit = yogurt.baseUnit,
             ),
         )
         model.onEvent(AddFoodEvent.Refresh)
@@ -643,6 +644,7 @@ class AddFoodViewModelTest {
                 null,
                 yogurt.nutrition,
                 listOf(NewPortion("1 tarrina", 120.0)),
+                baseUnit = yogurt.baseUnit,
             ),
         )
         model.onEvent(AddFoodEvent.Refresh)
@@ -651,7 +653,9 @@ class AddFoodViewModelTest {
         assertEquals(renewed.id, model.content().selectedPortionId)
         assertEquals(120.0, model.content().resolvedAmount)
 
-        foods.updateFood(UpdatedFood("yogurt", "Yogur casero", null, yogurt.nutrition, emptyList()))
+        foods.updateFood(
+            UpdatedFood("yogurt", "Yogur casero", null, yogurt.nutrition, emptyList(), baseUnit = yogurt.baseUnit),
+        )
         model.onEvent(AddFoodEvent.Refresh)
         advanceUntilIdle()
         assertNull(model.content().selectedPortionId)
@@ -669,7 +673,14 @@ class AddFoodViewModelTest {
         diary.refresh(oldDay)
 
         foods.updateFood(
-            UpdatedFood("yogurt", "Yogur casero", null, NutritionPer100(70.0, 3.5, 4.7, 3.0), emptyList()),
+            UpdatedFood(
+                "yogurt",
+                "Yogur casero",
+                null,
+                NutritionPer100(70.0, 3.5, 4.7, 3.0),
+                emptyList(),
+                baseUnit = yogurt.baseUnit,
+            ),
         )
 
         assertEquals(listOf(old), diary.entries(oldDay).first())

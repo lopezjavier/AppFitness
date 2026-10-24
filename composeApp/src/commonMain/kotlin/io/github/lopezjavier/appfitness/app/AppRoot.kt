@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
+import io.github.lopezjavier.appfitness.feature.templates.TemplatePreviewRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
@@ -85,8 +86,8 @@ fun AppRoot(
         weight = { weightModifier -> WeightRoot(weightModifier) },
         diaryHistory = { historyModifier, onOpenDay -> DiaryHistoryRoot(onOpenDay, historyModifier) },
         mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
-        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate, pick ->
-            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate, searchModifier, pick)
+        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick ->
+            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, searchModifier, pick)
         },
         createFood = { formModifier, barcode, name, editFoodId, onSaved ->
             if (editFoodId != null) {
@@ -107,15 +108,27 @@ fun AppRoot(
                 onPick = { onPick(it.foodId, it.amount, it.portionLabel) },
             )
         },
-        templateDetails = { detailsModifier, templateId, onClose, onAddFood, pickedFood, onConsumePickedFood ->
+        templateDetails = {
+                detailsModifier,
+                templateId,
+                onClose,
+                onDeleted,
+                onAddFood,
+                pickedFood,
+                onConsumePickedFood,
+            ->
             TemplateDetailsRoot(
                 templateId = templateId,
                 onClose = onClose,
+                onDelete = onDeleted,
                 onAddFood = onAddFood,
                 modifier = detailsModifier,
                 pickedFood = pickedFood,
                 onConsumePickedFood = onConsumePickedFood,
             )
+        },
+        templatePreview = { previewModifier, templateId, slotId, date, onAdd, onEdit ->
+            TemplatePreviewRoot(templateId, slotId, date, onAdd, onEdit, previewModifier)
         },
         editEntry = { entryId, date, onSaved, onDeleteRequested, onDismiss ->
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)

@@ -18,18 +18,22 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.app.AddFoodSlot
 import io.github.lopezjavier.appfitness.app.AppScaffold
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FoodSearchRoute
 import io.github.lopezjavier.appfitness.app.FoodSearchSlot
 import io.github.lopezjavier.appfitness.app.TemplateDetailsRoute
 import io.github.lopezjavier.appfitness.app.TemplateDetailsSlot
+import io.github.lopezjavier.appfitness.app.TemplatePreviewSlot
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
+import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
 import org.junit.Assert.assertEquals
@@ -47,6 +51,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One flow scenario per test plus the shared hosts.
 class TemplateEditFlowTest {
     @get:Rule
     val rule = createComposeRule()
@@ -67,22 +72,36 @@ class TemplateEditFlowTest {
         items = listOf(MealTemplateItem(eggs, 120.0, null), MealTemplateItem(shake, 300.0, null)),
     )
 
-    private val detailsSlot: TemplateDetailsSlot = { modifier, templateId, onClose, onAddFood, picked, consumed ->
+    private val detailsSlot: TemplateDetailsSlot = {
+            modifier,
+            templateId,
+            onClose,
+            onDeleted,
+            onAddFood,
+            picked,
+            consumed,
+        ->
         val model = remember { detailsModel(templates, connectivity, templateId = templateId, foods = foods) }
         var closed by remember { mutableStateOf(false) }
         Box(modifier) {
             DetailsHost(model, callbacks, picked, consumed, onAddFood)
-            if (callbacks.saved && !closed) {
+            if ((callbacks.saved || callbacks.deleted) && !closed) {
                 closed = true
-                onClose()
+                if (callbacks.deleted) onDeleted() else onClose()
             }
         }
     }
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, _, _, _, pick ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, _, onOpenTemplate, pick ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Text("pick=$pick", Modifier.testTag("search_pick_flag"))
             Box(Modifier.size(48.dp).testTag("search_rice").clickable { onOpenFood("rice") })
+            Box(Modifier.size(48.dp).testTag("search_open_t1").clickable { onOpenTemplate("t1") })
         }
+    }
+    private val diary = FakeFoodDiaryRepository()
+    private val previewSlot: TemplatePreviewSlot = { modifier, templateId, slotId, _, onAdded, onEdit ->
+        val model = remember { previewModel(templates, diary, connectivity, templateId = templateId, slotId = slotId) }
+        Box(modifier) { PreviewHost(model, onAdd = onAdded, onEdit = onEdit) }
     }
     private val addFoodSlot: AddFoodSlot = { foodId, _, _, _, _, _, pick, onPick ->
         Column(Modifier.testTag("add_food_sheet")) {
@@ -101,11 +120,31 @@ class TemplateEditFlowTest {
                     foodSearch = searchSlot,
                     addFood = addFoodSlot,
                     templateDetails = detailsSlot,
+                    templatePreview = previewSlot,
                 )
             }
         }
         rule.waitForIdle()
         rule.runOnUiThread { nav.navigate(TemplateDetailsRoute("t1")) }
+        rule.waitForIdle()
+    }
+
+    private fun showSearch() {
+        templates.templates += desayunoA
+        rule.setContent {
+            AppTheme {
+                nav = rememberNavController()
+                AppScaffold(
+                    navController = nav,
+                    foodSearch = searchSlot,
+                    addFood = addFoodSlot,
+                    templateDetails = detailsSlot,
+                    templatePreview = previewSlot,
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.runOnUiThread { nav.navigate(FoodSearchRoute("lunch", "2026-10-19")) }
         rule.waitForIdle()
     }
 
@@ -176,5 +215,49 @@ class TemplateEditFlowTest {
 
         assertEquals(0, templates.saveCalls)
         assertEquals(desayunoA, templates.templates.single())
+    }
+
+    @Test
+    fun comidaDetails_editar_changeAnAmount_guardar_returnsToTheDetailsWithTheNewTotals() {
+        showSearch()
+        click("search_open_t1")
+        rule.onNodeWithTag("template_preview_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_preview_kcal").assertTextContains("Total · 270 kcal")
+
+        click("template_preview_edit")
+        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
+        click("template_details_item_0")
+        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("200")
+        click("template_food_sheet_save")
+        click("template_details_save")
+
+        rule.onNodeWithTag("template_preview_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_preview_kcal").assertTextContains("Total · 350 kcal")
+        assertTrue(diary.addedBatches.isEmpty())
+    }
+
+    @Test
+    fun comidaDetails_anadir_logsTheComida_andLeavesTheSearch() {
+        showSearch()
+        click("search_open_t1")
+
+        click("template_preview_add")
+
+        assertEquals(1, diary.addedBatches.size)
+        rule.onNodeWithTag("food_search_screen").assertDoesNotExist()
+        rule.onNodeWithTag("template_preview_screen").assertDoesNotExist()
+    }
+
+    @Test
+    fun deletingTheComidaFromTheEditor_landsOnTheSearch_notOnAMissingDetails() {
+        showSearch()
+        click("search_open_t1")
+        click("template_preview_edit")
+
+        click("template_details_delete")
+
+        rule.onNodeWithTag("food_search_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_preview_screen").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_screen").assertDoesNotExist()
     }
 }

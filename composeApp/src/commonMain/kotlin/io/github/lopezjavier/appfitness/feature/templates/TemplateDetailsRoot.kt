@@ -17,16 +17,18 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Stateful details (and editor) of the comida [templateId]: connects [TemplateDetailsViewModel]. [onClose] runs, with
- * haptic feedback, after the comida was saved or deleted so the details can be left. The comida is reloaded when the
- * screen resumes; the draft is kept. [onAddFood] opens the food picker. A food it returns arrives as [pickedFood]
- * (see [pickedFoodOf]); it is handed to the draft and [onConsumePickedFood] then clears it so it is applied once.
+ * Stateful details (and editor) of the comida [templateId]: connects [TemplateDetailsViewModel]. [onClose] and
+ * [onDelete] run, with haptic feedback, after the comida was saved or deleted so the editor can be left. The comida
+ * is reloaded when the screen resumes; the draft is kept. [onAddFood] opens the food picker. A food it returns arrives
+ * as [pickedFood] (see [pickedFoodOf]); it is handed to the draft and [onConsumePickedFood] then clears it so it is
+ * applied once.
  */
 @Composable
 @Suppress("LongParameterList") // One callback per navigation event plus the picker result.
 fun TemplateDetailsRoot(
     templateId: String,
     onClose: () -> Unit,
+    onDelete: () -> Unit,
     onAddFood: () -> Unit,
     modifier: Modifier = Modifier,
     pickedFood: List<String>? = null,
@@ -37,6 +39,7 @@ fun TemplateDetailsRoot(
     var actionFailed by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val currentOnClose by rememberUpdatedState(onClose)
+    val currentOnDelete by rememberUpdatedState(onDelete)
     val currentOnAddFood by rememberUpdatedState(onAddFood)
     val currentOnConsumed by rememberUpdatedState(onConsumePickedFood)
     LaunchedEffect(pickedFood) {
@@ -49,9 +52,14 @@ fun TemplateDetailsRoot(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                TemplateDetailsEffect.Saved, TemplateDetailsEffect.Deleted -> {
+                TemplateDetailsEffect.Saved -> {
                     haptic.performHapticFeedback(HapticFeedbackType.Confirm)
                     currentOnClose()
+                }
+
+                TemplateDetailsEffect.Deleted -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    currentOnDelete()
                 }
 
                 is TemplateDetailsEffect.ActionFailed -> actionFailed = true

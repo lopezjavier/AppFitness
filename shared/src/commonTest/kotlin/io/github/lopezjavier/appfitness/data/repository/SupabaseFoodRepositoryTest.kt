@@ -501,6 +501,7 @@ class SupabaseFoodRepositoryTest {
         nutrition = NutritionPer100(70.0, 3.5, 4.7, 3.0),
         portions = listOf(NewPortion("1 tarrina", 120.0)),
         micronutrients = NewMicronutrients(mapOf(MicronutrientKind.Sugars to 4.7, MicronutrientKind.VitaminC to 0.8)),
+        baseUnit = "g",
     )
 
     @Test
@@ -515,7 +516,7 @@ class SupabaseFoodRepositoryTest {
         assertEquals(
             """{"p_food_id":"f1","p_name":"Yogur casero","p_brand":null,"p_kcal":70.0,"p_protein":3.5,""" +
                 """"p_carbs":4.7,"p_fat":3.0,"p_portions":[{"label":"1 tarrina","amount":120.0}],""" +
-                """"p_micronutrients":{"sugars_100g":4.7,"vitamin-c_100g":8.0E-4}}""",
+                """"p_micronutrients":{"sugars_100g":4.7,"vitamin-c_100g":8.0E-4},"p_base_unit":"g"}""",
             rpcBody,
         )
     }
@@ -583,9 +584,54 @@ class SupabaseFoodRepositoryTest {
             """"micronutrients":{"sugars_100g":4.7,"vitamin-c_100g":"0.0000015","unknown_100g":1},""" +
             """"food_portions":[{"id":"p1","label":"1 tarrina","amount":125,"position":0}]}"""
 
+    private suspend fun editableRepo(inUse: String = "false", fail: Boolean = false) = signedIn { request ->
+        when {
+            request.url.encodedPath.endsWith("/rpc/personal_food_in_use") ->
+                if (fail) throw IOException("offline") else inUse
+
+            else -> "[$manualRow]"
+        }
+    }
+
+    @Test
+    fun updateFood_checkViolationIsFoodInUseAndKeepsTheCache() = runTest {
+        var refuse = false
+        val repo = signedIn { request ->
+            when {
+                refuse && request.url.encodedPath.endsWith("/rpc/update_personal_food") ->
+                    """{"code":"23514","message":"food unit locked: referenced","details":null,"hint":null}"""
+
+                request.url.encodedPath.endsWith("/rpc/update_personal_food") -> ""
+
+                else -> "[$EGG]"
+            }
+        }
+        repo.getById("f1").getOrThrow()
+        refuse = true
+        status = HttpStatusCode.BadRequest
+
+        assertEquals(AppError.FoodInUse, repo.updateFood(updated.copy(baseUnit = "ml")).appErrorOrNull())
+
+        val before = requests.size
+        repo.getById("f1").getOrThrow()
+        assertEquals(before, requests.size, "the cached food was kept")
+    }
+
+    @Test
+    fun editableFood_reportsInUseFromTheRpc() = runTest {
+        assertTrue(editableRepo("true").editableFood("f1").getOrThrow().inUse)
+        assertTrue(!editableRepo("false").editableFood("f1").getOrThrow().inUse)
+        assertTrue(bodies.any { it.contains("\"p_food_id\":\"f1\"") })
+    }
+
+    @Test
+    fun editableFood_whenTheInUseCallFails_failsInsteadOfUnlocking() = runTest {
+        assertEquals(AppError.Network, editableRepo(fail = true).editableFood("f1").appErrorOrNull())
+    }
+
     @Test
     fun editableFood_returnsRawGramsAndIsManual() = runTest {
-        val repo = signedIn { "[$manualRow]" }
+        val repo = editableRepo()
 
         val editable = repo.editableFood("f1").getOrThrow()
 
@@ -595,7 +641,7 @@ class SupabaseFoodRepositoryTest {
             mapOf(MicronutrientKind.Sugars to 4.7, MicronutrientKind.VitaminC to 0.0000015),
             editable.micronutrients,
         )
-        assertTrue(requests.last().url.parameters["select"].orEmpty().contains("micronutrients"))
+        assertTrue(requests.any { it.url.parameters["select"].orEmpty().contains("micronutrients") })
     }
 
     @Test
