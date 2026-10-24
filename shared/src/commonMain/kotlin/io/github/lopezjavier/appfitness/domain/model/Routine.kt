@@ -47,8 +47,20 @@ data class Routine(
     val exercises: List<RoutineExercise>,
 )
 
-/** One row of "Mis rutinas". */
-data class RoutineSummary(val id: String, val name: String, val exerciseCount: Int)
+/** A folder of routines ("Mis rutinas" itself is the no-folder group). */
+data class RoutineFolder(val id: String, val name: String)
+
+/** One row of "Mis rutinas". The list arrives sorted by the user's manual order (position). */
+data class RoutineSummary(
+    val id: String,
+    val name: String,
+    val exerciseCount: Int,
+    val folderId: String? = null,
+    val isNext: Boolean = false,
+)
+
+/** A group of routines: a folder, or the no-folder group ("Mis rutinas") when [folder] is null. */
+data class RoutineGroup(val folder: RoutineFolder?, val routines: List<RoutineSummary>)
 
 /** Bounds shared with the DB checks of `routine_exercises` and `routines`. */
 object RoutineBounds {

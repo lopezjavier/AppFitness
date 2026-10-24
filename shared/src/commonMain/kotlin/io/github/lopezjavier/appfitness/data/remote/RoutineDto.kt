@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.plannedSetsFromLegacy
@@ -15,12 +16,24 @@ import kotlinx.serialization.Serializable
 internal data class RoutineSummaryDto(
     val id: String,
     val name: String,
+    @SerialName("folder_id") val folderId: String? = null,
+    @SerialName("is_next") val isNext: Boolean = false,
     @SerialName("routine_exercises") val exercises: List<CountDto> = emptyList(),
 ) {
-    fun toDomain() = RoutineSummary(id, name, exercises.firstOrNull()?.count ?: 0)
+    fun toDomain() = RoutineSummary(id, name, exercises.firstOrNull()?.count ?: 0, folderId, isNext)
 
     companion object {
-        const val COLUMNS = "id,name,routine_exercises(count)"
+        const val COLUMNS = "id,name,folder_id,is_next,routine_exercises(count)"
+    }
+}
+
+/** `routine_folders` row. */
+@Serializable
+internal data class RoutineFolderDto(val id: String, val name: String) {
+    fun toDomain() = RoutineFolder(id, name)
+
+    companion object {
+        const val COLUMNS = "id,name"
     }
 }
 
@@ -141,3 +154,33 @@ internal data class SaveRoutineParams(@SerialName("p_routine") val routine: Save
 /** Body of the `PATCH /routines` that archives a routine. */
 @Serializable
 internal data class ArchiveRoutineUpdateDto(val archived: Boolean)
+
+// Arguments of the folder/order RPCs. Nullable ids have NO default so that null is always sent explicitly
+// (PostgREST resolves the function by its named arguments; an omitted one would not match).
+
+@Serializable
+internal data class CreateRoutineFolderParams(@SerialName("p_name") val name: String)
+
+@Serializable
+internal data class RenameRoutineFolderParams(
+    @SerialName("p_id") val id: String,
+    @SerialName("p_name") val name: String,
+)
+
+@Serializable
+internal data class DeleteRoutineFolderParams(@SerialName("p_id") val id: String)
+
+@Serializable
+internal data class MoveRoutineToFolderParams(
+    @SerialName("p_routine_id") val routineId: String,
+    @SerialName("p_folder_id") val folderId: String?,
+)
+
+@Serializable
+internal data class SaveRoutineOrderParams(
+    @SerialName("p_folder_id") val folderId: String?,
+    @SerialName("p_routine_ids") val routineIds: List<String>,
+)
+
+@Serializable
+internal data class SetNextRoutineParams(@SerialName("p_routine_id") val routineId: String?)

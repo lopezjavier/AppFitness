@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.Routine
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.SignInOutcome
@@ -142,6 +143,7 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
 }
 
 /** Routine counterpart of [UnconfiguredAuthRepository]: there is no server to read or write. */
+@Suppress("TooManyFunctions") // One failing stub per repository operation.
 class UnconfiguredRoutineRepository : RoutineRepository {
     override suspend fun listActive(): Result<List<RoutineSummary>> = Result.failure(AppException(AppError.Unknown))
 
@@ -152,4 +154,21 @@ class UnconfiguredRoutineRepository : RoutineRepository {
     override suspend fun duplicate(id: String): Result<String> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun archive(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun listFolders(): Result<List<RoutineFolder>> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun createFolder(name: String): Result<String> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun renameFolder(id: String, name: String): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun deleteFolder(id: String): Result<Int> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun moveToFolder(routineId: String, folderId: String?): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun saveOrder(folderId: String?, orderedIds: List<String>): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun setNext(routineId: String?): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
