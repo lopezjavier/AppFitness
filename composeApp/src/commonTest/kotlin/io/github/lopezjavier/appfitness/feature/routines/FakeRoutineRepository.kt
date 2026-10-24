@@ -31,6 +31,8 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
     var listCalls = 0
     var failure: AppError? = null
     var saveFailure: AppError? = null
+    var updateFailure: AppError? = null
+    val updatedFromSession = mutableListOf<String>()
     private var counter = 0
 
     private fun failing(error: AppError?) = error?.let { Result.failure<Nothing>(AppException(it)) }
@@ -122,6 +124,12 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
         duplicated += id
         val original = routines.first { it.id == id }
         return save(original.copy(id = null, name = original.name + " (copia)"))
+    }
+
+    override suspend fun updateFromSession(sessionId: String): Result<String> {
+        failing(updateFailure)?.let { return it }
+        updatedFromSession += sessionId
+        return Result.success("r1")
     }
 
     override suspend fun archive(id: String): Result<Unit> {

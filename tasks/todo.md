@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-099 (routine tracking and "Actualizar rutina"). Last merged: T-097l (2026-10-24). T-098 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** T-100 (workout detail and training calendar). Last merged: T-098 (2026-10-24). T-099 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2644,17 +2644,17 @@ Journey: everything about a gym session, from planning the sets to the records a
 **Description:** Backend: the transactional `Update Routine` RPC (e.g. `update_routine_from_session(p_session_id uuid)`, `security invoker`; `03` §6). It replaces the routine's exercises, planned sets (T-089: count, inputs, types), rests, supersets and order with what the completed session did, and leaves past sessions unchanged. pgTAP. The session's rests changed through "Descanso" (T-046) are kept only in memory today. The planner stores them on the session (new migration, recorded in the E6 schema ADR) so the comparison and the update can use them. Domain: `RoutineDiff` (session vs routine: added or removed sets or exercises, changed weight/reps/type, rests, supersets). On finish (only for sessions started from a routine with `track_as_routine` on): no difference → nothing is asked and the routine is unchanged. A difference → a sheet offers "Actualizar rutina" or "Mantener rutina original". `auto_update_routine` on → it updates without asking. The routine builder gets an "Actualizar automáticamente" switch, saved with the builder's "Guardar".
 
 **Acceptance criteria:**
-- [ ] RPC + pgTAP: atomic; only the caller's routine; the routine equals the session afterwards; earlier sessions unchanged.
-- [ ] A session matching the routine → no sheet, routine unchanged.
-- [ ] Adding a set and changing a rest → the sheet; "Actualizar rutina" writes sets, inputs, rests and supersets; "Mantener rutina original" changes nothing.
-- [ ] "Actualizar automáticamente" on → updated without the sheet.
-- [ ] Session rests changed from "Descanso" survive closing the app mid-session and count as a change.
+- [x] RPC + pgTAP: atomic; only the caller's routine; the routine equals the session afterwards; earlier sessions unchanged.
+- [x] A session matching the routine → no sheet, routine unchanged.
+- [x] Adding a set and changing a rest → the sheet; "Actualizar rutina" writes sets, inputs, rests and supersets; "Mantener rutina original" changes nothing.
+- [x] "Actualizar automáticamente" on → updated without the sheet.
+- [x] Session rests changed from "Descanso" survive closing the app mid-session and count as a change.
 
 **Host tests (per scenario):** `RoutineDiffTest` (Same values; Changed values cases); `FinishSessionViewModelTest` / `LiveSessionViewModelTest` additions (sheet, both choices, Auto update); `RoutineBuilderViewModelTest` (switch); screen tests (sheet texts); restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-098 (T-089 planned sets, T-096 set deletion)
 **Files likely touched:** `supabase/migrations/<ts>_update_routine.sql`, `supabase/tests/update_routine.test.sql`, `shared/…/domain/usecase/RoutineDiff.kt` + tests, `shared/…/domain/repository/{RoutineRepository,WorkoutSessionRepository}.kt`, `shared/…/data/repository/*`, `composeApp/…/feature/workout/{FinishSessionSheet,UpdateRoutineSheet,LiveSessionViewModel}.kt`, `composeApp/…/feature/routines/RoutineBuilder*.kt`, `planning/03-data-model.md` §6, strings, tests

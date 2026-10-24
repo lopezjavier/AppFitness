@@ -19,6 +19,12 @@ interface RoutineRepository {
     /** Saves a copy named "<name> (copia)"; returns the new id. */
     suspend fun duplicate(id: String): Result<String>
 
+    /**
+     * Replaces the routine's exercises and sets with the completed sets of the finished session; returns the routine
+     * id. Call after the session is finished.
+     */
+    suspend fun updateFromSession(sessionId: String): Result<String>
+
     suspend fun archive(id: String): Result<Unit>
 
     /** The folders of the user in their order. */

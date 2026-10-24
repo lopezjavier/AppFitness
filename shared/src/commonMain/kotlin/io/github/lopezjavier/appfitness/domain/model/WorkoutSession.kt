@@ -33,4 +33,6 @@ data class WorkoutSession(
     val pausedAt: Instant? = null,
     /** Seconds of already closed pauses. */
     val pausedTotalSeconds: Long = 0,
+    /** Rest seconds changed during the session, by exercise position (original, not renumbered). */
+    val exerciseRests: Map<Int, Int> = emptyMap(),
 )

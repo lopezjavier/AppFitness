@@ -42,10 +42,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_no_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_offline_message
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_save
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_save_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_auto_update_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_auto_update_label
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -172,6 +175,13 @@ private fun BuilderForm(
             onValueChange = { onEvent(RoutineBuilderEvent.SetName(it)) },
             label = stringResource(Res.string.builder_name_label),
             testTagPrefix = "routine_builder_name_field",
+        )
+        AppSwitchRow(
+            label = stringResource(Res.string.routine_builder_auto_update_label),
+            helper = stringResource(Res.string.routine_builder_auto_update_helper),
+            checked = state.autoUpdateRoutine,
+            onCheckedChange = { onEvent(RoutineBuilderEvent.SetAutoUpdate(it)) },
+            modifier = Modifier.testTag("routine_builder_auto_update_switch"),
         )
         if (state.rows.isEmpty()) {
             Text(

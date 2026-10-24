@@ -273,6 +273,7 @@ Created by T-093 (ADR-54) and dropped by T-097i (ADR-56): the per-user "double d
 | gym | text null | *(E6)* |
 | paused_at | timestamptz null | *(E6)*; non-null while paused, duration excludes paused time |
 | paused_total_s | int | not null, default 0, check >= 0 *(T-096)*; whole seconds of closed pauses, excluded from the duration (04 §4.10) |
+| exercise_rests | jsonb | not null, default `'{}'`, a JSON object `{"<exercise_position>": <seconds 0-600>}` *(T-099, ADR-54)*; rests changed from "Descanso", written by `set_session_rest` |
 
 Constraint: at most one `in_progress` session per user (partial unique index).
 
@@ -321,9 +322,14 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `most_eaten_foods(p_limit int)` | US-17 | The user's most-logged foods (food_id, times logged), derived from `food_log_entries` |
 | `food_diary_summary(p_from date, p_to date)` | US-24 | Per day: kcal and protein/carbs/fat totals |
 
+Routine tracking (T-099, US-36, ADR-54), all `security invoker`:
+- `set_session_rest(p_session_id uuid, p_exercise_position int, p_rest_seconds int) returns void`: upserts `exercise_rests[position]` of the caller's in-progress session (`P0002` otherwise, `22023` if seconds are outside 0-600).
+- `update_routine_from_session(p_session_id uuid) returns uuid` (routine id): the session must be the caller's, `completed` and with an existing `routine_id` (`P0002`). In one transaction it replaces the routine's `routine_exercises` and `routine_exercise_sets` with the session's completed sets grouped by `exercise_position` (renumbered 0..n-1 and 1..n). Rest = session rest, else the previous rest of the same exercise, else 120; `target_rpe` is carried over. Exercises without completed sets are dropped; a session with zero completed sets is rejected (`22023`) so the routine is never emptied; more than 10 sets: `22023`; reps clamped to 1-50; superset groups with unequal set counts are nulled. It runs after `finish_workout_session`, and never touches the session or the routine's name, notes, folder, order or flags.
+- `save_routine(p_routine jsonb)` also accepts optional `track_as_routine` and `auto_update_routine` booleans (omitted = unchanged).
+
 The 1RM is computed in SQL with the same formula as the domain (see `04-business-rules.md`); domain and pgTAP tests use the same cases.
 
-E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records`, `personal_records`), routine folders/order, routine tracking (`Update Routine`), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
+E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records`, `personal_records`), routine folders/order, routine tracking (T-099, below), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
 
 ## 7. Edge Functions
 

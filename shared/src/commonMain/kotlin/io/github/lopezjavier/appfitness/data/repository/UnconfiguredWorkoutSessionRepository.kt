@@ -43,6 +43,8 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
 
     override suspend fun deleteSession(sessionId: String): Result<Unit> = fail()
 
+    override suspend fun setExerciseRest(sessionId: String, exercisePosition: Int, seconds: Int): Result<Unit> = fail()
+
     override suspend fun finish(sessionId: String): Result<Unit> = fail()
 
     override suspend fun discard(sessionId: String): Result<Unit> = fail()

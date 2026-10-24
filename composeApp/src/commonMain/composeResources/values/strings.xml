@@ -517,6 +517,41 @@
     </plurals>
     <string name="live_finish_confirm">Finalizar</string>
     <string name="live_finish_cancel">Seguir entrenando</string>
+    <string name="live_updateRoutine_title">Actualizar rutina</string>
+    <string name="live_updateRoutine_update">Actualizar rutina</string>
+    <string name="live_updateRoutine_keep">Mantener rutina original</string>
+    <string name="live_updateRoutine_error">No se pudo actualizar la rutina. Inténtalo de nuevo.</string>
+    <plurals name="live_updateRoutine_sets_added">
+        <item quantity="one">%1$d serie añadida</item>
+        <item quantity="other">%1$d series añadidas</item>
+    </plurals>
+    <plurals name="live_updateRoutine_sets_removed">
+        <item quantity="one">%1$d serie eliminada</item>
+        <item quantity="other">%1$d series eliminadas</item>
+    </plurals>
+    <plurals name="live_updateRoutine_sets_changed">
+        <item quantity="one">%1$d serie modificada</item>
+        <item quantity="other">%1$d series modificadas</item>
+    </plurals>
+    <plurals name="live_updateRoutine_rests_changed">
+        <item quantity="one">%1$d descanso modificado</item>
+        <item quantity="other">%1$d descansos modificados</item>
+    </plurals>
+    <plurals name="live_updateRoutine_exercises_added">
+        <item quantity="one">%1$d ejercicio añadido</item>
+        <item quantity="other">%1$d ejercicios añadidos</item>
+    </plurals>
+    <plurals name="live_updateRoutine_exercises_removed">
+        <item quantity="one">%1$d ejercicio eliminado</item>
+        <item quantity="other">%1$d ejercicios eliminados</item>
+    </plurals>
+    <string name="live_updateRoutine_order_changed">Orden o superseries modificados</string>
+    <plurals name="live_updateRoutine_more">
+        <item quantity="one">y %1$d cambio más</item>
+        <item quantity="other">y %1$d cambios más</item>
+    </plurals>
+    <string name="routine_builder_auto_update_label">Actualizar automáticamente</string>
+    <string name="routine_builder_auto_update_helper">Al terminar un entreno de esta rutina, se guarda con los cambios sin preguntar.</string>
     <string name="live_discard_title">¿Descartar entreno?</string>
     <string name="live_discard_message">Se borrará esta sesión con todas sus series.</string>
     <string name="live_discard_confirm">Descartar</string>
@@ -809,8 +844,8 @@
     <string name="preferences_training_title">Entrenamiento</string>
     <string name="preferences_warm_up_label">Incluir calentamiento</string>
     <string name="preferences_warm_up_helper">Las series de calentamiento cuentan en volumen, 1RM y récords.</string>
-    <string name="preferences_warm_up_on">Activado</string>
-    <string name="preferences_warm_up_off">Desactivado</string>
+    <string name="switch_row_on">Activado</string>
+    <string name="switch_row_off">Desactivado</string>
     <string name="preferences_previous_values_title">Valores anteriores</string>
     <string name="preferences_previous_mode_routine">Última vez en esta rutina</string>
     <string name="preferences_previous_mode_overall">Última vez en general</string>

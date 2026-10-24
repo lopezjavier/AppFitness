@@ -172,6 +172,8 @@ class RoutineBuilderViewModel(
     private fun listEdit(event: RoutineBuilderEvent): ((RoutineDraft) -> RoutineDraft)? = when (event) {
         is RoutineBuilderEvent.SetName -> { draft -> draft.copy(name = event.name.take(RoutineBounds.NAME_MAX_LENGTH)) }
 
+        is RoutineBuilderEvent.SetAutoUpdate -> { draft -> draft.copy(autoUpdateRoutine = event.enabled) }
+
         is RoutineBuilderEvent.AddExercise -> { draft -> draft.withNewRow(event.exerciseId) }
 
         is RoutineBuilderEvent.MoveTo -> { draft -> draft.movedRow(event.from, event.to) }
@@ -391,6 +393,7 @@ class RoutineBuilderViewModel(
             RoutineBuilderUiState.Editing(
                 isEditMode = routineId != null,
                 name = draft.name,
+                autoUpdateRoutine = draft.autoUpdateRoutine,
                 rows =
                 draft.rows.mapIndexed { index, row ->
                     val exercise = catalog[row.exerciseId]
