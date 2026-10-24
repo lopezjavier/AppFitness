@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-101 (workout editing, "Guardar como rutina" and past workouts). Last merged: T-099 (2026-10-24). T-100 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** Checkpoint E6-B 👤 (after T-101 merges and `deploy-supabase` is green), then T-102. Last merged: T-100 (2026-10-24). T-101 done in its PR (2026-10-24). Checkpoint E6-A approved by the user (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2692,19 +2692,19 @@ Journey: everything about a gym session, from planning the sets to the records a
 **Description:** Editing a finished workout: name, `description`, `gym`, sets (edit, add, delete) and exercises, with one "Guardar" (ADR-45). Deleting the workout is immediate (ADR-45) and cascades. Copying a workout is deferred (ADR-52). "Guardar como rutina" creates a routine with its exercises, planned sets (T-089), rests and supersets from the workout, under a name the user enters. Past workout: an entry from "Historial" (placement by ux-reviewer) creates a completed workout for a past date, with exercises, weights and reps, in one transaction (e.g. `log_past_workout(p_payload jsonb)`, `security invoker`). The form starts empty, from a routine (its exercises and planned sets) or from a finished workout used as a template (its exercises and sets); everything is editable before "Guardar". It reuses the edit-workout form where possible. It never goes through the live session and never creates an `in_progress` row. It appears in the history, the calendar, Fuerza, muscle volume, the records and `last_performance` on that date. Backend: the RPCs + pgTAP.
 
 **Acceptance criteria:**
-- [ ] RPCs + pgTAP: atomic; caller-only; a past workout is `completed` with the given date and never `in_progress`; it is visible to `exercise_history`, `weekly_muscle_volume`, `personal_records` and `last_performance`.
-- [ ] Editing a set and the description, then "Guardar" → the history, the calendar and Fuerza follow; leaving without "Guardar" changes nothing.
-- [ ] Deleting a workout from a month older than the loaded one removes it everywhere.
-- [ ] There is no "copy" action (deferred).
-- [ ] "Guardar como rutina" → a new routine in "Mis rutinas" with the workout's exercises, planned sets and rests.
-- [ ] A past workout dated last Tuesday appears on that day in the history, the calendar and the metrics (Fuerza, muscle volume, records, ghost).
-- [ ] A past workout started from a routine or from a finished workout opens prefilled with its exercises and sets; changing them before "Guardar" leaves the routine or the source workout unchanged.
-- [ ] Edit and past-workout drafts survive leaving the app.
+- [x] RPCs + pgTAP: atomic; caller-only; a past workout is `completed` with the given date and never `in_progress`; it is visible to `exercise_history`, `weekly_muscle_volume`, `personal_records` and `last_performance`.
+- [x] Editing a set and the description, then "Guardar" → the history, the calendar and Fuerza follow; leaving without "Guardar" changes nothing.
+- [x] Deleting a workout from a month older than the loaded one removes it everywhere.
+- [x] There is no "copy" action (deferred).
+- [x] "Guardar como rutina" → a new routine in "Mis rutinas" with the workout's exercises, planned sets and rests.
+- [x] A past workout dated last Tuesday appears on that day in the history, the calendar and the metrics (Fuerza, muscle volume, records, ghost).
+- [x] A past workout started from a routine or from a finished workout opens prefilled with its exercises and sets; changing them before "Guardar" leaves the routine or the source workout unchanged.
+- [x] Edit and past-workout drafts survive leaving the app.
 
 **Host tests (per scenario):** `EditWorkoutViewModelTest` (Editing incl. an out-of-range workout; Deleting); `SaveAsRoutineTest`; `PastWorkoutViewModelTest` (Logging a past workout; Starting from a routine or a finished workout; validation; date in the past only); repository payload tests; screen tests; restoration tests; pgTAP.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green.
 
 **Dependencies:** T-100
