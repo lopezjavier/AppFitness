@@ -700,7 +700,8 @@ class LiveSessionViewModel(
         write(position, setIndex)
         // Marking a set "Listo" while paused resumes the session and its countdown (ADR-56).
         if (session?.pausedAt != null) resumeSession()
-        startRest(position)
+        // Offline the resume is refused, so the session stays paused and no countdown may run inside it.
+        if (session?.pausedAt == null) startRest(position)
     }
 
     /** Untouched fields log the suggested (grey) values: planned first, then the last performance. */
@@ -846,14 +847,16 @@ class LiveSessionViewModel(
             pausedTotalSeconds = current.pausedTotalSeconds + (at - pausedAt).inWholeSeconds.coerceAtLeast(0L),
         )
         session = resumed
-        restTimer = frozen?.resume(at)
+        val resumedTimer = frozen?.resume(at)
+        restTimer = resumedTimer
         if (restTimer != null) startRestTicker()
         publish()
         viewModelScope.launch {
             if (repository.resume(current.id, at).isFailure) {
                 if (session == resumed) {
                     session = current
-                    restTimer = frozen
+                    // A rest started after the resume (a set marked done) stays, frozen with the session.
+                    restTimer = if (restTimer === resumedTimer) frozen else restTimer?.pause(clock.now())
                     tickerJob?.cancel()
                 }
                 fail()

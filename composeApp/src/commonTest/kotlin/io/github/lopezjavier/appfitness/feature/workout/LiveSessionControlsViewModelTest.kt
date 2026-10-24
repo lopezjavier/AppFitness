@@ -290,6 +290,38 @@ class LiveSessionControlsViewModelTest {
     }
 
     @Test
+    fun markingASetDoneWhilePausedOffline_keepsTheSessionPausedAndStartsNoRunningRest() = runSessionTest {
+        val vm = restRunning()
+        send(vm, LiveSessionEvent.PauseSession)
+        connectivity.state.value = false
+        clock.advance(30.seconds)
+        type(vm, 0, 2, "60", "10")
+
+        check(vm, 0, 2)
+        clock.advance(30.seconds)
+        advanceTimeBy(2000)
+
+        assertTrue(vm.active().isPaused)
+        assertTrue(vm.row(0, 2).completed)
+        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
+    }
+
+    @Test
+    fun aResumeRefusedAfterMarkingASetDone_doesNotDiscardTheNewRest() = runSessionTest {
+        val vm = restRunning()
+        send(vm, LiveSessionEvent.PauseSession)
+        repository.resumeFailure = AppError.Network
+        clock.advance(30.seconds)
+        type(vm, 0, 2, "60", "10")
+
+        check(vm, 0, 2)
+        advanceUntilIdle()
+
+        assertTrue(vm.active().isPaused)
+        assertEquals(RestTimerUi(120.seconds, 120.seconds, paused = true), vm.active().restTimer)
+    }
+
+    @Test
     fun aPauseTheServerRefuses_leavesTheCountdownRunning() = runSessionTest {
         val vm = restRunning()
         repository.pauseFailure = AppError.Network
