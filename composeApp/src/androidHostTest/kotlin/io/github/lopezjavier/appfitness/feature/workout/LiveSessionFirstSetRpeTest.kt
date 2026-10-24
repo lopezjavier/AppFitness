@@ -49,6 +49,7 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("TooManyFunctions") // One scenario per test of the first-set RPE flow.
 class LiveSessionFirstSetRpeTest {
     @get:Rule
     val rule = createComposeRule()
