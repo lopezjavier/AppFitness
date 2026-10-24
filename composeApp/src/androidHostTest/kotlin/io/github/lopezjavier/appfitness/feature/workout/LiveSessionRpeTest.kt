@@ -108,14 +108,14 @@ class LiveSessionRpeTest {
     }
 
     @Test
-    fun loggingTheRpe_pick7_5_showsItInTheCellAndClosesTheSheet() {
+    fun loggingTheRpe_pick7_showsItInTheCellAndClosesTheSheet() {
         showStateful()
 
         rule.onNodeWithTag("live_set_0_2_rpe").performClick()
-        rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
+        rule.onNodeWithTag("rpe_picker_option_7").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("7,5")
+        rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("7")
         rule.onNodeWithTag("rpe_picker").assertDoesNotExist()
         rule.onNodeWithTag("live_set_0_2_check").assertIsOff()
     }
@@ -174,7 +174,7 @@ class LiveSessionRpeTest {
 
     @Test
     fun checkingASetThatAlreadyHasRpe_completesWithoutPrompt() {
-        showStateful(listOf("8", "7,5", null))
+        showStateful(listOf("8", "7", null))
 
         rule.onNodeWithTag("live_set_0_2_check").performClick()
         rule.waitForIdle()
@@ -199,6 +199,37 @@ class LiveSessionRpeTest {
     }
 
     @Test
+    fun targetRpe_help_opensItsExplanation_andClosesWithTheCloseButton() {
+        showStateful(target = "8")
+
+        rule.onNodeWithTag("live_target_rpe_help").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_target_rpe_help").performClick()
+        rule.onNodeWithTag("live_target_rpe_help_sheet").assertExists()
+        rule.onNodeWithTag("live_target_rpe_help_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_target_rpe_help_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun theScale_offersTenWholeOptions_andNoHalfValues() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_2_rpe").performClick()
+
+        for (n in 1..10) rule.onNodeWithTag("rpe_picker_option_$n").assertExists()
+        rule.onNodeWithTag("rpe_picker_option_7_5").assertDoesNotExist()
+        rule.onNodeWithTag("rpe_picker_option_8_5").assertDoesNotExist()
+    }
+
+    @Test
+    fun aStoredHalfValue_isShownRounded() {
+        showStateful(listOf(RpeScale.text(7.5), null, null))
+
+        rule.onNodeWithTag("live_set_0_1_rpe").assertTextEquals("8")
+    }
+
+    @Test
     fun targetRpe_isAbsentWithoutTarget() {
         showStateful(target = null)
 
@@ -214,17 +245,17 @@ class LiveSessionRpeTest {
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
         rule.onNodeWithTag("rpe_picker").assertExists()
-        rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
+        rule.onNodeWithTag("rpe_picker_option_7").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("7,5")
+        rule.onNodeWithTag("live_set_0_2_rpe").assertTextEquals("7")
         rule.onNodeWithTag("live_set_0_2_check").assertIsOn()
     }
 
     @Test
     fun at360DpAnd130PercentFont_weightAndRepsAreNotClipped() {
         showStateful(
-            listOf("7,5", null, null),
+            listOf("7", null, null),
             target = "8",
             previous = mapOf(2 to "85 kg × 8\nRPE 8"),
             fontScale = 1.3f,

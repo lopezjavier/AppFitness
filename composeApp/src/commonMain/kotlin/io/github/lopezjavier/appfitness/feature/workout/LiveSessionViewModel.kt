@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRep
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.doubleDumbbellIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
+import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
@@ -76,6 +77,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 private const val TICK_MILLIS = 1000L
@@ -92,6 +94,8 @@ private const val KEY_DRAFTS = "live_drafts"
 private const val KEY_PAUSE_KNOWN = "live_pause_known"
 private const val KEY_PAUSED_AT = "live_paused_at"
 private const val KEY_PAUSED_TOTAL = "live_paused_total"
+private const val KEY_REST_PAUSED_REMAINING = "live_rest_paused_remaining"
+private const val KEY_REST_PAUSED_TOTAL = "live_rest_paused_total"
 private const val KEY_DOUBLE_DRAFT_EXERCISE = "live_double_dumbbell_exercise"
 private const val KEY_DOUBLE_DRAFT_ENABLED = "live_double_dumbbell_enabled"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
@@ -387,11 +391,14 @@ class LiveSessionViewModel(
             is LiveSessionEvent.OpenCalculator -> openCalculator(event.position, event.kind)
 
             is LiveSessionEvent.CalculatorWeightChanged -> updateDialogs {
-                calculatorDraft = calculatorDraft?.copy(weightText = event.text)
+                calculatorDraft = calculatorDraft?.copy(weightText = event.text, weightEdited = true)
             }
 
             is LiveSessionEvent.CalculatorBarChanged -> updateDialogs {
-                if (event.barKg in CalculatorSettings.BARS_KG && !isDumbbell(calculatorDraft?.position)) {
+                // The warm-up bar is a preference (ADR-56); only the plate calculator still picks one.
+                if (calculatorDraft?.kind == CalculatorKind.Plates && event.barKg in CalculatorSettings.BARS_KG &&
+                    !isDumbbell(calculatorDraft?.position)
+                ) {
                     calculatorDraft = calculatorDraft?.copy(barKg = event.barKg)
                 }
             }
@@ -476,6 +483,7 @@ class LiveSessionViewModel(
                         loadVolumeOptions()
                         trainingPreferences = preferences.get().getOrNull() ?: TrainingPreferences()
                         session = loaded.toState().withRestoredDrafts().withRestoredPause()
+                        restoreFrozenRest()
                         calculatorDraft =
                             calculatorDraft?.takeIf { draft -> loaded.exercises.any { it.position == draft.position } }
                         typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
@@ -598,6 +606,10 @@ class LiveSessionViewModel(
     private fun startRest(position: Int) {
         val duration = resolveRest(position, rests) ?: return
         restTimer = RestTimer.start(duration, clock.now())
+        startRestTicker()
+    }
+
+    private fun startRestTicker() {
         tickerJob?.cancel()
         tickerJob = viewModelScope.launch {
             while (restTimer != null) {
@@ -686,7 +698,10 @@ class LiveSessionViewModel(
             it.copy(completedAt = now, invalid = false, stopwatch = it.stopwatch.stop(now))
         }
         write(position, setIndex)
-        startRest(position)
+        // Marking a set "Listo" while paused resumes the session and its countdown (ADR-56).
+        if (session?.pausedAt != null) resumeSession()
+        // Offline the resume is refused, so the session stays paused and no countdown may run inside it.
+        if (session?.pausedAt == null) startRest(position)
     }
 
     /** Untouched fields log the suggested (grey) values: planned first, then the last performance. */
@@ -795,38 +810,66 @@ class LiveSessionViewModel(
 
     private fun hasCompletedSet() = session?.exercises.orEmpty().any { e -> e.sets.any { it.completedAt != null } }
 
-    /** Pauses locally at once and tells the server; the server refusing reverts it. Needs a connection like finish. */
+    /** Pauses locally at once (the rest countdown freezes too) and tells the server; refusing reverts it. */
     private fun pauseSession() {
         val current = session ?: return
         if (!sessionActionsAllowed() || current.pausedAt != null) return
         val at = clock.now()
+        val running = restTimer
         session = current.copy(pausedAt = at)
+        restTimer = running?.pause(at)
+        tickerJob?.cancel()
         publish()
         viewModelScope.launch {
             if (repository.pause(current.id, at).isFailure) {
+                val reverted = session?.pausedAt == at
                 session = session?.let { if (it.pausedAt == at) it.copy(pausedAt = null) else it }
+                if (reverted && running != null) {
+                    restTimer = running
+                    startRestTicker()
+                }
                 fail()
             }
         }
     }
 
-    /** Resumes locally at once (the paused span joins the total) and tells the server; refusing reverts it. */
+    /**
+     * Resumes locally at once (the paused span joins the total, the frozen countdown runs again) and tells the server;
+     * refusing reverts both.
+     */
     private fun resumeSession() {
         val current = session ?: return
         val pausedAt = current.pausedAt?.takeIf { sessionActionsAllowed() } ?: return
         val at = clock.now()
+        val frozen = restTimer
         val resumed = current.copy(
             pausedAt = null,
             pausedTotalSeconds = current.pausedTotalSeconds + (at - pausedAt).inWholeSeconds.coerceAtLeast(0L),
         )
         session = resumed
+        val resumedTimer = frozen?.resume(at)
+        restTimer = resumedTimer
+        if (restTimer != null) startRestTicker()
         publish()
         viewModelScope.launch {
             if (repository.resume(current.id, at).isFailure) {
-                session = session?.let { if (it == resumed) current else it }
+                if (session == resumed) {
+                    session = current
+                    // A rest started after the resume (a set marked done) stays, frozen with the session.
+                    restTimer = if (restTimer === resumedTimer) frozen else restTimer?.pause(clock.now())
+                    tickerJob?.cancel()
+                }
                 fail()
             }
         }
+    }
+
+    /** A countdown frozen by a pause made before the screen was recreated comes back frozen (ADR-40). */
+    private fun restoreFrozenRest() {
+        val remaining = savedState.get<Long>(KEY_REST_PAUSED_REMAINING) ?: return
+        if (session?.pausedAt == null || restTimer != null) return
+        val total = savedState.get<Long>(KEY_REST_PAUSED_TOTAL) ?: remaining
+        restTimer = RestTimer(clock.now(), maxOf(total, remaining).milliseconds, remaining.milliseconds)
     }
 
     /**
@@ -873,8 +916,11 @@ class LiveSessionViewModel(
             ?: set.weightPlaceholder
     }
 
-    /** Opens the calculator with the first working weight (typed, else the placeholder) and the bar (the handle
-     * for dumbbells). */
+    /**
+     * Opens the calculator with the first working weight (typed, else the placeholder) and the bar (the handle for
+     * dumbbells). The warm-up one starts from the best past weight of the exercise once it loads, as long as the user
+     * has not typed their own.
+     */
     private fun openCalculator(position: Int, kind: CalculatorKind) {
         val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
         if (terminal != null) return
@@ -887,6 +933,20 @@ class LiveSessionViewModel(
                 weight,
                 barFor(trainingPreferences.barWeightKg, traits[exercise.exerciseId]?.equipment, trainingPreferences),
             )
+        }
+        if (kind == CalculatorKind.WarmUp) applyBestPastWeight(position, exercise.exerciseId)
+    }
+
+    private fun applyBestPastWeight(position: Int, exerciseId: String) {
+        viewModelScope.launch {
+            val records = repository.personalRecords(exerciseId).getOrNull() ?: return@launch
+            val best = BestPastWeight(records) ?: return@launch
+            val draft = calculatorDraft
+            val untouchedWarmUp = draft?.kind == CalculatorKind.WarmUp && !draft.weightEdited
+            if (draft != null && untouchedWarmUp && draft.position == position) {
+                calculatorDraft = draft.copy(weightText = weightText(best))
+                publish()
+            }
         }
     }
 
@@ -1173,6 +1233,9 @@ class LiveSessionViewModel(
             savedState[KEY_PAUSE_KNOWN] = true
             savedState[KEY_PAUSED_AT] = it.pausedAt?.toString()
             savedState[KEY_PAUSED_TOTAL] = it.pausedTotalSeconds
+            val frozen = restTimer?.takeIf { timer -> timer.isPaused }
+            savedState[KEY_REST_PAUSED_REMAINING] = frozen?.pausedRemaining?.inWholeMilliseconds
+            savedState[KEY_REST_PAUSED_TOTAL] = frozen?.total?.inWholeMilliseconds
         }
         if (terminal != null) return
         val drafts = session?.exercises.orEmpty().flatMap { exercise ->
@@ -1213,6 +1276,8 @@ class LiveSessionViewModel(
         savedState.remove<Boolean>(KEY_PAUSE_KNOWN)
         savedState.remove<String>(KEY_PAUSED_AT)
         savedState.remove<Long>(KEY_PAUSED_TOTAL)
+        savedState.remove<Long>(KEY_REST_PAUSED_REMAINING)
+        savedState.remove<Long>(KEY_REST_PAUSED_TOTAL)
     }
 
     /** A pause made before the screen was recreated wins over the loaded row (the server call may be in flight). */
@@ -1298,7 +1363,7 @@ class LiveSessionViewModel(
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
                 )
             },
-            restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total) },
+            restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total, it.isPaused) },
             isOnline = online,
             finishSheet = finishSheet,
             discardConfirm = discardAsked,
@@ -1355,7 +1420,7 @@ class LiveSessionViewModel(
             weight = columns.weightKg.text(),
             reps = columns.reps.text(),
             completedAt = completedAt,
-            rpe = rpe,
+            rpe = rpe?.let(RpeScale::round),
             distance = columns.distanceM.text(METRES_PER_KM),
             steps = columns.steps.text(),
             floors = columns.floors.text(),

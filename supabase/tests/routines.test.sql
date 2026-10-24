@@ -177,7 +177,7 @@ insert into saved
     'name', '  Torso  ', 'notes', null,
     'exercises', jsonb_build_array(
       jsonb_build_object('exercise_id', (select id from cat where n = 1), 'position', 9,
-                         'superset_group', 1, 'rest_seconds', 90, 'target_rpe', 8.5,
+                         'superset_group', 1, 'rest_seconds', 90, 'target_rpe', 8,
                          'sets', jsonb_build_array(
                            jsonb_build_object('weight_kg', 40, 'reps', 10, 'set_type', 'warm_up'),
                            jsonb_build_object('weight_kg', 80, 'reps', 8, 'set_type', 'working'),
@@ -205,7 +205,7 @@ select results_eq(
 select results_eq(
   $$select target_sets::int, target_reps::int, target_rpe::float8
     from public.routine_exercises where routine_id = (select id from saved) order by position$$,
-  $$values (4, 8, 8.5::float8), (4, 10, null::float8)$$,
+  $$values (4, 8, 8::float8), (4, 10, null::float8)$$,
   'target_sets is the set count, target_reps the first working set, rpe is kept');
 
 -- save_routine: replace

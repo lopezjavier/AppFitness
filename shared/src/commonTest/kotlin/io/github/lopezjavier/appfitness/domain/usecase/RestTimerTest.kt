@@ -60,6 +60,43 @@ class RestTimerTest {
     }
 
     @Test
+    fun pause_keepsTheRemainingAfterAnyElapsedTime() {
+        val paused = RestTimer.start(120.seconds, t0).pause(t0 + 70.seconds)
+
+        assertTrue(paused.isPaused)
+        assertEquals(50.seconds, paused.remaining(t0 + 70.seconds))
+        assertEquals(50.seconds, paused.remaining(t0 + 1000.seconds))
+        assertEquals(120.seconds, paused.total)
+    }
+
+    @Test
+    fun pausedTimer_neverFinishes() {
+        val paused = RestTimer.start(60.seconds, t0).pause(t0 + 10.seconds)
+
+        assertFalse(paused.isFinished(t0 + 5000.seconds))
+    }
+
+    @Test
+    fun resume_endsAtNowPlusTheFrozenRemaining() {
+        val resumeAt = t0 + 500.seconds
+        val resumed = RestTimer.start(120.seconds, t0).pause(t0 + 70.seconds).resume(resumeAt)
+
+        assertFalse(resumed.isPaused)
+        assertEquals(resumeAt + 50.seconds, resumed.endsAt)
+        assertEquals(50.seconds, resumed.remaining(resumeAt))
+        assertTrue(resumed.isFinished(resumeAt + 50.seconds))
+    }
+
+    @Test
+    fun extend_whilePaused_adds30SecondsToTheRemainingAndStaysPaused() {
+        val paused = RestTimer.start(120.seconds, t0).pause(t0 + 70.seconds)
+        val extended = paused.extend(t0 + 900.seconds)
+
+        assertTrue(extended.isPaused)
+        assertEquals(80.seconds, extended.remaining(t0 + 900.seconds))
+    }
+
+    @Test
     fun resolveRest_zeroMeansNoTimer() = assertNull(resolveRest(0, mapOf(0 to 0)))
 
     @Test

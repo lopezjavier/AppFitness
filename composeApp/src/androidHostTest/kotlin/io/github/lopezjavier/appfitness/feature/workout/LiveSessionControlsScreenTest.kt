@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -29,6 +30,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.time.Duration.Companion.seconds
 
 private fun set(index: Int, done: Boolean = false) = LiveSetRow(index, "", "", done)
 
@@ -87,6 +89,23 @@ class LiveSessionControlsScreenTest {
         rule.onNodeWithTag("live_pause_toggle").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.ResumeSession), events)
+    }
+
+    @Test
+    fun pausedRest_showsTheFrozenTimeWithTheCue_andSpeaksIt() {
+        show(controlsState(pausedAt = SESSION_START).copy(restTimer = RestTimerUi(50.seconds, 90.seconds, true)))
+
+        rule.onNodeWithTag("live_rest_countdown").assertTextEquals("00:50")
+        rule.onNodeWithTag("live_rest_timer_paused").assertTextEquals("En pausa")
+        rule.onNodeWithTag("live_rest_countdown").assertContentDescriptionEquals("Descanso en pausa: 50 s")
+    }
+
+    @Test
+    fun runningRest_hasNoPausedCue() {
+        show(controlsState().copy(restTimer = RestTimerUi(50.seconds, 90.seconds, false)))
+
+        rule.onNodeWithTag("live_rest_countdown").assertContentDescriptionEquals("Descanso: 50 s")
+        rule.onNodeWithTag("live_rest_timer_paused").assertDoesNotExist()
     }
 
     @Test

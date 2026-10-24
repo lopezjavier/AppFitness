@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -40,6 +41,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_double_dumbbell
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
@@ -53,6 +57,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnailDefaults
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -243,7 +248,7 @@ private fun Steppers(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEven
     }
 }
 
-/** "RPE OBJETIVO" stepper: none ("Sin objetivo") or 6 to 10 in half points. */
+/** "OBJETIVO RPE" stepper with its "?" help: none ("Sin objetivo") or a whole number 1 to 10. */
 @Composable
 private fun TargetRpeLine(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
     val target = row.targetRpe
@@ -258,6 +263,14 @@ private fun TargetRpeLine(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilde
         canIncrease = target == null || target < RpeScale.MAX,
         onStep = { onEvent(RoutineBuilderEvent.StepTargetRpe(index, it)) },
         tag = "routine_builder_target_rpe_$index",
+        help = {
+            HelpButton(
+                contentDescription = stringResource(Res.string.help_rpe_cd),
+                title = stringResource(Res.string.help_rpe_title),
+                body = stringResource(Res.string.help_rpe_body),
+                testTag = "routine_builder_target_rpe_help",
+            )
+        },
     )
 }
 
@@ -274,14 +287,19 @@ private fun StepperLine(
     canIncrease: Boolean,
     onStep: (Int) -> Unit,
     tag: String,
+    help: (@Composable () -> Unit)? = null,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = unit,
             style = AppTheme.typography.labelTechnical,
             color = AppTheme.colors.textSecondary,
-            modifier = Modifier.weight(1f),
+            modifier = if (help == null) Modifier.weight(1f) else Modifier,
         )
+        if (help != null) {
+            help()
+            Spacer(Modifier.weight(1f))
+        }
         NumberStepper(
             valueText = valueText,
             onDecrement = { onStep(-1) },

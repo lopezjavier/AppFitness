@@ -9,11 +9,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -305,6 +307,34 @@ class RoutineBuilderScreenTest {
         rule.waitForIdle()
 
         assertEquals(8.0, repository.saved.single().exercises.single().targetRpe)
+    }
+
+    @Test
+    fun targetRpeStepper_stepsByOneWholePoint() {
+        show().add("a")
+        val increment = rule.onNodeWithTag("routine_builder_target_rpe_0_increment")
+
+        increment.performClick()
+        increment.performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_target_rpe_0_value").assertTextEquals("9")
+        rule.onNodeWithTag("routine_builder_target_rpe_0_decrement").performClick()
+        rule.onNodeWithTag("routine_builder_target_rpe_0_decrement").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_target_rpe_0_value").assertTextEquals("7")
+    }
+
+    @Test
+    fun targetRpeHelp_hasA48DpHitArea_opensTheExplanation_andCloses() {
+        show().add("a")
+
+        rule.onNodeWithTag("routine_builder_target_rpe_help").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("routine_builder_target_rpe_help").performClick()
+        rule.onNodeWithTag("routine_builder_target_rpe_help_sheet").assertExists()
+        rule.onNodeWithTag("routine_builder_target_rpe_help_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_target_rpe_help_sheet").assertDoesNotExist()
     }
 
     @Test

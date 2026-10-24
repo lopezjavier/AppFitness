@@ -58,7 +58,8 @@ internal class CalculatorActions(
 /**
  * Shared frame of both calculator sheets: heading, a scrolling body (weight field, bar selector, [results]) and the
  * [action] pinned below it. Closing the sheet (X, back, swipe, scrim) calls `actions.onDismiss` and inserts nothing.
- * Dumbbell exercises have no bar selector: the handle is the bar (shown by the plate sheet).
+ * Dumbbell exercises have no bar selector: the handle is the bar (shown by the plate sheet). The warm-up sheet passes
+ * [barSelectable] = false: its bar comes from Preferencias (ADR-56).
  */
 @Composable
 @Suppress("LongParameterList") // Frame slots of two sheets.
@@ -71,6 +72,7 @@ internal fun CalculatorSheetFrame(
     help: CalculatorHelp,
     results: @Composable () -> Unit,
     action: @Composable () -> Unit,
+    barSelectable: Boolean = true,
 ) {
     AppBottomSheet(
         onDismissRequest = actions.onDismiss,
@@ -112,7 +114,7 @@ internal fun CalculatorSheetFrame(
                     maxDecimals = WEIGHT_MAX_DECIMALS,
                     maxIntegerDigits = WEIGHT_MAX_INTEGER_DIGITS,
                 )
-                if (!calculator.isDumbbell) BarSelector(tag, calculator.draft.barKg, actions.onBar)
+                if (barSelectable && !calculator.isDumbbell) BarSelector(tag, calculator.draft.barKg, actions.onBar)
                 results()
             }
             action()

@@ -8,34 +8,44 @@ import kotlin.test.assertTrue
 
 class RpeScaleTest {
     @Test
-    fun values_areNineHalfPointsFromSixToTen() {
-        assertEquals(listOf(6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0), RpeScale.values)
+    fun values_areTheWholeNumbersFromOneToTen() {
+        assertEquals((1..10).map { it.toDouble() }, RpeScale.values)
     }
 
     @Test
-    fun text_hasNoTrailingZeroAndUsesADecimalComma() {
-        assertEquals("6", RpeScale.text(6.0))
-        assertEquals("7,5", RpeScale.text(7.5))
+    fun text_isAWholeNumberAndHalvesRoundUp() {
+        assertEquals("1", RpeScale.text(1.0))
+        assertEquals("8", RpeScale.text(7.5))
+        assertEquals("8", RpeScale.text(8.0))
+        assertEquals("7", RpeScale.text(6.5))
         assertEquals("10", RpeScale.text(10.0))
     }
 
     @Test
-    fun parse_acceptsCommaAndDot() {
-        assertEquals(7.5, RpeScale.parse("7,5"))
-        assertEquals(7.5, RpeScale.parse("7.5"))
+    fun round_isHalfUp() {
+        assertEquals(7.0, RpeScale.round(6.5))
+        assertEquals(8.0, RpeScale.round(7.5))
+        assertEquals(7.0, RpeScale.round(7.4))
+    }
+
+    @Test
+    fun parse_toleratesHalvesAndRoundsThem() {
+        assertEquals(8.0, RpeScale.parse("7,5"))
+        assertEquals(8.0, RpeScale.parse("7.5"))
         assertEquals(8.0, RpeScale.parse("8"))
     }
 
     @Test
-    fun parse_rejectsValuesOffTheGridAndGarbage() {
-        listOf("5.5", "10.5", "7.25", "abc", "").forEach { assertNull(RpeScale.parse(it), it) }
+    fun parse_rejectsOutOfRangeAndGarbage() {
+        listOf("0", "11", "abc", "").forEach { assertNull(RpeScale.parse(it), it) }
     }
 
     @Test
-    fun isValid_onlyForGridValues() {
-        assertTrue(RpeScale.isValid(9.5))
-        assertFalse(RpeScale.isValid(5.5))
-        assertFalse(RpeScale.isValid(7.25))
-        assertFalse(RpeScale.isValid(10.5))
+    fun isValid_onlyForWholeNumbers() {
+        assertTrue(RpeScale.isValid(1.0))
+        assertTrue(RpeScale.isValid(10.0))
+        assertFalse(RpeScale.isValid(7.5))
+        assertFalse(RpeScale.isValid(0.0))
+        assertFalse(RpeScale.isValid(11.0))
     }
 }

@@ -81,7 +81,7 @@ class ExerciseHistoryTabTest {
 
         rule.onNodeWithText("40 kg × 10", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("80 kg × 8", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("RPE 8,5", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("RPE 9", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("C", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("2", useUnmergedTree = true).assertExists()
     }

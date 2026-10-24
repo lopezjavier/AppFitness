@@ -39,8 +39,8 @@ class GhostDataTest {
         assertEquals("85 kg × 8\nRPE 8", GhostData.previousText(PreviousSet(2, 85.0, 8, rpe = 8.0)))
 
     @Test
-    fun previousHalfPointRpe_usesADecimalComma() =
-        assertEquals("85 kg × 8\nRPE 7,5", GhostData.previousText(PreviousSet(2, 85.0, 8, rpe = 7.5)))
+    fun previousHalfPointRpe_isShownRounded() =
+        assertEquals("85 kg × 8\nRPE 8", GhostData.previousText(PreviousSet(2, 85.0, 8, rpe = 7.5)))
 
     @Test
     fun noPreviousRpe_leavesTheTextUnchanged() =
@@ -51,6 +51,7 @@ class GhostDataTest {
         assertEquals("RPE 8", GhostData.rpeText(PreviousSet(2, 85.0, 8, rpe = 8.0)))
         assertNull(GhostData.rpeText(PreviousSet(2, 85.0, 8)))
         assertNull(GhostData.rpeText(null))
+        assertEquals("RPE 8", GhostData.rpeText(PreviousSet(2, 85.0, 8, rpe = 7.5)))
     }
 
     @Test

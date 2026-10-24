@@ -94,7 +94,7 @@ private fun PlateResults(tag: String, calculator: CalculatorUiState) {
 
 /** "Barra 20 kg", or "Mango: 1 kg" for dumbbells (the handle actually used). */
 @Composable
-private fun BarLabel(tag: String, calculator: CalculatorUiState) {
+internal fun BarLabel(tag: String, calculator: CalculatorUiState) {
     val barKg = GhostData.weightText(calculator.draft.barKg)
     val dumbbell = calculator.isDumbbell
     Text(

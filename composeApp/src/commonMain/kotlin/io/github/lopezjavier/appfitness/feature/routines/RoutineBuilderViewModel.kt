@@ -152,7 +152,8 @@ class RoutineBuilderViewModel(
 
             is RoutineBuilderEvent.CalculatorBarChanged -> updateSheets {
                 val draft = calculatorDraft
-                if (draft != null && event.barKg in CalculatorSettings.BARS_KG && !isDumbbell(draft.position)) {
+                val picksBar = draft?.kind == CalculatorKind.Plates && event.barKg in CalculatorSettings.BARS_KG
+                if (draft != null && picksBar && !isDumbbell(draft.position)) {
                     calculatorDraft = draft.copy(barKg = event.barKg)
                 }
             }

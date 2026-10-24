@@ -100,7 +100,7 @@ None blocking: Q1–Q8 were answered by the user on 2026-10-22 (`planning/09-ope
 **Assumptions (non-blocking; applied unless the user objects at the checkpoints):**
 - "Contar mancuerna doble" is the user's setting per exercise and applies to all its sessions, past and future (T-093, E6-A).
 - The previous-values mode is one global training preference (T-096, E6-A).
-- Pausing a session does not pause or reset the rest timer (T-096, E6-A).
+- Pausing a session also pauses the rest countdown; "Listo" on a set while paused resumes both (ADR-56, T-097g).
 - An empty folder is deleted at once, without the confirmation (T-098, E6-B).
 - The workout muscle split is the share of completed sets per primary muscle group (T-100, E6-B).
 - The E3 rule that an exercise's first session counts as a PR in the summary is kept (T-094, E6-A).

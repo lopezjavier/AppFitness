@@ -209,6 +209,8 @@ private fun RestBar(timer: RestTimerUi, onEvent: (LiveSessionEvent) -> Unit) {
             modifier = Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth)
                 .padding(top = Spacing.sm, bottom = Spacing.md),
             testTagPrefix = "live_rest",
+            paused = timer.paused,
+            pausedTestTag = "live_rest_timer_paused",
         )
     }
 }

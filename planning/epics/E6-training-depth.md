@@ -108,9 +108,9 @@ Feature: RPE
 
   Scenario: Logging the RPE
     When the user taps the RPE cell of a set
-    Then a vertical scale from 6 to 10 in half points opens
-    When they pick "7,5"
-    Then the cell shows "7,5"
+    Then a vertical scale of whole numbers from 1 to 10 opens (no half steps)
+    When they pick 7
+    Then the cell shows "7"
     And the scale closes (a tap applies it; there is no "Guardar" or "Quitar RPE")
 
   Scenario: Completing a working set without RPE
@@ -119,6 +119,7 @@ Feature: RPE
     Then the RPE scale opens and the set is not completed yet
     When they pick 8
     Then the scale closes, the set is completed with RPE 8 and the rest timer starts
+    And this also holds for the first set of the first exercise
 
   Scenario: Closing the scale without picking
     Given the RPE scale opened by checking a set
@@ -146,11 +147,16 @@ Feature: RPE
 
   Scenario: Target RPE
     Given a planned exercise with a target RPE
-    Then the set shows "Objetivo RPE 8"
+    Then the set shows "Objetivo RPE 8" with a "?" help that explains the scale
+    And the routine builder's "Objetivo RPE" stepper (steps of 1, 1 to 10) has the same "?" help
+
+  Scenario: Existing half values are shown rounded
+    Given a set or target stored with RPE 7,5
+    Then it is shown as "8"
 ```
 
 **Technical notes**
-- `workout_sets.rpe` and `routine_exercises.target_rpe` with a 1–10 check.
+- `workout_sets.rpe` and `routine_exercises.target_rpe` with a whole-number 1–10 check (ADR-56; stored half values are rounded half up by a migration).
 - The target RPE is set **per exercise** in the routine (`routine_exercises.target_rpe`, already in the forward-compatible schema) and shown on every working set of that exercise (ADR-50).
 
 ---
@@ -220,7 +226,9 @@ Feature: Calculators
   Scenario: Warm-up calculator
     Given a working weight of 100 kg
     When the user opens the warm-up calculator
-    Then it proposes a block of warm-up sets as percentages, rounded to the available plates
+    Then the weight field reads "Peso objetivo (kg)" and is prefilled with the best past weight of the exercise (the planned weight when it has no history)
+    And the bar (or the handle for dumbbells) is the one from Preferencias, not selectable in the sheet
+    And it proposes a block of warm-up sets as percentages, rounded to the available plates
 
   Scenario: Plate calculator
     Given a barbell exercise
@@ -401,8 +409,10 @@ Feature: Session controls
 
   Scenario: Pause and resume
     When the user pauses the workout
-    Then the duration stops counting
-    And resuming continues from there
+    Then the duration stops counting and a running rest countdown freezes, marked "En pausa"
+    And resuming continues both from there
+    When the user marks a set "Listo" while paused
+    Then the session and the rest countdown resume
 
   Scenario: Finishing an empty workout (user request 2026-10-20)
     Given no set of any exercise is completed

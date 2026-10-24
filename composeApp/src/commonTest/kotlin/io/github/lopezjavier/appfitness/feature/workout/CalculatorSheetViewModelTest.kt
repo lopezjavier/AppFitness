@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeExerciseOptionsRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -168,25 +169,79 @@ class CalculatorSheetViewModelTest {
     }
 
     @Test
-    fun theBarStartsAtTheSavedDefault_andChangingItIsPerUse() = runSessionTest {
+    fun theWarmUpBarIsThePreferencesBar_andBarChangesAreIgnored() = runSessionTest {
         trainingPreferences.result = Result.success(TrainingPreferences(barWeightKg = 15.0))
         val vm = loaded()
         type(vm, 0, 1, "100", "5")
         send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
         assertEquals(15.0, vm.calculator().draft.barKg)
-        send(vm, LiveSessionEvent.CalculatorWarmUpSetsChanged(4))
 
         send(vm, LiveSessionEvent.CalculatorBarChanged(7.5))
-        assertEquals(7.5, vm.calculator().draft.barKg)
-        assertEquals(WarmUpSet(7.5, 10), vm.calculator().warmUp.first())
 
-        send(vm, LiveSessionEvent.CalculatorBarChanged(12.0))
-        assertEquals(7.5, vm.calculator().draft.barKg, "a bar outside the catalogue is ignored")
-
-        send(vm, LiveSessionEvent.DismissCalculator)
-        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
-        assertEquals(15.0, vm.calculator().draft.barKg, "the next use starts from the saved default again")
+        assertEquals(15.0, vm.calculator().draft.barKg)
     }
+
+    @Test
+    fun theWarmUpBarIsRebasedOnARestoredDraftWithAnOldBar() = runSessionTest {
+        trainingPreferences.result = Result.success(TrainingPreferences(barWeightKg = 15.0))
+        val handle = SavedStateHandle()
+        handle.persistCalculatorDraft(CalculatorDraft(0, CalculatorKind.WarmUp, "100", 7.5))
+
+        val vm = loaded(handle)
+
+        assertEquals(15.0, vm.calculator().draft.barKg)
+    }
+
+    @Test
+    fun theWarmUpOpensWithTheBestPastWeight() = runSessionTest {
+        repository.sessionRecords = bestWeight(110.0)
+        val vm = loaded()
+        type(vm, 0, 1, "100", "5")
+
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+
+        assertEquals("110", vm.calculator().draft.weightText)
+        assertFalse(vm.calculator().draft.weightEdited)
+    }
+
+    @Test
+    fun theWarmUpFallsBackToThePlannedWeight_andWithNothingShowsTheHint() = runSessionTest {
+        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 82.5, 5)))
+        val vm = loaded()
+        send(vm, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        assertEquals("82,5", vm.calculator().draft.weightText)
+
+        repository.previous = emptyMap()
+        val empty = loaded()
+        send(empty, LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        assertEquals(CalculatorHint.MissingWeight, empty.calculator().hint)
+    }
+
+    @Test
+    fun aBestWeightArrivingAfterTheUserTyped_doesNotOverwriteIt() = runSessionTest {
+        repository.sessionRecords = bestWeight(110.0)
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.OpenCalculator(0, CalculatorKind.WarmUp))
+        vm.onEvent(LiveSessionEvent.CalculatorWeightChanged("90"))
+
+        runCurrent()
+
+        assertEquals("90", vm.calculator().draft.weightText)
+        assertTrue(vm.calculator().draft.weightEdited)
+    }
+
+    @Test
+    fun theWarmUpOfADumbbellUsesTheHandle() = runSessionTest {
+        trainingPreferences.result = Result.success(TrainingPreferences(dumbbellHandleKg = 1.5))
+        val vm = loaded()
+
+        send(vm, LiveSessionEvent.OpenCalculator(1, CalculatorKind.WarmUp))
+
+        assertEquals(1.5, vm.calculator().draft.barKg)
+    }
+
+    private fun bestWeight(kg: Double) =
+        mapOf("e1" to listOf(ExerciseSessionRecords("old", SESSION_START, heaviestLift = kg)))
 
     @Test
     fun editingTheWeight_updatesTheResultLive() = runSessionTest {
@@ -523,7 +578,10 @@ class CalculatorSheetViewModelTest {
 
         val second = loaded(handle)
 
-        assertEquals(CalculatorDraft(0, CalculatorKind.Plates, "102,5", 10.0), second.calculator().draft)
+        assertEquals(
+            CalculatorDraft(0, CalculatorKind.Plates, "102,5", 10.0, weightEdited = true),
+            second.calculator().draft,
+        )
         assertEquals(listOf(25.0, 20.0, 1.25), assertNotNull(second.calculator().plates).platesPerSide.take(3))
     }
 

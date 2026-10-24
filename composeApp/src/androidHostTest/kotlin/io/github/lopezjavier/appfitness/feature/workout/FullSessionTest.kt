@@ -4,7 +4,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -134,10 +133,8 @@ class FullSessionTest {
 
     /** Checking a working set without RPE opens the scale (ADR-55); picking 8 completes it. */
     private fun answerRpePrompt() {
-        if (rule.onAllNodesWithTag("rpe_picker_option_8").fetchSemanticsNodes().isNotEmpty()) {
-            rule.onNodeWithTag("rpe_picker_option_8").performClick()
-            settle()
-        }
+        rule.onNodeWithTag("rpe_picker_option_8").performClick()
+        settle()
     }
 
     @Test
