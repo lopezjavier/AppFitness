@@ -153,6 +153,11 @@ Feature: RPE
   Scenario: Existing half values are shown rounded
     Given a set or target stored with RPE 7,5
     Then it is shown as "8"
+
+  Scenario: Values below 6 are shown as 6
+    Given a set or target stored with RPE 3
+    Then it is shown as "6"
+    And the scale offers only 6 to 10
 ```
 
 **Technical notes**

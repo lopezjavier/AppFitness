@@ -25,7 +25,7 @@ data class PlannedSet(val weightKg: Double?, val reps: Int, val type: SetType = 
 /**
  * One planned exercise of a routine. [position] is 0-based and contiguous in the routine's order; [supersetGroup]
  * is null for a standalone exercise, otherwise exercises of the same group are consecutive. [plannedSets] is the
- * ordered list of sets to perform; [targetRpe] is optional (1-10).
+ * ordered list of sets to perform; [targetRpe] is optional (6-10).
  */
 data class RoutineExercise(
     val exerciseId: String,

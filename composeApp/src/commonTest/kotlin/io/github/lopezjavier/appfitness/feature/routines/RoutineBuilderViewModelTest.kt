@@ -863,12 +863,12 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun targetRpe_steppingDownFromOne_clearsIt() = runTest {
+    fun targetRpe_steppingDownFromSix_clearsIt() = runTest {
         val vm = builder()
         vm.add("a")
         vm.stepRpe(+1)
-        vm.stepRpe(-1, times = 7)
-        assertEquals(1.0, vm.form().rows.single().targetRpe)
+        vm.stepRpe(-1, times = 2)
+        assertEquals(6.0, vm.form().rows.single().targetRpe)
 
         vm.stepRpe(-1)
 

@@ -212,12 +212,13 @@ class LiveSessionRpeTest {
     }
 
     @Test
-    fun theScale_offersTenWholeOptions_andNoHalfValues() {
+    fun theScale_offersFiveWholeOptions_sixToTen_andNoHalfValues() {
         showStateful()
 
         rule.onNodeWithTag("live_set_0_2_rpe").performClick()
 
-        for (n in 1..10) rule.onNodeWithTag("rpe_picker_option_$n").assertExists()
+        for (n in 6..10) rule.onNodeWithTag("rpe_picker_option_$n").assertExists()
+        rule.onNodeWithTag("rpe_picker_option_5").assertDoesNotExist()
         rule.onNodeWithTag("rpe_picker_option_7_5").assertDoesNotExist()
         rule.onNodeWithTag("rpe_picker_option_8_5").assertDoesNotExist()
     }

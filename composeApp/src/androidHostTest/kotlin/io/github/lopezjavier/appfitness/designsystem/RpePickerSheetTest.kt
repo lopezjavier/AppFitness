@@ -43,20 +43,19 @@ class RpePickerSheetTest {
         RpePickerDefaults.Options.forEach {
             rule.onNodeWithTag(RpePickerDefaults.optionTag(it)).assertHeightIsAtLeast(48.dp)
         }
-        assertEquals(10, RpePickerDefaults.Options.size)
+        assertEquals(5, RpePickerDefaults.Options.size)
         assertEquals("rpe_picker_option_8", RpePickerDefaults.optionTag(7.5))
-        assertEquals("rpe_picker_option_1", RpePickerDefaults.optionTag(1.0))
+        assertEquals("rpe_picker_option_6", RpePickerDefaults.optionTag(3.0))
         assertEquals("rpe_picker_option_10", RpePickerDefaults.optionTag(10.0))
     }
 
     @Test
-    fun optionsAreListedFromTenAtTheTopDownToOne() {
+    fun optionsAreListedFromTenAtTheTopDownToSix() {
         show()
 
-        assertEquals((10 downTo 1).map { it.toDouble() }, RpePickerDefaults.Options)
+        assertEquals((10 downTo 6).map { it.toDouble() }, RpePickerDefaults.Options)
         assertTrue(top(10.0) < top(8.0))
         assertTrue(top(8.0) < top(6.0))
-        assertTrue(top(6.0) < top(1.0))
     }
 
     @Test

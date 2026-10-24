@@ -46,8 +46,8 @@ class AppColors(
     val glowLime: Color,
 ) {
     /**
-     * §2.5 RPE ramp (green = easiest, red = hardest) for a whole value 1 to 10; only used by the RPE picker. The
-     * nine ramp stops are spread over the ten values, interpolating between neighbours (no extra tokens).
+     * §2.5 RPE ramp (green = easiest, red = hardest) for a whole value 6 to 10; only used by the RPE picker. The
+     * nine ramp stops are spread over the five values, interpolating between neighbours (no extra tokens).
      */
     fun rpeScale(value: Double): Color {
         val position = ((value - RPE_RAMP_MIN) / (RPE_RAMP_MAX - RPE_RAMP_MIN)).coerceIn(0.0, 1.0) * RpeRamp.lastIndex
@@ -56,10 +56,10 @@ class AppColors(
     }
 }
 
-private const val RPE_RAMP_MIN = 1.0
+private const val RPE_RAMP_MIN = 6.0
 private const val RPE_RAMP_MAX = 10.0
 
-/** Ramp stops from RPE 1 (green) to RPE 10 (red) (05 §2.5). */
+/** Ramp stops from RPE 6 (green) to RPE 10 (red) (05 §2.5). */
 private val RpeRamp = listOf(
     Color(0xFF22C55E),
     Color(0xFF65D04A),

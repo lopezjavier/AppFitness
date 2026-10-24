@@ -211,7 +211,7 @@ internal fun Routine.toDraft(): RoutineDraft {
 
 private const val DEFAULT_TARGET_RPE = 8.0
 
-/** One whole-point step of a target RPE: none + up = 8, 10 + up stays 10, 1 + down = none (a half value rounds). */
+/** One whole-point step of a target RPE: none + up = 8, 10 + up stays 10, 6 + down = none (a half value rounds). */
 internal fun steppedRpe(current: Double?, delta: Int): Double? {
     if (current == null) return if (delta > 0) DEFAULT_TARGET_RPE else null
     val next = RpeScale.round(current) + delta * RpeScale.STEP
