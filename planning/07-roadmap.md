@@ -85,7 +85,7 @@ E1 … E8 ───────────────────────�
 | US-46 | E9 | Polish, accessibility, tablet and release build | UI |
 | US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
 | US-48 | E7 | Add a food from a photo with the AI estimate (added 2026-10-24, ADR-59) | UI + backend |
-| US-49 | E7 | Nutrition-label and barcode photos (added 2026-10-24, ADR-59) | UI |
+| US-49 | E7 | AI nutrition-label and barcode photos (added 2026-10-24, ADR-59) | UI |
 | US-50 | E7 | Cooking methods with olive oil, including saved comidas (added 2026-10-24, ADR-60) | UI + backend |
 | US-51 | E7 | Default comidas per meal and weekday (added 2026-10-24, ADR-61) | UI + backend |
 

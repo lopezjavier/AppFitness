@@ -500,7 +500,7 @@ Format: context → decision → consequences. A decision is only changed by add
 ### ADR-58 · Epic renumbering with stable story IDs (E7: food photos, defaults and cooking; E8: training insights; E9: finalization)
 - **Context:** the user wants a new food epic before training insights: photo food creation, default comidas and cooking methods. Renumbering the epics while also renumbering stories would break links, history and tests; the story IDs must stay stable.
 - **Decision:**
-  - The new **E7 · Food photos, defaults and cooking** ships in `v0.7.0` with **US-48** (AI dish photo), **US-49** (label and barcode photos), **US-50** (cooking methods) and **US-51** (default comidas).
+  - The new **E7 · Food photos, defaults and cooking** ships in `v0.7.0` with **US-48** (AI dish photo), **US-49** (AI label and barcode photos), **US-50** (cooking methods) and **US-51** (default comidas).
   - The old E7 becomes **E8 · Training insights** (`v0.8.0`) and keeps **US-39…US-44**. The old E8 becomes **E9 · Finalization** (`v1.0.0`) and keeps **US-45/US-46**. E6 keeps **US-47**.
   - Story IDs are permanent: they are never reused or shifted when an epic moves. New stories append to the sequence (US-48 onward).
   - Epic files are `E7-food-photos-defaults-and-cooking.md`, `E8-training-insights.md` and `E9-finalization.md`; all live cross-references and versions point to them.
@@ -508,15 +508,15 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Approval:** 2026-10-24, user.
 
 ### ADR-59 · Food photos use Gemini through a Supabase Edge Function; photos are never stored (E7, US-48/US-49)
-- **Context:** the user wants to cut typing when logging food. The app already has barcode scanning and Open Food Facts; what is missing is a single-dish estimate and a way to read a label or a barcode from a still photo.
+- **Context:** the user wants to cut typing when logging food. The app already has barcode scanning and Open Food Facts; what is missing is a single-dish estimate and a way to read a label or identify a product from a barcode in a still photo.
 - **Decision:**
   - The add-food screen shows a photo action directly below the barcode icon. The mode picker offers "Estimar con IA", "Etiqueta nutricional" and "Código de barras".
   - The AI call goes through the Supabase Edge Function `food-photo` to a Gemini vision model on the **free tier**, with the key only in the Supabase Edge Function secret `GEMINI_API_KEY`. No AI SDK or key is added to the app, and no GitHub secret is used for it.
-  - Prompts are fixed in the function: one for a single dish, one for a nutrition label. The optional comment is dish-only, at most 200 characters, and is passed as data, never as instructions. The image is downscaled to at most 1600 px/JPEG before upload.
-  - A dish estimate returns name, brand, base unit, nutrients per 100 base units, optional micronutrients, an estimated weight and a suggested "1 ración". A label result transcribes only the printed values and leaves the rest empty. The result opens the existing manual-food form, prefilled and fully editable; saving creates a normal personal food (`source = 'user'`) and then opens the normal add-to-meal sheet. There is no `ai` food source: `food_source` describes ownership/cache (`off` shared vs `user` personal), not how the values were entered. If provenance is ever needed, it would be a separate nullable field.
-  - Barcode photos are decoded **on the device** with ML Kit and then use the existing `food-barcode`/OFF lookup. The live Google code scanner is unchanged.
+  - Prompts are fixed in the function: one for a single dish, one for a nutrition label and one for a barcode. The optional comment is dish-only, at most 200 characters, and is passed as data, never as instructions. The image is downscaled to at most 1600 px/JPEG before upload.
+  - A dish estimate returns name, brand, base unit, nutrients per 100 base units, optional micronutrients, an estimated weight and a suggested "1 ración". A label result transcribes only the printed values and leaves the rest empty. A barcode result identifies the product and returns its per-100 values; the code is not saved. Every result opens the existing manual-food form, prefilled and fully editable; saving creates a normal personal food (`source = 'user'`) and then opens the normal add-to-meal sheet. There is no `ai` food source: `food_source` describes ownership/cache (`off` shared vs `user` personal), not how the values were entered. If provenance is ever needed, it would be a separate nullable field.
+  - The existing scanner icon, live Google code scanner and `food-barcode`/OFF lookup are unchanged. The barcode photo is an AI mode, not a still-image decode; it never calls `food-barcode` and does not save the code.
   - Photos, comments and provider response bodies are never stored in the database, in Storage or in logs; the temporary file is deleted on every outcome. Whole-meal estimation from one photo (several foods) stays in Phase 2.
-- **Consequences:** FR-2.15; `03-data-model.md` §7 (`food-photo`); `08-environment-setup.md` (Supabase secret and free-tier limit); E7 US-48/US-49; no Storage bucket or photo table.
+- **Consequences:** FR-2.15; `03-data-model.md` §7 (`food-photo`); `08-environment-setup.md` (Supabase secret and free-tier limit); E7 US-48/US-49; no Storage bucket, photo table or still-image barcode dependency.
 - **Approval:** 2026-10-24, user.
 
 ### ADR-60 · Cooking methods add only the retained olive oil (E7, US-50)

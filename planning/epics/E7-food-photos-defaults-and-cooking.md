@@ -89,16 +89,16 @@ Feature: Food from a photo
 - The add-food screen adds an `AppIconButton` with the photo action directly below the scanner button; the plus ("Crear alimento") action stays where it is.
 - `PhotoCapture` in the domain with an Android implementation using the system camera (`ActivityResultContracts.TakePicture` + `FileProvider`), so no camera permission or CameraX is introduced. Images are downscaled to at most 1600 px and compressed to JPEG (about 1.5 MB) before upload; the temporary file is deleted in all outcomes.
 - The flow reuses `CreateFoodScreen`: an optional prefill (`NewFoodDraft`) opens it with the AI values instead of an empty form. Saving calls the existing `create_personal_food`; on success the current `AddFoodSheet` opens as after a manual creation.
-- `food-photo` is a Supabase Edge Function (`verify_jwt = true`). Request: `POST` JSON `{ image_base64, mode: "dish" | "label", comment?: string }`; the comment is optional, dish-only and at most 200 characters, and is passed as data, never as instructions. The fixed prompts live in the function, not in the app.
-- The function uses a **fixed response schema**: name, brand, base unit, nutrients per 100 base units, micronutrients keyed by OFF keys, optional estimated total grams and confidence. For a dish it converts the estimate to per-100 values and proposes `1 ración` with the estimated weight; for a label it extracts the printed per-100 values and does not invent missing ones. Negatives are rejected or clamped to 0; a response without kcal and macros is an error.
+- `food-photo` is a Supabase Edge Function (`verify_jwt = true`). Request: `POST` JSON `{ image_base64, mode: "dish" | "label" | "barcode", comment?: string }`; the comment is optional, dish-only and at most 200 characters, and is passed as data, never as instructions. The fixed prompts live in the function, not in the app.
+- The function uses a **fixed response schema**: name, brand, base unit, nutrients per 100 base units, micronutrients keyed by OFF keys, optional estimated total grams and confidence. For a dish it converts the estimate to per-100 values and proposes `1 ración` with the estimated weight; for a label it extracts the printed per-100 values and does not invent missing ones; for a barcode it identifies the product and returns its per-100 values. Negatives are rejected or clamped to 0; a response without kcal and macros is an error.
 - No photo, comment or provider response body is logged. The Gemini key lives only in the Edge Function secret (ADR-59, `08-environment-setup.md`).
 
 ---
 
-## US-49 · Nutrition-label and barcode photos
+## US-49 · AI nutrition-label and barcode photos
 **As** a user
-**I want** to photograph a label or a barcode instead of typing or scanning live
-**So that** the existing catalog and Open Food Facts still do the work when I have the package in front of me.
+**I want** to photograph a label or a barcode and let the AI fill the food data
+**So that** I don't type the product data when I have the package in front of me.
 
 ```gherkin
 Feature: Label and barcode photos
@@ -113,27 +113,23 @@ Feature: Label and barcode photos
   Scenario: Barcode photo
     Given the user chooses "Código de barras"
     When they take a photo of the barcode "8410000810004"
-    Then the code is decoded on the device
-    And the existing barcode lookup returns the product
-    And the normal add-to-meal sheet opens for it
+    Then the AI reads the barcode and returns the product and its nutritional values
+    And the manual-food form opens prefilled with that data
 
-  Scenario: Unknown barcode
-    When the decoded code is not in the catalog or Open Food Facts
-    Then "Producto no encontrado" is shown with "Crear alimento"
-    And the form opens with the barcode already filled in
-
-  Scenario: Unreadable code
-    When no barcode can be decoded from the photo
-    Then "No hemos podido leer el código" is shown with "Reintentar" and "Introducir manualmente"
+  Scenario: Product not identified
+    Given the AI cannot read the label or identify the product from the barcode
+    Then "No hemos podido identificar este producto" is shown with "Reintentar" and "Crear manualmente"
+    And no food is created
 
   Scenario: The live scanner is unchanged
-    Then the existing Google code scanner still works from the scanner icon
+    When the user taps the scanner icon
+    Then the existing Google code scanner opens and uses the existing lookup
 ```
 
 **Technical notes**
-- Label mode uses the same `food-photo` function with the label prompt; the AI only transcribes the label values and returns missing values as empty.
-- Barcode mode decodes the still image with ML Kit `barcode-scanning` (EAN-8, EAN-13, UPC-A and UPC-E) and then calls the existing `food-barcode` function. The live Google code scanner is not replaced.
-- If several codes are present, the central/largest one is used. A failed decode never sends the photo to the AI.
+- Label and barcode modes use the same `food-photo` function as the dish mode, with their own fixed prompt; the AI only transcribes the label values and, for a barcode, identifies the product and returns its per-100 values.
+- The barcode result opens the same prefilled `CreateFoodScreen` as the other AI modes and is saved as a normal personal food. This flow never calls `food-barcode`, does not save the code and adds no still-image barcode dependency.
+- The existing scanner icon, live Google code scanner and `food-barcode`/OFF lookup are unchanged.
 
 ---
 
@@ -328,7 +324,7 @@ Feature: Default comidas
 ---
 
 ## Epic Definition of Done
-- `food-photo` is covered by `deno test` with recorded Gemini fixtures (dish, label, unreadable, invalid input, provider error); CI never calls the network.
+- `food-photo` is covered by `deno test` with recorded Gemini fixtures (dish, label, barcode, unreadable, invalid input, provider error); CI never calls the network.
 - pgTAP covers `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the unique meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency (including no re-add after deleting entries).
 - Domain tests cover the cooking calculations and the weekday/selection helpers; host (Robolectric) tests cover the photo modes, the prefilled manual form, the cooking selector (add-to-meal, save-as-comida and edit-comida) and the default-comidas screen.
 - No food photo, comment or provider response is stored or logged; the Gemini key exists only in Supabase secrets.

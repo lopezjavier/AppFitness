@@ -10,7 +10,7 @@
 │ composeApp (KMP library)                                                   │
 │   commonMain: Compose UI (screens, ViewModels, navigation, designsystem)   │
 │   androidMain: Credential Manager, Health Connect,                         │
-│                Code Scanner, ML Kit barcode images, system camera,         │
+│                Code Scanner, system camera,                                │
 │                haptics, keepScreenOn                                       │
 │ shared (KMP library)                                                       │
 │   commonMain: domain (models, use cases, business rules)                   │
@@ -102,7 +102,7 @@
 | Charts | Vico (multiplatform) |
 | Images | Coil 3 (Google avatar) |
 | Android auth | androidx.credentials + `googleid` |
-| Scanner | `com.google.android.gms:play-services-code-scanner` (live) and `com.google.mlkit:barcode-scanning` (still photo); system camera via `ActivityResultContracts.TakePicture` + `FileProvider` |
+| Scanner | `com.google.android.gms:play-services-code-scanner` (live only); system camera via `ActivityResultContracts.TakePicture` + `FileProvider` |
 | Health | `androidx.health.connect:connect-client` |
 | Local preferences | DataStore (multiplatform) |
 | Tests | kotlin-test, kotlinx-coroutines-test, Turbine, MockK (Android host tests only: `androidHostTest` in the KMP modules, `src/test*` in `androidApp`; ADR-19), Robolectric + Compose UI test (`androidHostTest`: semantics and touch-target checks; needs `--add-opens` JVM args, set in `composeApp/build.gradle.kts`) |
@@ -133,7 +133,7 @@
 - **Migrations:** SQL in `supabase/migrations/`, at most one per story. A merged migration is never edited; a new one is created.
 - **pgTAP tests** (`supabase test db`): for every table, RLS is enabled and user A cannot read/write user B's data.
 - **Edge Functions** (Deno/TypeScript) with `verify_jwt = true` except `health`. Tested with `deno test`. Details in `03-data-model.md`.
-- **AI food photos (E7, ADR-59):** the app sends a downscaled JPEG to `food-photo`, which calls Gemini with a fixed mode prompt and returns a normalized draft; the app never holds the key or an AI SDK. The function has no storage dependency: the image exists only in the request/response lifetime. Barcode photos are decoded on the device with ML Kit and reuse `food-barcode`.
+- **AI food photos (E7, ADR-59):** the app sends a downscaled JPEG to `food-photo`, which calls Gemini with a fixed mode prompt (dish, label or barcode) and returns a normalized draft; the app never holds the key or an AI SDK. The function has no storage dependency: the image exists only in the request/response lifetime. Barcode photos use the AI mode and never call `food-barcode`; the live scanner is unchanged.
 - **Seed** (`seed.sql`): the `test@appfitness.local` user (local only; never applied in production). The exercise catalog rows are a generated migration, so they reach every database (ADR-39).
 - **Exercise assets** (gitignored RepDB bundle): `composeApp/src/commonMain/composeResources/files/exercises/`, written by `scripts/import-repdb.py`; `scripts/generate-exercise-catalog.py` produces the catalog migration (ADR-39).
 
@@ -165,4 +165,4 @@ Optional in E9: a release workflow that, when a `v*` tag is created, builds the 
 - Connectivity monitor (`ConnectivityManager` in androidMain, exposed as `Flow<Boolean>`).
 - Offline: persistent banner below the Top Bar; write buttons disabled; reads show the last in-memory state if available.
 - Transient errors (a failed write or sign-in) show a message only, with no action, when a primary action on screen already retries (the user taps it again); what the user typed is never lost (state kept in the ViewModel / `SavedStateHandle`). Full-screen error states (a failed load) keep "Reintentar" as their action.
-- AI photo uploads are one request to `food-photo` (Supabase) and then to Gemini; there is no background retry, no upload queue and no offline capture. Barcode photos stay on the device for decoding, then the existing `food-barcode` request.
+- AI photo uploads are one request to `food-photo` (Supabase) and then to Gemini; there is no background retry, no upload queue and no offline capture. All three photo modes use that request; the live scanner keeps using `food-barcode` separately.
