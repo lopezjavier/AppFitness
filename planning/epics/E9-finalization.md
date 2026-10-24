@@ -138,6 +138,7 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Every 👤 ch
 | Live session / routine builder: set type icon for "Normal" (replace the current one) and show that icon (an "N") instead of the set number on Normal sets | Checkpoint E6-A re-test, 2026-10-24 |
 | Live session: planned weight/reps placeholders in a darker grey, clearly different from user-entered white values | Checkpoint E6-A re-test, 2026-10-24 |
 | "Qué es el RPE?" help as a list, one line per number | Checkpoint E6-A re-test, 2026-10-24 |
+| Routine folders: a stray horizontal line appears in the background when "Nueva carpeta" is tapped (the user will provide a screenshot if needed; save it in `design/reported/`) | Checkpoint E6-B, 2026-10-24 |
 ---
 
 ### UX consistency guardrails (E4 retrospective, 2026-10-21)
