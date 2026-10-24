@@ -11,24 +11,27 @@
 | E4 | Food diary | US-16 … US-24 | Full UI + backend | `v0.4.0` — meal logging, portions and diary history |
 | E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, body composition, Health Connect and goal |
 | E6 | Training depth | US-28 … US-38, US-47 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management, manual-food editing |
-| E7 | Training insights | US-39 … US-44 | Full UI | `v0.7.0` — advanced stats, muscle distribution, reports |
-| E8 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
+| E7 | Food photos, defaults and cooking | US-48 … US-51 | Full UI + backend | `v0.7.0` — photo food creation, default comidas and cooking methods |
+| E8 | Training insights | US-39 … US-44 | Full UI | `v0.8.0` — advanced stats, muscle distribution, reports |
+| E9 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
 
-### 1.1 UI refinement (inside E8)
-The UI refinement is not a separate placeholder epic: it is part of **E8 · Finalization** (FR-6). It is a presentation-only pass over the screens of E2…E7; every 👤 checkpoint that defers a UI detail appends it to the table in `epics/E8-finalization.md`.
+### 1.1 UI refinement (inside E9)
+The UI refinement is not a separate placeholder epic: it is part of **E9 · Finalization** (FR-6). It is a presentation-only pass over the screens of E2…E8; every 👤 checkpoint that defers a UI detail appends it to the table in `epics/E9-finalization.md`.
 
 ## 2. Dependencies
 
 ```
-E0 ──► E1 ──► E2 ──┬──► E3 (training core) ──► E6 (training depth) ──► E7 (training insights)
-                   ├──► E4 (food diary)
+E0 ──► E1 ──► E2 ──┬──► E3 (training core) ──► E6 (training depth) ──┬──► E7 (food photos, defaults and cooking)
+                   │                                                 └──► E8 (training insights)
+                   ├──► E4 (food diary) ──────────────────────────────────► E7
                    └──► E5 (weight tracking)
-E3, E4, E5, E6, E7 ─────────────────────────────────────────────────► E8 (finalization)
+E1 … E8 ──────────────────────────────────────────────────────────────► E9 (finalization)
 ```
 - E2 is a prerequisite for every feature: without an authenticated user and goals there is no Diary.
 - E3, E4 and E5 are independent of each other; the order is **Training → Food → Weight** (the user wants the gym experience first).
-- E6 (training depth) depends on E3 (forward-compatible model, ADR-30); E7 (training insights) depends on E3 (basic progress charts, US-15) and E6 (PRs and warm-up inclusion).
-- E8 (finalization) depends on E1…E7: its polish pass and third-party credits cover all domains and it ships `v1.0.0`.
+- E6 (training depth) depends on E3 (forward-compatible model, ADR-30); E8 (training insights) depends on E3 (basic progress charts, US-15) and E6 (PRs and warm-up inclusion). E7 precedes E8 in the roadmap but is not a functional dependency of it.
+- E7 (food photos, defaults and cooking) depends on E2 (Preferencias), E4 (catalog, diary and saved comidas), E6 US-47 (the full manual-food form) and the E1 Edge Functions. ADR-58 records the renumbering and the stable story IDs.
+- E9 (finalization) depends on E1…E8: its polish pass and third-party credits cover all domains and it ships `v1.0.0`.
 
 ## 3. User stories
 
@@ -72,15 +75,19 @@ E3, E4, E5, E6, E7 ────────────────────�
 | US-36 | E6 | Routine tracking and "Update Routine" | UI + backend |
 | US-37 | E6 | Workout detail, calendar and editing | UI |
 | US-38 | E6 | Session controls | UI |
-| US-39 | E7 | Exercise charts: records and non-weight metrics | UI |
-| US-40 | E7 | Advanced statistics | UI + backend |
-| US-41 | E7 | Muscle distribution (radar and body heatmap) | UI + backend |
-| US-42 | E7 | Monthly Report | UI |
-| US-43 | E7 | Year in Review | UI |
-| US-44 | E7 | Streaks and weekly check-ins | UI |
-| US-45 | E8 | About, version and licences | UI |
-| US-46 | E8 | Polish, accessibility, tablet and release build | UI |
+| US-39 | E8 | Exercise charts: records and non-weight metrics | UI |
+| US-40 | E8 | Advanced statistics | UI + backend |
+| US-41 | E8 | Muscle distribution (radar and body heatmap) | UI + backend |
+| US-42 | E8 | Monthly Report | UI |
+| US-43 | E8 | Year in Review | UI |
+| US-44 | E8 | Streaks and weekly check-ins | UI |
+| US-45 | E9 | About, version and licences | UI |
+| US-46 | E9 | Polish, accessibility, tablet and release build | UI |
 | US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
+| US-48 | E7 | Add a food from a photo with the AI estimate (added 2026-10-24, ADR-59) | UI + backend |
+| US-49 | E7 | Nutrition-label and barcode photos (added 2026-10-24, ADR-59) | UI |
+| US-50 | E7 | Cooking methods with olive oil (added 2026-10-24, ADR-60) | UI + backend |
+| US-51 | E7 | Default comidas per meal and weekday (added 2026-10-24, ADR-61) | UI + backend |
 
 ## 4. Traceability: requirements → stories
 
@@ -101,6 +108,9 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-2.11 Configurable meals | US-23 |
 | FR-2.12 Diary views and history | US-19, US-24 |
 | FR-2.14 Editing manual foods | US-47 |
+| FR-2.15 Photo food creation (AI dish, label and barcode) | US-48, US-49 |
+| FR-2.16 Cooking methods with olive oil | US-50 |
+| FR-2.17 Default comidas per meal and weekday | US-51 |
 | FR-3.1 Manual weight and circumferences | US-25 |
 | FR-3.2 Health Connect (read and write) | US-26 |
 | FR-3.3 – FR-3.5 Chart, filters, rate | US-27 |
@@ -115,10 +125,10 @@ E3, E4, E5, E6, E7 ────────────────────�
 | FR-4.6 History | US-14 |
 | FR-4.7 Progress charts | US-15 |
 | FR-4.8 Training depth (set types, RPE, metrics, calculators, PRs, routine tracking, workout detail) | US-28 … US-38 |
-| FR-4.9 Statistics and reports | US-39 … US-44 |
-| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-46 (FR-5.1 3 tabs with Perfil: T-041, ADR-37) |
-| FR-6 UI refinement | US-46 (E8) |
-| NFR-03 Tablet | US-04, US-46 |
+| FR-4.9 Statistics and reports | US-39 … US-44 (E8) |
+| FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-46 (E9; FR-5.1 3 tabs with Perfil: T-041, ADR-37) |
+| FR-6 UI refinement | US-46 (E9) |
+| NFR-03 Tablet | US-04, US-46 (E9) |
 | NFR-05, NFR-06 Professional / security | US-01, US-02 (and the DoD of every story) |
 
 ## 5. Definition of Done for every story

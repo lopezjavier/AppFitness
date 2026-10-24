@@ -61,6 +61,36 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 - Weekly average = the average of the day totals over the logged days in the last 7 days (days without entries are not counted).
 - Monthly total = the sum of the day totals in the calendar month; its average uses the logged days only.
 
+### 2.2 Cooking methods (E7, US-50)
+
+Only foods whose base unit is `g` are cooked; drinks stay raw. The default is always **Crudo**.
+
+| Method | Olive oil used (default) | Retained | Retained with the default |
+|---|---|---|---|
+| Crudo | 0 g | — | 0 g |
+| A la plancha | 5 g | 50 % | 2,5 g |
+| Air fryer | 5 g | 100 % | 5 g |
+| Frito | 50 g | 10 % | 5 g |
+
+- `retained_g = used_g × factor`; `added_fat_g = retained_g`; `added_kcal = 9 × retained_g`.
+- Protein, carbohydrates and micronutrients do not change.
+- The entry snapshot stores the adjusted `kcal` and `fat_g` plus `cooking_method` and `cooking_oil_retained_g`; the food's per-100 values are never modified.
+- Amounts are configured in Preferencias → "Cocina" (0–500 g); factors are fixed. A change applies to future entries only.
+
+Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g fat. A la plancha with 5 g used × 50 % = 2,5 g retained → 220 + 22,5 = **242,5 kcal** and 6 + 2,5 = **8,5 g fat**.
+
+### 2.3 Default comidas (E7, US-51)
+
+- A default comida is a **saved comida** (`meal_templates` + items), never a single food or an Open Food Facts result. The meal slot assigned in the default is authoritative; the saved comida's suggested slot is ignored.
+- One default comida per meal and ISO weekday (Monday = 1 … Sunday = 7); the same saved comida may cover several days or meals. Days already assigned to another comida for that meal cannot be selected.
+- The app evaluates **today only**, on the first load of the Diary, before reading entries:
+  - If `diary_default_applications` already has the day, nothing happens (no duplicate, and deleted entries never come back).
+  - If the day already has any entry, the day is marked and nothing is added.
+  - Otherwise the matching saved comidas are copied as normal entries, with their current amounts and nutrition snapshots, cooked raw, and the day is marked.
+- No backfill and no past days: a day the app was not opened on stays empty. Configuring or changing defaults after today's Diary was opened applies from the next new day.
+- Deleting a meal or a saved comida removes its assignments (cascade); entries already logged do not change. Editing a saved comida does not change entries already added, and a future application uses its current items.
+- If the apply call fails, the Diary still opens and shows a non-blocking retry; retrying is safe because the marker makes it idempotent.
+
 ## 3. Weight
 
 ### 3.1 Daily value

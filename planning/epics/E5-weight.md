@@ -113,7 +113,7 @@ Feature: Manual weight and body measurements
 - `body_circumferences` migration + RLS + pgTAP; the waist-to-hip ratio is derived in the domain (`04-business-rules.md` §3.9), never stored.
 - The circumference sheet (user decision 2026-10-22, after the first manual-weight test) lists neck, chest, waist, hip, arm, thigh and calf as optional fields (value in cm with 1 decimal) so all of them can be saved at once; no site dropdown. Editing a saved row opens it with its single site.
 - Day only, no hour (user decision 2026-10-22): the weight and circumference sheets pick a day, not a time. A manual entry is stored for that day (today: the save instant; a past day: midday local time); Health Connect imports keep their real instant. Display shows dates only for manual rows.
-- The "?" help is text-only in Phase 1 (Spanish instructions per site); illustrations are added in E8 polish.
+- The "?" help is text-only in Phase 1 (Spanish instructions per site); illustrations are added in E9 polish.
 
 ---
 

@@ -1,4 +1,4 @@
-# E8 · Finalization → `v1.0.0`
+# E9 · Finalization → `v1.0.0`
 
 ## Goal
 Close Phase 1: show the in-app credits and licences, polish the whole app into a stable, accessible release on phone and tablet, produce the signed APK, and apply the deferred UI-refinement pass. This epic ships `v1.0.0`.
@@ -6,10 +6,10 @@ Close Phase 1: show the in-app credits and licences, polish the whole app into a
 ## Scope
 - Includes: the "Acerca de · Licencias" screen; accessibility, empty/error states, tablet and release build across every screen; the deferred UI-refinement items collected at the 👤 checkpoints.
 - Out of scope: new features; AI training assistant and adaptive calorie adjustment (Phase 2).
-- This epic depends on every previous epic (`E1`…`E7`), because its polish pass and credits cover all domains (training, food and weight).
+- This epic depends on every previous epic (`E1`…`E8`), because its polish pass and credits cover all domains (training, food and weight).
 
 ## Dependencies
-E1, E2, E3, E4, E5, E6 and E7 (its polish pass and the third-party credits cover all screens and domains).
+E1, E2, E3, E4, E5, E6, E7 and E8 (its polish pass and the third-party credits cover all screens and domains).
 
 ## Reference screen
 `design/stitch/progress/screen.png` as the layout baseline; the About screen follows the design system's settings layout.
@@ -34,6 +34,7 @@ Feature: About and licences
     When the user scrolls the screen
     Then they see "Datos de ejercicios por RepDB (repdb.co)"
     And they see the Open Food Facts credit
+    And they see the Google Gemini credit for the photo estimates
 
   Scenario: Open-source licences
     When the user taps "Licencias de código abierto"
@@ -42,7 +43,7 @@ Feature: About and licences
 
 **Technical notes**
 - The screen is defined here but its **entry point is the Profile screen** (`Perfil → "Acerca de"`): the link is wired in this epic (E2 is closed; the "Perfil" location is the product decision, recorded here).
-- Open-source licences through the `oss-licenses-plugin` (Google Play Services); catalog credits read from a single `credits` resource so RepDB and Open Food Facts live in one place.
+- Open-source licences through the `oss-licenses-plugin` (Google Play Services); catalog credits read from a single `credits` resource so RepDB, Open Food Facts and Google Gemini (photo estimates) live in one place.
 - The app's own licence stays **repo-only** (ADR-13); the version/build is shown for support.
 
 ---
@@ -96,7 +97,7 @@ Feature: Version 1.0 quality
 
 ## UI refinement (deferred items)
 
-A presentation-only pass (FR-6) over the screens built in E2…E7. Every 👤 checkpoint that defers a UI detail appends it here with its source; it never changes features.
+A presentation-only pass (FR-6) over the screens built in E2…E8. Every 👤 checkpoint that defers a UI detail appends it here with its source; it never changes features.
 
 | Item | Source |
 |---|---|
@@ -145,11 +146,11 @@ The user found repeated UX defects and inconsistencies across screens (icons vs.
 - Consolidate every convention the user has stated at checkpoints into `planning/05-design-system.md` as explicit rules.
 - Update `ux-reviewer` to check each UI plan against those rules and against the existing screens, so the same mistakes never come back.
 - Run a cross-screen consistency audit as part of the polish pass.
-- Success criterion (E5 retrospective, 2026-10-22): after E8 the user must not see new screens follow a different approach than existing ones. The `ux-reviewer` refinement is part of the epic's Definition of Done, not optional polish.
+- Success criterion (E5 retrospective, 2026-10-22): after E9 the user must not see new screens follow a different approach than existing ones. The `ux-reviewer` refinement is part of the epic's Definition of Done, not optional polish.
 
 ## Epic Definition of Done
-- All stories US-01…US-46 closed; the app is verified manually at the checkpoints.
-- The "Acerca de" screen shows version/build, the RepDB and Open Food Facts credits and the OSS licences.
+- All stories US-01…US-51 closed; the app is verified manually at the checkpoints.
+- The "Acerca de" screen shows version/build, the RepDB, Open Food Facts and Google Gemini credits and the OSS licences.
 - Security checklist from `02-architecture.md` §7 reviewed and documented in the final PR.
 - Signed release APK installed on the user's phone and tablet; positive feedback.
 - The deferred UI-refinement items are applied.

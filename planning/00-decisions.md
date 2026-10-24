@@ -187,27 +187,28 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Approval:** 2026-10-14, user (follow-up to Checkpoint E2-A).
 
 ### ADR-30 · Forward-compatible training model and in-app RepDB assets
-- **Context:** E3 (Phase 1) logs sets as weight × reps only, but the follow-up training epics (**E6** depth, **E7** insights) need set types, RPE, per-exercise metric types, routine folders/tracking and a PR catalogue. Building E3 on the minimal shape would force a schema migration and a live-session refactor later. Separately, the exercise catalogue uses the RepDB free assets (495 exercises: thumbnails, start/peak poses and Spanish instructions), whose licence allows only in-app use with visible attribution.
+- **Context:** E3 (Phase 1) logs sets as weight × reps only, but the follow-up training epics (**E6** depth, **E8** insights) need set types, RPE, per-exercise metric types, routine folders/tracking and a PR catalogue. Building E3 on the minimal shape would force a schema migration and a live-session refactor later. Separately, the exercise catalogue uses the RepDB free assets (495 exercises: thumbnails, start/peak poses and Spanish instructions), whose licence allows only in-app use with visible attribution.
 - **Decision:**
   - The training tables are created **forward-compatible**: the enums and columns added in `03-data-model.md` §5 (marked *(E6)*) ship with E3, with defaults; E3 renders only `weight_reps` / `working` sets, and the live session's set row is built **polymorphic** so E6 extends it without a rewrite.
   - The RepDB free catalogue is **bundled in the APK** (`composeApp/src/commonMain/composeResources/files/exercises/`, ≈16 MB, `library.json`; module and layout fixed by ADR-39); catalogue text and images live in the client, never in the DB or a public CDN.
   - The bundle has no male/female variants: one pose pair per exercise (ADR-39). Animations are a **start↔peak crossfade** (3 s cycle; the free tier has no GIF/video). Attribution "Datos de ejercicios por RepDB (repdb.co)" must be **visible** in the app (full policy in the project's `ATRIBUCION_RepDB.md`).
-  - The app's own licence stays **repo-only** (ADR-13); third-party credits (RepDB, Open Food Facts, OSS libraries, fonts) are shown in an **"Acerca de · Licencias"** screen opened from Profile (screen defined in E8 · US-45).
-- **Consequences:** `03-data-model.md` §5, `04-business-rules.md` §4, the E3/E6/E7/E8 epic files, `01-phase1-scope.md` and `07-roadmap.md` reflect this. **No schema migration** between E3 and E6.
+  - The app's own licence stays **repo-only** (ADR-13); third-party credits (RepDB, Open Food Facts, Google Gemini, OSS libraries, fonts) are shown in an **"Acerca de · Licencias"** screen opened from Profile (screen defined in E9 · US-45).
+- **Consequences:** `03-data-model.md` §5, `04-business-rules.md` §4, the E3/E6/E8/E9 epic files, `01-phase1-scope.md` and `07-roadmap.md` reflect this. **No schema migration** between E3 and E6.
 - **Approval:** 2026-10-17, user.
 
-### ADR-31 · Epic order: training first, three training epics and a closing epic (E3…E8)
-- **Context:** the first roadmap ordered the domains Diary → Workout → Progress, split training into "core" (E5), "depth/wrap-up" (E6), "analytics" (E7) and "statistics" (E8), and scattered About/licences and polish across them. The user wants training to lead (it is the app's core value), the "wrapper/wrap-up" framing removed, and the plan to end with one closing epic that also absorbs the UI-refinement bucket.
+### ADR-31 · Epic order: training first and a closing epic (E3…E9; amended by ADR-58)
+- **Context:** the first roadmap ordered the domains Diary → Workout → Progress, split training into "core", "depth/wrap-up", "analytics" and "statistics", and scattered About/licences and polish across them. The user wants training to lead (it is the app's core value), the "wrapper/wrap-up" framing removed, and the plan to end with one closing epic that also absorbs the UI-refinement bucket.
 - **Decision:** reorder and reshape Phase 1:
   - E0 Setup · E1 Infrastructure · E2 Auth/profile (unchanged, US-01…US-08).
   - **E3 Training core** (US-09…US-15, v0.3.0): catalog, routine builder, live session, previous performance, rest timer, history and strength-progress charts.
   - **E4 Food diary** (US-16…US-24, v0.4.0): catalog and OFF cache, search, scanner, manual creation, configurable meals, portions and measures, favourites, diary views, copying, templates and history.
   - **E5 Weight tracking** (US-25…US-27, v0.5.0).
-  - **E6 Training depth** (US-28…US-38, v0.6.0).
-  - **E7 Training insights** (US-39…US-44, v0.7.0).
-  - **E8 Finalization** (US-45 About/licences, US-46 polish/accessibility/tablet/release, plus the UI-refinement bucket, v1.0.0).
-  - Stories US-09…US-46 are renumbered contiguously. Dependencies: E3→E2; E4→E2; E5→E2; E6→E3; E7→E3 (charts) and E6 (PRs/warm-up); E8→E1…E7.
-- **Consequences:** supersedes the epic order of the earlier roadmap. `01-phase1-scope.md`, `02-architecture.md`, `03-data-model.md`, `07-roadmap.md`, `08-environment-setup.md` and the epic files follow the new numbering; the "Phase 1B" framing and the "wrap-up" epic name are dropped (it is all Phase 1). Version tags: v0.1.0…v0.7.0 at E1…E7, **v1.0.0 only at E8**.
+  - **E6 Training depth** (US-28…US-38 and US-47, v0.6.0).
+  - **E7 Food photos, defaults and cooking** (US-48…US-51, v0.7.0), inserted by ADR-58.
+  - **E8 Training insights** (US-39…US-44, v0.8.0).
+  - **E9 Finalization** (US-45 About/licences, US-46 polish/accessibility/tablet/release, plus the UI-refinement bucket, v1.0.0).
+  - Story IDs are stable and never renumbered; new stories append (US-47…US-51). Dependencies: E3→E2; E4→E2; E5→E2; E6→E3; E7→E2/E4/E6 US-47; E8→E3 (charts) and E6 (PRs/warm-up); E9→E1…E8.
+- **Consequences:** supersedes the epic order of the earlier roadmap. `01-phase1-scope.md`, `02-architecture.md`, `03-data-model.md`, `07-roadmap.md`, `08-environment-setup.md` and the epic files follow the new numbering; the "Phase 1B" framing and the "wrap-up" epic name are dropped (it is all Phase 1). Version tags: v0.1.0…v0.8.0 at E1…E8, **v1.0.0 only at E9**. ADR-58 records the E7/E8/E9 renumbering; the training-first order stands.
 - **Approval:** 2026-10-17, user.
 
 ### ADR-32 · Food base units and named portions (E4)
@@ -257,7 +258,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Context:** at Checkpoint E2-B (2026-10-19) the user tested Profile on the phone. The Progreso tab has no content of its own (weight and insights will be reached from the profile), the photo as a tab icon is not wanted, the Profile screen should be a personal root rather than a long form, and the weight should be editable.
 - **Decision:**
   - **3 tabs: Diario, Entreno, Perfil.** The Progreso tab is removed. The Perfil tab icon is the generic Stitch `person` glyph (`design/stitch/progress/code.html`), not the Google photo; the active state follows ADR-22 (lime icon, extra-bold lime label). This supersedes ADR-26 (photo icon, 4 tabs) and amends ADR-22 and ADR-10 (tab set).
-  - **Perfil root screen:** the Google photo (placeholder fallback) shown large, the user's name below it, a button that opens a full-screen **"Preferencias"** screen (back arrow) with the current editable Profile content (personal data, weight, energy, macros, one "Guardar"), and "Cerrar sesión" and "Borrar cuenta" on the root. Later epics add statistics entry buttons on this root: content planned for the Progreso tab (E5 weight chart and history, E3/E7 strength and training insights, any analytics) becomes entries reached from Perfil, each a full-screen destination with a back arrow.
+  - **Perfil root screen:** the Google photo (placeholder fallback) shown large, the user's name below it, a button that opens a full-screen **"Preferencias"** screen (back arrow) with the current editable Profile content (personal data, weight, energy, macros, one "Guardar"), and "Cerrar sesión" and "Borrar cuenta" on the root. Later epics add statistics entry buttons on this root: content planned for the Progreso tab (E5 weight chart and history, E3/E8 strength and training insights, any analytics) becomes entries reached from Perfil, each a full-screen destination with a back arrow.
   - **Name:** taken from Google `full_name`. If it is missing, onboarding step 1 "Sobre ti" asks "¿Cómo te llamas?" (only then). It is always editable in Preferencias.
   - **Weight is editable in Preferencias.** Saving a changed weight records today's manual `body_measurements` weight, replacing today's manual row if one exists; earlier weights stay as history. "Peso actual" shows the latest weight from any source; a later Health Connect sync shows the newer value, which stays editable. This amends ADR-24's read-only weight.
   - **Copy:** "TDEE: %s kcal" becomes "Gasto diario estimado: %s kcal" with the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." (onboarding and Preferencias).
@@ -373,7 +374,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - **Lists:** a row opens its details; editing happens from the details. Rows of the same kind show the same information on every screen.
   - **Wording:** one concept, one label across screens and across periods (e.g. day, week and month averages are all "Media diaria").
   - **Sweep:** when a task changes one of these behaviours, the ux-reviewer searches the app for every other instance and the plan includes them.
-- **Consequences:** supersedes the "Deshacer" of T-069; US-21/US-24, `tasks/todo.md` (T-072, T-073), `05-design-system.md` §8 and `.claude/agents/ux-reviewer.md` reflect this. The E8 refinement item about swipe-to-delete is consumed by T-072.
+- **Consequences:** supersedes the "Deshacer" of T-069; US-21/US-24, `tasks/todo.md` (T-072, T-073), `05-design-system.md` §8 and `.claude/agents/ux-reviewer.md` reflect this. The E9 refinement item about swipe-to-delete is consumed by T-072.
 
 ### ADR-46 · Text food search is limited to Spain (E4, T-074)
 - **Context:** User feedback (2026-10-21): the text search returns poor results, many from other countries or without a Spanish name.
@@ -431,7 +432,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - Kept: PR detection and the catalogue, shown in the session summary, the exercise detail and the workout detail; the calendar with trained days (month, year, multi-year); editing and deleting a workout, "Guardar como rutina" and past workouts (from scratch, from a routine or from a finished workout as a template; never through the live session).
   - "Total de repes" is the **all-time** total of completed reps of the exercise (the business rules did not define it).
   - Calculator defaults (`04-business-rules.md` §4.9): warm-up bar × 10, 40 % × 5, 60 % × 3, 80 % × 2; bars 20, 15, 10 (EZ) and 7,5 kg; plates 25, 20, 15, 10, 5, 2,5, 2, 1,25, 1 and 0,5 kg; rounding 2,5 kg for plates and 2 kg for dumbbells.
-- **Consequences:** `01-phase1-scope.md` FR-4.8 and §4.1, `04-business-rules.md` §4.8/§4.9, `epics/E6-training-depth.md` (US-33, US-34, US-37), `03-data-model.md` §6, `tasks/todo.md` (T-094, T-097, T-100, T-101). E7 US-44 (streaks and weekly check-ins) is not changed here; the E7 breakdown confirms it with the user.
+- **Consequences:** `01-phase1-scope.md` FR-4.8 and §4.1, `04-business-rules.md` §4.8/§4.9, `epics/E6-training-depth.md` (US-33, US-34, US-37), `03-data-model.md` §6, `tasks/todo.md` (T-094, T-097, T-100, T-101). E8 US-44 (streaks and weekly check-ins) is not changed here; the E8 breakdown confirms it with the user.
 - **Approval:** 2026-10-22, user (E6 breakdown, Q4–Q7).
 
 ### ADR-53 · Only manual foods are editable; edits apply to future entries; full label nutrients (E6, US-47, T-102)
@@ -483,7 +484,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - The plate calculator becomes a loader: the user picks how many discs of each weight go on one side and the total is bar (or handle) + 2 × the sum (same discs on both sides). Bar, handle and available plates come from Preferencias.
   - "Contar mancuerna doble" is replaced by a per-exercise flag `per_hand` (weight logged per hand or total) on every equipment type. The catalogue is classified by the user (a local CSV outside the repo (`exercise-hand-count.csv`, temporary)); the new-exercise form asks for it. Manual exercises become editable (name, equipment, muscle group, hand flag) and deletable. The `exercise_options.double_dumbbell` option and `set_exercise_double_dumbbell` are superseded; `volume_factor` reads the flag. This amends ADR-54.
   - Done (T-097i): `exercises.per_hand` (default false; the catalogue flags come from the migration, 178 keys), `volume_factor` reads it, `update_custom_exercise` / `delete_custom_exercise` RPCs (deleting an exercise with logged sets or routine entries is refused with their counts, `23503`); `exercise_options` and `set_exercise_double_dumbbell` are dropped (old toggles discarded). Catalogue flags are read-only; only manual exercises are editable. The help text says "pesa"/"mano", never "mancuerna" (machines and cables can be per hand too).
-  - Look-and-feel items (Normal icon, "N" instead of the number, darker grey placeholders, RPE help as a list) go to the E8 refinement table.
+  - Look-and-feel items (Normal icon, "N" instead of the number, darker grey placeholders, RPE help as a list) go to the E9 refinement table.
 - **Consequences:** `04-business-rules.md` §4.9/§4.10, `03-data-model.md`, `epics/E6-training-depth.md`, `tasks/todo.md` (T-097g…T-097i before re-presenting E6-A).
 - **Approval:** 2026-10-24, user.
 
@@ -494,4 +495,48 @@ Format: context → decision → consequences. A decision is only changed by add
   - The Profile screen shows "Borrar cuenta" disabled with the note "Esta cuenta está protegida" for a protected account; the app learns it from a refusal or a check the planner defines (no email in the app).
   - Permanent: no unlock in the app; changing the secret is the only switch. Deleting the user from the Supabase console is not covered.
 - **Consequences:** ADR-29, `tasks/todo.md` (T-097l).
+- **Approval:** 2026-10-24, user.
+
+### ADR-58 · Epic renumbering with stable story IDs (E7: food photos, defaults and cooking; E8: training insights; E9: finalization)
+- **Context:** the user wants a new food epic before training insights: photo food creation, default comidas and cooking methods. Renumbering the epics while also renumbering stories would break links, history and tests; the story IDs must stay stable.
+- **Decision:**
+  - The new **E7 · Food photos, defaults and cooking** ships in `v0.7.0` with **US-48** (AI dish photo), **US-49** (label and barcode photos), **US-50** (cooking methods) and **US-51** (default comidas).
+  - The old E7 becomes **E8 · Training insights** (`v0.8.0`) and keeps **US-39…US-44**. The old E8 becomes **E9 · Finalization** (`v1.0.0`) and keeps **US-45/US-46**. E6 keeps **US-47**.
+  - Story IDs are permanent: they are never reused or shifted when an epic moves. New stories append to the sequence (US-48 onward).
+  - Epic files are `E7-food-photos-defaults-and-cooking.md`, `E8-training-insights.md` and `E9-finalization.md`; all live cross-references and versions point to them.
+- **Consequences:** `07-roadmap.md`, `01-phase1-scope.md`, the epic files, `tasks/plan.md` and the ADR index. Amends ADR-31's epic list and versions. Historical notes in `tasks/todo.md` and `retrospectives/` keep the epic names in use at their date; this ADR maps them to the current files. ADR-59…ADR-61 record the product decisions of the new E7.
+- **Approval:** 2026-10-24, user.
+
+### ADR-59 · Food photos use Gemini through a Supabase Edge Function; photos are never stored (E7, US-48/US-49)
+- **Context:** the user wants to cut typing when logging food. The app already has barcode scanning and Open Food Facts; what is missing is a single-dish estimate and a way to read a label or a barcode from a still photo.
+- **Decision:**
+  - The add-food screen shows a photo action directly below the barcode icon. The mode picker offers "Estimar con IA", "Etiqueta nutricional" and "Código de barras".
+  - The AI call goes through the Supabase Edge Function `food-photo` to a Gemini vision model on the **free tier**, with the key only in the Supabase Edge Function secret `GEMINI_API_KEY`. No AI SDK or key is added to the app, and no GitHub secret is used for it.
+  - Prompts are fixed in the function: one for a single dish, one for a nutrition label. The optional comment is dish-only, at most 200 characters, and is passed as data, never as instructions. The image is downscaled to at most 1600 px/JPEG before upload.
+  - A dish estimate returns name, brand, base unit, nutrients per 100 base units, optional micronutrients, an estimated weight and a suggested "1 ración". A label result transcribes only the printed values and leaves the rest empty. The result opens the existing manual-food form, prefilled and fully editable; saving creates a normal personal food (`source = 'user'`) and then opens the normal add-to-meal sheet.
+  - Barcode photos are decoded **on the device** with ML Kit and then use the existing `food-barcode`/OFF lookup. The live Google code scanner is unchanged.
+  - Photos, comments and provider response bodies are never stored in the database, in Storage or in logs; the temporary file is deleted on every outcome. Whole-meal estimation from one photo (several foods) stays in Phase 2.
+- **Consequences:** FR-2.15; `03-data-model.md` §7 (`food-photo`); `08-environment-setup.md` (Supabase secret and free-tier limit); E7 US-48/US-49; no Storage bucket or photo table.
+- **Approval:** 2026-10-24, user.
+
+### ADR-60 · Cooking methods add only the retained olive oil (E7, US-50)
+- **Context:** griddled, air-fried and fried foods carry oil that the label does not reflect. Logging the raw food undercounts calories and fat, but tracking the whole oil used overcounts it.
+- **Decision:**
+  - Solid foods (`base_unit = 'g'`) offer Crudo (default), A la plancha, Air fryer and Frito. Drinks never offer it.
+  - Retention factors are fixed: A la plancha 50 %, Air fryer 100 %, Frito 10 %. The olive oil **used** is configurable in Preferencias → "Cocina" with defaults 5 g, 5 g and 50 g (0–500 g each).
+  - `retained_g = used_g × factor`; the entry adds `9 × retained_g` kcal and `retained_g` g of fat. Protein, carbohydrates and micronutrients do not change.
+  - The entry stores `cooking_method`, `cooking_oil_retained_g` and the adjusted kcal/fat snapshots; the food is unchanged. Changes to Preferencias apply to future entries only. This amends ADR-31 (snapshots now include the cooking values).
+  - Saved comidas and default comidas are logged raw in this epic; cooking inside a template is out of scope.
+- **Consequences:** FR-2.16; `03-data-model.md` (enum, `food_log_entries`, `food_preferences`, `save_preferences`); `04-business-rules.md` §2.2; `05-design-system.md` (`CookingMethodSelector`); E7 US-50.
+- **Approval:** 2026-10-24, user.
+
+### ADR-61 · Default comidas are saved comidas applied once on the first open of a new day (E7, US-51)
+- **Context:** the user eats the same breakfast or lunch on recurring weekdays and does not want to add the same saved comida every time. A background job or a meal-plan calendar would be more machinery than a 1–5-user app needs.
+- **Decision:**
+  - Defaults use the **saved comidas** (`meal_templates` + items), not single foods or Open Food Facts results. A default may contain several foods.
+  - At most one default comida per meal and ISO weekday; different weekdays may have different comidas. The meal slot in the default is authoritative and the saved comida's suggested slot is ignored.
+  - In Preferencias → Comidas, "Comidas por defecto" opens a full-screen editor with one card per meal. The weekday picker preselects every available day; days already assigned to another comida for that meal are disabled. Saving replaces all assignments atomically; leaving with unsaved changes asks to discard.
+  - The app applies today's defaults on the **first open of today's Diary**, before reading entries. `diary_default_applications` makes it idempotent: if the day was already evaluated, nothing happens; if the day already has entries, only the marker is written. Deleting the added entries never brings them back.
+  - There is no backfill, no past-date application, no midnight job and no notification. Configuring defaults after today's Diary was opened applies from the next new day. A saved comida edited later affects only future applications; already-added entries keep their snapshots.
+- **Consequences:** FR-2.17; `03-data-model.md` (`meal_defaults`, `diary_default_applications`, `save_meal_defaults`, `apply_meal_defaults`); `04-business-rules.md` §2.3; `05-design-system.md` (`WeekdaySelector` and the defaults destination); E7 US-51.
 - **Approval:** 2026-10-24, user.
