@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.food
 
-import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 
@@ -75,10 +74,7 @@ sealed interface FoodSearchEvent {
     /** "Crear alimento" of the empty state: opens the form with the typed query as the name. */
     data object CreateFromEmpty : FoodSearchEvent
 
-    /** "Añadir" of a comida of the Comidas tab: logs all its foods to the meal of this search. */
-    data class AddTemplate(val templateId: String) : FoodSearchEvent
-
-    /** A comida row was tapped: opens its details. */
+    /** A comida row was tapped: opens its read-only details. */
     data class OpenTemplate(val templateId: String) : FoodSearchEvent
 
     /** A comida row was swiped to the end: deletes it at once, no confirmation, no undo (ignored offline). */
@@ -100,12 +96,6 @@ sealed interface FoodSearchEffect {
 
     /** The scanner failed or the product lookup failed (generic retry message). */
     data object ScanFailed : FoodSearchEffect
-
-    /** The comida's foods were logged to the Diary: give haptic feedback and go back to the Diary. */
-    data object TemplateAdded : FoodSearchEffect
-
-    /** The comida could not be added (null when the cause is not known); nothing was logged. */
-    data class TemplateFailed(val error: AppError?) : FoodSearchEffect
 
     /** Open the details of the comida [templateId]. */
     data class OpenTemplateDetails(val templateId: String) : FoodSearchEffect

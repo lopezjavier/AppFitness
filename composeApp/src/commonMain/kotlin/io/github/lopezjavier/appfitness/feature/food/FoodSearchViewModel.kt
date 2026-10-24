@@ -3,18 +3,13 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
-import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
-import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
-import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
-import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -35,9 +30,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 private const val KEY_QUERY = "food_search_query"
 private const val KEY_TAB = "food_search_tab"
@@ -52,8 +44,7 @@ private data class Request(val query: String, val tab: FoodSearchTab, val attemp
  * empty. Query and tab live in [savedState]. The star flips optimistically and rolls back when the server refuses.
  * Searching and the tabs need the server, so offline the results are an [FoodResults.Error] and the box is disabled.
  *
- * The search adds to the meal [slotId] (null = no meal preselected, the meal is then chosen by the time of day) on
- * [date]. The "Comidas" tab lists the saved meals and adds one with [addTemplateToDiary] in a single request.
+ * The "Comidas" tab lists the saved meals; a row opens its details, where the comida is added to a meal.
  */
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port plus the add target; search and tabs.
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -61,16 +52,9 @@ class FoodSearchViewModel(
     private val foodRepository: FoodRepository,
     connectivity: ConnectivityObserver,
     private val barcodeScanner: BarcodeScanner,
-    private val slotId: String?,
-    private val date: LocalDate,
     private val mealTemplates: MealTemplateRepository,
-    private val addTemplateToDiary: AddTemplateToDiary,
     private val scaleNutrition: ScaleNutrition,
-    private val mealSlots: MealSlotRepository,
-    private val defaultMealSlot: DefaultMealSlot,
-    private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val pick: Boolean = false,
 ) : ViewModel() {
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
@@ -86,7 +70,6 @@ class FoodSearchViewModel(
     private val templates = MutableStateFlow<TemplatesResults>(TemplatesResults.Loading)
     private val deleting = MutableStateFlow<Set<String>>(emptySet())
     private var scanning = false
-    private var adding = false
 
     private val effectChannel = Channel<FoodSearchEffect>(Channel.BUFFERED)
     val effects: Flow<FoodSearchEffect> = effectChannel.receiveAsFlow()
@@ -171,8 +154,6 @@ class FoodSearchViewModel(
     /** The Comidas tab: adding a comida, opening its details, the swipe delete (no undo), and the reload. */
     private fun onTemplateEvent(event: FoodSearchEvent) {
         when (event) {
-            is FoodSearchEvent.AddTemplate -> addTemplate(event.templateId)
-
             is FoodSearchEvent.OpenTemplate -> effectChannel.trySend(
                 FoodSearchEffect.OpenTemplateDetails(event.templateId),
             )
@@ -288,37 +269,6 @@ class FoodSearchViewModel(
                 TemplateSummary(template, kcal)
             },
         )
-    }
-
-    private fun addTemplate(templateId: String) {
-        val row = (templates.value as? TemplatesResults.Content)?.rows?.firstOrNull { it.template.id == templateId }
-        if (row == null || adding || !online.value) return
-        adding = true
-        viewModelScope.launch {
-            try {
-                val mealSlotId = slotId ?: defaultSlotId()
-                if (mealSlotId == null) {
-                    effectChannel.trySend(FoodSearchEffect.TemplateFailed(null))
-                    return@launch
-                }
-                val result = addTemplateToDiary(row.template, mealSlotId, date)
-                effectChannel.trySend(
-                    if (result.isSuccess) {
-                        FoodSearchEffect.TemplateAdded
-                    } else {
-                        FoodSearchEffect.TemplateFailed(result.appErrorOrNull())
-                    },
-                )
-            } finally {
-                adding = false
-            }
-        }
-    }
-
-    /** The meal chosen by the time of day when the search was opened without one; null when no meal is enabled. */
-    private suspend fun defaultSlotId(): String? {
-        val slots = mealSlots.listEnabled().getOrNull() ?: return null
-        return defaultMealSlot(clock.now().toLocalDateTime(timeZone).time, slots)?.id
     }
 
     private fun toggleFavourite(foodId: String) {

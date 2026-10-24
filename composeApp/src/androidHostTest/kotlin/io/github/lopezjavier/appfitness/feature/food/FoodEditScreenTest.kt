@@ -107,7 +107,7 @@ class FoodEditScreenTest {
     private fun top(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
 
     @Test
-    fun editForm_isPrefilledFromTheStoredFood_andTheUnitCannotChange() {
+    fun editForm_isPrefilledFromTheStoredFood() {
         manualYogurt()
         foods.storedMicronutrients["yogurt"] = mapOf(MicronutrientKind.Sugars to 4.7)
         showForm()
@@ -117,8 +117,70 @@ class FoodEditScreenTest {
         rule.onNodeWithTag("create_food_nutrient_sugars").assertTextContains("4,7")
         rule.onNodeWithTag("create_food_portion_label_0").assertTextContains("1 tarrina")
         rule.onNodeWithTag("create_food_portion_amount_0").assertTextContains("125")
-        rule.onNodeWithTag("create_food_unit_locked").assertTextContains("La unidad no se puede cambiar")
+    }
+
+    @Test
+    fun unusedFood_unitSelectorIsEnabled_withNoHint_andGuardarSendsTheNewUnit() {
+        manualYogurt()
+        showForm()
+
+        rule.onNodeWithTag("create_food_unit_ml").assertIsEnabled()
+        rule.onNodeWithTag("create_food_unit_locked").assertDoesNotExist()
+        tap("create_food_unit_ml")
+        tap("create_food_save_button")
+
+        assertEquals("ml", foods.updates.single().baseUnit)
+        assertEquals("ml", foods.known.getValue("yogurt").baseUnit)
+    }
+
+    @Test
+    fun usedFood_keepsItsUnit_withTheHint() {
+        manualYogurt()
+        foods.inUse += "yogurt"
+        showForm()
+
+        rule.onNodeWithTag(
+            "create_food_unit_locked",
+        ).assertTextContains("ya está en tu diario o en una comida", substring = true)
         rule.onNodeWithTag("create_food_unit_ml").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_unit_g").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_unit_refused").assertDoesNotExist()
+    }
+
+    @Test
+    fun favouriteOnlyFood_doesNotBlockTheUnitChange() {
+        manualYogurt()
+        foods.favouriteFoods = Result.success(listOf(foods.known.getValue("yogurt"))) // Favourites do not count.
+        showForm()
+
+        rule.onNodeWithTag("create_food_unit_ml").assertIsEnabled()
+        rule.onNodeWithTag("create_food_unit_locked").assertDoesNotExist()
+    }
+
+    @Test
+    fun staleUnitChange_isRefused_keepsTheFormAndTheTypedValues_andOtherEditsCanBeSaved() {
+        manualYogurt()
+        showForm()
+        tap("create_food_unit_ml")
+        replace("create_food_kcal_field", "70")
+        foods.inUse += "yogurt" // The food got used after the form was opened.
+
+        tap("create_food_save_button")
+
+        rule.onNodeWithTag("create_food_screen").assertExists()
+        rule.onNodeWithTag(
+            "create_food_unit_refused",
+        ).assertTextContains("No se ha cambiado la unidad", substring = true)
+        rule.onNodeWithTag("create_food_unit_locked").assertDoesNotExist()
+        rule.onNodeWithTag("create_food_unit_g").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_kcal_field").assertTextContains("70")
+        assertEquals(emptyList<String>(), saved)
+
+        tap("create_food_save_button")
+
+        assertEquals("g", foods.updates.last().baseUnit)
+        assertEquals(70.0, foods.known.getValue("yogurt").nutrition.kcal, 0.0)
+        assertEquals(listOf("yogurt"), saved)
     }
 
     @Test

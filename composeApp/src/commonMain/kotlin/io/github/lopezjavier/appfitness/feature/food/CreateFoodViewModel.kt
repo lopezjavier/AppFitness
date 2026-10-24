@@ -3,6 +3,8 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
@@ -23,19 +25,25 @@ import kotlinx.coroutines.launch
 private const val KEY_STARTED = "create_food_started"
 private const val KEY_BARCODE = "create_food_barcode"
 private const val KEY_UNIT = "create_food_unit"
+private const val KEY_ORIGINAL_UNIT = "create_food_original_unit"
+private const val KEY_UNIT_LOCKED = "create_food_unit_locked"
+private const val KEY_UNIT_REFUSED = "create_food_unit_refused"
 private const val KEY_TOUCHED = "create_food_touched"
 private const val KEY_PORTIONS = "create_food_portions"
 private const val KEY_SECTIONS = "create_food_sections"
 private const val KEY_FIELD_PREFIX = "create_food_field_"
 private const val MAX_PORTIONS = 10
+private val UNITS = setOf("g", "ml")
 
 /** Where the edit-mode read of the food stands; create mode is always [Idle]. */
 private enum class LoadState { Idle, Loading, Failed }
 
 /**
- * Create / edit food form (US-18, US-22, US-47): a personal food with optional named portions and any label nutrient.
- * With [editFoodId] it edits that manual food: the food is read once, the base unit is read-only and "Guardar" calls
- * `updateFood`; a discard writes nothing because the repository is only called on [CreateFoodEvent.Save]. The draft
+ * Create / edit food form (US-18, US-22, US-47, US-52): a personal food with optional named portions and any label
+ * nutrient. With [editFoodId] it edits that manual food: the food is read once, the base unit is editable until an
+ * entry or comida references it ([CreateFoodUiState.unitLocked]) and "Guardar" calls `updateFood`; when the server
+ * refuses a stale unit change the unit reverts to the stored one, locks and the rest of the draft is kept; a
+ * discard writes nothing because the repository is only called on [CreateFoodEvent.Save]. The draft
  * lives in [savedState] (ADR-40) and is prefilled (from [barcode] / [name] or from the stored food) only the first
  * time. Blank protein, carbs and fat count as 0; kcal is required. Saving needs the server, so
  * [CreateFoodUiState.canSave] is false offline.
@@ -53,6 +61,11 @@ class CreateFoodViewModel(
     private val online = MutableStateFlow(true)
     private val saving = MutableStateFlow(false)
     private val saveFailed = MutableStateFlow(false)
+
+    /** The unit as stored (edit mode); the unit goes back to it when the server refuses a change. */
+    private var originalUnit: String? = savedState.get<String>(KEY_ORIGINAL_UNIT)
+    private val unitLocked = MutableStateFlow(savedState.get<Boolean>(KEY_UNIT_LOCKED) == true)
+    private val unitRefused = MutableStateFlow(savedState.get<Boolean>(KEY_UNIT_REFUSED) == true)
     private val sections = MutableStateFlow(
         savedState.get<List<String>>(KEY_SECTIONS).orEmpty().mapNotNull { id ->
             CreateFoodSection.entries.firstOrNull { it.name == id }
@@ -68,10 +81,16 @@ class CreateFoodViewModel(
     val uiState: StateFlow<CreateFoodUiState> =
         combine(draft, online, saving, saveFailed, loadState, ::buildState)
             .combine(sections) { state, expanded -> state.copy(expandedSections = expanded) }
+            .combine(unitLocked) { state, locked -> state.copy(unitLocked = locked) }
+            .combine(unitRefused) { state, refused -> state.copy(unitRefused = refused) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
-                buildState(draft.value, true, false, false, loadState.value).copy(expandedSections = sections.value),
+                buildState(draft.value, true, false, false, loadState.value).copy(
+                    expandedSections = sections.value,
+                    unitLocked = unitLocked.value,
+                    unitRefused = unitRefused.value,
+                ),
             )
 
     init {
@@ -95,8 +114,8 @@ class CreateFoodViewModel(
                 )
             }
 
-            // The base unit of an existing food never changes.
-            is CreateFoodEvent.UnitSelected -> if (editFoodId == null) update { it.copy(baseUnit = event.unit) }
+            // Only "g" and "ml" exist; the unit of a food that is in use never changes.
+            is CreateFoodEvent.UnitSelected -> selectUnit(event.unit)
 
             CreateFoodEvent.AddPortion -> update {
                 if (it.portions.size >=
@@ -128,6 +147,10 @@ class CreateFoodViewModel(
         }
     }
 
+    private fun selectUnit(unit: String) {
+        if (!unitLocked.value && unit in UNITS) update { it.copy(baseUnit = unit) }
+    }
+
     private fun toggleSection(section: CreateFoodSection) {
         val toggled = sections.value.let { if (section in it) it - section else it + section }
         sections.value = toggled
@@ -144,6 +167,10 @@ class CreateFoodViewModel(
                     if (savedState.get<Boolean>(KEY_STARTED) != true) {
                         FormDraft.from(it).also { prefilled ->
                             draft.value = prefilled
+                            originalUnit = prefilled.baseUnit
+                            unitLocked.value = it.inUse
+                            savedState[KEY_ORIGINAL_UNIT] = prefilled.baseUnit
+                            savedState[KEY_UNIT_LOCKED] = it.inUse
                             persist(prefilled)
                         }
                     }
@@ -180,11 +207,25 @@ class CreateFoodViewModel(
             result.fold(
                 onSuccess = { effectChannel.send(CreateFoodEffect.Saved(it.id)) },
                 onFailure = {
-                    saveFailed.value = true
-                    effectChannel.send(CreateFoodEffect.SaveFailed)
+                    if ((it as? AppException)?.error == AppError.FoodInUse) {
+                        refuseUnitChange()
+                    } else {
+                        saveFailed.value = true
+                        effectChannel.send(CreateFoodEffect.SaveFailed)
+                    }
                 },
             )
         }
+    }
+
+    /** The server found the food referenced: back to the stored unit, locked, with the rest of the draft intact. */
+    private fun refuseUnitChange() {
+        val stored = originalUnit ?: draft.value.baseUnit
+        update { it.copy(baseUnit = stored) }
+        unitLocked.value = true
+        unitRefused.value = true
+        savedState[KEY_UNIT_LOCKED] = true
+        savedState[KEY_UNIT_REFUSED] = true
     }
 
     private fun restoreOrPrefill(barcode: String?, name: String?): FormDraft {

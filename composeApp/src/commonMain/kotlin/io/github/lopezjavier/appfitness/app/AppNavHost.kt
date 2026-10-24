@@ -119,8 +119,8 @@ internal typealias EditEntrySlot =
 /**
  * Food search content: modifier (full-screen insets), the meal and day the search adds to ([slotId] null = no meal
  * preselected, [date] ISO), the opener of the add-food sheet (by food id), the opener of the create-food form
- * (scanned barcode and/or typed name), [onAdd], which runs once a comida was added to the Diary, and [onOpenTemplate],
- * the opener of the details of a comida (by id). With [pick] the search chooses a food for a comida draft.
+ * (scanned barcode and/or typed name) and [onOpenTemplate], the opener of the read-only details of a comida (by id).
+ * With [pick] the search chooses a food for a comida draft.
  */
 internal typealias FoodSearchSlot =
     @Composable (
@@ -129,7 +129,6 @@ internal typealias FoodSearchSlot =
         date: String,
         onOpenFood: (String) -> Unit,
         onCreateFood: (barcode: String?, name: String?) -> Unit,
-        onAdd: () -> Unit,
         onOpenTemplate: (String) -> Unit,
         pick: Boolean,
     ) -> Unit
@@ -180,7 +179,22 @@ internal typealias AddFoodSlot =
     ) -> Unit
 
 /**
- * Comida editor content for [templateId] (modifier: full-screen insets): [onClose] runs once it was saved or deleted,
+ * Read-only comida details content for [templateId] (modifier: full-screen insets), the meal ([slotId] null = by the
+ * time of day) and the ISO [date] it is added to: [onAdded] runs once it was logged, [onEdit] opens the editor.
+ */
+internal typealias TemplatePreviewSlot =
+    @Composable (
+        modifier: Modifier,
+        templateId: String,
+        slotId: String?,
+        date: String,
+        onAdded: () -> Unit,
+        onEdit: () -> Unit,
+    ) -> Unit
+
+/**
+ * Comida editor content for [templateId] (modifier: full-screen insets): [onClose] runs once it was saved, [onDeleted]
+ * once it was deleted,
  * [onAddFood] opens the food picker, [pickedFood] is the picker's result (see `pickedFoodResult`) and
  * [onConsumePickedFood] clears it once the editor took it.
  */
@@ -189,6 +203,7 @@ internal typealias TemplateDetailsSlot =
         modifier: Modifier,
         templateId: String,
         onClose: () -> Unit,
+        onDeleted: () -> Unit,
         onAddFood: () -> Unit,
         pickedFood: List<String>?,
         onConsumePickedFood: () -> Unit,
@@ -343,7 +358,7 @@ internal val DefaultWeightSlot: WeightSlot = { modifier ->
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _, _ ->
+internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("food_search_screen"))
 }
 
@@ -358,8 +373,13 @@ internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _ ->
 }
 
 /** Empty comida editor for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTemplateDetailsSlot: TemplateDetailsSlot = { modifier, _, _, _, _, _ ->
+internal val DefaultTemplateDetailsSlot: TemplateDetailsSlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("template_details_screen"))
+}
+
+/** Empty comida details for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultTemplatePreviewSlot: TemplatePreviewSlot = { modifier, _, _, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("template_preview_screen"))
 }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -444,6 +464,7 @@ internal fun AppNavHost(
     saveTemplate: SaveTemplateSlot = DefaultSaveTemplateSlot,
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     templateDetails: TemplateDetailsSlot = DefaultTemplateDetailsSlot,
+    templatePreview: TemplatePreviewSlot = DefaultTemplatePreviewSlot,
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
     history: HistorySlot = DefaultHistorySlot,
     calendar: CalendarSlot = DefaultCalendarSlot,
@@ -584,7 +605,15 @@ internal fun AppNavHost(
             )
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)
-        foodDestinations(navController, fullScreenPadding, foodSearch, addFood, createFood, templateDetails)
+        foodDestinations(
+            navController,
+            fullScreenPadding,
+            foodSearch,
+            addFood,
+            createFood,
+            templateDetails,
+            templatePreview,
+        )
         composable<MealSlotsRoute> {
             mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
@@ -627,18 +656,11 @@ private fun DiaryDestination(
     )
 }
 
-/**
- * The food search and, over it, the add-food sheet (a dialog destination, so the search stays visible behind the
- * sheet). Logging a food pops both back to the Diary.
- */
-@Suppress("LongParameterList") // One slot per destination.
-private fun NavGraphBuilder.foodDestinations(
+/** The food search; opens the add-food sheet, the create-food form and the read-only details of a comida. */
+private fun NavGraphBuilder.foodSearchDestination(
     navController: NavHostController,
     fullScreenPadding: PaddingValues,
     foodSearch: FoodSearchSlot,
-    addFood: AddFoodSlot,
-    createFood: CreateFoodSlot,
-    templateDetails: TemplateDetailsSlot,
 ) {
     composable<FoodSearchRoute> { entry ->
         val route = entry.toRoute<FoodSearchRoute>()
@@ -656,12 +678,32 @@ private fun NavGraphBuilder.foodDestinations(
                     launchSingleTop = true
                 }
             },
-            // A comida went to the Diary: leave the search for it.
-            { navController.popToDiary() },
-            { templateId -> navController.navigate(TemplateDetailsRoute(templateId)) { launchSingleTop = true } },
+            { templateId ->
+                navController.navigate(TemplatePreviewRoute(templateId, route.slotId, route.date)) {
+                    launchSingleTop = true
+                }
+            },
             route.pick,
         )
     }
+}
+
+/**
+ * The food search and, over it, the add-food sheet (a dialog destination, so the search stays visible behind the
+ * sheet). Logging a food pops both back to the Diary.
+ */
+@Suppress("LongParameterList") // One slot per destination.
+private fun NavGraphBuilder.foodDestinations(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    foodSearch: FoodSearchSlot,
+    addFood: AddFoodSlot,
+    createFood: CreateFoodSlot,
+    templateDetails: TemplateDetailsSlot,
+    templatePreview: TemplatePreviewSlot,
+) {
+    foodSearchDestination(navController, fullScreenPadding, foodSearch)
+    templatePreviewDestination(navController, fullScreenPadding, templatePreview)
     templateDetailsDestination(navController, fullScreenPadding, templateDetails)
     composable<CreateFoodRoute> { entry ->
         val route = entry.toRoute<CreateFoodRoute>()
@@ -702,8 +744,29 @@ private fun NavGraphBuilder.foodDestinations(
 }
 
 /**
- * The comida editor. Saving or deleting pops back to the search; "Añadir alimento" opens the search in pick mode, which
- * hands the chosen food back through this entry's `savedStateHandle` (see [returnPickedFood]).
+ * The read-only comida details. "Añadir" logs the comida and pops back to the Diary; "Editar" opens the editor.
+ */
+private fun NavGraphBuilder.templatePreviewDestination(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    templatePreview: TemplatePreviewSlot,
+) {
+    composable<TemplatePreviewRoute> { entry ->
+        val route = entry.toRoute<TemplatePreviewRoute>()
+        templatePreview(
+            Modifier.padding(fullScreenPadding),
+            route.templateId,
+            route.slotId,
+            route.date,
+            { navController.popToDiary() },
+            { navController.navigate(TemplateDetailsRoute(route.templateId)) { launchSingleTop = true } },
+        )
+    }
+}
+
+/**
+ * The comida editor. Saving pops back to the details, deleting to the search; "Añadir alimento" opens the search in
+ * pick mode, which hands the chosen food back through this entry's `savedStateHandle` (see [returnPickedFood]).
  */
 private fun NavGraphBuilder.templateDetailsDestination(
     navController: NavHostController,
@@ -718,6 +781,8 @@ private fun NavGraphBuilder.templateDetailsDestination(
             Modifier.padding(fullScreenPadding),
             route.templateId,
             { navController.popBackStack() },
+            // The details below would show a comida that no longer exists.
+            { navController.popBackStack<TemplatePreviewRoute>(inclusive = true) },
             { navController.navigate(FoodSearchRoute(date = "", pick = true)) { launchSingleTop = true } },
             picked,
             { handle[PICKED_FOOD_KEY] = null },

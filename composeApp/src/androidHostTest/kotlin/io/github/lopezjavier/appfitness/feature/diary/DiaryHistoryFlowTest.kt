@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FoodSearchSlot
 import io.github.lopezjavier.appfitness.app.ProfileSlot
+import io.github.lopezjavier.appfitness.app.TemplatePreviewSlot
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
@@ -109,9 +110,15 @@ class DiaryHistoryFlowTest {
         }
     }
 
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onAdd, _, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onOpenTemplate, _ ->
         Box(modifier.fillMaxSize().testTag("food_search_screen")) {
-            Box(Modifier.size(48.dp).testTag("test_search_add").clickable(onClick = onAdd))
+            Box(Modifier.size(48.dp).testTag("test_search_open").clickable { onOpenTemplate("t1") })
+        }
+    }
+
+    private val previewSlot: TemplatePreviewSlot = { modifier, _, _, _, onAdded, _ ->
+        Box(modifier.fillMaxSize().testTag("template_preview_screen")) {
+            Box(Modifier.size(48.dp).testTag("test_search_add").clickable(onClick = onAdded))
         }
     }
 
@@ -128,6 +135,7 @@ class DiaryHistoryFlowTest {
                 diary = diarySlot,
                 diaryHistory = historySlot,
                 foodSearch = searchSlot,
+                templatePreview = previewSlot,
                 editEntry = editSlot,
             )
         }
@@ -252,6 +260,7 @@ class DiaryHistoryFlowTest {
         openDayFromHistory()
         tap("test_add_food")
 
+        tap("test_search_open")
         tap("test_search_add")
 
         rule.onNodeWithTag("diary_day_back").assertExists()

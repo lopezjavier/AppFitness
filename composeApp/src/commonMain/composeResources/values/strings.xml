@@ -814,7 +814,8 @@
     <string name="create_food_save_error">No se pudo guardar el alimento. Inténtalo de nuevo.</string>
     <string name="edit_food_title">Editar alimento</string>
     <string name="add_food_edit_cd">Editar alimento</string>
-    <string name="create_food_unit_locked">La unidad no se puede cambiar</string>
+    <string name="create_food_unit_locked">La unidad no se puede cambiar porque este alimento ya está en tu diario o en una comida.</string>
+    <string name="create_food_unit_refused">No se ha cambiado la unidad: este alimento acaba de usarse en tu diario o en una comida. El resto de tus cambios sigue aquí; pulsa Guardar para aplicarlos.</string>
     <string name="create_food_load_failed">No se pudo cargar el alimento</string>
     <string name="create_food_section_fats">Grasas y carbohidratos detallados</string>
     <string name="create_food_section_vitamins">Vitaminas</string>
@@ -899,8 +900,12 @@
         <item quantity="other">%1$d alimentos</item>
     </plurals>
     <string name="template_summary">%1$s · %2$s kcal</string>
-    <string name="template_edit_cd">Editar %1$s</string>
     <string name="template_swipe_delete_cd">Eliminar %1$s</string>
+    <string name="template_preview_title">Comida</string>
+    <string name="template_preview_add">Añadir</string>
+    <string name="template_preview_edit">Editar</string>
+    <string name="template_preview_empty">Esta comida no tiene alimentos</string>
+    <string name="template_preview_total">Total · %1$s kcal</string>
     <string name="template_details_title">Editar comida</string>
     <string name="template_details_name_label">Nombre</string>
     <string name="template_details_add_food">Añadir alimento</string>

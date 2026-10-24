@@ -79,7 +79,7 @@ private const val DETAIL_FRACTION = 0.35f
 /**
  * Food search (US-17, US-21): the search box, the four empty-box tabs (hidden while a query is typed) and the results.
  * The top bar belongs to the shell. [scanFailed] shows the generic "could not read the code" message under the box;
- * [templateFailed] the same for a comida that could not be added, [templateManageFailed] for a rename or delete that
+ * [templateManageFailed] for a rename or delete of a comida that
  * was refused. [snackbarHost] shows generic messages at the bottom. The not-found card of a scanned
  * [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of the empty result emit their events.
  */
@@ -89,7 +89,6 @@ fun FoodSearchScreen(
     onEvent: (FoodSearchEvent) -> Unit,
     modifier: Modifier = Modifier,
     scanFailed: Boolean = false,
-    templateFailed: Boolean = false,
     templateManageFailed: Boolean = false,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -106,7 +105,7 @@ fun FoodSearchScreen(
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (state.query.isBlank() && state.tab == FoodSearchTab.Templates) {
-                    TemplatesPane(state.templates, state.isOffline, templateFailed, templateManageFailed, onEvent)
+                    TemplatesPane(state.templates, state.isOffline, templateManageFailed, onEvent)
                 } else {
                     Results(state, onEvent)
                 }

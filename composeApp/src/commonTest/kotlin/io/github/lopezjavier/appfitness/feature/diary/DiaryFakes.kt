@@ -162,7 +162,11 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
     val deletedBatches = mutableListOf<List<String>>()
     var batchResult: Result<Unit> = Result.success(Unit)
 
+    /** When set, [addEntries] suspends until it completes. */
+    var batchGate: CompletableDeferred<Unit>? = null
+
     override suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>> {
+        batchGate?.await()
         if (batchResult.isFailure) return Result.failure(batchResult.exceptionOrNull()!!)
         addedBatches += entries
         val created = entries.mapIndexed { index, entry ->

@@ -73,6 +73,7 @@ internal data class FormDraft(
         nutrition = toNutrition(),
         portions = toPortions(),
         micronutrients = toMicronutrients(),
+        baseUnit = baseUnit,
     )
 
     companion object {

@@ -41,11 +41,15 @@ interface FoodRepository {
 
     /**
      * The personal food [id] with its stored label values in grams per 100 (no display rounding); fails with
-     * `AppError.NotFound` when it is not a manual food of the user.
+     * `AppError.NotFound` when it is not a manual food of the user. `inUse` says whether a diary entry or a comida
+     * references it (its unit is then locked); fails when that cannot be known.
      */
     suspend fun editableFood(id: String): Result<EditableFood>
 
-    /** Replaces the values and portions of a personal food (past diary entries are never touched). */
+    /**
+     * Replaces the values, portions and unit of a personal food (past diary entries are never touched); fails with
+     * `AppError.FoodInUse` when the unit changes while an entry or comida references the food.
+     */
     suspend fun updateFood(food: UpdatedFood): Result<Food>
 
     /** Creates a personal food with its portions in one atomic call and returns it as stored. */

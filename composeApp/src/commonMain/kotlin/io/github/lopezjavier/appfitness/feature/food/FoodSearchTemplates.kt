@@ -21,7 +21,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_messag
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.template_add_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -40,20 +39,19 @@ private val SkeletonRowHeight = Spacing.xl * 2
 
 /**
  * The "Comidas" tab under the search box: the saved meals with their totals, or the loading, empty and error states.
- * [addFailed] and [manageFailed] show the generic failures above the list; the "Añadir" buttons are disabled offline.
+ * [manageFailed] shows the generic failure of a rename or delete above the list; a row opens the comida's details.
  */
 @Composable
 internal fun TemplatesPane(
     results: TemplatesResults,
     isOffline: Boolean,
-    addFailed: Boolean,
     manageFailed: Boolean,
     onEvent: (FoodSearchEvent) -> Unit,
 ) {
     when (results) {
         TemplatesResults.Loading -> TemplatesLoading()
 
-        is TemplatesResults.Content -> TemplatesList(results.rows, isOffline, addFailed, manageFailed, onEvent)
+        is TemplatesResults.Content -> TemplatesList(results.rows, isOffline, manageFailed, onEvent)
 
         TemplatesResults.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyState(
@@ -99,7 +97,6 @@ private fun TemplatesLoading() {
 private fun TemplatesList(
     rows: List<TemplateSummary>,
     isOffline: Boolean,
-    addFailed: Boolean,
     manageFailed: Boolean,
     onEvent: (FoodSearchEvent) -> Unit,
 ) {
@@ -108,9 +105,6 @@ private fun TemplatesList(
         contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        if (addFailed) {
-            item { FailureText(Res.string.template_add_failed, "food_search_templates_add_failed") }
-        }
         if (manageFailed) {
             item { FailureText(Res.string.template_manage_failed, "food_search_templates_manage_failed") }
         }
@@ -125,8 +119,6 @@ private fun TemplatesList(
             ) {
                 TemplateRow(
                     row = row,
-                    enabled = !isOffline,
-                    onAdd = { onEvent(FoodSearchEvent.AddTemplate(row.template.id)) },
                     onOpen = { onEvent(FoodSearchEvent.OpenTemplate(row.template.id)) },
                 )
             }

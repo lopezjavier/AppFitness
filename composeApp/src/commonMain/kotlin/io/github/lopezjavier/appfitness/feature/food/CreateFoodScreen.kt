@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // One composable per block of the form.
+
 package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +51,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_locked
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_ml
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_refused
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -148,6 +151,13 @@ private fun IdentityBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -
                 modifier = Modifier.testTag("create_food_barcode_text"),
             )
         }
+        UnitSection(state, onEvent)
+    }
+}
+
+@Composable
+private fun UnitSection(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
             text = stringResource(Res.string.create_food_unit),
             style = AppTheme.typography.bodyMedium,
@@ -162,12 +172,22 @@ private fun IdentityBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -
             selectedIndex = if (state.baseUnit == "ml") 1 else 0,
             onSelect = { onEvent(CreateFoodEvent.UnitSelected(if (it == 1) "ml" else "g")) },
             modifier = Modifier.testTag("create_food_unit_selector"),
-            enabled = !state.isEdit,
+            enabled = !state.unitLocked,
         )
-        if (state.isEdit) {
+        // The refusal replaces the hint: never both at once.
+        if (state.unitRefused) {
+            Text(
+                text = stringResource(Res.string.create_food_unit_refused),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.error,
+                modifier = Modifier
+                    .semantics { liveRegion = LiveRegionMode.Polite }
+                    .testTag("create_food_unit_refused"),
+            )
+        } else if (state.unitLocked) {
             Text(
                 text = stringResource(Res.string.create_food_unit_locked),
-                style = AppTheme.typography.bodySmall,
+                style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.textSecondary,
                 modifier = Modifier.testTag("create_food_unit_locked"),
             )

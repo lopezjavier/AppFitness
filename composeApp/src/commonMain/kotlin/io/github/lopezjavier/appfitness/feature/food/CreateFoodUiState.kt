@@ -7,11 +7,12 @@ import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 data class PortionDraft(val label: String = "", val amount: String = "")
 
 /**
- * State of the create-food form. All numbers are the typed text (a comma or a point is accepted). [errors] only holds
- * the problems of fields the user has already edited; [canSave] is false while anything is invalid, while saving and
- * offline. [baseUnit] is "g" or "ml" (read-only in edit mode); [barcode] is read-only. [nutrients] holds the text of
- * every label nutrient in [labelRows] order. In edit mode ([isEdit]) the form is [isLoading] until the food is read
- * and shows [loadFailed] (with a retry) when that fails.
+ * State of the create-food form. All numbers are the typed text (a comma or a point is accepted). [errors] only
+ * holds the problems of fields the user has already edited; [canSave] is false while anything is invalid, while
+ * saving and offline. [baseUnit] is "g" or "ml"; in edit mode [unitLocked] while an entry or comida references the
+ * food or after the server refused a change ([unitRefused] explains why); [barcode] is read-only. [nutrients] holds
+ * the text of every label nutrient in [labelRows] order. In edit mode ([isEdit]) the form is [isLoading] until the
+ * food is read and shows [loadFailed] (with a retry) when that fails.
  */
 data class CreateFoodUiState(
     val name: String = "",
@@ -31,6 +32,8 @@ data class CreateFoodUiState(
     val isOffline: Boolean = false,
     val saveFailed: Boolean = false,
     val isEdit: Boolean = false,
+    val unitLocked: Boolean = false,
+    val unitRefused: Boolean = false,
     val isLoading: Boolean = false,
     val loadFailed: Boolean = false,
     val labelRows: List<MicronutrientKind> = MicronutrientKind.editableKinds,

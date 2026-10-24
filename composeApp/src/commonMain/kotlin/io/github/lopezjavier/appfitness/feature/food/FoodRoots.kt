@@ -21,9 +21,9 @@ import org.koin.core.parameter.parametersOf
  * Stateful food search: connects [FoodSearchViewModel] for the meal [slotId] (null = none preselected) and the ISO day
  * [date]. [onOpenFood] receives the id of the food to log (a tapped row or a scanned product; the add-food sheet is
  * opened by navigation, so it survives process death). [onCreateFood] opens the create-food form with the scanned
- * barcode and/or the typed name. [onAdd] runs after a comida was logged (with haptic feedback). [onOpenTemplate] opens
- * the details of a comida; the list is reloaded when the search is shown again (the editor may have changed it). In
- * [pick] mode the search chooses a food for a comida draft (no Comidas tab; [slotId] and [date] are irrelevant).
+ * barcode and/or the typed name. [onOpenTemplate] opens the read-only details of a comida; the list is reloaded when
+ * the search is shown again (the editor may have changed it). In [pick] mode the search chooses a food for a comida
+ * draft (no Comidas tab; [slotId] and [date] are irrelevant).
  */
 @Suppress("LongParameterList") // One callback per navigation event of the search.
 @Composable
@@ -32,7 +32,6 @@ fun FoodSearchRoot(
     date: String,
     onOpenFood: (foodId: String) -> Unit,
     onCreateFood: (barcode: String?, name: String?) -> Unit,
-    onAdd: () -> Unit,
     onOpenTemplate: (templateId: String) -> Unit,
     modifier: Modifier = Modifier,
     pick: Boolean = false,
@@ -40,12 +39,9 @@ fun FoodSearchRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var scanFailed by remember { mutableStateOf(false) }
-    var templateFailed by remember { mutableStateOf(false) }
     var templateManageFailed by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
     val currentOpenFood by rememberUpdatedState(onOpenFood)
     val currentCreateFood by rememberUpdatedState(onCreateFood)
-    val currentTemplateAdded by rememberUpdatedState(onAdd)
     val currentOpenTemplate by rememberUpdatedState(onOpenTemplate)
     val snackbarHost = remember { SnackbarHostState() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(FoodSearchEvent.RefreshTemplates) }
@@ -57,13 +53,6 @@ fun FoodSearchRoot(
                 is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name)
 
                 FoodSearchEffect.ScanFailed -> scanFailed = true
-
-                FoodSearchEffect.TemplateAdded -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                    currentTemplateAdded()
-                }
-
-                is FoodSearchEffect.TemplateFailed -> templateFailed = true
 
                 is FoodSearchEffect.OpenTemplateDetails -> currentOpenTemplate(effect.templateId)
 
@@ -78,13 +67,11 @@ fun FoodSearchRoot(
         state = state,
         onEvent = {
             scanFailed = false
-            templateFailed = false
             templateManageFailed = false
             viewModel.onEvent(it)
         },
         modifier = modifier,
         scanFailed = scanFailed,
-        templateFailed = templateFailed,
         templateManageFailed = templateManageFailed,
         snackbarHost = snackbarHost,
     )

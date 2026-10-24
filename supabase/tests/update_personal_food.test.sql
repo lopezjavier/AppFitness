@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(38);
+select plan(70);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -28,12 +28,35 @@ insert into public.food_log_entries (id, user_id, log_date, meal_slot_id, food_i
          100, 'Yogur casero', 60, 3, 4, 3
   from public.meal_slots where user_id = '11111111-1111-4111-8111-111111111111' and code = 'breakfast';
 
+-- T-104 fixtures: 02 unused (g), 03 only in a comida (g), 04 favourite only (ml), 05 only an entry dated 2020 (g)
+insert into public.foods (id, source, name, base_unit, kcal_100, protein_100, carbs_100, fat_100, created_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000002', 'user', 'Sin uso', 'g', 100, 1, 2, 3, '11111111-1111-4111-8111-111111111111'),
+  ('aaaaaaaa-0000-4000-8000-000000000003', 'user', 'Solo comida', 'g', 100, 1, 2, 3, '11111111-1111-4111-8111-111111111111'),
+  ('aaaaaaaa-0000-4000-8000-000000000004', 'user', 'Solo favorito', 'ml', 100, 1, 2, 3, '11111111-1111-4111-8111-111111111111'),
+  ('aaaaaaaa-0000-4000-8000-000000000005', 'user', 'Solo antiguo', 'g', 100, 1, 2, 3, '11111111-1111-4111-8111-111111111111');
+insert into public.food_portions (food_id, label, amount, position) values
+  ('aaaaaaaa-0000-4000-8000-000000000002', '1 unidad', 40, 0),
+  ('aaaaaaaa-0000-4000-8000-000000000003', '1 unidad', 40, 0);
+insert into public.favorite_foods (user_id, food_id) values
+  ('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-0000-4000-8000-000000000004');
+insert into public.meal_templates (id, user_id, name)
+  values ('cccccccc-0000-4000-8000-0000000000a1', '11111111-1111-4111-8111-111111111111', 'Comida de prueba');
+insert into public.meal_template_items (template_id, food_id, amount, position)
+  values ('cccccccc-0000-4000-8000-0000000000a1', 'aaaaaaaa-0000-4000-8000-000000000003', 50, 0);
+insert into public.food_log_entries (id, user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g)
+  select 'e1000000-0000-4000-8000-000000000003', user_id, '2020-01-03', id, 'aaaaaaaa-0000-4000-8000-000000000005',
+         100, 'Solo antiguo', 100, 1, 2, 3
+  from public.meal_slots where user_id = '11111111-1111-4111-8111-111111111111' and code = 'breakfast';
+
 create temp table snap (k text, h text);
 insert into snap select 'before', md5(string_agg(to_jsonb(e)::text, '|' order by e.id)) from public.food_log_entries e;
 grant all on snap to authenticated;
 
 select has_function('public', 'update_personal_food',
-  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb'], 'update_personal_food exists');
+  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text'], 'update_personal_food exists');
+select hasnt_function('public', 'update_personal_food',
+  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb'], 'the 9-argument version is gone');
+select has_function('public', 'personal_food_in_use', array['uuid'], 'personal_food_in_use exists');
 
 set local role authenticated;
 select set_config('request.jwt.claims',
@@ -144,6 +167,83 @@ select lives_ok(
   $$select public.create_personal_food('Completo', null, 'g', 1, 0, 0, 0, null, '[]'::jsonb, '{"vitamin-b12_100g":0.000002,"iodine_100g":0.00015}'::jsonb)$$,
   'create accepts the extended list');
 
+-- Unit change (US-52) -------------------------------------------------------------
+select lives_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 100, 1, 2, 3,
+      '[{"label":"1 unidad","amount":40}]'::jsonb, null, 'ml')$$,
+  'an unreferenced food changes g to ml');
+select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000002'), 'ml', 'the new unit is stored');
+select is(
+  (select kcal_100::int || '|' || protein_100::int || '|' || carbs_100::int || '|' || fat_100::int || '|'
+     || (select string_agg(label || amount::int, ',') from public.food_portions where food_id = f.id)
+   from public.foods f where f.id = 'aaaaaaaa-0000-4000-8000-000000000002'),
+  '100|1|2|3|1 unidad40', 'values and portions are kept as sent when the unit changes');
+select lives_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 100, 1, 2, 3, '[]'::jsonb, null, null)$$,
+  'a null unit is accepted');
+select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000002'), 'ml', 'a null unit keeps the stored one');
+select lives_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 100, 1, 2, 3, '[]'::jsonb, null, 'g')$$,
+  'an unreferenced food changes ml to g');
+select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000002'), 'g', 'ml to g is stored');
+select lives_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000004', 'Solo favorito', null, 100, 1, 2, 3, '[]'::jsonb, null, 'g')$$,
+  'a favourite-only food changes its unit');
+select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000004'), 'g', 'favourites do not block the unit');
+
+select throws_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'Cambiado', null, 99, 1, 1, 1,
+      '[{"label":"Z","amount":9}]'::jsonb, null, 'ml')$$,
+  '23514', 'food unit locked: referenced', 'a food with a diary entry refuses a unit change');
+select is(
+  (select name || '|' || kcal_100::int || '|' || base_unit::text || '|' || (select string_agg(label, ',') from public.food_portions where food_id = f.id)
+   from public.foods f where f.id = 'aaaaaaaa-0000-4000-8000-000000000001'),
+  'Estable|10|g|A', 'the refused call rolled back name, values, portions and unit');
+select throws_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000005', 'Cambiado', null, 99, 1, 1, 1, '[]'::jsonb, null, 'ml')$$,
+  '23514', 'food unit locked: referenced', 'an entry dated in 2020 also blocks the unit change');
+select is((select name || '|' || base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000005'),
+  'Solo antiguo|g', 'the old-entry food is unchanged after the refusal');
+select throws_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000003', 'Cambiado', null, 99, 1, 1, 1, '[]'::jsonb, null, 'ml')$$,
+  '23514', 'food unit locked: referenced', 'a food in a comida refuses a unit change');
+select is(
+  (select name || '|' || kcal_100::int || '|' || base_unit::text || '|' || (select count(*) from public.food_portions where food_id = f.id)
+   from public.foods f where f.id = 'aaaaaaaa-0000-4000-8000-000000000003'),
+  'Solo comida|100|g|1', 'the comida food keeps name, values, portions and unit after the refusal');
+select lives_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'Estable 2', null, 11, 1, 1, 1, '[]'::jsonb, null, 'g')$$,
+  'a referenced food can be edited when the unit stays the same');
+select throws_ok(
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'X', null, 1, 1, 1, 1, '[]'::jsonb, null, 'kg')$$,
+  '22023', 'invalid base unit', 'a unit other than g or ml is rejected');
+select throws_ok(
+  $$select public.update_personal_food('0ff00000-0000-4000-8000-000000000001', 'Hack', null, 1, 1, 1, 1, '[]'::jsonb, null, 'ml')$$,
+  'P0002', 'food not found', 'an OFF food unit cannot be changed');
+select throws_ok(
+  $$select public.update_personal_food('bbbbbbbb-0000-4000-8000-000000000001', 'Hack', null, 1, 1, 1, 1, '[]'::jsonb, null, 'ml')$$,
+  'P0002', 'food not found', 'another user''s food unit cannot be changed');
+insert into snap select 'after3', md5(string_agg(to_jsonb(e)::text, '|' order by e.id)) from public.food_log_entries e;
+select is((select h from snap where k = 'after3'), (select h from snap where k = 'before'),
+  'log entries are byte-identical after all the unit attempts');
+
+-- personal_food_in_use ----------------------------------------------------------------
+select is(public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000002'), false, 'an unused food is not in use');
+select is(public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000004'), false, 'a favourite-only food is not in use');
+select is(public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000001'), true, 'a food with an entry is in use');
+select is(public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000003'), true, 'a food in a comida is in use');
+select throws_ok($$select public.personal_food_in_use('0ff00000-0000-4000-8000-000000000001')$$,
+  'P0002', 'food not found', 'an OFF food raises not found');
+select throws_ok($$select public.personal_food_in_use('bbbbbbbb-0000-4000-8000-000000000001')$$,
+  'P0002', 'food not found', 'another user''s food raises not found');
+select set_config('request.jwt.claims',
+  '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}', true);
+select is(public.personal_food_in_use('bbbbbbbb-0000-4000-8000-000000000001'), false, 'user B sees false for own unreferenced food');
+select throws_ok($$select public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000001')$$,
+  'P0002', 'food not found', 'user B cannot probe user A''s food');
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+
 -- Cross-user isolation ----------------------------------------------------------
 select is((select name from public.foods where id = 'bbbbbbbb-0000-4000-8000-000000000001'), null,
   'user A cannot even read user B''s manual food');
@@ -164,6 +264,15 @@ set local role anon;
 select throws_ok(
   $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'X', null, 1, 1, 1, 1, '[]'::jsonb, null)$$,
   '42501', null, 'anon cannot execute update_personal_food');
+select throws_ok(
+  $$select public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000001')$$,
+  '42501', null, 'anon cannot execute personal_food_in_use');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+select throws_ok(
+  $$select public.personal_food_in_use('aaaaaaaa-0000-4000-8000-000000000001')$$,
+  '28000', 'not authenticated', 'an unauthenticated personal_food_in_use call is rejected');
 reset role;
 
 select * from finish();

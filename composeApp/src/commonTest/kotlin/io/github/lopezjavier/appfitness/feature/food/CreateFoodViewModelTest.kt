@@ -386,8 +386,9 @@ class CreateFoodViewModelTest {
     )
 
     @Test
-    fun edit_loadsTheFoodAndPrefillsTheDraftKeepingTheUnitReadOnly() = runTest(dispatcher) {
+    fun edit_loadsTheFoodAndPrefillsTheDraftKeepingTheUsedUnitReadOnly() = runTest(dispatcher) {
         repository.known["yogurt"] = yogurt
+        repository.inUse += "yogurt"
         repository.storedMicronutrients["yogurt"] = mapOf(
             MicronutrientKind.Sugars to 4.7,
             MicronutrientKind.VitaminC to 0.0008,
@@ -408,8 +409,120 @@ class CreateFoodViewModelTest {
         assertEquals("0,8", state.nutrients[MicronutrientKind.VitaminC])
         assertEquals("1,5", state.nutrients[MicronutrientKind.Selenium])
         assertEquals(listOf(PortionDraft("1 tarrina", "125")), state.portions)
+        assertTrue(state.unitLocked)
         model.onEvent(CreateFoodEvent.UnitSelected("ml"))
         assertEquals("g", model.uiState.value.baseUnit)
+    }
+
+    @Test
+    fun edit_unusedFood_unitCanChangeAndIsSent() = runTest(dispatcher) {
+        repository.known["yogurt"] = yogurt
+        val model = editModel()
+        advanceUntilIdle()
+        assertFalse(model.uiState.value.unitLocked)
+
+        model.onEvent(CreateFoodEvent.UnitSelected("ml"))
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals("ml", model.uiState.value.baseUnit)
+        assertEquals("ml", repository.updates.single().baseUnit)
+        assertEquals("ml", repository.known.getValue("yogurt").baseUnit)
+    }
+
+    @Test
+    fun edit_usedFood_savingOtherEditsSendsTheStoredUnit() = runTest(dispatcher) {
+        repository.known["yogurt"] = yogurt
+        repository.inUse += "yogurt"
+        val model = editModel()
+        advanceUntilIdle()
+
+        model.type(CreateFoodField.Kcal, "70")
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals("g", repository.updates.single().baseUnit)
+    }
+
+    @Test
+    fun edit_staleChangeRefused_revertsTheUnitLocksItKeepsTheDraftAndRaisesNoGenericFailure() = runTest(dispatcher) {
+        repository.known["yogurt"] = yogurt
+        val model = editModel()
+        advanceUntilIdle()
+        model.type(CreateFoodField.Name, "Yogur griego")
+        model.onEvent(CreateFoodEvent.UnitSelected("ml"))
+        repository.inUse += "yogurt" // an entry was logged from another device meanwhile
+
+        model.effects.test {
+            model.onEvent(CreateFoodEvent.Save)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+
+        val state = model.uiState.value
+        assertEquals("g", state.baseUnit)
+        assertTrue(state.unitLocked)
+        assertTrue(state.unitRefused)
+        assertFalse(state.saveFailed)
+        assertEquals("Yogur griego", state.name)
+        assertTrue(state.canSave)
+        assertEquals("g", repository.known.getValue("yogurt").baseUnit)
+
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+        assertEquals("g", repository.updates.last().baseUnit)
+        assertEquals("Yogur griego", repository.known.getValue("yogurt").name)
+    }
+
+    @Test
+    fun edit_refusedStateSurvivesRecreation() = runTest(dispatcher) {
+        repository.known["yogurt"] = yogurt
+        val state = SavedStateHandle()
+        val first = editModel(state)
+        advanceUntilIdle()
+        first.onEvent(CreateFoodEvent.UnitSelected("ml"))
+        repository.inUse += "yogurt"
+        first.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+
+        val restored = editModel(state)
+        advanceUntilIdle()
+
+        assertEquals("g", restored.uiState.value.baseUnit)
+        assertTrue(restored.uiState.value.unitLocked)
+        assertTrue(restored.uiState.value.unitRefused)
+    }
+
+    @Test
+    fun edit_changedUnitSurvivesRecreationAndStaysEditable() = runTest(dispatcher) {
+        repository.known["yogurt"] = yogurt
+        val state = SavedStateHandle()
+        val first = editModel(state)
+        advanceUntilIdle()
+        first.onEvent(CreateFoodEvent.UnitSelected("ml"))
+
+        val restored = editModel(state)
+        advanceUntilIdle()
+
+        assertEquals("ml", restored.uiState.value.baseUnit)
+        assertFalse(restored.uiState.value.unitLocked)
+    }
+
+    @Test
+    fun edit_otherSaveFailures_stillRaiseSaveFailedAndDoNotLock() = runTest(dispatcher) {
+        repository.known["yogurt"] = yogurt
+        repository.updateFailure = AppException(AppError.Network)
+        val model = editModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(CreateFoodEvent.UnitSelected("ml"))
+            model.onEvent(CreateFoodEvent.Save)
+            advanceUntilIdle()
+            assertEquals(CreateFoodEffect.SaveFailed, awaitItem())
+        }
+        assertFalse(model.uiState.value.unitLocked)
+        assertEquals("ml", model.uiState.value.baseUnit)
     }
 
     @Test

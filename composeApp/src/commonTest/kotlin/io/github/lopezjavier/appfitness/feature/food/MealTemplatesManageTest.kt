@@ -7,7 +7,6 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.feature.templates.FakeMealTemplateRepository
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -52,9 +51,7 @@ class MealTemplatesManageTest {
         connectivity = connectivity,
         scanner = FakeBarcodeScanner(),
         state = state,
-        slotId = "lunch",
         templates = templates,
-        clock = MutableClock(),
     )
 
     private fun TestScope.openComidas(model: FoodSearchViewModel) {
