@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.data.repository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
+import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
@@ -12,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
+import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -95,6 +97,10 @@ class UnconfiguredFoodRepository : FoodRepository {
     override suspend fun findByBarcode(code: String): Result<Food?> = failure()
 
     override suspend fun micronutrients(food: Food): Result<Micronutrients> = failure()
+
+    override suspend fun editableFood(id: String): Result<EditableFood> = failure()
+
+    override suspend fun updateFood(food: UpdatedFood): Result<Food> = failure()
 
     override suspend fun createFood(food: NewFood): Result<Food> = failure()
 }

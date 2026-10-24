@@ -9,9 +9,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -76,19 +78,50 @@ class CreateFoodRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved)) }
         rule.waitForIdle()
-        rule.onNodeWithTag("create_food_saturated_fat").performTextInput("1,5")
-        rule.onNodeWithTag("create_food_sugars").performTextInput("4")
-        rule.onNodeWithTag("create_food_fiber").performTextInput("2")
-        rule.onNodeWithTag("create_food_salt").performTextInput("0,3")
+        rule.onNodeWithTag("create_food_nutrient_saturated_fat").performTextInput("1,5")
+        rule.onNodeWithTag("create_food_nutrient_sugars").performTextInput("4")
+        rule.onNodeWithTag("create_food_nutrient_fiber").performTextInput("2")
+        rule.onNodeWithTag("create_food_nutrient_salt").performTextInput("0,3")
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("create_food_saturated_fat").assertTextContains("1,5")
-        rule.onNodeWithTag("create_food_sugars").assertTextContains("4")
-        rule.onNodeWithTag("create_food_fiber").assertTextContains("2")
-        rule.onNodeWithTag("create_food_salt").assertTextContains("0,3")
+        rule.onNodeWithTag("create_food_nutrient_saturated_fat").assertTextContains("1,5")
+        rule.onNodeWithTag("create_food_nutrient_sugars").assertTextContains("4")
+        rule.onNodeWithTag("create_food_nutrient_fiber").assertTextContains("2")
+        rule.onNodeWithTag("create_food_nutrient_salt").assertTextContains("0,3")
+    }
+
+    @Test
+    fun editForm_keepsEditedValuesAndOpenSections_afterRecreation_withoutReloadingTheFood() {
+        foods.known["yogurt"] = food(
+            "yogurt",
+            "Yogur casero",
+            kcal = 60.0,
+            portions = listOf(FoodPortion("p1", "1 tarrina", 125.0)),
+            isManual = true,
+        )
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved, "yogurt")) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_kcal_field").performTextReplacement("70")
+        rule.onNodeWithTag("create_food_portion_amount_0").performTextReplacement("120")
+        rule.onNodeWithTag("create_food_section_vitamins_toggle").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_nutrient_vitamin_c").performTextInput("12")
+        rule.waitForIdle()
+        val loads = foods.editableLoads.size
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_kcal_field").assertTextContains("70")
+        rule.onNodeWithTag("create_food_portion_amount_0").assertTextContains("120")
+        rule.onNodeWithTag("create_food_nutrient_vitamin_c").assertTextContains("12")
+        rule.onNodeWithTag("create_food_nutrient_calcium").assertDoesNotExist()
+        assertEquals(loads, foods.editableLoads.size)
     }
 
     @Test

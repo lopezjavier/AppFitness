@@ -30,11 +30,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_ml
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_meal_label
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_no_meal_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_g
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_count_label
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_option
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_preview_kcal
@@ -46,9 +45,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
-import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -85,6 +85,7 @@ fun AddFoodSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     submitFailed: Boolean = false,
+    onEdit: () -> Unit = {},
 ) {
     // Hoisted here (not in the card) so it survives the card leaving while the sheet reloads.
     var microExpanded by rememberSaveable { mutableStateOf(false) }
@@ -110,7 +111,7 @@ fun AddFoodSheet(
                 )
 
                 is AddFoodUiState.Content ->
-                    SheetContent(state.content, onEvent, submitFailed, microExpanded) { microExpanded = it }
+                    SheetContent(state.content, onEvent, submitFailed, onEdit, microExpanded) { microExpanded = it }
             }
         }
     }
@@ -127,19 +128,18 @@ private fun SheetLoading() {
 }
 
 @Composable
+@Suppress("LongParameterList") // The content, its events, the error flag, the edit action and the card state.
 private fun SheetContent(
     content: AddFoodContent,
     onEvent: (AddFoodEvent) -> Unit,
     submitFailed: Boolean,
+    onEdit: () -> Unit,
     microExpanded: Boolean,
     onMicroExpandedChange: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        FoodHeader(content.food)
-        NutritionPer100Card(content.food)
-        (content.micronutrients as? MicronutrientsState.Shown)?.let {
-            MicronutrientsCard(it.micronutrients, content.food.baseUnit, microExpanded, onMicroExpandedChange)
-        }
+        FoodHeader(content.food, content.showEdit, content.canEdit, onEdit)
+        LabelNutrientsCard(content.labelNutrients, content.food.baseUnit, microExpanded, onMicroExpandedChange)
         QuantityInput(
             food = content.food,
             amountText = content.amountText,
@@ -177,40 +177,30 @@ private fun SheetContent(
 }
 
 @Composable
-private fun FoodHeader(food: Food) {
-    Column {
-        Text(
-            text = food.name,
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.testTag("add_food_name"),
-        )
-        food.brand?.takeIf { it.isNotBlank() }?.let {
-            Text(text = it, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+private fun FoodHeader(food: Food, showEdit: Boolean, canEdit: Boolean, onEdit: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = food.name,
+                style = AppTheme.typography.titleLarge,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("add_food_name"),
+            )
+            food.brand?.takeIf { it.isNotBlank() }?.let {
+                Text(text = it, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            }
         }
-    }
-}
-
-@Composable
-private fun NutritionPer100Card(food: Food) {
-    val unit = food.baseUnit
-    AppCard(Modifier.fillMaxWidth().testTag("add_food_nutrition")) {
-        Text(
-            text = stringResource(
-                if (unit == "ml") Res.string.add_food_nutrition_per_100_ml else Res.string.add_food_nutrition_per_100_g,
-            ),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
-        Row(
-            Modifier.fillMaxWidth().padding(top = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            KcalText(food.nutrition.kcal)
-            MacroTexts(food.nutrition.proteinG, food.nutrition.carbsG, food.nutrition.fatG)
+        if (showEdit) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.add_food_edit_cd),
+                icon = Res.drawable.ic_edit,
+                testTag = "add_food_edit",
+                onClick = onEdit,
+                enabled = canEdit,
+                tint = AppTheme.colors.textSecondary,
+            )
         }
     }
 }

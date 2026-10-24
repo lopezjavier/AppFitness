@@ -3,13 +3,11 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.domain.model.NewFood
+import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewFoodValidation
-import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
-import io.github.lopezjavier.appfitness.domain.model.NewPortion
-import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import kotlinx.coroutines.channels.Channel
@@ -27,57 +25,78 @@ private const val KEY_BARCODE = "create_food_barcode"
 private const val KEY_UNIT = "create_food_unit"
 private const val KEY_TOUCHED = "create_food_touched"
 private const val KEY_PORTIONS = "create_food_portions"
+private const val KEY_SECTIONS = "create_food_sections"
 private const val KEY_FIELD_PREFIX = "create_food_field_"
-private const val ROW_SEPARATOR = '\u0001'
 private const val MAX_PORTIONS = 10
 
-/** A portion row plus whether the user has edited it (errors only show for edited rows). */
-private data class PortionRow(val label: String, val amount: String, val touched: Boolean)
-
-/** Everything the user typed; [touched] holds the [CreateFoodField]s already edited. */
-private data class FormDraft(
-    val fields: Map<CreateFoodField, String>,
-    val baseUnit: String,
-    val barcode: String?,
-    val portions: List<PortionRow>,
-    val touched: Set<CreateFoodField>,
-)
+/** Where the edit-mode read of the food stands; create mode is always [Idle]. */
+private enum class LoadState { Idle, Loading, Failed }
 
 /**
- * Create-food form (US-18, US-22): a personal food with optional named portions. The draft lives in [savedState]
- * (ADR-40) and is prefilled from [barcode] / [name] only the first time. Blank protein, carbs and fat count as 0;
- * kcal is required. Saving needs the server, so [CreateFoodUiState.canSave] is false offline.
+ * Create / edit food form (US-18, US-22, US-47): a personal food with optional named portions and any label nutrient.
+ * With [editFoodId] it edits that manual food: the food is read once, the base unit is read-only and "Guardar" calls
+ * `updateFood`; a discard writes nothing because the repository is only called on [CreateFoodEvent.Save]. The draft
+ * lives in [savedState] (ADR-40) and is prefilled (from [barcode] / [name] or from the stored food) only the first
+ * time. Blank protein, carbs and fat count as 0; kcal is required. Saving needs the server, so
+ * [CreateFoodUiState.canSave] is false offline.
  */
+@Suppress("TooManyFunctions") // One function per step of the form.
 class CreateFoodViewModel(
     barcode: String?,
     name: String?,
     private val foodRepository: FoodRepository,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val editFoodId: String? = null,
 ) : ViewModel() {
     private val draft = MutableStateFlow(restoreOrPrefill(barcode, name))
     private val online = MutableStateFlow(true)
     private val saving = MutableStateFlow(false)
     private val saveFailed = MutableStateFlow(false)
+    private val sections = MutableStateFlow(
+        savedState.get<List<String>>(KEY_SECTIONS).orEmpty().mapNotNull { id ->
+            CreateFoodSection.entries.firstOrNull { it.name == id }
+        }.toSet(),
+    )
+    private val loadState = MutableStateFlow(
+        if (editFoodId != null && savedState.get<Boolean>(KEY_STARTED) != true) LoadState.Loading else LoadState.Idle,
+    )
 
     private val effectChannel = Channel<CreateFoodEffect>(Channel.BUFFERED)
     val effects: Flow<CreateFoodEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<CreateFoodUiState> =
-        combine(draft, online, saving, saveFailed, ::buildState)
-            .stateIn(viewModelScope, SharingStarted.Eagerly, buildState(draft.value, true, false, false))
+        combine(draft, online, saving, saveFailed, loadState, ::buildState)
+            .combine(sections) { state, expanded -> state.copy(expandedSections = expanded) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                buildState(draft.value, true, false, false, loadState.value).copy(expandedSections = sections.value),
+            )
 
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
+        if (loadState.value == LoadState.Loading) load()
     }
 
     fun onEvent(event: CreateFoodEvent) {
         when (event) {
             is CreateFoodEvent.FieldChanged -> update {
-                it.copy(fields = it.fields + (event.field to event.text), touched = it.touched + event.field)
+                it.copy(
+                    fields = it.fields + (event.field to event.text),
+                    touched = it.touched + event.field.name,
+                )
             }
 
-            is CreateFoodEvent.UnitSelected -> update { it.copy(baseUnit = event.unit) }
+            is CreateFoodEvent.NutrientChanged -> update {
+                it.copy(
+                    nutrients = it.nutrients + (event.kind to event.text),
+                    touched = it.touched + event.kind.name,
+                )
+            }
+
+            // The base unit of an existing food never changes.
+            is CreateFoodEvent.UnitSelected -> if (editFoodId == null) update { it.copy(baseUnit = event.unit) }
 
             CreateFoodEvent.AddPortion -> update {
                 if (it.portions.size >=
@@ -90,12 +109,7 @@ class CreateFoodViewModel(
             }
 
             is CreateFoodEvent.RemovePortion -> update {
-                it.copy(
-                    portions = it.portions.filterIndexed { i, _ ->
-                        i !=
-                            event.index
-                    },
-                )
+                it.copy(portions = it.portions.filterIndexed { i, _ -> i != event.index })
             }
 
             is CreateFoodEvent.PortionLabelChanged -> updateRow(event.index) {
@@ -106,7 +120,37 @@ class CreateFoodViewModel(
                 it.copy(amount = event.text, touched = true)
             }
 
+            is CreateFoodEvent.ToggleSection -> toggleSection(event.section)
+
             CreateFoodEvent.Save -> save()
+
+            CreateFoodEvent.Retry -> if (loadState.value == LoadState.Failed) load()
+        }
+    }
+
+    private fun toggleSection(section: CreateFoodSection) {
+        val toggled = sections.value.let { if (section in it) it - section else it + section }
+        sections.value = toggled
+        savedState[KEY_SECTIONS] = ArrayList(toggled.map { it.name })
+    }
+
+    private fun load() {
+        val id = editFoodId ?: return
+        loadState.value = LoadState.Loading
+        viewModelScope.launch {
+            foodRepository.editableFood(id).fold(
+                onSuccess = {
+                    // A draft typed meanwhile (restored state) is never overwritten.
+                    if (savedState.get<Boolean>(KEY_STARTED) != true) {
+                        FormDraft.from(it).also { prefilled ->
+                            draft.value = prefilled
+                            persist(prefilled)
+                        }
+                    }
+                    loadState.value = LoadState.Idle
+                },
+                onFailure = { loadState.value = LoadState.Failed },
+            )
         }
     }
 
@@ -123,11 +167,15 @@ class CreateFoodViewModel(
 
     private fun save() {
         val current = draft.value
-        if (saving.value || !isSavable(current, online.value)) return
+        if (saving.value || loadState.value != LoadState.Idle || !isSavable(current, online.value)) return
         saving.value = true
         saveFailed.value = false
         viewModelScope.launch {
-            val result = foodRepository.createFood(toNewFood(current))
+            val result: Result<Food> = if (editFoodId != null) {
+                foodRepository.updateFood(current.toUpdatedFood(editFoodId))
+            } else {
+                foodRepository.createFood(current.toNewFood())
+            }
             saving.value = false
             result.fold(
                 onSuccess = { effectChannel.send(CreateFoodEffect.Saved(it.id)) },
@@ -145,67 +193,69 @@ class CreateFoodViewModel(
                 fields = CreateFoodField.entries.associateWith {
                     savedState.get<String>(KEY_FIELD_PREFIX + it.name).orEmpty()
                 },
+                nutrients = MicronutrientKind.editableKinds.associateWith {
+                    savedState.get<String>(KEY_FIELD_PREFIX + it.name).orEmpty()
+                },
                 baseUnit = savedState.get<String>(KEY_UNIT) ?: "g",
                 barcode = savedState.get<String>(KEY_BARCODE),
                 portions = savedState.get<List<String>>(KEY_PORTIONS).orEmpty().map(::decodeRow),
-                touched = savedState.get<List<String>>(KEY_TOUCHED).orEmpty().mapNotNull { n ->
-                    CreateFoodField.entries.firstOrNull { it.name == n }
-                }.toSet(),
+                touched = savedState.get<List<String>>(KEY_TOUCHED).orEmpty().toSet(),
             )
         }
-        return FormDraft(
-            fields = CreateFoodField.entries.associateWith { if (it == CreateFoodField.Name) name.orEmpty() else "" },
-            baseUnit = "g",
-            barcode = barcode?.takeIf { it.isNotBlank() },
-            portions = emptyList(),
-            touched = emptySet(),
-        ).also(::persist)
+        val blank = FormDraft.blank(name, barcode)
+        // In edit mode the draft only starts once the stored food has been read.
+        return if (editFoodId == null) blank.also(::persist) else blank
     }
 
     private fun persist(value: FormDraft) {
         savedState[KEY_STARTED] = true
         value.fields.forEach { (field, text) -> savedState[KEY_FIELD_PREFIX + field.name] = text }
+        value.nutrients.forEach { (kind, text) -> savedState[KEY_FIELD_PREFIX + kind.name] = text }
         savedState[KEY_UNIT] = value.baseUnit
         savedState[KEY_BARCODE] = value.barcode
-        savedState[KEY_TOUCHED] = ArrayList(value.touched.map { it.name })
+        savedState[KEY_TOUCHED] = ArrayList(value.touched)
         savedState[KEY_PORTIONS] = ArrayList(value.portions.map(::encodeRow))
     }
 
-    private fun buildState(value: FormDraft, online: Boolean, saving: Boolean, failed: Boolean): CreateFoodUiState {
+    private fun buildState(
+        value: FormDraft,
+        online: Boolean,
+        saving: Boolean,
+        failed: Boolean,
+        load: LoadState,
+    ): CreateFoodUiState {
         val all = validate(value)
-        val shown = NewFoodErrors(
-            name = all.name.takeIf { CreateFoodField.Name in value.touched },
-            brand = all.brand.takeIf { CreateFoodField.Brand in value.touched },
-            kcal = all.kcal.takeIf { CreateFoodField.Kcal in value.touched },
-            protein = all.protein.takeIf { CreateFoodField.Protein in value.touched },
-            carbs = all.carbs.takeIf { CreateFoodField.Carbs in value.touched },
-            fat = all.fat.takeIf { CreateFoodField.Fat in value.touched },
+        fun shown(field: CreateFoodField, error: NewFoodError?) = error.takeIf { field.name in value.touched }
+        val errors = NewFoodErrors(
+            name = shown(CreateFoodField.Name, all.name),
+            brand = shown(CreateFoodField.Brand, all.brand),
+            kcal = shown(CreateFoodField.Kcal, all.kcal),
+            protein = shown(CreateFoodField.Protein, all.protein),
+            carbs = shown(CreateFoodField.Carbs, all.carbs),
+            fat = shown(CreateFoodField.Fat, all.fat),
             portions = all.portions.filterKeys { value.portions[it].touched },
-            saturatedFat = all.saturatedFat.takeIf { CreateFoodField.SaturatedFat in value.touched },
-            sugars = all.sugars.takeIf { CreateFoodField.Sugars in value.touched },
-            fiber = all.fiber.takeIf { CreateFoodField.Fiber in value.touched },
-            salt = all.salt.takeIf { CreateFoodField.Salt in value.touched },
+            nutrients = all.nutrients.filterKeys { it.name in value.touched },
         )
         return CreateFoodUiState(
-            name = value.fields.getValue(CreateFoodField.Name),
-            brand = value.fields.getValue(CreateFoodField.Brand),
+            name = value.text(CreateFoodField.Name),
+            brand = value.text(CreateFoodField.Brand),
             baseUnit = value.baseUnit,
-            kcal = value.fields.getValue(CreateFoodField.Kcal),
-            protein = value.fields.getValue(CreateFoodField.Protein),
-            carbs = value.fields.getValue(CreateFoodField.Carbs),
-            fat = value.fields.getValue(CreateFoodField.Fat),
-            saturatedFat = value.fields.getValue(CreateFoodField.SaturatedFat),
-            sugars = value.fields.getValue(CreateFoodField.Sugars),
-            fiber = value.fields.getValue(CreateFoodField.Fiber),
-            salt = value.fields.getValue(CreateFoodField.Salt),
+            kcal = value.text(CreateFoodField.Kcal),
+            protein = value.text(CreateFoodField.Protein),
+            carbs = value.text(CreateFoodField.Carbs),
+            fat = value.text(CreateFoodField.Fat),
+            nutrients = value.nutrients,
             barcode = value.barcode,
             portions = value.portions.map { PortionDraft(it.label, it.amount) },
-            errors = shown,
-            canSave = !saving && isSavable(value, online),
+            errors = errors,
+            canSave = !saving && load == LoadState.Idle && isSavable(value, online),
             canAddPortion = value.portions.size < MAX_PORTIONS,
             isSaving = saving,
             isOffline = !online,
             saveFailed = failed,
+            isEdit = editFoodId != null,
+            isLoading = load == LoadState.Loading,
+            loadFailed = load == LoadState.Failed,
         )
     }
 
@@ -213,53 +263,7 @@ class CreateFoodViewModel(
 
     /** The validation result, where a blank kcal is [NewFoodError.Required] instead of "not a number". */
     private fun validate(value: FormDraft): NewFoodErrors {
-        val errors = NewFoodValidation.validate(toNewFood(value))
-        return if (value.fields.getValue(
-                CreateFoodField.Kcal,
-            ).isBlank()
-        ) {
-            errors.copy(kcal = NewFoodError.Required)
-        } else {
-            errors
-        }
+        val errors = NewFoodValidation.validate(value.toNewFood())
+        return if (value.text(CreateFoodField.Kcal).isBlank()) errors.copy(kcal = NewFoodError.Required) else errors
     }
-
-    private fun toNewFood(value: FormDraft): NewFood {
-        fun number(field: CreateFoodField, blankIsZero: Boolean): Double {
-            val text = value.fields.getValue(field).trim().replace(',', '.')
-            return if (text.isEmpty() && blankIsZero) 0.0 else text.toDoubleOrNull() ?: Double.NaN
-        }
-
-        /** Blank is "not typed" (null); anything else that is not a number becomes NaN so validation flags it. */
-        fun optional(field: CreateFoodField): Double? =
-            if (value.fields.getValue(field).isBlank()) null else number(field, blankIsZero = false)
-        return NewFood(
-            name = value.fields.getValue(CreateFoodField.Name).trim(),
-            brand = value.fields.getValue(CreateFoodField.Brand).trim().ifEmpty { null },
-            baseUnit = value.baseUnit,
-            nutrition = NutritionPer100(
-                kcal = number(CreateFoodField.Kcal, blankIsZero = false),
-                proteinG = number(CreateFoodField.Protein, blankIsZero = true),
-                carbsG = number(CreateFoodField.Carbs, blankIsZero = true),
-                fatG = number(CreateFoodField.Fat, blankIsZero = true),
-            ),
-            barcode = value.barcode,
-            portions = value.portions.map {
-                NewPortion(it.label.trim(), it.amount.trim().replace(',', '.').toDoubleOrNull() ?: Double.NaN)
-            },
-            micronutrients = NewMicronutrients(
-                saturatedFat = optional(CreateFoodField.SaturatedFat),
-                sugars = optional(CreateFoodField.Sugars),
-                fiber = optional(CreateFoodField.Fiber),
-                salt = optional(CreateFoodField.Salt),
-            ),
-        )
-    }
-}
-
-private fun encodeRow(row: PortionRow) = "${row.label}$ROW_SEPARATOR${row.amount}$ROW_SEPARATOR${row.touched}"
-
-private fun decodeRow(encoded: String): PortionRow {
-    val parts = encoded.split(ROW_SEPARATOR)
-    return PortionRow(parts.getOrElse(0) { "" }, parts.getOrElse(1) { "" }, parts.getOrNull(2) == "true")
 }

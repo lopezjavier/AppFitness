@@ -50,14 +50,15 @@ class FoodNavigationTest {
             Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla") })
         }
     }
-    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, onSaved ->
+    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, editFoodId, onSaved ->
         Column(modifier.fillMaxSize().testTag("create_food_screen")) {
-            Text("$barcode|$name", Modifier.testTag("create_args"))
-            Box(Modifier.size(48.dp).testTag("create_save").clickable { onSaved("new-1") })
+            Text("$barcode|$name|$editFoodId", Modifier.testTag("create_args"))
+            Box(Modifier.size(48.dp).testTag("create_save").clickable { onSaved(editFoodId ?: "new-1") })
         }
     }
-    private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss ->
+    private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss, onEdit ->
         Column(Modifier.testTag("add_food_sheet")) {
+            Box(Modifier.size(48.dp).testTag("sheet_edit").clickable(onClick = onEdit))
             Text("$foodId|$slotId|$date", Modifier.testTag("sheet_args"))
             Box(Modifier.size(48.dp).testTag("sheet_add").clickable(onClick = onAdded))
             Box(
@@ -144,7 +145,7 @@ class FoodNavigationTest {
         click("diary_add_dinner")
 
         click("search_create")
-        rule.onNodeWithTag("create_args").assertTextEquals("8410|Tortilla")
+        rule.onNodeWithTag("create_args").assertTextEquals("8410|Tortilla|null")
         rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
         click("create_save")
 
@@ -165,5 +166,33 @@ class FoodNavigationTest {
 
         rule.onNodeWithTag("food_search_screen").assertExists()
         rule.onNodeWithTag("create_food_screen").assertDoesNotExist()
+    }
+
+    @Test
+    fun editingFromTheSheet_opensTheEditFormOfThatFood_andSavingReturnsToTheSheet() {
+        showShell()
+        click("diary_add_food")
+        click("search_pick")
+
+        click("sheet_edit")
+        rule.onNodeWithTag("create_args").assertTextEquals("null|null|chicken")
+        rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
+        click("create_save")
+
+        rule.onNodeWithTag("create_food_screen").assertDoesNotExist()
+        rule.onNodeWithTag("sheet_args").assertTextEquals("chicken|null|2026-10-19")
+    }
+
+    @Test
+    fun leavingTheEditFormWithoutSaving_returnsToTheSearch_andSavesNothing() {
+        showShell()
+        click("diary_add_food")
+        click("search_pick")
+        click("sheet_edit")
+
+        click("edit_food_back")
+
+        rule.onNodeWithTag("create_food_screen").assertDoesNotExist()
+        rule.onNodeWithTag("food_search_screen").assertExists()
     }
 }

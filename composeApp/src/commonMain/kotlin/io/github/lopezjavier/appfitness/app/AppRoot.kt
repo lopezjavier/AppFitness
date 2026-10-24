@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailRoot
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodRoot
+import io.github.lopezjavier.appfitness.feature.food.EditFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
@@ -86,9 +87,15 @@ fun AppRoot(
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate ->
             FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onAdd, onOpenTemplate, searchModifier)
         },
-        createFood = { formModifier, barcode, name, onSaved -> CreateFoodRoot(barcode, name, onSaved, formModifier) },
-        addFood = { foodId, slotId, date, onAdded, onDismiss ->
-            AddFoodRoot(foodId, slotId, date, onAdded, onDismiss)
+        createFood = { formModifier, barcode, name, editFoodId, onSaved ->
+            if (editFoodId != null) {
+                EditFoodRoot(editFoodId, onSaved, formModifier)
+            } else {
+                CreateFoodRoot(barcode, name, onSaved, formModifier)
+            }
+        },
+        addFood = { foodId, slotId, date, onAdded, onDismiss, onEdit ->
+            AddFoodRoot(foodId, slotId, date, onAdded, onDismiss, onEdit = onEdit)
         },
         editEntry = { entryId, date, onSaved, onDeleteRequested, onDismiss ->
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)

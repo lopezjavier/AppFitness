@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -14,6 +15,8 @@ import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,9 +56,10 @@ private val ManyRows = shown(
     item(MicronutrientKind.VitaminB9, 80.0, MicronutrientUnit.UG),
 )
 
-/** US-25: the micronutrients section of the add-food sheet. */
+/** US-25 / US-47: the label-ordered nutrient card of the add-food sheet. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per scenario.
 class MicronutrientsSheetTest {
     @get:Rule
     val rule = createComposeRule()
@@ -67,8 +71,27 @@ class MicronutrientsSheetTest {
         rule.waitForIdle()
     }
 
+    private fun expand() {
+        rule.onNodeWithTag("add_food_label_toggle").performClick()
+        rule.waitForIdle()
+    }
+
+    private fun top(row: String) = rule.onNodeWithTag("add_food_label_row_$row").getUnclippedBoundsInRoot().top
+
     @Test
-    fun offFood_showsItsNutrientsPer100g() {
+    fun food_showsItsMacroRowsPer100g() {
+        show(sheet(yogurt, MicronutrientsState.Hidden))
+
+        rule.onNodeWithTag("add_food_label_nutrients").assertExists()
+        rule.onNodeWithTag("add_food_label_basis").assertTextEquals("Por 100 g")
+        rule.onNodeWithTag("add_food_label_row_energy").assertTextContains("100 kcal", substring = true)
+        rule.onNodeWithTag("add_food_label_row_protein").assertTextContains("10 g", substring = true)
+        rule.onNodeWithTag("add_food_label_row_carbs").assertTextContains("20 g", substring = true)
+        rule.onNodeWithTag("add_food_label_row_fat").assertTextContains("5 g", substring = true)
+    }
+
+    @Test
+    fun offFood_showsItsExtraNutrientsWithTheirUnits() {
         show(
             sheet(
                 yogurt,
@@ -77,109 +100,91 @@ class MicronutrientsSheetTest {
                     item(MicronutrientKind.Sugars, 4.1),
                     item(MicronutrientKind.Salt, 0.5),
                     item(MicronutrientKind.VitaminC, 12.0, MicronutrientUnit.MG),
-                ),
-            ),
-        )
-
-        rule.onNodeWithTag("add_food_micronutrients").assertExists()
-        rule.onNodeWithTag("add_food_micronutrients_title").assertTextEquals("Información nutricional adicional")
-        rule.onNodeWithTag("add_food_micronutrients_basis").assertTextEquals("Por 100 g")
-        rule.onNodeWithTag("add_food_micronutrient_fiber").assertTextContains("Fibra", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_fiber").assertTextContains("2,5 g", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_sugars").assertTextContains("4,1 g", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_salt").assertTextContains("0,5 g", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_vitamin_c").assertTextContains("Vitamina C", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_vitamin_c").assertTextContains("12 mg", substring = true)
-    }
-
-    @Test
-    fun drink_showsThePer100mlBasis() {
-        show(
-            sheet(
-                food("milk", "Leche", baseUnit = "ml"),
-                shown(item(MicronutrientKind.Calcium, 120.0, MicronutrientUnit.MG)),
-            ),
-        )
-
-        rule.onNodeWithTag("add_food_micronutrients_basis").assertTextEquals("Por 100 ml")
-    }
-
-    @Test
-    fun microgramsAndTwoDecimals_areFormattedWithCommaAndUnit() {
-        show(
-            sheet(
-                yogurt,
-                shown(
                     item(MicronutrientKind.VitaminB9, 80.0, MicronutrientUnit.UG),
                     item(MicronutrientKind.Zinc, 0.25, MicronutrientUnit.MG),
                 ),
             ),
         )
+        expand()
 
-        rule.onNodeWithTag("add_food_micronutrient_vitamin_b9").assertTextContains("80 µg", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_zinc").assertTextContains("0,25 mg", substring = true)
+        rule.onNodeWithTag("add_food_label_row_fiber").assertTextContains("Fibra", substring = true)
+        rule.onNodeWithTag("add_food_label_row_fiber").assertTextContains("2,5 g", substring = true)
+        rule.onNodeWithTag("add_food_label_row_sugars").assertTextContains("4,1 g", substring = true)
+        rule.onNodeWithTag("add_food_label_row_salt").assertTextContains("0,5 g", substring = true)
+        rule.onNodeWithTag("add_food_label_row_vitamin_c").assertTextContains("Vitamina C", substring = true)
+        rule.onNodeWithTag("add_food_label_row_vitamin_c").assertTextContains("12 mg", substring = true)
+        rule.onNodeWithTag("add_food_label_row_vitamin_b9").assertTextContains("80 µg", substring = true)
+        rule.onNodeWithTag("add_food_label_row_zinc").assertTextContains("0,25 mg", substring = true)
     }
 
     @Test
-    fun nutrientTheProductDoesNotProvide_hasNoRow() {
+    fun drink_showsThePer100mlBasis() {
+        show(sheet(food("milk", "Leche", baseUnit = "ml"), shown(item(MicronutrientKind.Calcium, 120.0))))
+
+        rule.onNodeWithTag("add_food_label_basis").assertTextEquals("Por 100 ml")
+    }
+
+    @Test
+    fun nutrientTheFoodDoesNotHave_hasNoRow() {
         show(sheet(yogurt, shown(item(MicronutrientKind.Fiber, 2.5))))
 
-        rule.onNodeWithTag("add_food_micronutrient_sugars").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
+        rule.onNodeWithTag("add_food_label_row_sugars").assertDoesNotExist()
     }
 
     @Test
-    fun foodWithoutData_hasNoSectionAndNoHeading() {
-        show(sheet(yogurt, MicronutrientsState.Hidden))
+    fun foodWithoutExtras_hasNoToggle() {
+        show(sheet(yogurt, shown(item(MicronutrientKind.Fiber, 1.0), item(MicronutrientKind.Salt, 1.0))))
 
-        rule.onNodeWithTag("add_food_micronutrients").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_micronutrients_title").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_toggle").assertDoesNotExist()
     }
 
     @Test
-    fun whileLoading_nothingIsShown() {
+    fun whileLoading_theMacroRowsAreShownAndNoExtras() {
         show(sheet(yogurt, MicronutrientsState.Loading))
 
-        rule.onNodeWithTag("add_food_micronutrients").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_energy").assertExists()
+        rule.onNodeWithTag("add_food_label_toggle").assertDoesNotExist()
     }
 
     @Test
-    fun upToSixRows_haveNoToggle() {
-        show(
-            sheet(
-                yogurt,
-                shown(
-                    item(MicronutrientKind.Fiber, 1.0),
-                    item(MicronutrientKind.Sugars, 1.0),
-                    item(MicronutrientKind.SaturatedFat, 1.0),
-                    item(MicronutrientKind.Salt, 1.0),
-                    item(MicronutrientKind.Sodium, 1.0),
-                    item(MicronutrientKind.Iron, 1.0, MicronutrientUnit.MG),
-                ),
-            ),
-        )
+    fun realZeroOfALabelNutrient_isShown() {
+        show(sheet(yogurt, shown(item(MicronutrientKind.Sugars, 0.0))))
 
-        rule.onNodeWithTag("add_food_micronutrient_iron").assertExists()
-        rule.onNodeWithTag("add_food_micronutrients_toggle").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_sugars").assertTextContains("0 g", substring = true)
     }
 
     @Test
-    fun moreThanSixRows_startCollapsedAndTheToggleExpandsAndCollapses() {
+    fun usualRowsAreVisible_theRestSitsBehindTheToggle_whichExpandsAndCollapses() {
         show(sheet(yogurt, ManyRows))
 
-        rule.onNodeWithTag("add_food_micronutrient_vitamin_c").assertExists()
-        rule.onNodeWithTag("add_food_micronutrient_calcium").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_micronutrients_toggle").assertTextEquals("Ver todos (9)")
+        rule.onNodeWithTag("add_food_label_row_salt").assertExists()
+        rule.onNodeWithTag("add_food_label_row_vitamin_c").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_sodium").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_toggle").assertTextEquals("Ver todos (13)")
 
-        rule.onNodeWithTag("add_food_micronutrients_toggle").performClick()
-        rule.waitForIdle()
+        expand()
 
-        rule.onNodeWithTag("add_food_micronutrient_calcium").assertExists()
-        rule.onNodeWithTag("add_food_micronutrient_vitamin_b9").assertExists()
-        rule.onNodeWithTag("add_food_micronutrients_toggle").assertTextEquals("Ver menos")
+        rule.onNodeWithTag("add_food_label_row_calcium").assertExists()
+        rule.onNodeWithTag("add_food_label_row_vitamin_b9").assertExists()
+        rule.onNodeWithTag("add_food_label_toggle").assertTextEquals("Ver menos")
 
-        rule.onNodeWithTag("add_food_micronutrients_toggle").performClick()
-        rule.waitForIdle()
+        expand()
 
-        rule.onNodeWithTag("add_food_micronutrient_calcium").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_calcium").assertDoesNotExist()
+    }
+
+    @Test
+    fun rowsFollowTheLabelOrder_forEveryFood() {
+        show(sheet(yogurt, ManyRows))
+        expand()
+
+        val order = listOf(
+            "energy", "fat", "saturated_fat", "carbs", "sugars", "fiber", "protein", "salt", "sodium",
+            "vitamin_c", "vitamin_b9", "calcium", "iron",
+        )
+        val tops = order.map(::top)
+        assertEquals(tops.sorted(), tops)
+        assertTrue(tops.distinct().size == tops.size)
     }
 }

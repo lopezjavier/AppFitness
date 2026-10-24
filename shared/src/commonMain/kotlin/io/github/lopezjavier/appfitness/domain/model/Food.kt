@@ -25,6 +25,7 @@ data class Food(
     val servingAmount: Double?,
     val portions: List<FoodPortion>,
     val imageUrl: String?,
+    val isManual: Boolean = false,
 )
 
 /** A diary entry to create: [amount] is in the food's base unit and [snapshot] is the nutrition of that amount. */

@@ -80,8 +80,8 @@ class AddFoodSheetLayoutTest {
         )
         show()
 
-        rule.onNodeWithTag("add_food_micronutrient_fiber").assertTextContains("Fibra", substring = true)
-        rule.onNodeWithTag("add_food_micronutrient_sugars").assertTextContains("Azúcares", substring = true)
+        rule.onNodeWithTag("add_food_label_row_fiber").assertTextContains("Fibra", substring = true)
+        rule.onNodeWithTag("add_food_label_row_sugars").assertTextContains("Azúcares", substring = true)
     }
 
     @Test
@@ -89,15 +89,17 @@ class AddFoodSheetLayoutTest {
         foods.micronutrientResults["egg"] = nutrients(MicronutrientKind.Fiber to MicronutrientUnit.G)
         show()
 
-        rule.onNodeWithTag("add_food_micronutrient_fiber").assertExists()
-        rule.onNodeWithTag("add_food_micronutrient_salt").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
+        rule.onNodeWithTag("add_food_label_row_salt").assertDoesNotExist()
     }
 
     @Test
-    fun foodWithoutData_hasNoMicronutrientsSection() {
+    fun foodWithoutData_showsOnlyTheMacroRows() {
         show()
 
-        rule.onNodeWithTag("add_food_micronutrients").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_row_energy").assertExists()
+        rule.onNodeWithTag("add_food_label_row_fiber").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_label_toggle").assertDoesNotExist()
     }
 
     @Test
@@ -114,7 +116,7 @@ class AddFoodSheetLayoutTest {
         foods.micronutrientResults["egg"] = nutrients(MicronutrientKind.Fiber to MicronutrientUnit.G)
         show()
 
-        val card = rule.onNodeWithTag("add_food_micronutrients").getUnclippedBoundsInRoot()
+        val card = rule.onNodeWithTag("add_food_label_nutrients").getUnclippedBoundsInRoot()
         val chips = rule.onNodeWithTag("add_food_portion").getUnclippedBoundsInRoot()
         val amount = rule.onNodeWithTag("add_food_amount").getUnclippedBoundsInRoot()
         assertTrue("cards sit above the chips", card.bottom <= chips.top)

@@ -147,13 +147,22 @@ internal typealias SaveTemplateSlot =
 /** Meals editor content: modifier (full-screen insets) and how to leave. */
 internal typealias MealSlotsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
-/** Create-food form content: modifier, the prefilled barcode and name, and [onSaved] with the new food id. */
+/**
+ * Create-food form content: modifier, the prefilled barcode and name, and [onSaved] with the food id. With
+ * `editFoodId` it is the edit form of that manual food instead (barcode and name are null).
+ */
 internal typealias CreateFoodSlot =
-    @Composable (modifier: Modifier, barcode: String?, name: String?, onSaved: (String) -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        barcode: String?,
+        name: String?,
+        editFoodId: String?,
+        onSaved: (String) -> Unit,
+    ) -> Unit
 
 /**
  * Add-food sheet content for a food, the meal tapped in the Diary (or null) and the ISO day; [onAdded] runs once the
- * entry is logged and [onDismiss] when the sheet is dismissed.
+ * entry is logged, [onDismiss] when the sheet is dismissed and [onEdit] when "Editar" (manual foods) is tapped.
  */
 internal typealias AddFoodSlot =
     @Composable (
@@ -162,6 +171,7 @@ internal typealias AddFoodSlot =
         date: String,
         onAdded: () -> Unit,
         onDismiss: () -> Unit,
+        onEdit: () -> Unit,
     ) -> Unit
 
 /**
@@ -318,7 +328,7 @@ internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, 
 }
 
 /** Empty create-food form for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _ ->
+internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("create_food_screen"))
 }
 
@@ -328,7 +338,7 @@ internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _ ->
 }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _ -> }
+internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _, _ -> }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultEditEntrySlot: EditEntrySlot = { _, _, _, _, _ -> }
@@ -630,10 +640,20 @@ private fun NavGraphBuilder.foodDestinations(
     }
     composable<CreateFoodRoute> { entry ->
         val route = entry.toRoute<CreateFoodRoute>()
-        createFood(Modifier.padding(fullScreenPadding), route.barcode, route.name) { foodId ->
+        createFood(Modifier.padding(fullScreenPadding), route.barcode, route.name, null) { foodId ->
             // The form is replaced by the sheet: "Añadir" then pops back to the Diary like the normal flow.
             navController.navigate(AddFoodRoute(foodId, route.slotId, route.date)) {
                 popUpTo<CreateFoodRoute> { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+    composable<EditFoodRoute> { entry ->
+        val route = entry.toRoute<EditFoodRoute>()
+        createFood(Modifier.padding(fullScreenPadding), null, null, route.foodId) { foodId ->
+            // The sheet was closed when the form opened: reopen it on the saved food (it reads the new values).
+            navController.navigate(AddFoodRoute(foodId, route.slotId, route.date)) {
+                popUpTo<EditFoodRoute> { inclusive = true }
                 launchSingleTop = true
             }
         }
@@ -646,6 +666,10 @@ private fun NavGraphBuilder.foodDestinations(
             route.date,
             { navController.popToDiary() },
             { navController.popBackStack() },
+            {
+                val edit = EditFoodRoute(route.foodId, route.slotId, route.date)
+                navController.navigate(edit) { launchSingleTop = true }
+            },
         )
     }
 }

@@ -94,8 +94,61 @@ class NewFoodValidationTest {
 
     @Test
     fun typedMicronutrients_zeroAndMaximumAreValid() {
-        val errors = NewFoodValidation.validate(food().copy(micronutrients = NewMicronutrients(0.0, 9999.99, 2.5, 0.4)))
-        assertTrue(errors.isValid)
+        val values = mapOf(
+            MicronutrientKind.SaturatedFat to 0.0,
+            MicronutrientKind.Sugars to 9999.99,
+            MicronutrientKind.Fiber to 2.5,
+        )
+        assertTrue(NewFoodValidation.validate(food().copy(micronutrients = NewMicronutrients(values))).isValid)
+    }
+
+    @Test
+    fun everyEditableKindIsValidatedInItsLabelUnit() {
+        MicronutrientKind.editableKinds.forEach { kind ->
+            val ok = NewMicronutrients(mapOf(kind to 5.0))
+            assertTrue(NewFoodValidation.validate(food().copy(micronutrients = ok)).isValid, kind.name)
+            val bad = NewMicronutrients(mapOf(kind to -1.0))
+            val errors = NewFoodValidation.validate(food().copy(micronutrients = bad))
+            assertEquals(NewFoodError.Negative, errors.nutrients[kind])
+        }
+    }
+
+    @Test
+    fun theLimitAppliesToTheGramsAfterUnitConversion() {
+        val big = NewMicronutrients(mapOf(MicronutrientKind.Selenium to 9_999_990.0))
+        assertTrue(NewFoodValidation.validate(food().copy(micronutrients = big)).isValid)
+        val tooBig = NewMicronutrients(mapOf(MicronutrientKind.Selenium to 1e10))
+        assertEquals(
+            NewFoodError.TooLarge,
+            NewFoodValidation.validate(food().copy(micronutrients = tooBig)).nutrients[MicronutrientKind.Selenium],
+        )
+    }
+
+    @Test
+    fun labelUnitsConvertToGrams() {
+        assertEquals(0.001, MicronutrientUnit.MG.toGrams(1.0))
+        assertEquals(0.000001, MicronutrientUnit.UG.toGrams(1.0))
+        assertEquals(2.5, MicronutrientUnit.G.toGrams(2.5))
+        assertEquals(1500.0, MicronutrientUnit.MG.fromGrams(1.5))
+        assertEquals(MicronutrientUnit.UG, MicronutrientKind.VitaminB12.labelUnit)
+        assertEquals(MicronutrientUnit.MG, MicronutrientKind.VitaminC.labelUnit)
+    }
+
+    @Test
+    fun updatedFoodSharesTheRules() {
+        val updated = UpdatedFood(
+            id = "f1",
+            name = " ",
+            brand = null,
+            nutrition = NutritionPer100(-1.0, 0.0, 0.0, 0.0),
+            portions = listOf(NewPortion("", 1.0)),
+            micronutrients = NewMicronutrients(mapOf(MicronutrientKind.VitaminC to -2.0)),
+        )
+        val errors = NewFoodValidation.validate(updated)
+        assertEquals(NewFoodError.Required, errors.name)
+        assertEquals(NewFoodError.Negative, errors.kcal)
+        assertEquals(mapOf(0 to PortionError.LabelInvalid), errors.portions)
+        assertEquals(NewFoodError.Negative, errors.nutrients[MicronutrientKind.VitaminC])
     }
 
     @Test
@@ -103,17 +156,23 @@ class NewFoodValidationTest {
         val errors = NewFoodValidation.validate(
             food().copy(
                 micronutrients = NewMicronutrients(
-                    saturatedFat = -0.1,
-                    sugars = Double.NaN,
-                    fiber = 10000.0,
-                    salt = null,
+                    mapOf(
+                        MicronutrientKind.SaturatedFat to -0.1,
+                        MicronutrientKind.Sugars to Double.NaN,
+                        MicronutrientKind.Fiber to 10000.0,
+                        MicronutrientKind.Salt to 0.4,
+                    ),
                 ),
             ),
         )
-        assertEquals(NewFoodError.Negative, errors.saturatedFat)
-        assertEquals(NewFoodError.NotANumber, errors.sugars)
-        assertEquals(NewFoodError.TooLarge, errors.fiber)
-        assertNull(errors.salt)
+        assertEquals(
+            mapOf(
+                MicronutrientKind.SaturatedFat to NewFoodError.Negative,
+                MicronutrientKind.Sugars to NewFoodError.NotANumber,
+                MicronutrientKind.Fiber to NewFoodError.TooLarge,
+            ),
+            errors.nutrients,
+        )
         assertEquals(false, errors.isValid)
     }
 
