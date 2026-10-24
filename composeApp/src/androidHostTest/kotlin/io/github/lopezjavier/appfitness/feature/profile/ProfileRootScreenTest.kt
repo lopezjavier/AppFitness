@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.junit.Assert.assertEquals
@@ -49,7 +51,8 @@ class ProfileRootScreenTest {
         avatarUrl: String? = null,
         isOnline: Boolean = true,
         isDeleting: Boolean = false,
-    ) = ProfileRootUiState.Loaded(name, avatarUrl, isOnline, isDeleting)
+        protection: AccountProtection = AccountProtection.Unprotected,
+    ) = ProfileRootUiState.Loaded(name, avatarUrl, isOnline, isDeleting, protection)
 
     private fun show(
         state: ProfileRootUiState = loaded(),
@@ -335,6 +338,38 @@ class ProfileRootScreenTest {
                 hasAnyAncestor(hasTestTag("profile_root_delete_account")),
             useUnmergedTree = true,
         ).assertExists()
+    }
+
+    @Test
+    fun protectedAccount_disablesDelete_andShowsTheNote_andOpensNoDialog() {
+        show(loaded(protection = AccountProtection.Protected))
+        rule.onNodeWithTag("profile_root_delete_account").assertIsNotEnabled().performClick()
+        rule.onNodeWithTag("profile_root_delete_protected_note").assertTextEquals("Esta cuenta está protegida")
+        rule.onNodeWithTag("profile_root_delete_account_dialog").assertDoesNotExist()
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun protectedAccount_readsTheButtonAndTheNoteTogether() {
+        show(loaded(protection = AccountProtection.Protected))
+        rule.onNodeWithTag("profile_root_delete_account").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Esta cuenta está protegida"),
+        )
+    }
+
+    @Test
+    fun unprotectedAccount_showsNoNote_andDeleteIsEnabled() {
+        show(loaded(protection = AccountProtection.Unprotected))
+        rule.onNodeWithTag("profile_root_delete_protected_note").assertDoesNotExist()
+        rule.onNodeWithTag("profile_root_delete_account").assertIsEnabled()
+    }
+
+    @Test
+    fun unknownProtection_disablesDelete_withoutNoteOrError() {
+        show(loaded(protection = AccountProtection.Unknown))
+        rule.onNodeWithTag("profile_root_delete_account").assertIsNotEnabled()
+        rule.onNodeWithTag("profile_root_delete_protected_note").assertDoesNotExist()
+        rule.onNodeWithText("No se pudo borrar la cuenta. Inténtalo de nuevo").assertDoesNotExist()
     }
 
     @Test

@@ -13,7 +13,11 @@ type Fake = {
 
 /** Fake auth backend: only "good-token" resolves, to TOKEN_USER. */
 function fake(
-    opts: { deleteResult?: "deleted" | "not_found" | Error } = {},
+    opts: {
+        deleteResult?: "deleted" | "not_found" | Error;
+        email?: string | null;
+        secret?: string;
+    } = {},
 ): Fake {
     const resolved: string[] = [];
     const deleted: string[] = [];
@@ -21,12 +25,15 @@ function fake(
         resolved,
         deleted,
         deps: {
-            getUserId: (token) => {
+            getUser: (token) => {
                 resolved.push(token);
                 return Promise.resolve(
-                    token === "good-token" ? TOKEN_USER : null,
+                    token === "good-token"
+                        ? { id: TOKEN_USER, email: opts.email ?? null }
+                        : null,
                 );
             },
+            protectedEmails: () => opts.secret,
             deleteUser: (id) => {
                 deleted.push(id);
                 const r = opts.deleteResult ?? "deleted";
@@ -124,4 +131,48 @@ Deno.test("POST with a failing delete returns 500 delete_failed without leaking 
     assert(logged.length > 0);
     assertFalse(logged.join(" ").includes("secret"));
     assertFalse(logged.join(" ").includes(TOKEN_USER));
+});
+
+const PROTECTED_CASES: [string, string, string][] = [
+    ["exact email", "me@x.com", "me@x.com"],
+    ["different case in the token email", "ME@X.com", "me@x.com"],
+    ["different case in the secret", "me@x.com", "Me@X.COM"],
+    ["among several with spaces", "me@x.com", "a@y.com , ME@x.com , b@z.com"],
+];
+
+for (const [name, email, secret] of PROTECTED_CASES) {
+    Deno.test(`POST for a protected account (${name}) returns 403 account_protected and deletes nothing`, async () => {
+        const f = fake({ email, secret });
+        const res = await createDeleteAccountHandler(f.deps)(post(AUTH));
+        assertEquals(res.status, 403);
+        assertEquals((await res.json()).error.code, "account_protected");
+        assertEquals(f.deleted, []);
+    });
+}
+
+const UNPROTECTED_CASES: [string, string | null, string | undefined][] = [
+    ["email not listed", "me@x.com", "a@y.com,b@z.com"],
+    ["secret undefined", "me@x.com", undefined],
+    ["secret empty", "me@x.com", ""],
+    ["secret only commas", "me@x.com", ",, ,"],
+    ["user without email", null, "me@x.com"],
+];
+
+for (const [name, email, secret] of UNPROTECTED_CASES) {
+    Deno.test(`POST deletes when unprotected (${name})`, async () => {
+        const f = fake({ email, secret });
+        const res = await createDeleteAccountHandler(f.deps)(post(AUTH));
+        await res.body?.cancel();
+        assertEquals(res.status, 200);
+        assertEquals(f.deleted, [TOKEN_USER]);
+    });
+}
+
+Deno.test("invalid token with a protected secret still returns 401, not 403", async () => {
+    const f = fake({ email: "me@x.com", secret: "me@x.com" });
+    const res = await createDeleteAccountHandler(f.deps)(
+        post({ authorization: "Bearer bad-token" }),
+    );
+    await res.body?.cancel();
+    assertEquals(res.status, 401);
 });

@@ -66,6 +66,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -239,6 +240,7 @@ val sharedModule =
         factory { CompleteOnboarding(get(), get()) }
         factory { SavePreferences(get()) }
         factory { DeleteAccount(get(), get()) }
+        factory { GetAccountProtection(get()) }
         factory { LoadExerciseCatalog(get(), get()) }
         factory { SearchExercises() }
         factory { ValidateBodyMeasurement() }

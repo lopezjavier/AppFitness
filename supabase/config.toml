@@ -404,6 +404,9 @@ verify_jwt = false
 [functions.delete-account]
 verify_jwt = true
 
+[functions.account-status]
+verify_jwt = true
+
 [functions.food-search]
 verify_jwt = true
 

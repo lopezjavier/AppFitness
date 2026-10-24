@@ -77,4 +77,51 @@ class SupabaseAccountRepositoryTest {
 
         assertEquals(DeleteAccountOutcome.NoNetwork, repo.deleteAccount())
     }
+
+    @Test
+    fun status403_isProtected() = runTest {
+        val repo = repository { HttpStatusCode.Forbidden to """{"error":{"code":"account_protected"}}""" }
+
+        assertEquals(DeleteAccountOutcome.Protected, repo.deleteAccount())
+    }
+
+    @Test
+    fun isProtected_true_getsAccountStatusWithTheUserJwt() = runTest {
+        val repo = repository { HttpStatusCode.OK to """{"protected":true}""" }
+
+        assertEquals(true, repo.isProtected().getOrNull())
+
+        val request = requests.last()
+        assertEquals(HttpMethod.Get, request.method)
+        assertTrue(request.url.encodedPath.endsWith("/functions/v1/account-status"), request.url.toString())
+        assertEquals("Bearer access", request.headers[HttpHeaders.Authorization])
+    }
+
+    @Test
+    fun isProtected_false() = runTest {
+        val repo = repository { HttpStatusCode.OK to """{"protected":false}""" }
+
+        assertEquals(false, repo.isProtected().getOrNull())
+    }
+
+    @Test
+    fun isProtected_serverError_isFailure() = runTest {
+        val repo = repository { HttpStatusCode.InternalServerError to """{"error":{"code":"x"}}""" }
+
+        assertTrue(repo.isProtected().isFailure)
+    }
+
+    @Test
+    fun isProtected_networkError_isFailure() = runTest {
+        val repo = repository { throw IOException("offline") }
+
+        assertTrue(repo.isProtected().isFailure)
+    }
+
+    @Test
+    fun isProtected_malformedBody_isFailure() = runTest {
+        val repo = repository { HttpStatusCode.OK to """not json""" }
+
+        assertTrue(repo.isProtected().isFailure)
+    }
 }

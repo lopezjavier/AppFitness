@@ -112,6 +112,8 @@ class UnconfiguredNutritionGoalsRepository : NutritionGoalsRepository {
 /** Account counterpart of [UnconfiguredAuthRepository]: there is no server to delete from. */
 class UnconfiguredAccountRepository : AccountRepository {
     override suspend fun deleteAccount(): DeleteAccountOutcome = DeleteAccountOutcome.Failed
+
+    override suspend fun isProtected(): Result<Boolean> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Exercise counterpart of [UnconfiguredAuthRepository]: there is no catalog to read. */

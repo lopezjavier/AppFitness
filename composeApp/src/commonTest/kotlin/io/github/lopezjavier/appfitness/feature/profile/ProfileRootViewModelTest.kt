@@ -7,10 +7,12 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import io.github.lopezjavier.appfitness.domain.model.AuthState
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,6 +54,7 @@ class ProfileRootViewModelTest {
         profileRepository = profile,
         authRepository = auth,
         deleteAccount = DeleteAccount(account, auth),
+        getAccountProtection = GetAccountProtection(account),
         connectivity = connectivity,
     )
 
@@ -184,6 +187,96 @@ class ProfileRootViewModelTest {
         advanceUntilIdle()
 
         assertEquals(0, account.calls)
+    }
+
+    @Test
+    fun protectedAccount_cannotBeDeleted_andTheRequestIsIgnored() = runTest {
+        account.protection = Result.success(true)
+        val (viewModel, state) = loaded()
+
+        assertEquals(AccountProtection.Protected, state().protection)
+        assertFalse(state().canDelete)
+        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(0, account.calls)
+    }
+
+    @Test
+    fun unprotectedAccount_online_canBeDeleted() = runTest {
+        val (_, state) = loaded()
+
+        assertEquals(AccountProtection.Unprotected, state().protection)
+        assertTrue(state().canDelete)
+    }
+
+    @Test
+    fun failedProtectionCheck_isUnknown_andDeleteStaysDisabled() = runTest {
+        account.protection = Result.failure(AppException(AppError.Network))
+        val (viewModel, state) = loaded()
+
+        assertEquals(AccountProtection.Unknown, state().protection)
+        assertFalse(state().canDelete)
+        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
+        advanceUntilIdle()
+        assertEquals(0, account.calls)
+    }
+
+    @Test
+    fun unknownProtection_isCheckedAgainWhenConnectivityReturns() = runTest {
+        account.protection = Result.failure(AppException(AppError.Network))
+        val (_, state) = loaded()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        account.protection = Result.success(false)
+        connectivity.state.value = true
+        advanceUntilIdle()
+
+        assertEquals(AccountProtection.Unprotected, state().protection)
+        assertTrue(state().canDelete)
+    }
+
+    @Test
+    fun knownProtection_isNotCheckedAgainWhenConnectivityReturns() = runTest {
+        val (_, _) = loaded()
+        val checks = account.protectionChecks
+        connectivity.state.value = false
+        advanceUntilIdle()
+        connectivity.state.value = true
+        advanceUntilIdle()
+
+        assertEquals(checks, account.protectionChecks)
+    }
+
+    @Test
+    fun protectedOutcome_marksTheAccountProtected_withoutAnErrorEffect() = runTest {
+        account.outcome = DeleteAccountOutcome.Protected
+        val (viewModel, state) = loaded()
+
+        viewModel.effects.test {
+            viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+
+        assertEquals(AccountProtection.Protected, state().protection)
+        assertFalse(state().isDeleting)
+        assertFalse(state().canDelete)
+        assertEquals(0, auth.signOutCalls)
+    }
+
+    @Test
+    fun recreatedViewModel_recomputesProtection_andReplaysNoEffect() = runTest {
+        account.protection = Result.failure(AppException(AppError.Network))
+        val (_, firstState) = loaded()
+        assertEquals(AccountProtection.Unknown, firstState().protection)
+
+        account.protection = Result.success(true)
+        val (recreated, state) = loaded()
+
+        assertEquals(AccountProtection.Protected, state().protection)
+        recreated.effects.test { expectNoEvents() }
     }
 
     @Test

@@ -15,6 +15,8 @@ import kotlin.test.assertEquals
 class DeleteAccountTest {
     private class Account(var outcome: DeleteAccountOutcome) : AccountRepository {
         override suspend fun deleteAccount() = outcome
+
+        override suspend fun isProtected(): Result<Boolean> = Result.success(false)
     }
 
     private class Auth : AuthRepository {
@@ -42,7 +44,11 @@ class DeleteAccountTest {
 
     @Test
     fun anyOtherOutcome_keepsTheSession() = runTest {
-        for (failure in listOf(DeleteAccountOutcome.NoNetwork, DeleteAccountOutcome.Failed)) {
+        for (failure in listOf(
+            DeleteAccountOutcome.NoNetwork,
+            DeleteAccountOutcome.Failed,
+            DeleteAccountOutcome.Protected,
+        )) {
             val auth = Auth()
 
             val outcome = DeleteAccount(Account(failure), auth)()

@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
 
-**Next:** T-097l (protected accounts), then re-present Checkpoint E6-A. Last merged: T-097k (2026-10-24). E5 closed (tag `v0.5.0`).
+**Next:** re-present Checkpoint E6-A (open 👤 gate; after T-097l, set `PROTECTED_EMAILS` secret). Last merged: T-097l (2026-10-24). E5 closed (tag `v0.5.0`).
 
 ---
 
@@ -2583,11 +2583,11 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 **Description:** The user has a testing account and a personal one and fears deleting the personal one. `delete-account` returns 403 `account_protected` when the caller's email is in the Edge Function secret `PROTECTED_EMAILS` (comma-separated, case-insensitive; never in the repo). Profile shows "Borrar cuenta" disabled with "Esta cuenta está protegida" for a protected account. Permanent: no unlock in the app.
 
 **Acceptance criteria:**
-- [ ] Deno tests: protected email (any case, among several) → 403 and the user is not deleted; unprotected or empty/missing secret → deleted as before.
-- [ ] Host tests: a protected account shows the disabled button and the note; an unprotected one deletes as before; a 403 never shows a generic error.
+- [x] Deno tests: protected email (any case, among several) → 403 and the user is not deleted; unprotected or empty/missing secret → deleted as before.
+- [x] Host tests: a protected account shows the disabled button and the note; an unprotected one deletes as before; a 403 never shows a generic error.
 - [ ] 👤 After the merge: `npx supabase secrets set PROTECTED_EMAILS="<personal email>"` (the PM only verifies the name exists).
 
-**Status:** pending.
+**Status:** done (2026-10-24).
 
 **Dependencies:** T-097k · **Estimated scope:** S
 

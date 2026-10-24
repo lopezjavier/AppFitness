@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_erro
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_account_protected
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
@@ -64,6 +66,7 @@ import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.jetbrains.compose.resources.stringResource
@@ -330,16 +333,30 @@ private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
             tone = GhostTone.Neutral,
         )
         if (state is ProfileRootUiState.Loaded) {
+            val protectedNote = stringResource(Res.string.profile_account_protected)
+            val isProtected = state.protection == AccountProtection.Protected
             GhostButton(
                 text = stringResource(
                     if (state.isDeleting) Res.string.profile_deleting_account else Res.string.profile_delete_account,
                 ),
                 onClick = actions.onDelete,
-                modifier = Modifier.fillMaxWidth().testTag("profile_root_delete_account"),
+                modifier = Modifier.fillMaxWidth()
+                    .semantics { if (isProtected) stateDescription = protectedNote }
+                    .testTag("profile_root_delete_account"),
                 enabled = state.canDelete,
                 tone = GhostTone.Destructive,
                 loading = state.isDeleting,
             )
+            if (isProtected) {
+                // The button also announces this text as its state, so TalkBack users get it with the button.
+                Text(
+                    text = protectedNote,
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().testTag("profile_root_delete_protected_note"),
+                )
+            }
         }
     }
 }
