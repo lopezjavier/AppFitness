@@ -25,7 +25,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
-import androidx.compose.ui.unit.width
 import androidx.lifecycle.SavedStateHandle
 import coil3.ColorImage
 import coil3.ImageLoader
@@ -402,8 +401,8 @@ class RoutineBuilderScreenTest {
         listOf("decrement", "increment").forEach {
             val button = rule.onNodeWithTag("routine_builder_rest_0_$it")
             button.assertIsDisplayed()
-            val bounds = button.getUnclippedBoundsInRoot()
-            assertTrue(bounds.width >= 48.dp && bounds.height >= 48.dp)
+            // The *AtLeast asserts tolerate the sub-pixel rounding of a fractional layout position.
+            button.assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         }
     }
 

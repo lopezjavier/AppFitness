@@ -75,6 +75,8 @@ sealed interface RoutineBuilderUiState {
         val calculator: CalculatorUiState? = null,
         /** True when inserting the calculator's warm-ups would exceed the sets cap (the action is disabled). */
         val warmUpBlockedByCap: Boolean = false,
+        /** The "Actualizar automáticamente" switch (a draft until "Guardar"). */
+        val autoUpdateRoutine: Boolean = false,
     ) : RoutineBuilderUiState {
         val canSave: Boolean
             get() = name.isNotBlank() && rows.isNotEmpty() && isOnline && !isSaving &&
@@ -84,6 +86,9 @@ sealed interface RoutineBuilderUiState {
 
 sealed interface RoutineBuilderEvent {
     data class SetName(val name: String) : RoutineBuilderEvent
+
+    /** The "Actualizar automáticamente" switch: update the routine from finished sessions without asking. */
+    data class SetAutoUpdate(val enabled: Boolean) : RoutineBuilderEvent
 
     /** The picker returned this exercise: append it with the default 3 x 8, 120 s. */
     data class AddExercise(val exerciseId: String) : RoutineBuilderEvent

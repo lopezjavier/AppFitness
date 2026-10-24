@@ -935,4 +935,58 @@ class RoutineBuilderViewModelTest {
 
         assertNull(draft!!.rows.single().targetRpe)
     }
+
+    @Test
+    fun aNewRoutine_startsWithTrackingOnAndAutoUpdateOff() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Nueva"))
+        vm.add("a")
+
+        assertFalse(vm.form().autoUpdateRoutine)
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(true to false, repository.saved.single().let { it.trackAsRoutine to it.autoUpdateRoutine })
+    }
+
+    @Test
+    fun theAutoUpdateSwitch_togglesMakesTheFormDirtyAndIsSavedWithGuardar() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Nueva"))
+        vm.add("a")
+
+        vm.onEvent(RoutineBuilderEvent.SetAutoUpdate(true))
+
+        assertTrue(vm.form().autoUpdateRoutine)
+        assertTrue(vm.form().isDirty)
+        assertTrue(repository.saved.isEmpty())
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+        assertTrue(repository.saved.single().autoUpdateRoutine)
+    }
+
+    @Test
+    fun anExistingRoutine_loadsItsFlags_andSavingKeepsTracking() = runTest {
+        repository.routines += routineOf("r1", "Torso", "a").copy(trackAsRoutine = false, autoUpdateRoutine = true)
+
+        val vm = builder("r1")
+
+        assertTrue(vm.form().autoUpdateRoutine)
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+        assertEquals(false to true, repository.saved.single().let { it.trackAsRoutine to it.autoUpdateRoutine })
+    }
+
+    @Test
+    fun theSwitchSurvivesRecreationWithoutSaving() = runTest {
+        val state = SavedStateHandle()
+        val vm = builder(savedState = state)
+        vm.add("a")
+        vm.onEvent(RoutineBuilderEvent.SetAutoUpdate(true))
+
+        val recreated = builder(savedState = state)
+
+        assertTrue(recreated.form().autoUpdateRoutine)
+        assertTrue(repository.saved.isEmpty())
+    }
 }

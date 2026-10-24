@@ -41,6 +41,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GhostData
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
 import io.github.lopezjavier.appfitness.domain.usecase.RestTimer
+import io.github.lopezjavier.appfitness.domain.usecase.RoutineChange
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SessionDuration
@@ -49,6 +50,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.Stopwatch
 import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
+import io.github.lopezjavier.appfitness.domain.usecase.routineDiff
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -95,6 +97,7 @@ private const val KEY_PAUSED_TOTAL = "live_paused_total"
 private const val KEY_REST_PAUSED_REMAINING = "live_rest_paused_remaining"
 private const val KEY_REST_PAUSED_TOTAL = "live_rest_paused_total"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
+private const val KEY_UPDATE_SHEET = "live_update_routine_sheet"
 private const val DRAFT_SEPARATOR = ''
 private const val DRAFT_FIELDS = 9
 private const val METRES_PER_KM = 1000.0
@@ -189,6 +192,12 @@ class LiveSessionViewModel(
     /** Rest in seconds per exercise position; positions without an entry use the default. */
     private var rests: MutableMap<Int, Int> = mutableMapOf()
 
+    /** Rests changed in this session (also those saved by an earlier run of the screen), by position. */
+    private var changedRests: MutableMap<Int, Int> = mutableMapOf()
+
+    /** Rest changes the server has not received yet; sent with the queue when online. */
+    private val pendingRests: MutableMap<Int, Int> = mutableMapOf()
+
     /** Planned sets of the session's routine by (position, setIndex); empty when the routine is gone or unread. */
     private var planned: Map<Pair<Int, Int>, PlannedSet> = emptyMap()
 
@@ -221,6 +230,9 @@ class LiveSessionViewModel(
     private var typePicker: TypePickerTarget? = restoredPicker()
     private var rpePicker: RpePickerTarget? = restoredRpePicker()
     private var terminal: LiveSessionUiState? = LiveSessionUiState.Loading
+
+    /** The "Actualizar rutina" sheet saved before the screen was recreated; read before the first publish. */
+    private val restoredSheet: UpdateRoutineSheet? = decodeUpdateRoutineSheet(savedState.get<String>(KEY_UPDATE_SHEET))
 
     /** Volume options (US-32): per-hand exercises (volume x2), latest body weight, whether today is synced. */
     private var perHandIds: Set<String> = emptySet()
@@ -398,6 +410,10 @@ class LiveSessionViewModel(
 
             LiveSessionEvent.DismissCalculator -> updateDialogs { calculatorDraft = null }
 
+            LiveSessionEvent.UpdateRoutine -> updateRoutine()
+
+            LiveSessionEvent.KeepRoutine -> keepRoutine()
+
             LiveSessionEvent.Done -> effectChannel.trySend(LiveSessionEffect.Closed)
         }
     }
@@ -449,7 +465,7 @@ class LiveSessionViewModel(
             repository.getInProgress().fold(
                 onSuccess = { loaded ->
                     if (loaded == null) {
-                        terminal = LiveSessionUiState.NoSession
+                        terminal = restoredSheet?.let { restoreFinished(it) } ?: LiveSessionUiState.NoSession
                     } else {
                         loadNames()
                         loadVolumeOptions()
@@ -498,6 +514,9 @@ class LiveSessionViewModel(
             }
             exercise.position to (planned?.restSeconds ?: RoutineBounds.DEFAULT_REST_SECONDS)
         }.toMutableMap()
+        changedRests = loaded.exerciseRests.filterKeys { key -> loaded.exercises.any { it.position == key } }
+            .toMutableMap()
+        rests.putAll(changedRests)
         planned = buildMap {
             loaded.exercises.forEach { exercise ->
                 val match = routine?.exercises?.firstOrNull {
@@ -618,8 +637,12 @@ class LiveSessionViewModel(
 
     private fun setExerciseRest(position: Int, seconds: Int) {
         if (session?.exercises?.none { it.position == position } != false) return
-        rests[position] = seconds.coerceIn(RoutineBounds.REST_MIN_SECONDS, RoutineBounds.REST_MAX_SECONDS)
+        val value = seconds.coerceIn(RoutineBounds.REST_MIN_SECONDS, RoutineBounds.REST_MAX_SECONDS)
+        rests[position] = value
+        changedRests[position] = value
+        pendingRests[position] = value
         publish()
+        if (online) sync()
     }
 
     private fun editSet(position: Int, setIndex: Int, change: (SetState) -> SetState) {
@@ -966,25 +989,84 @@ class LiveSessionViewModel(
             if (repository.finish(current.id).isFailure) return@launch fail()
             val endedAt = clock.now()
             val finished = current.toWorkoutSession(endedAt)
-            val includeWarmUp = preferences.warmUpIncludedOrDefault()
-            val summary = BuildSessionSummary(
-                finished,
-                endedAt,
-                loadHistory(finished),
-                includeWarmUp,
-                bodyMeasurements.getLatestWeight().getOrNull()?.weightKg,
-                exerciseRepository.perHandIdsOrDefault(),
-                loadRecordHistory(finished),
-            )
+            val sheet = routineUpdateSheet(finished)
             val named = current.exercises.associate { it.position to names[it.exerciseId] }
+            val summary = LiveSummary(buildSummary(finished, endedAt), named)
             busy = false
             finishSheet = null
             restTimer = null
             tickerJob?.cancel()
-            terminal = LiveSessionUiState.Finished(LiveSummary(summary, named))
+            terminal = LiveSessionUiState.Finished(summary, sheet)
             publish()
             clearSavedState()
+            publish()
         }
+    }
+
+    private suspend fun buildSummary(finished: WorkoutSession, endedAt: Instant) = BuildSessionSummary(
+        finished,
+        endedAt,
+        loadHistory(finished),
+        preferences.warmUpIncludedOrDefault(),
+        bodyMeasurements.getLatestWeight().getOrNull()?.weightKg,
+        exerciseRepository.perHandIdsOrDefault(),
+        loadRecordHistory(finished),
+    )
+
+    /**
+     * Compares the finished session with its routine (US-36). Same values, a routine without tracking, a session
+     * without routine or any failed read: nothing to ask. With auto update on the routine is updated here; a failure
+     * is ignored because the session is already saved. Otherwise returns the sheet the user must answer.
+     */
+    @Suppress("ReturnCount") // Each early return is one reason not to ask.
+    private suspend fun routineUpdateSheet(finished: WorkoutSession): UpdateRoutineSheet? {
+        val routine = finished.routineId?.let { routineRepository.get(it).getOrNull() } ?: return null
+        if (!routine.trackAsRoutine) return null
+        val diff = routineDiff(finished, changedRests, routine)
+        if (diff.isSame) return null
+        if (routine.autoUpdateRoutine) {
+            routineRepository.updateFromSession(finished.id)
+            return null
+        }
+        return UpdateRoutineSheet(finished.id, diff.changes.toSummary())
+    }
+
+    private fun List<RoutineChange>.toSummary() = RoutineChangeSummary(
+        setsAdded = count { it is RoutineChange.SetAdded },
+        setsRemoved = count { it is RoutineChange.SetRemoved },
+        setsChanged = count { it is RoutineChange.SetChanged },
+        restsChanged = count { it is RoutineChange.RestChanged },
+        exercisesAdded = count { it is RoutineChange.ExerciseAdded },
+        exercisesRemoved = count { it is RoutineChange.ExerciseRemoved },
+        orderOrSupersetChanged = any { it is RoutineChange.OrderChanged || it is RoutineChange.SupersetChanged },
+    )
+
+    private fun updateRoutine() {
+        val finished = terminal as? LiveSessionUiState.Finished ?: return
+        val sheet = finished.updateRoutineSheet?.takeIf { !it.loading } ?: return
+        terminal = finished.copy(updateRoutineSheet = sheet.copy(loading = true, failed = false))
+        publish()
+        viewModelScope.launch {
+            val failed = routineRepository.updateFromSession(sheet.sessionId).isFailure
+            terminal = finished.copy(updateRoutineSheet = if (failed) sheet.copy(failed = true) else null)
+            publish()
+        }
+    }
+
+    private fun keepRoutine() {
+        val finished = terminal as? LiveSessionUiState.Finished ?: return
+        if (finished.updateRoutineSheet?.loading != false) return
+        terminal = finished.copy(updateRoutineSheet = null)
+        publish()
+    }
+
+    /** Rebuilds the summary of the finished session behind a restored sheet; null when it cannot be read. */
+    private suspend fun restoreFinished(sheet: UpdateRoutineSheet): LiveSessionUiState? {
+        val finished = repository.getSession(sheet.sessionId).getOrNull() ?: return null
+        loadNames()
+        val named = finished.exercises.associate { it.position to names[it.exerciseId] }
+        val summary = LiveSummary(buildSummary(finished, finished.endedAt ?: clock.now()), named)
+        return LiveSessionUiState.Finished(summary, sheet)
     }
 
     private fun confirmDiscard() {
@@ -1075,7 +1157,7 @@ class LiveSessionViewModel(
 
     /** Sends every queued write in order; stops at the first failure. True when the queue is empty afterwards. */
     private suspend fun flushQueue(): Boolean = flushLock.withLock {
-        var allSent = flushDeletions()
+        var allSent = flushDeletions() && flushRests()
         if (allSent) {
             for (write in queue.snapshot()) {
                 if (!send(write)) {
@@ -1086,7 +1168,7 @@ class LiveSessionViewModel(
             }
         }
         unsynced = queuedKeys()
-        allSent && queue.isEmpty && deleteOps.isEmpty()
+        allSent && queue.isEmpty && deleteOps.isEmpty() && pendingRests.isEmpty()
     }
 
     private suspend fun send(write: SetWrite): Boolean = repository.upsertSet(
@@ -1100,6 +1182,17 @@ class LiveSessionViewModel(
         write.setType,
         write.rpe,
     ).isSuccess
+
+    /** Sends the rest changes of the session; false at the first failure (the rest stays pending). */
+    @Suppress("ReturnCount")
+    private suspend fun flushRests(): Boolean {
+        val sessionId = session?.id ?: return true
+        for ((position, seconds) in pendingRests.toList()) {
+            if (repository.setExerciseRest(sessionId, position, seconds).isFailure) return false
+            if (pendingRests[position] == seconds) pendingRests.remove(position)
+        }
+        return true
+    }
 
     /** Sends each pending deletion preceded by the writes frozen with it; false at the first failure. */
     private suspend fun flushDeletions(): Boolean {
@@ -1181,6 +1274,7 @@ class LiveSessionViewModel(
 
     /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
     private fun persistState() {
+        savedState[KEY_UPDATE_SHEET] = (terminal as? LiveSessionUiState.Finished)?.updateRoutineSheet?.encoded()
         savedState[KEY_BODY_WEIGHT_DRAFT] = bodyWeightDraft
         savedState.persistCalculatorDraft(calculatorDraft)
         savedState[KEY_PICKER_POSITION] = typePicker?.position

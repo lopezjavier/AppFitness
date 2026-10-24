@@ -73,6 +73,7 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var startFailure: AppError? = null
     var upsertFailure: AppError? = null
     var finishFailure: AppError? = null
+    var restFailure: AppError? = null
     var discardFailure: AppError? = null
     var historyFailure: AppError? = null
     var history: Map<String, List<ExerciseHistoryPoint>> = emptyMap()
@@ -92,6 +93,9 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     val pauses = mutableListOf<Pair<String, Instant>>()
     val resumes = mutableListOf<Pair<String, Instant>>()
     val deletedSets = mutableListOf<Pair<Int, Int>>()
+
+    /** (position, seconds) of every [setExerciseRest] call, in order. */
+    val restWrites = mutableListOf<Pair<Int, Int>>()
     var pauseFailure: AppError? = null
     var resumeFailure: AppError? = null
     var deleteSetFailure: AppError? = null
@@ -236,6 +240,14 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
                 },
             )
         }
+    }
+
+    override suspend fun setExerciseRest(sessionId: String, exercisePosition: Int, seconds: Int): Result<Unit> {
+        failing(restFailure)?.let { return it }
+        restWrites += exercisePosition to seconds
+        session = session?.takeIf { it.id == sessionId }
+            ?.let { it.copy(exerciseRests = it.exerciseRests + (exercisePosition to seconds)) } ?: session
+        return Result.success(Unit)
     }
 
     override suspend fun finish(sessionId: String): Result<Unit> {

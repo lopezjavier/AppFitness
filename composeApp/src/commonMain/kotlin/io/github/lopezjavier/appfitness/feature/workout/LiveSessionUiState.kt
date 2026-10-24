@@ -73,6 +73,37 @@ data class FinishSheet(val pendingCount: Int)
 /** Result of a finished session, ready to render. [exercises] follow the session order. */
 data class LiveSummary(val summary: SessionSummary, val exerciseNames: Map<Int, String?>)
 
+/**
+ * What the finished session changed in its routine (US-36), as counts for the "Actualizar rutina" sheet. Exercises
+ * and sets are counted per change; [orderOrSupersetChanged] covers order and superseries together.
+ */
+data class RoutineChangeSummary(
+    val setsAdded: Int = 0,
+    val setsRemoved: Int = 0,
+    val setsChanged: Int = 0,
+    val restsChanged: Int = 0,
+    val exercisesAdded: Int = 0,
+    val exercisesRemoved: Int = 0,
+    val orderOrSupersetChanged: Boolean = false,
+) {
+    /** Number of change lines (the order/superset one counts as 1). */
+    val total: Int
+        get() = setsAdded + setsRemoved + setsChanged + restsChanged + exercisesAdded + exercisesRemoved +
+            if (orderOrSupersetChanged) 1 else 0
+}
+
+/**
+ * The "Actualizar rutina" sheet, shown over the summary of a finished session whose values differ from its routine.
+ * [loading] while the update runs; [failed] after a failed attempt (the sheet stays, the buttons work again).
+ * Survives process death (ADR-40): it carries the [sessionId] to reload the finished session from.
+ */
+data class UpdateRoutineSheet(
+    val sessionId: String,
+    val summary: RoutineChangeSummary,
+    val loading: Boolean = false,
+    val failed: Boolean = false,
+)
+
 sealed interface LiveSessionUiState {
     /** Loading the in-progress session. */
     data object Loading : LiveSessionUiState
@@ -131,7 +162,11 @@ sealed interface LiveSessionUiState {
     }
 
     /** The session is finished; the summary stays until [LiveSessionEvent.Done]. */
-    data class Finished(val summary: LiveSummary) : LiveSessionUiState
+    data class Finished(
+        val summary: LiveSummary,
+        /** Non-null while the user must choose between updating the routine and keeping it. */
+        val updateRoutineSheet: UpdateRoutineSheet? = null,
+    ) : LiveSessionUiState
 }
 
 sealed interface LiveSessionEvent {
@@ -198,7 +233,7 @@ sealed interface LiveSessionEvent {
     /** "Omitir" on the rest bar. */
     data object RestSkip : LiveSessionEvent
 
-    /** Rest of the exercise for the following sets of this session only (the routine is not changed). */
+    /** Rest of the exercise for the following sets of this session; saved on the session, not on the routine. */
     data class SetExerciseRest(val position: Int, val seconds: Int) : LiveSessionEvent
 
     /** The screen is visible again: the countdown is recomputed from the clock at once. */
@@ -253,6 +288,12 @@ sealed interface LiveSessionEvent {
 
     /** The calculator was closed (X, back, scrim, swipe, "Cerrar"): nothing is inserted. */
     data object DismissCalculator : LiveSessionEvent
+
+    /** "Actualizar rutina" in the sheet: replaces the routine with the session's completed sets. */
+    data object UpdateRoutine : LiveSessionEvent
+
+    /** "Mantener rutina original" (also scrim, back, swipe): closes the sheet, nothing changes. */
+    data object KeepRoutine : LiveSessionEvent
 
     /** "Listo" on the summary. */
     data object Done : LiveSessionEvent

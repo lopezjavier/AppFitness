@@ -168,8 +168,16 @@ fun LiveSessionScreen(
                 optionSaveFailed,
             )
 
-            is LiveSessionUiState.Finished ->
+            is LiveSessionUiState.Finished -> {
                 SessionSummaryScreen(state.summary, onDone = { onEvent(LiveSessionEvent.Done) })
+                state.updateRoutineSheet?.let { sheet ->
+                    UpdateRoutineBottomSheet(
+                        sheet = sheet,
+                        onUpdate = { onEvent(LiveSessionEvent.UpdateRoutine) },
+                        onKeep = { onEvent(LiveSessionEvent.KeepRoutine) },
+                    )
+                }
+            }
         }
     }
 }
