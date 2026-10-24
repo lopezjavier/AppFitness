@@ -172,7 +172,8 @@ class LiveSessionCalculatorsTest {
 
         val tag = "live_exercise_1_warm_up_calc"
         rule.onNodeWithTag("${tag}_weight_field").assertTextContains("100")
-        rule.onNodeWithTag("${tag}_bar_20").assertIsSelected()
+        rule.onNodeWithTag("${tag}_bar_label").assertTextEquals("Barra 20 kg")
+        rule.onNodeWithTag("${tag}_bar").assertDoesNotExist()
         rule.onNodeWithTag("${tag}_row_0").assertTextContains("60 kg × 3")
         rule.onNodeWithTag("${tag}_row_1").assertDoesNotExist()
     }
@@ -261,7 +262,7 @@ class LiveSessionCalculatorsTest {
         type("live_exercise_1_warm_up_calc_weight_field", "")
 
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_confirm").assertIsNotEnabled()
-        rule.onNodeWithTag("live_exercise_1_warm_up_calc_hint").assertTextEquals("Introduce el peso de trabajo")
+        rule.onNodeWithTag("live_exercise_1_warm_up_calc_hint").assertTextEquals("Introduce el peso objetivo")
     }
 
     @Test
@@ -474,12 +475,10 @@ class LiveSessionCalculatorsTest {
         settle()
         openWarmUp()
         type("live_exercise_1_warm_up_calc_weight_field", "90")
-        tap("live_exercise_1_warm_up_calc_bar_10")
 
         tester.emulateSavedInstanceStateRestore()
         settle()
 
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_weight_field").assertTextContains("90")
-        rule.onNodeWithTag("live_exercise_1_warm_up_calc_bar_10").assertIsSelected()
     }
 }

@@ -66,11 +66,11 @@ class SetRowRpeTest {
     fun withHandler_showsTheLoggedValue() {
         rule.setContent {
             AppTheme {
-                SetRow(empty.copy(rpe = "7,5"), {}, {}, {}, testTagPrefix = "row", onRpeClick = {})
+                SetRow(empty.copy(rpe = "8"), {}, {}, {}, testTagPrefix = "row", onRpeClick = {})
             }
         }
 
-        rule.onNodeWithTag("row_rpe").assertTextEquals("7,5")
+        rule.onNodeWithTag("row_rpe").assertTextEquals("8")
     }
 
     @Test
@@ -115,7 +115,7 @@ class SetRowRpeTest {
                     Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg)) {
                         SetTableHeader(showRpe = true)
                         SetRow(
-                            SetRowValues(1, "85 kg × 8\nRPE 8", "102,25", "123", completed = false, rpe = "7,5"),
+                            SetRowValues(1, "85 kg × 8\nRPE 8", "102,25", "123", completed = false, rpe = "8"),
                             {},
                             {},
                             {},

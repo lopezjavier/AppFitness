@@ -37,33 +37,35 @@ class RpePickerSheetTest {
         rule.onNodeWithTag(RpePickerDefaults.optionTag(value)).fetchSemanticsNode().boundsInRoot.top
 
     @Test
-    fun showsNineOptions_eachAtLeast48DpTall() {
+    fun showsTenWholeOptions_eachAtLeast48DpTall() {
         show()
 
         RpePickerDefaults.Options.forEach {
             rule.onNodeWithTag(RpePickerDefaults.optionTag(it)).assertHeightIsAtLeast(48.dp)
         }
-        assertEquals(9, RpePickerDefaults.Options.size)
-        assertEquals("rpe_picker_option_7_5", RpePickerDefaults.optionTag(7.5))
+        assertEquals(10, RpePickerDefaults.Options.size)
+        assertEquals("rpe_picker_option_8", RpePickerDefaults.optionTag(7.5))
+        assertEquals("rpe_picker_option_1", RpePickerDefaults.optionTag(1.0))
         assertEquals("rpe_picker_option_10", RpePickerDefaults.optionTag(10.0))
     }
 
     @Test
-    fun optionsAreListedFromTenAtTheTopDownToSix() {
+    fun optionsAreListedFromTenAtTheTopDownToOne() {
         show()
 
-        assertEquals((10 downTo 6).map { it.toDouble() }, RpePickerDefaults.Options.filter { it % 1.0 == 0.0 })
+        assertEquals((10 downTo 1).map { it.toDouble() }, RpePickerDefaults.Options)
         assertTrue(top(10.0) < top(8.0))
         assertTrue(top(8.0) < top(6.0))
+        assertTrue(top(6.0) < top(1.0))
     }
 
     @Test
     fun tappingAnOption_reportsItOnce_withoutGuardarOrQuitarNodes() {
         show()
 
-        rule.onNodeWithTag("rpe_picker_option_7_5").performClick()
+        rule.onNodeWithTag("rpe_picker_option_7").performClick()
 
-        assertEquals(listOf(7.5), reported)
+        assertEquals(listOf(7.0), reported)
         rule.onNodeWithTag("rpe_picker_done").assertDoesNotExist()
         rule.onNodeWithTag("rpe_picker_clear").assertDoesNotExist()
     }
@@ -73,7 +75,7 @@ class RpePickerSheetTest {
         show(current = 8.0)
 
         rule.onNodeWithTag("rpe_picker_option_8").assertIsSelected()
-        rule.onNodeWithTag("rpe_picker_option_8_5").assertIsNotSelected()
+        rule.onNodeWithTag("rpe_picker_option_9").assertIsNotSelected()
     }
 
     @Test

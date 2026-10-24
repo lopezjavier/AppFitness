@@ -31,15 +31,15 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Choices and tags of the RPE picker. */
 object RpePickerDefaults {
-    /** The nine options in display order: 10 (hardest) at the top down to 6. */
+    /** The ten options in display order: 10 (hardest) at the top down to 1. */
     val Options: List<Double> = RpeScale.values.reversed()
 
-    /** "rpe_picker_option_7_5" for 7.5 and "rpe_picker_option_10" for 10. */
-    fun optionTag(value: Double): String = "rpe_picker_option_" + RpeScale.text(value).replace(',', '_')
+    /** "rpe_picker_option_8" for 8 and "rpe_picker_option_10" for 10 (whole numbers only). */
+    fun optionTag(value: Double): String = "rpe_picker_option_" + RpeScale.text(value)
 }
 
 /**
- * Bottom sheet to choose the RPE (6 to 10 in half points) of set [setNumber] (single choice, ADR-55): a tap reports
+ * Bottom sheet to choose the RPE (whole numbers 1 to 10) of set [setNumber] (single choice, ADR-55): a tap reports
  * the value through [onSelect] and the caller applies it and closes the sheet. The close button, back, scrim and a
  * swipe call [onDismiss] without changing anything. [completesSet] shows the hint that picking also completes the set.
  */

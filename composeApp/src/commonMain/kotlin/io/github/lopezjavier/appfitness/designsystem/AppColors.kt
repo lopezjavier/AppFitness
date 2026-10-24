@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 /**
  * Kinetic Dark color tokens (planning/05-design-system.md §2.1-2.3, §4).
@@ -44,15 +45,21 @@ class AppColors(
     val shadowSheet: Color,
     val glowLime: Color,
 ) {
-    /** §2.5 RPE ramp (green = easiest, red = hardest) for a grid value 6 to 10; only used by the RPE picker. */
-    fun rpeScale(value: Double): Color =
-        RpeRamp[((value - RPE_RAMP_MIN) / RPE_RAMP_STEP).toInt().coerceIn(0, RpeRamp.lastIndex)]
+    /**
+     * §2.5 RPE ramp (green = easiest, red = hardest) for a whole value 1 to 10; only used by the RPE picker. The
+     * nine ramp stops are spread over the ten values, interpolating between neighbours (no extra tokens).
+     */
+    fun rpeScale(value: Double): Color {
+        val position = ((value - RPE_RAMP_MIN) / (RPE_RAMP_MAX - RPE_RAMP_MIN)).coerceIn(0.0, 1.0) * RpeRamp.lastIndex
+        val lower = position.toInt().coerceAtMost(RpeRamp.lastIndex - 1)
+        return lerp(RpeRamp[lower], RpeRamp[lower + 1], (position - lower).toFloat())
+    }
 }
 
-private const val RPE_RAMP_MIN = 6.0
-private const val RPE_RAMP_STEP = 0.5
+private const val RPE_RAMP_MIN = 1.0
+private const val RPE_RAMP_MAX = 10.0
 
-/** RPE 6, 6.5, ... 10 (05 §2.5). */
+/** Ramp stops from RPE 1 (green) to RPE 10 (red) (05 §2.5). */
 private val RpeRamp = listOf(
     Color(0xFF22C55E),
     Color(0xFF65D04A),

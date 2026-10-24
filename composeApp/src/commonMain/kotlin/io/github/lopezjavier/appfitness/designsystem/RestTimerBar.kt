@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,6 +33,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_add
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_add_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_cd_seconds
+import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_paused
+import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_paused_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_paused_cd_seconds
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_skip
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_skip_cd
 import org.jetbrains.compose.resources.stringResource
@@ -127,9 +131,11 @@ fun RestTimerBar(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
     testTagPrefix: String? = null,
+    paused: Boolean = false,
+    pausedTestTag: String? = null,
 ) {
     val colors = RestTimerBarDefaults.colors(AppTheme.colors)
-    val spoken = spokenCountdown(remaining)
+    val spoken = spokenCountdown(remaining, paused)
     fun tag(part: String): Modifier = testTagPrefix?.let { Modifier.testTag("${it}_$part") } ?: Modifier
     Box(
         modifier =
@@ -149,8 +155,18 @@ fun RestTimerBar(
                 style = RestTimerBarDefaults.countdownStyle(AppTheme.typography),
                 color = colors.countdown,
                 maxLines = 1,
-                modifier = Modifier.weight(1f).then(tag("countdown")).semantics { contentDescription = spoken },
+                modifier = Modifier.then(tag("countdown")).semantics { contentDescription = spoken },
             )
+            if (paused) {
+                Text(
+                    text = stringResource(Res.string.rest_timer_paused),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    maxLines = 1,
+                    modifier = pausedTestTag?.let { Modifier.testTag(it) } ?: Modifier,
+                )
+            }
+            Spacer(Modifier.weight(1f))
             RestTimerAction(
                 text = stringResource(Res.string.rest_timer_add),
                 contentDescription = stringResource(Res.string.rest_timer_add_cd),
@@ -177,12 +193,14 @@ fun RestTimerBar(
 }
 
 @Composable
-private fun spokenCountdown(remaining: Duration): String {
+private fun spokenCountdown(remaining: Duration, paused: Boolean): String {
     val (minutes, seconds) = RestTimerBarDefaults.spokenParts(remaining)
-    return if (RestTimerBarDefaults.speaksSecondsOnly(remaining)) {
-        stringResource(Res.string.rest_timer_cd_seconds, seconds.toString())
-    } else {
-        stringResource(Res.string.rest_timer_cd, minutes.toString(), seconds.toString())
+    val secondsOnly = RestTimerBarDefaults.speaksSecondsOnly(remaining)
+    return when {
+        secondsOnly && paused -> stringResource(Res.string.rest_timer_paused_cd_seconds, seconds.toString())
+        secondsOnly -> stringResource(Res.string.rest_timer_cd_seconds, seconds.toString())
+        paused -> stringResource(Res.string.rest_timer_paused_cd, minutes.toString(), seconds.toString())
+        else -> stringResource(Res.string.rest_timer_cd, minutes.toString(), seconds.toString())
     }
 }
 

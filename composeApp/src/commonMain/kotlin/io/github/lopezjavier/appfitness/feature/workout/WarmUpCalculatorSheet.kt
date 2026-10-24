@@ -62,8 +62,10 @@ internal fun WarmUpCalculatorSheet(
             stringResource(Res.string.help_warmup_calc_body),
             "warmup_calc_help",
         ),
+        barSelectable = false,
         results = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                BarLabel(tag, calculator)
                 WarmUpSetsStepper(calculator.draft.warmUpSets, actions.onWarmUpSets)
                 WarmUpResults(tag, calculator)
             }

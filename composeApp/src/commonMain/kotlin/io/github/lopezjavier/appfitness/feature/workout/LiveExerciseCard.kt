@@ -23,12 +23,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_add_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
@@ -58,12 +62,20 @@ internal fun LiveExerciseCard(
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
             exercise.targetRpeText?.let {
-                Text(
-                    text = stringResource(Res.string.live_target_rpe, it),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(Res.string.live_target_rpe, it),
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.textSecondary,
+                        modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
+                    )
+                    HelpButton(
+                        contentDescription = stringResource(Res.string.help_rpe_cd),
+                        title = stringResource(Res.string.help_rpe_title),
+                        body = stringResource(Res.string.help_rpe_body),
+                        testTag = "live_target_rpe_help",
+                    )
+                }
             }
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
             SetTableHeader(showRpe = true, fields = fields)
