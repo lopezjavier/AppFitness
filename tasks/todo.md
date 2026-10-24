@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** E7 (UI refinement) breakdown by `epic-planner` in a fresh session; first, the E6 retrospective with the user (`retrospectives/E6.md`, numbers drafted). Last merged: T-102b (PR #186). E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** E7 breakdown by `epic-planner` in a fresh session (E6 retrospective held and recorded in `retrospectives/E6.md`). Last merged: T-102b (PR #186). E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
