@@ -108,3 +108,98 @@ None blocking: Q1–Q8 were answered by the user on 2026-10-22 (`planning/09-ope
 - The "Incluir calentamiento", previous-values and calculator settings live in Preferencias under an "Entrenamiento" block (placement by ux-reviewer).
 - ux-reviewer aligns the set-type labels ("Al fallo" in the Gherkin vs "Fallo" in `03`) and the badge letters, proposes the metric-type labels and per-equipment hints, and words the folder-delete confirmation.
 - E7 US-44 (streaks and weekly check-ins) is not changed by ADR-52; the E7 breakdown confirms it with the user.
+
+---
+
+# T-097h · Disc loader; derived rounding (US-33, ADR-56)
+
+## Goal
+Replace the plate calculator with a disc loader (user picks how many discs of each weight go on one side; total = bar or handle + 2 x sum). Remove "Redondeo de discos" and "Redondeo de mancuernas": rounding is derived as 2 x the smallest available plate for barbells and dumbbells alike. Bar, handle and plates come from Preferencias.
+
+## Gherkin scenarios covered
+`planning/epics/E6-training-depth.md` US-33 still carries the old "Plate calculator" and "Rounding settings" scenarios (and `04` §4.9, `03` training_preferences too): slice 0 rewrites them. Proposed scenarios (UI literals in Spanish):
+- Disc loader: barbell exercise, bar 20 kg, plates 25/15 added once each -> total "100 kg"; "Cargador de discos".
+- Dumbbell: handle 1 kg, one 10 kg disc -> "21 kg".
+- Only enabled plates are offered; no bar selector in the sheet.
+- Derived rounding: smallest enabled plate 0,5 -> warm-up weights round to multiples of 1 kg; with only 1,25 as smallest -> 2,5 kg. No rounding settings in Preferencias.
+- Existing: default warm-up scheme (100 kg, 20 kg bar -> 20x10, 40x5, 60x3, 80x2) still holds.
+
+## Flow type: full UI (+ backend migration)
+
+## Changes
+**Slice 0 (docs, PM/planner PR commit):** `planning/04-business-rules.md` §4.9 (loader rule, derived rounding, drop the "Rounding" bullet and plate greedy), `03-data-model.md` (columns, `save_preferences` signature), E6 epic US-33 Gherkin, `tasks/plan.md` assumptions.
+
+**Slice 1 - backend (kotlin-core / supabase dev):**
+- New migration `supabase/migrations/<ts>_drop_rounding_columns.sql` (later than 20261028100000, never edit merged ones): `alter table public.training_preferences drop column plate_rounding_kg, drop column dumbbell_rounding_kg` (their CHECKs go with them); `drop function public.save_preferences(<the 22-arg signature of 20261028100000>)`, recreate without `p_plate_rounding_kg` / `p_dumbbell_rounding_kg` (20 args: ... `p_bar_weight_kg, p_plate_kg, p_dumbbell_handle_kg`), same body minus those columns/conditions, revoke from public/anon, grant to authenticated. Keep `security invoker`, `search_path = ''`.
+- Callers of the old signature: only the Kotlin DTO (`NutritionGoalsDto.kt`); grep `supabase/` for other uses.
+- pgTAP: update `supabase/tests/training_preferences.test.sql` (columns_are line 37 without the two columns; drop the rounding assertions at lines ~132-205; positional-arg test for the new signature; keep defaults, handle range, plate list checks, cross-user isolation, anon denied; old 22-arg function no longer exists via `hasnt_function`).
+
+**Slice 2 - core (kotlin-core-developer):**
+- `shared/.../domain/model/TrainingPreferences.kt`: remove `plateRoundingKg`, `dumbbellRoundingKg` and their defaults from `TrainingPreferences` and `CalculatorSettings`; add `roundingKg` derived (= 2 x min(plateKg); fallback to 2 x smallest of catalogue if empty) as a property on `CalculatorSettings`/`TrainingPreferences`.
+- `TrainingPreferencesDto.kt` (select list line 48, fields 31-42) and `NutritionGoalsDto.kt` (94-95, 130-131): drop the two fields.
+- `domain/usecase`: new `DiscLoader` (pure): `total(barKg, discsPerSide: Map<Double,Int>) = bar + 2 * sum(kg*count)`; `perSide` sum; helper to format the per-side list. Replace `PlateCalculator` (and `PlateResult`, `perSideText` if unused; `Calculators.kt`) once the UI moves - delete it and `PlateCalculatorTest`. `WarmUpCalculator` unchanged (still takes `roundingKg`).
+- `CalculatorDraft.kt` (composeApp/feature/workout): `CalculatorKind.Plates` becomes `Discs`; draft holds `discs: Map<Double,Int>` (replaces `weightText`/`barKg` for this kind; warm-up keeps `weightText`), `CalculatorUiState` exposes `roundingKg` derived and `totalKg`; bar = Preferencias bar, handle for dumbbells (`barFor` loses the chosen-bar path; `CalculatorBase.forEquipment`). SavedStateHandle persist/restore of the disc counts (encode as string "25:1,15:2" or two arrays); remove `onBar` from `CalculatorActions`, `CalculatorBarChanged` in `LiveSessionEvent` and `RoutineBuilderEvent`, and the matching ViewModel branches (`LiveSessionViewModel` ~393-397, `RoutineBuilderViewModel` ~150-153); add `DiscCountChanged(weightKg, count)` events.
+- `PreferencesDraft`, `PreferencesViewModel` events `SetPlateRounding`/`SetDumbbellRounding`, `CalculatorSettingsEdits.kt` (`withPlateRounding`, `withDumbbellRounding`, `MIN/MAX_ROUNDING_KG` stay only if the handle stepper still uses them) removed.
+- Plates still need at least one enabled (existing rule).
+
+**Slice 3 - UI (compose-ui-developer):**
+- Rename/rewrite `PlateCalculatorSheet.kt` as `DiscLoaderSheet`: title "Cargador de discos"; one row per enabled plate (heaviest first) using the existing `NumberStepper` (design system) with count 0..N, labelled "<kg> kg"; total shown with `AppTheme.typography.headlineMetric` ("Total: 100 kg"); a line "Barra 20 kg" / "Mango: 1 kg" via existing `BarLabel`; pinned `SecondaryButton` "Cerrar". No weight field, no bar selector (frame: new `showWeightField = false` or a separate frame param; `barSelectable` false). Live region on the total for accessibility (as `PlateResults`).
+- `CalculatorSheetFrame` (`CalculatorSheetParts.kt`): callers are `PlateCalculatorSheet`, `WarmUpCalculatorSheet`, routine builder sheets (`RoutineBuilderCalculatorSheets.kt`) and the live `LiveCalculator`; the internal `BarSelector` and `onBar` become unused and are deleted.
+- `PreferencesCalculatorsBlock.kt`: remove the two `RoundingRow`s and their strings; keep handle stepper, bar selector, plate chips; show a read-only hint line "Redondeo: X kg (el doble del disco más pequeño)" with testTag `preferences_derived_rounding`; update `help_rounding_*` text.
+- `strings.xml`: remove `preferences_calc_plate_rounding*`, `preferences_calc_dumbbell_rounding*`, `live_calc_not_exact`, `live_calc_plates_*` if unused; add loader strings; rewrite `help_plate_calc_body` (loader, same discs on both sides) and `help_rounding_body` (derived).
+- Menu label in `ExerciseMenu.kt` and routine builder (`RoutineBuilderRow.kt` `CalculatorMenuRows`): "Calculadora de discos" -> "Cargador de discos" if the product answer is yes (see questions).
+
+## Contracts
+- `training_preferences` after migration: `user_id, warm_up_included, updated_at, previous_values_mode, bar_weight_kg, plate_kg, dumbbell_handle_kg`.
+- `save_preferences(p_display_name, p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct, p_weight_kg, p_measured_at, p_day_start, p_day_end, p_warm_up_included, p_previous_values_mode, p_bar_weight_kg, p_plate_kg, p_dumbbell_handle_kg)`; all trailing ones nullable-defaulted.
+- Domain: `roundingKg = 2 * plateKg.min()`; `DiscLoader.total = barKg + 2 * sum(kg * count)`.
+- Edge cases: plates {25 only} -> rounding 50 kg (warm-up collapses to the bar; accepted, see question 3); the dumbbell warm-up now rounds like barbells (default plates -> 1 kg, was 2 kg).
+
+## Tests
+- Unit (shared): `DiscLoaderTest` (100 kg = 20 bar + 25 + 15 per side; 21 kg = 1 handle + 10; no discs -> bar only; repeated weights 25x2; fractional 1,25 -> 2,5 total step; handle vs bar); `CalculatorSettings.roundingKg` (default plates -> 1,0; without 0,5 and 1 -> 2,0; only 25 -> 50; unordered input); `WarmUpCalculatorTest` examples from `04` §4.9 still green with derived rounding (100 kg -> 20/40/60/80); `TrainingPreferencesDto` / repository tests updated (no rounding fields; request body for `save_preferences` has 20 named params); delete `PlateCalculatorTest`.
+- Unit (composeApp): `CalculatorSheetViewModelTest`, `RoutineBuilderCalculatorsViewModelTest`, `PreferencesViewModelTest` updated: disc counts change total, counts never negative / capped, disabling a plate in Preferencias drops it, bar is never user-selectable, dumbbell uses the handle, Preferencias save sends no rounding.
+- pgTAP: as in slice 1 (RLS/cross-user isolation retained; migration applies on a row that had custom rounding values: row survives with other columns intact).
+- deno: none (no Edge Function).
+- testTags: `<prefix>_disc_loader_sheet`, `<prefix>_disc_loader_total`, `<prefix>_disc_loader_results`, per plate `<prefix>_disc_loader_plate_<kg with _>` (stepper uses `testTagPrefix`), `<prefix>_disc_loader_close`, `<prefix>_disc_loader_help` (existing helper `plate_calc_help` renamed), `<prefix>_disc_loader_bar_label` / `_handle_label`; `preferences_derived_rounding`; remove `preferences_plate_rounding*`, `preferences_dumbbell_rounding*`, `*_plate_calc_bar`.
+- Host (Robolectric, `androidHostTest`): update `LiveSessionCalculatorsTest` and `PreferencesTrainingCardTest`; scenarios: loader total from steppers (barbell and dumbbell), only enabled plates offered, no bar selector, Preferencias without rounding rows and with the derived rounding line, warm-up sheet rounds by the derived value after switching off the 0,5 plate, routine-builder menu opens the loader.
+- Restoration (ADR-40): `StateRestorationTester` host test of the open loader with counts set (live session and routine builder), plus ViewModel recreated from the same `SavedStateHandle` restoring the counts and the position; old saved `live_calc_kind = Plates` / bar key must restore as `Discs` or null without crashing.
+
+## Implementation order
+0. Docs: `04` §4.9, `03`, epic US-33 Gherkin (no code).
+1. Backend: migration + pgTAP; `supabase db reset` + pgTAP green. Deploy order note: the new Kotlin must ship with or after the migration; `deploy-supabase` applies it on merge, and an app calling the 22-arg RPC would fail, so migration and app go in the same PR (1 user, acceptable).
+2. Core: models, DTOs, `DiscLoader`, derived rounding, draft/ViewModels in both screens, Preferencias VM; tests; project builds with the old sheet temporarily adapted or the UI slice in the same PR branch (commits kept green: do step 2 and 3 together if the old `PlateCalculatorSheet` cannot compile without `onBar`).
+3. UI: `DiscLoaderSheet`, frame cleanup, Preferencias block, strings, help texts, catalog entry if any (check `feature/catalog` for the plate sheet); Robolectric + restoration tests; `scripts/check-design-tokens.sh`, detekt/lint green.
+Each step leaves tests green; total estimate M-L (~400 lines), one PR, developers: kotlin-core-developer for 1-2, compose-ui-developer for 3.
+
+## Risks and open questions
+- Callers affected: `LiveSessionViewModel`/`Screen`/`UiState`, `RoutineBuilderViewModel`/`UiState`/`CalculatorSheets`/`Row`, `ExerciseMenu`, `LiveExerciseCard`, `PreferencesDraft/UiState/ViewModel/CalculatorsBlock/CalculatorSettingsEdits`, DTOs, `WarmUpCalculatorSheet` (rounding source and bar selector removal).
+- Production rows: existing rounding values are discarded; users with custom rounding see the derived value (behaviour change intended by ADR-56).
+- Questions not answered by `planning/` (no ADR text on them):
+  1. Initial disc state: empty (bar only) or prefilled with the greedy plates for the exercise's weight (old calculator behaviour)? Proposed default: empty, user loads discs.
+  2. Does the loader only compute the total (read-only, "Cerrar", as today) or can it apply the total to a set / the planned weight? Proposed default: read-only.
+  3. Rounding when the user enables a single large plate (e.g. only 25 -> 50 kg step): accept as written, or enforce a minimum/cap? Proposed default: accept, as ADR-56 states.
+  4. Maximum discs of one weight per side: proposed 10 (stepper bound).
+  5. Rename the menu entry "Calculadora de discos" to "Cargador de discos"? Proposed default: yes (title and menu).
+- None blocking if the proposed defaults are accepted; 1 and 2 are visible-behaviour choices the user may want to confirm.
+
+## UX notes
+**Verdict: PASSED** with conditions (defaults accepted: empty start, read-only + "Cerrar", max 10 per weight per side, menu "Cargador de discos").
+
+Conditions for the developer:
+1. Reuse only: `AppBottomSheet`, `NumberStepper`, `SecondaryButton`, `HelpButton`, `BarLabel`, tokens. No new component, no hardcoded dp/color/font. If the plate row needs a new composable (label + stepper), put it in `designsystem/` as `DiscStepperRow`, not in the screen.
+2. Layout of the sheet (one-handed): header row (title `titleLarge` "Cargador de discos" + `HelpButton`), then the bar/handle line (`BarLabel`), then the plate rows (heaviest first, 12 dp apart, label "<kg> kg" `bodyLarge` left, stepper right; each row >= 48 dp, stepper buttons >= 48 dp). The total (`headlineMetric`, tabular numerals, cyan as a training value) and the "Cerrar" `SecondaryButton` (full width, 52 dp) are pinned at the bottom of the sheet in the thumb zone; only the plate list scrolls (up to ~8 plates must not push the total or "Cerrar" off screen). 16 dp margins, 24 dp between the list and the pinned footer.
+3. Accessibility: each stepper `stateDescription` "<n> discos de <kg> kg por lado" (string resource with plural), decrement/increment `contentDescription` "Quitar disco de <kg> kg" / "Añadir disco de <kg> kg"; decrement disabled at 0, increment disabled at 10 (never negative / above cap). Total is a polite live region with text "Total: 100 kg" and the per-side sum in a secondary `bodyMedium` `textSecondary` line ("Por lado: 40 kg"; AA contrast). Weight decimals use the app's Spanish format (1,25).
+4. Guardar: the loader is a read-only calculator whose counts are a transient draft that is never persisted as data, so no "Guardar" is needed; X/back/scrim/swipe/"Cerrar" all just close (nothing applied, nothing saved). The count draft must still survive recreation (ADR-40, already in plan). Empty state: no enabled plate is impossible (existing rule), so only bar-only total is shown when all counts are 0.
+5. Preferencias: the derived-rounding hint is a static `bodyMedium` `textSecondary` line under the plate chips, inside the "Entrenamiento" block; no button. Keep wording "Redondeo" identical in the hint, help text and warm-up sheet (rule §8 wording).
+6. Wording sweep (§8): rename every "Calculadora de discos" (menu in `ExerciseMenu.kt`, routine builder `CalculatorMenuRows`, help titles, strings, content descriptions, catalog entry, tests) to "Cargador de discos"; grep `strings.xml` and `feature/` for the old text and for "plate"/"discos" literals so none remain. The warm-up calculator keeps its own name.
+7. Tablet (>= 600 dp): the sheet content is capped at `FormContentMaxWidth` (480 dp) and centred; same single column.
+8. Fonts at 130%: plate label and stepper may wrap/stack, never clip the total.
+
+Confirmed testTags (snake_case, `<prefix>` = `live_calc` / `routine_calc` as today):
+- `<prefix>_disc_loader_sheet`, `<prefix>_disc_loader_help` (+ `_sheet`, `_sheet_close` from `HelpButton`)
+- `<prefix>_disc_loader_bar_label` / `<prefix>_disc_loader_handle_label`
+- `<prefix>_disc_loader_plate_<kg_with_underscore>` (row), with `testTagPrefix` of the stepper giving `..._minus` / `..._plus` / `..._value`
+- `<prefix>_disc_loader_per_side`, `<prefix>_disc_loader_total`, `<prefix>_disc_loader_results`
+- `<prefix>_disc_loader_close`
+- `preferences_derived_rounding`
+- Menu rows keep their existing tags (value renamed only if the tag contains "plate_calc": use `*_disc_loader` for new ones).
