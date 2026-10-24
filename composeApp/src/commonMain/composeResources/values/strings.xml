@@ -235,6 +235,7 @@
     <string name="sign_out_dialog_message">Tendrás que volver a entrar con tu cuenta de Google.</string>
     <string name="sign_out_dialog_confirm">Cerrar sesión</string>
     <string name="sign_out_dialog_cancel">Cancelar</string>
+    <string name="profile_account_protected">Esta cuenta está protegida</string>
     <string name="profile_delete_account">Borrar cuenta</string>
     <string name="profile_deleting_account">Borrando…</string>
     <string name="delete_account_error">No se pudo borrar la cuenta. Inténtalo de nuevo</string>

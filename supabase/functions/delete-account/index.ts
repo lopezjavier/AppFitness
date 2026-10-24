@@ -23,11 +23,12 @@ function admin() {
 }
 
 Deno.serve(createDeleteAccountHandler({
-    async getUserId(token) {
+    async getUser(token) {
         const { data, error } = await admin().auth.getUser(token);
         if (error || !data.user) return null;
-        return data.user.id;
+        return { id: data.user.id, email: data.user.email };
     },
+    protectedEmails: () => Deno.env.get("PROTECTED_EMAILS"),
     async deleteUser(userId) {
         const { error } = await admin().auth.admin.deleteUser(userId);
         if (!error) return "deleted";

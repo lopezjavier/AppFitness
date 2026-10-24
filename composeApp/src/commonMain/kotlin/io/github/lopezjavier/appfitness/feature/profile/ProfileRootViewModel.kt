@@ -2,11 +2,13 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -30,9 +32,13 @@ sealed interface ProfileRootUiState {
         val avatarUrl: String?,
         val isOnline: Boolean = true,
         val isDeleting: Boolean = false,
+        val protection: AccountProtection = AccountProtection.Unknown,
     ) : ProfileRootUiState {
-        /** "Borrar cuenta" is enabled while online and no delete is running (ADR-29). */
-        val canDelete: Boolean get() = isOnline && !isDeleting
+        /**
+         * "Borrar cuenta" is enabled while online, no delete is running and the account is known to be unprotected
+         * (ADR-29, ADR-57): an unknown check never enables it.
+         */
+        val canDelete: Boolean get() = isOnline && !isDeleting && protection == AccountProtection.Unprotected
     }
 }
 
@@ -61,6 +67,7 @@ class ProfileRootViewModel(
     private val profileRepository: ProfileRepository,
     private val authRepository: AuthRepository,
     private val deleteAccount: DeleteAccount,
+    private val getAccountProtection: GetAccountProtection,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ProfileRootUiState>(ProfileRootUiState.Loading)
@@ -71,12 +78,20 @@ class ProfileRootViewModel(
 
     private var online = true
     private var work: Job? = null
+    private var protectionWork: Job? = null
 
     init {
         viewModelScope.launch {
             connectivity.isOnline.collect { isOnline ->
+                val regained = isOnline && !online
                 online = isOnline
                 updateLoaded { it.copy(isOnline = isOnline) }
+                val current = _uiState.value
+                if (regained && current is ProfileRootUiState.Loaded &&
+                    current.protection == AccountProtection.Unknown
+                ) {
+                    checkProtection()
+                }
             }
         }
         load()
@@ -96,19 +111,30 @@ class ProfileRootViewModel(
 
     private fun load() {
         work?.cancel()
+        protectionWork?.cancel()
         _uiState.value = ProfileRootUiState.Loading
         work = viewModelScope.launch {
             val profile = profileRepository.getOwnProfile().getOrNull()
-            _uiState.value =
-                if (profile == null) {
-                    ProfileRootUiState.LoadFailed
-                } else {
+            if (profile == null) {
+                _uiState.value = ProfileRootUiState.LoadFailed
+            } else {
+                _uiState.value =
                     ProfileRootUiState.Loaded(
                         displayName = profile.displayName?.trim()?.takeIf { it.isNotEmpty() },
                         avatarUrl = profile.avatarUrl,
                         isOnline = online,
                     )
-                }
+                checkProtection()
+            }
+        }
+    }
+
+    /** Separate coroutine so the profile is never delayed by the check; a failure leaves it Unknown. */
+    private fun checkProtection() {
+        protectionWork?.cancel()
+        protectionWork = viewModelScope.launch {
+            val protection = getAccountProtection()
+            updateLoaded { if (it.protection == AccountProtection.Protected) it else it.copy(protection = protection) }
         }
     }
 
@@ -119,6 +145,10 @@ class ProfileRootViewModel(
         work = viewModelScope.launch {
             val outcome = deleteAccount()
             if (outcome == DeleteAccountOutcome.Deleted) return@launch
+            if (outcome == DeleteAccountOutcome.Protected) {
+                updateLoaded { it.copy(isDeleting = false, protection = AccountProtection.Protected) }
+                return@launch
+            }
             updateLoaded { it.copy(isDeleting = false) }
             effectChannel.send(ProfileRootEffect.DeleteFailed(offline = outcome == DeleteAccountOutcome.NoNetwork))
         }

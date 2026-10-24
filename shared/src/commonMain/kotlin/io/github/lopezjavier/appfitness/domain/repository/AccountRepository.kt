@@ -8,4 +8,7 @@ interface AccountRepository {
      * also covers an already-gone user (401); every other failure leaves the account untouched.
      */
     suspend fun deleteAccount(): DeleteAccountOutcome
+
+    /** Whether the server protects this account from deletion (ADR-57). Never throws except cancellation. */
+    suspend fun isProtected(): Result<Boolean>
 }

@@ -252,6 +252,13 @@ internal class FakeAccountRepository(var outcome: DeleteAccountOutcome = DeleteA
     AccountRepository {
     var gate: CompletableDeferred<Unit>? = null
     var calls = 0
+    var protection: Result<Boolean> = Result.success(false)
+    var protectionChecks = 0
+
+    override suspend fun isProtected(): Result<Boolean> {
+        protectionChecks++
+        return protection
+    }
 
     override suspend fun deleteAccount(): DeleteAccountOutcome {
         calls++
