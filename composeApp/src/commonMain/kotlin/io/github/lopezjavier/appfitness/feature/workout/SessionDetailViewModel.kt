@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -18,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionReposito
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
+import io.github.lopezjavier.appfitness.domain.usecase.MuscleSplit
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetEntryText
 import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
@@ -57,6 +59,9 @@ class SessionDetailViewModel(
 ) : ViewModel() {
     private var session: WorkoutSession? = null
     private var names: Map<String, String> = emptyMap()
+
+    /** Primary muscle group by exercise id; empty when the exercises could not be read (no split). */
+    private var groups: Map<String, MuscleGroup> = emptyMap()
 
     /** Latest body weight for the bodyweight and assisted volume; null when unknown. */
     private var bodyWeightKg: Double? = null
@@ -135,7 +140,9 @@ class SessionDetailViewModel(
                         terminal = SessionDetailUiState.Error
                     } else {
                         session = loaded
-                        names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: names
+                        val lookup = loadExerciseLookup(exerciseRepository, exerciseLibrary)
+                        names = lookup?.names ?: names
+                        groups = lookup?.groups ?: groups
                         includeWarmUp = preferences.warmUpIncludedOrDefault()
                         bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
                         perHandIds = exerciseRepository.perHandIdsOrDefault()
@@ -292,7 +299,7 @@ class SessionDetailViewModel(
                     exerciseId = exercise.exerciseId,
                     name = names[exercise.exerciseId],
                     sets = exercise.sets.sortedBy { it.setIndex }.filter { it.isCompleted }.map { set ->
-                        DetailSet(set.setIndex, set.setType, SetEntryText.format(set.entry))
+                        DetailSet(set.setIndex, set.setType, SetEntryText.format(set.entry), set.rpe)
                     },
                     isPersonalRecord = exercise.exerciseId in records,
                     records = beaten[exercise.exerciseId].orEmpty(),
@@ -301,6 +308,7 @@ class SessionDetailViewModel(
             isOnline = online,
             edit = edit,
             busy = busy,
+            split = MuscleSplit(current, groups, includeWarmUp),
         )
     }
 }

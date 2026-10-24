@@ -1239,4 +1239,28 @@
     <string name="preferences_calc_dumbbell_handle_state">Mango de mancuerna: %1$s kg</string>
     <string name="preferences_calc_dumbbell_handle_decrease_cd">Reducir mango de mancuerna</string>
     <string name="preferences_calc_dumbbell_handle_increase_cd">Aumentar mango de mancuerna</string>
+    <string name="history_calendar_cd">Calendario</string>
+    <string name="calendar_title">Calendario</string>
+    <string name="calendar_view_month">Mes</string>
+    <string name="calendar_view_year">Año</string>
+    <string name="calendar_view_years">Años</string>
+    <plurals name="calendar_workouts_count">
+        <item quantity="one">%1$d entreno</item>
+        <item quantity="other">%1$d entrenos</item>
+    </plurals>
+    <string name="calendar_count_cd">%1$s, %2$s</string>
+    <string name="calendar_year_title">%1$d</string>
+    <string name="calendar_empty_title">Aún no has entrenado</string>
+    <string name="calendar_empty_message">Los días que entrenes aparecerán aquí.</string>
+    <string name="calendar_error">No se pudo cargar el calendario.</string>
+    <string name="calendar_choices_title">Elige un entreno</string>
+    <string name="calendar_choices_close_cd">Cerrar sin elegir</string>
+    <string name="calendar_choice_cd">%1$s, %2$s</string>
+    <string name="session_detail_split_title">Reparto muscular</string>
+    <plurals name="session_detail_split_sets">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <string name="session_detail_split_value">%1$s · %2$d %</string>
+    <string name="session_detail_split_cd">%1$s: %2$s, %3$d %</string>
 </resources>

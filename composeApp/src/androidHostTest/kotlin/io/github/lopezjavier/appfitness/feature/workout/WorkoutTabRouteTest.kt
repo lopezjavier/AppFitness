@@ -60,7 +60,7 @@ class WorkoutTabRouteTest {
                             history()
                         }
                     },
-                    history = { modifier, _ -> Box(modifier.fillMaxSize().testTag("history_screen")) },
+                    history = { modifier, _, _ -> Box(modifier.fillMaxSize().testTag("history_screen")) },
                     liveSession = { modifier, host ->
                         Box(modifier.fillMaxSize().testTag("live_screen")) {
                             Box(Modifier.size(48.dp).testTag("live_stub_back").clickable(onClick = host.onClose))

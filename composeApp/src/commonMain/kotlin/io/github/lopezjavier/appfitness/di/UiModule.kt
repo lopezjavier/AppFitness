@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
+import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarViewModel
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryViewModel
 import kotlinx.datetime.LocalDate
 import org.koin.core.module.dsl.viewModel
@@ -259,6 +260,7 @@ val uiModule =
             )
         }
         viewModelOf(::HistoryViewModel)
+        viewModel { WorkoutCalendarViewModel(repository = get(), clock = get(), savedState = get()) }
         viewModel { (sessionId: String) ->
             SessionDetailViewModel(
                 sessionId = sessionId,

@@ -54,7 +54,7 @@ private val ExpectedSections =
         "wheel_picker",
         "selectable_card", "exercise_media", "reorderable",
         "state_messages", "offline_banner",
-        "favourite_toggle", "portion_selector", "month_calendar", "diary_history_row",
+        "favourite_toggle", "portion_selector", "month_calendar", "diary_history_row", "muscle_split_bar",
         "circumference_row", "goal_metrics",
         "top_bar",
         "navigation", "bottom_sheet", "confirm_dialog", "logo", "skeleton", "wip", "theme",

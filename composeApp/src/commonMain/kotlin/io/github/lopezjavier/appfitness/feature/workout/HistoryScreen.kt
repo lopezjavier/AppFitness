@@ -35,6 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.history_calendar_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.history_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.history_error
@@ -42,8 +43,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.history_load_more_e
 import io.github.lopezjavier.appfitness.composeapp.resources.history_loading_more
 import io.github.lopezjavier.appfitness.composeapp.resources.history_row_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_row_sets
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -67,6 +70,7 @@ private val SkeletonRowHeight = Spacing.xl * 3
 @Composable
 fun HistoryRoot(
     onOpenSession: (sessionId: String) -> Unit,
+    onOpenCalendar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(),
 ) {
@@ -80,19 +84,37 @@ fun HistoryRoot(
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(HistoryEvent.Refresh) }
-    HistoryScreen(state, viewModel::onEvent, modifier)
+    HistoryScreen(state, viewModel::onEvent, modifier, onOpenCalendar)
 }
 
-/** The history list (US-14): one card per completed session, newest first, loading further pages at the end. */
+/**
+ * The history list (US-14): one card per completed session, newest first, loading further pages at the end. The
+ * calendar icon above it opens the training calendar through [onOpenCalendar].
+ */
 @Composable
-fun HistoryScreen(state: HistoryUiState, onEvent: (HistoryEvent) -> Unit, modifier: Modifier = Modifier) {
+fun HistoryScreen(
+    state: HistoryUiState,
+    onEvent: (HistoryEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenCalendar: () -> Unit = {},
+) {
     Box(modifier.fillMaxSize().testTag("history_screen"), contentAlignment = Alignment.TopCenter) {
-        Box(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
-            when (state) {
-                HistoryUiState.Loading -> HistoryLoading()
-                HistoryUiState.Error -> HistoryMessage { onEvent(HistoryEvent.Retry) }
-                HistoryUiState.Empty -> HistoryEmpty()
-                is HistoryUiState.Content -> HistoryList(state, onEvent)
+        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm), horizontalArrangement = Arrangement.End) {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.history_calendar_cd),
+                    icon = Res.drawable.ic_calendar,
+                    testTag = "history_calendar",
+                    onClick = onOpenCalendar,
+                )
+            }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                when (state) {
+                    HistoryUiState.Loading -> HistoryLoading()
+                    HistoryUiState.Error -> HistoryMessage { onEvent(HistoryEvent.Retry) }
+                    HistoryUiState.Empty -> HistoryEmpty()
+                    is HistoryUiState.Content -> HistoryList(state, onEvent)
+                }
             }
         }
     }
