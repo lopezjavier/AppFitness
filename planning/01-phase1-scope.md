@@ -45,6 +45,9 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.12 Diary views (Detail, List, Summary) and history: calendar of past days with daily, weekly and monthly totals/averages.
 - FR-2.13 Full Open Food Facts product data kept in the catalog and micronutrients shown in the food details (display only; ADR-43).
 - FR-2.14 Editing manual foods (E6, US-47): edit a manual food and its portions (add, edit, remove), for future entries only; the full label nutrient list in Spanish label order; Open Food Facts foods are not editable (ADR-53).
+- FR-2.15 Photo food creation (E7, US-48/US-49): an "Añadir desde foto" action below the scanner icon with three AI modes — estimate of a single dish, nutrition label and barcode. The image comes from the system camera or the Android photo picker. The barcode mode asks the AI to identify the product and its nutrition; it does not change the existing scanner flow. The AI prefill is editable in the normal manual-food form, saved as a personal food (`source = 'user'`) and logged through the normal add-to-meal sheet. Photos are sent for inference only and never stored (ADR-59).
+- FR-2.16 Cooking methods (E7, US-50): Crudo (default), A la plancha, Air fryer and Frito for solid foods, with the energy and fat of the retained olive oil added per the configurable amounts in Preferencias; the method and retained oil are stored in the entry snapshot. Saved comidas store an editable method per item, applied when the comida is added or used as a default (ADR-60).
+- FR-2.17 Default comidas (E7, US-51): assign a saved comida to a meal on selected weekdays; on the first open of a new day's Diary, the matching comidas are added once. No backfill, no past dates and no re-add after deletion (ADR-61).
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.
@@ -56,7 +59,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-3.7 BMI and informative interpretation of the metrics (with a non-medical disclaimer).
 - ~~FR-3.8 Compare two measurements~~ — dropped at Checkpoint E5-B (ADR-48).
 
-### FR-4 · Gym performance — Workout (E3, E6, E7)
+### FR-4 · Gym performance — Workout (E3, E6, E8)
 - FR-4.1 Exercise catalog seeded in Spanish (with the bundled RepDB thumbnail + start↔peak animation + Spanish instructions) and custom exercises.
 - FR-4.2 Create and edit routines: reorderable exercises, supersets, target sets/reps, rest per exercise.
 - FR-4.3 Live workout session: weight and reps per set, add sets/exercises, screen always on, summary when finishing.
@@ -65,17 +68,17 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-4.6 Session history.
 - FR-4.7 Progress charts per exercise (estimated 1RM, volume) and per muscle group (weekly volume).
 - FR-4.8 Training depth (E6): per-set routine planning, set types (warm-up/failure/drop) and warm-up inclusion, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue (no live notification, §4.1), routine folders/order/tracking and "Update Routine", workout detail/calendar (trained days)/editing and past workouts, session controls (pause, delete set, previous-values modes).
-- FR-4.9 Statistics and reports (E7): exercise chart records and non-weight metrics, advanced statistics (time frames, set-count, sets per muscle group, main exercises), muscle distribution (radar, body heatmap), Monthly Report, Year in Review, streaks and weekly check-ins.
-- The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E7 add features without a schema migration.
+- FR-4.9 Statistics and reports (E8): exercise chart records and non-weight metrics, advanced statistics (time frames, set-count, sets per muscle group, main exercises), muscle distribution (radar, body heatmap), Monthly Report, Year in Review, streaks and weekly check-ins.
+- The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E8 add features without a schema migration.
 
-### FR-5 · Cross-cutting (E1, E8)
+### FR-5 · Cross-cutting (E1, E9)
 - FR-5.1 3-tab navigation (Diario, Entreno, Perfil); the Perfil tab icon is the generic `person` glyph, and the Perfil root shows the Google photo, the name and entries to Preferencias and the statistics screens (weight, strength, insights) (ADR-10, ADR-22, ADR-36, ADR-37).
 - FR-5.2 Haptic feedback when completing sets and key actions; skeleton loaders for network requests.
 - FR-5.3 Visible offline state.
-- FR-5.4 "Acerca de · Licencias" screen (E8, US-45): version/build, the RepDB and Open Food Facts credits and the open-source licences, opened from Profile.
+- FR-5.4 "Acerca de · Licencias" screen (E9, US-45): version/build, the RepDB, Open Food Facts and Google Gemini credits and the open-source licences, opened from Profile.
 
-### FR-6 · UI refinement (E8, US-46)
-A last refinement pass over the screens built in E2…E7, fed by the feedback collected at the 👤 checkpoints. It changes presentation only (layout, spacing, typography, component styling), never features. The collected items live in `epics/E8-finalization.md`; later epics add theirs there.
+### FR-6 · UI refinement (E9, US-46)
+A last refinement pass over the screens built in E2…E8, fed by the feedback collected at the 👤 checkpoints. It changes presentation only (layout, spacing, typography, component styling), never features. The collected items live in `epics/E9-finalization.md`; later epics add theirs there.
 
 ## 4. Out of Phase 1 scope
 
@@ -97,7 +100,7 @@ Stories and scenarios removed from an epic by the user. They are kept here with 
 | Item | Origin | Decision | Removed text |
 |---|---|---|---|
 | Live record notification and its strength levels | E6, US-34 "Live PR"; `04` §4.8 | ADR-52, 2026-10-22 | `When a completed set beats the current best of that exercise / Then a "¡Nuevo récord!" notification appears / And the strength of the notification follows the user's setting` (setting: off / low / normal / high) |
-| Training streak, rest days and rewards in the calendar | E6, US-37 "Calendar" | ADR-52, 2026-10-22 | `Then they see the trained days, the streak and the rest days (month, year, multi-year)` (only "the streak and the rest days" removed; trained days kept). E7 US-44 "Streaks and weekly check-ins" is reviewed with the user at the E7 breakdown. |
+| Training streak, rest days and rewards in the calendar | E6, US-37 "Calendar" | ADR-52, 2026-10-22 | `Then they see the trained days, the streak and the rest days (month, year, multi-year)` (only "the streak and the rest days" removed; trained days kept). E8 US-44 "Streaks and weekly check-ins" is reviewed with the user at the E8 breakdown. |
 | Copying a workout | E6, US-37 "Editing" | ADR-52, 2026-10-22 | `When they edit, copy or delete a workout / Then the change is reflected` (only "copy" removed). A past workout can still start from a finished workout. |
 | Routine asks only sets and rest | E6, US-29 (user request 2026-10-20) | ADR-50, 2026-10-22 (contradicted per-set planning) | `When the user adds an exercise in the routine builder / Then they configure only the number of sets and the rest / And the reps are entered in the live session` |
 | Editing Open Food Facts foods | E6 scope line (food editing, "if feasible") | ADR-53, 2026-10-22 | "edit macros and micronutrients … of Open Food Facts foods (if feasible)" |
@@ -105,6 +108,6 @@ Stories and scenarios removed from an epic by the user. They are kept here with 
 ### Deferred to Phase 2 (unchanged from the original requirements)
 - Web client (Compose for Web / Wasm) and DNS on Cloudflare.
 - Rest-timer alert while the app is in the background or closed (scheduled notification with sound; Phase 1 alerts with sound and vibration in the foreground only).
-- Calorie estimation from a meal photo (AI).
+- Whole-meal calorie estimation from a single photo (several foods; Phase 1 estimates one food per photo, FR-2.15).
 - Adaptive calorie adjustment based on weight trend (AI).
 - AI training assistant.

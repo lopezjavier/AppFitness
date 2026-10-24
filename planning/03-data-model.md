@@ -19,6 +19,7 @@ create type goal_strategy as enum ('deficit', 'maintenance', 'surplus');
 create type meal_type as enum ('breakfast', 'lunch', 'snack', 'dinner');   -- default meal codes (UI: Desayuno, Comida, Merienda, Cena)
 create type food_source as enum ('off', 'user');
 create type food_base_unit as enum ('g', 'ml');   -- solids use g, drinks use ml
+create type food_cooking_method as enum ('raw', 'griddle', 'air_fryer', 'fried');   -- UI: Crudo, A la plancha, Air fryer, Frito
 create type measurement_source as enum ('manual', 'health_connect');
 create type circumference_site as enum ('neck', 'chest', 'waist', 'hip', 'arm', 'thigh', 'calf');
 create type muscle_group as enum ('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
@@ -90,6 +91,7 @@ RLS:
 - select: `source = 'off' or created_by = (select auth.uid())`.
 - insert/update/delete from the client: only `source = 'user' and created_by = (select auth.uid())`.
 - `off` rows are only written by Edge Functions using the Supabase secret key (legacy `service_role`).
+- Foods created from a photo (E7, US-48/US-49) are normal `source = 'user'` rows written by `create_personal_food` after the user confirms the AI prefill. There is no `ai` source value: `food_source` describes ownership/cache, not provenance. There is no photo column, bucket or Storage policy: the image never leaves the request (ADR-59).
 
 ### `food_portions` (US-22)
 Named portions of a food ("1 huevo" = 55 g, "1 vaso" = 200 ml).
@@ -103,7 +105,7 @@ Named portions of a food ("1 huevo" = 55 g, "1 vaso" = 200 ml).
 
 RLS: select when the parent food is readable (`source = 'off' or created_by = (select auth.uid())`); insert/update/delete only on own foods (`source = 'user' and foods.created_by = (select auth.uid())`).
 
-### `food_log_entries` (US-16; used in US-17…US-24)
+### `food_log_entries` (US-16; used in US-17…US-24; extended in E7)
 | Column | Type | Notes |
 |---|---|---|
 | user_id | uuid | |
@@ -113,9 +115,11 @@ RLS: select when the parent food is readable (`source = 'off' or created_by = (s
 | amount | numeric(7,1) | > 0; in the food's `base_unit` |
 | portion_label | text null | snapshot of the portion used, if any |
 | food_name | text | snapshot |
-| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount (does not change if the food changes; editing a manual food applies to future entries only, ADR-53) |
+| cooking_method | food_cooking_method | not null, default `raw` (E7, US-50) |
+| cooking_oil_retained_g | numeric(7,2) null | E7, US-50: olive oil retained by the food; `>= 0`; null or 0 for `raw`; snapshot |
+| kcal, protein_g, carbs_g, fat_g | numeric(7,1) | snapshot calculated for the amount, including the cooking impact (does not change if the food changes; editing a manual food applies to future entries only, ADR-53) |
 
-Index: `(user_id, log_date)`.
+Index: `(user_id, log_date)`. Check: `cooking_oil_retained_g is null or (cooking_oil_retained_g >= 0 and (cooking_method <> 'raw' or cooking_oil_retained_g = 0))`. Existing rows are backfilled to `raw`/null.
 
 `no action` (checked at statement end) instead of `restrict` (checked immediately): deleting an `auth.users` row cascades to entries, slots and personal foods in one statement (ADR-29), and `restrict` could block it before the entries are gone. RLS insert/update also requires the food to be readable by the caller.
 
@@ -133,11 +137,44 @@ Configured meals per user (rename, reorder, add, delete; ADR-41).
 Seeded with Desayuno/Comida/Merienda/Cena (codes breakfast/lunch/snack/dinner, positions 0..3) when onboarding completes (trigger on `profiles`, idempotent; existing onboarded users are backfilled). `unique (user_id, position)`. RLS owner policy, including DELETE (ADR-41). A meal is deleted only through `delete_meal_slot` (never the last one, never one with `food_log_entries`; the entries FK is `no action`).
 
 ### `meal_templates` (US-21)
-`id`, `user_id` (FK auth.users, cascade), `name` (1..60 chars after trim; unique per user on `lower(btrim(name))`, so "desayuno a" and "Desayuno A" collide), `meal_slot_id` null (suggested meal; null = any), `created_at`. Composite FK `(meal_slot_id, user_id) -> meal_slots (id, user_id) on delete set null (meal_slot_id)`: deleting a meal keeps the template (ADR-41). UI calls them "comidas" (ADR-42).
+`id`, `user_id` (FK auth.users, cascade), `name` (1..60 chars after trim; unique per user on `lower(btrim(name))`, so "desayuno a" and "Desayuno A" collide), `meal_slot_id` null (suggested meal; null = any), `created_at`. Composite FK `(meal_slot_id, user_id) -> meal_slots (id, user_id) on delete set null (meal_slot_id)`: deleting a meal keeps the template (ADR-41). UI calls them "comidas" (ADR-42). `unique (id, user_id)` supports the composite FK from `meal_defaults`.
 
 ### `meal_template_items` (US-21)
-`id`, `template_id` FK (on delete cascade), `food_id` FK (no action, deferred to commit so deleting a user with personal foods works), `amount numeric(7,1)` (base unit, `> 0 and <= 5000`), `portion_label` null, `position smallint` (`unique (template_id, position)`).
+`id`, `template_id` FK (on delete cascade), `food_id` FK (no action, deferred to commit so deleting a user with personal foods works), `amount numeric(7,1)` (base unit, `> 0 and <= 5000`), `portion_label` null, `cooking_method food_cooking_method not null default 'raw'` (E7, US-50: editable per item; only `g` foods may be non-raw, validated by `save_meal_template` and the client), `position smallint` (`unique (template_id, position)`). Existing items are backfilled to `raw`.
 RLS via `exists (select 1 from meal_templates t where t.id = template_id and t.user_id = (select auth.uid()))`.
+
+### `food_preferences` (E7, US-50)
+One row per user with the olive-oil amounts used by the cooking selector. It lives beside `training_preferences` and is written by `save_preferences`.
+| Column | Type | Notes |
+|---|---|---|
+| user_id | uuid PK | 1 row per user |
+| olive_oil_griddle_g | numeric(5,1) | default 5; check 0–500 |
+| olive_oil_air_fryer_g | numeric(5,1) | default 5; check 0–500 |
+| olive_oil_fried_g | numeric(5,1) | default 50; check 0–500 |
+
+A missing row means the three defaults. RLS owner policy. The retention factors (50 %, 100 %, 10 %) are code constants, not columns (ADR-60).
+
+### `meal_defaults` (E7, US-51)
+The recurring saved comidas applied on the first open of a new day.
+| Column | Type | Notes |
+|---|---|---|
+| user_id | uuid | |
+| meal_slot_id | uuid | composite FK `(meal_slot_id, user_id)` -> `meal_slots (id, user_id)` on delete cascade |
+| template_id | uuid | composite FK `(template_id, user_id)` -> `meal_templates (id, user_id)` on delete cascade |
+| weekday | smallint | ISO weekday, 1 (Monday) – 7 (Sunday) |
+| created_at | timestamptz | default now() |
+
+PK `(user_id, meal_slot_id, weekday)`: one default comida per meal and weekday, while the same comida may cover several days or meals. RLS owner policy. `save_meal_defaults` replaces all rows atomically.
+
+### `diary_default_applications` (E7, US-51)
+Idempotency marker for `apply_meal_defaults`.
+| Column | Type | Notes |
+|---|---|---|
+| user_id | uuid | |
+| log_date | date | local day already evaluated |
+| applied_at | timestamptz | default now() |
+
+PK `(user_id, log_date)`; RLS owner policy. A day is marked even when it already had entries and nothing was inserted, so deleting the defaults later never re-adds them. There is no backfill.
 
 ### `favorite_foods` (US-17)
 `user_id`, `food_id` FK (on delete cascade); PK `(user_id, food_id)`. RLS owner policy. "Más comidos" (most eaten) is derived from `food_log_entries`, not stored here (see §6).
@@ -301,7 +338,7 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 
 | Function | Story | Returns |
 |---|---|---|
-| `save_preferences(p_display_name, p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct, p_weight_kg default null, p_measured_at default null, p_day_start default null, p_day_end default null, p_warm_up_included boolean default null, p_previous_values_mode previous_values_mode default null, p_bar_weight_kg numeric default null, p_plate_kg numeric[] default null, p_dumbbell_handle_kg numeric default null)` | US-06/07/08 (T-041, ADR-24, ADR-37; replaces `save_profile_settings` from T-037) | `void`, security invoker. One transaction: updates the caller's `profiles` name (trimmed) and biometric fields, upserts their `nutrition_goals` row and, when `p_weight_kg` is set, replaces the latest `manual` `body_measurements` row with `measured_at` in `[p_day_start, p_day_end)` or inserts one. Weight arguments are all-or-none (`22023` otherwise); `P0002` if the caller has no profile row; table checks surface as `23514`; `p_warm_up_included`, `p_previous_values_mode` and the five calculator parameters upsert `training_preferences` (null = unchanged, T-090, T-096, T-097; invalid calculator values surface as `23514`) |
+| `save_preferences(p_display_name, p_sex, p_birth_date, p_height_cm, p_activity_level, p_strategy, p_calorie_adjustment, p_target_kcal, p_protein_pct, p_carbs_pct, p_fat_pct, p_weight_kg default null, p_measured_at default null, p_day_start default null, p_day_end default null, p_warm_up_included boolean default null, p_previous_values_mode previous_values_mode default null, p_bar_weight_kg numeric default null, p_plate_kg numeric[] default null, p_dumbbell_handle_kg numeric default null, p_olive_oil_griddle_g numeric default null, p_olive_oil_air_fryer_g numeric default null, p_olive_oil_fried_g numeric default null)` | US-06/07/08 (T-041, ADR-24, ADR-37; replaces `save_profile_settings` from T-037; oil amounts added in E7) | `void`, security invoker. One transaction: updates the caller's `profiles` name (trimmed) and biometric fields, upserts their `nutrition_goals` row and, when `p_weight_kg` is set, replaces the latest `manual` `body_measurements` row with `measured_at` in `[p_day_start, p_day_end)` or inserts one. Weight arguments are all-or-none (`22023` otherwise); `P0002` if the caller has no profile row; table checks surface as `23514`; `p_warm_up_included`, `p_previous_values_mode` and the five calculator parameters upsert `training_preferences` (null = unchanged, T-090, T-096, T-097; invalid calculator values surface as `23514`); the three oil parameters upsert `food_preferences` (null = unchanged, 0–500, `23514` otherwise) |
 | `save_body_measurement(p_id uuid default null, p_weight_kg, p_body_fat_pct default null, p_measured_at, p_day_start, p_day_end)` | US-25 (T-076) | `uuid` of the written row, security invoker, `authenticated` only. Caller sends the bounds of the local day. `p_id` null: replaces the latest `manual` row with `measured_at` in `[p_day_start, p_day_end)` (weight, fat, time; null fat clears it) or inserts one; Health Connect rows are ignored. `p_id` set: the caller's own `manual` row only (`P0002` otherwise: other user, Health Connect, unknown), whose current `measured_at` must lie in the bounds, so the date never changes. `22023` for missing/invalid bounds or `p_measured_at` outside them; `28000` unauthenticated; ranges surface as `23514`. Delete is a plain `DELETE` under the owner policy |
 | `last_performance(p_exercise_id uuid, p_routine_id uuid default null)` | US-12, US-38 (T-096) | Sets (`set_index`, `weight_kg`, `reps`, `rpe`, `duration_s`, `distance_m`, `steps`, `floors`) of the user's most recent completed session containing that exercise; with `p_routine_id` only sessions of that routine count (no fallback to other routines). The 1-arg signature was dropped |
 | `save_routine(p_routine jsonb)` | US-10, US-29 (T-043, T-089) | `uuid`, security invoker, one transaction. `{id?, name, notes?, exercises:[{exercise_id, superset_group?, rest_seconds?, target_rpe?, sets:[{weight_kg?, reps, set_type}]}]}`; replaces the routine's exercises and planned sets; positions and `set_index` come from array order; `target_sets` = set count, `target_reps` = first working set's reps. Invalid payload/set (1-10 sets, reps 1-50, weight >= 0, known type) or superset members with different set counts: `22023`; routine not visible: `P0002` |
@@ -318,7 +355,9 @@ Constraint `unique (session_id, exercise_position, set_index)` (upsert key from 
 | `create_personal_food(p_name, p_brand, p_base_unit, p_kcal, p_protein, p_carbs, p_fat, p_barcode, p_portions jsonb, p_micronutrients jsonb default null)` (`p_micronutrients` added by T-068: only the four label keys, values >= 0, else `22023`) | US-18, US-22 (T-058) | `uuid` of the new `foods` row, security invoker. One transaction: inserts a `source='user'` food owned by the caller and its portions (`p_portions` = `[{"label","amount"}]`, max 10, `position` = array order). `28000` if unauthenticated; `22023` for blank name, negative values, blank portion label, portion amount <= 0 or more than 10 portions |
 | `save_meal_slots(p_slots jsonb)` | US-23 (T-059, T-067) | `void`, security invoker. One transaction: `p_slots` = array in final order of `{"id": uuid\|null, "label"}` (`enabled` is accepted and ignored); updates label/position (0..n-1) of the caller's existing slots, always writes `enabled = true`, and inserts those with null id (`code` null; `code` is never taken from the client). Every existing slot must be present (nothing is deleted here). `22023` for a non-array/empty input, blank or >50-char label, duplicate ids or missing existing slot; `P0002` for an id that is not the caller's. Replaces the T-059 signature with `p_viewed_day` (ADR-41) |
 | `delete_meal_slot(p_id uuid)` | US-23 (T-067) | `void`, security invoker, `authenticated` only. Deletes the caller's slot and re-packs positions to 0..n-1. `28000` if unauthenticated; `P0002` if the slot is not the caller's or unknown; `23514` if it is the caller's only slot or has any `food_log_entries` row on any day |
-| `save_meal_template(p_template_id uuid, p_name text, p_meal_slot_id uuid, p_items jsonb)` | US-21 (T-061) | `uuid` (template id), security invoker, `authenticated` only. Null id creates; otherwise overwrites name/slot and replaces the items, atomically. `p_items` = `[{"food_id","amount","portion_label"}]` in order. `22023` invalid name/items/amount; `23505` name taken (case-insensitive); `P0002` template not the caller's; `42501` food not visible to the caller |
+| `save_meal_template(p_template_id uuid, p_name text, p_meal_slot_id uuid, p_items jsonb)` | US-21 (T-061); cooking extended in E7, US-50 | `uuid` (template id), security invoker, `authenticated` only. Null id creates; otherwise overwrites name/slot and replaces the items, atomically. `p_items` = `[{"food_id","amount","portion_label","cooking_method"}]` in order; a missing/none `cooking_method` is `raw`. `22023` invalid name/items/amount/method or a non-raw method on an `ml` food; `23505` name taken (case-insensitive); `P0002` template not the caller's; `42501` food not visible to the caller |
+| `save_meal_defaults(p_defaults jsonb)` | E7, US-51 | `void`, security invoker, `authenticated` only. One transaction replaces all the caller's `meal_defaults`: `p_defaults` = `[{"meal_slot_id","template_id","weekdays":[1,3,5]}]`; `[]` clears them. Validates ownership of every meal and saved comida, weekday 1–7 without duplicates and a non-empty template; `22023` invalid payload, `P0002` unknown/not owned, `23514` empty template |
+| `apply_meal_defaults(p_log_date date)` | E7, US-51 | `integer` (entries added), security invoker, `authenticated` only. Atomically inserts the `diary_default_applications` marker (`on conflict do nothing`); if the day was already evaluated, returns 0. If the day already has any `food_log_entries`, keeps the marker and returns 0. Otherwise copies the template items of the ISO weekday with their current amounts, saved cooking methods, retained oil from the current `food_preferences` and adjusted nutrition snapshots, and returns the count. Idempotent: deleting the added entries never re-adds them |
 | `most_eaten_foods(p_limit int)` | US-17 | The user's most-logged foods (food_id, times logged), derived from `food_log_entries` |
 | `food_diary_summary(p_from date, p_to date)` | US-24 | Per day: kcal and protein/carbs/fat totals |
 
@@ -331,7 +370,7 @@ Routine tracking (T-099, US-36, ADR-54), all `security invoker`:
 
 The 1RM is computed in SQL with the same formula as the domain (see `04-business-rules.md`); domain and pgTAP tests use the same cases.
 
-E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records`, `personal_records`), routine folders/order, routine tracking (T-099, below), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution). Their signatures are fixed when those epics are broken down.
+E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records`, `personal_records`), routine folders/order, routine tracking (T-099, below), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the cooking and default-comida tables and RPCs listed above. E8 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution); their signatures are fixed when that epic is broken down.
 
 ## 7. Edge Functions
 
@@ -341,6 +380,7 @@ E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records
 | `delete-account` | US-05 (ADR-29) | JWT | `POST`, no body | Resolves the caller from the access token (never from the body) and deletes that auth user with the Auth admin API using the server-side secret key; user-owned rows cascade. `200 {"status":"deleted"}`; missing/invalid token or user already gone → `401` (`unauthorized`); other methods → `405` (`Allow: POST`); admin failure → `500` (`delete_failed`) |
 | `food-search` | US-16 | JWT | `?q=<2..60 chars>&page=1` | 1) full-text search in `foods` (OFF + the user's own); 2) if < 10 results, query OFF (`search`, minimal fields, `lc=es`, `cc=es`), normalize and upsert by `barcode`; 3) return up to 20 normalized results (each with `base_unit`, nutrition per 100 base units and the default serving) |
 | `food-barcode` | US-16 | JWT | `?code=<EAN-8/EAN-13/UPC-A>` | Look up in `foods`; if missing or `fetched_at` > 30 days, query OFF `product/<code>` (also when `off_data` is null; ADR-43); `404` if OFF does not have it or kcal is missing |
+| `food-photo` | E7, US-48/US-49 | JWT | `POST` JSON `{image_base64, mode:"dish"\|"label"\|"barcode", comment?}` | Sends the image to the Gemini vision model with a fixed prompt per mode (the comment is optional, dish-only, ≤ 200 chars and treated as data); returns a normalized draft (name, brand, base unit, per-100 kcal/macros/micronutrients, grams/confidence). Barcode mode asks the AI to identify the product and its nutrition; it does not call `food-barcode` or save the code. No photo, comment or provider body is stored or logged. `400` invalid input, `413` image too large, `422` no food recognized, `429` quota, `502` provider failure, `503` `GEMINI_API_KEY` missing |
 
 Shared (`functions/_shared/`): OFF client with `User-Agent: AppFitness/<version> (<contact email>)`, 8 s timeout, normalization (base unit from `nutrition_data_per`: `100 g` → `g`, `100 ml` → `ml`; kcal from `energy-kcal_100g`/`energy-kcal_100ml`, or `energy_100g / 4.184` if only kJ is available; default serving from `serving_size`), input validation and JSON error responses `{ "error": { "code", "message" } }`.
 
@@ -357,6 +397,10 @@ auth.users 1─n favorite_foods n─1 foods
 foods 1─n food_portions
 auth.users 1─n meal_templates n─1 meal_slots
 auth.users 1─n meal_templates 1─n meal_template_items n─1 foods
+auth.users 1─1 food_preferences
+auth.users 1─n meal_defaults n─1 meal_slots
+auth.users 1─n meal_defaults n─1 meal_templates
+auth.users 1─n diary_default_applications
 auth.users 1─n body_measurements
 auth.users 1─n body_circumferences
 auth.users 1─n routine_folders 1─n routines 1─n routine_exercises n─1 exercises

@@ -8,12 +8,14 @@ Android app for everyday life at the gym and in the kitchen: **calorie and macro
 
 | Section | What it does |
 |---|---|
-| **Diary** | Search foods (Open Food Facts) or scan barcodes, log them into 4 meals, meal templates, kcal ring and macro bars |
+| **Diary** | Search foods (Open Food Facts), scan a barcode or capture a photo (AI dish estimate, label or barcode), log them into 4 meals, saved comidas and weekday defaults, cooking methods with olive oil, kcal ring and macro bars |
 | **Progress** | Manual weight or synced from Health Connect, 7-day moving average chart, weekly rate of change |
 | **Workout** | Routines with supersets, live session with the screen always on, previous performance per set, rest timer, history and estimated 1RM |
 | **Profile** | Sign in with Google, biometric data, goal (deficit / maintenance / surplus), macro split |
 
 The app UI is in Spanish; the repository is in English.
+
+Phase 2 adds whole-meal photo estimation (several foods at once), adaptive calorie adjustment and the AI training assistant.
 
 ## Stack
 
