@@ -2,7 +2,6 @@
 
 package io.github.lopezjavier.appfitness.feature.workout
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,36 +28,42 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bookmark_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.session_delete_button
+import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_delete_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_error
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_no_sets
+import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_routine_saved
+import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_save_as_routine_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_volume_label
 import io.github.lopezjavier.appfitness.composeapp.resources.session_offline_reason
-import io.github.lopezjavier.appfitness.composeapp.resources.session_set_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -82,15 +87,19 @@ fun SessionDetailRoot(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenProgress: (String) -> Unit = {},
+    onEdit: () -> Unit = {},
     viewModel: SessionDetailViewModel = koinViewModel(key = sessionId, parameters = { parametersOf(sessionId) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val currentOnClose by rememberUpdatedState(onClose)
+    val routineSaved = stringResource(Res.string.session_detail_routine_saved)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 SessionDetailEffect.Deleted -> currentOnClose()
+
+                is SessionDetailEffect.SavedAsRoutine -> snackbarHost.showSnackbar(routineSaved)
 
                 SessionDetailEffect.ActionFailed -> snackbarHost.showSnackbar(
                     getString(Res.string.session_action_failed),
@@ -98,7 +107,9 @@ fun SessionDetailRoot(
             }
         }
     }
-    SessionDetailScreen(state, viewModel::onEvent, modifier, snackbarHost, onOpenProgress)
+    // The workout may have been edited on the screen above this one.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(SessionDetailEvent.Refresh) }
+    SessionDetailScreen(state, viewModel::onEvent, modifier, snackbarHost, onOpenProgress, onEdit)
 }
 
 /**
@@ -112,29 +123,69 @@ fun SessionDetailScreen(
     modifier: Modifier = Modifier,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     onOpenProgress: (String) -> Unit = {},
+    onEdit: () -> Unit = {},
 ) {
     Box(modifier.fillMaxSize().testTag("session_detail_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
+            if (state is SessionDetailUiState.Content) DetailActions(state, onEvent, onEdit)
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state) {
                     SessionDetailUiState.Loading -> DetailLoading()
                     SessionDetailUiState.Error -> DetailError { onEvent(SessionDetailEvent.Retry) }
-                    is SessionDetailUiState.Content -> DetailContent(state, onEvent, onOpenProgress)
+                    is SessionDetailUiState.Content -> DetailContent(state, onOpenProgress)
                 }
             }
             SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
         }
     }
-    (state as? SessionDetailUiState.Content)?.let { DetailOverlays(it, onEvent) }
+    if (state is SessionDetailUiState.Content) state.saveAsRoutine?.let { SaveAsRoutineSheet(it, onEvent) }
+}
+
+/** Edit, "Guardar como rutina" and delete as icon buttons above the details; the details stay read-only. */
+@Composable
+private fun DetailActions(
+    state: SessionDetailUiState.Content,
+    onEvent: (SessionDetailEvent) -> Unit,
+    onEdit: () -> Unit,
+) {
+    val canChange = state.isOnline && !state.busy
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.session_detail_edit_cd),
+                icon = Res.drawable.ic_edit,
+                testTag = "session_detail_edit",
+                onClick = onEdit,
+                enabled = canChange,
+            )
+            AppIconButton(
+                contentDescription = stringResource(Res.string.session_detail_save_as_routine_cd),
+                icon = Res.drawable.ic_bookmark_add,
+                testTag = "session_detail_save_as_routine",
+                onClick = { onEvent(SessionDetailEvent.OpenSaveAsRoutine) },
+                enabled = canChange,
+            )
+            AppIconButton(
+                contentDescription = stringResource(Res.string.session_detail_delete_cd),
+                icon = Res.drawable.ic_delete,
+                testTag = "session_detail_delete",
+                onClick = { onEvent(SessionDetailEvent.Delete) },
+                enabled = canChange,
+            )
+        }
+        if (!state.isOnline) {
+            Text(
+                text = stringResource(Res.string.session_offline_reason),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.padding(horizontal = Spacing.sm).testTag("session_detail_offline_reason"),
+            )
+        }
+    }
 }
 
 @Composable
-private fun DetailContent(
-    state: SessionDetailUiState.Content,
-    onEvent: (SessionDetailEvent) -> Unit,
-    onOpenProgress: (String) -> Unit,
-) {
-    val canChange = state.isOnline && !state.busy
+private fun DetailContent(state: SessionDetailUiState.Content, onOpenProgress: (String) -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize().testTag("session_detail_list"),
         contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
@@ -151,31 +202,7 @@ private fun DetailContent(
             )
         }
         items(state.exercises, key = { it.position }) { exercise ->
-            ExerciseBlock(exercise, canChange, { onOpenProgress(exercise.exerciseId) }) { setIndex ->
-                onEvent(SessionDetailEvent.EditSet(exercise.position, setIndex))
-            }
-        }
-        item(key = "delete") {
-            Column(
-                Modifier.padding(top = Spacing.blockGap - Spacing.cardGap),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                GhostButton(
-                    text = stringResource(Res.string.session_delete_button),
-                    onClick = { onEvent(SessionDetailEvent.Delete) },
-                    modifier = Modifier.fillMaxWidth().testTag("session_detail_delete"),
-                    enabled = canChange,
-                    tone = GhostTone.Destructive,
-                )
-                if (!state.isOnline) {
-                    Text(
-                        text = stringResource(Res.string.session_offline_reason),
-                        style = AppTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                        modifier = Modifier.testTag("session_detail_offline_reason"),
-                    )
-                }
-            }
+            ExerciseBlock(exercise) { onOpenProgress(exercise.exerciseId) }
         }
     }
 }
@@ -227,12 +254,7 @@ private fun StatRow(label: String, value: String, tag: String) {
 }
 
 @Composable
-private fun ExerciseBlock(
-    exercise: DetailExercise,
-    canEdit: Boolean,
-    onOpenProgress: () -> Unit,
-    onEditSet: (setIndex: Int) -> Unit,
-) {
+private fun ExerciseBlock(exercise: DetailExercise, onOpenProgress: () -> Unit) {
     AppCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
@@ -256,7 +278,7 @@ private fun ExerciseBlock(
                     color = AppTheme.colors.textSecondary,
                 )
             }
-            exercise.sets.forEach { set -> SetLine(exercise.position, set, canEdit) { onEditSet(set.setIndex) } }
+            exercise.sets.forEach { set -> SetLine(exercise.position, set) }
             val link = stringResource(
                 Res.string.exercise_progress_link_cd,
                 exercise.name ?: stringResource(Res.string.exercise_unnamed),
@@ -273,11 +295,10 @@ private fun ExerciseBlock(
 }
 
 @Composable
-private fun SetLine(position: Int, set: DetailSet, enabled: Boolean, onClick: () -> Unit) {
-    val label = stringResource(Res.string.session_set_edit_label, set.setIndex)
+private fun SetLine(position: Int, set: DetailSet) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
+            .semantics(mergeDescendants = true) {}
             .testTag("session_detail_set_${position}_${set.setIndex}"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -298,11 +319,6 @@ private fun SetLine(position: Int, set: DetailSet, enabled: Boolean, onClick: ()
             )
         }
     }
-}
-
-@Composable
-private fun DetailOverlays(state: SessionDetailUiState.Content, onEvent: (SessionDetailEvent) -> Unit) {
-    state.edit?.let { EditSetSheet(it, state.busy, onEvent) }
 }
 
 @Composable

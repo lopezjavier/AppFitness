@@ -33,6 +33,10 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
     var saveFailure: AppError? = null
     var updateFailure: AppError? = null
     val updatedFromSession = mutableListOf<String>()
+
+    /** (sessionId, name) of every [createFromSession] call. */
+    val createdFromSession = mutableListOf<Pair<String, String>>()
+    var createFromSessionFailure: AppError? = null
     private var counter = 0
 
     private fun failing(error: AppError?) = error?.let { Result.failure<Nothing>(AppException(it)) }
@@ -130,6 +134,12 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
         failing(updateFailure)?.let { return it }
         updatedFromSession += sessionId
         return Result.success("r1")
+    }
+
+    override suspend fun createFromSession(sessionId: String, name: String): Result<String> {
+        failing(createFromSessionFailure)?.let { return it }
+        createdFromSession += sessionId to name
+        return Result.success("r-from-session")
     }
 
     override suspend fun archive(id: String): Result<Unit> {

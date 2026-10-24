@@ -30,6 +30,7 @@ import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
+import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
 /**
@@ -163,16 +164,24 @@ internal typealias AddFoodSlot =
         onDismiss: () -> Unit,
     ) -> Unit
 
-/** History content: modifier (full-screen insets) and the opener of a session detail (by session id). */
+/**
+ * History content: modifier (full-screen insets), the opener of a session detail (by session id), the opener of the
+ * calendar and the starter of the past-workout form for the source the user chose.
+ */
 internal typealias HistorySlot =
-    @Composable (modifier: Modifier, onOpenSession: (String) -> Unit, onOpenCalendar: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenSession: (String) -> Unit,
+        onOpenCalendar: () -> Unit,
+        onStartPastWorkout: (PastWorkoutSource) -> Unit,
+    ) -> Unit
 
 /** Training calendar content: modifier (full-screen insets) and the opener of a session detail (by session id). */
 internal typealias CalendarSlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
 
 /**
- * Session detail content: modifier (full-screen insets), the session id, how to leave after a deletion and the opener
- * of the progress of one of its exercises (by exercise id).
+ * Session detail content: modifier (full-screen insets), the session id, how to leave after a deletion, the opener
+ * of the progress of one of its exercises (by exercise id) and the opener of its edit screen.
  */
 internal typealias SessionDetailSlot =
     @Composable (
@@ -180,7 +189,30 @@ internal typealias SessionDetailSlot =
         sessionId: String,
         onClose: () -> Unit,
         onOpenProgress: (String) -> Unit,
+        onEdit: () -> Unit,
     ) -> Unit
+
+/**
+ * What the edit and past-workout forms need from navigation: the exercise the picker returned (to be consumed with
+ * [onConsumeSelection]), how to open the picker and how to close the screen.
+ */
+class WorkoutFormHost(
+    val selectedExerciseId: String?,
+    val onConsumeSelection: () -> Unit,
+    val onAddExercise: () -> Unit,
+    val onClose: () -> Unit,
+)
+
+/**
+ * Edit screen content: modifier (full-screen insets), the session id, its [WorkoutFormHost] and how to leave after a
+ * deletion.
+ */
+internal typealias EditWorkoutSlot =
+    @Composable (modifier: Modifier, sessionId: String, host: WorkoutFormHost, onDeleted: () -> Unit) -> Unit
+
+/** Past-workout form content: modifier, the routine / session it starts from (both null = empty) and its host. */
+internal typealias PastWorkoutSlot =
+    @Composable (modifier: Modifier, routineId: String?, sessionId: String?, host: WorkoutFormHost) -> Unit
 
 /** "Fuerza" content: modifier (full-screen insets), the progress opener (by exercise id) and "start workout". */
 internal typealias StrengthSlot =
@@ -305,7 +337,7 @@ internal val DefaultEditEntrySlot: EditEntrySlot = { _, _, _, _, _ -> }
 internal val DefaultSaveTemplateSlot: SaveTemplateSlot = { _, _, _, _ -> }
 
 /** Empty history for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultHistorySlot: HistorySlot = { modifier, _, _ ->
+internal val DefaultHistorySlot: HistorySlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("history_screen"))
 }
 
@@ -315,8 +347,18 @@ internal val DefaultCalendarSlot: CalendarSlot = { modifier, _ ->
 }
 
 /** Empty session detail for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _, _ ->
+internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("session_detail_screen"))
+}
+
+/** Empty edit screen for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultEditWorkoutSlot: EditWorkoutSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("edit_workout_screen"))
+}
+
+/** Empty past-workout form for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultPastWorkoutSlot: PastWorkoutSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("past_workout_screen"))
 }
 
 /** Empty "Fuerza" for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -370,6 +412,8 @@ internal fun AppNavHost(
     history: HistorySlot = DefaultHistorySlot,
     calendar: CalendarSlot = DefaultCalendarSlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
+    editWorkout: EditWorkoutSlot = DefaultEditWorkoutSlot,
+    pastWorkout: PastWorkoutSlot = DefaultPastWorkoutSlot,
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
@@ -509,6 +553,7 @@ internal fun AppNavHost(
             mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
         historyDestinations(navController, fullScreenPadding, history, calendar, sessionDetail, openProgress)
+        workoutFormDestinations(navController, fullScreenPadding, editWorkout, pastWorkout)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
             composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
@@ -619,7 +664,16 @@ private fun NavGraphBuilder.historyDestinations(
         history(
             Modifier.padding(fullScreenPadding),
             { navController.navigateToFullScreen(SessionDetailRoute(it)) },
-        ) { navController.navigateToFullScreen(WorkoutCalendarRoute) }
+            { navController.navigateToFullScreen(WorkoutCalendarRoute) },
+        ) { source ->
+            navController.navigateToFullScreen(
+                when (source) {
+                    PastWorkoutSource.Empty -> PastWorkoutRoute()
+                    is PastWorkoutSource.FromRoutine -> PastWorkoutRoute(routineId = source.routineId)
+                    is PastWorkoutSource.FromSession -> PastWorkoutRoute(sessionId = source.sessionId)
+                },
+            )
+        }
     }
     composable<WorkoutCalendarRoute> {
         calendar(Modifier.padding(fullScreenPadding)) { navController.navigateToFullScreen(SessionDetailRoute(it)) }
@@ -630,8 +684,48 @@ private fun NavGraphBuilder.historyDestinations(
             entry.toRoute<SessionDetailRoute>().sessionId,
             { navController.popBackStack() },
             openProgress,
+        ) { navController.navigateToFullScreen(EditWorkoutRoute(entry.toRoute<SessionDetailRoute>().sessionId)) }
+    }
+}
+
+/** The edit and past-workout forms; the exercise picker's result comes back through the entry's `savedStateHandle`. */
+private fun NavGraphBuilder.workoutFormDestinations(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    editWorkout: EditWorkoutSlot,
+    pastWorkout: PastWorkoutSlot,
+) {
+    composable<EditWorkoutRoute> { entry ->
+        val host = entry.workoutFormHost(navController)
+        editWorkout(
+            Modifier.padding(fullScreenPadding),
+            entry.toRoute<EditWorkoutRoute>().sessionId,
+            host,
+            // The details below the screen show a workout that no longer exists: leave them too.
+            { navController.popBackStack<SessionDetailRoute>(inclusive = true) },
         )
     }
+    composable<PastWorkoutRoute> { entry ->
+        val route = entry.toRoute<PastWorkoutRoute>()
+        pastWorkout(
+            Modifier.padding(fullScreenPadding),
+            route.routineId,
+            route.sessionId,
+            entry.workoutFormHost(navController),
+        )
+    }
+}
+
+@Composable
+private fun NavBackStackEntry.workoutFormHost(navController: NavHostController): WorkoutFormHost {
+    val handle = savedStateHandle
+    val selected by handle.getStateFlow<String?>(SELECTED_EXERCISE_KEY, null).collectAsState()
+    return WorkoutFormHost(
+        selectedExerciseId = selected,
+        onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
+        onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },
+        onClose = { navController.popBackStack() },
+    )
 }
 
 /** "Fuerza" and the progress of one exercise; the empty state leads to the Entreno tab. */

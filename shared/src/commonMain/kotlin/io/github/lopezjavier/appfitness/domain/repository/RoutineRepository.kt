@@ -25,6 +25,12 @@ interface RoutineRepository {
      */
     suspend fun updateFromSession(sessionId: String): Result<String>
 
+    /**
+     * Creates a NEW routine named [name] from the completed sets of the finished session (the session is not
+     * modified); returns the routine id.
+     */
+    suspend fun createFromSession(sessionId: String, name: String): Result<String>
+
     suspend fun archive(id: String): Result<Unit>
 
     /** The folders of the user in their order. */

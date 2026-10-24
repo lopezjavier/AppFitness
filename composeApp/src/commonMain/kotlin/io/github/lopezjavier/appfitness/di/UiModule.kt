@@ -28,8 +28,12 @@ import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncViewModel
 import io.github.lopezjavier.appfitness.feature.weight.WeightTrendViewModel
 import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
+import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutViewModel
 import io.github.lopezjavier.appfitness.feature.workout.HistoryViewModel
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionViewModel
+import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutChooserViewModel
+import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
+import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarViewModel
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryViewModel
@@ -272,8 +276,38 @@ val uiModule =
                 clock = get(),
                 preferences = get(),
                 bodyMeasurements = get(),
+                routineRepository = get(),
             )
         }
+        viewModel { (sessionId: String) ->
+            EditWorkoutViewModel(
+                sessionId = sessionId,
+                repository = get(),
+                exerciseRepository = get(),
+                exerciseLibrary = get(),
+                connectivity = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
+        // Blank ids mean "none" (Koin parameters cannot be null): both blank = an empty workout.
+        viewModel { (routineId: String, sessionId: String) ->
+            PastWorkoutViewModel(
+                source = when {
+                    routineId.isNotBlank() -> PastWorkoutSource.FromRoutine(routineId)
+                    sessionId.isNotBlank() -> PastWorkoutSource.FromSession(sessionId)
+                    else -> PastWorkoutSource.Empty
+                },
+                repository = get(),
+                routineRepository = get(),
+                exerciseRepository = get(),
+                exerciseLibrary = get(),
+                connectivity = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
+        viewModel { PastWorkoutChooserViewModel(routineRepository = get(), savedState = get()) }
         viewModelOf(::StrengthViewModel)
         viewModelOf(::MuscleVolumeViewModel)
         viewModel { (exerciseId: String) ->

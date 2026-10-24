@@ -35,6 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.history_add_past_workout_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_calendar_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.history_empty_title
@@ -43,6 +44,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.history_load_more_e
 import io.github.lopezjavier.appfitness.composeapp.resources.history_loading_more
 import io.github.lopezjavier.appfitness.composeapp.resources.history_row_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_row_sets
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -71,8 +73,10 @@ private val SkeletonRowHeight = Spacing.xl * 3
 fun HistoryRoot(
     onOpenSession: (sessionId: String) -> Unit,
     onOpenCalendar: () -> Unit,
+    onStartPastWorkout: (PastWorkoutSource) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(),
+    chooser: PastWorkoutChooserViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOpen by rememberUpdatedState(onOpenSession)
@@ -83,8 +87,24 @@ fun HistoryRoot(
             }
         }
     }
+    val currentStart by rememberUpdatedState(onStartPastWorkout)
+    val chooserState by chooser.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(chooser) {
+        chooser.effects.collect { effect ->
+            when (effect) {
+                is PastWorkoutChooserEffect.Start -> currentStart(effect.source)
+            }
+        }
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(HistoryEvent.Refresh) }
-    HistoryScreen(state, viewModel::onEvent, modifier, onOpenCalendar)
+    HistoryScreen(
+        state,
+        viewModel::onEvent,
+        modifier,
+        onOpenCalendar,
+        onAddPastWorkout = { chooser.onEvent(PastWorkoutChooserEvent.Open) },
+    )
+    PastWorkoutChooserSheet(chooserState, state, chooser::onEvent)
 }
 
 /**
@@ -97,10 +117,17 @@ fun HistoryScreen(
     onEvent: (HistoryEvent) -> Unit,
     modifier: Modifier = Modifier,
     onOpenCalendar: () -> Unit = {},
+    onAddPastWorkout: () -> Unit = {},
 ) {
     Box(modifier.fillMaxSize().testTag("history_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm), horizontalArrangement = Arrangement.End) {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.history_add_past_workout_cd),
+                    icon = Res.drawable.ic_add,
+                    testTag = "history_add_past_workout",
+                    onClick = onAddPastWorkout,
+                )
                 AppIconButton(
                     contentDescription = stringResource(Res.string.history_calendar_cd),
                     icon = Res.drawable.ic_calendar,
@@ -137,24 +164,31 @@ private fun HistoryList(state: HistoryUiState.Content, onEvent: (HistoryEvent) -
         contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
-        items(state.rows, key = { it.id }) { row -> HistoryRowCard(row) { onEvent(HistoryEvent.OpenSession(row.id)) } }
+        items(state.rows, key = {
+            it.id
+        }) { row -> HistoryRowCard(row, onClick = { onEvent(HistoryEvent.OpenSession(row.id)) }) }
         if (state.loadingMore) item(key = "loading_more") { LoadingMore() }
         if (state.pageError) item(key = "page_error") { PageError { onEvent(HistoryEvent.RetryLoadMore) } }
     }
 }
 
 @Composable
-private fun HistoryRowCard(row: HistoryRow, onClick: () -> Unit) {
+internal fun HistoryRowCard(
+    row: HistoryRow,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tag: String = "history_row_${row.id}",
+) {
     val date = row.label.text()
     val duration = formatElapsed(row.durationSeconds)
     val volume = volumeText(row.volumeKg)
     val sets = pluralStringResource(Res.plurals.history_row_sets, row.completedSets, row.completedSets)
     val description = stringResource(Res.string.history_row_cd, date, row.name, duration, volume)
-    AppCard(Modifier.fillMaxWidth()) {
+    AppCard(modifier.fillMaxWidth()) {
         Column(
             Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget)
                 .clickable(role = Role.Button, onClick = onClick)
-                .testTag("history_row_${row.id}")
+                .testTag(tag)
                 .clearAndSetSemantics { contentDescription = description },
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {

@@ -30,7 +30,7 @@ class WorkoutCalendarNavigationTest {
 
     private lateinit var nav: NavHostController
 
-    private val historySlot: HistorySlot = { modifier, _, onOpenCalendar ->
+    private val historySlot: HistorySlot = { modifier, _, onOpenCalendar, _ ->
         Box(modifier.fillMaxSize().testTag("history_screen")) {
             Box(Modifier.size(48.dp).testTag("stub_open_calendar").clickable(onClick = onOpenCalendar))
         }
@@ -40,7 +40,7 @@ class WorkoutCalendarNavigationTest {
             Box(Modifier.size(48.dp).testTag("stub_open_session").clickable { onOpenSession("s1") })
         }
     }
-    private val sessionDetailSlot: SessionDetailSlot = { modifier, sessionId, _, _ ->
+    private val sessionDetailSlot: SessionDetailSlot = { modifier, sessionId, _, _, _ ->
         Text(sessionId, modifier.testTag("opened_session_id"))
     }
 

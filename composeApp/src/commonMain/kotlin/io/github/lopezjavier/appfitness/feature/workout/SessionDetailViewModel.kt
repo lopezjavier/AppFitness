@@ -3,17 +3,16 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
@@ -21,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
 import io.github.lopezjavier.appfitness.domain.usecase.MuscleSplit
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
+import io.github.lopezjavier.appfitness.domain.usecase.SaveWorkoutAsRoutine
 import io.github.lopezjavier.appfitness.domain.usecase.SetEntryText
 import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import kotlinx.coroutines.async
@@ -34,12 +34,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-private const val MAX_REPS = 999
-
-private const val KEY_EDIT_POSITION = "detail_edit_position"
-private const val KEY_EDIT_SET = "detail_edit_set"
-private const val KEY_EDIT_WEIGHT = "detail_edit_weight"
-private const val KEY_EDIT_REPS = "detail_edit_reps"
+private const val KEY_ROUTINE_OPEN = "detail_save_routine_open"
+private const val KEY_ROUTINE_NAME = "detail_save_routine_name"
 
 /**
  * Detail of a completed session (US-14): sets, aggregates and personal records computed on the client, per-set
@@ -55,6 +51,7 @@ class SessionDetailViewModel(
     private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
     private val bodyMeasurements: BodyMeasurementRepository,
+    private val routineRepository: RoutineRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var session: WorkoutSession? = null
@@ -77,12 +74,13 @@ class SessionDetailViewModel(
     private var terminal: SessionDetailUiState? = SessionDetailUiState.Loading
     private var online = true
     private var includeWarmUp = false
-    private var edit: EditSetState? = null
-        set(value) {
-            field = value
-            persistEdit(value)
-        }
     private var busy = false
+
+    /** The "Guardar como rutina" sheet: open flag and typed name survive recreation (ADR-40). */
+    private var routineSheetOpen = savedState.get<Boolean>(KEY_ROUTINE_OPEN) ?: false
+    private var routineName = savedState.get<String>(KEY_ROUTINE_NAME).orEmpty()
+    private var routineBusy = false
+    private var routineFailed = false
 
     private val _uiState = MutableStateFlow<SessionDetailUiState>(SessionDetailUiState.Loading)
     val uiState: StateFlow<SessionDetailUiState> = _uiState.asStateFlow()
@@ -105,23 +103,22 @@ class SessionDetailViewModel(
         when (event) {
             SessionDetailEvent.Retry -> if (terminal == SessionDetailUiState.Error) load()
 
-            is SessionDetailEvent.EditSet -> if (online && !busy) openEdit(event.position, event.setIndex)
+            SessionDetailEvent.Refresh -> if (terminal == null && !busy) load(showLoading = false)
 
-            is SessionDetailEvent.WeightChanged -> changeEdit { it.copy(weight = event.text, invalid = false) }
-
-            is SessionDetailEvent.RepsChanged -> changeEdit { it.copy(reps = event.text, invalid = false) }
-
-            SessionDetailEvent.SaveSet -> if (!busy) {
-                if (online) {
-                    saveSet()
-                } else if (edit != null) {
-                    effectChannel.trySend(SessionDetailEffect.ActionFailed)
-                }
+            SessionDetailEvent.OpenSaveAsRoutine -> if (session != null && !routineSheetOpen) {
+                setRoutineSheet(open = true, name = SaveWorkoutAsRoutine.defaultName(session?.name.orEmpty()))
             }
 
-            SessionDetailEvent.DismissEdit -> if (!busy) {
-                edit = null
-                publish()
+            is SessionDetailEvent.SaveAsRoutineNameChanged -> if (routineSheetOpen && !routineBusy) {
+                routineFailed = false
+                setRoutineSheet(open = true, name = event.text.take(SaveWorkoutAsRoutine.NAME_MAX_LENGTH))
+            }
+
+            SessionDetailEvent.ConfirmSaveAsRoutine -> confirmSaveAsRoutine()
+
+            SessionDetailEvent.DismissSaveAsRoutine -> if (!routineBusy) {
+                routineFailed = false
+                setRoutineSheet(open = false, name = "")
             }
 
             SessionDetailEvent.Delete -> if (!busy && session != null) {
@@ -130,9 +127,11 @@ class SessionDetailViewModel(
         }
     }
 
-    private fun load() {
-        terminal = SessionDetailUiState.Loading
-        publish()
+    private fun load(showLoading: Boolean = true) {
+        if (showLoading) {
+            terminal = SessionDetailUiState.Loading
+            publish()
+        }
         viewModelScope.launch {
             repository.getSession(sessionId).fold(
                 onSuccess = { loaded ->
@@ -148,11 +147,11 @@ class SessionDetailViewModel(
                         perHandIds = exerciseRepository.perHandIdsOrDefault()
                         history = loadHistory(loaded)
                         recordHistory = loadRecordHistory(loaded)
-                        restoreEdit(loaded)
                         terminal = null
                     }
                 },
-                onFailure = { terminal = SessionDetailUiState.Error },
+                // A silent refresh keeps what is on screen when the reload fails.
+                onFailure = { if (showLoading) terminal = SessionDetailUiState.Error },
             )
             publish()
         }
@@ -173,74 +172,39 @@ class SessionDetailViewModel(
             if (results.any { it == null }) null else ids.zip(results.filterNotNull()).toMap()
         }
 
-    private fun openEdit(position: Int, setIndex: Int) {
-        val set = session?.exercises?.firstOrNull { it.position == position }
-            ?.sets?.firstOrNull { it.setIndex == setIndex } ?: return
-        val entry = set.entry as? SetEntry.WeightReps ?: return
-        edit = EditSetState(position, setIndex, weightText(entry.weightKg), entry.reps.toString())
+    private fun setRoutineSheet(open: Boolean, name: String) {
+        routineSheetOpen = open
+        routineName = name
+        savedState[KEY_ROUTINE_OPEN] = open
+        savedState[KEY_ROUTINE_NAME] = name
         publish()
     }
 
-    /** A correction typed before process death comes back, still unsaved, once the session it targets is loaded. */
-    private fun restoreEdit(loaded: WorkoutSession) {
-        val position = savedState.get<Int>(KEY_EDIT_POSITION)
-        val setIndex = savedState.get<Int>(KEY_EDIT_SET)
-        val exists = loaded.exercises.firstOrNull { it.position == position }?.sets?.any { it.setIndex == setIndex }
-        if (position == null || setIndex == null || exists != true) return
-        edit = EditSetState(
-            position,
-            setIndex,
-            savedState.get<String>(KEY_EDIT_WEIGHT).orEmpty(),
-            savedState.get<String>(KEY_EDIT_REPS).orEmpty(),
-        )
-    }
-
-    private fun persistEdit(value: EditSetState?) {
-        savedState[KEY_EDIT_POSITION] = value?.position
-        savedState[KEY_EDIT_SET] = value?.setIndex
-        savedState[KEY_EDIT_WEIGHT] = value?.weight
-        savedState[KEY_EDIT_REPS] = value?.reps
-    }
-
-    private fun changeEdit(change: (EditSetState) -> EditSetState) {
-        edit = edit?.let(change)
-        publish()
-    }
+    private fun tooManySets() = SaveWorkoutAsRoutine.exceedsSetLimit(
+        session?.exercises?.map { exercise -> exercise.sets.count { it.isCompleted } }.orEmpty(),
+    )
 
     @Suppress("ReturnCount") // Guard clauses.
-    private fun saveSet() {
-        val current = session ?: return
-        val draft = edit ?: return
-        val entry = parseEntry(draft)
-        if (entry == null) {
-            edit = draft.copy(invalid = true)
+    private fun confirmSaveAsRoutine() {
+        if (!routineSheetOpen || routineBusy) return
+        if (!SaveWorkoutAsRoutine.isValidName(routineName) || tooManySets()) return
+        if (!online) {
+            routineFailed = true
             publish()
             return
         }
-        val exercise = current.exercises.firstOrNull { it.position == draft.position } ?: return
-        val original = exercise.sets.firstOrNull { it.setIndex == draft.setIndex } ?: return
-        busy = true
+        routineBusy = true
+        routineFailed = false
         publish()
         viewModelScope.launch {
-            val result = repository.upsertSet(
-                sessionId = current.id,
-                exerciseId = exercise.exerciseId,
-                exercisePosition = exercise.position,
-                supersetGroup = exercise.supersetGroup,
-                setIndex = original.setIndex,
-                entry = entry,
-                completedAt = original.completedAt,
-                setType = original.setType,
-                rpe = original.rpe,
-            )
-            busy = false
+            val result = routineRepository.createFromSession(sessionId, routineName)
+            routineBusy = false
             if (result.isSuccess) {
-                session = current.withEntry(draft.position, draft.setIndex, entry)
-                edit = null
-                publish()
+                setRoutineSheet(open = false, name = "")
+                effectChannel.trySend(SessionDetailEffect.SavedAsRoutine(result.getOrThrow()))
             } else {
+                routineFailed = true
                 publish()
-                effectChannel.trySend(SessionDetailEffect.ActionFailed)
             }
         }
     }
@@ -256,23 +220,6 @@ class SessionDetailViewModel(
                 if (result.isSuccess) SessionDetailEffect.Deleted else SessionDetailEffect.ActionFailed,
             )
         }
-    }
-
-    private fun WorkoutSession.withEntry(position: Int, setIndex: Int, entry: SetEntry.WeightReps) = copy(
-        exercises = exercises.map { exercise ->
-            if (exercise.position != position) {
-                exercise
-            } else {
-                exercise.copy(sets = exercise.sets.map { if (it.setIndex == setIndex) it.copy(entry = entry) else it })
-            }
-        },
-    )
-
-    /** Reps from 1 to 999 and a weight of zero or more; null when the draft is not valid. */
-    private fun parseEntry(draft: EditSetState): SetEntry.WeightReps? {
-        val weight = NumberInputDefaults.parse(draft.weight)?.takeIf { it >= 0.0 }
-        val reps = draft.reps.trim().toIntOrNull()?.takeIf { it in 1..MAX_REPS }
-        return if (weight != null && reps != null) SetEntry.WeightReps(weight, reps) else null
     }
 
     private fun publish() {
@@ -306,7 +253,11 @@ class SessionDetailViewModel(
                 )
             },
             isOnline = online,
-            edit = edit,
+            saveAsRoutine = if (routineSheetOpen) {
+                SaveAsRoutineState(routineName, tooManySets(), routineBusy, routineFailed)
+            } else {
+                null
+            },
             busy = busy,
             split = MuscleSplit(current, groups, includeWarmUp),
         )

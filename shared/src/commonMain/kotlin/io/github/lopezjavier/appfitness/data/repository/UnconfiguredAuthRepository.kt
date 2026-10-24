@@ -156,6 +156,9 @@ class UnconfiguredRoutineRepository : RoutineRepository {
     override suspend fun updateFromSession(sessionId: String): Result<String> =
         Result.failure(AppException(AppError.Unknown))
 
+    override suspend fun createFromSession(sessionId: String, name: String): Result<String> =
+        Result.failure(AppException(AppError.Unknown))
+
     override suspend fun archive(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun listFolders(): Result<List<RoutineFolder>> = Result.failure(AppException(AppError.Unknown))

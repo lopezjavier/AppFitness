@@ -64,6 +64,8 @@ class WorkoutCalendarViewModel(
         when (event) {
             WorkoutCalendarEvent.Retry -> if (terminal == WorkoutCalendarUiState.Error) load()
 
+            WorkoutCalendarEvent.Refresh -> if (terminal != WorkoutCalendarUiState.Loading) refresh()
+
             is WorkoutCalendarEvent.SelectView -> {
                 view = event.view
                 persist()
@@ -102,18 +104,31 @@ class WorkoutCalendarViewModel(
         publish()
         viewModelScope.launch {
             repository.listCompletedSummaries().fold(
-                onSuccess = { sessions ->
-                    days = TrainingCalendar.daysOf(sessions, zone)
-                    terminal = if (days.isEmpty()) WorkoutCalendarUiState.Empty else null
-                    val today = clock.today().yearMonth
-                    month = month?.takeIf { it <= today } ?: defaultMonth()
-                    year = year ?: month?.year
-                    if (selectedDay?.let { it > clock.today() } == true) selectedDay = null
-                },
+                onSuccess = ::applySessions,
                 onFailure = { terminal = WorkoutCalendarUiState.Error },
             )
             publish()
         }
+    }
+
+    private fun refresh() {
+        viewModelScope.launch {
+            repository.listCompletedSummaries().onSuccess {
+                applySessions(it)
+                // A day that lost its workouts closes its picker.
+                if (choicesOpen && currentChoices().isEmpty()) choicesOpen = false
+                persist()
+            }
+        }
+    }
+
+    private fun applySessions(sessions: List<TrainedSession>) {
+        days = TrainingCalendar.daysOf(sessions, zone)
+        terminal = if (days.isEmpty()) WorkoutCalendarUiState.Empty else null
+        val today = clock.today().yearMonth
+        month = month?.takeIf { it <= today } ?: defaultMonth()
+        year = year ?: month?.year
+        if (selectedDay?.let { it > clock.today() } == true) selectedDay = null
     }
 
     private fun defaultMonth(): YearMonth = days.keys.maxOrNull()?.yearMonth ?: clock.today().yearMonth

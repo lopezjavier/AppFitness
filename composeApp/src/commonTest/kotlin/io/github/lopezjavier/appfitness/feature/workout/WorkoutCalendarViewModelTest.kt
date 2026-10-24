@@ -290,4 +290,60 @@ class WorkoutCalendarViewModelTest {
 
         assertEquals(YearMonth(2026, 10), model.content().month)
     }
+
+    @Test
+    fun refreshShowsAWorkoutSavedMeanwhileWithoutAFlashOfLoading() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        repository.completed += completedSession("b", 2)
+        model.onEvent(WorkoutCalendarEvent.Refresh)
+        assertIs<WorkoutCalendarUiState.Content>(model.uiState.value)
+        advanceUntilIdle()
+
+        assertEquals(setOf(LocalDate(2026, 10, 19), LocalDate(2026, 10, 17)), model.content().markedDays)
+    }
+
+    @Test
+    fun refreshRemovesADeletedWorkoutFromAnOlderMonth() = runTest(dispatcher) {
+        repository.completed += listOf(completedSession("a", 0), completedSession("old", 60))
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutCalendarEvent.PreviousMonth)
+        model.onEvent(WorkoutCalendarEvent.PreviousMonth)
+        assertEquals(setOf(day(60)), model.content().markedDays)
+
+        repository.completed.removeAll { it.id == "old" }
+        model.onEvent(WorkoutCalendarEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(emptySet(), model.content().markedDays)
+    }
+
+    @Test
+    fun refreshWhenTheLastWorkoutWasDeletedShowsEmpty() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        repository.completed.clear()
+        model.onEvent(WorkoutCalendarEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(WorkoutCalendarUiState.Empty, model.uiState.value)
+    }
+
+    @Test
+    fun aFailedRefreshKeepsWhatIsShown() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        repository.summariesFailure = AppError.Network
+        model.onEvent(WorkoutCalendarEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(setOf(LocalDate(2026, 10, 19)), model.content().markedDays)
+    }
 }

@@ -57,7 +57,7 @@ private val ExpectedSections =
         "favourite_toggle", "portion_selector", "month_calendar", "diary_history_row", "muscle_split_bar",
         "circumference_row", "goal_metrics",
         "top_bar",
-        "navigation", "bottom_sheet", "confirm_dialog", "logo", "skeleton", "wip", "theme",
+        "navigation", "bottom_sheet", "confirm_dialog", "date_picker", "logo", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }
 
 /**

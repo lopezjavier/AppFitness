@@ -52,7 +52,7 @@ class StrengthNavigationTest {
             Box(tapTarget().testTag("detail_open_progress").clickable(onClick = onOpenProgress))
         }
     }
-    private val sessionDetailSlot: SessionDetailSlot = { modifier, _, _, onOpenProgress ->
+    private val sessionDetailSlot: SessionDetailSlot = { modifier, _, _, onOpenProgress, _ ->
         Box(modifier.fillMaxSize().testTag("session_detail_screen")) {
             Box(tapTarget().testTag("session_open_progress").clickable { onOpenProgress("squat") })
         }

@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
+import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import kotlinx.datetime.LocalDate
@@ -43,6 +44,8 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
         fail()
 
     override suspend fun getSession(sessionId: String): Result<WorkoutSession?> = fail()
+
+    override suspend fun saveCompleted(draft: WorkoutDraft, sessionId: String?): Result<String> = fail()
 
     override suspend fun deleteSession(sessionId: String): Result<Unit> = fail()
 

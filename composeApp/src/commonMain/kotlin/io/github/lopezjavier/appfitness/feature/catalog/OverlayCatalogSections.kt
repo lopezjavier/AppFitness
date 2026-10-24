@@ -20,13 +20,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_date_picker_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_dialog_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bottom_sheet
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_confirm_dialog
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_date_picker
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_logo
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_close
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_title
+import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_confirm
+import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_dismiss
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
@@ -34,18 +38,21 @@ import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AppDatePickerDialog
 import io.github.lopezjavier.appfitness.designsystem.AppLogo
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
 /** Catalog sections of the overlay components: the bottom sheet and the dialogs (T-027). */
 internal fun LazyListScope.overlayItems() {
     item { BottomSheetSection() }
     item { ConfirmDialogSection() }
+    item { DatePickerDialogSection() }
     item { LogoSection() }
 }
 
@@ -125,3 +132,29 @@ private fun LogoSection() {
         AppLogo(modifier = Modifier.testTag("catalog_logo"))
     }
 }
+
+@Composable
+private fun DatePickerDialogSection() {
+    var open by rememberSaveable { mutableStateOf(false) }
+    CatalogSection(stringResource(Res.string.catalog_section_date_picker), "catalog_section_date_picker") {
+        SecondaryButton(
+            text = stringResource(Res.string.catalog_date_picker_open),
+            onClick = { open = true },
+            modifier = Modifier.fillMaxWidth().testTag("catalog_date_picker_open"),
+        )
+    }
+    if (open) {
+        AppDatePickerDialog(
+            selected = CatalogPickerDate,
+            onConfirm = { open = false },
+            onDismiss = { open = false },
+            confirmLabel = stringResource(Res.string.date_picker_confirm),
+            dismissLabel = stringResource(Res.string.date_picker_dismiss),
+            maxDate = CatalogPickerMaxDate,
+            testTagPrefix = "catalog_date_picker",
+        )
+    }
+}
+
+private val CatalogPickerDate = LocalDate(2026, 10, 1)
+private val CatalogPickerMaxDate = LocalDate(2026, 10, 20)
