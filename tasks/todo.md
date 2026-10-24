@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ☐
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-103 (E6 closure), in a fresh session. Checkpoint E6-C approved 2026-10-24 (change requests US-52/US-53 go to E7, ADR-62). Last merged: T-102b (PR #186). E5 closed (tag `v0.5.0`).
+**Next:** E7 (UI refinement) breakdown by `epic-planner` in a fresh session; first, the E6 retrospective with the user (`retrospectives/E6.md`, numbers drafted). Last merged: T-102b (PR #186). E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
@@ -2804,14 +2804,14 @@ Journey: the work around the session, outside the gym ("Mis rutinas" and "Histor
 **Description:** Closes E6: final regression on the phone, approval, tag `v0.6.0` and the retrospective.
 
 **Acceptance criteria:**
-- [ ] T-089…T-102b (and any fix tasks) merged with green CI; pgTAP green for the planned sets, training preferences, aggregates with warm-up inclusion and volume options, personal records, folders/order, Update Routine, workout management and the manual-food edit; `deploy-supabase` green after the last migration.
-- [ ] Host tests green for every E6 Gherkin scenario; `04-business-rules.md` §4 (set types, volume, PR families, calculators) covered by unit and pgTAP tests (epic DoD).
-- [ ] The set row covers every `exercise_metric_type` used by the seeded catalogue (epic DoD).
-- [ ] Checkpoints E6-A and E6-B approved and E6-C items 1–3 (food editing) passed; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
-- [ ] `tasks/todo.md` (E6 ✅, next-task pointer) updated through a PR.
+- [x] T-089…T-102b (and any fix tasks) merged with green CI; pgTAP green for the planned sets, training preferences, aggregates with warm-up inclusion and volume options, personal records, folders/order, Update Routine, workout management and the manual-food edit; `deploy-supabase` green after the last migration.
+- [x] Host tests green for every E6 Gherkin scenario; `04-business-rules.md` §4 (set types, volume, PR families, calculators) covered by unit and pgTAP tests (epic DoD).
+- [x] The set row covers every `exercise_metric_type` used by the seeded catalogue (epic DoD).
+- [x] Checkpoints E6-A and E6-B approved and E6-C items 1–3 (food editing) passed; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog (`planning/epics/E8-finalization.md`).
+- [x] `tasks/todo.md` (E6 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.6.0` after approval.
+- [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.6.0` after approval.
 
 **Dependencies:** T-102b (and Checkpoints E6-A and E6-B)
 **Files likely touched:** `CLAUDE.md`, `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E6.md`
