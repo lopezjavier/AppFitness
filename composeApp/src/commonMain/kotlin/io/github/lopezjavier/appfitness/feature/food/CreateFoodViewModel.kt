@@ -191,8 +191,15 @@ class CreateFoodViewModel(
         val updated = change(draft.value)
         draft.value = updated
         saveFailed.value = false
+        clearUnitRefusal()
         clearAiNote()
         persist(updated)
+    }
+
+    /** The refusal message goes away on the next user action; the unit stays locked (the food is referenced). */
+    private fun clearUnitRefusal() {
+        unitRefused.value = false
+        savedState.remove<Boolean>(KEY_UNIT_REFUSED)
     }
 
     private fun clearAiNote() {
@@ -209,6 +216,7 @@ class CreateFoodViewModel(
         if (saving.value || loadState.value != LoadState.Idle || !isSavable(current, online.value)) return
         saving.value = true
         saveFailed.value = false
+        clearUnitRefusal()
         viewModelScope.launch {
             val result: Result<Food> = if (editFoodId != null) {
                 foodRepository.updateFood(current.toUpdatedFood(editFoodId))

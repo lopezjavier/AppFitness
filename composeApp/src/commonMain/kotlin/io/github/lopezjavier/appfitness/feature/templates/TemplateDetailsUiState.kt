@@ -47,7 +47,8 @@ sealed interface TemplateDetailsUiState {
      * name has no hint but cannot be saved), the totals of the foods left and one of [rows] per food. Nothing is stored
      * until "Guardar": [isDirty] says the draft differs from the saved comida and [canSave] that it can be saved now
      * (valid name and amounts, a food left, online, not busy). [openFood] is the food sheet. Everything survives
-     * process death (ADR-40).
+     * process death (ADR-40). [canAdd] says "Añadir" can log the draft now (online, a food left, valid amounts, nothing
+     * in flight; the name does not matter); [adding] is that request and [addFailed] its failure.
      */
     data class Content(
         val name: String,
@@ -61,6 +62,9 @@ sealed interface TemplateDetailsUiState {
         val isDirty: Boolean,
         val isOffline: Boolean,
         val busy: Boolean,
+        val adding: Boolean,
+        val addFailed: Boolean,
+        val canAdd: Boolean,
         val openFood: OpenFood?,
     ) : TemplateDetailsUiState {
         /** The index of the food whose sheet is open, if any. */
@@ -100,6 +104,9 @@ sealed interface TemplateDetailsEvent {
     /** "Guardar": stores name, removals, additions and amounts together (one request). */
     data object SaveClicked : TemplateDetailsEvent
 
+    /** "Añadir": logs the foods as shown to the route's meal and day, without storing the comida. */
+    data object Add : TemplateDetailsEvent
+
     /** "Eliminar comida": deletes at once (online only). */
     data object Delete : TemplateDetailsEvent
 
@@ -113,6 +120,9 @@ sealed interface TemplateDetailsEvent {
 sealed interface TemplateDetailsEffect {
     /** The draft was saved: give haptic feedback and leave the editor. */
     data object Saved : TemplateDetailsEffect
+
+    /** The draft's foods were added to the diary: give haptic feedback and leave for the diary. */
+    data object Added : TemplateDetailsEffect
 
     /** The comida was deleted: leave the editor. */
     data object Deleted : TemplateDetailsEffect
