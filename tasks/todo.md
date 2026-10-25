@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅
 
-**Next:** T-115 ("Estadísticas" screen with the radar and body map, US-40/US-41); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-117 (Comidas grouped in the Diario, US-55, ADR-68; backend + core + UI; then the E8-A 👤 checkpoint); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3239,22 +3239,22 @@ Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generi
 **US-41 part.** Two new design-system components with catalog entries and `05-design-system.md` §6 rows: `RadarChart` (Canvas; one axis per muscle group; two series "Actual" and "Periodo anterior" with a legend; values and labels exposed as an accessible summary; adapts to large font scales) and `BodyHeatmap` (front and back body silhouettes with one region per muscle group, coloured by sets on a single-hue intensity scale; each region tappable with ≥ 48 dp effective targets or an accessible per-muscle list fallback; `Role.Button`, description "<músculo>, N series"). The silhouette is drawn in-house as vector paths, or uses a permissively licensed asset whose licence is recorded for the E9 credits. Sections of "Estadísticas" below the US-40 ones (E8 Q1): the radar compares the selected frame with the previous window of equal length from `muscle_group_sets` (two calls; "Todo" rule pending E8 Q2); the body map shows the last 7 days from `muscle_group_sets` regardless of the frame; tapping a muscle opens a bottom sheet with its sets ("N series", decimal comma) and its exercises (catalog names, sets) from `exercise_set_counts(…, p_muscle_group)`; a muscle without sets shows "0 series" and no list (wording by ux-reviewer). The `full_body` group follows E8 Q3. Loading, empty and error states per section. The open muscle sheet survives leaving the app.
 
 **Acceptance criteria:**
-- [ ] The Perfil root shows the new statistics entry; it opens "Estadísticas" with a back arrow.
-- [ ] Picking "Todo" shows entrenos, series, volumen and duración over the whole history (fake data with a session older than a year).
-- [ ] The set-count chart shows the sets over time for the frame.
-- [ ] Sets per muscle group shows primary 1 and secondary 0,5 (bench press example: Pecho 3, Tríceps 1,5, Hombros 1,5).
-- [ ] Main exercises lists the most trained exercises with their sets; a row opens its progress chart.
-- [ ] Loading, empty, error and offline states; the frame survives background and process death.
-- [ ] The radar shows "Actual" and "Periodo anterior" per muscle group for the selected frame; changing the frame updates both series.
-- [ ] The body map highlights the muscles trained in the last 7 days (fake: chest and triceps trained 3 days ago, legs 9 days ago → legs not highlighted).
-- [ ] Tapping "Tríceps" shows its sets (1,5 for the bench example) and its exercises; an untrained muscle shows zero sets.
-- [ ] Both components have catalog entries, pass the accessibility checks (targets, descriptions, large font) and use only design tokens.
-- [ ] Section states (loading, empty, error with "Reintentar"); the open muscle sheet survives background and process death.
+- [x] The Perfil root shows the new statistics entry; it opens "Estadísticas" with a back arrow.
+- [x] Picking "Todo" shows entrenos, series, volumen and duración over the whole history (fake data with a session older than a year).
+- [x] The set-count chart shows the sets over time for the frame.
+- [x] Sets per muscle group shows primary 1 and secondary 0,5 (bench press example: Pecho 3, Tríceps 1,5, Hombros 1,5).
+- [x] Main exercises lists the most trained exercises with their sets; a row opens its progress chart.
+- [x] Loading, empty, error and offline states; the frame survives background and process death.
+- [x] The radar shows "Actual" and "Periodo anterior" per muscle group for the selected frame; changing the frame updates both series.
+- [x] The body map highlights the muscles trained in the last 7 days (fake: chest and triceps trained 3 days ago, legs 9 days ago → legs not highlighted).
+- [x] Tapping "Tríceps" shows its sets (1,5 for the bench example) and its exercises; an untrained muscle shows zero sets.
+- [x] Both components have catalog entries, pass the accessibility checks (targets, descriptions, large font) and use only design tokens.
+- [x] Section states (loading, empty, error with "Reintentar"); the open muscle sheet survives background and process death.
 
 **Host tests (per scenario):** `TrainingStatsViewModelTest` with fakes + Turbine (each frame → windows sent, "Todo" null window, sections mapped, previous window for the radar, last-7-days window independent of the frame, muscle detail load, Retry, empty, offline, section errors); `TrainingStatsScreen` Robolectric tests (entry on the Perfil root, chips, tiles with Spanish formatting, chart semantics, muscle rows with decimal comma, main-exercise row opens progress, radar legend, map highlight semantics, sheet content, zero-sets muscle, states); `RadarChartTest` and `BodyHeatmapTest` (semantics, tap callbacks, large font) + catalog entries; `ProfileRootScreen` test for the new row; restoration tests (frame, open sheet).
 
 **Verification:**
-- [ ] lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-114 (deployed)
 **Files likely touched:** new `composeApp/…/feature/analytics/stats/{TrainingStatsScreen,TrainingStatsViewModel,TrainingStatsUiState,TrainingStatsSections,MuscleDistributionSection,MuscleDetailSheet}.kt`, `composeApp/…/designsystem/{RadarChart,BodyHeatmap,BodyMapPaths}.kt`, catalog, `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/di/UiModule.kt`, strings, `planning/05-design-system.md` §6, tests
