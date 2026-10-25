@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I scripts/guard-rule-files.py",
+            "statusMessage": "Checking rule-file guard..."
+          }
+        ]
+      }
+    ]
+  }
+}
