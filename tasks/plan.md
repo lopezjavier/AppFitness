@@ -41,11 +41,11 @@ Checkpoint rule for E8: a single 👤 checkpoint for the whole epic (user decisi
 - [x] T-113: E7 carry-over cleanup and exercise charts — backend + core + UI — L
 - [x] T-114: Training statistics backend — backend + core — M
 - [x] T-115: "Estadísticas" screen with the muscle distribution — UI + core — L
-- [ ] T-117: Comidas grouped in the Diario — backend + core + UI — L (added 2026-10-25 at the user's request, ADR-68; runs after T-115 and before E8-A)
+- [x] T-117: Comidas grouped in the Diario — backend + core + UI — L (added 2026-10-25 at the user's request, ADR-68; runs after T-115 and before E8-A)
   - **Checkpoint E8-A 👤 Follow your progress and spot imbalances (7 items):** exercise charts (record markers, "Todo"); non-weight charts; key values per frame and warm-up toggle; sets over time and per muscle; main exercises; muscle distribution (radar, body map, tap detail); states and the final E8 regression (incl. the T-113 photo comment check). Why here: the single checkpoint of the epic, after the last implementation task.
 
 ### Phase 2: Closure
-- [ ] T-116: E8 closure — PM — S (no checkpoint; E8-A's approval releases it)
+- [x] T-116: E8 closure — PM — S (no checkpoint; E8-A's approval releases it)
 
 Internal milestones (not 👤 checkpoints):
 - pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task;
