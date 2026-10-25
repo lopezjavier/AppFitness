@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
@@ -60,6 +61,7 @@ class CompleteOnboardingTest {
             warmUpIncluded: Boolean,
             previousValuesMode: PreviousValuesMode,
             calculators: CalculatorSettings?,
+            foodPreferences: FoodPreferences?,
         ): Result<Unit> = error("unused")
     }
     private val completeOnboarding = CompleteOnboarding(goalsRepository, profileRepository)

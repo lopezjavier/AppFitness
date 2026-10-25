@@ -1,33 +1,36 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
-import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import kotlinx.datetime.LocalDate
 
 /**
  * Logs every food of a template into meal [mealSlotId] of a day in ONE request. The snapshots come from the foods'
- * current values, so already logged entries are never touched.
+ * current values and, for cooked items, the CURRENT olive oil preferences (read at this moment, ADR-63), so already
+ * logged entries are never touched. A comida with only raw items does not read the preferences.
  */
-class AddTemplateToDiary(private val foodDiary: FoodDiaryRepository, private val scaleNutrition: ScaleNutrition) {
+class AddTemplateToDiary(
+    private val foodDiary: FoodDiaryRepository,
+    private val foodPreferences: FoodPreferencesRepository,
+    private val buildCookedEntries: BuildCookedEntries,
+) {
     suspend operator fun invoke(
         template: MealTemplate,
         mealSlotId: String,
         date: LocalDate,
     ): Result<List<FoodLogEntry>> {
         if (template.items.isEmpty()) return Result.success(emptyList())
-        val entries = template.items.map { item ->
-            NewFoodEntry(
-                date = date,
-                mealSlotId = mealSlotId,
-                foodId = item.food.id,
-                foodName = item.food.name,
-                amount = item.amount,
-                portionLabel = item.portionLabel,
-                snapshot = scaleNutrition(item.food.nutrition, item.amount),
-            )
+        val prefs = if (buildCookedEntries.needsPreferences(template.items)) {
+            foodPreferences.get()
+        } else {
+            Result.success(FoodPreferences())
         }
-        return foodDiary.addEntries(entries)
+        return prefs.fold(
+            onSuccess = { foodDiary.addEntries(buildCookedEntries(template.items, mealSlotId, date, it)) },
+            onFailure = { Result.failure(it) },
+        )
     }
 }

@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -75,6 +76,7 @@ class UnconfiguredProfileRepository : ProfileRepository {
         warmUpIncluded: Boolean,
         previousValuesMode: PreviousValuesMode,
         calculators: CalculatorSettings?,
+        foodPreferences: FoodPreferences?,
     ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }
 

@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.data.remote.FoodDto
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -79,6 +80,49 @@ class SupabaseMealTemplateRepositoryTest {
         assertTrue(url.toString().contains("order=name.asc"), url.toString())
         val select = url.parameters["select"].orEmpty()
         assertTrue(select.contains("foods(${FoodDto.COLUMNS})"), select)
+    }
+
+    @Test
+    fun save_sendsTheCookingMethodOfEachItem() = runTest {
+        val repo = repository { "\"t9\"" }
+
+        repo.save(
+            null,
+            "Pollo",
+            null,
+            listOf(
+                NewTemplateItem("chicken", 200.0, null, CookingMethod.AirFryer),
+                NewTemplateItem("rice", 100.0, null),
+            ),
+        ).getOrThrow()
+
+        val body = Json.parseToJsonElement((requests.last().body as TextContent).text).jsonObject
+        val sent = body["p_items"]!!.jsonArray.map { it.jsonObject }
+        assertEquals(listOf("air_fryer", "raw"), sent.map { it["cooking_method"]?.jsonPrimitive?.content })
+    }
+
+    @Test
+    fun list_selectsTheCookingMethodOfTheItems() = runTest {
+        val repo = repository { "[]" }
+
+        repo.list().getOrThrow()
+
+        assertTrue(requests.last().url.parameters["select"].orEmpty().contains("position,cooking_method,foods("))
+    }
+
+    @Test
+    fun list_mapsTheCookingMethodAndDefaultsToRaw() = runTest {
+        val repo = repository {
+            """[{"id":"t1","name":"Pollo","meal_slot_id":null,"meal_template_items":[""" +
+                """{"food_id":"c","amount":200.0,"portion_label":null,"position":0,"cooking_method":"fried",""" +
+                """"foods":{"id":"c","name":"Pollo","base_unit":"g","kcal_100":110.0,"food_portions":[]}},""" +
+                """{"food_id":"r","amount":100.0,"portion_label":null,"position":1,""" +
+                """"foods":{"id":"r","name":"Arroz","base_unit":"g","kcal_100":130.0,"food_portions":[]}}]}]"""
+        }
+
+        val template = repo.list().getOrThrow().single()
+
+        assertEquals(listOf(CookingMethod.Fried, CookingMethod.Raw), template.items.map { it.cookingMethod })
     }
 
     @Test

@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -39,11 +40,13 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         warmUpIncluded: Boolean = false,
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
+        foodPreferences: FoodPreferences? = null,
     ): Result<Unit> {
         val name = displayName.trim()
         val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
         val nameValid = name.isNotEmpty() && name.length <= BiometricBounds.NAME_MAX_LENGTH
-        if (!nameValid || tenths !in BiometricBounds.WEIGHT_TENTHS) {
+        val foodValid = foodPreferences?.isValid != false
+        if (!nameValid || tenths !in BiometricBounds.WEIGHT_TENTHS || !foodValid) {
             return Result.failure(AppException(AppError.Validation))
         }
         val today = now.toLocalDateTime(timeZone).date
@@ -75,6 +78,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
             warmUpIncluded,
             previousValuesMode,
             calculators,
+            foodPreferences,
         )
     }
 

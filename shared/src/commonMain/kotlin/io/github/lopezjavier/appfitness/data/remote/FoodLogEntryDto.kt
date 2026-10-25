@@ -24,6 +24,8 @@ internal data class FoodLogEntryDto(
     @SerialName("carbs_g") val carbsG: Double,
     @SerialName("fat_g") val fatG: Double,
     val foods: FoodBaseUnitDto? = null,
+    @SerialName("cooking_method") val cookingMethod: CookingMethodDto = CookingMethodDto.Raw,
+    @SerialName("cooking_oil_retained_g") val cookingOilRetainedG: Double? = null,
 ) {
     fun toDomain(): FoodLogEntry = FoodLogEntry(
         id = id,
@@ -38,11 +40,13 @@ internal data class FoodLogEntryDto(
         proteinG = proteinG,
         carbsG = carbsG,
         fatG = fatG,
+        cookingMethod = cookingMethod.domain,
+        cookingOilRetainedG = cookingOilRetainedG ?: 0.0,
     )
 
     companion object {
         const val COLUMNS =
             "id,log_date,meal_slot_id,food_id,food_name,amount,portion_label,kcal,protein_g,carbs_g,fat_g," +
-                "foods(base_unit)"
+                "cooking_method,cooking_oil_retained_g,foods(base_unit)"
     }
 }

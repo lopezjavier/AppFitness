@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import kotlinx.datetime.LocalDate
@@ -37,6 +38,19 @@ class BuildTemplateItemsTest {
         val items = build(listOf(entry("e1", "shake", 300.0, portion = "1 vaso")))
 
         assertEquals("1 vaso", items.single().portionLabel)
+    }
+
+    @Test
+    fun keepsTheCookingMethodButNotTheOil() {
+        val cooked = entry(
+            "e1",
+            "chicken",
+            200.0,
+        ).copy(cookingMethod = CookingMethod.Griddle, cookingOilRetainedG = 2.5)
+
+        val items = build(listOf(cooked, entry("e2", "rice", 100.0)))
+
+        assertEquals(listOf(CookingMethod.Griddle, CookingMethod.Raw), items.map { it.cookingMethod })
     }
 
     @Test

@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
@@ -23,6 +24,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
@@ -43,6 +45,11 @@ private const val ROW_TWO =
     """{"id":"e2","log_date":"2026-10-19","meal_slot_id":"s1","food_id":"f1","food_name":"Avena",""" +
         """"amount":40.5,"portion_label":null,"kcal":151.2,"protein_g":5.3,"carbs_g":26.8,"fat_g":2.7,""" +
         """"foods":{"base_unit":"g"}}"""
+
+private const val ROW_COOKED =
+    """{"id":"e3","log_date":"2026-10-19","meal_slot_id":"s1","food_id":"f1","food_name":"Avena",""" +
+        """"amount":40.5,"portion_label":null,"kcal":151.2,"protein_g":5.3,"carbs_g":26.8,"fat_g":2.7,""" +
+        """"cooking_method":"air_fryer","cooking_oil_retained_g":2.5,"foods":{"base_unit":"g"}}"""
 
 class SupabaseFoodDiaryRepositoryTest {
     private val day = LocalDate(2026, 10, 19)
@@ -157,6 +164,65 @@ class SupabaseFoodDiaryRepositoryTest {
         assertTrue(body.contains("\"log_date\":\"2026-10-19\""), body)
         assertTrue(body.contains("\"meal_slot_id\":\"s1\"") && body.contains("\"amount\":40.5"), body)
         assertTrue(body.contains("\"kcal\":151.2") && body.contains("\"fat_g\":2.7"), body)
+    }
+
+    @Test
+    fun addEntry_aRawEntryPostsTheRawMethodAndZeroOil() = runTest {
+        val repo = signedInRepository { "[$ROW_ONE]" }
+
+        repo.addEntry(newEntry()).getOrThrow()
+
+        val body = requests.last().body.toByteArray().decodeToString()
+        assertTrue(body.contains("\"cooking_method\":\"raw\""), body)
+        assertTrue(body.contains("\"cooking_oil_retained_g\":0.0"), body)
+    }
+
+    @Test
+    fun addEntry_aCookedEntryPostsItsMethodAndRetainedOil() = runTest {
+        val repo = signedInRepository { "[$ROW_COOKED]" }
+
+        val created = repo.addEntry(newEntry().copy(cookingMethod = CookingMethod.AirFryer, cookingOilRetainedG = 2.5))
+            .getOrThrow()
+
+        val body = requests.last().body.toByteArray().decodeToString()
+        assertTrue(body.contains("\"cooking_method\":\"air_fryer\""), body)
+        assertTrue(body.contains("\"cooking_oil_retained_g\":2.5"), body)
+        assertEquals(CookingMethod.AirFryer, created.cookingMethod)
+        assertEquals(2.5, created.cookingOilRetainedG)
+    }
+
+    @Test
+    fun refresh_selectsTheCookingColumnsAndDecodesThem() = runTest {
+        val repo = signedInRepository { "[$ROW_COOKED]" }
+
+        repo.refresh(day).getOrThrow()
+
+        assertTrue(requests.last().url.parameters["select"].orEmpty().contains("cooking_method,cooking_oil_retained_g"))
+        val entry = repo.entries(day).first().single()
+        assertEquals(CookingMethod.AirFryer, entry.cookingMethod)
+        assertEquals(2.5, entry.cookingOilRetainedG)
+    }
+
+    @Test
+    fun refresh_aRowWithoutCookingColumnsIsRaw() = runTest {
+        val repo = signedInRepository { "[$ROW_ONE]" }
+
+        repo.refresh(day).getOrThrow()
+
+        val entry = repo.entries(day).first().single()
+        assertEquals(CookingMethod.Raw, entry.cookingMethod)
+        assertEquals(0.0, entry.cookingOilRetainedG)
+    }
+
+    @Test
+    fun updateEntry_doesNotSendTheCookingColumns() = runTest {
+        val repo = signedInRepository { "[$ROW_COOKED]" }
+
+        repo.updateEntry("e3", UpdatedFoodEntry("s1", 20.0, null, NutritionSnapshot(74.0, 2.6, 13.2, 1.3)))
+            .getOrThrow()
+
+        val body = requests.last().body.toByteArray().decodeToString()
+        assertTrue(!body.contains("cooking"), body)
     }
 
     @Test
