@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -149,6 +150,8 @@ class AppModuleTest {
                 RoutineRepository::class,
                 WorkoutSessionRepository::class,
                 StrengthRepository::class,
+                TrainingStatsRepository::class,
+                ExerciseLibrary::class,
                 LoadExerciseCatalog::class,
                 SearchExercises::class,
                 Boolean::class,
