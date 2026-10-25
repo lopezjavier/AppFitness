@@ -125,9 +125,9 @@ fun FoodSearchScreen(
     }
 }
 
-/** Search box with a clear button, the scan and the create buttons; all are disabled offline (they need the server). */
 private const val SEARCH_FIELD_MIN_TARGETS = 3
 
+/** Search box with a clear button, the scan and the create buttons; all are disabled offline (they need the server). */
 @Composable
 private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onPhotoClick: () -> Unit) {
     Row(
