@@ -169,13 +169,13 @@ sealed interface PreferencesEvent {
     /** Switches one plate of the catalogue on or off; the last plate cannot be switched off (sets `platesError`). */
     data class SetPlateEnabled(val kg: Double, val enabled: Boolean) : PreferencesEvent
 
-    /** "Aceite a la plancha (g)" as typed; only a draft until [Save]. */
+    /** "Grasa añadida a la plancha (%)" as typed; only a draft until [Save]. */
     data class SetFatPctGriddle(val text: String) : PreferencesEvent
 
-    /** "Aceite en air fryer (g)" as typed; only a draft until [Save]. */
+    /** "Grasa añadida en air fryer (%)" as typed; only a draft until [Save]. */
     data class SetFatPctAirFryer(val text: String) : PreferencesEvent
 
-    /** "Aceite al freír (g)" as typed; only a draft until [Save]. */
+    /** "Grasa añadida al freír (%)" as typed; only a draft until [Save]. */
     data class SetFatPctFried(val text: String) : PreferencesEvent
 
     data object Save : PreferencesEvent
