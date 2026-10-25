@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_ml
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_brand
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_carbs
@@ -58,6 +59,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
@@ -101,6 +103,12 @@ fun CreateFoodScreen(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Uni
                             .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
                         verticalArrangement = Arrangement.spacedBy(Spacing.xl),
                     ) {
+                        if (state.aiEstimateNote) {
+                            InlineNote(
+                                text = stringResource(Res.string.create_food_ai_note),
+                                testTag = "create_food_ai_note",
+                            )
+                        }
                         IdentityBlock(state, onEvent)
                         NutritionBlock(state, onEvent)
                         LabelBlock(state, onEvent)

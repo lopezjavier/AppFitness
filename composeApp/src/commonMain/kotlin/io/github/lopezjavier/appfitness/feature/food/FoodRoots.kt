@@ -14,6 +14,13 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
+import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEffect
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEvent
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoFlow
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -21,7 +28,8 @@ import org.koin.core.parameter.parametersOf
  * Stateful food search: connects [FoodSearchViewModel] for the meal [slotId] (null = none preselected) and the ISO day
  * [date]. [onOpenFood] receives the id of the food to log (a tapped row or a scanned product; the add-food sheet is
  * opened by navigation, so it survives process death). [onCreateFood] opens the create-food form with the scanned
- * barcode and/or the typed name. [onOpenTemplate] opens the read-only details of a comida; the list is reloaded when
+ * barcode and/or the typed name, or the JSON `NewFoodDraft` of a photo estimate (null prefill and name = empty form).
+ * [onOpenTemplate] opens the read-only details of a comida; the list is reloaded when
  * the search is shown again (the editor may have changed it). In [pick] mode the search chooses a food for a comida
  * draft (no Comidas tab; [slotId] and [date] are irrelevant).
  */
@@ -31,12 +39,15 @@ fun FoodSearchRoot(
     slotId: String?,
     date: String,
     onOpenFood: (foodId: String) -> Unit,
-    onCreateFood: (barcode: String?, name: String?) -> Unit,
+    onCreateFood: (barcode: String?, name: String?, prefill: String?) -> Unit,
     onOpenTemplate: (templateId: String) -> Unit,
     modifier: Modifier = Modifier,
     pick: Boolean = false,
     viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date, pick) }),
+    photoViewModel: FoodPhotoViewModel = koinViewModel(),
+    photoCapture: PhotoCapture = koinInject(),
 ) {
+    val photoState by photoViewModel.uiState.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var scanFailed by remember { mutableStateOf(false) }
     var templateManageFailed by remember { mutableStateOf(false) }
@@ -50,7 +61,7 @@ fun FoodSearchRoot(
             when (effect) {
                 is FoodSearchEffect.OpenFood -> currentOpenFood(effect.food.id)
 
-                is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name)
+                is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name, null)
 
                 FoodSearchEffect.ScanFailed -> scanFailed = true
 
@@ -60,6 +71,16 @@ fun FoodSearchRoot(
 
                 // The star already rolled back.
                 FoodSearchEffect.FavouriteFailed -> Unit
+            }
+        }
+    }
+    LaunchedEffect(photoViewModel) {
+        photoViewModel.effects.collect { effect ->
+            when (effect) {
+                is FoodPhotoEffect.OpenPrefilledForm ->
+                    currentCreateFood(null, null, NewFoodDraftCodec.encode(effect.draft))
+
+                FoodPhotoEffect.OpenEmptyForm -> currentCreateFood(null, null, null)
             }
         }
     }
@@ -74,11 +95,14 @@ fun FoodSearchRoot(
         scanFailed = scanFailed,
         templateManageFailed = templateManageFailed,
         snackbarHost = snackbarHost,
+        onPhotoClick = { photoViewModel.onEvent(FoodPhotoEvent.Open) },
     )
+    FoodPhotoFlow(photoState, photoViewModel::onEvent, photoCapture::readJpeg)
 }
 
 /**
- * Stateful create-food form: connects [CreateFoodViewModel], prefilled with [barcode] and/or [name] the first time.
+ * Stateful create-food form: connects [CreateFoodViewModel], prefilled with [barcode] and/or [name], or with the JSON
+ * `NewFoodDraft` [prefill], the first time.
  * [onSave] receives the id of the new food (the add-food sheet opens for it).
  */
 @Composable
@@ -87,8 +111,9 @@ fun CreateFoodRoot(
     name: String?,
     onSave: (foodId: String) -> Unit,
     modifier: Modifier = Modifier,
+    prefill: String? = null,
     viewModel: CreateFoodViewModel =
-        koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty(), "") }),
+        koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty(), "", prefill.orEmpty()) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnSaved by rememberUpdatedState(onSave)
@@ -168,7 +193,7 @@ fun EditFoodRoot(
     onSave: (foodId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CreateFoodViewModel =
-        koinViewModel(key = "edit_$foodId", parameters = { parametersOf("", "", foodId) }),
+        koinViewModel(key = "edit_$foodId", parameters = { parametersOf("", "", foodId, "") }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnSaved by rememberUpdatedState(onSave)

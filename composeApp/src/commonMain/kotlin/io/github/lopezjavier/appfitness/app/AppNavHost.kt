@@ -119,7 +119,8 @@ internal typealias EditEntrySlot =
 /**
  * Food search content: modifier (full-screen insets), the meal and day the search adds to ([slotId] null = no meal
  * preselected, [date] ISO), the opener of the add-food sheet (by food id), the opener of the create-food form
- * (scanned barcode and/or typed name) and [onOpenTemplate], the opener of the read-only details of a comida (by id).
+ * (scanned barcode, typed name and/or the JSON `NewFoodDraft` of an AI photo estimate) and [onOpenTemplate], the
+ * opener of the read-only details of a comida (by id).
  * With [pick] the search chooses a food for a comida draft.
  */
 internal typealias FoodSearchSlot =
@@ -128,7 +129,7 @@ internal typealias FoodSearchSlot =
         slotId: String?,
         date: String,
         onOpenFood: (String) -> Unit,
-        onCreateFood: (barcode: String?, name: String?) -> Unit,
+        onCreateFood: (barcode: String?, name: String?, prefill: String?) -> Unit,
         onOpenTemplate: (String) -> Unit,
         pick: Boolean,
     ) -> Unit
@@ -149,14 +150,15 @@ internal typealias SaveTemplateSlot =
 internal typealias MealSlotsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
 /**
- * Create-food form content: modifier, the prefilled barcode and name, and [onSaved] with the food id. With
- * `editFoodId` it is the edit form of that manual food instead (barcode and name are null).
+ * Create-food form content: modifier, the prefilled barcode, name and AI `prefill` (JSON), and [onSaved] with the
+ * food id. With `editFoodId` it is the edit form of that manual food instead (barcode and name are null).
  */
 internal typealias CreateFoodSlot =
     @Composable (
         modifier: Modifier,
         barcode: String?,
         name: String?,
+        prefill: String?,
         editFoodId: String?,
         onSaved: (String) -> Unit,
     ) -> Unit
@@ -363,7 +365,7 @@ internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, 
 }
 
 /** Empty create-food form for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _ ->
+internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("create_food_screen"))
 }
 
@@ -673,8 +675,10 @@ private fun NavGraphBuilder.foodSearchDestination(
                     launchSingleTop = true
                 }
             },
-            { barcode, name ->
-                navController.navigate(CreateFoodRoute(barcode, name, route.slotId, route.date, route.pick)) {
+            { barcode, name, prefill ->
+                navController.navigate(
+                    CreateFoodRoute(barcode, name, route.slotId, route.date, route.pick, prefill),
+                ) {
                     launchSingleTop = true
                 }
             },
@@ -707,7 +711,7 @@ private fun NavGraphBuilder.foodDestinations(
     templateDetailsDestination(navController, fullScreenPadding, templateDetails)
     composable<CreateFoodRoute> { entry ->
         val route = entry.toRoute<CreateFoodRoute>()
-        createFood(Modifier.padding(fullScreenPadding), route.barcode, route.name, null) { foodId ->
+        createFood(Modifier.padding(fullScreenPadding), route.barcode, route.name, route.prefill, null) { foodId ->
             // The form is replaced by the sheet: "Añadir" then pops back to the Diary like the normal flow.
             navController.navigate(AddFoodRoute(foodId, route.slotId, route.date, route.pick)) {
                 popUpTo<CreateFoodRoute> { inclusive = true }
@@ -717,7 +721,7 @@ private fun NavGraphBuilder.foodDestinations(
     }
     composable<EditFoodRoute> { entry ->
         val route = entry.toRoute<EditFoodRoute>()
-        createFood(Modifier.padding(fullScreenPadding), null, null, route.foodId) { foodId ->
+        createFood(Modifier.padding(fullScreenPadding), null, null, null, route.foodId) { foodId ->
             // The sheet was closed when the form opened: reopen it on the saved food (it reads the new values).
             navController.navigate(AddFoodRoute(foodId, route.slotId, route.date, route.pick)) {
                 popUpTo<EditFoodRoute> { inclusive = true }

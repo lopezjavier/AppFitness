@@ -131,7 +131,9 @@ fun EmptyState(
 /**
  * Centred "something failed" block with a required retry [action] (a failed load always offers a way out).
  * The text is a polite live region, so a screen reader announces an error that appears without stealing focus.
- * Tags work as in [EmptyState]. The caller's [modifier] lands on the root.
+ * An optional [secondaryAction] (e.g. "Crear manualmente") is a secondary button under the primary one.
+ * Tags work as in [EmptyState] (the secondary button is `<prefix>_secondary_action`); [actionTestTag] and
+ * [secondaryActionTestTag] replace the button tags when given. The caller's [modifier] lands on the root.
  */
 @Composable
 fun ErrorState(
@@ -141,6 +143,9 @@ fun ErrorState(
     title: String? = null,
     icon: DrawableResource = Res.drawable.ic_error,
     testTagPrefix: String? = null,
+    secondaryAction: AppStateAction? = null,
+    actionTestTag: String? = null,
+    secondaryActionTestTag: String? = null,
 ) {
     StateMessage(
         message = message,
@@ -151,6 +156,9 @@ fun ErrorState(
         isError = true,
         testTagPrefix = testTagPrefix,
         modifier = modifier,
+        secondaryAction = secondaryAction,
+        actionTestTag = actionTestTag,
+        secondaryActionTestTag = secondaryActionTestTag,
     )
 }
 
@@ -166,6 +174,9 @@ private fun StateMessage(
     isError: Boolean,
     testTagPrefix: String?,
     modifier: Modifier,
+    secondaryAction: AppStateAction? = null,
+    actionTestTag: String? = null,
+    secondaryActionTestTag: String? = null,
 ) {
     val rootModifier = testTagPrefix?.let { modifier.testTag(it) } ?: modifier
     Box(modifier = rootModifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -212,12 +223,22 @@ private fun StateMessage(
                     modifier =
                     Modifier
                         .padding(top = StateMessageMetrics.ActionTopSpacing)
-                        .then(tagged(testTagPrefix, "action")),
+                        .then(actionTag(actionTestTag, testTagPrefix, "action")),
+                )
+            }
+            if (secondaryAction != null) {
+                SecondaryButton(
+                    text = secondaryAction.label,
+                    onClick = secondaryAction.onClick,
+                    modifier = actionTag(secondaryActionTestTag, testTagPrefix, "secondary_action"),
                 )
             }
         }
     }
 }
+
+private fun actionTag(override: String?, prefix: String?, part: String): Modifier =
+    override?.let { Modifier.testTag(it) } ?: tagged(prefix, part)
 
 private fun tagged(prefix: String?, part: String): Modifier =
     childTestTag(prefix, part)?.let { Modifier.testTag(it) } ?: Modifier

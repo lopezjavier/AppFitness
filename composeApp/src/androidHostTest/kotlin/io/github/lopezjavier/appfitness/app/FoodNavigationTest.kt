@@ -47,10 +47,10 @@ class FoodNavigationTest {
     private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, onCreateFood, _, _ ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("search_pick").clickable { onOpenFood("chicken") })
-            Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla") })
+            Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla", null) })
         }
     }
-    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, editFoodId, onSaved ->
+    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, _, editFoodId, onSaved ->
         Column(modifier.fillMaxSize().testTag("create_food_screen")) {
             Text("$barcode|$name|$editFoodId", Modifier.testTag("create_args"))
             Box(Modifier.size(48.dp).testTag("create_save").clickable { onSaved(editFoodId ?: "new-1") })
