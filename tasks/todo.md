@@ -3009,7 +3009,7 @@ Journey: add a new food without typing (from a photo of a dish, a label or a bar
 
 ## T-107b: Weight estimate from a photo for an existing food
 
-**Backlog (user request, 2026-10-25), next task after T-107; to be planned (story, Gherkin and ADR decided by the planner/user, not yet written).** In "Añadir comida", a photo icon next to the amount sends the photo and the existing food's details to Gemini and prefills the amount with the estimated weight only (no food is created, nothing is kept); the user can still edit it.
+**Story:** US-54 (E7) · **ADR:** ADR-64 · **Flow:** backend then UI · **Scenarios:** Photo icon next to the amount; The estimate prefills only the amount; The estimate is editable; A named portion was selected; Drinks use millilitres; Cooking is chosen separately; Failure keeps the amount; No photo is kept; Offline; Leaving the app. **Plan:** `.workflow/current_task.md`. **Backlog (user request, 2026-10-25), next task after T-107.** In "Añadir comida", a photo icon next to the amount sends the photo and the existing food's details to Gemini and prefills the amount with the estimated weight only (no food is created, nothing is kept); the user can still edit it.
 
 **Also in T-107b (backend, cosmetic; user report and decision, 2026-10-25):** after a dish estimate the sugar field showed empty although the real value is 0; the AI most likely returns `null`. Decision: for dish mode `normalizeDraft` maps a missing/`null` macro or micronutrient to `0`. Label and barcode modes keep `null` (the E7 label scenario: "the rest stays empty"). Update the tests and the `planning/` mention in the same pass.
 

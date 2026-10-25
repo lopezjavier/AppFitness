@@ -39,6 +39,8 @@ private const val KEY_PORTION = "add_food_portion"
 private const val KEY_SLOT = "add_food_slot"
 private const val DEFAULT_AMOUNT = 100.0
 private const val SINGLE = 1.0
+private const val HALF = 0.5
+private const val TENTHS = 10.0
 
 /** What the sheet is built from once the food and the meals are loaded. */
 private class Setup(val food: Food, val slots: List<MealSlot>)
@@ -99,6 +101,7 @@ class AddFoodViewModel(
     fun onEvent(event: AddFoodEvent) {
         when (event) {
             is AddFoodEvent.AmountChanged -> updateDraft { it.copy(amountText = event.text) }
+            is AddFoodEvent.AmountEstimated -> applyEstimate(event.amount, event.baselineAmountText)
             is AddFoodEvent.PortionSelected -> selectPortion(event.portionId)
             is AddFoodEvent.SlotSelected -> updateDraft { it.copy(slotId = event.slotId) }
             AddFoodEvent.Submit -> submit()
@@ -178,6 +181,11 @@ class AddFoodViewModel(
         val id = portionId.orEmpty()
         if (id.isNotEmpty() && food.portions.none { it.id == id }) return
         updateDraft { it.copy(portionId = id, amountText = defaultAmountText(food, id)) }
+    }
+
+    private fun applyEstimate(amount: Double, baselineAmountText: String) {
+        if (draft.value?.amountText != baselineAmountText) return
+        updateDraft { it.copy(portionId = "", amountText = estimatedAmountText(amount)) }
     }
 
     private fun updateDraft(change: (Draft) -> Draft) {
@@ -285,6 +293,12 @@ class AddFoodViewModel(
 
 private fun defaultAmountText(food: Food, portionId: String): String =
     if (portionId.isNotEmpty()) formatNumber(SINGLE) else formatNumber(food.servingAmount ?: DEFAULT_AMOUNT)
+
+/** An estimate as typed text: whole units half-up, or one decimal when it would round to 0 (never "0"). */
+private fun estimatedAmountText(amount: Double): String {
+    val whole = floor(amount + HALF)
+    return if (whole >= SINGLE) formatNumber(whole) else formatNumber(floor(amount * TENTHS + HALF) / TENTHS)
+}
 
 internal fun portionLabel(portion: FoodPortion, count: Double?): String =
     if (count == null || count == SINGLE) portion.label else "${formatNumber(count)} × ${portion.label}"

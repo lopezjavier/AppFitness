@@ -3,10 +3,14 @@ package io.github.lopezjavier.appfitness.data.repository
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.functions.Functions
+import io.github.lopezjavier.appfitness.data.remote.AmountRequestDto
+import io.github.lopezjavier.appfitness.data.remote.AmountResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodPhotoRequestDto
 import io.github.lopezjavier.appfitness.data.remote.FoodPhotoResponseDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
+import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
@@ -44,24 +48,32 @@ class SupabaseFoodPhotoRepository(private val auth: Auth, private val functions:
                 FoodPhotoRequestDto.serializer(),
                 FoodPhotoRequestDto.from(mode, imageBase64, comment),
             )
-            val text = try {
-                functions.invoke("food-photo") {
-                    method = HttpMethod.Post
-                    contentType(ContentType.Application.Json)
-                    setBody(body)
-                }.bodyAsText()
-            } catch (failure: RestException) {
-                throw AppException(failure.statusCode.toPhotoError(), failure)
-            } catch (failure: HttpRequestTimeoutException) {
-                // The estimate took too long: the service is reachable, so offer a retry instead of "offline".
-                throw AppException(AppError.ServiceUnavailable, failure)
-            }
-            try {
-                json.decodeFromString<FoodPhotoResponseDto>(text).draft.toDomain()
-            } catch (failure: SerializationException) {
-                throw AppException(AppError.Unknown, failure)
-            }
+            decode(invoke(body)) { json.decodeFromString<FoodPhotoResponseDto>(it).draft.toDomain() }
         }
+
+    override suspend fun estimateAmount(food: Food, imageBase64: String): Result<AmountEstimate> = auth.ownRow {
+        val body = json.encodeToString(AmountRequestDto.serializer(), AmountRequestDto.from(food, imageBase64))
+        decode(invoke(body)) { json.decodeFromString<AmountResponseDto>(it).estimate.toDomain() }
+    }
+
+    private suspend fun invoke(body: String): String = try {
+        functions.invoke("food-photo") {
+            method = HttpMethod.Post
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.bodyAsText()
+    } catch (failure: RestException) {
+        throw AppException(failure.statusCode.toPhotoError(), failure)
+    } catch (failure: HttpRequestTimeoutException) {
+        // The estimate took too long: the service is reachable, so offer a retry instead of "offline".
+        throw AppException(AppError.ServiceUnavailable, failure)
+    }
+
+    private fun <T> decode(text: String, parse: (String) -> T): T = try {
+        parse(text)
+    } catch (failure: SerializationException) {
+        throw AppException(AppError.Unknown, failure)
+    }
 }
 
 private fun Int.toPhotoError(): AppError = when (this) {

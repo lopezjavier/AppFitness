@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_meal_label
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_no_meal_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_photo_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_count_label
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_option
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_preview_kcal
@@ -46,6 +47,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -67,6 +69,9 @@ import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.feature.diary.amountText
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEvent
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoNotice
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoUiState
 import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_SEGMENTED_SLOTS = 4
@@ -77,6 +82,7 @@ private val SkeletonHeight = Spacing.xl * 2
  * Add-food bottom sheet (US-17, US-22): the nutrition of 100 base units, the quantity (base unit or named portion),
  * the live nutrition of that quantity, the meal and "Añadir". It only needs a [Food] and a preselected meal, so the
  * barcode, create-food and template flows can reuse it. [submitFailed] shows the logging error under the button.
+ * With [amountPhoto] set, a photo icon next to the amount starts the estimate flow (US-54), drawn by `AmountPhotoFlow`.
  */
 @Composable
 fun AddFoodSheet(
@@ -86,6 +92,8 @@ fun AddFoodSheet(
     modifier: Modifier = Modifier,
     submitFailed: Boolean = false,
     onEdit: () -> Unit = {},
+    amountPhoto: AmountPhotoUiState? = null,
+    onAmountPhotoEvent: (AmountPhotoEvent) -> Unit = {},
 ) {
     // Hoisted here (not in the card) so it survives the card leaving while the sheet reloads.
     var microExpanded by rememberSaveable { mutableStateOf(false) }
@@ -110,8 +118,16 @@ fun AddFoodSheet(
                     testTagPrefix = "add_food_error_state",
                 )
 
-                is AddFoodUiState.Content ->
-                    SheetContent(state.content, onEvent, submitFailed, onEdit, microExpanded) { microExpanded = it }
+                is AddFoodUiState.Content -> SheetContent(
+                    content = state.content,
+                    onEvent = onEvent,
+                    submitFailed = submitFailed,
+                    onEdit = onEdit,
+                    microExpanded = microExpanded,
+                    onMicroExpandedChange = { microExpanded = it },
+                    amountPhoto = amountPhoto,
+                    onAmountPhotoEvent = onAmountPhotoEvent,
+                )
             }
         }
     }
@@ -136,6 +152,8 @@ private fun SheetContent(
     onEdit: () -> Unit,
     microExpanded: Boolean,
     onMicroExpandedChange: (Boolean) -> Unit,
+    amountPhoto: AmountPhotoUiState?,
+    onAmountPhotoEvent: (AmountPhotoEvent) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         FoodHeader(content.food, content.showEdit, content.canEdit, onEdit)
@@ -148,7 +166,10 @@ private fun SheetContent(
             onAmountChange = { onEvent(AddFoodEvent.AmountChanged(it)) },
             onPortionSelect = { onEvent(AddFoodEvent.PortionSelected(it)) },
             testTagPrefix = "add_food",
+            onPhotoClick = amountPhoto?.let { { onAmountPhotoEvent(AmountPhotoEvent.Open(content.amountText)) } },
+            photoEnabled = amountPhoto?.isOffline == false,
         )
+        amountPhoto?.let { AmountPhotoNotice(it, onAmountPhotoEvent) }
         content.preview?.let { Preview(it.kcal, it.proteinG, it.carbsG, it.fatG, "add_food_preview") }
         if (!content.pick) {
             MealSelector(
@@ -242,7 +263,8 @@ internal fun MacroTexts(proteinG: Double, carbsG: Double, fatG: Double) {
 
 /**
  * The quantity field of [food]: base unit or named portion. Tags derive from [testTagPrefix] (see
- * [PortionSelector]); shared by the add-food and edit-entry sheets.
+ * [PortionSelector]); shared by the add-food and edit-entry sheets. A photo icon (US-54) sits after the field only when
+ * [onPhotoClick] is set; it is disabled when [photoEnabled] is false.
  */
 @Composable
 @Suppress("LongParameterList") // The field's value, its events and its tags.
@@ -254,6 +276,8 @@ internal fun QuantityInput(
     onAmountChange: (String) -> Unit,
     onPortionSelect: (String?) -> Unit,
     testTagPrefix: String,
+    onPhotoClick: (() -> Unit)? = null,
+    photoEnabled: Boolean = true,
 ) {
     val unit = food.baseUnit
     val inMl = unit == "ml"
@@ -279,6 +303,17 @@ internal fun QuantityInput(
         onPortionSelect = onPortionSelect,
         errorText = if (hasError) stringResource(Res.string.add_food_quantity_error) else null,
         testTagPrefix = testTagPrefix,
+        amountTrailing = onPhotoClick?.let { click ->
+            {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.add_food_photo_cd),
+                    icon = Res.drawable.ic_photo_camera,
+                    testTag = "${testTagPrefix}_photo",
+                    onClick = click,
+                    enabled = photoEnabled,
+                )
+            }
+        },
     )
 }
 

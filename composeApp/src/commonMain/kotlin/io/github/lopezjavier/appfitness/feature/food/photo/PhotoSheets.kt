@@ -74,7 +74,7 @@ fun PhotoModeSheet(onModeChoose: (FoodPhotoMode) -> Unit, onDismiss: () -> Unit,
 
 /**
  * Second sheet: camera or gallery. After a failed capture ([captureFailedFor] is the source that failed) a short
- * message appears inside the sheet; a cancelled capture shows nothing.
+ * message appears inside the sheet; a cancelled capture shows nothing. Tags derive from [tagPrefix].
  */
 @Composable
 fun PhotoSourceSheet(
@@ -82,8 +82,9 @@ fun PhotoSourceSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     captureFailedFor: PhotoSource? = null,
+    tagPrefix: String = "food_photo",
 ) {
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "food_photo_source_sheet") {
+    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "${tagPrefix}_source_sheet") {
         SheetColumn(stringResource(Res.string.food_photo_source_title)) {
             if (captureFailedFor != null) {
                 Text(
@@ -99,7 +100,7 @@ fun PhotoSourceSheet(
                     modifier = Modifier
                         .padding(horizontal = Spacing.screenMargin)
                         .semantics { liveRegion = LiveRegionMode.Polite }
-                        .testTag("food_photo_capture_error"),
+                        .testTag("${tagPrefix}_capture_error"),
                 )
             }
             ActionRow(
@@ -107,14 +108,14 @@ fun PhotoSourceSheet(
                 title = stringResource(Res.string.food_photo_source_camera_title),
                 hint = stringResource(Res.string.food_photo_source_camera_hint),
                 onClick = { onSourceChoose(PhotoSource.Camera) },
-                testTag = "food_photo_source_camera",
+                testTag = "${tagPrefix}_source_camera",
             )
             ActionRow(
                 icon = Res.drawable.ic_photo_library,
                 title = stringResource(Res.string.food_photo_source_gallery_title),
                 hint = stringResource(Res.string.food_photo_source_gallery_hint),
                 onClick = { onSourceChoose(PhotoSource.Gallery) },
-                testTag = "food_photo_source_gallery",
+                testTag = "${tagPrefix}_source_gallery",
             )
         }
     }

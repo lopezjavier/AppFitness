@@ -663,6 +663,65 @@ class AddFoodViewModelTest {
     }
 
     @Test
+    fun amountEstimated_setsTheAmountClearsTheNamedPortionAndRecomputesThePreview() = runTest(dispatcher) {
+        withFood(egg)
+        val model = viewModel("egg")
+        advanceUntilIdle()
+        model.onEvent(AddFoodEvent.PortionSelected("p1"))
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 180.0, baselineAmountText = "1"))
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals("180", content.amountText)
+        assertNull(content.selectedPortionId)
+        assertEquals(180.0, content.resolvedAmount)
+        assertEquals(360.0, content.preview?.kcal)
+    }
+
+    @Test
+    fun amountEstimated_isDiscardedWhenTheUserTypedAnAmountSinceTheRequestStarted() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        val model = viewModel("rice")
+        advanceUntilIdle()
+        model.onEvent(AddFoodEvent.AmountChanged("150"))
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 180.0, baselineAmountText = "100"))
+        advanceUntilIdle()
+
+        assertEquals("150", model.content().amountText)
+    }
+
+    @Test
+    fun amountEstimated_roundsToWholeUnitsHalfUpAndKeepsATenthBelowOne() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 180.5, baselineAmountText = "100"))
+        advanceUntilIdle()
+        assertEquals("181", model.content().amountText)
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 0.4, baselineAmountText = "181"))
+        advanceUntilIdle()
+        assertEquals("0.4", model.content().amountText)
+        assertEquals(0.4, model.content().resolvedAmount)
+    }
+
+    @Test
+    fun amountEstimated_aboveTheServerCapIsShownAsReceived() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 5000.0, baselineAmountText = "100"))
+        advanceUntilIdle()
+
+        assertEquals("5000", model.content().amountText)
+    }
+
+    @Test
     fun editingAFood_neverChangesAnAlreadyLoggedEntryEvenOutsideTheLoadedRange() = runTest(dispatcher) {
         withFood(yogurt)
         val oldDay = LocalDate(2024, 1, 5)

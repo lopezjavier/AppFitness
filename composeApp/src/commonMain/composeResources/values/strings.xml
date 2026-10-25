@@ -1343,6 +1343,10 @@
     <string name="food_photo_comment_placeholder">Añade un detalle: ingredientes, aliño…</string>
     <string name="food_photo_comment_counter">%1$d de %2$d</string>
     <string name="food_photo_estimating">Estimando…</string>
+    <string name="add_food_photo_cd">Estimar cantidad con foto</string>
+    <string name="add_food_photo_error">No hemos podido estimar la cantidad</string>
+    <string name="add_food_photo_cancel">Cancelar</string>
+    <string name="add_food_photo_offline">Sin conexión: no puedes estimar la cantidad con foto</string>
     <string name="food_photo_error_dish">No hemos podido estimar este alimento</string>
     <string name="food_photo_error_product">No hemos podido identificar este producto</string>
     <string name="food_photo_error_network">No hay conexión. Comprueba tu red e inténtalo de nuevo</string>

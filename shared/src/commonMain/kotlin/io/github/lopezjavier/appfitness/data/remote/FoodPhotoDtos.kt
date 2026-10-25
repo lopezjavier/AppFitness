@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
+import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoConfidence
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
@@ -28,6 +30,65 @@ internal data class FoodPhotoRequestDto(
                 FoodPhotoMode.Barcode -> "barcode"
             }
     }
+}
+
+/** The food already chosen, sent as data for a weight estimate; nutrition is per 100 base units. */
+@Serializable
+internal data class FoodContextDto(
+    val name: String,
+    val brand: String? = null,
+    @SerialName("base_unit") val baseUnit: String,
+    val kcal: Double,
+    @SerialName("protein_g") val proteinG: Double,
+    @SerialName("carbs_g") val carbsG: Double,
+    @SerialName("fat_g") val fatG: Double,
+) {
+    companion object {
+        fun from(food: Food) = FoodContextDto(
+            name = food.name,
+            brand = food.brand?.takeIf { it.isNotBlank() },
+            baseUnit = if (food.baseUnit == "ml") "ml" else "g",
+            kcal = food.nutrition.kcal,
+            proteinG = food.nutrition.proteinG,
+            carbsG = food.nutrition.carbsG,
+            fatG = food.nutrition.fatG,
+        )
+    }
+}
+
+/** Body of `POST food-photo` in `weight` mode. */
+@Serializable
+internal data class AmountRequestDto(
+    @SerialName("image_base64") val imageBase64: String,
+    val mode: String,
+    val food: FoodContextDto,
+) {
+    companion object {
+        fun from(food: Food, imageBase64: String) = AmountRequestDto(imageBase64, "weight", FoodContextDto.from(food))
+    }
+}
+
+@Serializable
+internal data class AmountEstimateDto(
+    @SerialName("estimated_amount") val estimatedAmount: Double,
+    @SerialName("base_unit") val baseUnit: String = "g",
+    val confidence: String? = null,
+) {
+    fun toDomain() = AmountEstimate(
+        amount = estimatedAmount,
+        baseUnit = if (baseUnit == "ml") "ml" else "g",
+        confidence = confidence.toConfidence(),
+    )
+}
+
+@Serializable
+internal data class AmountResponseDto(val estimate: AmountEstimateDto)
+
+private fun String?.toConfidence() = when (this) {
+    "low" -> FoodPhotoConfidence.Low
+    "medium" -> FoodPhotoConfidence.Medium
+    "high" -> FoodPhotoConfidence.High
+    else -> null
 }
 
 @Serializable
@@ -61,11 +122,6 @@ internal data class FoodPhotoDraftDto(
         fat = nutrition.fatG,
         micronutrients = micronutrients,
         estimatedGrams = estimatedGrams,
-        confidence = when (confidence) {
-            "low" -> FoodPhotoConfidence.Low
-            "medium" -> FoodPhotoConfidence.Medium
-            "high" -> FoodPhotoConfidence.High
-            else -> null
-        },
+        confidence = confidence.toConfidence(),
     )
 }

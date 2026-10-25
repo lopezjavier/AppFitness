@@ -557,4 +557,15 @@ Format: context → decision → consequences. A decision is only changed by add
   - "Añadir" logs the foods **as the screen shows them** (edited amounts, removed and added foods) to the selected meal and day, without storing the comida; the stored comida changes only with "Guardar". When the draft differs from the saved comida, a short text says so ("Se añadirá tal como lo ves; Guardar para conservar los cambios"). Leaving after "Añadir" discards the unsaved edits by design. "Añadir" needs the server (offline: disabled with the banner); the name does not block it.
   - The draft survives leaving the app (ADR-40, ADR-45); the amount sheet keeps its own "Guardar" (`05-design-system.md` §8).
 - **Consequences:** amends ADR-62 (comida details); `epics/E7-food-photos-defaults-and-cooking.md` (US-53 rewritten, US-48 photo icon next to the barcode icon), `epics/E4-food-diary.md`, `01-phase1-scope.md` (FR-2.19), `05-design-system.md` §8 and component rows, `tasks/todo.md` (T-106a, T-108, Checkpoint E7-A).
+
+### ADR-64 · Amount estimate from a photo for a chosen food; dish estimates zero-fill (E7, US-54)
+- **Context:** Checkpoint E7-A (2026-10-25). The user wants to photograph a portion of a food already chosen in "Añadir comida" and get the weight, without creating a food. Also, a dish estimate showed an empty sugar field although the real value is 0 (the AI returns `null`).
+- **Decision:**
+  - `food-photo` gains a fourth mode `weight`. The request carries the food as data (name, brand, base unit and per-100 kcal/macros); no comment. The response is the estimated amount in the food's base unit (g, or ml for drinks) plus confidence. Only the amount field of "Añadir comida" is prefilled: no food is created, nothing is stored, the user can edit it.
+  - The estimate is the weight of the food as shown (as cooked if it is cooked); it does not touch the cooking method, which the user chooses afterwards (US-50). A selected named portion switches to the base unit.
+  - The icon appears only in `AddFoodSheet`, for solid foods and drinks.
+  - For **dish** mode, `normalizeDraft` maps a missing/`null` macro or micronutrient to `0` (a response with no nutrition at all is still `NO_FOOD_RECOGNIZED`). Label and barcode keep `null`. This amends ADR-59 and US-48 ("absent values stay null") for dish only; the form shows micronutrients as 0.
+  - Photos and food data are never stored or logged (ADR-59 unchanged).
+- **Consequences:** FR-2.20; `03-data-model.md` §7; E7 US-54 and US-48 notes; `tasks/todo.md` T-107b.
+- **Approval:** 2026-10-25, user.
 - **Approval:** 2026-10-25, user (Checkpoint E7-A, Q1/Q2 answered).

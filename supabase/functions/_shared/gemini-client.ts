@@ -1,8 +1,13 @@
 // Gemini `generateContent` client for `food-photo`. All I/O is injected, so tests need no network.
-import { COMMENT_PREFIX, PROMPTS } from "../food-photo/prompts.ts";
+import {
+    COMMENT_PREFIX,
+    FOOD_CONTEXT_PREFIX,
+    PROMPTS,
+} from "../food-photo/prompts.ts";
 import {
     type FoodPhotoMode,
     GEMINI_RESPONSE_SCHEMA,
+    WEIGHT_RESPONSE_SCHEMA,
 } from "../food-photo/schema.ts";
 
 /**
@@ -50,6 +55,8 @@ export type GenerateRequest = {
     mode: FoodPhotoMode;
     imageBase64: string;
     comment?: string | null;
+    /** Chosen food's details (weight mode only); sent as a data part. */
+    food?: Record<string, unknown> | null;
 };
 
 function mimeType(base64: string): string {
@@ -67,13 +74,18 @@ export function buildBody(req: GenerateRequest) {
         },
     }];
     if (req.comment) parts.push({ text: COMMENT_PREFIX + req.comment });
+    if (req.food) {
+        parts.push({ text: FOOD_CONTEXT_PREFIX + JSON.stringify(req.food) });
+    }
     return {
         systemInstruction: { parts: [{ text: PROMPTS[req.mode] }] },
         contents: [{ role: "user", parts }],
         generationConfig: {
             temperature: 0.2,
             responseMimeType: "application/json",
-            responseSchema: GEMINI_RESPONSE_SCHEMA,
+            responseSchema: req.mode === "weight"
+                ? WEIGHT_RESPONSE_SCHEMA
+                : GEMINI_RESPONSE_SCHEMA,
         },
     };
 }

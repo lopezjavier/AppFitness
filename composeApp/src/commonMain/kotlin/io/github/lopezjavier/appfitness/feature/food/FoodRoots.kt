@@ -16,6 +16,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEffect
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoFlow
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEffect
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEvent
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoFlow
@@ -150,8 +153,12 @@ fun AddFoodRoot(
     onPick: (AddFoodEffect.Picked) -> Unit = {},
     viewModel: AddFoodViewModel =
         koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date, pick) }),
+    amountPhotoViewModel: AmountPhotoViewModel =
+        koinViewModel(key = "amount_photo_$foodId", parameters = { parametersOf(foodId) }),
+    photoCapture: PhotoCapture = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val amountPhotoState by amountPhotoViewModel.uiState.collectAsStateWithLifecycle()
     var submitFailed by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val currentOnAdded by rememberUpdatedState(onAdd)
@@ -170,6 +177,14 @@ fun AddFoodRoot(
             }
         }
     }
+    LaunchedEffect(amountPhotoViewModel) {
+        amountPhotoViewModel.effects.collect { effect ->
+            when (effect) {
+                is AmountPhotoEffect.AmountEstimated ->
+                    viewModel.onEvent(AddFoodEvent.AmountEstimated(effect.amount, effect.baselineAmountText))
+            }
+        }
+    }
     AddFoodSheet(
         state = state,
         onEvent = {
@@ -180,7 +195,10 @@ fun AddFoodRoot(
         modifier = modifier,
         submitFailed = submitFailed,
         onEdit = onEdit,
+        amountPhoto = amountPhotoState,
+        onAmountPhotoEvent = amountPhotoViewModel::onEvent,
     )
+    AmountPhotoFlow(amountPhotoState, amountPhotoViewModel::onEvent, photoCapture::readJpeg)
 }
 
 /**

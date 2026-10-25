@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewMode
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
+import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
@@ -182,6 +183,17 @@ val uiModule =
         // Scoped to the FoodSearchRoute back-stack entry by FoodSearchRoot.
         viewModel {
             FoodPhotoViewModel(
+                photoRepository = get(),
+                photoCapture = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
+        // Scoped to the add-food route; the food travels as a parameter (US-54).
+        viewModel { (foodId: String) ->
+            AmountPhotoViewModel(
+                foodId = foodId,
+                foodRepository = get(),
                 photoRepository = get(),
                 photoCapture = get(),
                 connectivity = get(),

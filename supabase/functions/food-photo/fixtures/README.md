@@ -10,3 +10,8 @@ overrides it).
 
 The check against the real API is the T-106b retry after deploy (the key lives
 only in the Supabase secret `GEMINI_API_KEY`).
+
+T-107b adds `weight-chicken`, `weight-ml`, `weight-invalid` (weight mode
+answers: `{estimated_amount, confidence}`) and `dish-sparse` (dish answer with
+null/absent values, which the dish normalizer zero-fills). Same hand-written
+provenance.

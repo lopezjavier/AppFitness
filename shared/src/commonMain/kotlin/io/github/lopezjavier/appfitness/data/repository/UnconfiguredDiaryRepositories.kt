@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
@@ -111,5 +112,8 @@ class UnconfiguredFoodRepository : FoodRepository {
 /** Used when Supabase is not configured: every estimate fails. */
 class UnconfiguredFoodPhotoRepository : FoodPhotoRepository {
     override suspend fun estimate(mode: FoodPhotoMode, imageBase64: String, comment: String?): Result<FoodPhotoDraft> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun estimateAmount(food: Food, imageBase64: String): Result<AmountEstimate> =
         Result.failure(AppException(AppError.Unknown))
 }

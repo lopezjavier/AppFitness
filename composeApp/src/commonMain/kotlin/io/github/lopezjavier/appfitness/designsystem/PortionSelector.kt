@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -39,7 +41,7 @@ object PortionSelectorDefaults {
  *
  * Tags derive from [testTagPrefix]: `<prefix>_amount`, `<prefix>_portion`, `<prefix>_portion_option_<id>` (`base` for
  * the raw unit) and `<prefix>_error`. The typed text is mirrored locally so every keystroke is applied at once;
- * switching the portion takes the new [amountText].
+ * switching the portion takes the new [amountText]. [amountTrailing], when set, sits after the field in the same row.
  */
 @Suppress("LongParameterList") // Amount, portion and presentation inputs of one control.
 @Composable
@@ -54,8 +56,16 @@ fun PortionSelector(
     modifier: Modifier = Modifier,
     errorText: String? = null,
     testTagPrefix: String = "portion",
+    amountTrailing: (@Composable () -> Unit)? = null,
 ) {
     var typed by remember(selectedPortionId) { mutableStateOf(amountText.toDisplay()) }
+    // An amount that changes from outside (e.g. a photo estimate) replaces the typed text; the echo of a keystroke
+    // (same number) and an unchanged parent value do not.
+    var lastAmount by remember { mutableStateOf(amountText) }
+    if (amountText != lastAmount) {
+        lastAmount = amountText
+        if (amountText.toNumber() != typed.toNumber()) typed = amountText.toDisplay()
+    }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (portions.isNotEmpty()) {
             val options =
@@ -69,18 +79,28 @@ fun PortionSelector(
                 modifier = Modifier.testTag("${testTagPrefix}_portion"),
             )
         }
-        NumberInput(
-            value = typed,
-            onValueChange = {
-                typed = it
-                onAmountChange(it)
-            },
-            label = amountLabel,
-            modifier = Modifier.fillMaxWidth().testTag("${testTagPrefix}_amount"),
-            maxDecimals = PortionSelectorDefaults.MAX_DECIMALS,
-            maxIntegerDigits = PortionSelectorDefaults.MAX_INTEGER_DIGITS,
-            imeAction = ImeAction.Done,
-        )
+        val field: @Composable (Modifier) -> Unit = { fieldModifier ->
+            AmountField(
+                value = typed,
+                label = amountLabel,
+                onValueChange = {
+                    typed = it
+                    onAmountChange(it)
+                },
+                modifier = fieldModifier.testTag("${testTagPrefix}_amount"),
+            )
+        }
+        if (amountTrailing == null) {
+            field(Modifier.fillMaxWidth())
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                field(Modifier.weight(1f))
+                amountTrailing()
+            }
+        }
         if (errorText != null) {
             Text(
                 text = errorText,
@@ -97,7 +117,22 @@ fun PortionSelector(
     }
 }
 
+@Composable
+private fun AmountField(value: String, label: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    NumberInput(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        modifier = modifier,
+        maxDecimals = PortionSelectorDefaults.MAX_DECIMALS,
+        maxIntegerDigits = PortionSelectorDefaults.MAX_INTEGER_DIGITS,
+        imeAction = ImeAction.Done,
+    )
+}
+
 private fun String.toDisplay(): String = replace('.', NumberInputDefaults.DECIMAL_SEPARATOR)
+
+private fun String.toNumber(): Double? = replace(NumberInputDefaults.DECIMAL_SEPARATOR, '.').toDoubleOrNull()
 
 @Preview
 @Composable
