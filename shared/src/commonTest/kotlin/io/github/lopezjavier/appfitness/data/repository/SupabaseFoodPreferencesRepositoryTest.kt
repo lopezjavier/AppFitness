@@ -58,11 +58,11 @@ class SupabaseFoodPreferencesRepositoryTest {
 
     @Test
     fun get_readsTheOwnRow() = runTest {
-        body = """[{"olive_oil_griddle_g":10.0,"olive_oil_air_fryer_g":0,"olive_oil_fried_g":500.0}]"""
+        body = """[{"fat_pct_griddle":10.0,"fat_pct_air_fryer":0,"fat_pct_fried":20.0}]"""
 
         val result = repository().get().getOrThrow()
 
-        assertEquals(FoodPreferences(10.0, 0.0, 500.0), result)
+        assertEquals(FoodPreferences(10.0, 0.0, 20.0), result)
         val query = rest().single().url.toString()
         assertTrue(query.contains("/rest/v1/food_preferences"), query)
         assertTrue(query.contains("user_id=eq.user-1"), query)
@@ -72,7 +72,7 @@ class SupabaseFoodPreferencesRepositoryTest {
     fun get_aMissingRowYieldsTheDefaults() = runTest {
         val result = repository().get().getOrThrow()
 
-        assertEquals(FoodPreferences(5.0, 5.0, 50.0), result)
+        assertEquals(FoodPreferences(1.0, 2.0, 8.0), result)
     }
 
     @Test

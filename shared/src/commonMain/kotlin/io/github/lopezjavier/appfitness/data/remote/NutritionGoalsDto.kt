@@ -93,9 +93,9 @@ internal data class SavePreferencesParams(
     @SerialName("p_bar_weight_kg") val barWeightKg: Double? = null,
     @SerialName("p_plate_kg") val plateKg: List<Double>? = null,
     @SerialName("p_dumbbell_handle_kg") val dumbbellHandleKg: Double? = null,
-    @SerialName("p_olive_oil_griddle_g") val oliveOilGriddleG: Double? = null,
-    @SerialName("p_olive_oil_air_fryer_g") val oliveOilAirFryerG: Double? = null,
-    @SerialName("p_olive_oil_fried_g") val oliveOilFriedG: Double? = null,
+    @SerialName("p_fat_pct_griddle") val fatPctGriddle: Double? = null,
+    @SerialName("p_fat_pct_air_fryer") val fatPctAirFryer: Double? = null,
+    @SerialName("p_fat_pct_fried") val fatPctFried: Double? = null,
 ) {
     companion object {
         @Suppress("LongParameterList") // The edited form fields.
@@ -131,9 +131,9 @@ internal data class SavePreferencesParams(
                 barWeightKg = calculators?.barWeightKg,
                 plateKg = calculators?.plateKg,
                 dumbbellHandleKg = calculators?.dumbbellHandleKg,
-                oliveOilGriddleG = foodPreferences?.oliveOilGriddleG,
-                oliveOilAirFryerG = foodPreferences?.oliveOilAirFryerG,
-                oliveOilFriedG = foodPreferences?.oliveOilFriedG,
+                fatPctGriddle = foodPreferences?.fatPctGriddle,
+                fatPctAirFryer = foodPreferences?.fatPctAirFryer,
+                fatPctFried = foodPreferences?.fatPctFried,
             )
         }
     }

@@ -161,16 +161,16 @@ class AddTemplateToDiaryTest {
     )
 
     @Test
-    fun cookedItemsCarryTheirMethodRetainedOilAndAdjustedSnapshot() = runTest {
+    fun cookedItemsCarryTheirMethodAddedFatAndAdjustedSnapshot() = runTest {
         addTemplate(cooked, "lunch", date)
 
         val (chicken, potato, rice) = diary.addCalls.single()
         assertEquals(CookingMethod.Griddle, chicken.cookingMethod)
-        assertEquals(2.5, chicken.cookingOilRetainedG)
-        assertEquals(242.5, chicken.snapshot.kcal)
+        assertEquals(2.0, chicken.cookingOilRetainedG)
+        assertEquals(238.0, chicken.snapshot.kcal)
         assertEquals(CookingMethod.Fried, potato.cookingMethod)
-        assertEquals(5.0, potato.cookingOilRetainedG)
-        assertEquals(125.0, potato.snapshot.kcal)
+        assertEquals(8.0, potato.cookingOilRetainedG)
+        assertEquals(152.0, potato.snapshot.kcal)
         assertEquals(CookingMethod.Raw, rice.cookingMethod)
         assertEquals(0.0, rice.cookingOilRetainedG)
         assertEquals(130.0, rice.snapshot.kcal)
@@ -179,10 +179,10 @@ class AddTemplateToDiaryTest {
     @Test
     fun changedPreferencesChangeTheNextAdd() = runTest {
         addTemplate(cooked, "lunch", date)
-        preferences.prefs = FoodPreferences(oliveOilGriddleG = 10.0)
+        preferences.prefs = FoodPreferences(fatPctGriddle = 10.0)
         addTemplate(cooked, "lunch", date)
 
-        assertEquals(listOf(2.5, 5.0), diary.addCalls.map { it.first().cookingOilRetainedG })
+        assertEquals(listOf(2.0, 20.0), diary.addCalls.map { it.first().cookingOilRetainedG })
         assertEquals(2, preferences.reads)
     }
 

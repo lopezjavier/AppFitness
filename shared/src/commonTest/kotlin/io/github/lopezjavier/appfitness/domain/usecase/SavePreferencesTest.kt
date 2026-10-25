@@ -235,7 +235,7 @@ class SavePreferencesTest {
 
     @Test
     fun theFoodPreferencesArePassedThrough_andNullMeansUnchanged() = runTest {
-        val prefs = FoodPreferences(10.0, 0.0, 500.0)
+        val prefs = FoodPreferences(10.0, 0.0, 20.0)
         save(foodPreferences = prefs)
         save()
 
@@ -243,8 +243,8 @@ class SavePreferencesTest {
     }
 
     @Test
-    fun oilAmountOutOfRange_isRejectedAndNothingIsSaved() = runTest {
-        val result = save(foodPreferences = FoodPreferences(oliveOilFriedG = 500.1))
+    fun fatPercentOutOfRange_isRejectedAndNothingIsSaved() = runTest {
+        val result = save(foodPreferences = FoodPreferences(fatPctFried = 20.1))
 
         assertEquals(AppError.Validation, result.appErrorOrNull())
         assertTrue(saved.isEmpty())

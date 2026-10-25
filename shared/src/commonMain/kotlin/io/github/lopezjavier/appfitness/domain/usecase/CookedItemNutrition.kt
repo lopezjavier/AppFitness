@@ -26,10 +26,10 @@ class CookedItemNutrition(private val scaleNutrition: ScaleNutrition) {
             )
         }
 
-    /** Grams of oil retained by [item], or null when there is no impact (raw, a drink or no preferences). */
+    /** Grams of fat added to [item], or null when there is no impact (raw, a drink or no preferences). */
     fun retainedG(item: MealTemplateItem, prefs: FoodPreferences?): Double? {
         if (prefs == null) return null
         val method = CookingImpact.effectiveMethod(item.cookingMethod, item.food.baseUnit)
-        return if (method == CookingMethod.Raw) null else CookingImpact.retainedG(method, prefs)
+        return if (method == CookingMethod.Raw) null else CookingImpact.addedFatG(method, item.amount, prefs)
     }
 }
