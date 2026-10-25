@@ -34,7 +34,7 @@ Supersedes the original local development notes (kept outside the repository). S
 ### 2.2 Supabase (Free plan)
 1. Create the project (Free plan, EU region). ✅ Created as `AppFitness` in `eu-west-3` (Paris; T-014 replaced a first project in `eu-north-1`); the local CLI `project_id` is `appfitness`.
 2. Auth → Providers: enable **Google** (Client ID and Secret of the web client from 2.3). **Disable Email** (ADR-02).
-3. Edge Functions → Secrets: `OFF_USER_AGENT` (e.g. `AppFitness/1.0 (<contact email>)`) and `GEMINI_API_KEY` (Google AI Studio API key, free tier, used only by `food-photo`; ADR-59). Set the latter in the user's own terminal with `npx supabase secrets set GEMINI_API_KEY=...`; it is a **Supabase** secret, never a GitHub Actions secret, and never reaches the app or `local.properties`.
+3. Edge Functions → Secrets: `OFF_USER_AGENT` (e.g. `AppFitness/1.0 (<contact email>)`) and `GEMINI_API_KEY` (Google AI Studio API key, free tier, used only by `food-photo`; ADR-59). Set the latter in the user's own terminal with `npx supabase secrets set GEMINI_API_KEY=...`; it is a **Supabase** secret, never a GitHub Actions secret, and never reaches the app or `local.properties`. Optional Supabase secret `GEMINI_MODEL` overrides the default model id from `gemini-client.ts` (`npx supabase secrets set GEMINI_MODEL=...`); unset or blank uses the default.
 
 ### 2.3 Google Cloud Console
 No billing account or free trial is needed: OAuth and Sign in with Google are free. Do not activate the free trial.
@@ -74,7 +74,7 @@ deno check supabase/functions/health/index.ts                          # type-ch
 deno test --allow-all supabase/functions                               # Edge Function unit tests
 npx supabase stop
 ```
-- `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...` and `GEMINI_API_KEY=...` (local functions only). The key is never committed; `supabase/.env.example` lists the name with an empty value.
+- `supabase/.env.local` (git-ignored): `OFF_USER_AGENT=...` and `GEMINI_API_KEY=...` and optionally `GEMINI_MODEL=...` (local functions only). The key is never committed; `supabase/.env.example` lists the name with an empty value.
 - The root `deno.json` only configures Deno tooling for `supabase/functions/` (fmt/lint/test scope, no lockfile, no `node_modules` resolution: the root `package.json` only pins the Supabase CLI). Functions import external code with exact inline specifiers (`npm:postgres@3.4.9`, `jsr:@std/assert@1.0.19`), bumped manually.
 - Locally the Email provider is enabled and `supabase/seed.sql` creates the test user used by the `local` flavor's "Test login" button:
   - email `test@appfitness.local`, password `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`;

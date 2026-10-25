@@ -5,8 +5,18 @@ import {
     GEMINI_RESPONSE_SCHEMA,
 } from "../food-photo/schema.ts";
 
-/** Free-tier flash model. Single place to change it. */
-export const GEMINI_MODEL = "gemini-2.5-flash";
+/**
+ * Default free-tier model; the optional GEMINI_MODEL secret overrides it
+ * (a 404 means the id is no longer served).
+ */
+export const GEMINI_MODEL = "gemini-3.5-flash-lite";
+const MODEL_ID = /^[a-z0-9][a-z0-9.\-]*$/;
+
+/** Override if it is a safe model id (it goes into a URL path), else the default. */
+export function resolveModel(override: string | undefined): string {
+    const id = override?.trim();
+    return id && MODEL_ID.test(id) ? id : GEMINI_MODEL;
+}
 export const GEMINI_BASE_URL =
     "https://generativelanguage.googleapis.com/v1beta/models";
 export const GEMINI_TIMEOUT_MS = 25_000;
@@ -32,6 +42,8 @@ export type GeminiDeps = {
     /** Value of the GEMINI_API_KEY secret; undefined or empty means not configured. */
     apiKey: string | undefined;
     timeoutMs?: number;
+    /** Value of the optional GEMINI_MODEL secret; blank or invalid means the default. */
+    model?: string;
 };
 
 export type GenerateRequest = {
@@ -82,7 +94,9 @@ export async function generateFoodJson(
         let res: Response;
         try {
             res = await deps.fetch(
-                `${GEMINI_BASE_URL}/${GEMINI_MODEL}:generateContent`,
+                `${GEMINI_BASE_URL}/${
+                    resolveModel(deps.model)
+                }:generateContent`,
                 {
                     method: "POST",
                     headers: {
@@ -108,9 +122,15 @@ export async function generateFoodJson(
 
         try {
             const body = await res.json();
-            const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (typeof text !== "string") throw new Error("no text");
-            return JSON.parse(text);
+            const parts: unknown[] = body?.candidates?.[0]?.content?.parts ??
+                [];
+            // Skip reasoning ("thought") parts: only the answer holds the JSON.
+            const answer = parts.find((p) => {
+                const part = p as { text?: unknown; thought?: unknown };
+                return typeof part?.text === "string" && part.thought !== true;
+            }) as { text: string } | undefined;
+            if (!answer) throw new Error("no text");
+            return JSON.parse(answer.text);
         } catch (err) {
             if (controller.signal.aborted) throw new GeminiError("timeout");
             throw err instanceof GeminiError
