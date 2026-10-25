@@ -19,18 +19,20 @@ Supersedes the original orchestrator and workflow documents (kept outside the re
 ```
 [PM] start: git checkout main && git pull && git checkout -b feature/T-###-slug
   → planner            plan in .workflow/current_task.md
-  → ux-reviewer        validates the plan vs 05-design-system.md; defines testTags
+  → ux-reviewer (plan)  pattern map, rules ✓/✗ (05 §8–§10), sweep of existing screens, Spanish copy, testTags
+        └─ REJECTED → planner fixes the plan (no code written yet)
   → kotlin-core-developer, then compose-ui-developer (L tasks: one run per slice), and/or backend-developer (in parallel if decoupled)
                        TDD until green; UI scenarios covered by host (Robolectric) tests
 [PM] marks the task done in tasks/todo.md on the branch
   → pr-creator         commit(s), push, gh pr create
-  → pr-reviewer        gh pr diff → verdict (gh pr review --comment)
-        └─ CHANGES REQUIRED → developer
-[PM] waits for green CI → gh pr merge --squash --delete-branch → COMPLETED
+  → pr-reviewer        gh pr diff → verdict (gh pr review --comment)   ┐ in parallel
+  → ux-reviewer (diff) only if files under composeApp/**/feature/, designsystem/ or composeResources/ changed; the PM passes `git diff --name-only main...HEAD`   ┘
+        └─ either finds an issue → developer, one combined fix round
+[PM] waits for green CI (incl. check-ux-conventions.sh once it exists) → gh pr merge --squash --delete-branch → COMPLETED
   └─ PM stops and hands off; the next task starts in a fresh session (`/clear`)
 ```
 
-pr-reviewer is skipped for PRs that only touch docs or task files; it always runs when code, tests, CI or scripts change.
+pr-reviewer is skipped for PRs that only touch docs or task files; it always runs when code, tests, CI or scripts change. The ux-reviewer diff pass is also skipped for minor corrective tasks (§2.3).
 
 ### 2.2 Infrastructure / backend task without UI
 ```
