@@ -12,7 +12,7 @@
 | E5 | Weight tracking | US-25 … US-27 | Full UI | `v0.5.0` — weight, body composition, Health Connect and goal |
 | E6 | Training depth | US-28 … US-38, US-47 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management, manual-food editing |
 | E7 | Food photos, defaults and cooking | US-48 … US-51 | Full UI + backend | `v0.7.0` — photo food creation, default comidas and cooking methods (including saved comidas) |
-| E8 | Training insights | US-39 … US-44 | Full UI | `v0.8.0` — advanced stats, muscle distribution, reports |
+| E8 | Training insights | US-39 … US-41 | Full UI | `v0.8.0` — advanced stats, muscle distribution |
 | E9 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
 
 ### 1.1 UI refinement (inside E9)
@@ -78,9 +78,6 @@ E1 … E8 ───────────────────────�
 | US-39 | E8 | Exercise charts: records and non-weight metrics | UI |
 | US-40 | E8 | Advanced statistics | UI + backend |
 | US-41 | E8 | Muscle distribution (radar and body heatmap) | UI + backend |
-| US-42 | E8 | Monthly Report | UI |
-| US-43 | E8 | Year in Review | UI |
-| US-44 | E8 | Streaks and weekly check-ins | UI |
 | US-45 | E9 | About, version and licences | UI |
 | US-46 | E9 | Polish, accessibility, tablet and release build | UI |
 | US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
@@ -125,7 +122,7 @@ E1 … E8 ───────────────────────�
 | FR-4.6 History | US-14 |
 | FR-4.7 Progress charts | US-15 |
 | FR-4.8 Training depth (set types, RPE, metrics, calculators, PRs, routine tracking, workout detail) | US-28 … US-38 |
-| FR-4.9 Statistics and reports | US-39 … US-44 (E8) |
+| FR-4.9 Statistics and reports | US-39 … US-41 (E8; US-42…US-44 deferred to Phase 2, ADR-66) |
 | FR-5.1 – FR-5.3 Navigation, feedback, offline | US-03, US-04, US-46 (E9; FR-5.1 3 tabs with Perfil: T-041, ADR-37) |
 | FR-6 UI refinement | US-46 (E9) |
 | NFR-03 Tablet | US-04, US-46 (E9) |

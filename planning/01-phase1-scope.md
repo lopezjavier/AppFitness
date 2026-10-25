@@ -71,7 +71,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-4.6 Session history.
 - FR-4.7 Progress charts per exercise (estimated 1RM, volume) and per muscle group (weekly volume).
 - FR-4.8 Training depth (E6): per-set routine planning, set types (warm-up/failure/drop) and warm-up inclusion, RPE, per-exercise metric types, volume options, warm-up/plate calculators, PR catalogue (no live notification, §4.1), routine folders/order/tracking and "Update Routine", workout detail/calendar (trained days)/editing and past workouts, session controls (pause, delete set, previous-values modes).
-- FR-4.9 Statistics and reports (E8): exercise chart records and non-weight metrics, advanced statistics (time frames, set-count, sets per muscle group, main exercises), muscle distribution (radar, body heatmap), Monthly Report, Year in Review, streaks and weekly check-ins.
+- FR-4.9 Statistics and reports (E8): exercise chart records and non-weight metrics, advanced statistics (time frames, set-count, sets per muscle group, main exercises), muscle distribution (radar, body heatmap). Periodic reports and weekly check-ins are deferred to Phase 2 (ADR-66).
 - The training tables ship **forward-compatible** in E3 (ADR-30), so E6/E8 add features without a schema migration.
 
 ### FR-5 · Cross-cutting (E1, E9)
@@ -103,12 +103,16 @@ Stories and scenarios removed from an epic by the user. They are kept here with 
 | Item | Origin | Decision | Removed text |
 |---|---|---|---|
 | Live record notification and its strength levels | E6, US-34 "Live PR"; `04` §4.8 | ADR-52, 2026-10-22 | `When a completed set beats the current best of that exercise / Then a "¡Nuevo récord!" notification appears / And the strength of the notification follows the user's setting` (setting: off / low / normal / high) |
-| Training streak, rest days and rewards in the calendar | E6, US-37 "Calendar" | ADR-52, 2026-10-22 | `Then they see the trained days, the streak and the rest days (month, year, multi-year)` (only "the streak and the rest days" removed; trained days kept). E8 US-44 "Streaks and weekly check-ins" is reviewed with the user at the E8 breakdown. |
+| Training streak, rest days and rewards in the calendar | E6, US-37 "Calendar" | ADR-52, 2026-10-22 | `Then they see the trained days, the streak and the rest days (month, year, multi-year)` (only "the streak and the rest days" removed; trained days kept). E8 US-44 "Streaks and weekly check-ins" was then deferred to Phase 2 (ADR-66). |
 | Copying a workout | E6, US-37 "Editing" | ADR-52, 2026-10-22 | `When they edit, copy or delete a workout / Then the change is reflected` (only "copy" removed). A past workout can still start from a finished workout. |
 | Routine asks only sets and rest | E6, US-29 (user request 2026-10-20) | ADR-50, 2026-10-22 (contradicted per-set planning) | `When the user adds an exercise in the routine builder / Then they configure only the number of sets and the rest / And the reps are entered in the live session` |
 | Editing Open Food Facts foods | E6 scope line (food editing, "if feasible") | ADR-53, 2026-10-22 | "edit macros and micronutrients … of Open Food Facts foods (if feasible)" |
+| Monthly Report | E8, US-42 | ADR-66, 2026-10-25 | `When the user opens the "Informe mensual" / Then they see the days trained, the number of workouts, the duration and the total volume`; `When a month closes / Then the "Informe mensual listo" notification is shown`. |
+| Year in Review | E8, US-43 | ADR-66, 2026-10-25 | `When the user opens "Tu año en el gimnasio" / Then they see the total volume, the best month, the streak, the muscle breakdown and their PRs`; `Then they can export it as an image`. |
+| Streaks and weekly check-ins | E8, US-44 | ADR-66, 2026-10-25 | `Then the app shows the consecutive weeks trained`; `When a week closes / Then a check-in compares this week's volume with last week's and lists the PRs`. |
 
 ### Deferred to Phase 2 (unchanged from the original requirements)
+- Periodic reports (Monthly Report with its notification, Year in Review with image export) and streaks with weekly check-ins (former E8 US-42…US-44, ADR-66).
 - Web client (Compose for Web / Wasm) and DNS on Cloudflare.
 - Rest-timer alert while the app is in the background or closed (scheduled notification with sound; Phase 1 alerts with sound and vibration in the foreground only).
 - Whole-meal calorie estimation from a single photo (several foods; Phase 1 estimates one food per photo, FR-2.15).

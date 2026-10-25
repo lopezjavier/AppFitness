@@ -580,3 +580,12 @@ Format: context → decision → consequences. A decision is only changed by add
   - Existing entries and Preferencias are not recalculated; only entries logged from now on use the new rule.
 - **Consequences:** amends ADR-60. Affects `03-data-model.md` (`food_preferences`, `cooking_impact`, `apply_meal_defaults`), `04-business-rules.md` §2.2, `05-design-system.md` (Cocina fields, impact line) and E7 US-50; the docs are updated in T-112's PR.
 - **Approval:** 2026-10-25, user (Checkpoint E7-B feedback).
+
+### ADR-66 · Periodic reports and streak check-ins move to Phase 2 (E8, US-42…US-44)
+- **Context:** User request, 2026-10-25, before the E8 breakdown. Periodic reports are out of Phase 1.
+- **Decision:**
+  - US-42 (Monthly Report), US-43 (Year in Review) and US-44 (Streaks and weekly check-ins) leave Phase 1 and are deferred to Phase 2. Their text is kept in `01-phase1-scope.md` §4.1.
+  - E8 keeps US-39…US-41 (exercise charts, advanced statistics, muscle distribution).
+  - The trained-days streak in the E6 calendar (US-37) is unchanged.
+- **Consequences:** affects `epics/E8-training-insights.md`, `01-phase1-scope.md`, `07-roadmap.md` and the E8 breakdown.
+- **Approval:** 2026-10-25, user.
