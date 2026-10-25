@@ -132,6 +132,8 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Every 👤 ch
 | Live session / routine builder: set type icon for "Normal" (replace the current one) and show that icon (an "N") instead of the set number on Normal sets | Checkpoint E6-A re-test, 2026-10-24 |
 | Live session: planned weight/reps placeholders in a darker grey, clearly different from user-entered white values | Checkpoint E6-A re-test, 2026-10-24 |
 | "Qué es el RPE?" help as a list, one line per number | Checkpoint E6-A re-test, 2026-10-24 |
+| Estadísticas → Musculación radar: the label "Isquiotibiales" wraps with the final "s" on a second line; show "Isquios" instead (NIT) | Checkpoint E8-A, 2026-10-26 |
+| Estadísticas → Últimos 7 días: the body map feels unprofessional; study in E9 how to get a better result (ux-reviewer to assess options and complexity; reference `design/reported/E8-A-stats-radar-bodymap.png`, gitignored, with both topics) | Checkpoint E8-A, 2026-10-26 |
 | Routine folders: a stray horizontal line appears in the background when "Nueva carpeta" is tapped (the user will provide a screenshot if needed; save it in `design/reported/`) | Checkpoint E6-B, 2026-10-24 |
 | Comida details (editable screen): (1) the kcal/P/C/G summary, the "+" and the trash button are scattered; move "+" and trash to the name row and shrink the name field so they share one row; (2) "Guardar" is shown only when there are unsaved changes and sits in its own row above "Añadir" (not side by side); (3) remove the hint "Se añadirá tal como lo ves; Guardar para conservar los cambios" (reference `design/reported/E7-A-comida-details-layout.png`) | Checkpoint E7-A, 2026-10-25 |
 ---
