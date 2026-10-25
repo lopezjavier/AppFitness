@@ -9,6 +9,8 @@ import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
+import io.github.lopezjavier.appfitness.domain.model.MealDefault
+import io.github.lopezjavier.appfitness.domain.model.MealDefaultAssignment
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealSlotDraft
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
@@ -21,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import kotlinx.coroutines.flow.Flow
@@ -43,6 +46,16 @@ class UnconfiguredMealTemplateRepository : MealTemplateRepository {
     override suspend fun rename(id: String, name: String): Result<Unit> = failure()
 
     override suspend fun delete(id: String): Result<Unit> = failure()
+}
+
+/** Used when Supabase is not configured: every call fails. */
+class UnconfiguredMealDefaultsRepository : MealDefaultsRepository {
+    override suspend fun list(): Result<List<MealDefault>> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun save(assignments: List<MealDefaultAssignment>): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun applyForDate(date: LocalDate): Result<Int> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Used when Supabase is not configured: every call fails. */
