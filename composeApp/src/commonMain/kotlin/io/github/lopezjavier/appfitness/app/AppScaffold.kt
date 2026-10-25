@@ -87,6 +87,7 @@ internal fun AppScaffold(
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
+    trainingStats: TrainingStatsSlot = DefaultTrainingStatsSlot,
 ) {
     val items = rememberNavigationItems()
     val entry by navController.currentBackStackEntryAsState()
@@ -153,6 +154,7 @@ internal fun AppScaffold(
                     strength = strength,
                     exerciseProgress = exerciseProgress,
                     muscleVolume = muscleVolume,
+                    trainingStats = trainingStats,
                     modifier = contentModifier,
                 )
             }
@@ -262,6 +264,7 @@ private fun ShellContent(
     strength: StrengthSlot,
     exerciseProgress: ExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot,
+    trainingStats: TrainingStatsSlot,
     modifier: Modifier = Modifier,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -314,6 +317,7 @@ private fun ShellContent(
             strength = strength,
             exerciseProgress = exerciseProgress,
             muscleVolume = muscleVolume,
+            trainingStats = trainingStats,
         )
         if (navigationType == AppNavigationType.Rail) {
             rail(

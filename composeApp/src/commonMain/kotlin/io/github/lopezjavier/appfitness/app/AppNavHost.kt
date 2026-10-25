@@ -46,6 +46,7 @@ internal typealias ProfileSlot =
         onOpenStrength: () -> Unit,
         onOpenDiaryHistory: () -> Unit,
         onOpenWeight: () -> Unit,
+        onOpenTrainingStats: () -> Unit,
     ) -> Unit
 
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
@@ -265,6 +266,9 @@ internal typealias StrengthSlot =
 /** Weekly muscle volume content: modifier (full-screen insets) and "start workout" (empty state). */
 internal typealias MuscleVolumeSlot = @Composable (modifier: Modifier, onStartWorkout: () -> Unit) -> Unit
 
+/** "Estadisticas" content: modifier (full-screen insets) and the progress opener (by exercise id). */
+internal typealias TrainingStatsSlot = @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit) -> Unit
+
 /** Exercise progress content: modifier (full-screen insets) and the exercise id. */
 internal typealias ExerciseProgressSlot = @Composable (modifier: Modifier, exerciseId: String) -> Unit
 
@@ -305,7 +309,7 @@ internal typealias RoutineBuilderSlot = @Composable (modifier: Modifier, host: R
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
@@ -420,6 +424,11 @@ internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("muscle_volume_screen"))
 }
 
+/** Empty "Estadisticas" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("stats_screen"))
+}
+
 /** Empty exercise progress for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_progress_screen"))
@@ -468,6 +477,7 @@ internal fun AppNavHost(
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
+    trainingStats: TrainingStatsSlot = DefaultTrainingStatsSlot,
     weight: WeightSlot = DefaultWeightSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
@@ -489,6 +499,7 @@ internal fun AppNavHost(
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
+    val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
     val openProgress: (String) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
@@ -557,10 +568,12 @@ internal fun AppNavHost(
                     openStrength,
                     openDiaryHistory,
                     openWeight,
+                    openTrainingStats,
                 )
             }
         }
         composable<WeightRoute> { weight(Modifier.padding(fullScreenPadding)) }
+        composable<StatsRoute> { trainingStats(Modifier.padding(fullScreenPadding), openProgress) }
         composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding), openMeals) }
         composable<ExercisePickerRoute> { entry ->
             val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode

@@ -45,6 +45,7 @@ class ProfileRootScreenTest {
     private var strengthOpens = 0
     private var diaryHistoryOpens = 0
     private var weightOpens = 0
+    private var trainingStatsOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -65,6 +66,7 @@ class ProfileRootScreenTest {
         strengthOpens = 0
         diaryHistoryOpens = 0
         weightOpens = 0
+        trainingStatsOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
@@ -74,6 +76,7 @@ class ProfileRootScreenTest {
                     onOpenStrength = { strengthOpens++ },
                     onOpenDiaryHistory = { diaryHistoryOpens++ },
                     onOpenWeight = { weightOpens++ },
+                    onOpenTrainingStats = { trainingStatsOpens++ },
                     onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
                     effects = effects.receiveAsFlow(),
                 )
@@ -147,6 +150,21 @@ class ProfileRootScreenTest {
         rule.onNodeWithTag("profile_diary_history_row").performClick()
 
         assertEquals(1, diaryHistoryOpens)
+        assertEquals(0, strengthOpens)
+    }
+
+    @Test
+    fun trainingStatsRow_isTheLastStatisticsRow_andOpensEstadisticas() {
+        show()
+        rule.onNodeWithTag("profile_training_stats_row").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Entrenamiento").assertExists()
+        val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()
+        val training = rule.onNodeWithTag("profile_training_stats_row").getUnclippedBoundsInRoot()
+        assertTrue(training.top >= history.bottom)
+
+        rule.onNodeWithTag("profile_training_stats_row").performClick()
+
+        assertEquals(1, trainingStatsOpens)
         assertEquals(0, strengthOpens)
     }
 

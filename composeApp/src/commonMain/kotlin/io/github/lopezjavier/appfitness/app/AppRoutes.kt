@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_title
@@ -115,6 +116,10 @@ data object StrengthRoute : AppRoute
 /** Weekly volume per muscle group (US-15), opened from Fuerza. */
 @Serializable
 data object MuscleVolumeRoute : AppRoute
+
+/** "Estadisticas": training statistics and muscle distribution (US-40, US-41), opened from the Perfil root. */
+@Serializable
+data object StatsRoute : AppRoute
 
 /** Progress charts of one exercise (US-15), opened from Fuerza, the exercise detail and the session detail. */
 @Serializable
@@ -301,6 +306,8 @@ val AppRoute.chrome: ShellChrome
 
             MuscleVolumeRoute -> ShellChrome.FullScreen(Res.string.muscle_volume_title, topBarTag = "muscle_volume")
 
+            StatsRoute -> ShellChrome.FullScreen(Res.string.stats_title, topBarTag = "stats")
+
             is ExerciseProgressRoute ->
                 ShellChrome.FullScreen(Res.string.exercise_progress_title, topBarTag = "exercise_progress")
 
@@ -353,6 +360,7 @@ object AppDestinations {
             PastWorkoutRoute(),
             StrengthRoute,
             MuscleVolumeRoute,
+            StatsRoute,
             ExerciseProgressRoute(""),
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),

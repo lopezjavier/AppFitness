@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
+import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsViewModel
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
@@ -369,6 +370,15 @@ val uiModule =
         viewModel { PastWorkoutChooserViewModel(routineRepository = get(), savedState = get()) }
         viewModelOf(::StrengthViewModel)
         viewModelOf(::MuscleVolumeViewModel)
+        viewModel {
+            TrainingStatsViewModel(
+                stats = get(),
+                exerciseRepository = get(),
+                exerciseLibrary = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
         viewModel { (exerciseId: String) ->
             ExerciseProgressViewModel(
                 exerciseId = exerciseId,
