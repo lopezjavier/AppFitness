@@ -1,11 +1,11 @@
 # E8 · Training insights → `v0.8.0`
 
 ## Goal
-Show real progress: per-exercise evolution, advanced statistics, muscle distribution and periodic reports, so the user can see whether they are getting stronger.
+Show real progress: per-exercise evolution, advanced statistics, muscle distribution, so the user can see whether they are getting stronger.
 
 ## Scope
-- Includes: exercise chart records and non-weight metrics, advanced statistics (time frames, set-count chart, sets per muscle group, main exercises), muscle distribution (radar and body heatmap), Monthly Report, Year in Review, streaks and weekly check-ins.
-- Out of scope: the algorithmic program generator / trainer (Phase 2); social features, cardio plans and publishing/monetization limits (out of Phase 1, `01-phase1-scope.md` §4).
+- Includes: exercise chart records and non-weight metrics, advanced statistics (time frames, set-count chart, sets per muscle group, main exercises), muscle distribution (radar and body heatmap).
+- Out of scope: periodic reports (Monthly Report, Year in Review) and streaks with weekly check-ins (Phase 2, ADR-66); the algorithmic program generator / trainer (Phase 2); social features, cardio plans and publishing/monetization limits (out of Phase 1, `01-phase1-scope.md` §4).
 
 ## Dependencies
 E3 (training core, the strength charts of US-15) and E6 (training depth). E7 precedes it in the roadmap but is not a functional dependency.
@@ -14,7 +14,7 @@ E3 (training core, the strength charts of US-15) and E6 (training depth). E7 pre
 Built on `workout_sessions`/`workout_sets` and the exercise catalog. New statistics RPCs (time frames, sets per muscle group, current-vs-previous distribution) in `03-data-model.md` §6.
 
 ## Navigation (ADR-37)
-There is no Progreso tab: the statistics, reports and other insights of this epic are full-screen destinations (back arrow) reached from statistics entry buttons on the Perfil root.
+There is no Progreso tab: the statistics and other insights of this epic are full-screen destinations (back arrow) reached from statistics entry buttons on the Perfil root.
 
 ## Reference screen
 `design/stitch/progress/screen.png` and its statistics sections (style reference only; the screen is not a tab).
@@ -97,70 +97,6 @@ Feature: Muscle distribution
 
 **Technical notes**
 - Primary = 1, secondary = 0,5 (`04-business-rules.md` §4.6 for the warm-up variant).
-
----
-
-## US-42 · Monthly Report
-**As** a user
-**I want** a monthly summary
-**So that** I can review the month at a glance.
-
-```gherkin
-Feature: Monthly Report
-
-  Scenario: Summary
-    When the user opens the "Informe mensual"
-    Then they see the days trained, the number of workouts, the duration and the total volume
-
-  Scenario: Ready notification
-    When a month closes
-    Then the "Informe mensual listo" notification is shown
-```
-
-**Technical notes**
-- Aggregated with the statistics RPC; the notification follows the app's notification policy.
-
----
-
-## US-43 · Year in Review
-**As** a user
-**I want** an annual summary
-**So that** I can look back at the year.
-
-```gherkin
-Feature: Year in Review
-
-  Scenario: Annual summary
-    When the user opens "Tu año en el gimnasio"
-    Then they see the total volume, the best month, the streak, the muscle breakdown and their PRs
-
-  Scenario: Sharing
-    Then they can export it as an image
-```
-
-**Technical notes**
-- Year aggregation of the statistics RPC; the export reuses the sharing component.
-
----
-
-## US-44 · Streaks and weekly check-ins
-**As** a user
-**I want** to see my consistency
-**So that** I stay motivated.
-
-```gherkin
-Feature: Streaks
-
-  Scenario: Streak
-    Then the app shows the consecutive weeks trained
-
-  Scenario: Weekly check-in
-    When a week closes
-    Then a check-in compares this week's volume with last week's and lists the PRs
-```
-
-**Technical notes**
-- Streak = consecutive ISO weeks with at least one completed session; the check-in reuses the statistics RPC.
 
 ---
 
