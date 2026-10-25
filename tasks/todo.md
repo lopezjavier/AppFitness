@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅
 
-**Next:** T-116 closure (Checkpoint E8-A approved 2026-10-26); T-117 merged (PR #236, `deploy-supabase` green, migration remote; non-blocking review notes: `save_meal_as_comida` silently skips entry ids it cannot find or does not own, consider raising when 0 rows are updated; `DiaryViewModel` combines through a `Pair`); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** E9 (UI refinement, modern and professional look): broken down by `epic-planner` in a fresh session, checkpoints agreed with the user first. E8 closed (tag `v0.8.0`, retrospective held 2026-10-26; Checkpoint E8-A approved 2026-10-26), mention the T-112 cooking-fat caveat when reviewing E9; T-117 merged (PR #236, `deploy-supabase` green, migration remote; non-blocking review notes: `save_meal_as_comida` silently skips entry ids it cannot find or does not own, consider raising when 0 rows are updated; `DiaryViewModel` combines through a `Pair`); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3301,14 +3301,14 @@ Journey: see whether you are getting stronger, per exercise, over any period and
 **Description:** Closes E8 once Checkpoint E8-A is approved: tag `v0.8.0` and the retrospective. No 👤 checkpoint here.
 
 **Acceptance criteria:**
-- [ ] T-113…T-115 (and any fix tasks) merged with green CI; pgTAP green for the four statistics RPCs with the `04` §4.11 examples, warm-up inclusion, windows and cross-user isolation, and for `save_meal_defaults`; `deploy-supabase` green after the last migration.
-- [ ] Domain tests for the chart metric selection, record markers, statistics windows and bucketing; host tests for every E8 Gherkin scenario (epic DoD).
-- [ ] Every new screen has loading, empty and error states; numbers use tabular numerals and Spanish formatting (epic DoD).
-- [ ] Checkpoint E8-A approved; every bug the user reported fixed; look-and-feel feedback appended to the E9 UI-refinement table.
-- [ ] `tasks/todo.md` (E8 ✅, next-task pointer) updated through a PR.
+- [x] T-113…T-115 (and any fix tasks) merged with green CI; pgTAP green for the four statistics RPCs with the `04` §4.11 examples, warm-up inclusion, windows and cross-user isolation, and for `save_meal_defaults`; `deploy-supabase` green after the last migration.
+- [x] Domain tests for the chart metric selection, record markers, statistics windows and bucketing; host tests for every E8 Gherkin scenario (epic DoD).
+- [x] Every new screen has loading, empty and error states; numbers use tabular numerals and Spanish formatting (epic DoD).
+- [x] Checkpoint E8-A approved; every bug the user reported fixed; look-and-feel feedback appended to the E9 UI-refinement table.
+- [x] `tasks/todo.md` (E8 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.8.0` after approval.
+- [x] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.8.0` after approval.
 
 **Dependencies:** T-115 (and Checkpoint E8-A approved)
 **Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E8.md`
