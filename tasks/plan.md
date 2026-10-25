@@ -34,7 +34,7 @@ Checkpoint rule: every user-testable item of the epic is collected first, then g
   - **Checkpoint E7-A 👤 Create and fix foods (7 items):** unit change of an unused food; comida details; photo action, modes and sources; dish estimate; label photo; barcode photo; failures and offline. Why here: the whole "add a new food" journey is complete, and cooking and defaults do not build on the photo flow, so feedback on the form and the comida details lands before T-108 adds cooking chips to them.
 
 ### Phase 2: Cook and plan meals (cooking methods, default comidas)
-- [ ] T-107: Cooking methods backend (US-50 backend) — backend — M
+- [x] T-107: Cooking methods backend (US-50 backend) — backend — M
 - [ ] T-108: Cooking selector, "Cocina" and cooking in comidas (US-50 UI) — UI — L
 - [ ] T-109: Default comidas backend (US-51 backend) — backend — M
 - [ ] T-110: "Comidas por defecto" and a new day's Diary (US-51 UI) — UI — L
