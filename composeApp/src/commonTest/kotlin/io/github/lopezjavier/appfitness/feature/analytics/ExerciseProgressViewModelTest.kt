@@ -1,10 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
-import io.github.lopezjavier.appfitness.domain.model.ProgressMode
+import io.github.lopezjavier.appfitness.domain.model.ProgressMetric
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -21,6 +23,10 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -44,21 +50,35 @@ class ExerciseProgressViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() =
-        ExerciseProgressViewModel("bench", workouts, strength, exercises, library, MutableClock(), training)
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) = ExerciseProgressViewModel(
+        "bench",
+        workouts,
+        strength,
+        exercises,
+        library,
+        MutableClock(),
+        training,
+        savedState,
+    )
 
     private fun ExerciseProgressViewModel.content() = assertIs<ExerciseProgressUiState.Content>(uiState.value)
 
-    private fun point(date: LocalDate, best: Double?, volume: Double = 1000.0) =
-        ExerciseHistoryPoint("s-$date", date, best, volume)
+    private fun session(date: LocalDate, oneRm: Double? = null, volume: Double = 1000.0, durationS: Int? = null) =
+        ExerciseSessionRecords(
+            sessionId = "s-$date",
+            startedAt = date.atTime(LocalTime(10, 0)).toInstant(TimeZone.UTC),
+            sessionVolume = volume,
+            bestOneRm = oneRm,
+            bestDurationS = durationS,
+        )
 
     @Test
     fun startsLoadingThenShowsBothSeriesInTheDefaultRange() = runTest(dispatcher) {
-        workouts.history = mapOf(
+        workouts.sessionRecords = mapOf(
             "bench" to listOf(
-                point(LocalDate(2026, 5, 1), 90.0),
-                point(LocalDate(2026, 9, 1), 100.0),
-                point(LocalDate(2026, 10, 15), 110.0),
+                session(LocalDate(2026, 5, 1), 90.0),
+                session(LocalDate(2026, 9, 1), 100.0),
+                session(LocalDate(2026, 10, 15), 110.0),
             ),
         )
         val model = viewModel()
@@ -69,33 +89,62 @@ class ExerciseProgressViewModelTest {
         val content = model.content()
         assertEquals("Press de banca", content.name)
         assertEquals(ProgressRange.ThreeMonths, content.range)
-        assertEquals(ProgressMode.OneRepMax, content.progress.mode)
+        assertEquals(ProgressMetric.OneRepMax, content.progress.mode)
         assertEquals(listOf(100.0, 110.0), content.progress.primary.map { it.value })
+        assertEquals(listOf(true, true), content.progress.primary.map { it.isRecord })
         assertEquals(2, content.progress.volume.size)
     }
 
     @Test
-    fun changingTheRangeFiltersTheSeriesWithoutReloading() = runTest(dispatcher) {
-        workouts.history = mapOf(
-            "bench" to listOf(point(LocalDate(2026, 5, 1), 90.0), point(LocalDate(2026, 10, 15), 110.0)),
+    fun changingTheRangeFiltersTheSeriesWithoutReloadingIncludingAllTime() = runTest(dispatcher) {
+        workouts.sessionRecords = mapOf(
+            "bench" to listOf(session(LocalDate(2024, 5, 1), 90.0), session(LocalDate(2026, 10, 15), 110.0)),
         )
         val model = viewModel()
         advanceUntilIdle()
         assertEquals(1, model.content().progress.primary.size)
 
         model.onEvent(ExerciseProgressEvent.SelectRange(ProgressRange.OneYear))
+        assertEquals(1, model.content().progress.primary.size)
 
-        assertEquals(ProgressRange.OneYear, model.content().range)
+        model.onEvent(ExerciseProgressEvent.SelectRange(ProgressRange.AllTime))
+        assertEquals(ProgressRange.AllTime, model.content().range)
         assertEquals(2, model.content().progress.primary.size)
 
         model.onEvent(ExerciseProgressEvent.SelectRange(ProgressRange.OneMonth))
-
         assertEquals(1, model.content().progress.primary.size)
     }
 
     @Test
+    fun theSelectedRangeIsRestoredFromTheSavedState() = runTest(dispatcher) {
+        workouts.sessionRecords = mapOf(
+            "bench" to listOf(session(LocalDate(2024, 5, 1), 90.0), session(LocalDate(2026, 10, 15), 110.0)),
+        )
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(ExerciseProgressEvent.SelectRange(ProgressRange.AllTime))
+
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(ProgressRange.AllTime, recreated.content().range)
+        assertEquals(2, recreated.content().progress.primary.size)
+    }
+
+    @Test
+    fun anUnknownStoredRangeFallsBackToTheDefault() = runTest(dispatcher) {
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), 110.0)))
+        val model = viewModel(SavedStateHandle(mapOf("range" to "Nonsense")))
+
+        advanceUntilIdle()
+
+        assertEquals(ProgressRange.ThreeMonths, model.content().range)
+    }
+
+    @Test
     fun aSingleSessionHasItsValueButNotEnoughData() = runTest(dispatcher) {
-        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 15), 110.0)))
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), 110.0)))
         val model = viewModel()
 
         advanceUntilIdle()
@@ -105,9 +154,29 @@ class ExerciseProgressViewModelTest {
     }
 
     @Test
+    fun theChartFollowsTheMetricTypeOfTheExercise() = runTest(dispatcher) {
+        exercises.rows = listOf(exerciseRow("bench", "bench").copy(metricType = ExerciseMetricType.Duration))
+        workouts.sessionRecords = mapOf(
+            "bench" to listOf(
+                session(LocalDate(2026, 10, 1), durationS = 60),
+                session(LocalDate(2026, 10, 10), durationS = 90),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val progress = model.content().progress
+        assertEquals(ProgressMetric.Duration, progress.mode)
+        assertEquals(listOf(60.0, 90.0), progress.primary.map { it.value })
+        assertTrue(progress.volume.isEmpty())
+    }
+
+    @Test
     fun anExerciseWithoutLoadShowsMaxRepsInsteadOfOneRepMaxAndVolume() = runTest(dispatcher) {
-        workouts.history = mapOf(
-            "bench" to listOf(point(LocalDate(2026, 10, 1), null, 0.0), point(LocalDate(2026, 10, 10), null, 0.0)),
+        workouts.sessionRecords = mapOf(
+            "bench" to
+                listOf(session(LocalDate(2026, 10, 1), volume = 0.0), session(LocalDate(2026, 10, 10), volume = 0.0)),
         )
         strength.maxReps = mapOf(
             "bench" to listOf(
@@ -120,14 +189,14 @@ class ExerciseProgressViewModelTest {
         advanceUntilIdle()
 
         val progress = model.content().progress
-        assertEquals(ProgressMode.MaxReps, progress.mode)
+        assertEquals(ProgressMetric.MaxReps, progress.mode)
         assertEquals(listOf(8.0, 10.0), progress.primary.map { it.value })
         assertTrue(progress.volume.isEmpty())
     }
 
     @Test
     fun maxRepsFollowTheWarmUpPreference() = runTest(dispatcher) {
-        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 1), null, 0.0)))
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 1), volume = 0.0)))
         strength.maxReps = mapOf("bench" to listOf(MaxRepsPoint("a", LocalDate(2026, 10, 1), 8)))
         strength.maxRepsWarmUp = mapOf("bench" to listOf(MaxRepsPoint("a", LocalDate(2026, 10, 1), 15)))
 
@@ -144,13 +213,13 @@ class ExerciseProgressViewModelTest {
 
     @Test
     fun repetitionsAreNotFetchedWhenThereIsAOneRepMax() = runTest(dispatcher) {
-        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 15), 110.0)))
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), 110.0)))
         val model = viewModel()
 
         advanceUntilIdle()
 
         assertEquals(0, strength.maxRepsCalls)
-        assertEquals(ProgressMode.OneRepMax, model.content().progress.mode)
+        assertEquals(ProgressMetric.OneRepMax, model.content().progress.mode)
     }
 
     @Test
@@ -164,13 +233,13 @@ class ExerciseProgressViewModelTest {
 
     @Test
     fun aFailureShowsErrorAndRetryRecovers() = runTest(dispatcher) {
-        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 15), 110.0)))
-        workouts.historyFailure = AppError.Network
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), 110.0)))
+        workouts.recordsFailure = AppError.Network
         val model = viewModel()
         advanceUntilIdle()
         assertEquals(ExerciseProgressUiState.Error, model.uiState.value)
 
-        workouts.historyFailure = null
+        workouts.recordsFailure = null
         model.onEvent(ExerciseProgressEvent.Retry)
         advanceUntilIdle()
 
@@ -179,7 +248,7 @@ class ExerciseProgressViewModelTest {
 
     @Test
     fun aMaxRepsFailureShowsError() = runTest(dispatcher) {
-        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 15), null, 0.0)))
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), volume = 0.0)))
         strength.maxRepsFailure = AppError.Network
         val model = viewModel()
 

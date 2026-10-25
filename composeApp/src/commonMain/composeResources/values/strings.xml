@@ -660,7 +660,19 @@
     <string name="exercise_progress_chart_1rm">1RM estimado (kg)</string>
     <string name="exercise_progress_chart_volume">Volumen (kg)</string>
     <string name="exercise_progress_chart_max_reps">Repeticiones máximas</string>
-    <string name="exercise_progress_chart_cd">%1$s: de %2$s a %3$s, mínimo %4$s, máximo %5$s, %6$d sesiones</string>
+    <string name="exercise_progress_range_all">Todo</string>
+    <string name="exercise_progress_range_all_cd">Todo el historial</string>
+    <string name="exercise_progress_chart_duration">Duración</string>
+    <string name="exercise_progress_chart_distance">Distancia</string>
+    <string name="exercise_progress_chart_steps">Pasos</string>
+    <string name="exercise_progress_chart_floors">Pisos</string>
+    <string name="exercise_progress_chart_reps">Repeticiones</string>
+    <string name="exercise_progress_record_legend">Récord</string>
+    <string name="exercise_progress_chart_cd">%1$s. %2$d sesiones, de %3$s a %4$s.</string>
+    <plurals name="exercise_progress_records_cd">
+        <item quantity="one">%1$d marcada como récord personal en su fecha.</item>
+        <item quantity="other">%1$d marcadas como récord personal en su fecha.</item>
+    </plurals>
     <string name="exercise_progress_single_session">Necesitas al menos 2 sesiones para ver la evolución</string>
     <string name="exercise_progress_single_value">Última sesión: %1$s</string>
     <string name="exercise_progress_empty_message">Aún no has registrado este ejercicio en ningún entreno.</string>

@@ -7,6 +7,7 @@ import { createFoodPhotoHandler } from "./handler.ts";
 
 const handler = createFoodPhotoHandler({
     authenticate,
+    model: Deno.env.get("GEMINI_MODEL"),
     generate: (req) =>
         generateFoodJson({
             fetch: (input, init) => fetch(input, init),

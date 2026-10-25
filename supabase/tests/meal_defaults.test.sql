@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(73);
+select plan(74);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -199,6 +199,15 @@ select throws_ok(
       'meal_slot_id', (select v from slots where k = 'a_lunch'),
       'template_id', 'a3000000-0000-4000-8000-000000000003', 'weekdays', jsonb_build_array(1))))$$,
   '23514', null, 'a comida without items is refused');
+select throws_ok(
+  $$select public.save_meal_defaults(jsonb_build_array(
+      jsonb_build_object('meal_slot_id', (select v from slots where k = 'a_breakfast'),
+        'template_id', 'a1000000-0000-4000-8000-000000000001', 'weekdays', jsonb_build_array(1, 2)),
+      jsonb_build_object('meal_slot_id', (select v from slots where k = 'a_lunch'),
+        'template_id', 'a2000000-0000-4000-8000-000000000002', 'weekdays', jsonb_build_array(3)),
+      jsonb_build_object('meal_slot_id', (select v from slots where k = 'a_lunch'),
+        'template_id', 'b1000000-0000-4000-8000-000000000001', 'weekdays', jsonb_build_array(4))))$$,
+  'P0002', null, 'one comida not owned among several valid elements refuses the whole save');
 select results_eq($$select weekday::int from public.meal_defaults order by weekday$$,
   $$values (2), (4)$$, 'the refused saves left the previous defaults intact');
 

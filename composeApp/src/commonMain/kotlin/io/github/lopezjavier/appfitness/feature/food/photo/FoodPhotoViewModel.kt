@@ -178,6 +178,7 @@ class FoodPhotoViewModel(
             outcome.fold(
                 onSuccess = {
                     dropPhoto()
+                    clearComment()
                     setStep(FoodPhotoStep.Closed)
                     effectChannel.send(FoodPhotoEffect.OpenPrefilledForm(it.toNewFoodDraft(mode)))
                 },
@@ -202,6 +203,7 @@ class FoodPhotoViewModel(
     private fun createManually() {
         if (step() !is FoodPhotoStep.Error) return
         dropPhoto()
+        clearComment()
         setStep(FoodPhotoStep.Closed)
         effectChannel.trySend(FoodPhotoEffect.OpenEmptyForm)
     }
@@ -225,9 +227,14 @@ class FoodPhotoViewModel(
     private fun close() {
         captureId++
         dropPhoto()
-        savedState[KEY_COMMENT] = ""
-        _uiState.update { it.copy(comment = "", captureFailed = false) }
+        clearComment()
+        _uiState.update { it.copy(captureFailed = false) }
         setStep(FoodPhotoStep.Closed)
+    }
+
+    private fun clearComment() {
+        savedState[KEY_COMMENT] = ""
+        _uiState.update { it.copy(comment = "") }
     }
 
     private fun dropPhoto() {

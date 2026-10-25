@@ -38,6 +38,9 @@ private sealed interface Loaded {
     data class Ready(val sectionEntries: List<FoodLogEntry>) : Loaded
 }
 
+/** The save flag and the chosen cooking methods, combined as one input of the state. */
+private data class SaveProgress(val saving: Boolean, val methods: Map<String, CookingMethod>)
+
 /**
  * Save-as-comida sheet (US-21): names the diary section [slotId] of [date] and stores its foods and quantities as a
  * new comida. The section is read from a fresh copy of the day; the name and the duplicate-name error live in
@@ -65,7 +68,7 @@ class SaveTemplateViewModel(
     val effects: Flow<SaveTemplateEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<SaveTemplateUiState> =
-        combine(loaded, name, taken, online, combine(saving, methods, ::Pair), ::buildState)
+        combine(loaded, name, taken, online, combine(saving, methods, ::SaveProgress), ::buildState)
             .stateIn(viewModelScope, SharingStarted.Eagerly, SaveTemplateUiState.Loading)
 
     init {
@@ -147,14 +150,14 @@ class SaveTemplateViewModel(
         name: String,
         taken: Boolean,
         online: Boolean,
-        savingAndMethods: Pair<Boolean, Map<String, CookingMethod>>,
+        progress: SaveProgress,
     ): SaveTemplateUiState = when (loaded) {
         Loaded.Loading -> SaveTemplateUiState.Loading
 
         Loaded.Failed -> SaveTemplateUiState.Error
 
         is Loaded.Ready -> SaveTemplateUiState.Content(
-            buildContent(loaded, name, taken, online, savingAndMethods.first, savingAndMethods.second),
+            buildContent(loaded, name, taken, online, progress.saving, progress.methods),
         )
     }
 

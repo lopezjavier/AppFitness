@@ -378,6 +378,7 @@ val uiModule =
                 exerciseLibrary = get(),
                 clock = get(),
                 preferences = get(),
+                savedState = get(),
             )
         }
         // A blank routineId means a new routine (Koin parameters cannot be null).

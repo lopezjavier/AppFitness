@@ -491,8 +491,7 @@ class TemplateDetailsViewModel(
                 val text = amountText(current, entry)
                 MealTemplateItem(
                     food = entry.food,
-                    // canAdd guarantees that every remaining amount parses.
-                    amount = parseAmount(text) ?: 0.0,
+                    amount = parseAmount(text) ?: return,
                     portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
                     cookingMethod = methodOf(current, entry),
                 )
@@ -554,22 +553,21 @@ class TemplateDetailsViewModel(
 
     /** The items to store for the current draft, or null when the draft cannot be saved now. */
     private fun savableItems(template: MealTemplate): List<NewTemplateItem>? {
-        val current = draft.value ?: return null
-        return if (currentContent()?.canSave != true) {
-            null
-        } else {
-            remainingEntries(template, current).map { entry ->
-                val text = amountText(current, entry)
+        val current = draft.value
+        if (current == null || currentContent()?.canSave != true) return null
+        val items = remainingEntries(template, current).map { entry ->
+            val text = amountText(current, entry)
+            parseAmount(text)?.let { amount ->
                 NewTemplateItem(
                     foodId = entry.food.id,
-                    // canSave guarantees that every remaining amount parses.
-                    amount = parseAmount(text) ?: 0.0,
+                    amount = amount,
                     // Only an untouched amount keeps its portion label; the label is just a snapshot of the amount.
                     portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
                     cookingMethod = methodOf(current, entry),
                 )
             }
         }
+        return if (items.any { it == null }) null else items.filterNotNull()
     }
 
     @Suppress("LongParameterList") // One argument per combined flow.

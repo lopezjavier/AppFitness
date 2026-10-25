@@ -12,32 +12,36 @@ private const val MONTHS_12 = 12
 /** Highest repetitions of one completed session of an exercise (any load, warm-ups excluded). */
 data class MaxRepsPoint(val sessionId: String, val date: LocalDate, val maxReps: Int)
 
-/** One value of a progress chart. */
-data class ChartPoint(val date: LocalDate, val value: Double)
+/** One value of a progress chart; [isRecord] marks a session that set an all-time record of the family. */
+data class ChartPoint(val date: LocalDate, val value: Double, val isRecord: Boolean = false)
 
-/** Look-back windows of the progress charts. */
-enum class ProgressRange(private val months: Int) {
+/** Look-back windows of the progress charts; [AllTime] has no lower bound. */
+enum class ProgressRange(private val months: Int?) {
     OneMonth(MONTHS_1),
     ThreeMonths(MONTHS_3),
     SixMonths(MONTHS_6),
     OneYear(MONTHS_12),
+    AllTime(null),
     ;
 
-    /** First day included in the window ending [today]. */
-    fun from(today: LocalDate): LocalDate = today.minus(months, DateTimeUnit.MONTH)
+    /** First day included in the window ending [today]; null when the window has no lower bound. */
+    fun from(today: LocalDate): LocalDate? = months?.let { today.minus(it, DateTimeUnit.MONTH) }
 }
 
 /** 1RM record of an exercise and how much it grew in the last 30 days; the delta is null without older data. */
 data class StrengthSummary(val recordOneRepMax: Double?, val monthlyDelta: Double?)
 
-/** What a progress chart plots: estimated 1RM, or max repetitions for exercises logged without load. */
-enum class ProgressMode { OneRepMax, MaxReps }
+/**
+ * What the primary progress chart plots. [MaxReps] is the fallback for load exercises never logged with load;
+ * the rest follow the exercise metric type.
+ */
+enum class ProgressMetric { OneRepMax, MaxReps, Reps, Duration, Distance, Steps, Floors }
 
 /**
- * Series of an exercise inside a [ProgressRange]. [primary] is the 1RM or max-reps series by [mode]; [volume] is
- * empty in [ProgressMode.MaxReps]. [hasEnoughData] is false with fewer than 2 points to compare.
+ * Series of an exercise inside a [ProgressRange]. [primary] is the series of [mode]; [volume] is the second chart of
+ * the weight families and empty otherwise. [hasEnoughData] is false with fewer than 2 points to compare.
  */
-data class ExerciseProgress(val mode: ProgressMode, val primary: List<ChartPoint>, val volume: List<ChartPoint>) {
+data class ExerciseProgress(val mode: ProgressMetric, val primary: List<ChartPoint>, val volume: List<ChartPoint>) {
     val hasEnoughData: Boolean get() = primary.size >= 2
     val isEmpty: Boolean get() = primary.isEmpty()
 }

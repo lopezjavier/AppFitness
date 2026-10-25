@@ -619,6 +619,17 @@ class TemplateDetailsViewModelTest {
     }
 
     @Test
+    fun save_withAnUnparseableAmount_storesNothing() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "abc"))
+
+        model.onEvent(TemplateDetailsEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(0, repository.saveCalls)
+    }
+
+    @Test
     fun save_keepsThePortionLabel_ofAnUntouchedAmount() = runTest(dispatcher) {
         val model = loaded()
         model.onEvent(TemplateDetailsEvent.AmountChanged(0, "150"))

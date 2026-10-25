@@ -373,7 +373,7 @@ Routine tracking (T-099, US-36, ADR-54), all `security invoker`:
 
 The 1RM is computed in SQL with the same formula as the domain (see `04-business-rules.md`); domain and pgTAP tests use the same cases.
 
-E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records`, `personal_records`), routine folders/order, routine tracking (T-099, below), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the cooking and default-comida tables and RPCs listed above. E8 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution); their signatures are fixed when that epic is broken down.
+E6 adds the RPCs for the PR catalogue (added in T-094: `exercise_session_records`, `personal_records`), routine folders/order, routine tracking (T-099, below), workout editing and past workouts, and the manual-food edit (US-47, ADR-53: e.g. `update_personal_food`, atomic with its portions; `create_personal_food` then accepts the full nutrient key list). The warm-up/plate calculators are client-side domain with no RPC; only their settings are stored (ADR-52). E7 adds the cooking and default-comida tables and RPCs listed above. US-39 (per-exercise charts, record markers) reads `exercise_session_records` and adds no RPC (`exercise_history` is unchanged). E8 adds the extended statistics (time frames, sets per muscle group, current-vs-previous distribution); their signatures are fixed when that epic is broken down.
 
 ## 7. Edge Functions
 

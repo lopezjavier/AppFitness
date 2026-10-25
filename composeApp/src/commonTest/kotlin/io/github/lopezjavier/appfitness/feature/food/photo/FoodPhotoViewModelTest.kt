@@ -281,6 +281,41 @@ class FoodPhotoViewModelTest {
     }
 
     @Test
+    fun success_clearsTheDishComment() = runTest(dispatcher) {
+        val model = viewModel()
+        toPreview(model)
+        model.onEvent(FoodPhotoEvent.CommentChanged("sin chorizo"))
+
+        model.effects.test {
+            model.onEvent(FoodPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+            awaitItem()
+        }
+
+        assertEquals("sin chorizo", photos.calls.single().comment)
+        assertEquals("", model.uiState.value.comment)
+        assertEquals("", savedState.get<String>("food_photo_comment").orEmpty())
+    }
+
+    @Test
+    fun createManually_clearsTheDishComment() = runTest(dispatcher) {
+        photos.result = Result.failure(AppException(AppError.PhotoNotRecognized))
+        val model = viewModel()
+        toPreview(model)
+        model.onEvent(FoodPhotoEvent.CommentChanged("sin chorizo"))
+        model.onEvent(FoodPhotoEvent.UsePhoto)
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodPhotoEvent.CreateManually)
+            awaitItem()
+        }
+
+        assertEquals("", model.uiState.value.comment)
+        assertEquals("", savedState.get<String>("food_photo_comment").orEmpty())
+    }
+
+    @Test
     fun createManually_opensTheEmptyForm_discardsOnce() = runTest(dispatcher) {
         photos.result = Result.failure(AppException(AppError.PhotoNotRecognized))
         val model = viewModel()

@@ -40,7 +40,14 @@ private const val SHEET_FIELDS = 3
 private data class SheetDraft(val slotId: String, val templateId: String, val days: Set<Int>)
 
 /** What the screen shows besides the draft, loaded once. */
-private class Catalog(val slots: List<MealSlot>, val templates: List<MealTemplate>, val prefs: FoodPreferences?)
+private class Catalog(val slots: List<MealSlot>, val templates: List<MealTemplate>, val prefs: FoodPreferences?) {
+    /** The [rows] whose meal and comida are both still present. */
+    fun existing(rows: List<MealDefault>): List<MealDefault> {
+        val slotIds = slots.map { it.id }.toSet()
+        val templateIds = templates.map { it.id }.toSet()
+        return rows.filter { it.mealSlotId in slotIds && it.templateId in templateIds }
+    }
+}
 
 /**
  * Default comidas editor (US-51, ADR-61): per enabled meal, which saved comida is the default of which weekdays. The
@@ -141,10 +148,12 @@ class MealDefaultsViewModel(
                     draft = saved
                     persistDraft()
                 }
-                if (savedState.get<String>(KEY_BASELINE) == null) {
-                    baseline = saved
-                    savedState[KEY_BASELINE] = encodeRows(baseline)
-                }
+                if (savedState.get<String>(KEY_BASELINE) == null) baseline = saved
+                // A restored draft may point at a comida or meal deleted meanwhile: it can never be saved.
+                draft = loaded.existing(draft)
+                baseline = loaded.existing(baseline)
+                persistDraft()
+                savedState[KEY_BASELINE] = encodeRows(baseline)
             }
             publish()
         }

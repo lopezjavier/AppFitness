@@ -9,7 +9,7 @@ import {
     methodNotAllowed,
     unauthorized,
 } from "../_shared/errors.ts";
-import { GeminiError } from "../_shared/gemini-client.ts";
+import { GeminiError, resolveModel } from "../_shared/gemini-client.ts";
 import {
     type FoodPhotoMode,
     MODES,
@@ -27,6 +27,8 @@ const MAX_BODY_CHARS = Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 1024;
 export type FoodPhotoDeps = {
     /** User id of an access token, or null when invalid. */
     authenticate: (token: string) => Promise<string | null>;
+    /** Value of the optional GEMINI_MODEL secret; only used to name the model in the 404 log line. */
+    model?: string;
     /** Calls the model; returns its raw JSON output. Throws GeminiError. */
     generate: (
         req: {
@@ -139,10 +141,12 @@ export function createFoodPhotoHandler(
             return jsonResponse(200, { draft });
         } catch (err) {
             if (err instanceof GeminiError) {
+                // A retired model is actionable only if the log names it (config id, never the body).
                 console.error(
                     "food-photo: provider failed",
                     err.kind,
                     err.status ?? "no-status",
+                    ...(err.kind === "model" ? [resolveModel(deps.model)] : []),
                 );
                 switch (err.kind) {
                     case "quota":
