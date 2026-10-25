@@ -88,6 +88,7 @@ Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g f
   - If `diary_default_applications` already has the day, nothing happens (no duplicate, and deleted entries never come back).
   - If the day already has any entry, the day is marked and nothing is added.
   - Otherwise the matching saved comidas are copied as normal entries, with their current amounts, saved cooking methods, retained oil from the current Preferencias and nutrition snapshots, and the day is marked.
+- The server rejects dates more than one day from UTC today (`22023`); the client only sends its own today.
 - No backfill and no past days: a day the app was not opened on stays empty. Configuring or changing defaults after today's Diary was opened applies from the next new day.
 - Deleting a meal or a saved comida removes its assignments (cascade); entries already logged do not change. Editing a saved comida does not change entries already added, and a future application uses its current items and cooking methods.
 - If the apply call fails, the Diary still opens and shows a non-blocking retry; retrying is safe because the marker makes it idempotent.
