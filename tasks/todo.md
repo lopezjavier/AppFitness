@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅
 
-**Next:** T-113 (E7 carry-over cleanup + exercise charts, US-39), the first E8 task; E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Last merged: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). The open non-blocking E7 review suggestions are now in T-113. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-114 (training statistics backend, US-40/US-41); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3173,23 +3173,23 @@ Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generi
 **Part B, US-39 exercise charts.** Extend the per-exercise progress screen (`ExerciseProgressScreen`, reached from the exercise detail "Resumen", the session detail and "Fuerza"). No schema change: the screen reads `exercise_session_records(p_exercise_id)` (`sessionRecords`, T-094), which already returns, per completed session and warm-up aware, the 1RM, session volume, best duration, best distance, steps and floors; `exercise_history` stays as it is (`03` §6 is updated to say US-39 reads `exercise_session_records` and adds no RPC). (1) `ProgressRange` gains "Todo" (no lower bound) after 1M, 3M, 6M and 1A; the chips everywhere `ProgressRange` is shown include it. (2) The charted metric follows the exercise's `metric_type` (one pure domain function): weight families (`weight_reps`, `weighted`, `bodyweight`, `assisted`) keep 1RM and volume (and the existing max-reps fallback when never loaded); `reps_only` keeps reps; `duration` and `weight_duration` chart the best duration (time axis "m:ss"/"h:mm"); `distance_duration` the best distance (km/m with decimal comma); `steps_duration` steps; `floors_duration` floors. (3) Record markers: a session is marked on a chart when it beat every earlier session for that chart's family (`PersonalRecordCatalogue.beatenBy`: Best1Rm on the 1RM chart, MaxVolume on the volume chart, BestDuration, BestDistance, MostSteps, MostFloors), computed over the whole history so a marker in "1M" means an all-time record at the time (pending E8 Q3). Marker look, legend ("Récord") and the accessible summary by ux-reviewer; Vico in `athleticCyan`. The selected frame survives leaving the app.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: `save_meal_defaults` behaves exactly as before (all existing cases green) and has no per-element validation loop; one extra case with several meals and comidas in one payload, one of them not owned → `P0002`, nothing saved.
-- [ ] A restored or loaded defaults draft with a deleted comida or meal is not dirty and does not send that row on "Guardar".
-- [ ] `deno test` covers empty and all-thought `parts`; the 404 log line includes the model id and no body.
-- [ ] The raw capture file is gone after a cancelled capture coroutine (and after every other outcome, as before).
-- [ ] After a successful dish estimate or "Crear manualmente", reopening the photo flow shows an empty comment.
-- [ ] `TemplateDetailsViewModel` never sends a `0.0` amount from an unparseable text; `SaveTemplateViewModel` has no `Pair` state.
-- [ ] "Press de banca con barra" with three sessions where the 2nd and 3rd raise the 1RM: both are marked on the 1RM chart; a session that only raised the volume is marked on the volume chart only.
-- [ ] The frames show 1M, 3M, 6M, 1A and "Todo"; "Todo" includes a session older than a year.
-- [ ] "Plancha" (duration) shows a time chart and "Cinta de correr" (distance) a distance chart, with their record markers and no 1RM/volume charts.
-- [ ] Warm-up sets count only with "Incluir calentamiento" on (server aggregates).
-- [ ] Loading, empty and error states unchanged; the frame survives background and process death.
+- [x] Migration + pgTAP: `save_meal_defaults` behaves exactly as before (all existing cases green) and has no per-element validation loop; one extra case with several meals and comidas in one payload, one of them not owned → `P0002`, nothing saved.
+- [x] A restored or loaded defaults draft with a deleted comida or meal is not dirty and does not send that row on "Guardar".
+- [x] `deno test` covers empty and all-thought `parts`; the 404 log line includes the model id and no body.
+- [x] The raw capture file is gone after a cancelled capture coroutine (and after every other outcome, as before).
+- [x] After a successful dish estimate or "Crear manualmente", reopening the photo flow shows an empty comment.
+- [x] `TemplateDetailsViewModel` never sends a `0.0` amount from an unparseable text; `SaveTemplateViewModel` has no `Pair` state.
+- [x] "Press de banca con barra" with three sessions where the 2nd and 3rd raise the 1RM: both are marked on the 1RM chart; a session that only raised the volume is marked on the volume chart only.
+- [x] The frames show 1M, 3M, 6M, 1A and "Todo"; "Todo" includes a session older than a year.
+- [x] "Plancha" (duration) shows a time chart and "Cinta de correr" (distance) a distance chart, with their record markers and no 1RM/volume charts.
+- [x] Warm-up sets count only with "Incluir calentamiento" on (server aggregates).
+- [x] Loading, empty and error states unchanged; the frame survives background and process death.
 
 **Host tests (per item and scenario):** part A: pgTAP `meal_defaults.test.sql` addition; `MealDefaultsViewModelTest` (restored draft with a deleted comida, dirty check, save payload); `handler.test.ts` additions; an `AndroidPhotoCapture` host test or an extracted testable helper for the cancellation path; `FoodPhotoViewModelTest` (comment cleared after success and `createManually()`); `TemplateDetailsViewModelTest` (unparseable amount adds/saves nothing); existing `SaveTemplateViewModelTest` green. Part B: `BuildExerciseProgressTest` (AllTime window, metric selection per `metric_type`, markers per family over the full history, record outside the visible frame); `ExerciseProgressViewModelTest` with fakes + Turbine (sessionRecords path, Retry, frame change); `ExerciseProgressScreen` Robolectric tests ("Todo" chip, marker semantics, duration/distance titles and number formats); restoration test.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; `deno test --allow-all supabase/functions` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; `deno test --allow-all supabase/functions` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** E7 (`v0.7.0`)
 **Files likely touched:** part A: `supabase/migrations/<ts>_save_meal_defaults_set_based.sql`, `supabase/tests/meal_defaults.test.sql`, `supabase/functions/food-photo/{handler.ts,handler.test.ts,fixtures/*}`, `composeApp/src/androidMain/…/platform/AndroidPhotoCapture.kt`, `composeApp/…/feature/food/photo/FoodPhotoViewModel.kt`, `composeApp/…/feature/meals/defaults/MealDefaultsViewModel.kt`, `composeApp/…/feature/templates/{TemplateDetailsViewModel,SaveTemplateViewModel}.kt`, `composeApp/…/feature/food/FoodSearchScreen.kt`; part B: `shared/…/domain/model/StrengthProgress.kt` (`ProgressRange`), `shared/…/domain/usecase/{BuildExerciseProgress,ExerciseChartMetric}.kt`, `composeApp/…/feature/analytics/{ExerciseProgressViewModel,ExerciseProgressScreen,StrengthFormat}.kt`, `composeApp/…/feature/analytics/StrengthScreen.kt` (if it lists ranges), DI module, strings, `planning/03-data-model.md` §6; tests
