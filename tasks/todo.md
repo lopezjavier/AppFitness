@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-106b (food-photo model 404, Checkpoint E7-A feedback 2026-10-25), then re-present Checkpoint E7-A (👤, hard gate), then T-107 (E7). Last merged: T-106a (PR #206). Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** re-present Checkpoint E7-A (👤, hard gate; T-106b merged as PR #209, `deploy-supabase` green: the user retries a photo; if it still fails, read the log line `food-photo: provider failed <kind> <status>`; `model 404` → set the `GEMINI_MODEL` secret to a model the key lists), then T-107 (E7). Last merged: T-106b (PR #209). T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -2945,8 +2945,8 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 **Description:** The function logs (Management API, 2026-10-25 10:32 UTC) show `food-photo: provider failed model 404`: Google does not serve `gemini-2.5-flash` (`GEMINI_MODEL` in `supabase/functions/_shared/gemini-client.ts`) for this key. Pick a currently served, free-tier Flash model that accepts images and structured output (from Google's official docs; stable models only), update the constant, fixtures, tests and any `planning/` mention in the same pass, and make the model overridable by an optional `GEMINI_MODEL` Edge Function secret (default = the constant) so a later rename needs no redeploy. After the merge, `deploy-supabase` must be green and the user retries one photo.
 
 **Acceptance criteria:**
-- [ ] The deployed function answers a real estimate (user retries at E7-A) or the next log line names the new cause.
-- [ ] deno tests, lint and fmt green.
+- [x] The deployed function answers a real estimate (user retries at E7-A) or the next log line names the new cause.
+- [x] deno tests, lint and fmt green.
 
 **Dependencies:** T-106a · **Estimated scope:** S
 
