@@ -3007,6 +3007,16 @@ Journey: add a new food without typing (from a photo of a dish, a label or a bar
 
 ---
 
+## T-107b: Weight estimate from a photo for an existing food
+
+**Backlog (user request, 2026-10-25), next task after T-107; to be planned (story, Gherkin and ADR decided by the planner/user, not yet written).** In "Añadir comida", a photo icon next to the amount sends the photo and the existing food's details to Gemini and prefills the amount with the estimated weight only (no food is created, nothing is kept); the user can still edit it.
+
+**Also in T-107b (backend, cosmetic; user report, 2026-10-25):** after a dish estimate the sugar field showed empty although the real value is 0. Keep two cases apart: the AI says the nutrient is 0 (the draft must carry `0`) and the AI does not know it (stays `null`/empty, which should be rare for a dish). `normalizeDraft` already keeps a `0` it receives, so first find where the value is lost (Gemini returns `null`/omits it because the schema is nullable, or the app drops it) and fix it there, e.g. with the prompt and schema. The E7 label scenario ("the rest stays empty") must keep working for label and barcode modes.
+
+**Dependencies:** T-107
+
+---
+
 ## T-108: Cooking selector, "Cocina" and cooking in comidas
 
 **Story:** US-50 (UI; ADR-60) · **Flow:** UI · **Scenarios:** Default is raw; Pan-seared impact; Air fryer impact; Fried impact; Save; Cooking in a saved comida; Saving a meal with cooking; Drinks are not cooked; Changing the preferences; Invalid amount
