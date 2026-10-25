@@ -307,6 +307,27 @@ Deno.test("missing key gives 503 NOT_CONFIGURED without calling the provider", a
     assertEquals(sent.length, 0);
 });
 
+Deno.test("provider 403 gives 503 NOT_CONFIGURED and 404 gives 502, logging kind and status only", async () => {
+    const logged: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => logged.push(args.join(" "));
+    try {
+        const forbidden = await setup({ status: 403, body: "SECRET-BODY" })
+            .call(dish());
+        assertEquals(forbidden.status, 503);
+        assertEquals((await errorOf(forbidden)).code, "NOT_CONFIGURED");
+        const missing = await setup({ status: 404, body: "SECRET-BODY" })
+            .call(dish());
+        assertEquals(missing.status, 502);
+    } finally {
+        console.error = original;
+    }
+    assertEquals(logged, [
+        "food-photo: provider failed auth 403",
+        "food-photo: provider failed model 404",
+    ]);
+});
+
 Deno.test("unexpected failures give 500 INTERNAL", async () => {
     const handler = createFoodPhotoHandler({
         authenticate: () => Promise.reject(new Error("db down")),

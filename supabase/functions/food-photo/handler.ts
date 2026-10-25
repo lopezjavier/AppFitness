@@ -110,13 +110,18 @@ export function createFoodPhotoHandler(
             return jsonResponse(200, { draft });
         } catch (err) {
             if (err instanceof GeminiError) {
-                console.error("food-photo: provider failed", err.kind);
+                console.error(
+                    "food-photo: provider failed",
+                    err.kind,
+                    err.status ?? "no-status",
+                );
                 switch (err.kind) {
                     case "quota":
                         return errorResponse(
                             "QUOTA_EXCEEDED",
                             "The AI service quota is exhausted, try again later",
                         );
+                    case "auth":
                     case "missing_key":
                         return errorResponse(
                             "NOT_CONFIGURED",

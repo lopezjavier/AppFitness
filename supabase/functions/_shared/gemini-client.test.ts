@@ -128,7 +128,7 @@ Deno.test("provider 429 is quota", async () => {
 });
 
 Deno.test("provider 5xx, other statuses and network errors are provider", async () => {
-    for (const status of [500, 503, 400, 403]) {
+    for (const status of [500, 503, 400]) {
         assertEquals(
             await kindOf(generateFoodJson(
                 {
@@ -147,6 +147,30 @@ Deno.test("provider 5xx, other statuses and network errors are provider", async 
         )),
         "provider",
     );
+});
+
+Deno.test("provider statuses are carried: 401/403 auth, 404 model, others provider", async () => {
+    const expected: [number, GeminiErrorKind][] = [
+        [401, "auth"],
+        [403, "auth"],
+        [404, "model"],
+        [400, "provider"],
+        [500, "provider"],
+    ];
+    for (const [status, kind] of expected) {
+        const err = await assertRejects(
+            () =>
+                generateFoodJson(
+                    {
+                        fetch: fakeFetch(status, fixtureText("provider-500")),
+                        apiKey: KEY,
+                    },
+                    { mode: "dish", imageBase64: "AAAA" },
+                ),
+            GeminiError,
+        ) as GeminiError;
+        assertEquals([err.kind, err.status], [kind, status]);
+    }
 });
 
 Deno.test("malformed model output and bodies are provider", async () => {
