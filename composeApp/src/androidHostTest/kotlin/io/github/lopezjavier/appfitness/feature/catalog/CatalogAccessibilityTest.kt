@@ -53,7 +53,7 @@ private val ExpectedSections =
         "rest_timer",
         "wheel_picker",
         "selectable_card", "exercise_media", "reorderable",
-        "state_messages", "offline_banner",
+        "state_messages", "offline_banner", "action_row",
         "favourite_toggle", "portion_selector", "month_calendar", "diary_history_row", "muscle_split_bar",
         "circumference_row", "goal_metrics",
         "top_bar",

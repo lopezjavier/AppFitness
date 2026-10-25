@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewMode
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
@@ -179,6 +180,15 @@ val uiModule =
                 savedState = get(),
             )
         }
+        // Scoped to the FoodSearchRoute back-stack entry by FoodSearchRoot.
+        viewModel {
+            FoodPhotoViewModel(
+                photoRepository = get(),
+                photoCapture = get(),
+                connectivity = get(),
+                savedState = get(),
+            )
+        }
         // The saved meal's day travels as an ISO yyyy-MM-dd string, like the edit sheet.
         viewModel { (slotId: String, date: String) ->
             SaveTemplateViewModel(
@@ -241,7 +251,8 @@ val uiModule =
             )
         }
         // Blank barcode / name mean "not prefilled" (Koin parameters cannot be null).
-        viewModel { (barcode: String, name: String, editFoodId: String) ->
+        viewModel { params ->
+            val (barcode: String, name: String, editFoodId: String) = params
             CreateFoodViewModel(
                 barcode = barcode.ifBlank { null },
                 name = name.ifBlank { null },
@@ -249,6 +260,7 @@ val uiModule =
                 connectivity = get(),
                 savedState = get(),
                 editFoodId = editFoodId.ifBlank { null },
+                prefill = params.get<String>(3).ifBlank { null },
             )
         }
         viewModelOf(::OnboardingViewModel)

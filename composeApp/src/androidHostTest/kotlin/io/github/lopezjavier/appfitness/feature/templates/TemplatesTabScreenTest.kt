@@ -30,6 +30,8 @@ import io.github.lopezjavier.appfitness.feature.food.FoodSearchScreen
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.food.food
 import io.github.lopezjavier.appfitness.feature.food.foodSearchModel
+import io.github.lopezjavier.appfitness.feature.food.photo.FakePhotoCapture
+import io.github.lopezjavier.appfitness.feature.food.photo.foodPhotoModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -130,9 +132,11 @@ class TemplatesTabScreenTest {
                 slotId = "lunch",
                 date = "2026-10-19",
                 onOpenFood = {},
-                onCreateFood = { _, _ -> },
+                onCreateFood = { _, _, _ -> },
                 onOpenTemplate = onOpenTemplate,
                 viewModel = model,
+                photoViewModel = foodPhotoModel(connectivity = connectivity),
+                photoCapture = FakePhotoCapture(),
             )
         }
     }

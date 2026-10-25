@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -77,7 +78,7 @@ object AppTextFieldDefaults {
  * [label] is drawn above the field and spoken as its content description; [placeholder] is ghost text, not spoken.
  * While [errorText] is not null the border turns to the error colour and the text shows below as a polite live
  * region (tagged `<testTagPrefix>_error`, or [errorTestTag] when given). "Hecho" on the keyboard clears the focus and
- * hides the keyboard, then calls [onDone].
+ * hides the keyboard, then calls [onDone]. [stateDescription] is spoken after the label (e.g. a counter "n de 200").
  *
  * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`), as for [NumberInput].
  */
@@ -94,6 +95,7 @@ fun AppTextField(
     onDone: () -> Unit = {},
     testTagPrefix: String? = null,
     errorTestTag: String? = null,
+    stateDescription: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -128,7 +130,10 @@ fun AppTextField(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = label }
+                .semantics {
+                    contentDescription = label
+                    stateDescription?.let { this.stateDescription = it }
+                }
                 .let { if (testTagPrefix != null) it.testTag(testTagPrefix) else it },
             enabled = enabled,
             textStyle = textStyle,

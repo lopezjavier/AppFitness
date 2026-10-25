@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
@@ -41,6 +43,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remo
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_g
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_offline_state
 import io.github.lopezjavier.appfitness.composeapp.resources.food_scan_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_clear_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_label
@@ -52,6 +56,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -91,6 +96,7 @@ fun FoodSearchScreen(
     scanFailed: Boolean = false,
     templateManageFailed: Boolean = false,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    onPhotoClick: () -> Unit = {},
 ) {
     Box(modifier.fillMaxSize().testTag("food_search_screen"), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
@@ -98,7 +104,7 @@ fun FoodSearchScreen(
                 Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
-                SearchField(state, onEvent)
+                SearchField(state, onEvent, onPhotoClick)
                 if (scanFailed) ScanError()
                 state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
                 if (state.query.isBlank()) Tabs(state, onEvent)
@@ -121,21 +127,32 @@ fun FoodSearchScreen(
 
 /** Search box with a clear button, the scan and the create buttons; all are disabled offline (they need the server). */
 @Composable
-private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
+private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onPhotoClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.Bottom,
     ) {
         SearchBox(state, onEvent, Modifier.weight(1f))
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_scan_cd),
-            icon = Res.drawable.ic_barcode_scanner,
-            testTag = "food_search_scan_button",
-            onClick = { onEvent(FoodSearchEvent.ScanClicked) },
-            enabled = !state.isOffline,
-            modifier = Modifier.padding(bottom = Spacing.xs),
-        )
+        // The photo button sits directly below the scanner button.
+        Column(Modifier.padding(bottom = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.food_scan_cd),
+                icon = Res.drawable.ic_barcode_scanner,
+                testTag = "food_search_scan_button",
+                onClick = { onEvent(FoodSearchEvent.ScanClicked) },
+                enabled = !state.isOffline,
+            )
+            val offlineState = stringResource(Res.string.food_photo_offline_state)
+            AppIconButton(
+                contentDescription = stringResource(Res.string.food_photo_cd),
+                icon = Res.drawable.ic_photo_camera,
+                testTag = "food_search_photo_button",
+                onClick = onPhotoClick,
+                enabled = !state.isOffline,
+                modifier = if (state.isOffline) Modifier.semantics { stateDescription = offlineState } else Modifier,
+            )
+        }
         AppIconButton(
             contentDescription = stringResource(Res.string.food_create_cd),
             icon = Res.drawable.ic_add,

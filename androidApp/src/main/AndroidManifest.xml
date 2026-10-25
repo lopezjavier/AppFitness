@@ -39,6 +39,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Camera output for the food-photo flow (T-106): TakePicture writes here; no CAMERA permission is declared. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.photos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Health Connect permission rationale (Android 13 and below). -->
         <activity
             android:name=".HealthPrivacyActivity"

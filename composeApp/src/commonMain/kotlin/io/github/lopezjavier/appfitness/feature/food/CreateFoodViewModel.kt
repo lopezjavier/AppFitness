@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewFoodValidation
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+private const val KEY_AI_NOTE = "create_food_ai_note"
 private const val KEY_STARTED = "create_food_started"
 private const val KEY_BARCODE = "create_food_barcode"
 private const val KEY_UNIT = "create_food_unit"
@@ -56,8 +58,10 @@ class CreateFoodViewModel(
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val editFoodId: String? = null,
+    prefill: String? = null,
 ) : ViewModel() {
-    private val draft = MutableStateFlow(restoreOrPrefill(barcode, name))
+    private val draft = MutableStateFlow(restoreOrPrefill(barcode, name, prefill))
+    private val aiNote = MutableStateFlow(savedState.get<Boolean>(KEY_AI_NOTE) == true)
     private val online = MutableStateFlow(true)
     private val saving = MutableStateFlow(false)
     private val saveFailed = MutableStateFlow(false)
@@ -83,6 +87,7 @@ class CreateFoodViewModel(
             .combine(sections) { state, expanded -> state.copy(expandedSections = expanded) }
             .combine(unitLocked) { state, locked -> state.copy(unitLocked = locked) }
             .combine(unitRefused) { state, refused -> state.copy(unitRefused = refused) }
+            .combine(aiNote) { state, note -> state.copy(aiEstimateNote = note) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -90,6 +95,7 @@ class CreateFoodViewModel(
                     expandedSections = sections.value,
                     unitLocked = unitLocked.value,
                     unitRefused = unitRefused.value,
+                    aiEstimateNote = aiNote.value,
                 ),
             )
 
@@ -185,7 +191,13 @@ class CreateFoodViewModel(
         val updated = change(draft.value)
         draft.value = updated
         saveFailed.value = false
+        clearAiNote()
         persist(updated)
+    }
+
+    private fun clearAiNote() {
+        aiNote.value = false
+        savedState[KEY_AI_NOTE] = false
     }
 
     private fun updateRow(index: Int, change: (PortionRow) -> PortionRow) = update { current ->
@@ -228,25 +240,27 @@ class CreateFoodViewModel(
         savedState[KEY_UNIT_REFUSED] = true
     }
 
-    private fun restoreOrPrefill(barcode: String?, name: String?): FormDraft {
-        if (savedState.get<Boolean>(KEY_STARTED) == true) {
-            return FormDraft(
-                fields = CreateFoodField.entries.associateWith {
-                    savedState.get<String>(KEY_FIELD_PREFIX + it.name).orEmpty()
-                },
-                nutrients = MicronutrientKind.editableKinds.associateWith {
-                    savedState.get<String>(KEY_FIELD_PREFIX + it.name).orEmpty()
-                },
-                baseUnit = savedState.get<String>(KEY_UNIT) ?: "g",
-                barcode = savedState.get<String>(KEY_BARCODE),
-                portions = savedState.get<List<String>>(KEY_PORTIONS).orEmpty().map(::decodeRow),
-                touched = savedState.get<List<String>>(KEY_TOUCHED).orEmpty().toSet(),
-            )
-        }
-        val blank = FormDraft.blank(name, barcode)
+    private fun restoreOrPrefill(barcode: String?, name: String?, prefill: String?): FormDraft {
+        if (savedState.get<Boolean>(KEY_STARTED) == true) return restore()
+        val photoDraft = if (editFoodId == null) NewFoodDraftCodec.decode(prefill) else null
+        val blank = photoDraft?.let(FormDraft::from) ?: FormDraft.blank(name, barcode)
+        if (photoDraft != null) savedState[KEY_AI_NOTE] = true
         // In edit mode the draft only starts once the stored food has been read.
         return if (editFoodId == null) blank.also(::persist) else blank
     }
+
+    private fun restore() = FormDraft(
+        fields = CreateFoodField.entries.associateWith {
+            savedState.get<String>(KEY_FIELD_PREFIX + it.name).orEmpty()
+        },
+        nutrients = MicronutrientKind.editableKinds.associateWith {
+            savedState.get<String>(KEY_FIELD_PREFIX + it.name).orEmpty()
+        },
+        baseUnit = savedState.get<String>(KEY_UNIT) ?: "g",
+        barcode = savedState.get<String>(KEY_BARCODE),
+        portions = savedState.get<List<String>>(KEY_PORTIONS).orEmpty().map(::decodeRow),
+        touched = savedState.get<List<String>>(KEY_TOUCHED).orEmpty().toSet(),
+    )
 
     private fun persist(value: FormDraft) {
         savedState[KEY_STARTED] = true

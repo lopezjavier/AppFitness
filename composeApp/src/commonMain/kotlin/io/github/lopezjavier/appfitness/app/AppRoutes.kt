@@ -130,7 +130,7 @@ data class FoodSearchRoute(val slotId: String? = null, val date: String, val pic
 
 /**
  * Create-food form (US-18), opened from the search with the scanned [barcode] and/or the typed [name]; [slotId] and
- * [date] are carried on to the add-food sheet of the new food.
+ * [date] are carried on to the add-food sheet of the new food. [prefill] is a JSON `NewFoodDraft` (AI photo estimate).
  */
 @Serializable
 data class CreateFoodRoute(
@@ -139,6 +139,7 @@ data class CreateFoodRoute(
     val slotId: String? = null,
     val date: String,
     val pick: Boolean = false,
+    val prefill: String? = null,
 ) : AppRoute
 
 /**

@@ -11,9 +11,11 @@ import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.platform.AndroidAlertSound
 import io.github.lopezjavier.appfitness.platform.AndroidConnectivityObserver
 import io.github.lopezjavier.appfitness.platform.AndroidHaptics
+import io.github.lopezjavier.appfitness.platform.AndroidPhotoCapture
 import io.github.lopezjavier.appfitness.platform.CurrentActivityHolder
 import io.github.lopezjavier.appfitness.platform.GoogleAuthCredentialProvider
 import io.github.lopezjavier.appfitness.platform.HealthConnectDataSource
@@ -43,5 +45,6 @@ val appModule =
         single<HealthDataSource> { HealthConnectDataSource(androidContext()) }
         single { CurrentActivityHolder() }
         single<BarcodeScanner> { MlKitBarcodeScanner(get()) }
+        single<PhotoCapture> { AndroidPhotoCapture(androidContext().cacheDir, get()) }
         single<AuthCredentialProvider> { GoogleAuthCredentialProvider(get(), get()) }
     }

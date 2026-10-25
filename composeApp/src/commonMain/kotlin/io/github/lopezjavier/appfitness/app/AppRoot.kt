@@ -89,11 +89,11 @@ fun AppRoot(
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick ->
             FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, searchModifier, pick)
         },
-        createFood = { formModifier, barcode, name, editFoodId, onSaved ->
+        createFood = { formModifier, barcode, name, prefill, editFoodId, onSaved ->
             if (editFoodId != null) {
                 EditFoodRoot(editFoodId, onSaved, formModifier)
             } else {
-                CreateFoodRoot(barcode, name, onSaved, formModifier)
+                CreateFoodRoot(barcode, name, onSaved, formModifier, prefill)
             }
         },
         addFood = { foodId, slotId, date, onAdded, onDismiss, onEdit, pick, onPick ->
