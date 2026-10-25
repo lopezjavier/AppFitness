@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepositor
 import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingStatsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
@@ -45,6 +46,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepos
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStatsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
@@ -65,6 +67,7 @@ import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -208,6 +211,14 @@ val sharedModule =
                 SupabaseStrengthRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredStrengthRepository()
+            }
+        }
+        single<TrainingStatsRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseTrainingStatsRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredTrainingStatsRepository()
             }
         }
         single<MealSlotRepository> {
