@@ -569,3 +569,14 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** FR-2.20; `03-data-model.md` §7; E7 US-54 and US-48 notes; `tasks/todo.md` T-107b.
 - **Approval:** 2026-10-25, user.
 - **Approval:** 2026-10-25, user (Checkpoint E7-A, Q1/Q2 answered).
+
+### ADR-65 · Cooking adds fat as a percentage of the raw weight (E7, US-50)
+- **Context:** Checkpoint E7-B feedback (2026-10-25). ADR-60 asks for grams of oil per method, which does not scale with the amount of food. For 300 g of potato, frying needs ~300 ml of oil, but the default of 50 g gave the wrong result.
+- **Decision:**
+  - The fat added by a cooking method is `raw weight (g) × factor`. The entry adds that many grams of fat and 9 kcal per gram of it. Protein, carbohydrates and micronutrients do not change.
+  - Defaults are A la plancha 1 %, Air fryer 2 % and Frito 8 %, each editable in Preferencias → "Cocina" (0–20 %).
+  - The retention factors of ADR-60 (50 / 100 / 10 %) are removed; the columns `olive_oil_*_g` become percentage columns.
+  - Everything else from ADR-60 stays: the methods, solid foods only, Crudo as default, a method stored per comida item, snapshots in the entry.
+  - Existing entries and Preferencias are not recalculated; only entries logged from now on use the new rule.
+- **Consequences:** amends ADR-60. Affects `03-data-model.md` (`food_preferences`, `cooking_impact`, `apply_meal_defaults`), `04-business-rules.md` §2.2, `05-design-system.md` (Cocina fields, impact line) and E7 US-50; the docs are updated in T-112's PR.
+- **Approval:** 2026-10-25, user (Checkpoint E7-B feedback).

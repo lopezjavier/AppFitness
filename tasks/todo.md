@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** Checkpoint E7-B 👤 (hard gate: user feedback or approval; then T-111, E7 closure). Last merged: T-110 (PR #220; "Comidas por defecto" screen, `WeekdaySelector`, Diary applies the defaults for today; first CI run red on `AppModuleTest` extraTypes, fixed). Non-blocking T-110 review suggestion: draft rows whose comida no longer exists are hidden by `mapNotNull` in `MealDefaultsViewModel.content()` but stay in the draft and the dirty check (verify the server cascade or filter at load). Before it: T-109 (PR #218; T-109 (PR #218; default comidas backend + domain; `apply_meal_defaults` refuses dates outside UTC today ±1 day; `deploy-supabase` green; non-blocking suggestion: set-based validation in `save_meal_defaults`). Before it: T-108 (PR #216; cooking selector, "Cocina" and cooking in comidas; review suggestions, non-blocking: a large-font test for the details chip row, a discard test for `SaveTemplateSheet`, `SaveTemplateViewModel.buildState` Pair → small state holder). Before it: T-107b (PR #214; weight estimate from a photo, dish null → 0). Non-blocking T-107b review suggestions: reuse an existing generic cancel string instead of `add_food_photo_cancel` if one exists. T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-112 (fix: cooking adds fat as a % of the raw weight, ADR-65). Checkpoint E7-B approved by the user on 2026-10-25 with that single fix; then T-111 (E7 closure). Last merged: T-110 (PR #220). Non-blocking T-110 review suggestion: draft rows whose comida no longer exists are hidden by `mapNotNull` in `MealDefaultsViewModel.content()` but stay in the draft and the dirty check (verify the server cascade or filter at load). Before it: T-109 (PR #218; T-109 (PR #218; default comidas backend + domain; `apply_meal_defaults` refuses dates outside UTC today ±1 day; `deploy-supabase` green; non-blocking suggestion: set-based validation in `save_meal_defaults`). Before it: T-108 (PR #216; cooking selector, "Cocina" and cooking in comidas; review suggestions, non-blocking: a large-font test for the details chip row, a discard test for `SaveTemplateSheet`, `SaveTemplateViewModel.buildState` Pair → small state holder). Before it: T-107b (PR #214; weight estimate from a photo, dish null → 0). Non-blocking T-107b review suggestions: reuse an existing generic cancel string instead of `add_food_photo_cancel` if one exists. T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3086,7 +3086,7 @@ Journey: add a new food without typing (from a photo of a dish, a label or a bar
 **Files likely touched:** `composeApp/…/designsystem/WeekdaySelector.kt`, catalog, new `composeApp/…/feature/meals/defaults/{MealDefaultsScreen,MealDefaultsViewModel,MealDefaultsUiState,MealDefaultsRoot,AssignDefaultSheet,DefaultComidaPickerSheet}.kt`, `composeApp/…/feature/meals/{MealSlotsScreen,MealSlotsEditorViewModel}.kt`, `composeApp/…/feature/diary/{DiaryViewModel,DiaryUiState,DiaryScreen}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
 **Estimated scope:** L (the planner may slice it: editor, then the Diary apply)
 
-### Checkpoint E7-B — Cook and plan your meals 👤 (6 items + leave and come back) *(agreed)*
+### Checkpoint E7-B — Cook and plan your meals 👤 **approved 2026-10-25** (6 items + leave and come back; one fix: T-112) *(agreed)*
 Journey: log what you cook with its oil, and let your usual comidas fill a new day. Why here: cooking alone gives 3 items (below the minimum) and the defaults copy the cooking methods, so both form one journey. The new-day item needs the next morning: configure the defaults, then open the Diary the following day.
 - [ ] T-107…T-110 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
@@ -3105,6 +3105,22 @@ Journey: log what you cook with its oil, and let your usual comidas fill a new d
 
 ---
 
+## T-112: fix — cooking adds fat as a percentage of the raw weight
+
+**Story:** US-50 (ADR-65) · **Flow:** backend + UI · **Origin:** Checkpoint E7-B feedback (2026-10-25)
+
+**Description:** Replace "grams of oil per method" with "added fat as a % of the raw weight": migration for the percentage columns of `food_preferences` (defaults 1 / 2 / 8 %, check 0–20) and `cooking_impact`; `apply_meal_defaults`, the add-to-meal impact line, comidas and defaults use the new rule; Preferencias → "Cocina" fields become percentages; update `03-data-model.md`, `04-business-rules.md` §2.2, `05-design-system.md` and E7 US-50. Existing entries keep their snapshots.
+
+**Acceptance criteria:**
+- [ ] 300 g with Frito shows +24 g fat and +216 kcal; Air fryer +6 g and +54 kcal; A la plancha +3 g and +27 kcal.
+- [ ] The three percentages are editable in "Cocina"; a value below 0 or above 20 disables "Guardar".
+- [ ] Comidas and defaults compute the cooking with the new rule; earlier entries are unchanged.
+- [ ] pgTAP, domain, host tests and CI green.
+
+**Dependencies:** T-110 · **Estimated scope:** M
+
+---
+
 ## T-111: E7 closure
 
 **Story:** E7 Definition of Done · **Flow:** PM
@@ -3112,7 +3128,7 @@ Journey: log what you cook with its oil, and let your usual comidas fill a new d
 **Description:** Closes E7 once Checkpoint E7-B is approved: tag `v0.7.0` and the retrospective. No 👤 checkpoint here.
 
 **Acceptance criteria:**
-- [ ] T-104…T-110 (and any fix tasks) merged with green CI; pgTAP green for the unit change, `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency; `deno test` green for `food-photo` with recorded fixtures; `deploy-supabase` green after the last migration.
+- [ ] T-104…T-112 (and any fix tasks) merged with green CI; pgTAP green for the unit change, `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency; `deno test` green for `food-photo` with recorded fixtures; `deploy-supabase` green after the last migration.
 - [ ] Domain tests for the cooking calculations and the weekday/selection helpers; host tests for every E7 Gherkin scenario (epic DoD).
 - [ ] No food photo, comment or provider response is stored or logged; `GEMINI_API_KEY` exists only in Supabase secrets (epic DoD).
 - [ ] Checkpoints E7-A and E7-B approved; every bug the user reported fixed; look-and-feel feedback appended to the E8 UI-refinement backlog.
@@ -3121,7 +3137,7 @@ Journey: log what you cook with its oil, and let your usual comidas fill a new d
 **Verification:**
 - [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.7.0` after approval.
 
-**Dependencies:** T-110 (and Checkpoints E7-A and E7-B approved)
+**Dependencies:** T-112 (and Checkpoints E7-A and E7-B approved)
 **Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E7.md`
 **Estimated scope:** S
 
