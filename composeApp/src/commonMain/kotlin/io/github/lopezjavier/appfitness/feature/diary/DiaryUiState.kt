@@ -50,6 +50,8 @@ data class DiaryContent(
     val dayTotals: MealTotals,
     val collapsedSlotIds: Set<String>,
     val isOffline: Boolean = false,
+    /** Applying today's default comidas failed; the Diary still shows, with a retry ([DiaryEvent.RetryDefaults]). */
+    val defaultsFailed: Boolean = false,
 )
 
 sealed interface DiaryEvent {
@@ -60,6 +62,9 @@ sealed interface DiaryEvent {
     data class ToggleSection(val slotId: String) : DiaryEvent
 
     data object Retry : DiaryEvent
+
+    /** Try again to add today's default comidas, then reload the day. */
+    data object RetryDefaults : DiaryEvent
 
     /** Silent reload (no loading state), sent when the tab resumes so goals edited elsewhere show up. */
     data object Refresh : DiaryEvent

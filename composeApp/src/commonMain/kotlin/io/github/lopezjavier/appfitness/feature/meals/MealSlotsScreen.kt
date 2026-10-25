@@ -23,6 +23,8 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_add
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_confirm
@@ -59,7 +61,12 @@ private val SkeletonRowHeight = Spacing.xl * 5
  * (`meals_back`, `meals_title`).
  */
 @Composable
-fun MealSlotsScreen(state: MealSlotsUiState, onEvent: (MealSlotsEvent) -> Unit, modifier: Modifier = Modifier) {
+fun MealSlotsScreen(
+    state: MealSlotsUiState,
+    onEvent: (MealSlotsEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenDefaults: () -> Unit = {},
+) {
     NavigationBackHandler(
         state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
         isBackEnabled = true,
@@ -72,7 +79,7 @@ fun MealSlotsScreen(state: MealSlotsUiState, onEvent: (MealSlotsEvent) -> Unit, 
                 when (state) {
                     MealSlotsUiState.Loading -> MealsLoading()
                     MealSlotsUiState.LoadError -> MealsLoadError { onEvent(MealSlotsEvent.Retry) }
-                    is MealSlotsUiState.Editing -> MealsForm(state, onEvent)
+                    is MealSlotsUiState.Editing -> MealsForm(state, onEvent, onOpenDefaults)
                 }
             }
             if (state is MealSlotsUiState.Editing) MealsFooter(state, onEvent)
@@ -92,7 +99,7 @@ fun MealSlotsScreen(state: MealSlotsUiState, onEvent: (MealSlotsEvent) -> Unit, 
 }
 
 @Composable
-private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit) {
+private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit, onOpenDefaults: () -> Unit) {
     val context = MealRowContext(interactive = !state.isSaving)
     Column(
         Modifier
@@ -115,6 +122,28 @@ private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent)
             enabled = context.interactive && state.isOnline,
             modifier = Modifier.fillMaxWidth().testTag("meals_add"),
         )
+        DefaultsEntry(enabled = !state.isDirty, onOpenDefaults)
+    }
+}
+
+/** "Comidas por defecto": disabled while the meals have unsaved changes, and it says why. */
+@Composable
+private fun DefaultsEntry(enabled: Boolean, onOpen: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SecondaryButton(
+            text = stringResource(Res.string.meal_defaults_open),
+            onClick = onOpen,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth().testTag("meal_slots_defaults_button"),
+        )
+        if (!enabled) {
+            Text(
+                text = stringResource(Res.string.meal_defaults_open_hint),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("meal_slots_defaults_hint"),
+            )
+        }
     }
 }
 

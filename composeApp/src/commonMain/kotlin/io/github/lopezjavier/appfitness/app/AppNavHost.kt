@@ -147,7 +147,11 @@ internal typealias SaveTemplateSlot =
     ) -> Unit
 
 /** Meals editor content: modifier (full-screen insets) and how to leave. */
-internal typealias MealSlotsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
+internal typealias MealSlotsSlot =
+    @Composable (modifier: Modifier, onClose: () -> Unit, onOpenDefaults: () -> Unit) -> Unit
+
+/** Default comidas editor content (US-51): modifier (full-screen insets) and how to leave. */
+internal typealias MealDefaultsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
 /**
  * Create-food form content: modifier, the prefilled barcode, name and AI `prefill` (JSON), and [onSaved] with the
@@ -358,8 +362,13 @@ internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _, _ -
 }
 
 /** Empty meals editor for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _ ->
+internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("meals_screen"))
+}
+
+/** Empty default comidas editor for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultMealDefaultsSlot: MealDefaultsSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("meal_defaults_screen"))
 }
 
 /** Empty comida editor for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -450,6 +459,7 @@ internal fun AppNavHost(
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     templateDetails: TemplateDetailsSlot = DefaultTemplateDetailsSlot,
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
+    mealDefaults: MealDefaultsSlot = DefaultMealDefaultsSlot,
     history: HistorySlot = DefaultHistorySlot,
     calendar: CalendarSlot = DefaultCalendarSlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
@@ -475,6 +485,7 @@ internal fun AppNavHost(
     val openDiaryHistory = remember(navController) { { navController.navigateToFullScreen(DiaryHistoryRoute) } }
     val openWeight = remember(navController) { { navController.navigateToFullScreen(WeightRoute) } }
     val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
+    val openMealDefaults = remember(navController) { { navController.navigateToFullScreen(MealDefaultsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
@@ -598,7 +609,10 @@ internal fun AppNavHost(
             templateDetails,
         )
         composable<MealSlotsRoute> {
-            mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
+            mealSlots(Modifier.padding(fullScreenPadding), { navController.popBackStack() }, openMealDefaults)
+        }
+        composable<MealDefaultsRoute> {
+            mealDefaults(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
         historyDestinations(navController, fullScreenPadding, history, calendar, sessionDetail, openProgress)
         workoutFormDestinations(navController, fullScreenPadding, editWorkout, pastWorkout)

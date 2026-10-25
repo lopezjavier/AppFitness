@@ -14,11 +14,13 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
@@ -42,6 +44,8 @@ class DiaryRestorationTest {
         )
     }
 
+    private val defaults = FakeMealDefaultsRepository()
+
     private fun viewModel(state: SavedStateHandle) = DiaryViewModel(
         FakeMealSlotRepository(),
         diary,
@@ -49,6 +53,7 @@ class DiaryRestorationTest {
         BuildDiaryDay(),
         MutableClock(),
         FakeConnectivityObserver(),
+        defaults,
         state,
     )
 
@@ -98,6 +103,23 @@ class DiaryRestorationTest {
         rule.onNodeWithTag("diary_section_lunch_toggle").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("diary_entry_y").assertExists()
+    }
+
+    @Test
+    fun afterAFailedDefaultsApply_recreationStillLoadsTheDiaryAndRetryClearsTheMessage() {
+        defaults.applyFailure = AppError.Unknown
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_defaults_message").assertExists()
+
+        defaults.applyFailure = null
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_date_label").assertTextEquals("Hoy")
+        rule.onNodeWithTag("diary_defaults_message").assertDoesNotExist()
     }
 
     @Test

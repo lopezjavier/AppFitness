@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -72,6 +73,7 @@ class DiaryEditFlowTest {
             BuildDiaryDay(),
             MutableClock(),
             connectivity,
+            FakeMealDefaultsRepository(),
             SavedStateHandle(),
         )
         rule.setContent { Host(diaryModel) }

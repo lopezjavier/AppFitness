@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_title
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
@@ -179,6 +180,10 @@ data class TemplateDetailsRoute(val templateId: String, val slotId: String? = nu
 @Serializable
 data object MealSlotsRoute : AppRoute
 
+/** The default comidas editor (US-51), opened from the meals editor. */
+@Serializable
+data object MealDefaultsRoute : AppRoute
+
 /** The diary history (US-24): a month calendar with daily and period summaries, opened from Perfil > Estadísticas. */
 @Serializable
 data object DiaryHistoryRoute : AppRoute
@@ -312,6 +317,9 @@ val AppRoute.chrome: ShellChrome
 
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
+            MealDefaultsRoute ->
+                ShellChrome.FullScreen(Res.string.meal_defaults_title, topBarTag = "meal_defaults")
+
             DiaryHistoryRoute ->
                 ShellChrome.FullScreen(Res.string.diary_history_title, topBarTag = "diary_history")
 
@@ -352,6 +360,7 @@ object AppDestinations {
             EditFoodRoute("", null, ""),
             TemplateDetailsRoute("", null, ""),
             MealSlotsRoute,
+            MealDefaultsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),
             WeightRoute,

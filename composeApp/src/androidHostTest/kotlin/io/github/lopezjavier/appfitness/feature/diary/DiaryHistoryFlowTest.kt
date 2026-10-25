@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
@@ -73,6 +74,7 @@ class DiaryHistoryFlowTest {
                         BuildDiaryDay(),
                         clock,
                         FakeConnectivityObserver(),
+                        FakeMealDefaultsRepository(),
                         createSavedStateHandle(),
                     )
                 }

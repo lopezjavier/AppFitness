@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
@@ -48,6 +49,7 @@ class DiaryViewModelTest {
     private val goals = FakeNutritionGoalsRepository(
         NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25)),
     )
+    private val defaults = FakeMealDefaultsRepository()
     private val savedState = SavedStateHandle()
 
     @BeforeTest
@@ -59,7 +61,7 @@ class DiaryViewModelTest {
     private val connectivity = FakeConnectivityObserver()
 
     private fun viewModel(state: SavedStateHandle = savedState) =
-        DiaryViewModel(slots, diary, goals, BuildDiaryDay(), MutableClock(), connectivity, state)
+        DiaryViewModel(slots, diary, goals, BuildDiaryDay(), MutableClock(), connectivity, defaults, state)
 
     private fun DiaryViewModel.content() = assertIs<DiaryUiState.Content>(uiState.value).content
 
@@ -532,5 +534,145 @@ class DiaryViewModelTest {
             listOf("Desayuno", "Cena", "Post-entreno"),
             model.content().meals.map { it.slot.label },
         )
+    }
+
+    @Test
+    fun opening_today_appliesTheDefaultsBeforeRefreshingTheDay() = runTest(dispatcher) {
+        val calls = mutableListOf<String>()
+        defaults.onApply = { calls += "apply $it" }
+        diary.gate = null
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(today), defaults.appliedDates)
+        assertEquals(listOf("apply $today"), calls)
+        assertEquals(listOf(today), diary.refreshed)
+        assertFalse(model.content().defaultsFailed)
+    }
+
+    @Test
+    fun applyingTheDefaults_showsTheRowsTheServerAddedWithoutAManualRefresh() = runTest(dispatcher) {
+        defaults.onApply = { day -> diary.server[day] = listOf(entry("d", "breakfast", 300.0, date = day)) }
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf("d"), model.content().meals.flatMap { it.entries }.map { it.id })
+        assertEquals(300.0, model.content().dayTotals.kcal)
+    }
+
+    @Test
+    fun openingAPastDay_doesNotApplyTheDefaults() = runTest(dispatcher) {
+        savedState["diary_date"] = yesterday.toString()
+        viewModel()
+        advanceUntilIdle()
+
+        assertTrue(defaults.appliedDates.isEmpty())
+    }
+
+    @Test
+    fun goingToThePreviousDay_doesNotApplyAgainOrForThatDay() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.PreviousDay)
+        advanceUntilIdle()
+
+        assertEquals(listOf(today), defaults.appliedDates)
+    }
+
+    @Test
+    fun comingBackToToday_appliesOnlyOncePerLoad() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.PreviousDay)
+        model.onEvent(DiaryEvent.NextDay)
+        model.onEvent(DiaryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(1, defaults.appliedDates.size)
+    }
+
+    @Test
+    fun reachingTodayLater_appliesOnceWhenTheLoadStartedOnAPastDay() = runTest(dispatcher) {
+        savedState["diary_date"] = yesterday.toString()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.NextDay)
+        advanceUntilIdle()
+        model.onEvent(DiaryEvent.PreviousDay)
+        model.onEvent(DiaryEvent.NextDay)
+        advanceUntilIdle()
+
+        assertEquals(listOf(today), defaults.appliedDates)
+    }
+
+    @Test
+    fun aFailedApply_flagsItButTheDiaryStillLoads() = runTest(dispatcher) {
+        defaults.applyFailure = AppError.Network
+        seedPlanExample()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertTrue(content.defaultsFailed)
+        assertEquals(1840.0, content.dayTotals.kcal)
+        assertEquals(listOf(today), diary.refreshed)
+    }
+
+    @Test
+    fun retryDefaults_appliesAgainAndClearsTheFlag() = runTest(dispatcher) {
+        defaults.applyFailure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+        defaults.applyFailure = null
+
+        model.onEvent(DiaryEvent.RetryDefaults)
+        advanceUntilIdle()
+
+        assertEquals(listOf(today), defaults.appliedDates)
+        assertFalse(model.content().defaultsFailed)
+        assertEquals(listOf(today, today), diary.refreshed)
+    }
+
+    @Test
+    fun retryDefaults_failingAgainKeepsTheFlag() = runTest(dispatcher) {
+        defaults.applyFailure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.RetryDefaults)
+        advanceUntilIdle()
+
+        assertTrue(model.content().defaultsFailed)
+    }
+
+    @Test
+    fun offline_skipsTheApplyAndRetriesOnRefresh() = runTest(dispatcher) {
+        connectivity.state.value = false
+        val model = viewModel()
+        advanceUntilIdle()
+        assertTrue(defaults.appliedDates.isEmpty())
+        assertFalse(model.content().defaultsFailed)
+
+        connectivity.state.value = true
+        model.onEvent(DiaryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(listOf(today), defaults.appliedDates)
+    }
+
+    @Test
+    fun deletingAnEntry_doesNotBringTheDefaultBackOnRefresh() = runTest(dispatcher) {
+        diary.server[today] = listOf(entry("a", "breakfast", 300.0))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.DeleteEntry("a"))
+        model.onEvent(DiaryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(1, defaults.appliedDates.size)
     }
 }

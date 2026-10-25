@@ -39,7 +39,7 @@ private val ExpectedTags =
         "catalog_error_state_action", "catalog_topbar_full_back",
         "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_sheet_open",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
-        "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
+        "weekday_selector_day_1", "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
     )
 
 private val ExpectedSections =
@@ -54,7 +54,8 @@ private val ExpectedSections =
         "wheel_picker",
         "selectable_card", "exercise_media", "reorderable",
         "state_messages", "offline_banner", "action_row",
-        "favourite_toggle", "portion_selector", "cooking_selector", "month_calendar", "diary_history_row",
+        "favourite_toggle", "portion_selector", "cooking_selector", "weekday_selector", "month_calendar",
+        "diary_history_row",
         "muscle_split_bar",
         "circumference_row", "goal_metrics",
         "top_bar",

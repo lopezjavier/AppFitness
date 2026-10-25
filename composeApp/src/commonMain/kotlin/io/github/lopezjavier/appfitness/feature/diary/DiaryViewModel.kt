@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
@@ -68,7 +69,7 @@ private class DayInputs(
  * (no undo). Writes need the server, so they are refused offline ([DiaryContent.isOffline]).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("LongParameterList") // One dependency per port.
+@Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one small function per concern.
 class DiaryViewModel(
     private val mealSlots: MealSlotRepository,
     private val foodDiary: FoodDiaryRepository,
@@ -76,6 +77,7 @@ class DiaryViewModel(
     private val buildDiaryDay: BuildDiaryDay,
     private val clock: Clock,
     private val connectivity: ConnectivityObserver,
+    private val defaults: MealDefaultsRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val date = MutableStateFlow(savedState.get<String>(KEY_DATE)?.let(LocalDate::parse) ?: clock.today())
@@ -87,6 +89,10 @@ class DiaryViewModel(
     private var setupJob: Job? = null
     private var dayJob: Job? = null
     private val online = MutableStateFlow(true)
+    private val defaultsFailed = MutableStateFlow(false)
+
+    /** True once today's defaults were applied in this ViewModel's life (the server is idempotent anyway). */
+    private var applyAttempted = false
 
     private val effectChannel = Channel<DiaryEffect>(Channel.BUFFERED)
     val effects: Flow<DiaryEffect> = effectChannel.receiveAsFlow()
@@ -97,7 +103,7 @@ class DiaryViewModel(
     }
 
     val uiState: StateFlow<DiaryUiState> = combine(setup, dayEntries, collapsed, entriesFailed, online, ::DayInputs)
-        .map(::buildState)
+        .combine(defaultsFailed, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiaryUiState.Loading)
 
     init {
@@ -117,6 +123,8 @@ class DiaryViewModel(
             is DiaryEvent.ToggleSection -> toggle(event.slotId)
 
             DiaryEvent.Retry -> retry()
+
+            DiaryEvent.RetryDefaults -> retryDefaults()
 
             DiaryEvent.Refresh -> {
                 loadSetup(silent = true)
@@ -160,6 +168,12 @@ class DiaryViewModel(
         }
     }
 
+    private fun retryDefaults() {
+        if (!defaultsFailed.value || date.value != clock.today()) return
+        applyAttempted = false
+        refreshDay(date.value)
+    }
+
     private fun loadSetup(silent: Boolean) {
         setupJob?.cancel()
         if (!silent) setup.value = Setup.Loading
@@ -181,14 +195,26 @@ class DiaryViewModel(
     private fun refreshDay(day: LocalDate) {
         dayJob?.cancel()
         dayJob = viewModelScope.launch {
+            if (day == clock.today() && !applyAttempted && online.value) applyDefaults(day)
             entriesFailed.value = foodDiary.refresh(day).isFailure
         }
     }
 
-    private fun buildState(inputs: DayInputs): DiaryUiState = when {
+    /** Fills [day] (today) with the weekday's defaults; runs before the refresh so the new rows are in it. */
+    private suspend fun applyDefaults(day: LocalDate) {
+        val applied = defaults.applyForDate(day).isSuccess
+        applyAttempted = applied
+        defaultsFailed.value = !applied
+    }
+
+    private fun buildState(inputs: DayInputs, defaultsFailed: Boolean): DiaryUiState = when {
         inputs.setup == Setup.Failed || (inputs.entriesFailed && inputs.loaded == null) -> DiaryUiState.Error
+
         inputs.setup !is Setup.Ready || inputs.loaded == null -> DiaryUiState.Loading
-        else -> DiaryUiState.Content(content(inputs.setup, inputs.loaded, inputs.collapsed, inputs.online))
+
+        else -> DiaryUiState.Content(
+            content(inputs.setup, inputs.loaded, inputs.collapsed, inputs.online, defaultsFailed),
+        )
     }
 
     private fun content(
@@ -196,6 +222,7 @@ class DiaryViewModel(
         loaded: DayEntries,
         collapsedIds: Set<String>,
         online: Boolean,
+        defaultsFailed: Boolean,
     ): DiaryContent {
         val day = buildDiaryDay(loaded.date, setup.slots, loaded.entries, setup.goals)
         val remaining = day.goals?.let { DiaryTotals.remainingKcal(it.targetKcal, day.totals.kcal) }
@@ -220,6 +247,7 @@ class DiaryViewModel(
             dayTotals = day.totals,
             collapsedSlotIds = collapsedIds,
             isOffline = !online,
+            defaultsFailed = defaultsFailed && loaded.date == today,
         )
     }
 }
