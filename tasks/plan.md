@@ -35,7 +35,7 @@ Checkpoint rule: every user-testable item of the epic is collected first, then g
 
 ### Phase 2: Cook and plan meals (cooking methods, default comidas)
 - [x] T-107: Cooking methods backend (US-50 backend) — backend — M
-- [ ] T-108: Cooking selector, "Cocina" and cooking in comidas (US-50 UI) — UI — L
+- [x] T-108: Cooking selector, "Cocina" and cooking in comidas (US-50 UI) — UI — L
 - [ ] T-109: Default comidas backend (US-51 backend) — backend — M
 - [ ] T-110: "Comidas por defecto" and a new day's Diary (US-51 UI) — UI — L
   - **Checkpoint E7-B 👤 Cook and plan your meals (6 items):** cooking in the add-to-meal sheet; "Cocina" amounts; cooking in comidas; the defaults editor; a new day starts with its defaults; changes and deletions after applying. Why here: it is the last implementation task, so it is also the final regression; cooking alone gives 3 items, below the minimum, and defaults copy the cooking methods, so both form one "plan what I eat" journey. The new-day item needs the next morning, so the user configures the defaults and checks the Diary the following day.
