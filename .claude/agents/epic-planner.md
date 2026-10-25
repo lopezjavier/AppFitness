@@ -17,7 +17,8 @@ The PM gives you an epic ID (`E#`).
 ## Sizing rules (why: every task pays a fixed cost of 6–7 agent hand-offs)
 - **One task per user story**, as a vertical slice: migration + RLS + pgTAP, repository, use case, ViewModel, screen, host tests.
 - Split a story only when it is clearly too large for one reviewable PR (roughly more than ~15 files, or heavy backend and heavy UI work that can be reviewed apart). Then split it into a backend task followed by a UI task, never into one task per component.
-- No component-only or "foundation" tasks: a design-system component or shared helper is built inside the first story that needs it.
+- A design-system component or shared helper is built inside the first story that needs it. The exception is an epic whose story is itself a set of templates and their migration (E9, US-56): there, foundation tasks are allowed, each ending with a sweep that migrates the ad-hoc copies it replaces.
+- For each UI task, name the templates and patterns it uses (screen, sheet archetype, rows, add/delete placement) and any existing screen it must migrate with it, so pattern problems are caught at breakdown.
 - Merge small related stories when together they still make one coherent PR.
 - Each task states its flow (UI / backend), Gherkin scenarios, acceptance criteria, the host tests that cover each scenario, dependencies and files likely touched.
 

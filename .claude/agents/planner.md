@@ -33,6 +33,8 @@ Overwrite it with this structure. Keep it under ~250 lines: no code listings, no
 - Domain/data (shared): models, use cases, repositories
 - UI (composeApp): screens, ViewModels, design system components (existing / new)
 - Platform (androidMain)
+- Design-system templates used (screen, sheet archetype, rows, add/delete placement, haptics, messages) and any new template
+- Sweep: the other instances of each pattern the task changes (found with Grep) and whether this task migrates them
 ## Contracts
 Tables/columns, RPC signatures, endpoints (request/response JSON), DTOs and domain models.
 ## Tests

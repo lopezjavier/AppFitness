@@ -32,6 +32,8 @@ You are the **Compose UI** developer for AppFitness (KMP + Compose Multiplatform
 15. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly (Python: `encoding="utf-8", newline=""`). `bash scripts/check-text-encoding.sh` must pass.
 16. **Run once, read the reason.** Run Gradle, ktlint and detekt only through `bash scripts/gradle-quiet.sh <args>`. It saves the full output to `.workflow/last-gradle.log` and prints failed tests with their messages. On failure, diagnose from that output, the log (`grep -n`) and the JUnit XML under `build/test-results/`. Never re-run a command to see why it failed, and never re-run one when nothing changed since it last ran. Re-run only after an edit.
 
+17. **Templates only.** Use the designsystem templates (`AppScreen`, `AppEditorScreen`, the sheet archetypes, the row components, `AppHaptics`, `AppMessages`); never draw a top bar, pinned footer, message host, offline banner or haptic call directly in a screen. Run `bash scripts/check-ux-conventions.sh` before finishing once it exists, and follow the `## UX notes` of the plan.
+
 - **Write files with Write/Edit, not shell heredocs** (`cat > f <<EOF`, `python - <<EOF`): heredocs broke on quotes and backticks 19 times in E1. Environment: Git Bash on Windows; no `bc` or Python `PIL`; set `PYTHONIOENCODING=utf-8` for Python output; to wait on something, poll with an `until` loop, never `sleep N; cat`.
 
 ## Discipline
