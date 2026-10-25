@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"name\":\"Tortilla de patatas\",\"brand\":null,\"base_unit\":\"g\",\"nutrition\":{\"kcal\":180,\"protein_g\":6,\"carbs_g\":15,\"fat_g\":10},\"micronutrients\":{\"saturated-fat_100g\":2.1,\"fiber_100g\":1.4,\"salt_100g\":0.6,\"vitamin-c_100g\":0.0021},\"estimated_grams\":250,\"confidence\":\"medium\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

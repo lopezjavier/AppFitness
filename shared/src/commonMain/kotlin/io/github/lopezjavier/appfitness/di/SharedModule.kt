@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementR
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPhotoRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
@@ -30,6 +31,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurem
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
@@ -47,6 +49,7 @@ import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementReposit
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -221,6 +224,14 @@ val sharedModule =
                 SupabaseFoodRepository(client.auth, client.postgrest, client.functions, get())
             } else {
                 UnconfiguredFoodRepository()
+            }
+        }
+        single<FoodPhotoRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseFoodPhotoRepository(client.auth, client.functions)
+            } else {
+                UnconfiguredFoodPhotoRepository()
             }
         }
         single<Clock> { SystemClock() }

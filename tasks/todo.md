@@ -2876,16 +2876,16 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 **Description:** New Supabase Edge Function `food-photo` (`verify_jwt = true`), `POST` JSON `{ image_base64, mode: "dish" | "label" | "barcode", comment? }`. Validation: known mode, base64 JPEG within the size cap (`413` above it), comment only for `dish`, ≤ 200 chars, passed to the model as data inside the fixed prompt, never as instructions (`400` otherwise). Three fixed prompts live in the function: a single dish (estimate per-100 values, an estimated weight and `1 ración`), a label (transcribe only the printed per-100 values, leave the rest empty, read name and brand), a barcode (identify the product and its per-100 values; never calls `food-barcode`, never saves the code). The Gemini vision model (free tier) is called with a fixed response schema; the function normalises it to the app draft: name, brand, base unit, kcal/protein/carbs/fat per 100, micronutrients keyed by the T-102 whitelist (unknown keys dropped), optional grams and confidence; negatives rejected or clamped to 0; no kcal or macros = `422`. Errors: `422` no food recognised (dish) / product not identified (label, barcode; the app maps each to its message), `429` quota, `502` provider failure or timeout, `503` `GEMINI_API_KEY` missing. Nothing (image, comment, provider body) is logged or stored. Shared helpers in `functions/_shared/` (JSON errors, validation). The Kotlin side of this task: domain `FoodPhotoDraft` model, `FoodPhotoRepository` calling the function, error mapping to domain errors, and the `NewFoodDraft` mapping (per-100 values, portions from the estimated weight) with unit tests; no UI. `supabase/.env.example` lists `GEMINI_API_KEY` with an empty value. `03` §7 and `08` updated if the contract changes.
 
 **Acceptance criteria:**
-- [ ] `deno test` with recorded Gemini fixtures covers dish (incl. comment and `1 ración` grams), label (absent values stay empty), barcode, unreadable photo, invalid input (mode, size, comment on a non-dish mode, comment > 200), provider error, quota and missing key; CI never calls the network.
-- [ ] The response schema is enforced: negatives clamped or rejected, unknown micronutrient keys dropped, a response without kcal and macros is `422`.
-- [ ] A code review check (and a test spying on the logger) shows no image, comment or provider body is logged.
-- [ ] Kotlin: the repository maps each status to a domain error; the draft maps to a `NewFoodDraft` with per-100 values and the suggested portion.
+- [x] `deno test` with recorded Gemini fixtures covers dish (incl. comment and `1 ración` grams), label (absent values stay empty), barcode, unreadable photo, invalid input (mode, size, comment on a non-dish mode, comment > 200), provider error, quota and missing key; CI never calls the network.
+- [x] The response schema is enforced: negatives clamped or rejected, unknown micronutrient keys dropped, a response without kcal and macros is `422`.
+- [x] A code review check (and a test spying on the logger) shows no image, comment or provider body is logged.
+- [x] Kotlin: the repository maps each status to a domain error; the draft maps to a `NewFoodDraft` with per-100 values and the suggested portion.
 
 **Host tests (per scenario):** `FoodPhotoRepositoryTest` (payload, status → error mapping); `FoodPhotoDraftMapperTest` (Dish estimate: 180 kcal / 6 / 15 / 10 and `1 ración` 250 g; label with missing values; barcode); deno tests as above.
 
 **Verification:**
-- [ ] `deno test --allow-all supabase/functions` green; lint + `testLocalDebugUnitTest` green.
-- [ ] 👤 The user sets the secret in their own terminal: `npx supabase secrets set GEMINI_API_KEY=...` (Google AI Studio key, free tier, no billing account); the PM only verifies the name with `npx supabase secrets list` (through a subagent).
+- [x] `deno test --allow-all supabase/functions` green; lint + `testLocalDebugUnitTest` green.
+- [x] 👤 The user sets the secret in their own terminal: `npx supabase secrets set GEMINI_API_KEY=...` (Google AI Studio key, free tier, no billing account); the PM only verifies the name with `npx supabase secrets list` (through a subagent).
 - [ ] After the merge: `deploy-supabase` green; `food-photo` deployed.
 
 **Dependencies:** T-104

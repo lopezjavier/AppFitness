@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"name\":\"Copos de avena integral\",\"brand\":\"Marca Ejemplo\",\"base_unit\":\"g\",\"nutrition\":{\"kcal\":372,\"protein_g\":13.5,\"carbs_g\":58.7,\"fat_g\":7},\"micronutrients\":{\"fiber_100g\":10},\"estimated_grams\":null,\"confidence\":\"low\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}
