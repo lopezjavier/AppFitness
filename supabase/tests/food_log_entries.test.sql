@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(27);
+select plan(34);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -27,7 +27,7 @@ grant select on slot_ids to authenticated;
 -- ---------------------------------------------------------------------------
 select columns_are('public', 'food_log_entries', array[
   'id', 'user_id', 'log_date', 'meal_slot_id', 'food_id', 'amount', 'portion_label', 'food_name', 'kcal',
-  'protein_g', 'carbs_g', 'fat_g', 'created_at'
+  'protein_g', 'carbs_g', 'fat_g', 'created_at', 'cooking_method', 'cooking_oil_retained_g'
 ], 'food_log_entries has exactly the planned columns');
 select fk_ok('public', 'food_log_entries', 'user_id', 'auth', 'users', 'id', 'user_id references auth.users.id');
 select fk_ok('public', 'food_log_entries', 'food_id', 'public', 'foods', 'id', 'food_id references foods.id');
@@ -148,6 +148,42 @@ select is(
 select is(
   (select count(*)::int from public.foods where id = '0ff00000-0000-4000-8000-000000000001'),
   1, 'the shared OFF food is untouched');
+
+-- ---------------------------------------------------------------------------
+-- Cooking method and retained oil (T-107, US-50, ADR-60)
+-- ---------------------------------------------------------------------------
+select enum_has_labels('public', 'food_cooking_method', array['raw', 'griddle', 'air_fryer', 'fried'],
+  'food_cooking_method has the four methods');
+select results_eq(
+  $$select cooking_method::text, cooking_oil_retained_g from public.food_log_entries
+    where user_id = '22222222-2222-4222-8222-222222222222'$$,
+  $$values ('raw', null::numeric)$$,
+  'an entry inserted without cooking columns is raw with no oil');
+select throws_ok(
+  $$insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g, cooking_oil_retained_g)
+    select '22222222-2222-4222-8222-222222222222', '2026-10-21', id, '0ff00000-0000-4000-8000-000000000001', 100, 'Leche', 64, 3, 5, 4, 2.5
+    from slot_ids where user_id = '22222222-2222-4222-8222-222222222222' and code = 'breakfast'$$,
+  '23514', null, 'oil on a raw entry is rejected');
+select throws_ok(
+  $$insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g, cooking_method, cooking_oil_retained_g)
+    select '22222222-2222-4222-8222-222222222222', '2026-10-21', id, '0ff00000-0000-4000-8000-000000000001', 100, 'Leche', 64, 3, 5, 4, 'griddle', -1
+    from slot_ids where user_id = '22222222-2222-4222-8222-222222222222' and code = 'breakfast'$$,
+  '23514', null, 'a negative retained oil is rejected');
+select lives_ok(
+  $$insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g, cooking_method, cooking_oil_retained_g)
+    select '22222222-2222-4222-8222-222222222222', '2026-10-21', id, '0ff00000-0000-4000-8000-000000000001', 100, 'Leche', 64, 3, 5, 4, 'raw', 0
+    from slot_ids where user_id = '22222222-2222-4222-8222-222222222222' and code = 'breakfast'$$,
+  'a raw entry with 0 oil is accepted');
+select lives_ok(
+  $$insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g, cooking_method, cooking_oil_retained_g)
+    select '22222222-2222-4222-8222-222222222222', '2026-10-21', id, '0ff00000-0000-4000-8000-000000000001', 100, 'Leche', 86.5, 3, 5, 6.5, 'griddle', 2.5
+    from slot_ids where user_id = '22222222-2222-4222-8222-222222222222' and code = 'breakfast'$$,
+  'a griddle entry with 2.5 g of oil is accepted');
+select throws_ok(
+  $$insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g, cooking_method)
+    select '22222222-2222-4222-8222-222222222222', '2026-10-21', id, '0ff00000-0000-4000-8000-000000000001', 100, 'Leche', 64, 3, 5, 4, 'boiled'
+    from slot_ids where user_id = '22222222-2222-4222-8222-222222222222' and code = 'breakfast'$$,
+  '22P02', null, 'an unknown cooking method is rejected');
 
 select * from finish();
 rollback;
