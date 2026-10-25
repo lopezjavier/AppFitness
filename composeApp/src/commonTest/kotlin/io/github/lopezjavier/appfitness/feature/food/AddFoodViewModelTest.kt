@@ -775,24 +775,24 @@ class AddFoodViewModelTest {
     }
 
     @Test
-    fun cooking_defaultImpacts_addTheRetainedOilToThePreview() = runTest(dispatcher) {
+    fun cooking_defaultImpacts_addTheFatPercentOfTheAmountToThePreview() = runTest(dispatcher) {
         val model = cookingModel()
 
         model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
         advanceUntilIdle()
-        assertEquals(CookingImpactPreview(22.5, 2.5), model.content().cookingImpact)
-        assertEquals(122.5, model.content().preview?.kcal)
-        assertEquals(7.5, model.content().preview?.fatG)
+        assertEquals(CookingImpactPreview(9.0, 1.0), model.content().cookingImpact)
+        assertEquals(109.0, model.content().preview?.kcal)
+        assertEquals(6.0, model.content().preview?.fatG)
 
         model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.AirFryer))
         advanceUntilIdle()
-        assertEquals(CookingImpactPreview(45.0, 5.0), model.content().cookingImpact)
-        assertEquals(145.0, model.content().preview?.kcal)
+        assertEquals(CookingImpactPreview(18.0, 2.0), model.content().cookingImpact)
+        assertEquals(118.0, model.content().preview?.kcal)
 
         model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Fried))
         advanceUntilIdle()
-        assertEquals(CookingImpactPreview(45.0, 5.0), model.content().cookingImpact)
-        assertEquals(10.0, model.content().preview?.fatG)
+        assertEquals(CookingImpactPreview(72.0, 8.0), model.content().cookingImpact)
+        assertEquals(13.0, model.content().preview?.fatG)
 
         model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Raw))
         advanceUntilIdle()
@@ -802,28 +802,40 @@ class AddFoodViewModelTest {
 
     @Test
     fun cooking_customPreferences_changeTheImpact() = runTest(dispatcher) {
-        preferences.result = Result.success(FoodPreferences(oliveOilGriddleG = 10.0))
+        preferences.result = Result.success(FoodPreferences(fatPctGriddle = 10.0))
         val model = cookingModel()
 
         model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
         advanceUntilIdle()
 
-        assertEquals(CookingImpactPreview(45.0, 5.0), model.content().cookingImpact)
+        assertEquals(CookingImpactPreview(90.0, 10.0), model.content().cookingImpact)
     }
 
     @Test
-    fun cooking_selectionAfterQuantityEdits_keepsMethodAndScalesOnlyTheFood() = runTest(dispatcher) {
+    fun cooking_changingTheAmount_changesTheImpact() = runTest(dispatcher) {
         val model = cookingModel()
         model.onEvent(AddFoodEvent.AmountChanged("200"))
         model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
         advanceUntilIdle()
-        assertEquals(222.5, model.content().preview?.kcal)
+        assertEquals(CookingImpactPreview(18.0, 2.0), model.content().cookingImpact)
+        assertEquals(218.0, model.content().preview?.kcal)
 
         model.onEvent(AddFoodEvent.AmountChanged("300"))
         advanceUntilIdle()
 
         assertEquals(CookingMethod.Griddle, model.content().cookingMethod)
-        assertEquals(322.5, model.content().preview?.kcal)
+        assertEquals(CookingImpactPreview(27.0, 3.0), model.content().cookingImpact)
+        assertEquals(327.0, model.content().preview?.kcal)
+    }
+
+    @Test
+    fun cooking_300gFried_showsTwoHundredSixteenKcalAndTwentyFourGrams() = runTest(dispatcher) {
+        val model = cookingModel()
+        model.onEvent(AddFoodEvent.AmountChanged("300"))
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Fried))
+        advanceUntilIdle()
+
+        assertEquals(CookingImpactPreview(216.0, 24.0), model.content().cookingImpact)
     }
 
     @Test
@@ -865,9 +877,9 @@ class AddFoodViewModelTest {
 
         val entry = diary.added.single()
         assertEquals(CookingMethod.Griddle, entry.cookingMethod)
-        assertEquals(2.5, entry.cookingOilRetainedG)
-        assertEquals(222.5, entry.snapshot.kcal)
-        assertEquals(12.5, entry.snapshot.fatG)
+        assertEquals(2.0, entry.cookingOilRetainedG)
+        assertEquals(218.0, entry.snapshot.kcal)
+        assertEquals(12.0, entry.snapshot.fatG)
     }
 
     @Test
@@ -926,6 +938,6 @@ class AddFoodViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CookingMethod.AirFryer, second.content().cookingMethod)
-        assertEquals(145.0, second.content().preview?.kcal)
+        assertEquals(118.0, second.content().preview?.kcal)
     }
 }

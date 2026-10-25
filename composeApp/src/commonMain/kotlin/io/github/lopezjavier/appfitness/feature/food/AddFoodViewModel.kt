@@ -305,7 +305,12 @@ class AddFoodViewModel(
         val valid = check == QuantityCheck.Valid && resolved != null
         val prefs = setup.prefs.takeIf { showCooking(setup) }
         val method = if (prefs != null) draft.cookingMethod else CookingMethod.Raw
-        val retained = if (prefs != null) CookingImpact.retainedG(method, prefs) else 0.0
+        // The added fat depends on the raw weight in grams (ADR-65); an invalid amount adds none.
+        val retained = if (prefs != null && valid && resolved != null) {
+            CookingImpact.addedFatG(method, resolved, prefs)
+        } else {
+            0.0
+        }
         val scaled = resolved?.takeIf { valid }?.let { scaleNutrition(setup.food.nutrition, it) }
         return AddFoodContent(
             food = setup.food,
@@ -326,7 +331,7 @@ class AddFoodViewModel(
             cookingImpact = if (method == CookingMethod.Raw) {
                 null
             } else {
-                CookingImpactPreview(CookingImpact.addedKcal(retained), CookingImpact.addedFatG(retained))
+                CookingImpactPreview(CookingImpact.addedKcal(retained), retained)
             },
         )
     }

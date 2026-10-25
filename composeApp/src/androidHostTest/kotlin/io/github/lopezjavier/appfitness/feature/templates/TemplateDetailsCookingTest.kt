@@ -106,11 +106,11 @@ class TemplateDetailsCookingTest {
 
         tap("template_details_cooking_chip_0")
         tap("template_details_food_cooking_griddle")
-        rule.onNodeWithTag("template_details_food_cooking_impact").assertTextEquals("+22,5 kcal y +2,5 g de grasa")
+        rule.onNodeWithTag("template_details_food_cooking_impact").assertTextEquals("+10,8 kcal y +1,2 g de grasa")
         tap("template_food_sheet_save")
 
         rule.onNodeWithTag("template_details_cooking_chip_0").assertTextContains("A la plancha")
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("243 kcal")
+        rule.onNodeWithTag("template_details_kcal").assertTextContains("231 kcal")
         rule.onNodeWithTag("template_details_unsaved_hint").assertIsDisplayed()
     }
 
@@ -130,7 +130,7 @@ class TemplateDetailsCookingTest {
     }
 
     @Test
-    fun anadir_logsTheFoodsWithTheirMethods_andTheOil() {
+    fun anadir_logsTheFoodsWithTheirMethods_andTheAddedFat() {
         show()
         tap("template_details_cooking_chip_0")
         tap("template_details_food_cooking_griddle")
@@ -140,7 +140,7 @@ class TemplateDetailsCookingTest {
 
         val batch = diary.addedBatches.single()
         assertEquals(listOf(CookingMethod.Griddle, CookingMethod.Raw), batch.map { it.cookingMethod })
-        assertEquals(2.5, batch.first().cookingOilRetainedG, 0.0)
+        assertEquals(1.2, batch.first().cookingOilRetainedG, 0.0)
     }
 
     @Test
@@ -183,6 +183,6 @@ class TemplateDetailsCookingTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("template_details_food_cooking_fried").assertIsSelected()
-        rule.onNodeWithTag("template_details_food_cooking_impact").assertTextEquals("+45 kcal y +5 g de grasa")
+        rule.onNodeWithTag("template_details_food_cooking_impact").assertTextEquals("+86,4 kcal y +9,6 g de grasa")
     }
 }

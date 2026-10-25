@@ -464,17 +464,17 @@ class DraftRestorationTest {
     }
 
     @Test
-    fun preferencesCookingAmounts_surviveRecreation_andGuardarStaysEnabled() {
+    fun preferencesCookingPercentages_surviveRecreation_andGuardarStaysEnabled() {
         val tester = StateRestorationTester(rule)
         showPreferences(tester, SavedStateHandle())
         rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().performTextClearance()
-        rule.onNodeWithTag("preferences_cooking_fried").performTextInput("30")
+        rule.onNodeWithTag("preferences_cooking_fried").performTextInput("12")
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().assertTextContains("30")
+        rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().assertTextContains("12")
         rule.onNodeWithTag("preferences_save").assertIsEnabled()
     }
 

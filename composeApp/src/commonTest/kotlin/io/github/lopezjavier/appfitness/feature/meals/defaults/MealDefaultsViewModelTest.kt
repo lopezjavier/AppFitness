@@ -50,7 +50,7 @@ class MealDefaultsViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private val cookingKcal =
-        CookingImpact.addedKcal(CookingImpact.retainedG(CookingMethod.Griddle, FoodPreferences()))
+        CookingImpact.addedKcal(CookingImpact.addedFatG(CookingMethod.Griddle, 100.0, FoodPreferences()))
 
     private suspend fun comida(name: String, vararg items: NewTemplateItem): String =
         templates.save(null, name, null, items.toList()).getOrThrow()

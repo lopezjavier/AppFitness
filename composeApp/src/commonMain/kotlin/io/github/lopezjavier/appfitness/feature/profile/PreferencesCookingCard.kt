@@ -32,8 +32,8 @@ import org.jetbrains.compose.resources.stringResource
 private const val MAX_DECIMALS = 1
 
 /**
- * "Cocina" card (US-50): the grams of olive oil put in the pan for "A la plancha", "Air fryer" and "Frito". Nothing is
- * saved until the pinned "Guardar" of Preferencias; an invalid field shows its error and disables it.
+ * "Cocina" card (US-50): the added-fat percentage of the raw weight per cooking method (plancha, air fryer, frito).
+ * Nothing is saved until the pinned "Guardar" of Preferencias; an invalid field shows its error and disables it.
  */
 @Composable
 internal fun PreferencesCookingCard(
@@ -48,27 +48,27 @@ internal fun PreferencesCookingCard(
                 style = AppTheme.typography.titleMedium,
                 color = AppTheme.colors.textPrimary,
             )
-            OilField(
+            FatPctField(
                 value = form.griddleText,
-                onChange = { onEvent(PreferencesEvent.SetOilGriddle(it)) },
+                onChange = { onEvent(PreferencesEvent.SetFatPctGriddle(it)) },
                 label = Res.string.preferences_cooking_griddle_label,
                 support = Res.string.preferences_cooking_griddle_support,
                 hasError = form.griddleError,
                 tag = "preferences_cooking_griddle",
                 imeAction = ImeAction.Next,
             )
-            OilField(
+            FatPctField(
                 value = form.airFryerText,
-                onChange = { onEvent(PreferencesEvent.SetOilAirFryer(it)) },
+                onChange = { onEvent(PreferencesEvent.SetFatPctAirFryer(it)) },
                 label = Res.string.preferences_cooking_air_fryer_label,
                 support = Res.string.preferences_cooking_air_fryer_support,
                 hasError = form.airFryerError,
                 tag = "preferences_cooking_air_fryer",
                 imeAction = ImeAction.Next,
             )
-            OilField(
+            FatPctField(
                 value = form.friedText,
-                onChange = { onEvent(PreferencesEvent.SetOilFried(it)) },
+                onChange = { onEvent(PreferencesEvent.SetFatPctFried(it)) },
                 label = Res.string.preferences_cooking_fried_label,
                 support = Res.string.preferences_cooking_fried_support,
                 hasError = form.friedError,
@@ -86,7 +86,7 @@ internal fun PreferencesCookingCard(
 
 @Composable
 @Suppress("LongParameterList") // One field: value, event, texts, error flag, tag and IME action.
-private fun OilField(
+private fun FatPctField(
     value: String,
     onChange: (String) -> Unit,
     label: StringResource,

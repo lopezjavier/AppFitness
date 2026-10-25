@@ -1100,7 +1100,7 @@ class TemplateDetailsViewModelTest {
     }
 
     @Test
-    fun cooking_rowsKeepTheirSavedMethod_andIncludeTheOilImpact() = runTest(dispatcher) {
+    fun cooking_rowsKeepTheirSavedMethod_andIncludeTheFatImpact() = runTest(dispatcher) {
         val rows = contentOf(cookingModel()).rows
 
         assertEquals(
@@ -1108,10 +1108,10 @@ class TemplateDetailsViewModelTest {
             rows.map { it.cookingMethod },
         )
         assertEquals(listOf(true, true, false), rows.map { it.canCook })
-        assertEquals(listOf(222.5, 175.0, 100.0), rows.map { it.kcal })
-        assertEquals(listOf(12.5, 10.0, 10.0), rows.map { it.fatG })
-        assertEquals(CookingImpactPreview(22.5, 2.5), rows[0].cookingImpact)
-        assertEquals(CookingImpactPreview(45.0, 5.0), rows[1].cookingImpact)
+        assertEquals(listOf(218.0, 202.0, 100.0), rows.map { it.kcal })
+        assertEquals(listOf(12.0, 13.0, 10.0), rows.map { it.fatG })
+        assertEquals(CookingImpactPreview(18.0, 2.0), rows[0].cookingImpact)
+        assertEquals(CookingImpactPreview(72.0, 8.0), rows[1].cookingImpact)
         assertNull(rows[2].cookingImpact)
     }
 
@@ -1119,8 +1119,8 @@ class TemplateDetailsViewModelTest {
     fun cooking_totalsIncludeTheImpact() = runTest(dispatcher) {
         val content = contentOf(cookingModel())
 
-        assertEquals(222.5 + 175.0 + 100.0, content.totalKcal)
-        assertEquals(32.5, content.totalFatG)
+        assertEquals(218.0 + 202.0 + 100.0, content.totalKcal)
+        assertEquals(35.0, content.totalFatG)
     }
 
     @Test
@@ -1133,7 +1133,7 @@ class TemplateDetailsViewModelTest {
         val content = contentOf(model)
         assertTrue(content.isDirty)
         assertEquals(CookingMethod.Raw, content.rows[0].cookingMethod)
-        assertEquals(200.0 + 175.0 + 100.0, content.totalKcal)
+        assertEquals(200.0 + 202.0 + 100.0, content.totalKcal)
     }
 
     @Test
@@ -1145,7 +1145,7 @@ class TemplateDetailsViewModelTest {
         model.onEvent(TemplateDetailsEvent.MethodChanged(CookingMethod.AirFryer))
         val preview = contentOf(model)
         assertEquals(CookingMethod.AirFryer, preview.openFood?.row?.cookingMethod)
-        assertEquals(245.0, preview.openFood?.row?.kcal)
+        assertEquals(236.0, preview.openFood?.row?.kcal)
         assertEquals(CookingMethod.Griddle, preview.rows[0].cookingMethod)
 
         model.onEvent(TemplateDetailsEvent.DismissFood)
@@ -1168,7 +1168,7 @@ class TemplateDetailsViewModelTest {
 
     @Test
     fun cooking_addHandsEachMethodAndTheCurrentOilToTheDiary() = runTest(dispatcher) {
-        val prefs = FakeFoodPreferencesRepository(Result.success(FoodPreferences(oliveOilGriddleG = 10.0)))
+        val prefs = FakeFoodPreferencesRepository(Result.success(FoodPreferences(fatPctGriddle = 10.0)))
         val model = cookingModel(prefs = prefs)
         contentOf(model)
 
@@ -1180,8 +1180,8 @@ class TemplateDetailsViewModelTest {
             listOf(CookingMethod.Griddle, CookingMethod.Fried, CookingMethod.Raw),
             batch.map { it.cookingMethod },
         )
-        assertEquals(listOf(5.0, 5.0, 0.0), batch.map { it.cookingOilRetainedG })
-        assertEquals(listOf(245.0, 175.0, 100.0), batch.map { it.snapshot.kcal })
+        assertEquals(listOf(20.0, 8.0, 0.0), batch.map { it.cookingOilRetainedG })
+        assertEquals(listOf(380.0, 202.0, 100.0), batch.map { it.snapshot.kcal })
     }
 
     @Test
@@ -1221,7 +1221,7 @@ class TemplateDetailsViewModelTest {
 
         val content = contentOf(model)
         assertEquals(listOf(CookingMethod.Fried, CookingMethod.Raw), content.rows.map { it.cookingMethod })
-        assertEquals(175.0 + 100.0, content.totalKcal)
+        assertEquals(202.0 + 100.0, content.totalKcal)
     }
 
     @Test
@@ -1235,7 +1235,7 @@ class TemplateDetailsViewModelTest {
 
         prefs.result = Result.success(FoodPreferences())
         model.onEvent(TemplateDetailsEvent.Refresh)
-        assertEquals(222.5, contentOf(model).rows[0].kcal)
+        assertEquals(218.0, contentOf(model).rows[0].kcal)
     }
 
     @Test
