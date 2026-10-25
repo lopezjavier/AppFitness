@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-106 (E7). Last merged: T-105 (PR #198). At T-106 test the real model with a dish photo plus the comment "plato de lentejas con pollo, sin chorizo"; never log the `RestException` cause (it may carry the response body); check partial label drafts read well. Carry to checkpoint E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** Checkpoint E7-A (👤, hard gate), then T-107 (E7). Last merged: T-106 (PR #200). Carry to E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-106 pr-reviewer suggestions (non-blocking, fix only if the user sees them): `FoodPhotoViewModel` keeps the dish comment after success/`createManually()` (a stale comment pre-fills the next preview); `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo" (check at E7-A). T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
@@ -2921,7 +2921,7 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 
 ### Checkpoint E7-A — Create and fix foods 👤 (7 items + leave and come back) *(agreed)*
 Journey: add a new food without typing (from a photo of a dish, a label or a barcode), and fix your own foods and comidas. Why here: the "add a new food" journey is complete; cooking and defaults do not build on the photo flow, so feedback on the form and the comida details lands before T-108 adds cooking chips to them.
-- [ ] T-104…T-106 merged, CI green, `deploy-supabase` applied the T-104 migration and `food-photo`, `GEMINI_API_KEY` set, every reported bug fixed.
+- [x] T-104…T-106 merged, CI green, `deploy-supabase` applied the T-104 migration and `food-photo`, `GEMINI_API_KEY` set, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Unit of a manual food (T-104): create a test food in "ml" by mistake and change it to "g" from "Editar" (values and portions unchanged); open a food you already logged or have in a comida: the unit is disabled and the hint says why; a food that is only a favourite can still change it.
   2. Comida details (T-104): in "Añadir comida" → Comidas tap a comida: its details open (foods, amounts, totals) and nothing is added; "Añadir" adds it to the meal; "Editar" opens "Editar comida"; the rows have no pencil.
