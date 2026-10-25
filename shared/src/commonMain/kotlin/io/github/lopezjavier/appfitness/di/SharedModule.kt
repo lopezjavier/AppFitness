@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRep
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPhotoRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
@@ -32,6 +33,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenc
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
@@ -50,6 +52,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepositor
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -63,6 +66,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
+import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
@@ -155,6 +159,14 @@ val sharedModule =
                 UnconfiguredTrainingPreferencesRepository()
             }
         }
+        single<FoodPreferencesRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseFoodPreferencesRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredFoodPreferencesRepository()
+            }
+        }
         single<AccountRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 SupabaseAccountRepository(get<SupabaseClient>().functions)
@@ -245,7 +257,8 @@ val sharedModule =
         factory { DefaultMealSlot() }
         factory { ValidateTemplateName() }
         factory { BuildTemplateItems() }
-        factory { AddTemplateToDiary(get(), get()) }
+        factory { BuildCookedEntries(get()) }
+        factory { AddTemplateToDiary(get(), get(), get()) }
         factory { ValidateMealSlots() }
         factory { SignInWithGoogle(get(), get(), get()) }
         factory { CompleteOnboarding(get(), get()) }

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(27);
+select plan(35);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -34,18 +34,24 @@ delete from public.profiles where id = '33333333-3333-4333-8333-333333333333';
 select has_function('public', 'save_preferences',
   array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',
         'smallint', 'smallint', 'smallint', 'numeric', 'timestamp with time zone',
-        'timestamp with time zone', 'timestamp with time zone', 'boolean', 'previous_values_mode', 'numeric', 'numeric[]', 'numeric'],
+        'timestamp with time zone', 'timestamp with time zone', 'boolean', 'previous_values_mode', 'numeric', 'numeric[]', 'numeric',
+        'numeric', 'numeric', 'numeric'],
   'save_preferences exists');
+select hasnt_function('public', 'save_preferences',
+  array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',
+        'smallint', 'smallint', 'smallint', 'numeric', 'timestamp with time zone',
+        'timestamp with time zone', 'timestamp with time zone', 'boolean', 'previous_values_mode', 'numeric', 'numeric[]', 'numeric'],
+  'the old 20-argument save_preferences is gone');
 select is(
   (select prosecdef from pg_proc where oid = (
     select p.oid from pg_proc p where p.proname = 'save_preferences'
       and p.pronamespace = 'public'::regnamespace)),
   false, 'save_preferences is security invoker');
 select ok(not has_function_privilege('anon',
-  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric)',
+  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric, numeric, numeric, numeric)',
   'execute'), 'anon cannot execute save_preferences');
 select ok(has_function_privilege('authenticated',
-  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric)',
+  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric, numeric, numeric, numeric)',
   'execute'), 'authenticated can execute save_preferences');
 select hasnt_function('public', 'save_profile_settings', 'save_profile_settings was dropped');
 
@@ -150,6 +156,40 @@ select ok(
        where user_id = '11111111-1111-4111-8111-111111111111' and source = 'manual'
          and measured_at >= '2026-10-19T00:00:00Z'),
   'a rejected weight leaves the profile, the goals and the weight unchanged (atomic)');
+
+-- ---------------------------------------------------------------------------
+-- Olive oil amounts (T-107, US-50)
+-- ---------------------------------------------------------------------------
+select is(
+  (select count(*)::int from public.food_preferences where user_id = '11111111-1111-4111-8111-111111111111'),
+  0, 'saves without the oil amounts create no food_preferences row');
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint,
+      p_olive_oil_griddle_g => 2.5, p_olive_oil_air_fryer_g => 7, p_olive_oil_fried_g => 60)$$,
+  'A saves the three oil amounts');
+select results_eq(
+  $$select olive_oil_griddle_g, olive_oil_air_fryer_g, olive_oil_fried_g from public.food_preferences
+    where user_id = '11111111-1111-4111-8111-111111111111'$$,
+  $$values (2.5::numeric, 7.0::numeric, 60.0::numeric)$$,
+  'the three amounts are stored');
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint,
+      p_olive_oil_fried_g => 80)$$,
+  'A saves only the fried amount');
+select results_eq(
+  $$select olive_oil_griddle_g, olive_oil_air_fryer_g, olive_oil_fried_g from public.food_preferences
+    where user_id = '11111111-1111-4111-8111-111111111111'$$,
+  $$values (2.5::numeric, 7.0::numeric, 80.0::numeric)$$,
+  'null amounts stay unchanged');
+select throws_ok(
+  $$select public.save_preferences('Cambiada', 'male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint,
+      p_olive_oil_griddle_g => 500.1)$$,
+  '23514', null, 'an oil amount over 500 is rejected');
+select ok(
+  (select display_name = 'Ana' from public.profiles where id = '11111111-1111-4111-8111-111111111111')
+  and (select olive_oil_griddle_g = 2.5 from public.food_preferences
+       where user_id = '11111111-1111-4111-8111-111111111111'),
+  'a rejected amount leaves the profile and the amounts unchanged (atomic)');
 
 -- ---------------------------------------------------------------------------
 -- No profile row / no JWT

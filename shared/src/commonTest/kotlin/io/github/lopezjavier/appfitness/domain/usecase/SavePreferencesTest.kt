@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -33,6 +34,7 @@ private class Saved(
     val warmUpIncluded: Boolean,
     val previousValuesMode: PreviousValuesMode,
     val calculators: CalculatorSettings?,
+    val foodPreferences: FoodPreferences? = null,
 )
 
 class SavePreferencesTest {
@@ -69,8 +71,18 @@ class SavePreferencesTest {
             warmUpIncluded: Boolean,
             previousValuesMode: PreviousValuesMode,
             calculators: CalculatorSettings?,
+            foodPreferences: FoodPreferences?,
         ): Result<Unit> {
-            saved += Saved(displayName, biometrics, goals, weight, warmUpIncluded, previousValuesMode, calculators)
+            saved += Saved(
+                displayName,
+                biometrics,
+                goals,
+                weight,
+                warmUpIncluded,
+                previousValuesMode,
+                calculators,
+                foodPreferences,
+            )
             return result
         }
     }
@@ -87,6 +99,7 @@ class SavePreferencesTest {
         warmUpIncluded: Boolean = false,
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
+        foodPreferences: FoodPreferences? = null,
     ) = useCase(
         displayName = name,
         biometrics = Biometrics(sex, birthDate, height, ActivityLevel.Sedentary),
@@ -100,6 +113,7 @@ class SavePreferencesTest {
         warmUpIncluded = warmUpIncluded,
         previousValuesMode = previousValuesMode,
         calculators = calculators,
+        foodPreferences = foodPreferences,
     )
 
     private fun tdee(sex: Sex, height: Int, weightKg: Double) =
@@ -217,6 +231,23 @@ class SavePreferencesTest {
         save()
 
         assertEquals(listOf(settings, null), saved.map { it.calculators })
+    }
+
+    @Test
+    fun theFoodPreferencesArePassedThrough_andNullMeansUnchanged() = runTest {
+        val prefs = FoodPreferences(10.0, 0.0, 500.0)
+        save(foodPreferences = prefs)
+        save()
+
+        assertEquals(listOf(prefs, null), saved.map { it.foodPreferences })
+    }
+
+    @Test
+    fun oilAmountOutOfRange_isRejectedAndNothingIsSaved() = runTest {
+        val result = save(foodPreferences = FoodPreferences(oliveOilFriedG = 500.1))
+
+        assertEquals(AppError.Validation, result.appErrorOrNull())
+        assertTrue(saved.isEmpty())
     }
 
     @Test

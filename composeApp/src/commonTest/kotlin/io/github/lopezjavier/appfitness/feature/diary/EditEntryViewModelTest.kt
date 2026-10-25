@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
@@ -119,6 +120,25 @@ class EditEntryViewModelTest {
 
         assertEquals(150.0, model.content().resolvedAmount)
         assertEquals(165.0, model.content().preview?.kcal)
+    }
+
+    @Test
+    fun editingTheAmountOfAGriddledEntry_keepsItsRetainedOilInThePreviewAndTheSave() = runTest(dispatcher) {
+        diary.server[today] = listOf(
+            chickenEntry().copy(cookingMethod = CookingMethod.Griddle, cookingOilRetainedG = 2.5),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(EditEntryEvent.AmountChanged("150"))
+        advanceUntilIdle()
+
+        // 150 g raw = 165 kcal / 7.5 g fat, plus the stored 2.5 g of oil (+22.5 kcal / +2.5 g fat).
+        assertEquals(187.5, model.content().preview?.kcal)
+        assertEquals(10.0, model.content().preview?.fatG)
+        model.onEvent(EditEntryEvent.Save)
+        advanceUntilIdle()
+        assertEquals(NutritionSnapshot(187.5, 15.0, 30.0, 10.0), diary.updated.single().second.snapshot)
     }
 
     @Test

@@ -19,4 +19,6 @@ data class FoodLogEntry(
     val proteinG: Double,
     val carbsG: Double,
     val fatG: Double,
+    val cookingMethod: CookingMethod = CookingMethod.Raw,
+    val cookingOilRetainedG: Double = 0.0,
 )

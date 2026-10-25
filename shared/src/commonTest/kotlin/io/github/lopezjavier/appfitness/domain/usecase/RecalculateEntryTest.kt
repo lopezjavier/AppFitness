@@ -33,6 +33,14 @@ class RecalculateEntryTest {
     }
 
     @Test
+    fun editingTheAmountOfACookedEntryKeepsItsOilUnscaled() {
+        // 150 g of chicken = 165 kcal / 1.8 g fat, plus the stored 2.5 g of oil (22.5 kcal, 2.5 g fat).
+        val edited = recalculate(chicken, 150.0, null, cookingOilRetainedG = 2.5) as EntryRecalculation.Valid
+
+        assertEquals(NutritionSnapshot(187.5, 34.5, 0.0, 4.3), edited.snapshot)
+    }
+
+    @Test
     fun aPortionMultipliesItsAmountByTheCount() {
         val result = recalculate(chicken, 2.0, egg) as EntryRecalculation.Valid
 

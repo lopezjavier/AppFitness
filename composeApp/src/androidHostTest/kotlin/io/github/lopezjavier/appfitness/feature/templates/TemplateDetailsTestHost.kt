@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
@@ -42,7 +43,7 @@ internal fun detailsModel(
     validateQuantity = ValidateQuantity(),
     validateTemplateName = ValidateTemplateName(),
     foodRepository = foods,
-    addTemplateToDiary = AddTemplateToDiary(diary, ScaleNutrition()),
+    addTemplateToDiary = AddTemplateToDiary(diary, DefaultFoodPreferences, BuildCookedEntries(ScaleNutrition())),
     mealSlots = FakeMealSlotRepository(),
     defaultMealSlot = DefaultMealSlot(),
     clock = MutableClock(),

@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -261,6 +262,31 @@ class SupabaseProfileRepositorySavePreferencesTest {
                 """"p_previous_values_mode":"overall"}""",
             body,
         )
+    }
+
+    @Test
+    fun withFoodPreferences_sendsTheThreeOilAmounts() = runTest {
+        val prefs = FoodPreferences(10.0, 0.0, 500.0)
+
+        assertTrue(
+            repository().savePreferences("Ana", biometrics, goals, null, false, foodPreferences = prefs).isSuccess,
+        )
+
+        val body = (requests.last().body as TextContent).text
+        assertTrue(
+            body.endsWith(
+                """"p_previous_values_mode":"overall","p_olive_oil_griddle_g":10.0,""" +
+                    """"p_olive_oil_air_fryer_g":0.0,"p_olive_oil_fried_g":500.0}""",
+            ),
+            body,
+        )
+    }
+
+    @Test
+    fun withoutFoodPreferences_omitsTheOilAmounts() = runTest {
+        repository().savePreferences("Ana", biometrics, goals, null, false).getOrThrow()
+
+        assertTrue(!(requests.last().body as TextContent).text.contains("olive_oil"))
     }
 
     @Test

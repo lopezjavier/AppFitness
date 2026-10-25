@@ -251,6 +251,8 @@ internal data class FoodLogEntryInsertDto(
     @SerialName("protein_g") val proteinG: Double,
     @SerialName("carbs_g") val carbsG: Double,
     @SerialName("fat_g") val fatG: Double,
+    @SerialName("cooking_method") val cookingMethod: CookingMethodDto,
+    @SerialName("cooking_oil_retained_g") val cookingOilRetainedG: Double,
 ) {
     companion object {
         fun from(entry: NewFoodEntry) = FoodLogEntryInsertDto(
@@ -264,6 +266,8 @@ internal data class FoodLogEntryInsertDto(
             proteinG = entry.snapshot.proteinG,
             carbsG = entry.snapshot.carbsG,
             fatG = entry.snapshot.fatG,
+            cookingMethod = CookingMethodDto.of(entry.cookingMethod),
+            cookingOilRetainedG = entry.cookingOilRetainedG,
         )
     }
 }

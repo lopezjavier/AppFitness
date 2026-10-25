@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
@@ -92,6 +93,9 @@ internal data class SavePreferencesParams(
     @SerialName("p_bar_weight_kg") val barWeightKg: Double? = null,
     @SerialName("p_plate_kg") val plateKg: List<Double>? = null,
     @SerialName("p_dumbbell_handle_kg") val dumbbellHandleKg: Double? = null,
+    @SerialName("p_olive_oil_griddle_g") val oliveOilGriddleG: Double? = null,
+    @SerialName("p_olive_oil_air_fryer_g") val oliveOilAirFryerG: Double? = null,
+    @SerialName("p_olive_oil_fried_g") val oliveOilFriedG: Double? = null,
 ) {
     companion object {
         @Suppress("LongParameterList") // The edited form fields.
@@ -103,6 +107,7 @@ internal data class SavePreferencesParams(
             warmUpIncluded: Boolean,
             previousValuesMode: PreviousValuesMode,
             calculators: CalculatorSettings? = null,
+            foodPreferences: FoodPreferences? = null,
         ): SavePreferencesParams {
             val profile = BiometricsUpdateDto.from(biometrics)
             return SavePreferencesParams(
@@ -126,6 +131,9 @@ internal data class SavePreferencesParams(
                 barWeightKg = calculators?.barWeightKg,
                 plateKg = calculators?.plateKg,
                 dumbbellHandleKg = calculators?.dumbbellHandleKg,
+                oliveOilGriddleG = foodPreferences?.oliveOilGriddleG,
+                oliveOilAirFryerG = foodPreferences?.oliveOilAirFryerG,
+                oliveOilFriedG = foodPreferences?.oliveOilFriedG,
             )
         }
     }

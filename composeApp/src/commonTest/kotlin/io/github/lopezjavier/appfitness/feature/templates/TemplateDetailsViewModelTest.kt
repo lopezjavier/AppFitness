@@ -4,13 +4,16 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.Micronutrient
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -43,6 +46,11 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+/** Food preferences at their defaults, for tests that do not exercise cooking. */
+internal object DefaultFoodPreferences : FoodPreferencesRepository {
+    override suspend fun get(): Result<FoodPreferences> = Result.success(FoodPreferences())
+}
 
 /** US-21 / US-47 comida editor (ADR-45): the draft, its totals, the single "Guardar" and the immediate delete. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -92,7 +100,7 @@ class TemplateDetailsViewModelTest {
         validateQuantity = ValidateQuantity(),
         validateTemplateName = ValidateTemplateName(),
         foodRepository = foods,
-        addTemplateToDiary = AddTemplateToDiary(diary, ScaleNutrition()),
+        addTemplateToDiary = AddTemplateToDiary(diary, DefaultFoodPreferences, BuildCookedEntries(ScaleNutrition())),
         mealSlots = slots,
         defaultMealSlot = DefaultMealSlot(),
         clock = MutableClock(),

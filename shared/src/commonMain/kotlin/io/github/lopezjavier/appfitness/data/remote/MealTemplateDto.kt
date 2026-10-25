@@ -12,6 +12,7 @@ internal data class MealTemplateItemDto(
     val amount: Double,
     @SerialName("portion_label") val portionLabel: String? = null,
     val position: Int = 0,
+    @SerialName("cooking_method") val cookingMethod: CookingMethodDto = CookingMethodDto.Raw,
     val foods: FoodDto? = null,
 )
 
@@ -28,14 +29,17 @@ internal data class MealTemplateDto(
         name = name,
         mealSlotId = mealSlotId,
         items = items.sortedBy { it.position }.mapNotNull { item ->
-            item.foods?.let { MealTemplateItem(it.toDomain(), item.amount, item.portionLabel) }
+            item.foods?.let {
+                MealTemplateItem(it.toDomain(), item.amount, item.portionLabel, item.cookingMethod.domain)
+            }
         },
     )
 
     companion object {
         /** PostgREST `select` of a template with its items and their foods (always the shared food columns). */
         const val COLUMNS =
-            "id,name,meal_slot_id,meal_template_items(food_id,amount,portion_label,position,foods(${FoodDto.COLUMNS}))"
+            "id,name,meal_slot_id,meal_template_items(food_id,amount,portion_label,position,cooking_method," +
+                "foods(${FoodDto.COLUMNS}))"
     }
 }
 
@@ -45,9 +49,15 @@ internal data class SaveTemplateItemParam(
     @SerialName("food_id") val foodId: String,
     val amount: Double,
     @SerialName("portion_label") val portionLabel: String?,
+    @SerialName("cooking_method") val cookingMethod: CookingMethodDto,
 ) {
     companion object {
-        fun from(item: NewTemplateItem) = SaveTemplateItemParam(item.foodId, item.amount, item.portionLabel)
+        fun from(item: NewTemplateItem) = SaveTemplateItemParam(
+            item.foodId,
+            item.amount,
+            item.portionLabel,
+            CookingMethodDto.of(item.cookingMethod),
+        )
     }
 }
 

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(33);
+select plan(42);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -23,7 +23,7 @@ insert into public.foods (id, source, name, kcal_100, created_by) values
 select columns_are('public', 'meal_templates',
   array['id', 'user_id', 'name', 'meal_slot_id', 'created_at'], 'meal_templates has the planned columns');
 select columns_are('public', 'meal_template_items',
-  array['id', 'template_id', 'food_id', 'amount', 'portion_label', 'position'],
+  array['id', 'template_id', 'food_id', 'amount', 'portion_label', 'position', 'cooking_method'],
   'meal_template_items has the planned columns');
 select ok(
   (select bool_and(relrowsecurity and relforcerowsecurity) from pg_class
@@ -117,6 +117,66 @@ select throws_ok(
 select is((select count(*)::int from public.meal_template_items
     where template_id = (select v from ids where k = 'desayuno_a')), 1,
   'a failed overwrite keeps the previous items (atomic)');
+
+-- ---------------------------------------------------------------------------
+-- Cooking methods (T-107, US-50)
+-- ---------------------------------------------------------------------------
+select results_eq(
+  $$select cooking_method::text from public.meal_template_items
+    where template_id = (select v from ids where k = 'desayuno_a')$$,
+  $$values ('raw')$$,
+  'items saved without a cooking_method key are raw');
+
+insert into ids
+  select 'cocinada', public.save_meal_template(
+    null, 'Cocinada', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":200,"cooking_method":"griddle"},
+      {"food_id":"0ff00000-0000-4000-8000-000000000002","amount":100,"cooking_method":null},
+      {"food_id":"aaaaaaaa-0000-4000-8000-000000000001","amount":150,"cooking_method":"fried"},
+      {"food_id":"0ff00000-0000-4000-8000-000000000001","amount":50}]'::jsonb);
+select results_eq(
+  $$select cooking_method::text from public.meal_template_items
+    where template_id = (select v from ids where k = 'cocinada') order by position$$,
+  $$values ('griddle'), ('raw'), ('fried'), ('raw')$$,
+  'each item stores its own method; null and missing are raw');
+
+select throws_ok(
+  $$select public.save_meal_template(null, 'Mala', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":10,"cooking_method":"boiled"}]'::jsonb)$$,
+  '22023', null, 'an unknown cooking method is rejected');
+select throws_ok(
+  $$select public.save_meal_template(null, 'Mala', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":10,"cooking_method":3}]'::jsonb)$$,
+  '22023', null, 'a non-string cooking method is rejected');
+
+-- A non-raw method on a drink (ml) is rejected; raw is fine.
+reset role;
+update public.foods set base_unit = 'ml' where id = '0ff00000-0000-4000-8000-000000000002';
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+select throws_ok(
+  $$select public.save_meal_template(null, 'Bebida', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000002","amount":250,"cooking_method":"fried"}]'::jsonb)$$,
+  '22023', null, 'a non-raw method on an ml food is rejected');
+select lives_ok(
+  $$select public.save_meal_template(null, 'Bebida cruda', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000002","amount":250,"cooking_method":"raw"}]'::jsonb)$$,
+  'a raw ml food is accepted');
+select lives_ok(
+  $$select public.save_meal_template(null, 'Solo g', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":250,"cooking_method":"air_fryer"}]'::jsonb)$$,
+  'a non-raw method on a g food is accepted');
+
+select lives_ok(
+  $$select public.save_meal_template((select v from ids where k = 'cocinada'), 'Cocinada', null,
+    '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":200,"cooking_method":"air_fryer"}]'::jsonb)$$,
+  'overwriting a template with a new method succeeds');
+select results_eq(
+  $$select cooking_method::text from public.meal_template_items
+    where template_id = (select v from ids where k = 'cocinada')$$,
+  $$values ('air_fryer')$$,
+  'overwrite keeps the new methods only');
 
 -- ---------------------------------------------------------------------------
 -- As Bea: isolation

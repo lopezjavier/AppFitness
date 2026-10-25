@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
@@ -127,6 +128,7 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         warmUpIncluded: Boolean,
         previousValuesMode: PreviousValuesMode,
         calculators: CalculatorSettings?,
+        foodPreferences: FoodPreferences?,
     ): Result<Unit> {
         preferenceSaves += SavedPreferences(
             displayName,

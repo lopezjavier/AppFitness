@@ -37,6 +37,8 @@ data class NewFoodEntry(
     val amount: Double,
     val portionLabel: String?,
     val snapshot: NutritionSnapshot,
+    val cookingMethod: CookingMethod = CookingMethod.Raw,
+    val cookingOilRetainedG: Double = 0.0,
 )
 
 /**
