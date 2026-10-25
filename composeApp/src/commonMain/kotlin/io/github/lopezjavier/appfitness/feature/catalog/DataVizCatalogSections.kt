@@ -35,12 +35,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_text_pill
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_caution
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_favorable
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_unfavorable
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_record_legend
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
+import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
@@ -367,5 +369,38 @@ private fun LineChartSection() {
                 connectGaps = true,
             )
         }
+        MarkerChartCards()
+    }
+}
+
+private val DemoSparseMarkers = listOf(0, 3)
+
+/** Record markers: sparse non-adjacent indices with the legend, and a single marker. */
+@Composable
+private fun MarkerChartCards() = Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+    AppCard(Modifier.fillMaxWidth()) {
+        AppLineChartBlock(
+            title = stringResource(Res.string.catalog_section_line_chart),
+            recordLegend = stringResource(Res.string.exercise_progress_record_legend),
+        ) {
+            AppLineChart(
+                values = DemoChartValues,
+                labels = DemoChartLabels,
+                description = stringResource(Res.string.catalog_line_chart_cd),
+                modifier = Modifier.fillMaxWidth().testTag("catalog_line_chart_markers"),
+                valueLabel = { it.roundToInt().toString() },
+                markers = DemoSparseMarkers,
+            )
+        }
+    }
+    AppCard(Modifier.fillMaxWidth()) {
+        AppLineChart(
+            values = DemoChartValues,
+            labels = DemoChartLabels,
+            description = stringResource(Res.string.catalog_line_chart_cd),
+            modifier = Modifier.fillMaxWidth().testTag("catalog_line_chart_single_marker"),
+            valueLabel = { it.roundToInt().toString() },
+            markers = listOf(DemoChartValues.lastIndex),
+        )
     }
 }

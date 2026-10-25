@@ -26,7 +26,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_1rm
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_distance
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_duration
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_floors
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_max_reps
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_reps
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_volume
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_error_message
@@ -38,6 +43,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_r
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_3m_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_6m
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_6m_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_all
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_all_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_record_legend
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_records_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_session
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
@@ -52,16 +61,18 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
+import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.ChartPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseProgress
-import io.github.lopezjavier.appfitness.domain.model.ProgressMode
+import io.github.lopezjavier.appfitness.domain.model.ProgressMetric
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -72,6 +83,7 @@ private val RangeOptions = listOf(
     Triple(ProgressRange.ThreeMonths, Res.string.exercise_progress_range_3m, Res.string.exercise_progress_range_3m_cd),
     Triple(ProgressRange.SixMonths, Res.string.exercise_progress_range_6m, Res.string.exercise_progress_range_6m_cd),
     Triple(ProgressRange.OneYear, Res.string.exercise_progress_range_1y, Res.string.exercise_progress_range_1y_cd),
+    Triple(ProgressRange.AllTime, Res.string.exercise_progress_range_all, Res.string.exercise_progress_range_all_cd),
 )
 
 private val RangeTags = mapOf(
@@ -79,6 +91,7 @@ private val RangeTags = mapOf(
     ProgressRange.ThreeMonths to "exercise_progress_range_3m",
     ProgressRange.SixMonths to "exercise_progress_range_6m",
     ProgressRange.OneYear to "exercise_progress_range_1y",
+    ProgressRange.AllTime to "exercise_progress_range_all",
 )
 
 /** Stateful progress of one exercise: connects [ExerciseProgressViewModel]. */
@@ -168,11 +181,12 @@ private fun RangeSelector(selected: ProgressRange, onSelect: (ProgressRange) -> 
     val options = RangeOptions.map { (range, label, description) ->
         AppOption(stringResource(label), RangeTags.getValue(range), stringResource(description))
     }
-    SegmentedSelector(
+    FilterChipRow(
         options = options,
         selectedIndex = RangeOptions.indexOfFirst { it.first == selected },
         onSelect = { onSelect(RangeOptions[it].first) },
         modifier = Modifier.fillMaxWidth(),
+        scrollToSelected = true,
     )
 }
 
@@ -199,17 +213,42 @@ private fun ProgressCharts(progress: ExerciseProgress, wide: Boolean) {
     }
 }
 
+/** What the primary chart of a [ProgressMetric] shows: title, value format and test tag. */
+private class MetricSpec(val title: StringResource, val tag: String, val format: (Double) -> String)
+
+private fun formatCount(value: Double) = AppNumberFormat.integer(value.roundToInt())
+
+private fun ProgressMetric.spec() = when (this) {
+    ProgressMetric.OneRepMax ->
+        MetricSpec(Res.string.exercise_progress_chart_1rm, "exercise_progress_chart_1rm", ::formatKilos)
+
+    ProgressMetric.MaxReps ->
+        MetricSpec(Res.string.exercise_progress_chart_max_reps, "exercise_progress_chart_1rm", ::formatCount)
+
+    ProgressMetric.Reps ->
+        MetricSpec(Res.string.exercise_progress_chart_reps, "exercise_progress_chart_reps", ::formatCount)
+
+    ProgressMetric.Duration ->
+        MetricSpec(Res.string.exercise_progress_chart_duration, "exercise_progress_chart_duration", ::formatDuration)
+
+    ProgressMetric.Distance ->
+        MetricSpec(Res.string.exercise_progress_chart_distance, "exercise_progress_chart_distance", ::formatDistance)
+
+    ProgressMetric.Steps ->
+        MetricSpec(Res.string.exercise_progress_chart_steps, "exercise_progress_chart_steps", ::formatCount)
+
+    ProgressMetric.Floors ->
+        MetricSpec(Res.string.exercise_progress_chart_floors, "exercise_progress_chart_floors", ::formatCount)
+}
+
 @Composable
 private fun PrimaryChartCard(progress: ExerciseProgress, modifier: Modifier = Modifier) {
-    val maxReps = progress.mode == ProgressMode.MaxReps
-    val title = stringResource(
-        if (maxReps) Res.string.exercise_progress_chart_max_reps else Res.string.exercise_progress_chart_1rm,
-    )
+    val spec = progress.mode.spec()
     ChartCard(
-        title = title,
+        title = stringResource(spec.title),
         points = progress.primary,
-        valueLabel = { if (maxReps) AppNumberFormat.integer(it.roundToInt()) else formatKilos(it) },
-        tag = "exercise_progress_chart_1rm",
+        valueLabel = spec.format,
+        tag = spec.tag,
         modifier = modifier,
     )
 }
@@ -222,6 +261,7 @@ private fun VolumeChartCard(points: List<ChartPoint>, modifier: Modifier = Modif
         valueLabel = { formatVolume(it) },
         tag = "exercise_progress_chart_volume",
         modifier = modifier,
+        legendTag = "exercise_progress_record_legend_volume",
     )
 }
 
@@ -232,26 +272,36 @@ private fun ChartCard(
     valueLabel: (Double) -> String,
     tag: String,
     modifier: Modifier = Modifier,
+    legendTag: String = "exercise_progress_record_legend",
 ) {
     val values = points.map { it.value }
     val labels = points.map { stringResource(Res.string.chart_date_short, it.date.day, it.date.month.shortLabel()) }
-    val description = stringResource(
+    val markers = points.indices.filter { points[it].isRecord }
+    val summary = stringResource(
         Res.string.exercise_progress_chart_cd,
         title,
+        values.size,
         valueLabel(values.first()),
         valueLabel(values.last()),
-        valueLabel(values.min()),
-        valueLabel(values.max()),
-        values.size,
     )
+    val description = if (markers.isEmpty()) {
+        summary
+    } else {
+        "$summary ${pluralStringResource(Res.plurals.exercise_progress_records_cd, markers.size, markers.size)}"
+    }
     AppCard(modifier) {
-        AppLineChartBlock(title) {
+        AppLineChartBlock(
+            title = title,
+            recordLegend = if (markers.isEmpty()) null else stringResource(Res.string.exercise_progress_record_legend),
+            recordLegendModifier = Modifier.testTag(legendTag),
+        ) {
             AppLineChart(
                 values = values,
                 labels = labels,
                 description = description,
                 valueLabel = valueLabel,
                 modifier = Modifier.fillMaxWidth().testTag(tag),
+                markers = markers,
             )
         }
     }
@@ -263,10 +313,11 @@ private fun NotEnoughData(progress: ExerciseProgress) {
     AppCard(Modifier.fillMaxWidth().testTag("exercise_progress_single_session")) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             progress.primary.singleOrNull()?.let { point ->
-                val maxReps = progress.mode == ProgressMode.MaxReps
-                val value = if (maxReps) AppNumberFormat.integer(point.value.roundToInt()) else formatKilos(point.value)
                 Text(
-                    text = stringResource(Res.string.exercise_progress_single_value, value),
+                    text = stringResource(
+                        Res.string.exercise_progress_single_value,
+                        progress.mode.spec().format(point.value),
+                    ),
                     style = AppTheme.typography.labelNumeric,
                     color = AppTheme.colors.athleticCyan,
                     modifier = Modifier.testTag("exercise_progress_single_value"),

@@ -40,6 +40,29 @@ internal fun rememberDotsLine(color: Color): LineCartesianLayer.Line {
 }
 
 /**
+ * The record markers layer: an invisible connector with a [AppLineChartDefaults.MarkerSize] point (textPrimary fill and
+ * a ring in [color]) on every marked value, so the marker is told apart from the line by shape, not only by colour.
+ */
+@Composable
+internal fun rememberMarkersLine(color: Color): LineCartesianLayer.Line {
+    val point =
+        LineCartesianLayer.Point(
+            rememberShapeComponent(
+                fill = Fill(AppTheme.colors.textPrimary),
+                shape = CircleShape,
+                strokeFill = Fill(color),
+                strokeThickness = AppLineChartDefaults.MarkerRing,
+            ),
+            AppLineChartDefaults.MarkerSize,
+        )
+    return LineCartesianLayer.rememberLine(
+        fill = LineCartesianLayer.LineFill.single(Fill(color.copy(alpha = 0f))),
+        stroke = LineCartesianLayer.LineStroke.Continuous(0.dp),
+        pointProvider = LineCartesianLayer.PointProvider.single(point),
+    )
+}
+
+/**
  * Maps a horizontal touch to the nearest of [count] points (the plot starts after the axis labels, so a touch on
  * them gives the first point and one past the end the last). Pure so it can be tested without a layout.
  */

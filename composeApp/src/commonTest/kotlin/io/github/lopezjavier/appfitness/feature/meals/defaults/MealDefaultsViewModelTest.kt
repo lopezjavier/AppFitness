@@ -358,6 +358,50 @@ class MealDefaultsViewModelTest {
         assertTrue(second.content().isDirty)
     }
 
+    @Test
+    fun aRestoredDraftOfADeletedComida_isDroppedAndNotDirty() = runTest(dispatcher) {
+        val state = SavedStateHandle(mapOf("meal_defaults_draft" to "breakfast:gone:1", "meal_defaults_baseline" to ""))
+
+        val model = viewModel(state)
+        advanceUntilIdle()
+
+        assertTrue(model.card("breakfast").assignments.isEmpty())
+        assertFalse(model.content().isDirty)
+        assertFalse(model.content().canSave)
+    }
+
+    @Test
+    fun aRestoredDraftOfADeletedMeal_isDroppedAndNotDirty() = runTest(dispatcher) {
+        val a = eggs("Desayuno A")
+        val state = SavedStateHandle(mapOf("meal_defaults_draft" to "ghost:$a:1", "meal_defaults_baseline" to ""))
+
+        val model = viewModel(state)
+        advanceUntilIdle()
+
+        assertFalse(model.content().isDirty)
+    }
+
+    @Test
+    fun stalRowsOfARestoredDraft_areNeverSent() = runTest(dispatcher) {
+        val a = eggs("Desayuno A")
+        val state = SavedStateHandle(
+            mapOf(
+                "meal_defaults_draft" to "breakfast:gone:1,ghost:$a:3,breakfast:$a:2",
+                "meal_defaults_baseline" to "",
+            ),
+        )
+        val model = viewModel(state)
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(MealDefaultsEvent.Save)
+            advanceUntilIdle()
+            assertEquals(MealDefaultsEffect.Close, awaitItem())
+        }
+
+        assertEquals(listOf(listOf(MealDefaultAssignment("breakfast", a, setOf(2)))), defaults.saved)
+    }
+
     private fun assertNotNullSheet(model: MealDefaultsViewModel): AssignSheetUi =
         requireNotNull(model.content().sheet) { "the assignment sheet is not open" }
 }

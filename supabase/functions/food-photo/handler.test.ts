@@ -527,8 +527,31 @@ Deno.test("provider 403 gives 503 NOT_CONFIGURED and 404 gives 502, logging kind
     }
     assertEquals(logged, [
         "food-photo: provider failed auth 403",
-        "food-photo: provider failed model 404",
+        "food-photo: provider failed model 404 gemini-3.5-flash-lite",
     ]);
+});
+
+Deno.test("a response with no parts gives 502 PROVIDER_ERROR (current mapping)", async () => {
+    const body = JSON.stringify({ candidates: [{ content: { parts: [] } }] });
+    const res = await setup({ body }).call(dish());
+    assertEquals(res.status, 502);
+    assertEquals((await errorOf(res)).code, "PROVIDER_ERROR");
+});
+
+Deno.test("a response with only thought parts gives 502 PROVIDER_ERROR (current mapping)", async () => {
+    const body = JSON.stringify({
+        candidates: [{
+            content: {
+                parts: [{ text: "thinking", thought: true }, {
+                    text: "{}",
+                    thought: true,
+                }],
+            },
+        }],
+    });
+    const res = await setup({ body }).call(dish());
+    assertEquals(res.status, 502);
+    assertEquals((await errorOf(res)).code, "PROVIDER_ERROR");
 });
 
 Deno.test("unexpected failures give 500 INTERNAL", async () => {

@@ -21,6 +21,13 @@ import kotlin.coroutines.resume
 
 private const val PHOTO_DIR = "food_photos"
 
+/** Runs [block] and deletes the raw source file on every outcome, including a cancelled coroutine. */
+internal suspend fun <T> deletingAfter(raw: File, block: suspend () -> T): T = try {
+    block()
+} finally {
+    raw.delete()
+}
+
 /**
  * [PhotoCapture] over the system camera (`TakePicture` + [FileProvider]) and the system photo picker. Neither needs a
  * permission. Each capture registers its launcher on the current activity with a fresh random key, so a result is
@@ -34,18 +41,20 @@ class AndroidPhotoCapture(private val cacheDir: File, private val activityHolder
         val activity = activityHolder.get() as? ComponentActivity ?: return CaptureResult.Error
         val dir = photoDir(cacheDir)
         val raw = File(dir, "src_${UUID.randomUUID()}.jpg")
-        val outcome = try {
-            withContext(Dispatchers.Main.immediate) { launchAndAwait(activity, source, raw) }
-        } catch (_: IllegalArgumentException) {
-            // Only the kind matters; the exception is never kept or logged.
-            Outcome.Failed
-        } catch (_: ActivityNotFoundException) {
-            Outcome.Failed
-        }
-        return when (outcome) {
-            Outcome.Cancelled -> CaptureResult.Cancelled.also { raw.delete() }
-            Outcome.Failed -> CaptureResult.Error.also { raw.delete() }
-            is Outcome.Picked -> withContext(Dispatchers.IO) { finish(activity, outcome.uri, raw, dir) }
+        return deletingAfter(raw) {
+            val outcome = try {
+                withContext(Dispatchers.Main.immediate) { launchAndAwait(activity, source, raw) }
+            } catch (_: IllegalArgumentException) {
+                // Only the kind matters; the exception is never kept or logged.
+                Outcome.Failed
+            } catch (_: ActivityNotFoundException) {
+                Outcome.Failed
+            }
+            when (outcome) {
+                Outcome.Cancelled -> CaptureResult.Cancelled.also { raw.delete() }
+                Outcome.Failed -> CaptureResult.Error.also { raw.delete() }
+                is Outcome.Picked -> withContext(Dispatchers.IO) { finish(activity, outcome.uri, raw, dir) }
+            }
         }
     }
 

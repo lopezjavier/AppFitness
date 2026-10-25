@@ -73,6 +73,42 @@ class AppLineChartTest {
     }
 
     @Test
+    fun chart_withMarkersAndOutOfRangeIndices_rendersWithItsSummaryAndLegend() {
+        rule.setContent {
+            AppTheme {
+                AppLineChartBlock(
+                    "Título",
+                    recordLegend = "Récord",
+                    recordLegendModifier = Modifier.testTag("legend"),
+                ) {
+                    AppLineChart(
+                        values = listOf(100.0, 105.0, 110.0, 108.0),
+                        labels = listOf("a", "b", "c", "d"),
+                        description = "Con récords",
+                        modifier = Modifier.testTag("chart"),
+                        markers = listOf(0, 2, 2, 9),
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("chart").assertHeightIsEqualTo(AppLineChartDefaults.Height)
+            .assertStateDescription("Con récords")
+        rule.onNodeWithTag("legend").assertExists()
+    }
+
+    @Test
+    fun block_withoutRecordLegend_showsNoLegend() {
+        rule.setContent {
+            AppTheme { AppLineChartBlock("Título", recordLegendModifier = Modifier.testTag("legend")) { } }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("legend").assertDoesNotExist()
+    }
+
+    @Test
     fun skeleton_hasTheSameHeightAsTheChart() {
         rule.setContent { AppTheme { AppLineChartSkeleton(Modifier.testTag("skeleton")) } }
         rule.waitForIdle()
