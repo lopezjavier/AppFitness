@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** Checkpoint E7-A (👤, hard gate), then T-107 (E7). Last merged: T-106 (PR #200). Carry to E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-106 pr-reviewer suggestions (non-blocking, fix only if the user sees them): `FoodPhotoViewModel` keeps the dish comment after success/`createManually()` (a stale comment pre-fills the next preview); `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo" (check at E7-A). T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** T-106a (E7-A feedback fixes, 2026-10-25), then re-present Checkpoint E7-A (👤, hard gate), then T-107 (E7). Last merged: T-106 (PR #200). Carry to E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-106 pr-reviewer suggestions (non-blocking, fix only if the user sees them): `FoodPhotoViewModel` keeps the dish comment after success/`createManually()` (a stale comment pre-fills the next preview); `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo" (check at E7-A). T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
@@ -2918,6 +2918,25 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 **Dependencies:** T-105 (deployed, `GEMINI_API_KEY` set)
 **Files likely touched:** `shared/…/domain/{PhotoCapture,model/*}.kt`, `composeApp/src/androidMain/…/platform/{AndroidPhotoCapture,PhotoCompressor}.kt`, `composeApp/src/androidMain/AndroidManifest.xml` (`FileProvider`), `composeApp/src/androidMain/res/xml/file_paths.xml`, `composeApp/…/feature/food/{FoodSearchScreen,FoodSearchViewModel,FoodRoots,CreateFoodScreen,CreateFoodViewModel,CreateFoodDraft}.kt`, new `composeApp/…/feature/food/photo/{FoodPhotoViewModel,FoodPhotoUiState,PhotoModeSheet,PhotoSourceSheet,PhotoPreview}.kt`, `composeApp/…/app/{AppRoutes,AppNavHost}.kt`, strings, tests
 **Estimated scope:** L (the planner may slice it: capture + ViewModel, then sheets and form)
+
+## T-106a: Checkpoint E7-A fixes (AI estimates, search row, nutrient form, unit change, comida details)
+
+**Story:** US-48 / US-49 · **Flow:** UI (+ Edge Function diagnosis) · Source: Checkpoint E7-A feedback, 2026-10-25. Start in the next session.
+
+**Description:**
+1. **AI estimates fail.** Every photo mode (dish, label, barcode) ends with "El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente". Diagnose first (deployed `food-photo` function, `GEMINI_API_KEY` presence by name only, function logs, the app's request); fix in code or report to the user what only they can change (secret, console). Add a test for the failure found.
+2. **Search row layout.** The photo icon pushes the other elements below the scanner icon (icons in one row, the rest underneath). Shrink the "Nombre o marca" field so the field, scanner icon and photo icon share one row.
+3. **Manual-food form (reported as "Add comida"; assumed to be the nutrient fields of "Crear alimento"/"Editar").** Follow the order of the Spanish nutrition label, one column, no two-column layout: Calorías, Grasas total, de los cuales saturadas (indented under Grasas), Hidratos de carbono, de los cuales azúcares (indented under Hidratos), Fibra, Proteínas, Sal. Remove the text "Información de la etiqueta (opcional)" and "Por 100 g". Keep everything else. Keep the protein, carbohydrate and fat colours and apply them to azúcares and saturadas (carbohydrate and fat colour respectively). Calorías stay per 100 as today.
+4. **Unit change not discoverable.** The user cannot find where to change a manual food's unit. Check the path (food → "Editar" → unit) and make it reachable and obvious; the carried `CreateFoodViewModel.refuseUnitChange` refusal must clear after a later edit or retry.
+5. **Comida details are the editor.** Remove the "Editar" button: the comida details screen becomes directly editable (name, foods, amounts, removing a food), absorbing "Editar comida"; "Añadir" still adds it to the meal. Unsaved edits survive leaving the app. Needs a host test per editing action; the old separate edit screen and its navigation are removed in the same pass (and `planning/` stories/Gherkin of US-49 updated to match).
+
+**Acceptance criteria:**
+- [ ] Root cause of 1 found; photo estimates work against the deployed function (user retries at E7-A), or the exact user action is reported.
+- [ ] Host tests for 2–5; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-106 · **Estimated scope:** M
+
+---
 
 ### Checkpoint E7-A — Create and fix foods 👤 (7 items + leave and come back) *(agreed)*
 Journey: add a new food without typing (from a photo of a dish, a label or a barcode), and fix your own foods and comidas. Why here: the "add a new food" journey is complete; cooking and defaults do not build on the photo flow, so feedback on the form and the comida details lands before T-108 adds cooking chips to them.
