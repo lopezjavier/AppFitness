@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-105 (E7). Last merged: T-104 (PR #193). Carry to checkpoint E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** T-106 (E7). Last merged: T-105 (PR #198). At T-106 test the real model with a dish photo plus the comment "plato de lentejas con pollo, sin chorizo"; never log the `RestException` cause (it may carry the response body); check partial label drafts read well. Carry to checkpoint E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
 
 ---
 
@@ -2886,7 +2886,7 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 **Verification:**
 - [x] `deno test --allow-all supabase/functions` green; lint + `testLocalDebugUnitTest` green.
 - [x] 👤 The user sets the secret in their own terminal: `npx supabase secrets set GEMINI_API_KEY=...` (Google AI Studio key, free tier, no billing account); the PM only verifies the name with `npx supabase secrets list` (through a subagent).
-- [ ] After the merge: `deploy-supabase` green; `food-photo` deployed.
+- [x] After the merge: `deploy-supabase` green; `food-photo` deployed. *(2026-10-25)*
 
 **Dependencies:** T-104
 **Files likely touched:** `supabase/functions/food-photo/{index.ts,prompts.ts,schema.ts,index.test.ts,fixtures/*}`, `supabase/functions/_shared/*`, `supabase/config.toml`, `supabase/.env.example`, `shared/…/domain/model/FoodPhotoDraft.kt`, `shared/…/domain/repository/FoodPhotoRepository.kt`, `shared/…/data/repository/*`, `shared/…/data/remote/*Dto.kt`, `planning/03-data-model.md` §7, tests
