@@ -209,6 +209,13 @@ Example: 100 kg × 5 → 116.67 → **116.5 kg**; 85 kg × 8 → 107.67 → **10
 - Pausing does not affect the rest timer or the per-set stopwatches. "Finalizar entreno" is enabled only when at least one set (of any type) is completed.
 - Previous values (§4.3): in "Última vez en esta rutina" mode only sessions of the same routine are considered; a free session, or an exercise never done in that routine, shows the overall last performance respectively no ghost (no fallback to other routines for the latter).
 
+### 4.11 Statistics (US-40, US-41, T-114)
+- Eligibility (same as §4.8): `completed` sessions whose UTC `started_at` date is within the window (`p_from`/`p_to` inclusive, null = open), completed sets only, warm-up sets only when `warm_up_included()` (§4.6).
+- `workouts` = completed sessions in the window, counted once however many sets they have, including a session with no eligible set (e.g. warm-up only with warm-ups excluded). `sets` = eligible sets. `volume` = Σ `set_volume × volume_factor` (§4.2, §4.7; bodyweight uses the latest body weight). `duration` = Σ per session of `greatest(0, ended_at − started_at − paused_total_s)` (§4.10).
+- Weeks start on the UTC Monday. Sets per muscle group: each eligible set adds 1 to the exercise's primary group and 0.5 to each distinct secondary group; a secondary equal to the primary adds nothing. Ties are ordered by the `muscle_group` enum declaration order (chest, back, shoulders, biceps, triceps, ...), not alphabetically. `full_body` is not special-cased in SQL (the client handles it).
+- `exercise_set_counts` with a group weighs 1 (primary) or 0.5 (secondary) and excludes exercises without that group.
+- Examples: bench press (primary chest; secondary triceps, shoulders), 3 working sets + 1 warm-up in one session: chest 3, triceps 1,5, shoulders 1,5; with warm-ups 4 / 2 / 2; `exercise_set_counts(triceps)` → bench 1,5 sets, 1 session. Session 10:00-11:00 with 600 s paused → 3000 s; paused longer than elapsed → 0.
+
 ## 5. Formatting (UI, Spanish locale)
 - Thousands separator "." (also for 4 digits: "1.840") and decimal ",". Use a custom formatter in `commonMain`: the CLDR `es-ES` locale does not group 4-digit numbers.
 - Weight with 1 decimal; cm with 1 decimal; BMI with 1 decimal; waist-to-hip ratio with 2 decimals; kcal and grams without decimals; integer percentages.
