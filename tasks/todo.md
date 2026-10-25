@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅
 
-**Next:** T-117 (Comidas grouped in the Diario, US-55, ADR-68; backend + core + UI; then the E8-A 👤 checkpoint); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** Checkpoint E8-A 👤 (present it to the user; then T-116 closure); T-117 merged (PR #236, `deploy-supabase` green, migration remote; non-blocking review notes: `save_meal_as_comida` silently skips entry ids it cannot find or does not own, consider raising when 0 rows are updated; `DiaryViewModel` combines through a `Pair`); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3269,8 +3269,8 @@ Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generi
 **Acceptance criteria:** the US-55 scenarios; existing diary, comida and default tests stay green; pgTAP for the migration (new nullable columns, grouping on add/apply/save-as-comida/copy, cross-user isolation); host tests for the grouped row (collapsed totals, expand, delete leaves group, last delete removes it, later food outside, restoration of the expanded state).
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Dependencies:** T-115
 **Estimated scope:** L (planner to confirm the file count)
@@ -3279,7 +3279,7 @@ Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generi
 
 ### Checkpoint E8-A — Follow your progress and spot imbalances 👤 (7 items + leave and come back)
 Journey: see whether you are getting stronger, per exercise, over any period and across muscles. Why here: the epic has a single checkpoint (user decision, 2026-10-25), right after T-115, the last implementation task, so it is also the final regression; the 12 collected items are grouped into 7.
-- [ ] T-113…T-115 and T-117 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
+- [x] T-113…T-115 and T-117 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Exercise charts (T-113): open "Press de banca con barra" (or any exercise with several sessions) → its progress: the sessions that set a record are marked on the 1RM and volume charts; the frames show 1M, 3M, 6M, 1A and "Todo", and "Todo" shows the whole history.
   2. Non-weight charts (T-113): a duration exercise ("Plancha") shows time and a distance one ("Cinta de correr") distance, with their records, no 1RM or volume.
