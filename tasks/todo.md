@@ -2593,7 +2593,7 @@ Checkpoints (agreed with the user before the breakdown PR is merged). Every user
 
 ---
 
-### Checkpoint E6-A — Plan a routine, train it and see your records 👤 **approved 2026-10-24** (7 items + leave and come back)
+### Checkpoint E6-A — Plan a routine, train it and see your records 👤 **approved 2026-10-24** (8 items + leave and come back)
 Journey: everything about a gym session, from planning the sets to the records afterwards, tried in one or two real workouts. Why here: T-089…T-097 all shape the live session (planned sets, types, RPE, metrics, volume, records, controls, calculators); T-098…T-101 build on them ("Actualizar rutina" compares planned sets with sessions that deleted sets, the workout detail shows the records), so feedback lands first. Items are merged per thing to try: types + RPE in one session, the two volume settings together, the four session controls together, records + exercise detail together.
 - [ ] T-089…T-097 merged, CI green, `deploy-supabase` applied the migrations, every reported bug fixed; production routines keep their sets and the catalogue has its metric types.
 - [ ] 👤 Install the APK (`! python scripts/deliver-apk.py`) and try:
@@ -3260,9 +3260,26 @@ Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generi
 **Files likely touched:** new `composeApp/…/feature/analytics/stats/{TrainingStatsScreen,TrainingStatsViewModel,TrainingStatsUiState,TrainingStatsSections,MuscleDistributionSection,MuscleDetailSheet}.kt`, `composeApp/…/designsystem/{RadarChart,BodyHeatmap,BodyMapPaths}.kt`, catalog, `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/di/UiModule.kt`, strings, `planning/05-design-system.md` §6, tests
 **Estimated scope:** L (one task, see the size note)
 
+## T-117: Comidas grouped in the Diario
+
+**Story:** US-55 (ADR-68) · **Flow:** backend + core + UI · **Scenarios:** all of US-55 (added 2026-10-25 at the user's request; runs after T-115, before E8-A)
+
+**Description:** Entries added from a saved comida (manually or as an applied default) and the entries of a meal saved as a comida get a shared `group_id` and `group_name` (snapshot, no link to the comida, ADR-68). The Diario shows each group as one collapsed row with the name, kcal and macros; expanding lists its entries as regular food rows. Foods added later stay outside; deleting entries leaves the rest and the last deletion removes the group; copying a day or meal keeps the grouping under a new id; only entries created from now on are grouped (no backfill). Expanded state survives leaving the app. The planner decides the exact RPC changes (add-comida, default application, save-as-comida, copy) and checks that totals and the meal summary are unchanged. Standard pipeline, no extra slices: planner, ux-reviewer, backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer = 7 runs.
+
+**Acceptance criteria:** the US-55 scenarios; existing diary, comida and default tests stay green; pgTAP for the migration (new nullable columns, grouping on add/apply/save-as-comida/copy, cross-user isolation); host tests for the grouped row (collapsed totals, expand, delete leaves group, last delete removes it, later food outside, restoration of the expanded state).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** T-115
+**Estimated scope:** L (planner to confirm the file count)
+
+---
+
 ### Checkpoint E8-A — Follow your progress and spot imbalances 👤 (7 items + leave and come back)
 Journey: see whether you are getting stronger, per exercise, over any period and across muscles. Why here: the epic has a single checkpoint (user decision, 2026-10-25), right after T-115, the last implementation task, so it is also the final regression; the 12 collected items are grouped into 7.
-- [ ] T-113…T-115 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
+- [ ] T-113…T-115 and T-117 merged, CI green, `deploy-supabase` applied every migration, every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Exercise charts (T-113): open "Press de banca con barra" (or any exercise with several sessions) → its progress: the sessions that set a record are marked on the 1RM and volume charts; the frames show 1M, 3M, 6M, 1A and "Todo", and "Todo" shows the whole history.
   2. Non-weight charts (T-113): a duration exercise ("Plancha") shows time and a distance one ("Cinta de correr") distance, with their records, no 1RM or volume.
@@ -3271,6 +3288,7 @@ Journey: see whether you are getting stronger, per exercise, over any period and
   5. Main exercises (T-115): your most trained exercises with their sets; tapping one opens its progress chart.
   6. Muscle distribution (T-115): the radar shows "Actual" vs "Periodo anterior" and changes with the frame; the body map highlights what you trained in the last 7 days; tapping a muscle shows its sets and exercises (an untrained one: zero sets).
   7. States and final regression (E8): offline, "Estadísticas" and an exercise chart show the error with "Reintentar", which works once back online; a frame with no workouts shows the empty state; then log a workout with a warm-up set and a new record: the chart marks it and "Estadísticas", the radar and the body map include it; quick check of T-113: after creating a food from a dish photo, the next photo starts with an empty comment.
+  8. Grouped comidas (T-117): add a saved comida to "Desayuno" → one collapsed row with its name, kcal and macros; expand it to see the ingredients and edit or delete one; add another food → it appears outside the group; delete every ingredient → the group disappears; save a meal with loose foods as a comida → it becomes a group; older days still show individual foods.
   - Leave the app and come back on "Estadísticas" with a non-default frame and a muscle sheet open, and on an exercise chart with "Todo": the same tab, screen, frame and sheet are restored.
   - Out of scope: monthly report, year in review, streaks and weekly check-ins (Phase 2, ADR-66); visual polish of earlier screens (E9).
 

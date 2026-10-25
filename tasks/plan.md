@@ -34,12 +34,14 @@ Checkpoint rule for E8: a single 👤 checkpoint for the whole epic (user decisi
 | T-113: E7 carry-over cleanup and exercise charts (US-39) | backend + core + UI | L | 7: planner, ux-reviewer, backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
 | T-114: Training statistics backend (US-40/US-41 backend) | backend + core | M | 5: planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer |
 | T-115: "Estadísticas" screen with the radar and body map (US-40/US-41 UI) | UI + core | L | 6: planner, ux-reviewer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
+| T-117: Comidas grouped in the Diario (US-55, ADR-68) | backend + core + UI | L | 7: planner, ux-reviewer, backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
 | T-116: E8 closure | PM | S | PM only |
 
 ### Phase 1: Implementation
 - [x] T-113: E7 carry-over cleanup and exercise charts — backend + core + UI — L
 - [ ] T-114: Training statistics backend — backend + core — M
 - [ ] T-115: "Estadísticas" screen with the muscle distribution — UI + core — L
+- [ ] T-117: Comidas grouped in the Diario — backend + core + UI — L (added 2026-10-25 at the user's request, ADR-68; runs after T-115 and before E8-A)
   - **Checkpoint E8-A 👤 Follow your progress and spot imbalances (7 items):** exercise charts (record markers, "Todo"); non-weight charts; key values per frame and warm-up toggle; sets over time and per muscle; main exercises; muscle distribution (radar, body map, tap detail); states and the final E8 regression (incl. the T-113 photo comment check). Why here: the single checkpoint of the epic, after the last implementation task.
 
 ### Phase 2: Closure
@@ -52,7 +54,7 @@ Internal milestones (not 👤 checkpoints):
 ## Dependencies
 
 ```
-v0.7.0 ─► T-113 ─► T-114 ─► T-115 ─► [E8-A 👤] ─► T-116 (closure) ─► v0.8.0
+v0.7.0 ─► T-113 ─► T-114 ─► T-115 ─► T-117 ─► [E8-A 👤] ─► T-116 (closure) ─► v0.8.0
 ```
 - Strictly sequential (one active task at a time).
 - E8 Q1–Q3 are resolved; no task is blocked.

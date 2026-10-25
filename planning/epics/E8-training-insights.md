@@ -4,7 +4,7 @@
 Show real progress: per-exercise evolution, advanced statistics, muscle distribution, so the user can see whether they are getting stronger.
 
 ## Scope
-- Includes: exercise chart records and non-weight metrics, advanced statistics (time frames, set-count chart, sets per muscle group, main exercises), muscle distribution (radar and body heatmap).
+- Includes: grouped comidas in the Diario (US-55, ADR-68), exercise chart records and non-weight metrics, advanced statistics (time frames, set-count chart, sets per muscle group, main exercises), muscle distribution (radar and body heatmap).
 - Out of scope: periodic reports (Monthly Report, Year in Review) and streaks with weekly check-ins (Phase 2, ADR-66); the algorithmic program generator / trainer (Phase 2); social features, cardio plans and publishing/monetization limits (out of Phase 1, `01-phase1-scope.md` §4).
 
 ## Dependencies
@@ -97,6 +97,54 @@ Feature: Muscle distribution
 
 **Technical notes**
 - Primary = 1, secondary = 0,5 (`04-business-rules.md` §4.6 for the warm-up variant).
+
+---
+
+## US-55 · Comidas grouped in the Diario
+**As** a user
+**I want** a saved comida added to a meal to appear as one collapsible group in the Diario
+**So that** I see its total at a glance and still adjust each ingredient.
+
+> Snapshot grouping (ADR-68): only entries created from now on are grouped; no link to the comida afterwards.
+
+### Scenario: A comida added to a meal appears as a collapsed group
+  Given the saved comida "Avena con plátano" with oats and a banana
+  When I add it to "Desayuno"
+  Then "Desayuno" shows one row "Avena con plátano" with its total kcal and macros
+  And the row is collapsed and the ingredients are not listed
+
+### Scenario: Expanding a group
+  Given a collapsed group "Avena con plátano" in "Desayuno"
+  When I expand it
+  Then I see its ingredients as regular food rows that I can edit or delete
+  And when I leave the app and come back the group keeps its expanded or collapsed state
+
+### Scenario: A food added later stays outside the group
+  Given a group "Avena con plátano" in "Desayuno"
+  When I add "Café con leche" to "Desayuno"
+  Then "Café con leche" appears as an individual row outside the group
+
+### Scenario: Removing ingredients
+  Given a group "Avena con plátano" with two ingredients
+  When I delete one ingredient
+  Then the group stays with the other one and its totals update
+  When I delete the last ingredient
+  Then the group disappears from "Desayuno"
+
+### Scenario: Saving a meal as a comida groups it
+  Given "Desayuno" has individual foods
+  When I save the meal as the comida "Mi desayuno"
+  Then those entries now appear as one group "Mi desayuno"
+
+### Scenario: Past entries and the saved comida are unaffected
+  Given entries created before this feature or a comida that I later edit or delete
+  Then past entries keep appearing as individual foods
+  And the existing groups do not change
+
+### Scenario: Default comidas are grouped
+  Given "Desayuno" has a default comida for today
+  When the new day opens and the default is applied
+  Then it appears as a collapsed group
 
 ---
 
