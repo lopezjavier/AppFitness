@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅
 
-**Next:** T-114 (training statistics backend, US-40/US-41); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-115 ("Estadísticas" screen with the radar and body map, US-40/US-41); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3209,16 +3209,16 @@ Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generi
 `04-business-rules.md` gains §4.11 "Statistics" with the counting rule and worked examples shared by pgTAP and the domain tests (e.g. bench press, primary chest, secondaries triceps and shoulders, 3 working + 1 warm-up sets → chest 3, triceps 1,5, shoulders 1,5; with "Incluir calentamiento" 4 / 2 / 2). Kotlin: domain models (`TrainingSummary`, `SetCountPoint`, `MuscleGroupSets`, `ExerciseSetCount`), `TrainingStatsRepository` + Supabase implementation and DTOs, the unconfigured fallback, DI; pure domain helpers for the frame window (`from`/`to` per frame, "Todo" = null), the previous equal-length window, the week→month bucketing and the last-7-days window (pending E8 Q2 for the exact rules; the RPCs do not depend on them). No UI.
 
 **Acceptance criteria:**
-- [ ] pgTAP for each RPC: the §4.11 examples; warm-up off/on; `discarded` and `in_progress` sessions and pending sets excluded; window boundaries (a session on `p_from` and on `p_to` included, the day after excluded); a session older than a year counted with a null `p_from`; per-hand and bodyweight volume; duration with a pause; cross-user isolation (another user's sessions never counted); unauthenticated call denied.
-- [ ] `exercise_set_counts` with `p_muscle_group = 'triceps'` returns the bench press with 1,5 sets for the example.
-- [ ] Kotlin: the repository maps each RPC to the domain models and errors; the window helpers have domain tests (1M/3M/6M/1A/"Todo", previous window, month bucketing across a year boundary, last 7 days).
-- [ ] `03` §6 lists the four signatures; `04` §4.11 holds the examples.
+- [x] pgTAP for each RPC: the §4.11 examples; warm-up off/on; `discarded` and `in_progress` sessions and pending sets excluded; window boundaries (a session on `p_from` and on `p_to` included, the day after excluded); a session older than a year counted with a null `p_from`; per-hand and bodyweight volume; duration with a pause; cross-user isolation (another user's sessions never counted); unauthenticated call denied.
+- [x] `exercise_set_counts` with `p_muscle_group = 'triceps'` returns the bench press with 1,5 sets for the example.
+- [x] Kotlin: the repository maps each RPC to the domain models and errors; the window helpers have domain tests (1M/3M/6M/1A/"Todo", previous window, month bucketing across a year boundary, last 7 days).
+- [x] `03` §6 lists the four signatures; `04` §4.11 holds the examples.
 
 **Host tests (per scenario):** `SupabaseTrainingStatsRepositoryTest` (payloads, row mapping, null windows, error mapping); `StatsWindowTest` / `SetCountBucketsTest` (domain); pgTAP `training_statistics.test.sql`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote.
 
 **Agent runs:** planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer = 5 (no UI, so no ux-reviewer or compose-ui-developer). About 13 files.
 
