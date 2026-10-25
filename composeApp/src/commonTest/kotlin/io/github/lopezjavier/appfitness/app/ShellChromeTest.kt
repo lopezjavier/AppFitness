@@ -60,6 +60,7 @@ class ShellChromeTest {
                 PastWorkoutRoute::class,
                 StrengthRoute,
                 MuscleVolumeRoute,
+                StatsRoute,
                 ExerciseProgressRoute::class,
                 FoodSearchRoute::class,
                 AddFoodRoute::class,
@@ -82,6 +83,7 @@ class ShellChromeTest {
                     it is WorkoutCalendarRoute ||
                     it is StrengthRoute ||
                     it is MuscleVolumeRoute ||
+                    it is StatsRoute ||
                     it is DiaryHistoryRoute ||
                     it is WeightRoute
                 ) {
@@ -123,6 +125,11 @@ class ShellChromeTest {
     @Test
     fun weightRoute_hasFullScreenChrome_withItsTopBarTag() {
         assertEquals("weight", (WeightRoute.chrome as ShellChrome.FullScreen).topBarTag)
+    }
+
+    @Test
+    fun statsRoute_hasFullScreenChrome_withItsTopBarTag() {
+        assertEquals("stats", (StatsRoute.chrome as ShellChrome.FullScreen).topBarTag)
     }
 
     @Test

@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
+import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.diary.EditEntryRoot
@@ -55,6 +56,7 @@ fun AppRoot(
                 onOpenStrength,
                 onOpenDiaryHistory,
                 onOpenWeight,
+                onOpenTrainingStats,
             ->
             ProfileRootRoute(
                 profileModifier,
@@ -63,12 +65,14 @@ fun AppRoot(
                 onOpenStrength,
                 onOpenDiaryHistory,
                 onOpenWeight,
+                onOpenTrainingStats,
             )
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, strengthModifier)
         },
         muscleVolume = { volumeModifier, onStartWorkout -> MuscleVolumeRoot(onStartWorkout, volumeModifier) },
+        trainingStats = { statsModifier, onOpenExercise -> TrainingStatsRoot(onOpenExercise, statsModifier) },
         exerciseProgress = { progressModifier, exerciseId -> ExerciseProgressRoot(exerciseId, progressModifier) },
         preferences = { preferencesModifier, onOpenMeals -> PreferencesRoute(onOpenMeals, preferencesModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected ->

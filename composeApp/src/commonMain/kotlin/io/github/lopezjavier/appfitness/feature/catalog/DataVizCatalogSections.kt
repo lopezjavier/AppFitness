@@ -15,19 +15,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_bar_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_line_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_fat_trend
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_goal
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_radar_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_full
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_over
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_body_heatmap
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_stacked_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_metric_tiles
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_radar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ring
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_trend_pills
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
@@ -39,12 +44,20 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_r
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_heat_less
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_heat_more
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_current
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_previous
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
+import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.BodyHeatLegend
+import io.github.lopezjavier.appfitness.designsystem.BodyHeatmap
+import io.github.lopezjavier.appfitness.designsystem.BodyRegion
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
@@ -52,11 +65,14 @@ import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
+import io.github.lopezjavier.appfitness.designsystem.RadarChart
+import io.github.lopezjavier.appfitness.designsystem.RadarLegend
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -89,6 +105,9 @@ internal fun LazyListScope.dataVizItems() {
     item { MetricTilesSection() }
     item { TrendPillsSection() }
     item { LineChartSection() }
+    item { BarChartSection() }
+    item { RadarSection() }
+    item { BodyHeatmapSection() }
 }
 
 private val RingStates =
@@ -402,5 +421,73 @@ private fun MarkerChartCards() = Column(verticalArrangement = Arrangement.spaced
             valueLabel = { it.roundToInt().toString() },
             markers = listOf(DemoChartValues.lastIndex),
         )
+    }
+}
+
+private val DemoBars = listOf(12, 18, 0, 24, 30)
+private val DemoRadarAxes = listOf("Pecho", "Espalda", "Hombros", "Bíceps", "Tríceps")
+private val DemoRadarCurrent = listOf(12.0, 8.0, 6.0, 4.0, 5.0)
+private val DemoRadarPrevious = listOf(8.0, 9.0, 3.0, 4.0, 2.0)
+private val DemoHeat = mapOf(
+    MuscleGroup.Chest to 9.0,
+    MuscleGroup.Triceps to 4.5,
+    MuscleGroup.Shoulders to 3.0,
+    MuscleGroup.Back to 6.0,
+    MuscleGroup.Quads to 1.0,
+)
+
+@Composable
+private fun BarChartSection() {
+    CatalogSection(stringResource(Res.string.catalog_section_bar_chart), "catalog_section_bar_chart") {
+        AppCard(Modifier.fillMaxWidth()) {
+            AppBarChart(
+                values = DemoBars,
+                labels = DemoChartLabels,
+                description = stringResource(Res.string.catalog_bar_chart_cd),
+                modifier = Modifier.fillMaxWidth().testTag("catalog_bar_chart"),
+            )
+        }
+    }
+}
+
+@Composable
+private fun RadarSection() {
+    CatalogSection(stringResource(Res.string.catalog_section_radar), "catalog_section_radar") {
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                RadarLegend(
+                    stringResource(Res.string.stats_radar_current),
+                    stringResource(Res.string.stats_radar_previous),
+                )
+                RadarChart(
+                    axes = DemoRadarAxes,
+                    current = DemoRadarCurrent,
+                    previous = DemoRadarPrevious,
+                    description = stringResource(Res.string.catalog_radar_cd),
+                    modifier = Modifier.fillMaxWidth().testTag("catalog_radar"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BodyHeatmapSection() {
+    CatalogSection(stringResource(Res.string.catalog_section_body_heatmap), "catalog_section_body_heatmap") {
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                BodyHeatmap(
+                    regions = DemoHeat.map { (group, sets) ->
+                        BodyRegion(group, sets, group.name, sets.roundToInt().toString(), "catalog_body_${group.name}")
+                    },
+                    onMuscleClick = {},
+                    tagPrefix = "catalog_body",
+                )
+                BodyHeatLegend(
+                    stringResource(Res.string.stats_heat_less),
+                    stringResource(Res.string.stats_heat_more),
+                )
+            }
+        }
     }
 }

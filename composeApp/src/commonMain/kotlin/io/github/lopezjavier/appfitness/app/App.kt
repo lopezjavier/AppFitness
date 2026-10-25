@@ -71,6 +71,7 @@ fun App(
     strength: StrengthSlot = DefaultStrengthSlot,
     exerciseProgress: ExerciseProgressSlot = DefaultExerciseProgressSlot,
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
+    trainingStats: TrainingStatsSlot = DefaultTrainingStatsSlot,
     welcome: @Composable () -> Unit = { WelcomeRoute(showTestLogin = features.testLogin != null) },
     onboarding: @Composable () -> Unit = { OnboardingRoute(onComplete = onOnboardingComplete) },
 ) {
@@ -118,6 +119,7 @@ fun App(
                         strength = strength,
                         exerciseProgress = exerciseProgress,
                         muscleVolume = muscleVolume,
+                        trainingStats = trainingStats,
                     )
 
                 else ->

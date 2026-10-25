@@ -50,6 +50,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_histo
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_row
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_training_stats_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
@@ -84,6 +85,7 @@ private class RootActions(
     val onOpenStrength: () -> Unit,
     val onOpenWeight: () -> Unit,
     val onOpenDiaryHistory: () -> Unit,
+    val onOpenTrainingStats: () -> Unit,
     val onSignOut: () -> Unit,
     val onDelete: () -> Unit,
 )
@@ -97,6 +99,7 @@ fun ProfileRootRoute(
     onOpenStrength: () -> Unit = {},
     onOpenDiaryHistory: () -> Unit = {},
     onOpenWeight: () -> Unit = {},
+    onOpenTrainingStats: () -> Unit = {},
     viewModel: ProfileRootViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,6 +112,7 @@ fun ProfileRootRoute(
         onOpenStrength = onOpenStrength,
         onOpenDiaryHistory = onOpenDiaryHistory,
         onOpenWeight = onOpenWeight,
+        onOpenTrainingStats = onOpenTrainingStats,
         effects = viewModel.effects,
     )
 }
@@ -128,6 +132,7 @@ fun ProfileRootScreen(
     onOpenStrength: () -> Unit = {},
     onOpenDiaryHistory: () -> Unit = {},
     onOpenWeight: () -> Unit = {},
+    onOpenTrainingStats: () -> Unit = {},
     effects: Flow<ProfileRootEffect> = emptyFlow(),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
@@ -141,6 +146,7 @@ fun ProfileRootScreen(
             onOpenStrength,
             onOpenWeight,
             onOpenDiaryHistory,
+            onOpenTrainingStats,
             { confirmingSignOut = true },
             { confirmingDelete = true },
         )
@@ -192,7 +198,12 @@ fun ProfileRootScreen(
 
 /** "Estadísticas": a heading and the "Fuerza" and "Historial de comidas" rows. */
 @Composable
-private fun StatisticsSection(onOpenStrength: () -> Unit, onOpenWeight: () -> Unit, onOpenDiaryHistory: () -> Unit) {
+private fun StatisticsSection(
+    onOpenStrength: () -> Unit,
+    onOpenWeight: () -> Unit,
+    onOpenDiaryHistory: () -> Unit,
+    onOpenTrainingStats: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = stringResource(Res.string.profile_statistics_section).uppercase(),
@@ -206,6 +217,11 @@ private fun StatisticsSection(onOpenStrength: () -> Unit, onOpenWeight: () -> Un
             stringResource(Res.string.profile_diary_history_row),
             "profile_diary_history_row",
             onOpenDiaryHistory,
+        )
+        StatisticsRow(
+            stringResource(Res.string.profile_training_stats_row),
+            "profile_training_stats_row",
+            onOpenTrainingStats,
         )
     }
 }
@@ -311,7 +327,12 @@ private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         if (state is ProfileRootUiState.Loaded) {
-            StatisticsSection(actions.onOpenStrength, actions.onOpenWeight, actions.onOpenDiaryHistory)
+            StatisticsSection(
+                actions.onOpenStrength,
+                actions.onOpenWeight,
+                actions.onOpenDiaryHistory,
+                actions.onOpenTrainingStats,
+            )
             PrimaryButton(
                 text = stringResource(Res.string.preferences_title),
                 onClick = actions.onOpenPreferences,
