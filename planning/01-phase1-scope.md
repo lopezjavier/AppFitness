@@ -49,7 +49,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.16 Cooking methods (E7, US-50): Crudo (default), A la plancha, Air fryer and Frito for solid foods, with the energy and fat of the retained olive oil added per the configurable amounts in Preferencias; the method and retained oil are stored in the entry snapshot. Saved comidas store an editable method per item, applied when the comida is added or used as a default (ADR-60).
 - FR-2.17 Default comidas (E7, US-51): assign a saved comida to a meal on selected weekdays; on the first open of a new day's Diary, the matching comidas are added once. No backfill, no past dates and no re-add after deletion (ADR-61).
 - FR-2.18 Unit of a manual food (E7, US-52): the base unit can be changed while no diary entry or saved comida uses the food (ADR-62).
-- FR-2.19 Comida details (E7, US-53): a saved comida in "Añadir comida" opens its details with "Añadir" and "Editar", like the other food lists (ADR-62).
+- FR-2.19 Comida details (E7, US-53): a saved comida in "Añadir comida" opens straight into its editable details with "Guardar" and "Añadir", like the other food lists open their details (ADR-62, ADR-63).
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.

@@ -549,3 +549,12 @@ Format: context → decision → consequences. A decision is only changed by add
   - In "Añadir comida" → Comidas a row tap opens a **comida details** screen (foods, amounts, totals) with "Añadir" (adds the comida to the diary as before) and "Editar" (opens "Editar comida"). The row has no pencil. This supersedes the row-tap-adds and pencil behaviour of T-102b and removes the US-47 exception in `05-design-system.md` §8: a row opens its details; editing starts from the details.
 - **Consequences:** `epics/E7-food-photos-defaults-and-cooking.md` (US-52, US-53), `01-phase1-scope.md` (FR-2.18, FR-2.19), `03-data-model.md` (`update_personal_food` gains the unit, new migration, by the planner), `05-design-system.md` §8, `tasks/todo.md` (E7 breakdown).
 - **Approval:** 2026-10-24, user (Checkpoint E6-C, treated as a change request; E6-C approved).
+
+### ADR-63 · The comida details are the editor; "Añadir" adds what is shown (E7, US-53)
+- **Context:** Checkpoint E7-A (2026-10-25). ADR-62 made a comida row open a read-only details screen with "Añadir" and "Editar", and "Editar" opened "Editar comida". The user found the two screens redundant: both show the same name, foods and totals.
+- **Decision:**
+  - There is a single comida screen: the details are directly editable (name, amounts, removing and adding foods; US-21, US-47) with a footer of secondary "Guardar" and primary "Añadir". The read-only screen, its "Editar" button and the "Editar comida" title disappear; "Eliminar comida" is a trash icon in the header row.
+  - "Añadir" logs the foods **as the screen shows them** (edited amounts, removed and added foods) to the selected meal and day, without storing the comida; the stored comida changes only with "Guardar". When the draft differs from the saved comida, a short text says so ("Se añadirá tal como lo ves; Guardar para conservar los cambios"). Leaving after "Añadir" discards the unsaved edits by design. "Añadir" needs the server (offline: disabled with the banner); the name does not block it.
+  - The draft survives leaving the app (ADR-40, ADR-45); the amount sheet keeps its own "Guardar" (`05-design-system.md` §8).
+- **Consequences:** amends ADR-62 (comida details); `epics/E7-food-photos-defaults-and-cooking.md` (US-53 rewritten, US-48 photo icon next to the barcode icon), `epics/E4-food-diary.md`, `01-phase1-scope.md` (FR-2.19), `05-design-system.md` §8 and component rows, `tasks/todo.md` (T-106a, T-108, Checkpoint E7-A).
+- **Approval:** 2026-10-25, user (Checkpoint E7-A, Q1/Q2 answered).

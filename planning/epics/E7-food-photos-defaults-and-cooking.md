@@ -8,7 +8,7 @@ Cut the typing out of food logging: create a personal food from a photo, fill a 
   - **Photo food creation**: an "Añadir desde foto" action in the add-food screen with three modes (AI estimate of a dish, nutrition-label photo, barcode photo), using the system camera or the Android photo picker. A fixed prompt per mode, an optional comment for the dish estimate, editable AI values and portions, saved as a personal food and then logged through the normal add-to-meal sheet.
   - **Default comidas**: from Preferencias → Comidas, assign saved comidas (the user's "Comidas", not Open Food Facts foods) to a meal on selected weekdays; the first time a new day's Diary is opened, their foods are added automatically.
   - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat of the retained olive oil are added; the amounts are configurable in Preferencias. Saved comidas store an editable method per item; adding one or applying a default copies that method.
-  - **Checkpoint E6-C change requests (ADR-62)**: change the unit of a manual food while nothing references it (US-52); a saved comida opens its details with "Añadir" and "Editar" (US-53).
+  - **Checkpoint E6-C change requests (ADR-62)**: change the unit of a manual food while nothing references it (US-52); a saved comida opens straight into its editable details with "Guardar" and "Añadir" (US-53, ADR-63).
 - Out of scope:
   - Estimating a whole meal (several foods) from one photo; Phase 1 handles one food per photo.
   - Storing, uploading or browsing food photos (no in-app gallery or photo history; the system photo picker only selects an image for inference, and no Supabase Storage is used).
@@ -40,7 +40,7 @@ Feature: Food from a photo
 
   Scenario: Photo action and mode picker
     Given the user is in the add-food screen
-    Then the photo icon is shown directly below the barcode icon, with the description "Añadir desde foto"
+    Then the photo icon is shown next to the barcode icon, in the same row as the search field, with the description "Añadir desde foto"
     When they tap it
     Then they see "Estimar con IA", "Etiqueta nutricional" and "Código de barras"
     And they can go back without choosing a photo
@@ -100,7 +100,7 @@ Feature: Food from a photo
 ```
 
 **Technical notes**
-- The add-food screen adds an `AppIconButton` with the photo action directly below the scanner button; the plus ("Crear alimento") action stays where it is.
+- The add-food screen adds an `AppIconButton` with the photo action next to the scanner button, in the same row as the search field; the plus ("Crear alimento") action stays where it is.
 - `PhotoCapture` in the domain with an Android implementation using the system camera (`ActivityResultContracts.TakePicture` + `FileProvider`) or the Android photo picker (`ActivityResultContracts.PickVisualMedia`). Both sources feed the same downscale/compress path; no camera or media permission and no CameraX are introduced. Images are downscaled to at most 1600 px and compressed to JPEG (about 1.5 MB) before upload; the temporary file is deleted in all outcomes.
 - The flow reuses `CreateFoodScreen`: an optional prefill (`NewFoodDraft`) opens it with the AI values instead of an empty form. Saving calls the existing `create_personal_food`; on success the current `AddFoodSheet` opens as after a manual creation.
 - `food-photo` is a Supabase Edge Function (`verify_jwt = true`). Request: `POST` JSON `{ image_base64, mode: "dish" | "label" | "barcode", comment?: string }`; the comment is optional, dish-only and at most 200 characters, and is passed as data, never as instructions. The fixed prompts live in the function, not in the app.
@@ -213,7 +213,7 @@ Feature: Cooking methods
 - Enum `food_cooking_method` (`raw`, `griddle`, `air_fryer`, `fried`); UI labels Crudo, A la plancha, Air fryer, Frito. Only foods with `base_unit = 'g'` offer it; drinks stay raw.
 - Fixed retention factors: A la plancha 50 %, Air fryer 100 %, Frito 10 %. Defaults for the oil used: 5 g, 5 g and 50 g. The amounts are stored in `food_preferences` and edited from a new "Cocina" section in Preferencias; the factors are not configurable.
 - Domain pure function: `retained_g = used_g × factor`; `added_fat_g = retained_g`; `added_kcal = 9 × retained_g`; protein, carbohydrates and micronutrients do not change. Entries store `cooking_method`, `cooking_oil_retained_g` and the adjusted kcal/fat snapshots; the food itself is unchanged.
-- `meal_template_items.cooking_method` stores the method per item (default `raw`); it is editable when saving a meal as a comida and in "Editar comida", and `save_meal_template` accepts it per item. The template does not store oil: adding a comida from the "Comidas" tab, copying it or applying a default computes `cooking_oil_retained_g` with the current `food_preferences`. A saved comida's shown total kcal includes that cooking impact.
+- `meal_template_items.cooking_method` stores the method per item (default `raw`); it is editable when saving a meal as a comida and in the comida details, and `save_meal_template` accepts it per item. The template does not store oil: adding a comida from the "Comidas" tab, copying it or applying a default computes `cooking_oil_retained_g` with the current `food_preferences`. A saved comida's shown total kcal includes that cooking impact.
 - `save_meal_template` and the client validate that only `g` foods carry a non-raw method; an `ml` item stays raw. Existing template items are backfilled to `raw`.
 - The add-to-meal sheet shows the impact before saving. Editing an entry's amount keeps the stored method and retained oil; re-selecting the method on an existing entry is out of scope for this epic.
 - `save_preferences` carries the three oil amounts so Preferencias keeps its single "Guardar"; a missing `food_preferences` row reads as the defaults.
@@ -374,40 +374,48 @@ Feature: Unit of a manual food (ADR-62)
 
 ---
 
-## US-53 · A comida opens its details, like any other food list
+## US-53 · A comida opens straight into its editable details
 **As** a user adding a saved comida
-**I want** tapping it to show its details with "Añadir" and "Editar"
-**So that** it behaves like Recientes, Más comidos and Favoritos and I never add one by accident.
+**I want** tapping it to open its details, where I can change it right there and add it
+**So that** I never add one by accident and I do not need a separate "Editar comida" screen.
 
 ```gherkin
-Feature: Comida details (ADR-62)
+Feature: Comida details (ADR-62, ADR-63)
 
   Scenario: Tapping a comida opens its details
     Given the user is in "Añadir comida" → "Comidas"
     When they tap the row "Desayuno A"
-    Then they see its details: each food with its amount, and the totals
+    Then they see its details: the name, each food with its amount, and the totals
     And nothing has been added to the diary
+    And there is no "Editar" button
+
+  Scenario: Editing in place
+    Given the details of "Desayuno A" are open
+    When the user changes the name, changes an amount, removes a food or adds a food
+    Then the totals follow the change
+    And nothing is stored until they tap "Guardar"
 
   Scenario: Adding from the details
     Given the details of "Desayuno A" are open
     When the user taps "Añadir"
-    Then its foods are added to the diary in the selected meal and day, as when adding a comida today
+    Then its foods, as shown on the screen, are added to the diary in the selected meal and day
+    And the saved comida does not change unless they tapped "Guardar"
 
-  Scenario: Editing from the details
-    Given the details of "Desayuno A" are open
-    When the user taps "Editar"
-    Then "Editar comida" opens, with its single "Guardar" (US-47)
+  Scenario: Saving
+    Given the user edited the details of "Desayuno A"
+    When they tap "Guardar"
+    Then the changes are stored in a single request (US-47) and the screen closes
 
   Scenario: No pencil on the row
     Then a row of "Comidas" has no pencil and no trailing add button
 
   Scenario: State survives leaving the app
-    Given the details of a comida are open
+    Given the user edited the details of a comida without saving
     When the user leaves the app and comes back
-    Then the same details are shown
+    Then the same details are shown, with the unsaved edits
 ```
 
-**Technical notes:** replaces the T-102b row behaviour; removes the US-47 exception in `05-design-system.md` §8; the offline rule for adding stays as today.
+**Technical notes:** replaces the T-102b row behaviour; removes the US-47 exception in `05-design-system.md` §8; there is no separate "Editar comida" screen, the details are the editor (US-21, US-47 reused). "Añadir" logs the draft without storing it (ADR-63); the offline rule for adding and saving stays as today.
 
 ---
 
