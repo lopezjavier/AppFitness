@@ -80,6 +80,7 @@ val uiModule =
                 connectivity = get(),
                 defaults = get(),
                 savedState = get(),
+                groupMealEntries = get(),
             )
         }
         viewModel {

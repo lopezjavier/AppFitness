@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.diary
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.MealRow
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
@@ -33,6 +34,8 @@ data class MealSectionUi(
     val isEmpty: Boolean,
     val showRemainingHint: Boolean,
     val remainingKcal: Int?,
+    /** [entries] as rows: loose entries and collapsible comida groups (ADR-68). */
+    val rows: List<MealRow> = entries.map { MealRow.Single(it) },
 )
 
 /**
@@ -52,6 +55,8 @@ data class DiaryContent(
     val isOffline: Boolean = false,
     /** Applying today's default comidas failed; the Diary still shows, with a retry ([DiaryEvent.RetryDefaults]). */
     val defaultsFailed: Boolean = false,
+    /** Ids of the comida groups the user expanded; groups are collapsed by default. */
+    val expandedGroupIds: Set<String> = emptySet(),
 )
 
 sealed interface DiaryEvent {
@@ -60,6 +65,9 @@ sealed interface DiaryEvent {
     data object NextDay : DiaryEvent
 
     data class ToggleSection(val slotId: String) : DiaryEvent
+
+    /** Expand or collapse the comida group [groupId]. */
+    data class ToggleGroup(val groupId: String) : DiaryEvent
 
     data object Retry : DiaryEvent
 

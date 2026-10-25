@@ -18,6 +18,15 @@ data class DiaryDaySummary(val date: LocalDate, val totals: MealTotals)
 /** An enabled meal with the entries logged in it. */
 data class MealSection(val slot: MealSlot, val entries: List<FoodLogEntry>, val totals: MealTotals)
 
+/** A row of a meal in the Diario: a loose entry or a collapsible comida group (ADR-68). */
+sealed interface MealRow {
+    data class Single(val entry: FoodLogEntry) : MealRow
+
+    /** The entries of one applied comida within a meal; [totals] is their sum. */
+    data class Group(val groupId: String, val name: String, val entries: List<FoodLogEntry>, val totals: MealTotals) :
+        MealRow
+}
+
 /**
  * A day of the diary. [totals] counts every entry of the day, also those of a slot without a section. [goals] is
  * null when the user has not set any.

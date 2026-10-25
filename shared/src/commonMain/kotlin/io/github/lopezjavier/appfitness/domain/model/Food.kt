@@ -28,7 +28,13 @@ data class Food(
     val isManual: Boolean = false,
 )
 
-/** A diary entry to create: [amount] is in the food's base unit and [snapshot] is the nutrition of that amount. */
+/** The comida group (ADR-68) that entries added together share: one [id] per application, [name] of the comida. */
+data class EntryGroup(val id: String, val name: String)
+
+/**
+ * A diary entry to create: [amount] is in the food's base unit and [snapshot] is the nutrition of that amount.
+ * [group] is set when the entry belongs to an applied comida.
+ */
 data class NewFoodEntry(
     val date: LocalDate,
     val mealSlotId: String,
@@ -39,6 +45,7 @@ data class NewFoodEntry(
     val snapshot: NutritionSnapshot,
     val cookingMethod: CookingMethod = CookingMethod.Raw,
     val cookingOilRetainedG: Double = 0.0,
+    val group: EntryGroup? = null,
 )
 
 /**

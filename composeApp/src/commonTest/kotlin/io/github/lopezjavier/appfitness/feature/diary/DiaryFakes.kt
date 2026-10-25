@@ -184,6 +184,8 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
                 proteinG = entry.snapshot.proteinG,
                 carbsG = entry.snapshot.carbsG,
                 fatG = entry.snapshot.fatG,
+                groupId = entry.group?.id,
+                groupName = entry.group?.name,
             )
         }
         cache.update { days ->

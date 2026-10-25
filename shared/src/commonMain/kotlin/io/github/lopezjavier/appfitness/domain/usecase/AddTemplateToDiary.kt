@@ -1,11 +1,13 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.EntryGroup
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import kotlinx.datetime.LocalDate
+import kotlin.uuid.Uuid
 
 /**
  * Logs every food of a template into meal [mealSlotId] of a day in ONE request. The snapshots come from the foods'
@@ -16,6 +18,7 @@ class AddTemplateToDiary(
     private val foodDiary: FoodDiaryRepository,
     private val foodPreferences: FoodPreferencesRepository,
     private val buildCookedEntries: BuildCookedEntries,
+    private val newGroupId: () -> String = { Uuid.random().toString() },
 ) {
     suspend operator fun invoke(
         template: MealTemplate,
@@ -28,8 +31,9 @@ class AddTemplateToDiary(
         } else {
             Result.success(FoodPreferences())
         }
+        val group = EntryGroup(newGroupId(), template.name)
         return prefs.fold(
-            onSuccess = { foodDiary.addEntries(buildCookedEntries(template.items, mealSlotId, date, it)) },
+            onSuccess = { foodDiary.addEntries(buildCookedEntries(template.items, mealSlotId, date, it, group)) },
             onFailure = { Result.failure(it) },
         )
     }

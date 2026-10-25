@@ -21,4 +21,6 @@ data class FoodLogEntry(
     val fatG: Double,
     val cookingMethod: CookingMethod = CookingMethod.Raw,
     val cookingOilRetainedG: Double = 0.0,
+    val groupId: String? = null,
+    val groupName: String? = null,
 )

@@ -81,6 +81,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
+import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -273,6 +274,7 @@ val sharedModule =
         single<WeightChartPreferences> { DataStoreWeightChartPreferences(get()) }
         factory { WeightTrend() }
         factory { BuildDiaryDay() }
+        factory { GroupMealEntries() }
         factory { ResolvePortion() }
         factory { RecalculateEntry(get(), get(), get()) }
         factory { ScaleNutrition() }

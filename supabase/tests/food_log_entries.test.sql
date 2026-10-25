@@ -27,7 +27,7 @@ grant select on slot_ids to authenticated;
 -- ---------------------------------------------------------------------------
 select columns_are('public', 'food_log_entries', array[
   'id', 'user_id', 'log_date', 'meal_slot_id', 'food_id', 'amount', 'portion_label', 'food_name', 'kcal',
-  'protein_g', 'carbs_g', 'fat_g', 'created_at', 'cooking_method', 'cooking_oil_retained_g'
+  'protein_g', 'carbs_g', 'fat_g', 'created_at', 'cooking_method', 'cooking_oil_retained_g', 'group_id', 'group_name'
 ], 'food_log_entries has exactly the planned columns');
 select fk_ok('public', 'food_log_entries', 'user_id', 'auth', 'users', 'id', 'user_id references auth.users.id');
 select fk_ok('public', 'food_log_entries', 'food_id', 'public', 'foods', 'id', 'food_id references foods.id');

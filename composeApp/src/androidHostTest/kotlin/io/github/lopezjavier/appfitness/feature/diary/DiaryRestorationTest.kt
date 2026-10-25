@@ -106,6 +106,30 @@ class DiaryRestorationTest {
     }
 
     @Test
+    fun expandedGroup_staysExpandedAndACollapsedOneStaysCollapsed_afterRecreation() {
+        val today = LocalDate(2026, 10, 19)
+        fun grouped(id: String, group: String) = FoodLogEntry(
+            id, today, "lunch", "f", "Item $id", 100.0, null, "g", 100.0, 1.0, 1.0, 1.0, groupId = group,
+            groupName = "Comida $group",
+        )
+        diary.server[today] = listOf(grouped("a", "g1"), grouped("b", "g2"))
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_group_g1_toggle").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_entry_a").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_entry_a").assertExists()
+        rule.onNodeWithTag("diary_group_g2").assertExists()
+        rule.onNodeWithTag("diary_entry_b").assertDoesNotExist()
+    }
+
+    @Test
     fun afterAFailedDefaultsApply_recreationStillLoadsTheDiaryAndRetryClearsTheMessage() {
         defaults.applyFailure = AppError.Unknown
         val savedState = SavedStateHandle()
