@@ -7,6 +7,11 @@ export type ErrorCode =
     | "FOOD_NOT_FOUND"
     | "METHOD_NOT_ALLOWED"
     | "OFF_UNAVAILABLE"
+    | "PAYLOAD_TOO_LARGE"
+    | "NO_FOOD_RECOGNIZED"
+    | "QUOTA_EXCEEDED"
+    | "PROVIDER_ERROR"
+    | "NOT_CONFIGURED"
     | "INTERNAL";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -15,6 +20,11 @@ const STATUS: Record<ErrorCode, number> = {
     FOOD_NOT_FOUND: 404,
     METHOD_NOT_ALLOWED: 405,
     OFF_UNAVAILABLE: 502,
+    PAYLOAD_TOO_LARGE: 413,
+    NO_FOOD_RECOGNIZED: 422,
+    QUOTA_EXCEEDED: 429,
+    PROVIDER_ERROR: 502,
+    NOT_CONFIGURED: 503,
     INTERNAL: 500,
 };
 
@@ -47,9 +57,9 @@ export function errorResponse(
     );
 }
 
-export const methodNotAllowed = () =>
-    errorResponse("METHOD_NOT_ALLOWED", "Only GET is allowed", {
-        headers: { allow: "GET" },
+export const methodNotAllowed = (allowed = "GET") =>
+    errorResponse("METHOD_NOT_ALLOWED", `Only ${allowed} is allowed`, {
+        headers: { allow: allowed },
     });
 
 export const unauthorized = () =>

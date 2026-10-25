@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "this is not json {"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

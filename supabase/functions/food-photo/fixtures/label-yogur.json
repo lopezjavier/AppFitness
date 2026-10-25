@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"name\":\"Yogur natural\",\"brand\":\"Marca Ejemplo\",\"base_unit\":\"g\",\"nutrition\":{\"kcal\":61,\"protein_g\":3.5,\"carbs_g\":null,\"fat_g\":null},\"micronutrients\":{\"calcium_100g\":0.12,\"sugars_100g\":4.7},\"estimated_grams\":null,\"confidence\":\"high\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

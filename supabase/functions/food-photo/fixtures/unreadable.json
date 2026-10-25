@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"name\":\"Etiqueta ilegible\",\"brand\":null,\"base_unit\":\"g\",\"nutrition\":{\"kcal\":null,\"protein_g\":null,\"carbs_g\":null,\"fat_g\":null},\"micronutrients\":{},\"estimated_grams\":null,\"confidence\":\"low\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}
