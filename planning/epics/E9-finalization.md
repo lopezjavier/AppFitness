@@ -1,10 +1,10 @@
 # E9 · Finalization → `v1.0.0`
 
 ## Goal
-Close Phase 1: show the in-app credits and licences, polish the whole app into a stable, accessible release on phone and tablet, produce the signed APK, and apply the deferred UI-refinement pass. This epic ships `v1.0.0`.
+Close Phase 1: show the in-app credits and licences, polish the whole app into a stable, accessible build on phone and tablet, and apply the deferred UI-refinement pass. This epic ships `v1.0.0`.
 
 ## Scope
-- Includes: the "Acerca de · Licencias" screen; accessibility, empty/error states, tablet and release build across every screen; the deferred UI-refinement items collected at the 👤 checkpoints.
+- Includes: the "Acerca de · Licencias" screen; accessibility, empty/error states and tablet across every screen; the deferred UI-refinement items collected at the 👤 checkpoints.
 - Out of scope: new features; AI training assistant and adaptive calorie adjustment (Phase 2).
 - This epic depends on every previous epic (`E1`…`E8`), because its polish pass and credits cover all domains (training, food and weight).
 
@@ -48,7 +48,7 @@ Feature: About and licences
 
 ---
 
-## US-46 · Polish, accessibility, tablet and release build
+## US-46 · Polish, accessibility and tablet
 **As** a user
 **I want** a stable, accessible app that is comfortable on my phone and my tablet
 **So that** I can use it every day with confidence.
@@ -77,11 +77,6 @@ Feature: Version 1.0 quality
     Then Diary, Progress and the Workout session use the two-column layout
     And no element is stretched across the full width without a limit
 
-  Scenario: Signed release build
-    When the release build of the prod flavor is run
-    Then a signed APK with R8 enabled is produced
-    And the app works the same as in debug (login, diary, weight and workout)
-
   Scenario: Rotation and configuration changes
     Given the user is editing a quantity or a set
     When they rotate the device
@@ -89,9 +84,8 @@ Feature: Version 1.0 quality
 ```
 
 **Technical notes**
-- Release keystore outside the repo; release SHA-1 registered in Google Cloud (👤). R8 rules for kotlinx-serialization, Ktor and supabase-kt.
-- `release.yml` workflow that builds the signed APK when a `v*` tag is created and attaches it to a GitHub Release (keystore as a base64 secret).
-- Performance review: no unnecessary recompositions in the live session (Layout Inspector) and cold start < 2 s on the user's phone.
+- No signed release build in Phase 1 (ADR-67): the app is delivered as the `prodDebug` APK.
+- Performance review: no unnecessary recompositions in the live session (Layout Inspector) and cold start < 2 s on the user's phone, checked manually on the `prodDebug` APK.
 
 ---
 
@@ -154,6 +148,6 @@ The user found repeated UX defects and inconsistencies across screens (icons vs.
 - All stories US-01…US-51 closed; the app is verified manually at the checkpoints.
 - The "Acerca de" screen shows version/build, the RepDB, Open Food Facts and Google Gemini credits and the OSS licences.
 - Security checklist from `02-architecture.md` §7 reviewed and documented in the final PR.
-- Signed release APK installed on the user's phone and tablet; positive feedback.
+- The `prodDebug` APK installed on the user's phone and tablet; positive feedback.
 - The deferred UI-refinement items are applied.
-- Tag `v1.0.0` and the Phase 1 GitHub Release published.
+- Tag `v1.0.0` and the Phase 1 GitHub Release (notes only, no APK) published.

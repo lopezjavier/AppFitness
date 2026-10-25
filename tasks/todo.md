@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅
 
-**Next:** E8 breakdown by `epic-planner` in a fresh session (E7 closed, tag `v0.7.0`; E8 now covers US-39…US-41 only, US-42…US-44 deferred to Phase 2, ADR-66). Last merged: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; `deploy-supabase` must finish green on `main`; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at closure). Before it: T-110 (PR #220). Non-blocking T-110 review suggestion: draft rows whose comida no longer exists are hidden by `mapNotNull` in `MealDefaultsViewModel.content()` but stay in the draft and the dirty check (verify the server cascade or filter at load). Before it: T-109 (PR #218; T-109 (PR #218; default comidas backend + domain; `apply_meal_defaults` refuses dates outside UTC today ±1 day; `deploy-supabase` green; non-blocking suggestion: set-based validation in `save_meal_defaults`). Before it: T-108 (PR #216; cooking selector, "Cocina" and cooking in comidas; review suggestions, non-blocking: a large-font test for the details chip row, a discard test for `SaveTemplateSheet`, `SaveTemplateViewModel.buildState` Pair → small state holder). Before it: T-107b (PR #214; weight estimate from a photo, dish null → 0). Non-blocking T-107b review suggestions: reuse an existing generic cancel string instead of `add_food_photo_cancel` if one exists. T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-113 (E7 carry-over cleanup + exercise charts, US-39), the first E8 task; E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Last merged: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). The open non-blocking E7 review suggestions are now in T-113. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3139,6 +3139,161 @@ Journey: log what you cook with its oil, and let your usual comidas fill a new d
 
 **Dependencies:** T-112 (and Checkpoints E7-A and E7-B approved)
 **Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E7.md`
+**Estimated scope:** S
+
+---
+
+# E8 · Training insights
+
+Stories: `planning/epics/E8-training-insights.md` (US-39…US-41; US-42…US-44 deferred to Phase 2, ADR-66). Plan: [tasks/plan.md](plan.md). Three implementation tasks (user decision, 2026-10-25): T-113 merges the small cleanup of the still-open E7 review suggestions with US-39 (exercise charts; no schema change, `exercise_session_records` already returns every metric family per session); T-114 is the statistics backend for US-40 and US-41 (four RPCs with pgTAP, with the date windows and muscle filter US-41 needs); T-115 is the whole "Estadísticas" screen with the radar and the body map (US-40 + US-41 UI). Each task runs the standard pipeline once, without extra slices (expected agent runs: T-113 7, T-114 5, T-115 6); T-113 and T-115 exceed the ~15-file guideline (about 28 and 22 files) and stay single tasks by the user's decision to save hand-offs.
+Product decisions: ADR-30 (forward-compatible training model: no training-table migration), ADR-37 (no Progreso tab; statistics are full-screen destinations from the Perfil root), ADR-52/`04` §4.8 (PR catalogue), ADR-56 (per-hand volume), ADR-66 (reports and check-ins deferred), ADR-67 (no release build; ignore any release/R8/keystore item). UI-refinement items stay in E9 (its table and the ux-reviewer rewrite are not pulled into E8); E8's new screens go through ux-reviewer as usual.
+Flow: backend tasks are verified with pgTAP and `deploy-supabase`; UI tasks with host (Robolectric) tests; the app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
+Schema: new migrations only (never edit a merged one): `save_meal_defaults` set-based version (T-113); `training_summary`, `weekly_set_counts`, `muscle_group_sets`, `exercise_set_counts` (T-114). No table changes. A changed RPC signature ships with its Kotlin caller in the same PR.
+Rules for every task: ADR-45 / `05-design-system.md` §8, ADR-40 restoration tests, loading/empty/error states (US-46), tabular numerals and Spanish formatting (`04` §5), warm-up inclusion (`04` §4.6) in every aggregate. E5 retrospective: (b) rules over user data state their assumption (statistics read only `completed` sessions, UTC session dates, like `exercise_history`). E6 retrospective: keep host-test time in check.
+Questions in `tasks/plan.md`: E8 Q1–Q3 answered by the user on 2026-10-25 (separate "Entrenamiento" row next to "Fuerza"; "Estadísticas" default frame 1M; record-marker and `full_body` rules as proposed). No task is blocked.
+Checkpoint: one 👤 checkpoint for the whole epic (user decision, 2026-10-25), E8-A, right after T-115, the last implementation task. Every user-testable item was collected first and grouped by journey into 7 items ("leave the app and come back" listed but not counted). T-116 is the closure and has no checkpoint: E8-A's approval releases it.
+
+## T-113: E7 carry-over cleanup and exercise charts (records, "Todo", non-weight metrics)
+
+**Story:** US-39 + E7 review suggestions (T-106b, T-108, T-109, T-110, E7-A) · **Flow:** backend + core + UI · **Scenarios:** Record markers; All-time frame; Non-weight metrics (US-39); existing E7 scenarios must stay green
+
+**Description:** Two parts in one task and one PR (user decision, 2026-10-25), standard pipeline with no extra slices: planner, ux-reviewer (chart markers), one backend-developer run (part A migration and `food-photo`), one kotlin-core-developer run (part A ViewModels + part B domain/ViewModel), one compose-ui-developer run (part B screen), pr-creator, pr-reviewer = 7 agent runs. Size note: about 28 files (about 15 production/doc + 13 tests, many of them one-line changes), above the ~15-file guideline; kept as one task by the user's decision to save hand-offs. Part A needs no product answer; part B's record markers need E8 Q3.
+
+**Part A, E7 carry-over.** Close the non-blocking review suggestions still open after E7 (each verified in the code on 2026-10-25):
+1. **`save_meal_defaults` set-based validation (T-109).** New migration with `create or replace function public.save_meal_defaults(p_defaults jsonb)` (signature unchanged) replacing the per-element `for … loop` validation (`20261108100000_meal_defaults.sql`) with set-based checks (`jsonb_to_recordset`/`jsonb_array_elements` + joins) for ownership of every meal and saved comida, weekdays 1–7 without duplicates and non-empty templates; same error codes (`22023`, `P0002`, `23514`), same atomic replace. Existing pgTAP stays green unchanged.
+2. **Defaults draft rows whose comida or meal no longer exists (T-110).** The server cascade is confirmed (`meal_defaults` FKs to `meal_slots` and `meal_templates` are `on delete cascade`), so the fix is client-side: `MealDefaultsViewModel` drops draft rows (including rows restored from `SavedStateHandle`) whose template or meal is not in the loaded data, at load time, so they are neither hidden by `mapNotNull` while still counting in the dirty check nor sent on "Guardar".
+3. **`food-photo` (T-106b).** `deno test` cases for a Gemini response whose `parts` is empty and one whose parts are all `thought: true` (pin the current mapping, expected `422` `NO_FOOD_RECOGNIZED`); on a provider `404` the log line adds the configured model id (not secret), e.g. `food-photo: provider failed model 404 <model>`, still never the body; update the existing 404 test.
+4. **`AndroidPhotoCapture.capture()` (T-106).** The raw `src_` file is deleted on every outcome, including when the capture coroutine is cancelled while the camera or picker is open (today only `Cancelled`/`Failed`/`Picked` delete it; a coroutine cancellation leaves it until the next `sweep()`), e.g. with `try/finally`; the E7 plan promised deletion on every outcome.
+5. **`FoodPhotoViewModel` (T-106).** The dish comment (state and `SavedStateHandle`) is cleared after a successful estimate and after `createManually()`, as `close()` already does.
+6. **`TemplateDetailsViewModel` (T-108).** `add()` (and the identical save path) returns early when an amount does not parse instead of sending `parseAmount(text) ?: 0.0`.
+7. **`SaveTemplateViewModel.buildState` (T-108).** Replace `combine(saving, methods, ::Pair)` with a small private state holder.
+8. Trivial: move `SEARCH_FIELD_MIN_TARGETS` above the `SearchBox` KDoc in `FoodSearchScreen.kt` so the KDoc documents its composable (E7-A).
+Skipped on purpose: the `add_food_photo_cancel` string reuse (there is no generic cancel string to reuse; every "Cancelar" is screen-scoped) and the T-108 extra UI tests (large-font chip row, `SaveTemplateSheet` discard), not in the carry-over list.
+
+**Part B, US-39 exercise charts.** Extend the per-exercise progress screen (`ExerciseProgressScreen`, reached from the exercise detail "Resumen", the session detail and "Fuerza"). No schema change: the screen reads `exercise_session_records(p_exercise_id)` (`sessionRecords`, T-094), which already returns, per completed session and warm-up aware, the 1RM, session volume, best duration, best distance, steps and floors; `exercise_history` stays as it is (`03` §6 is updated to say US-39 reads `exercise_session_records` and adds no RPC). (1) `ProgressRange` gains "Todo" (no lower bound) after 1M, 3M, 6M and 1A; the chips everywhere `ProgressRange` is shown include it. (2) The charted metric follows the exercise's `metric_type` (one pure domain function): weight families (`weight_reps`, `weighted`, `bodyweight`, `assisted`) keep 1RM and volume (and the existing max-reps fallback when never loaded); `reps_only` keeps reps; `duration` and `weight_duration` chart the best duration (time axis "m:ss"/"h:mm"); `distance_duration` the best distance (km/m with decimal comma); `steps_duration` steps; `floors_duration` floors. (3) Record markers: a session is marked on a chart when it beat every earlier session for that chart's family (`PersonalRecordCatalogue.beatenBy`: Best1Rm on the 1RM chart, MaxVolume on the volume chart, BestDuration, BestDistance, MostSteps, MostFloors), computed over the whole history so a marker in "1M" means an all-time record at the time (pending E8 Q3). Marker look, legend ("Récord") and the accessible summary by ux-reviewer; Vico in `athleticCyan`. The selected frame survives leaving the app.
+
+**Acceptance criteria:**
+- [ ] Migration + pgTAP: `save_meal_defaults` behaves exactly as before (all existing cases green) and has no per-element validation loop; one extra case with several meals and comidas in one payload, one of them not owned → `P0002`, nothing saved.
+- [ ] A restored or loaded defaults draft with a deleted comida or meal is not dirty and does not send that row on "Guardar".
+- [ ] `deno test` covers empty and all-thought `parts`; the 404 log line includes the model id and no body.
+- [ ] The raw capture file is gone after a cancelled capture coroutine (and after every other outcome, as before).
+- [ ] After a successful dish estimate or "Crear manualmente", reopening the photo flow shows an empty comment.
+- [ ] `TemplateDetailsViewModel` never sends a `0.0` amount from an unparseable text; `SaveTemplateViewModel` has no `Pair` state.
+- [ ] "Press de banca con barra" with three sessions where the 2nd and 3rd raise the 1RM: both are marked on the 1RM chart; a session that only raised the volume is marked on the volume chart only.
+- [ ] The frames show 1M, 3M, 6M, 1A and "Todo"; "Todo" includes a session older than a year.
+- [ ] "Plancha" (duration) shows a time chart and "Cinta de correr" (distance) a distance chart, with their record markers and no 1RM/volume charts.
+- [ ] Warm-up sets count only with "Incluir calentamiento" on (server aggregates).
+- [ ] Loading, empty and error states unchanged; the frame survives background and process death.
+
+**Host tests (per item and scenario):** part A: pgTAP `meal_defaults.test.sql` addition; `MealDefaultsViewModelTest` (restored draft with a deleted comida, dirty check, save payload); `handler.test.ts` additions; an `AndroidPhotoCapture` host test or an extracted testable helper for the cancellation path; `FoodPhotoViewModelTest` (comment cleared after success and `createManually()`); `TemplateDetailsViewModelTest` (unparseable amount adds/saves nothing); existing `SaveTemplateViewModelTest` green. Part B: `BuildExerciseProgressTest` (AllTime window, metric selection per `metric_type`, markers per family over the full history, record outside the visible frame); `ExerciseProgressViewModelTest` with fakes + Turbine (sessionRecords path, Retry, frame change); `ExerciseProgressScreen` Robolectric tests ("Todo" chip, marker semantics, duration/distance titles and number formats); restoration test.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; `deno test --allow-all supabase/functions` green; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Dependencies:** E7 (`v0.7.0`)
+**Files likely touched:** part A: `supabase/migrations/<ts>_save_meal_defaults_set_based.sql`, `supabase/tests/meal_defaults.test.sql`, `supabase/functions/food-photo/{handler.ts,handler.test.ts,fixtures/*}`, `composeApp/src/androidMain/…/platform/AndroidPhotoCapture.kt`, `composeApp/…/feature/food/photo/FoodPhotoViewModel.kt`, `composeApp/…/feature/meals/defaults/MealDefaultsViewModel.kt`, `composeApp/…/feature/templates/{TemplateDetailsViewModel,SaveTemplateViewModel}.kt`, `composeApp/…/feature/food/FoodSearchScreen.kt`; part B: `shared/…/domain/model/StrengthProgress.kt` (`ProgressRange`), `shared/…/domain/usecase/{BuildExerciseProgress,ExerciseChartMetric}.kt`, `composeApp/…/feature/analytics/{ExerciseProgressViewModel,ExerciseProgressScreen,StrengthFormat}.kt`, `composeApp/…/feature/analytics/StrengthScreen.kt` (if it lists ranges), DI module, strings, `planning/03-data-model.md` §6; tests
+**Estimated scope:** L (one task, see the size note)
+
+---
+
+## T-114: Training statistics backend
+
+**Story:** US-40, US-41 (backend) · **Flow:** backend + core · **Scenarios (server side):** Time frames; Set-count chart; Sets per muscle group; Main exercises (US-40) · Radar; Body heatmap; Tap for detail (US-41)
+
+**Description:** New migration `<ts>_training_statistics.sql` with four read-only RPCs (`security invoker`, `stable`, `authenticated` only, execute revoked from `public`/`anon`). Shared filter, as `exercise_history`: the caller's `completed` sessions, completed sets (`completed_at` not null), warm-up sets only when `warm_up_included()`, the session date = UTC date of `started_at` within `[p_from, p_to]` inclusive (null `p_from` = from the first session, null `p_to` = no upper bound). Signatures to write into `03-data-model.md` §6 (replacing "their signatures are fixed when that epic is broken down"):
+- `training_summary(p_from date default null, p_to date default null) returns table(workouts bigint, sets bigint, volume numeric, duration_s bigint)`: exactly one row (zeros without data). `workouts` = completed sessions in the window; `sets` = eligible sets; `volume` = Σ `set_volume(metric, weight, reps, latest_body_weight_kg()) × volume_factor(exercise)` (same as `exercise_session_records`, `04` §4.2/§4.7); `duration_s` = Σ `greatest(0, ended_at − started_at − paused_total_s)` (`04` §4.10).
+- `weekly_set_counts(p_from date default null, p_to date default null) returns table(week_start date, sets bigint)`: Monday of the UTC week (as `weekly_muscle_volume`), only weeks with data, ordered by week; the client fills gaps and groups weeks into months for long frames.
+- `muscle_group_sets(p_from date default null, p_to date default null) returns table(muscle_group muscle_group, sets numeric)`: each eligible set adds 1 to its exercise's primary `muscle_group` and 0.5 to each distinct `secondary_muscles` group (a secondary equal to the primary is ignored); only groups > 0; ordered by `sets desc, muscle_group`. Serves sets per group (US-40), the radar (one call per window) and the body map (last 7 days).
+- `exercise_set_counts(p_from date default null, p_to date default null, p_muscle_group muscle_group default null) returns table(exercise_id uuid, sets numeric, sessions bigint)`: without a group, eligible sets and distinct sessions per exercise (main exercises); with a group, only exercises whose primary or secondary includes it, sets weighted 1 / 0.5 for that group (the muscle detail of US-41); ordered by `sets desc, sessions desc, exercise_id`.
+`04-business-rules.md` gains §4.11 "Statistics" with the counting rule and worked examples shared by pgTAP and the domain tests (e.g. bench press, primary chest, secondaries triceps and shoulders, 3 working + 1 warm-up sets → chest 3, triceps 1,5, shoulders 1,5; with "Incluir calentamiento" 4 / 2 / 2). Kotlin: domain models (`TrainingSummary`, `SetCountPoint`, `MuscleGroupSets`, `ExerciseSetCount`), `TrainingStatsRepository` + Supabase implementation and DTOs, the unconfigured fallback, DI; pure domain helpers for the frame window (`from`/`to` per frame, "Todo" = null), the previous equal-length window, the week→month bucketing and the last-7-days window (pending E8 Q2 for the exact rules; the RPCs do not depend on them). No UI.
+
+**Acceptance criteria:**
+- [ ] pgTAP for each RPC: the §4.11 examples; warm-up off/on; `discarded` and `in_progress` sessions and pending sets excluded; window boundaries (a session on `p_from` and on `p_to` included, the day after excluded); a session older than a year counted with a null `p_from`; per-hand and bodyweight volume; duration with a pause; cross-user isolation (another user's sessions never counted); unauthenticated call denied.
+- [ ] `exercise_set_counts` with `p_muscle_group = 'triceps'` returns the bench press with 1,5 sets for the example.
+- [ ] Kotlin: the repository maps each RPC to the domain models and errors; the window helpers have domain tests (1M/3M/6M/1A/"Todo", previous window, month bucketing across a year boundary, last 7 days).
+- [ ] `03` §6 lists the four signatures; `04` §4.11 holds the examples.
+
+**Host tests (per scenario):** `SupabaseTrainingStatsRepositoryTest` (payloads, row mapping, null windows, error mapping); `StatsWindowTest` / `SetCountBucketsTest` (domain); pgTAP `training_statistics.test.sql`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Agent runs:** planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer = 5 (no UI, so no ux-reviewer or compose-ui-developer). About 13 files.
+
+**Dependencies:** T-113 (independent of E8 Q1–Q3)
+**Files likely touched:** `supabase/migrations/<ts>_training_statistics.sql`, `supabase/tests/training_statistics.test.sql`, `shared/…/domain/model/TrainingStats.kt`, `shared/…/domain/repository/TrainingStatsRepository.kt`, `shared/…/domain/usecase/{StatsWindow,SetCountBuckets}.kt` + tests, `shared/…/data/repository/{SupabaseTrainingStatsRepository,UnconfiguredTrainingStatsRepository}.kt`, `shared/…/data/remote/TrainingStatsDto.kt`, DI module, `planning/03-data-model.md` §6, `planning/04-business-rules.md` §4.11, tests
+**Estimated scope:** M
+
+---
+
+## T-115: "Estadísticas" screen with the muscle distribution (radar and body map)
+
+**Story:** US-40, US-41 (UI) · **Flow:** UI + core · **Scenarios:** Time frames; Set-count chart; Sets per muscle group; Main exercises (US-40) · Radar; Body heatmap; Tap for detail (US-41)
+
+**Description:** One task (user decision, 2026-10-25), standard pipeline with no extra slices: planner, ux-reviewer, one kotlin-core-developer run (ViewModel, UI state, window wiring), one compose-ui-developer run (screen, sections, `RadarChart`, `BodyHeatmap`, sheet), pr-creator, pr-reviewer = 6 agent runs. Size note: about 22 files (about 16 production/doc + 6 tests), above the ~15-file guideline; kept as one task by the user's decision (one more task would cost another 6–7 runs). If pr-reviewer finds the PR too large to review, the fallback is to move `RadarChart`/`BodyHeatmap` into a follow-up task, decided then, not up front. With E8 Q1's proposed default, the US-40 and US-41 sections share the "Estadísticas" screen.
+
+**US-40 part.** A new entry in the Perfil root "Estadísticas" section (next to "Fuerza", "Peso" and "Calorías"; row "Entrenamiento", separate from "Fuerza", E8 Q1) opens a full-screen destination (back arrow, ADR-37) titled "Estadísticas". Frame chips 1M, 3M, 6M, 1A and "Todo" (default 1M; windows as in `plan.md` E8 Q2). Sections: key values as four `MetricTile`s (entrenos, series, volumen in kg, duración) from `training_summary`; the set-count chart (Vico bars in `athleticCyan`, buckets from T-114's helper) from `weekly_set_counts`; sets per muscle group (one row per group with a bar and the count with decimal comma, e.g. "4,5"; Spanish group names as in the catalog) from `muscle_group_sets`; main exercises (the top exercises by sets with their set count; catalog names via the exercise library; tapping a row opens its exercise progress, the existing route) from `exercise_set_counts`. Loading (skeletons), empty ("no workouts in this frame" with a different frame still selectable; wording by ux-reviewer), error with "Reintentar", offline. Changing the frame reloads every section; "Incluir calentamiento" is honoured by the server. The selected frame and the scroll position survive leaving the app. Layout reviewed by ux-reviewer (single column; two columns from 600 dp per `05` §5).
+
+**US-41 part.** Two new design-system components with catalog entries and `05-design-system.md` §6 rows: `RadarChart` (Canvas; one axis per muscle group; two series "Actual" and "Periodo anterior" with a legend; values and labels exposed as an accessible summary; adapts to large font scales) and `BodyHeatmap` (front and back body silhouettes with one region per muscle group, coloured by sets on a single-hue intensity scale; each region tappable with ≥ 48 dp effective targets or an accessible per-muscle list fallback; `Role.Button`, description "<músculo>, N series"). The silhouette is drawn in-house as vector paths, or uses a permissively licensed asset whose licence is recorded for the E9 credits. Sections of "Estadísticas" below the US-40 ones (E8 Q1): the radar compares the selected frame with the previous window of equal length from `muscle_group_sets` (two calls; "Todo" rule pending E8 Q2); the body map shows the last 7 days from `muscle_group_sets` regardless of the frame; tapping a muscle opens a bottom sheet with its sets ("N series", decimal comma) and its exercises (catalog names, sets) from `exercise_set_counts(…, p_muscle_group)`; a muscle without sets shows "0 series" and no list (wording by ux-reviewer). The `full_body` group follows E8 Q3. Loading, empty and error states per section. The open muscle sheet survives leaving the app.
+
+**Acceptance criteria:**
+- [ ] The Perfil root shows the new statistics entry; it opens "Estadísticas" with a back arrow.
+- [ ] Picking "Todo" shows entrenos, series, volumen and duración over the whole history (fake data with a session older than a year).
+- [ ] The set-count chart shows the sets over time for the frame.
+- [ ] Sets per muscle group shows primary 1 and secondary 0,5 (bench press example: Pecho 3, Tríceps 1,5, Hombros 1,5).
+- [ ] Main exercises lists the most trained exercises with their sets; a row opens its progress chart.
+- [ ] Loading, empty, error and offline states; the frame survives background and process death.
+- [ ] The radar shows "Actual" and "Periodo anterior" per muscle group for the selected frame; changing the frame updates both series.
+- [ ] The body map highlights the muscles trained in the last 7 days (fake: chest and triceps trained 3 days ago, legs 9 days ago → legs not highlighted).
+- [ ] Tapping "Tríceps" shows its sets (1,5 for the bench example) and its exercises; an untrained muscle shows zero sets.
+- [ ] Both components have catalog entries, pass the accessibility checks (targets, descriptions, large font) and use only design tokens.
+- [ ] Section states (loading, empty, error with "Reintentar"); the open muscle sheet survives background and process death.
+
+**Host tests (per scenario):** `TrainingStatsViewModelTest` with fakes + Turbine (each frame → windows sent, "Todo" null window, sections mapped, previous window for the radar, last-7-days window independent of the frame, muscle detail load, Retry, empty, offline, section errors); `TrainingStatsScreen` Robolectric tests (entry on the Perfil root, chips, tiles with Spanish formatting, chart semantics, muscle rows with decimal comma, main-exercise row opens progress, radar legend, map highlight semantics, sheet content, zero-sets muscle, states); `RadarChartTest` and `BodyHeatmapTest` (semantics, tap callbacks, large font) + catalog entries; `ProfileRootScreen` test for the new row; restoration tests (frame, open sheet).
+
+**Verification:**
+- [ ] lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-114 (deployed)
+**Files likely touched:** new `composeApp/…/feature/analytics/stats/{TrainingStatsScreen,TrainingStatsViewModel,TrainingStatsUiState,TrainingStatsSections,MuscleDistributionSection,MuscleDetailSheet}.kt`, `composeApp/…/designsystem/{RadarChart,BodyHeatmap,BodyMapPaths}.kt`, catalog, `composeApp/…/feature/profile/ProfileRootScreen.kt`, `composeApp/…/app/{AppRoutes,AppNavHost,AppRoot}.kt`, `composeApp/…/di/UiModule.kt`, strings, `planning/05-design-system.md` §6, tests
+**Estimated scope:** L (one task, see the size note)
+
+### Checkpoint E8-A — Follow your progress and spot imbalances 👤 (7 items + leave and come back)
+Journey: see whether you are getting stronger, per exercise, over any period and across muscles. Why here: the epic has a single checkpoint (user decision, 2026-10-25), right after T-115, the last implementation task, so it is also the final regression; the 12 collected items are grouped into 7.
+- [ ] T-113…T-115 merged, CI green, `deploy-supabase` applied both migrations, every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Exercise charts (T-113): open "Press de banca con barra" (or any exercise with several sessions) → its progress: the sessions that set a record are marked on the 1RM and volume charts; the frames show 1M, 3M, 6M, 1A and "Todo", and "Todo" shows the whole history.
+  2. Non-weight charts (T-113): a duration exercise ("Plancha") shows time and a distance one ("Cinta de correr") distance, with their records, no 1RM or volume.
+  3. Key values (T-115): Perfil → the new statistics entry → "Estadísticas": pick each frame and "Todo": entrenos, series, volumen and duración change accordingly; toggle "Incluir calentamiento" in Preferencias and come back: series and volumen follow it.
+  4. Sets over time and per muscle (T-115): the set-count chart matches what you trained; after a known workout, its primary muscle counts 1 per set and each secondary 0,5.
+  5. Main exercises (T-115): your most trained exercises with their sets; tapping one opens its progress chart.
+  6. Muscle distribution (T-115): the radar shows "Actual" vs "Periodo anterior" and changes with the frame; the body map highlights what you trained in the last 7 days; tapping a muscle shows its sets and exercises (an untrained one: zero sets).
+  7. States and final regression (E8): offline, "Estadísticas" and an exercise chart show the error with "Reintentar", which works once back online; a frame with no workouts shows the empty state; then log a workout with a warm-up set and a new record: the chart marks it and "Estadísticas", the radar and the body map include it; quick check of T-113: after creating a food from a dish photo, the next photo starts with an empty comment.
+  - Leave the app and come back on "Estadísticas" with a non-default frame and a muscle sheet open, and on an exercise chart with "Todo": the same tab, screen, frame and sheet are restored.
+  - Out of scope: monthly report, year in review, streaks and weekly check-ins (Phase 2, ADR-66); visual polish of earlier screens (E9).
+
+---
+
+## T-116: E8 closure
+
+**Story:** E8 Definition of Done · **Flow:** PM
+
+**Description:** Closes E8 once Checkpoint E8-A is approved: tag `v0.8.0` and the retrospective. No 👤 checkpoint here.
+
+**Acceptance criteria:**
+- [ ] T-113…T-115 (and any fix tasks) merged with green CI; pgTAP green for the four statistics RPCs with the `04` §4.11 examples, warm-up inclusion, windows and cross-user isolation, and for `save_meal_defaults`; `deploy-supabase` green after the last migration.
+- [ ] Domain tests for the chart metric selection, record markers, statistics windows and bucketing; host tests for every E8 Gherkin scenario (epic DoD).
+- [ ] Every new screen has loading, empty and error states; numbers use tabular numerals and Spanish formatting (epic DoD).
+- [ ] Checkpoint E8-A approved; every bug the user reported fixed; look-and-feel feedback appended to the E9 UI-refinement table.
+- [ ] `tasks/todo.md` (E8 ✅, next-task pointer) updated through a PR.
+
+**Verification:**
+- [ ] `gh run list` shows the last `deploy-supabase` green; `git tag` lists `v0.8.0` after approval.
+
+**Dependencies:** T-115 (and Checkpoint E8-A approved)
+**Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E8.md`
 **Estimated scope:** S
 
 ---

@@ -13,7 +13,7 @@
 | E6 | Training depth | US-28 … US-38, US-47 | Full UI + backend | `v0.6.0` — set types, RPE, metrics, PRs, routine management, manual-food editing |
 | E7 | Food photos, defaults and cooking | US-48 … US-51 | Full UI + backend | `v0.7.0` — photo food creation, default comidas and cooking methods (including saved comidas) |
 | E8 | Training insights | US-39 … US-41 | Full UI | `v0.8.0` — advanced stats, muscle distribution |
-| E9 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish, signed release and UI refinement |
+| E9 | Finalization | US-45 … US-46 + UI refinement | Full UI | `v1.0.0` — About, polish and UI refinement |
 
 ### 1.1 UI refinement (inside E9)
 The UI refinement is not a separate placeholder epic: it is part of **E9 · Finalization** (FR-6). It is a presentation-only pass over the screens of E2…E8; every 👤 checkpoint that defers a UI detail appends it to the table in `epics/E9-finalization.md`.
@@ -79,7 +79,7 @@ E1 … E8 ───────────────────────�
 | US-40 | E8 | Advanced statistics | UI + backend |
 | US-41 | E8 | Muscle distribution (radar and body heatmap) | UI + backend |
 | US-45 | E9 | About, version and licences | UI |
-| US-46 | E9 | Polish, accessibility, tablet and release build | UI |
+| US-46 | E9 | Polish, accessibility and tablet | UI |
 | US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
 | US-48 | E7 | Add a food from a camera or gallery photo with the AI estimate (added 2026-10-24, ADR-59) | UI + backend |
 | US-49 | E7 | AI nutrition-label and barcode photos (added 2026-10-24, ADR-59) | UI |

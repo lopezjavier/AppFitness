@@ -589,3 +589,12 @@ Format: context → decision → consequences. A decision is only changed by add
   - The trained-days streak in the E6 calendar (US-37) is unchanged.
 - **Consequences:** affects `epics/E8-training-insights.md`, `01-phase1-scope.md`, `07-roadmap.md` and the E8 breakdown.
 - **Approval:** 2026-10-25, user.
+
+### ADR-67 · No signed release build in Phase 1 (E9, US-46)
+- **Context:** User request, 2026-10-25, before the E8 breakdown. The app is a personal project (1–5 users) installed from the `prodDebug` APK with `scripts/deliver-apk.py`; nobody needs a distributable release.
+- **Decision:**
+  - Phase 1 ships only the `prodDebug` APK. No release keystore, no R8/ProGuard rules, no release SHA-1 in Google Cloud and no tag-triggered `release.yml`. `v1.0.0` is a git tag plus a GitHub Release with notes and no APK attached.
+  - The "cold start < 2 s" goal is a manual check on the `prodDebug` APK, not a release-build gate.
+  - The repository stays public during Phase 1 (ADR-13, unlimited Actions minutes). The user plans to make it private once the app is fully implemented; at that point ADR-13, NFR-02 and the CI minutes (2,000 per month on GitHub Free) are revisited.
+- **Consequences:** affects `epics/E9-finalization.md` (US-46, Definition of Done), `01-phase1-scope.md` §4.1, `02-architecture.md` §7–§8, `07-roadmap.md` and `08-environment-setup.md`.
+- **Approval:** 2026-10-25, user.

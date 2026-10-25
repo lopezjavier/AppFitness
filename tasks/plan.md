@@ -1,90 +1,87 @@
-# Implementation Plan: E7 · Food photos, defaults and cooking → `v0.7.0`
+# Implementation Plan: E8 · Training insights → `v0.8.0`
 
-> **Status:** the 👤 checkpoints (E7-A, E7-B) were agreed with the user on 2026-10-24.
+> **Status:** restructured on 2026-10-25 per the user's decisions (three implementation tasks, one 👤 checkpoint, cheapest pipeline). E8 Q1–Q3 were answered by the user on 2026-10-25 (see Open Questions).
 
 ## Overview
-Cut the typing out of food logging. A personal food can be created from a photo: an AI estimate of a dish, a nutrition label or a barcode photo, always through the editable manual-food form. A new day's Diary fills itself with the saved comidas assigned to that meal and weekday. A solid food can be logged as Crudo, A la plancha, Air fryer or Frito, adding the retained olive oil. The epic also takes the two change requests from Checkpoint E6-C (ADR-62): changing the unit of a manual food that nothing uses yet (US-52), and a saved comida that opens its details with "Añadir" and "Editar" (US-53).
+Show real progress from the training data E3 and E6 already store: per-exercise charts that mark records, add an all-time frame and follow every metric family (US-39); a full "Estadísticas" screen with key values, the set-count chart, sets per muscle group and the main exercises over any frame (US-40); and the muscle distribution as a radar (current vs previous period) and a body map of the last 7 days with a per-muscle detail (US-41). The first task also closes the non-blocking review suggestions still open from E7.
 
-Sources: `planning/epics/E7-food-photos-defaults-and-cooking.md` (US-48…US-53), `planning/01-phase1-scope.md` FR-2.15…FR-2.19, `planning/02-architecture.md` (Edge Function validation, single upload request), `planning/03-data-model.md` §3 (`food_log_entries`, `meal_template_items`, `food_preferences`, `meal_defaults`, `diary_default_applications`), §6 (`save_preferences`, `save_meal_template`, `save_meal_defaults`, `apply_meal_defaults`, `create_personal_food`, `update_personal_food`) and §7 (`food-photo`), `planning/04-business-rules.md` §2.2–§2.3, `planning/05-design-system.md` (`CookingMethodSelector`, `WeekdaySelector`, §6.2 "Cocina", §6.3, §8), `planning/08-environment-setup.md` (`GEMINI_API_KEY`, free-tier limits), ADR-59…ADR-62. Tasks: `tasks/todo.md` (T-104…T-111). Earlier plans are in the git history.
+Sources: `planning/epics/E8-training-insights.md` (US-39…US-41), `planning/01-phase1-scope.md` FR-4.9 and FR-5.1, `planning/02-architecture.md` (Vico charts), `planning/03-data-model.md` §5 (`exercises.secondary_muscles`, `workout_sessions`, `workout_sets`) and §6 (`exercise_session_records`, `personal_records`, `weekly_muscle_volume`), `planning/04-business-rules.md` §4.2, §4.6–§4.8, §4.10, §5, `planning/05-design-system.md` §5–§6, ADR-30, ADR-37, ADR-52, ADR-56, ADR-66, ADR-67. Tasks: `tasks/todo.md` (T-113…T-116). Earlier plans are in the git history.
 
-Out of scope (epic file and `01` §4): estimating a whole meal from one photo; storing, uploading or browsing photos (no Storage, no in-app gallery); an `ai` food source; the AI training assistant and adaptive calories (Phase 2); micronutrient targets; applying defaults at midnight, backfilling unopened days, notifications; re-selecting the cooking method of an existing entry.
+Out of scope (epic file, `01` §4, ADR-66, ADR-67): Monthly Report, Year in Review, streaks and weekly check-ins (Phase 2); the program generator / trainer; social features and cardio plans; any release build, R8 or keystore work; every item of the E9 UI-refinement table and the ux-reviewer rewrite (E9's first task).
 
 ## Architecture Decisions
-- **Vertical slices, sequential, split only where a story is too large.** US-52 and US-53 are small and both fix food/comida editing, so they share one task (T-104). US-48 and US-49 share one Edge Function and one capture flow (the modes differ only in the prompt and the error text), so they are planned together and split backend (T-105) / UI (T-106). US-50 (T-107 / T-108) and US-51 (T-109 / T-110) each have a migration with several RPCs plus three or more UI surfaces, so each splits backend + domain, then UI.
-- **Order.** T-104 first: it changes the comida rows and the manual-food form that later tasks build on (T-106 reuses the form; T-108 adds cooking chips to the comida details, which are the editor (ADR-63)). Cooking (US-50) comes before default comidas (US-51) because `apply_meal_defaults` copies the saved cooking method and computes the retained oil.
-- **One AI path, no AI in the app (ADR-59).** `food-photo` (`verify_jwt = true`) holds the three fixed prompts, a fixed response schema and the normalisation (per-100 values, `1 ración` for a dish, negatives rejected or clamped, no kcal/macros = error). The app only downsizes and sends the image. `deno test` uses recorded Gemini fixtures (dish, label, barcode, unreadable, invalid input, provider error); CI never calls the network. Nothing is logged or stored. The Gemini key is the Supabase secret `GEMINI_API_KEY`, entered by the user.
-- **Capture without permissions.** `PhotoCapture` in the domain; the Android implementation uses `TakePicture` + `FileProvider` and `PickVisualMedia`, one downscale/compress path (≤ 1600 px, JPEG ≈ 1.5 MB), the temporary file deleted on every outcome. No CameraX, no media or camera permission.
-- **The AI result is a prefilled `CreateFoodScreen`.** The prefill is a `NewFoodDraft`; saving calls the existing `create_personal_food` and then opens the normal `AddFoodSheet`, exactly as a manual creation. The "Estimado por IA · revisa los valores" note disappears on the first edit (`05` §6.3).
-- **Cooking is a snapshot, computed once (ADR-60).** One pure domain function (`retained_g = used_g × factor`, `+9 × retained_g` kcal, `+retained_g` g fat) and one SQL helper with the same test cases (domain tests and pgTAP share them), used by `apply_meal_defaults`. Entries store `cooking_method`, `cooking_oil_retained_g` and adjusted kcal/fat; the food never changes. A missing `food_preferences` row reads as 5/5/50 g. `save_preferences` gains the three oil parameters (defaulted, null = unchanged) so Preferencias keeps one "Guardar". Templates store the method per item, never oil.
-- **Default comidas are applied by one idempotent RPC (ADR-61).** `apply_meal_defaults(p_log_date)` runs on the first load of **today's** Diary, before the entries are read; the marker table makes it safe to retry and prevents re-adding deleted entries. The client sends the device-local date; the server derives the ISO weekday. A failure never blocks the Diary (non-blocking "Reintentar").
-- **Unit change is enforced by the server (ADR-62).** A new `update_personal_food` version accepts the base unit and refuses a change while any `food_log_entries` or `meal_template_items` row references the food (favourites do not count), inside the same locked transaction, so a stale form cannot slip through. The client disables the control with an explanation when it already knows the food is used.
-- **Every schema change is a new migration** with pgTAP (RLS forced, cross-user isolation, cascades from `auth.users`, ADR-29); merged migrations are never edited. A changed RPC signature ships in the same PR as the Kotlin caller (T-097h lesson). `03` §6 is updated by each task.
-- **Interaction rules (ADR-45, `05` §8).** One explicit "Guardar" on every edit surface (Cocina, "Comidas por defecto", the comida details, the AI-prefilled form); nothing applied on dismiss; discard confirmation on "Comidas por defecto". US-53 removes the US-47 exception in `05` §8: a row opens its details, editing starts from the details.
-- **Restoration (ADR-40).** The unit edit draft, the comida details, the photo flow state (mode, source, comment, prefilled form; the image itself is not restored once discarded), the add-to-meal cooking choice, the Cocina draft, the comida method chips and the defaults editor draft (including an open assignment sheet) survive background and process death, each with `StateRestorationTester` + recreated-ViewModel tests.
-- **Retrospective actions still in force.** E5: every task that edits or deletes records has a test with a record outside the screen's loaded range (T-104 reference on an old day, T-108 cooked entry edited on another day, T-109/T-110 deleting a comida or meal with assignments and entries on earlier days). Rules over user data state the assumed usage frequency (defaults: the Diary is opened at least once on the days the user wants them; unopened days stay empty, ADR-61). E6: keep host-test time in check (no new slow suites; reuse the optimised test setup).
+- **Three implementation tasks, cheapest pipeline (user decision, 2026-10-25).** T-113 = E7 carry-over cleanup + US-39 charts; T-114 = statistics backend for US-40/US-41; T-115 = the whole "Estadísticas" screen with the radar and the body map (US-40 + US-41 UI). Each runs the standard pipeline once, with no extra slices. T-113 (about 28 files, many one-line cleanup changes) and T-115 (about 22 files) exceed the ~15-file guideline; they stay single tasks by the user's decision, since each extra task costs 6–7 hand-offs. If pr-reviewer finds T-115 too large to review, the fallback (moving `RadarChart`/`BodyHeatmap` to a follow-up) is decided then, not up front.
+- **No training-table migration (ADR-30).** Everything reads `workout_sessions`, `workout_sets` and `exercises` (`metric_type`, `secondary_muscles`, `per_hand`) as they are. The only migrations are a function replacement (`save_meal_defaults`, T-113) and the four statistics RPCs (T-114).
+- **US-39 reuses `exercise_session_records`.** It already returns, per completed session and warm-up aware, every family (1RM, session volume, duration, distance, steps, floors). The chart metric follows `metric_type` through one pure domain function; record markers reuse `PersonalRecordCatalogue.beatenBy` over the whole history (the same rule as the session summary, `04` §4.5/§4.8). `exercise_history` is unchanged; `03` §6 records that US-39 adds no RPC (the epic's technical note "extends the `exercise_history` RPC" is an implementation detail superseded here).
+- **Statistics RPC signatures (fixed here, written into `03` §6 by T-114).** All `security invoker`, `stable`, `authenticated` only; the shared filter of `exercise_history` (caller's `completed` sessions, completed sets, warm-up only when `warm_up_included()`, UTC date of `started_at` in `[p_from, p_to]`, nulls = unbounded):
+  - `training_summary(p_from date default null, p_to date default null) returns table(workouts bigint, sets bigint, volume numeric, duration_s bigint)`: one row; volume as `exercise_session_records` (`set_volume × volume_factor`, latest body weight for bodyweight types); duration per `04` §4.10.
+  - `weekly_set_counts(p_from date default null, p_to date default null) returns table(week_start date, sets bigint)`: Monday-based UTC weeks, only weeks with data.
+  - `muscle_group_sets(p_from date default null, p_to date default null) returns table(muscle_group muscle_group, sets numeric)`: primary 1, each distinct secondary 0,5.
+  - `exercise_set_counts(p_from date default null, p_to date default null, p_muscle_group muscle_group default null) returns table(exercise_id uuid, sets numeric, sessions bigint)`: main exercises, or the weighted per-muscle detail when a group is given.
+- **Windows live in the domain.** Frame → `[from, to]`, the previous equal-length window, week→month bucketing and the last-7-days window are pure, tested domain helpers (T-114), so the answers to E8 Q2 can change without touching SQL.
+- **One statistics destination (ADR-37).** "Estadísticas" is a full-screen destination from the Perfil root's statistics section; with E8 Q1's proposed default the muscle distribution sections live on the same screen. Main-exercise rows open the existing exercise progress route.
+- **New design-system components inside the story that needs them.** `RadarChart` and `BodyHeatmap` are built in T-115 with catalog entries and `05` §6 rows; bars and tiles reuse existing components and Vico.
+- **Shared examples.** `04` gains §4.11 "Statistics" with worked examples used by both pgTAP and the domain tests (epic DoD).
+- **Interaction and restoration.** Read-only screens: no "Guardar". The selected frame (charts and statistics), the scroll position and an open muscle sheet survive background and process death (ADR-40, `StateRestorationTester` + recreated-ViewModel tests). Every screen has loading, empty and error states (US-46) and uses tabular numerals with Spanish formatting (`04` §5).
+- **Retrospective actions still in force.** E5 (b): statistics state their data assumption (only `completed` sessions, UTC session dates, same as `exercise_history`), confirmed by the user at the checkpoint. E6: keep host-test time in check (no new slow suites). E7: none pending.
 
 ## Task List
 
-Checkpoint rule: every user-testable item of the epic is collected first, then grouped by journey into checkpoints of 5–7 items, each placed right after the last task of its journey. An item is one coherent thing to try on the phone; "leave the app and come back" is in every checkpoint but not counted. E7 yields 13 feature items in two journeys (create and fix foods: 7; cook and plan meals: 6) plus the closing multi-day regression (5). Full item lists are in `tasks/todo.md`.
+Checkpoint rule for E8: a single 👤 checkpoint for the whole epic (user decision, 2026-10-25), right after the last implementation task, so it is also the final regression. All 12 user-testable items (charts 3, statistics 4, muscle distribution 3, states 1, closing regression 1) are grouped into 7 by journey; "leave the app and come back" is listed but not counted. Full item list in `tasks/todo.md`.
 
-### Phase 1: Create and fix foods (photos, unit, comida details)
-- [x] T-104: Unit of an unused manual food and comida details (US-52, US-53) — UI + backend — M
-- [ ] T-105: `food-photo` Edge Function: dish, label and barcode (US-48/US-49 backend) — backend — M
-- [ ] T-106: Add a food from a photo (US-48/US-49 UI) — UI — L
-  - **Checkpoint E7-A 👤 Create and fix foods (7 items):** unit change of an unused food; comida details; photo action, modes and sources; dish estimate; label photo; barcode photo; failures and offline. Why here: the whole "add a new food" journey is complete, and cooking and defaults do not build on the photo flow, so feedback on the form and the comida details lands before T-108 adds cooking chips to them.
+| Task | Flow | Scope | Expected agent runs |
+|---|---|---|---|
+| T-113: E7 carry-over cleanup and exercise charts (US-39) | backend + core + UI | L | 7: planner, ux-reviewer, backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
+| T-114: Training statistics backend (US-40/US-41 backend) | backend + core | M | 5: planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer |
+| T-115: "Estadísticas" screen with the radar and body map (US-40/US-41 UI) | UI + core | L | 6: planner, ux-reviewer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
+| T-116: E8 closure | PM | S | PM only |
 
-### Phase 2: Cook and plan meals (cooking methods, default comidas)
-- [x] T-107: Cooking methods backend (US-50 backend) — backend — M
-- [x] T-108: Cooking selector, "Cocina" and cooking in comidas (US-50 UI) — UI — L
-- [x] T-109: Default comidas backend (US-51 backend) — backend — M
-- [x] T-110: "Comidas por defecto" and a new day's Diary (US-51 UI) — UI — L
-  - **Checkpoint E7-B 👤 Cook and plan your meals (6 items):** cooking in the add-to-meal sheet; "Cocina" amounts; cooking in comidas; the defaults editor; a new day starts with its defaults; changes and deletions after applying. Why here: it is the last implementation task, so it is also the final regression; cooking alone gives 3 items, below the minimum, and defaults copy the cooking methods, so both form one "plan what I eat" journey. The new-day item needs the next morning, so the user configures the defaults and checks the Diary the following day.
+### Phase 1: Implementation
+- [ ] T-113: E7 carry-over cleanup and exercise charts — backend + core + UI — L
+- [ ] T-114: Training statistics backend — backend + core — M
+- [ ] T-115: "Estadísticas" screen with the muscle distribution — UI + core — L
+  - **Checkpoint E8-A 👤 Follow your progress and spot imbalances (7 items):** exercise charts (record markers, "Todo"); non-weight charts; key values per frame and warm-up toggle; sets over time and per muscle; main exercises; muscle distribution (radar, body map, tap detail); states and the final E8 regression (incl. the T-113 photo comment check). Why here: the single checkpoint of the epic, after the last implementation task.
 
-- [ ] T-112: fix — cooking adds fat as a % of the raw weight (ADR-65) — backend + UI — M
+### Phase 2: Closure
+- [ ] T-116: E8 closure — PM — S (no checkpoint; E8-A's approval releases it)
 
-### Phase 3: Closure
-- [x] T-111: E7 closure — PM — S
-
-Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
+Internal milestones (not 👤 checkpoints):
 - pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task;
-- `deploy-supabase` green after each migration or function (T-104, T-105, T-107, T-109);
-- `GEMINI_API_KEY` set by the user in Supabase secrets (name verified, value never seen) before E7-A;
-- existing entries and template items backfilled to `raw` after T-107.
+- `deploy-supabase` green after each migration (T-113, T-114), and before E8-A is presented.
 
 ## Dependencies
 
 ```
-v0.6.0 ─► T-104 ─► T-105 ─► T-106 ─► [E7-A 👤]
-       ─► T-107 ─► T-108 ─► T-109 ─► T-110 ─► [E7-B 👤]
-       ─► T-111 (closure, no checkpoint) ─► v0.7.0
+v0.7.0 ─► T-113 ─► T-114 ─► T-115 ─► [E8-A 👤] ─► T-116 (closure) ─► v0.8.0
 ```
-- Strictly sequential; each checkpoint gates the next task.
-- T-106 reuses the manual-food form T-104 touches (unit control) and needs T-105 deployed with the secret set.
-- T-108 needs T-107's columns, `save_preferences`/`save_meal_template` versions and the domain function; it extends T-104's comida details with the cooking impact.
-- T-109's `apply_meal_defaults` uses T-107's cooking SQL helper and `food_preferences`; T-110 needs T-109 and the saved comidas with methods (T-108).
+- Strictly sequential (one active task at a time).
+- E8 Q1–Q3 are resolved; no task is blocked.
+- T-115 needs T-114 deployed.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Gemini free-tier quota or model changes break the photo flow | High | `429`/`502`/`503` mapped to "Reintentar" + "Crear manualmente"; fixed response schema validated in the function; recorded fixtures in `deno test`; no billing account (ADR-59) |
-| A prompt injection through the comment or the image changes the output | Medium | Comment dish-only, ≤ 200 chars, passed as data; the response must match the schema (extra fields dropped, negatives rejected); the user always reviews the prefilled form |
-| A photo, comment or provider body leaks into logs or storage | High | Function never logs them (reviewed in the PR); temporary file deleted on every outcome (host test per outcome); no Storage bucket |
-| Large images exceed Edge Function limits or are slow on mobile data | Medium | Downscale ≤ 1600 px / JPEG ≈ 1.5 MB before upload; `413` handled; single request, no background retry |
-| Cooking kcal/fat diverge between the client, the SQL helper and the defaults RPC | High | One domain function and one SQL helper with shared test cases (`04` §2.2 examples) |
-| The `save_preferences` / `save_meal_template` / `update_personal_food` signature changes break the installed app | Medium | New parameters defaulted; migration and Kotlin caller in the same PR; old signature dropped explicitly |
-| `apply_meal_defaults` adds a day twice or brings back deleted entries | High | Marker table with `on conflict do nothing` in the same transaction; pgTAP for re-run, delete-then-reopen, a day with entries and a past date |
-| The device-local date and the server weekday disagree around midnight or across time zones | Medium | The client sends the local date; the server derives the ISO weekday from that date only (never from `now()`); domain test for the weekday helper |
-| The unit is changed while another device logs the food | Low | Check inside the locked RPC transaction; pgTAP proves the refusal; host test for the error message |
-| L UI tasks (T-106, T-108, T-110) overflow one dev run | Medium | The planner slices them (domain/ViewModel, then screens), one dev run per slice |
+| T-113 and T-115 exceed the ~15-file guideline, so one dev run may overflow or the review gets harder | Medium | Many T-113 changes are one-liners in separate files; the planner orders the work inside each run; T-115 fallback (components to a follow-up) only if pr-reviewer finds it unreviewable |
+| One checkpoint for the whole epic collects many findings at once (E3 had 15) | Medium | The 7 items are explicit and grouped by journey; fix tasks follow the usual one-task-per-session rule |
+| SQL and Kotlin disagree on set counting, volume or warm-up inclusion | High | One rule in `04` §4.11 with shared examples used by pgTAP and domain tests; volume reuses `set_volume`/`volume_factor`/`latest_body_weight_kg` like `exercise_session_records` |
+| Statistics over the whole history are slow on a phone or the free DB | Medium | Aggregation in SQL (one round trip per section), existing session indexes checked in T-114; 1–5 users, small data |
+| UTC session dates put a late-evening workout on the next day in a window | Low | Same convention as every training RPC since E3 (stated assumption, E5 retro b); user confirms at E8-A |
+| The body map needs a silhouette asset with an unclear licence | Medium | Draw the regions in-house as vector paths, or use a permissively licensed asset with its licence recorded for the E9 credits |
+| Radar and body map are hard to make accessible (small regions, colour only) | Medium | ≥ 48 dp effective targets or an accessible per-muscle list, descriptions with the set count, values in the sheet; ux-reviewer checks the plan |
+| Vico cannot draw record markers or a radar | Medium | Markers as a Vico decoration/point layer; the radar is a custom Canvas component (`RadarChart`), not Vico |
+| Changing the progress screen's data source (T-113) regresses the Fuerza and session-detail entry points | Medium | Existing `ExerciseProgress*` tests kept green; the reps-only fallback preserved; all three entry routes tested |
+| A changed `save_meal_defaults` breaks the installed app | Low | Same signature and error codes; existing pgTAP unchanged |
 
 ## Open Questions
-None blocking: E7 Q1–Q4 were answered by the user on 2026-10-24 (`planning/09-open-questions.md`, ADR-58…ADR-61) and ADR-62 covers US-52/US-53.
 
-**Assumptions (non-blocking; applied unless the user objects at the checkpoints):**
-- Copying a meal or a day in the Diary (T-060) copies each entry's snapshot as today, including its cooking method and retained oil (no recomputation with the current "Cocina" amounts) (T-108, E7-B).
-- Saving today's meal as a comida stores each entry's method; it never stores the oil (ADR-60) (T-108, E7-B).
-- A food created from a photo with base unit `ml` behaves like any drink: no cooking selector (T-106/T-108).
-- The diary entry row shows the cooking method next to the amount when it is not Crudo (wording and placement by ux-reviewer) (T-108, E7-B).
-- The unit hint for a used food explains that it is already in the diary or in a comida, without listing where (wording by ux-reviewer) (T-104, E7-A).
-- Defaults usage frequency: the Diary is opened at least once on the days the user wants their defaults; a day not opened stays empty (ADR-61) (T-110, E7-B).
-- ux-reviewer words the stale-unit refusal, the photo hints and the "Comidas por defecto" note within `05` §6.3, and the user sees them at the checkpoints (feedback rule).
+**Resolved (user, 2026-10-25):**
+- **E8 Q1 · Entry and placement.** The Perfil "Estadísticas" section already holds "Fuerza" (1RM card, exercise charts, "Volumen por grupo muscular"), "Peso" and "Calorías". Decision: keep "Fuerza" as it is and add a separate row "Entrenamiento" in that section opens a full-screen "Estadísticas" (back arrow) that holds the US-40 sections and, below them, the radar and the body map (US-41), rather than a separate muscle screen.
+- **E8 Q2 · Frames and periods.** Decision: "Estadísticas" uses the chart frames 1M, 3M, 6M, 1A and "Todo" (default 1M; the existing exercise-chart default is unchanged); "Periodo anterior" is the window of equal length right before the selected one, and with "Todo" the radar shows only "Actual"; the set-count chart has one bar per week up to 6M and per month for 1A and "Todo"; "main exercises" are the top 5 by completed sets in the frame; the body map and its tap detail always cover the last 7 days (today and the 6 previous days), whatever frame is selected.
+- **E8 Q3 · Record markers and "full body".** Decision (accepted as proposed): a chart marks a session when it beat every earlier session for that chart's metric (the 1RM chart marks 1RM records, the volume chart volume records, time/distance charts their own), as in the session summary; exercises whose group is `full_body` count as "Cuerpo completo" in the radar and the per-group list but are not drawn on the body map.
+
+**Assumptions (non-blocking; applied unless the user objects at the checkpoint):**
+- Statistics count only `completed` sessions and completed sets, with the UTC date of the session start (like every training chart since E3); warm-up sets only with "Incluir calentamiento" (`04` §4.6).
+- "duración" is the sum of session durations net of pauses (`04` §4.10); "volumen" follows `04` §4.2/§4.7 (per-hand ×2, bodyweight with the latest body weight, duration/distance exercises 0).
+- `weight_duration` exercises chart their best duration; `reps_only` keeps the reps chart; steps and floors exercises chart steps and floors.
+- A secondary muscle equal to the exercise's primary group is not counted twice.
+- Labels, legends, empty-state wording and the marker style are worded by ux-reviewer within `05`, and the user sees them at the checkpoint.

@@ -109,6 +109,7 @@ Stories and scenarios removed from an epic by the user. They are kept here with 
 | Editing Open Food Facts foods | E6 scope line (food editing, "if feasible") | ADR-53, 2026-10-22 | "edit macros and micronutrients … of Open Food Facts foods (if feasible)" |
 | Monthly Report | E8, US-42 | ADR-66, 2026-10-25 | `When the user opens the "Informe mensual" / Then they see the days trained, the number of workouts, the duration and the total volume`; `When a month closes / Then the "Informe mensual listo" notification is shown`. |
 | Year in Review | E8, US-43 | ADR-66, 2026-10-25 | `When the user opens "Tu año en el gimnasio" / Then they see the total volume, the best month, the streak, the muscle breakdown and their PRs`; `Then they can export it as an image`. |
+| Signed release build | E9, US-46 | ADR-67, 2026-10-25 | `Scenario: Signed release build / When the release build of the prod flavor is run / Then a signed APK with R8 enabled is produced / And the app works the same as in debug`. Dropped, not deferred: Phase 1 ships the `prodDebug` APK. |
 | Streaks and weekly check-ins | E8, US-44 | ADR-66, 2026-10-25 | `Then the app shows the consecutive weeks trained`; `When a week closes / Then a check-in compares this week's volume with last week's and lists the PRs`. |
 
 ### Deferred to Phase 2 (unchanged from the original requirements)
