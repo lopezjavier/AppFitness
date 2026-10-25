@@ -598,3 +598,13 @@ Format: context → decision → consequences. A decision is only changed by add
   - The repository stays public during Phase 1 (ADR-13, unlimited Actions minutes). The user plans to make it private once the app is fully implemented; at that point ADR-13, NFR-02 and the CI minutes (2,000 per month on GitHub Free) are revisited.
 - **Consequences:** affects `epics/E9-finalization.md` (US-46, Definition of Done), `01-phase1-scope.md` §4.1, `02-architecture.md` §7–§8, `07-roadmap.md` and `08-environment-setup.md`.
 - **Approval:** 2026-10-25, user.
+
+### ADR-68 · Diary groups the entries added from a saved comida (E8, US-55)
+- **Context:** User request, 2026-10-25, during E8. A saved comida added to a meal shows today as separate foods, indistinguishable from foods added one by one.
+- **Decision:**
+  - `food_log_entries` gains two nullable columns, `group_id uuid` and `group_name text` (the comida's name when it was added). Entries sharing a `group_id` in the same meal and day form one group. It is a snapshot: editing, renaming or deleting the comida never changes the diary, and there is no foreign key to `meal_templates`.
+  - Entries get a group when a saved comida is added to a meal (manually or as a default applied on a new day) and when the user saves a meal as a comida: the entries of that meal become one group under the new name from that moment. Applying the same comida twice creates two groups.
+  - Only entries created from now on are grouped. Existing entries keep `group_id = null` and stay individual foods; no backfill.
+  - Diary row: a collapsed group shows the name, total kcal and macros; expanding shows its entries like regular foods, each editable and deletable. The expanded state is kept across leaving the app. A food added to the meal later is never part of a group. Deleting some entries leaves the group with the rest; deleting the last one removes the group. Copying a day or a meal keeps the grouping with a new `group_id`.
+- **Consequences:** affects `03-data-model.md` (`food_log_entries`, the add-comida and save-as-comida RPCs), `04-business-rules.md` if totals are documented there, `epics/E8-training-insights.md` (US-55) and the E8 breakdown (T-117).
+- **Approval:** 2026-10-25, user (scope and behaviour); wording pending the user's OK in the docs PR.
