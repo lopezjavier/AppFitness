@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPhotoReposit
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthSyncRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseMealDefaultsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealTemplateRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRep
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthSyncRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealDefaultsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealTemplateRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
@@ -55,6 +57,7 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -221,6 +224,14 @@ val sharedModule =
                 SupabaseMealTemplateRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredMealTemplateRepository()
+            }
+        }
+        single<MealDefaultsRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseMealDefaultsRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredMealDefaultsRepository()
             }
         }
         single<FoodDiaryRepository> {
