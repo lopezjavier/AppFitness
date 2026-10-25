@@ -16,6 +16,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -29,6 +30,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // One method per scenario.
 class CreateFoodViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeFoodRepository()
@@ -472,6 +474,57 @@ class CreateFoodViewModelTest {
         advanceUntilIdle()
         assertEquals("g", repository.updates.last().baseUnit)
         assertEquals("Yogur griego", repository.known.getValue("yogurt").name)
+    }
+
+    private fun TestScope.refusedModel(state: SavedStateHandle = SavedStateHandle()): CreateFoodViewModel {
+        repository.known["yogurt"] = yogurt
+        val model = editModel(state)
+        advanceUntilIdle()
+        model.onEvent(CreateFoodEvent.UnitSelected("ml"))
+        repository.inUse += "yogurt"
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+        assertTrue(model.uiState.value.unitRefused)
+        return model
+    }
+
+    @Test
+    fun edit_refusal_clearsOnALaterFieldEdit_keepsTheUnitLocked_andDropsTheSavedFlag() = runTest(dispatcher) {
+        val state = SavedStateHandle()
+        val model = refusedModel(state)
+
+        model.type(CreateFoodField.Name, "Yogur griego")
+        advanceUntilIdle()
+
+        val current = model.uiState.value
+        assertFalse(current.unitRefused)
+        assertTrue(current.unitLocked)
+        assertEquals("Yogur griego", current.name)
+        assertEquals("g", current.baseUnit)
+        assertFalse(editModel(state).also { advanceUntilIdle() }.uiState.value.unitRefused)
+    }
+
+    @Test
+    fun edit_refusal_clearsOnALaterNutrientEdit() = runTest(dispatcher) {
+        val model = refusedModel()
+
+        model.onEvent(CreateFoodEvent.NutrientChanged(MicronutrientKind.Fiber, "3"))
+        advanceUntilIdle()
+
+        assertFalse(model.uiState.value.unitRefused)
+        assertTrue(model.uiState.value.unitLocked)
+    }
+
+    @Test
+    fun edit_refusal_clearsWhenTheUserRetriesAndTheRetryFails() = runTest(dispatcher) {
+        val model = refusedModel()
+        repository.updateFailure = AppException(AppError.Network)
+
+        model.onEvent(CreateFoodEvent.Save)
+        advanceUntilIdle()
+
+        assertFalse(model.uiState.value.unitRefused)
+        assertTrue(model.uiState.value.unitLocked)
     }
 
     @Test

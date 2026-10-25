@@ -24,7 +24,6 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
-import io.github.lopezjavier.appfitness.feature.templates.TemplatePreviewViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncViewModel
@@ -202,30 +201,21 @@ val uiModule =
                 savedState = get(),
             )
         }
-        // A blank slotId means no meal is preselected; date is an ISO yyyy-MM-dd string.
+        // A blank slotId means the meal of the time of day (Koin parameters cannot be null); date is ISO yyyy-MM-dd.
         viewModel { (templateId: String, slotId: String, date: String) ->
-            TemplatePreviewViewModel(
+            TemplateDetailsViewModel(
                 templateId = templateId,
                 slotId = slotId.ifBlank { null },
                 date = LocalDate.parse(date),
                 mealTemplates = get(),
                 scaleNutrition = get(),
+                validateQuantity = get(),
+                validateTemplateName = get(),
+                foodRepository = get(),
                 addTemplateToDiary = get(),
                 mealSlots = get(),
                 defaultMealSlot = get(),
                 clock = get(),
-                connectivity = get(),
-                savedState = get(),
-            )
-        }
-        viewModel { (templateId: String) ->
-            TemplateDetailsViewModel(
-                templateId = templateId,
-                mealTemplates = get(),
-                scaleNutrition = get(),
-                validateQuantity = get(),
-                validateTemplateName = get(),
-                foodRepository = get(),
                 connectivity = get(),
                 savedState = get(),
             )

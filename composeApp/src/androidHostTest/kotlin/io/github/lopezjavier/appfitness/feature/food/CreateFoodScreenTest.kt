@@ -105,9 +105,10 @@ class CreateFoodScreenTest {
     }
 
     @Test
-    fun labelGroup_offersTheFourOptionalFields_andSavingWithoutThemStaysEnabled() {
+    fun labelFields_areOptional_withNoSectionTitleNorPer100Text_andSavingWithoutThemStaysEnabled() {
         show()
-        rule.onNodeWithTag("create_food_label_title").assertTextContains("Información de la etiqueta (opcional)")
+        rule.onNodeWithTag("create_food_label_title").assertDoesNotExist()
+        rule.onNodeWithText("Información de la etiqueta (opcional)").assertDoesNotExist()
         listOf("saturated_fat", "sugars", "fiber", "salt").forEach {
             rule.onNodeWithTag("create_food_nutrient_$it").assertExists()
         }

@@ -803,7 +803,12 @@
     <string name="create_food_protein">Proteínas</string>
     <string name="create_food_carbs">Carbohidratos</string>
     <string name="create_food_fat">Grasas</string>
-    <string name="create_food_label_title">Información de la etiqueta (opcional)</string>
+    <string name="create_food_carbs_total">Hidratos de carbono</string>
+    <string name="create_food_fat_total">Grasas total</string>
+    <string name="create_food_saturated_of">de los cuales saturadas</string>
+    <string name="create_food_sugars_of">de los cuales azúcares</string>
+    <string name="create_food_fiber">Fibra</string>
+    <string name="create_food_salt">Sal</string>
     <string name="create_food_portions">Porciones</string>
     <string name="create_food_add_portion">Añadir porción</string>
     <string name="create_food_portion_label">Etiqueta</string>
@@ -901,15 +906,13 @@
     </plurals>
     <string name="template_summary">%1$s · %2$s kcal</string>
     <string name="template_swipe_delete_cd">Eliminar %1$s</string>
-    <string name="template_preview_title">Comida</string>
-    <string name="template_preview_add">Añadir</string>
-    <string name="template_preview_edit">Editar</string>
-    <string name="template_preview_empty">Esta comida no tiene alimentos</string>
-    <string name="template_preview_total">Total · %1$s kcal</string>
-    <string name="template_details_title">Editar comida</string>
+    <string name="template_details_title">Comida</string>
     <string name="template_details_name_label">Nombre</string>
     <string name="template_details_add_food">Añadir alimento</string>
     <string name="template_details_save">Guardar</string>
+    <string name="template_details_add">Añadir</string>
+    <string name="template_details_add_failed">No se pudo añadir la comida. Inténtalo de nuevo.</string>
+    <string name="template_details_unsaved_hint">Se añadirá tal como lo ves; Guardar para conservar los cambios</string>
     <string name="template_details_delete">Eliminar comida</string>
     <string name="template_food_save">Listo</string>
     <string name="template_food_remove">Quitar de la comida</string>

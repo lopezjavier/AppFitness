@@ -179,16 +179,22 @@ class FoodPhotoFlowTest {
     }
 
     @Test
-    fun photoIcon_sitsDirectlyBelowTheScanner_withTheSameSize_andADescription() {
+    fun searchRow_holdsTheFieldThenScannerPhotoAndCreateIcons_inOneRow_withTheSameSize_andADescription() {
         start()
 
+        val field = rule.onNodeWithTag("food_search_input").getUnclippedBoundsInRoot()
         val scan = rule.onNodeWithTag("food_search_scan_button").getUnclippedBoundsInRoot()
         val photo = rule.onNodeWithTag("food_search_photo_button").getUnclippedBoundsInRoot()
-        assertTrue(photo.top >= scan.bottom)
-        assertEquals(scan.left, photo.left)
+        val create = rule.onNodeWithTag("food_search_create_icon").getUnclippedBoundsInRoot()
+        assertTrue(field.right <= scan.left)
+        assertTrue(scan.right <= photo.left)
+        assertTrue(photo.right <= create.left)
+        assertEquals(scan.top, photo.top)
+        assertEquals(photo.top, create.top)
         assertEquals(scan.right - scan.left, photo.right - photo.left)
         assertEquals(scan.bottom - scan.top, photo.bottom - photo.top)
         assertTrue(photo.bottom - photo.top >= 48.dp)
+        assertTrue(field.bottom > scan.top && field.top < scan.bottom)
         rule.onNodeWithTag("food_search_photo_button").assertIsEnabled()
         val description = rule.onNodeWithTag("food_search_photo_button").fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription]

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -105,6 +106,8 @@ class FoodEditScreenTest {
     }
 
     private fun top(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
+
+    private fun left(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().left
 
     @Test
     fun editForm_isPrefilledFromTheStoredFood() {
@@ -237,19 +240,55 @@ class FoodEditScreenTest {
 
         val order = listOf(
             "create_food_kcal_field",
-            "create_food_protein_field",
-            "create_food_carbs_field",
             "create_food_fat_field",
             "create_food_nutrient_saturated_fat",
+            "create_food_carbs_field",
             "create_food_nutrient_sugars",
             "create_food_nutrient_fiber",
+            "create_food_protein_field",
             "create_food_nutrient_salt",
         )
         val tops = order.map(::top)
-        assertTrue("macros then the usual label rows, top to bottom: $tops", tops == tops.sorted())
+        assertTrue("label order, top to bottom: $tops", tops == tops.sorted() && tops.toSet().size == tops.size)
         rule.onNodeWithTag("create_food_nutrient_vitamin_c").assertDoesNotExist()
         rule.onNodeWithTag("create_food_nutrient_calcium").assertDoesNotExist()
         rule.onNodeWithTag("create_food_nutrient_polyols").assertDoesNotExist()
+    }
+
+    @Test
+    fun nutrientFields_shareOneColumn_andSaturatedAndSugarsAreIndented() {
+        manualYogurt()
+        showForm()
+
+        val column = listOf(
+            "create_food_kcal_field",
+            "create_food_fat_field",
+            "create_food_carbs_field",
+            "create_food_nutrient_fiber",
+            "create_food_protein_field",
+            "create_food_nutrient_salt",
+        ).map(::left).toSet()
+        assertEquals(1, column.size)
+        assertTrue(left("create_food_nutrient_saturated_fat") > left("create_food_fat_field"))
+        assertTrue(left("create_food_nutrient_sugars") > left("create_food_carbs_field"))
+        rule.onNodeWithTag("create_food_label_title").assertDoesNotExist()
+        rule.onNodeWithText("Información de la etiqueta (opcional)").assertDoesNotExist()
+        rule.onNodeWithText("Por 100 g").assertDoesNotExist()
+    }
+
+    @Test
+    fun theUnitRefusal_disappearsAfterEditingAField() {
+        manualYogurt()
+        showForm()
+        tap("create_food_unit_ml")
+        foods.inUse += "yogurt"
+        tap("create_food_save_button")
+        rule.onNodeWithTag("create_food_unit_refused").assertExists()
+
+        replace("create_food_kcal_field", "71")
+
+        rule.onNodeWithTag("create_food_unit_refused").assertDoesNotExist()
+        rule.onNodeWithTag("create_food_unit_locked").assertExists()
     }
 
     @Test

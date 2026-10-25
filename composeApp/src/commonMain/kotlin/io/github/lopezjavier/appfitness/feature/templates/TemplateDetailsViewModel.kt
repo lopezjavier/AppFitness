@@ -7,11 +7,16 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
+import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.TemplateNameCheck
@@ -30,6 +35,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 private const val KEY_AMOUNT = "template_details_amount_"
 private const val KEY_REMOVED = "template_details_removed_"
@@ -72,6 +80,9 @@ private data class DetailsDraft(
     val openFoodAmount: String?,
 )
 
+/** What is in flight or failed: saving or deleting ([busy]), and "Añadir" ([adding], [addFailed]). */
+private data class Progress(val busy: Boolean, val adding: Boolean, val addFailed: Boolean)
+
 /** A food of the comida as drafted (saved or added), before the draft's amount is applied. */
 private class Entry(val index: Int, val food: Food, val amount: Double, val portionLabel: String?, val added: Boolean)
 
@@ -103,29 +114,41 @@ private fun amountText(draft: DetailsDraft, entry: Entry) = draft.amounts[entry.
  * draft that survives process death ([savedState], ADR-40) and is stored only by "Guardar", in a single request;
  * totals and rows follow the draft. Changing an amount clears that food's portion label. Saving and deleting need the
  * server, so they do nothing offline; renaming and the other draft changes work offline.
+ *
+ * It is also the comida's details screen (US-53, ADR-63): "Añadir" logs the foods as the draft shows them to [slotId]
+ * on [date] (null [slotId] = the meal of the time of day) without storing the comida; only "Guardar" does that.
  */
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one function per user action.
 class TemplateDetailsViewModel(
     private val templateId: String,
+    private val slotId: String?,
+    private val date: LocalDate,
     private val mealTemplates: MealTemplateRepository,
     private val scaleNutrition: ScaleNutrition,
     private val validateQuantity: ValidateQuantity,
     private val validateTemplateName: ValidateTemplateName,
     private val foodRepository: FoodRepository,
+    private val addTemplateToDiary: AddTemplateToDiary,
+    private val mealSlots: MealSlotRepository,
+    private val defaultMealSlot: DefaultMealSlot,
+    private val clock: Clock,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
     private val loaded = MutableStateFlow<DetailsLoaded>(DetailsLoaded.Loading)
     private val draft = MutableStateFlow<DetailsDraft?>(null)
     private val micronutrients = MutableStateFlow<Map<String, Micronutrients>>(emptyMap())
     private val online = MutableStateFlow(true)
     private val busy = MutableStateFlow(false)
+    private val adding = MutableStateFlow(false)
+    private val addFailed = MutableStateFlow(false)
 
     private val effectChannel = Channel<TemplateDetailsEffect>(Channel.BUFFERED)
     val effects: Flow<TemplateDetailsEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<TemplateDetailsUiState> =
-        combine(loaded, draft, micronutrients, online, busy, ::buildState)
+        combine(loaded, draft, micronutrients, online, combine(busy, adding, addFailed, ::Progress), ::buildState)
             .stateIn(viewModelScope, SharingStarted.Eagerly, TemplateDetailsUiState.Loading)
 
     init {
@@ -160,6 +183,7 @@ class TemplateDetailsViewModel(
             is TemplateDetailsEvent.FoodPicked -> addFood(event)
             TemplateDetailsEvent.SaveClicked -> saveDraft()
             TemplateDetailsEvent.Delete -> delete()
+            TemplateDetailsEvent.Add -> add()
             TemplateDetailsEvent.Retry -> load(showLoading = true)
             TemplateDetailsEvent.Refresh -> load(showLoading = false)
             else -> Unit
@@ -357,6 +381,46 @@ class TemplateDetailsViewModel(
         }
     }
 
+    /** Logs the foods as the draft shows them (nothing is stored in the comida); needs the server, so not offline. */
+    private fun add() {
+        val template = readyTemplate()
+        val current = draft.value
+        if (template == null || current == null || currentContent()?.canAdd != true) return
+        val shown = template.copy(
+            items = remainingEntries(template, current).map { entry ->
+                val text = amountText(current, entry)
+                MealTemplateItem(
+                    food = entry.food,
+                    // canAdd guarantees that every remaining amount parses.
+                    amount = parseAmount(text) ?: 0.0,
+                    portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
+                )
+            },
+        )
+        adding.value = true
+        addFailed.value = false
+        viewModelScope.launch {
+            try {
+                val mealSlotId = slotId ?: defaultSlotId()
+                val result = mealSlotId?.let { addTemplateToDiary(shown, it, date) }
+                if (result?.isSuccess == true) {
+                    effectChannel.trySend(TemplateDetailsEffect.Added)
+                } else {
+                    addFailed.value = true
+                    effectChannel.trySend(TemplateDetailsEffect.ActionFailed(result?.appErrorOrNull()))
+                }
+            } finally {
+                adding.value = false
+            }
+        }
+    }
+
+    /** The meal chosen by the time of day when the route has none; null when no meal is enabled. */
+    private suspend fun defaultSlotId(): String? {
+        val slots = mealSlots.listEnabled().getOrNull() ?: return null
+        return defaultMealSlot(clock.now().toLocalDateTime(timeZone).time, slots)?.id
+    }
+
     private fun delete() {
         if (!online.value || busy.value || readyTemplate() == null) return
         busy.value = true
@@ -378,9 +442,14 @@ class TemplateDetailsViewModel(
 
     private fun readyTemplate(): MealTemplate? = (loaded.value as? DetailsLoaded.Ready)?.template
 
-    private fun currentContent(): TemplateDetailsUiState.Content? =
-        buildState(loaded.value, draft.value, micronutrients.value, online.value, busy.value) as?
-            TemplateDetailsUiState.Content
+    private fun currentContent(): TemplateDetailsUiState.Content? = buildState(
+        loaded.value,
+        draft.value,
+        micronutrients.value,
+        online.value,
+        Progress(busy.value, adding.value, addFailed.value),
+    ) as?
+        TemplateDetailsUiState.Content
 
     /** The items to store for the current draft, or null when the draft cannot be saved now. */
     private fun savableItems(template: MealTemplate): List<NewTemplateItem>? {
@@ -407,14 +476,14 @@ class TemplateDetailsViewModel(
         draft: DetailsDraft?,
         micronutrients: Map<String, Micronutrients>,
         online: Boolean,
-        busy: Boolean,
+        progress: Progress,
     ): TemplateDetailsUiState = when (loaded) {
         DetailsLoaded.Loading -> TemplateDetailsUiState.Loading
 
         DetailsLoaded.Failed -> TemplateDetailsUiState.Error
 
         is DetailsLoaded.Ready ->
-            draft?.let { buildContent(loaded, it, micronutrients, online, busy) } ?: TemplateDetailsUiState.Loading
+            draft?.let { buildContent(loaded, it, micronutrients, online, progress) } ?: TemplateDetailsUiState.Loading
     }
 
     private fun nameErrorOf(ready: DetailsLoaded.Ready, name: String, takenName: String?): TemplateNameError? = when {
@@ -431,8 +500,9 @@ class TemplateDetailsViewModel(
         current: DetailsDraft,
         micronutrients: Map<String, Micronutrients>,
         online: Boolean,
-        busy: Boolean,
+        progress: Progress,
     ): TemplateDetailsUiState.Content {
+        val busy = progress.busy
         val template = ready.template
         val remaining = remainingEntries(template, current)
         val rows = remaining.map { buildRow(it, current, remaining.size > 1) }
@@ -461,11 +531,18 @@ class TemplateDetailsViewModel(
             isDirty = isDirty,
             isOffline = !online,
             busy = busy,
+            adding = progress.adding,
+            addFailed = progress.addFailed,
+            canAdd = canAdd(rows, online, progress),
             openFood = open?.let { (entry, row) ->
                 OpenFood(row, entry.food, micronutrients[entry.food.id], canSave = row.quantityError == null)
             },
         )
     }
+
+    /** Añadir needs the server, a food left and valid amounts; the name does not matter. */
+    private fun canAdd(rows: List<DetailsRow>, online: Boolean, progress: Progress) =
+        online && !progress.busy && !progress.adding && rows.isNotEmpty() && rows.all { it.quantityError == null }
 
     private fun buildRow(
         entry: Entry,

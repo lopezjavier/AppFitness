@@ -11,11 +11,17 @@ export const GEMINI_BASE_URL =
     "https://generativelanguage.googleapis.com/v1beta/models";
 export const GEMINI_TIMEOUT_MS = 25_000;
 
-export type GeminiErrorKind = "quota" | "provider" | "timeout" | "missing_key";
+export type GeminiErrorKind =
+    | "quota"
+    | "provider"
+    | "timeout"
+    | "missing_key"
+    | "auth" // 401/403: key rejected or restricted
+    | "model"; // 404: model retired or renamed
 
-/** Never carries the provider body, the image or the comment: only a generic message and the kind. */
+/** Never carries the provider body, the image or the comment: only a generic message, the kind and the HTTP status. */
 export class GeminiError extends Error {
-    constructor(readonly kind: GeminiErrorKind) {
+    constructor(readonly kind: GeminiErrorKind, readonly status?: number) {
         super(`gemini ${kind}`);
         this.name = "GeminiError";
     }
@@ -93,8 +99,12 @@ export async function generateFoodJson(
                 controller.signal.aborted ? "timeout" : "provider",
             );
         }
-        if (res.status === 429) throw new GeminiError("quota");
-        if (!res.ok) throw new GeminiError("provider");
+        if (res.status === 429) throw new GeminiError("quota", 429);
+        if (res.status === 401 || res.status === 403) {
+            throw new GeminiError("auth", res.status);
+        }
+        if (res.status === 404) throw new GeminiError("model", 404);
+        if (!res.ok) throw new GeminiError("provider", res.status);
 
         try {
             const body = await res.json();

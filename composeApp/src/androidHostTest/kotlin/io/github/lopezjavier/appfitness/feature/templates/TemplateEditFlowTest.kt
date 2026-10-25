@@ -29,7 +29,6 @@ import io.github.lopezjavier.appfitness.app.FoodSearchRoute
 import io.github.lopezjavier.appfitness.app.FoodSearchSlot
 import io.github.lopezjavier.appfitness.app.TemplateDetailsRoute
 import io.github.lopezjavier.appfitness.app.TemplateDetailsSlot
-import io.github.lopezjavier.appfitness.app.TemplatePreviewSlot
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
@@ -74,17 +73,27 @@ class TemplateEditFlowTest {
 
     private val detailsSlot: TemplateDetailsSlot = {
             modifier,
-            templateId,
+            route,
             onClose,
+            onAdded,
             onDeleted,
             onAddFood,
             picked,
             consumed,
         ->
-        val model = remember { detailsModel(templates, connectivity, templateId = templateId, foods = foods) }
+        val model = remember {
+            detailsModel(
+                templates,
+                connectivity,
+                templateId = route.templateId,
+                foods = foods,
+                diary = diary,
+                slotId = route.slotId,
+            )
+        }
         var closed by remember { mutableStateOf(false) }
         Box(modifier) {
-            DetailsHost(model, callbacks, picked, consumed, onAddFood)
+            DetailsHost(model, callbacks, picked, consumed, onAddFood, onAdded)
             if ((callbacks.saved || callbacks.deleted) && !closed) {
                 closed = true
                 if (callbacks.deleted) onDeleted() else onClose()
@@ -99,10 +108,6 @@ class TemplateEditFlowTest {
         }
     }
     private val diary = FakeFoodDiaryRepository()
-    private val previewSlot: TemplatePreviewSlot = { modifier, templateId, slotId, _, onAdded, onEdit ->
-        val model = remember { previewModel(templates, diary, connectivity, templateId = templateId, slotId = slotId) }
-        Box(modifier) { PreviewHost(model, onAdd = onAdded, onEdit = onEdit) }
-    }
     private val addFoodSlot: AddFoodSlot = { foodId, _, _, _, _, _, pick, onPick ->
         Column(Modifier.testTag("add_food_sheet")) {
             Text("$foodId|pick=$pick", Modifier.testTag("sheet_args"))
@@ -120,12 +125,11 @@ class TemplateEditFlowTest {
                     foodSearch = searchSlot,
                     addFood = addFoodSlot,
                     templateDetails = detailsSlot,
-                    templatePreview = previewSlot,
                 )
             }
         }
         rule.waitForIdle()
-        rule.runOnUiThread { nav.navigate(TemplateDetailsRoute("t1")) }
+        rule.runOnUiThread { nav.navigate(TemplateDetailsRoute("t1", "lunch", "2026-10-19")) }
         rule.waitForIdle()
     }
 
@@ -139,7 +143,6 @@ class TemplateEditFlowTest {
                     foodSearch = searchSlot,
                     addFood = addFoodSlot,
                     templateDetails = detailsSlot,
-                    templatePreview = previewSlot,
                 )
             }
         }
@@ -218,46 +221,59 @@ class TemplateEditFlowTest {
     }
 
     @Test
-    fun comidaDetails_editar_changeAnAmount_guardar_returnsToTheDetailsWithTheNewTotals() {
+    fun comidaRow_opensTheEditableDetailsDirectly_withNothingAdded_andNoEditarButton() {
+        showSearch()
+
+        click("search_open_t1")
+
+        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_preview_edit").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
+        assertTrue(diary.addedBatches.isEmpty())
+    }
+
+    @Test
+    fun comidaDetails_changeAnAmount_guardar_returnsToTheSearch_withTheStoredEdit() {
         showSearch()
         click("search_open_t1")
-        rule.onNodeWithTag("template_preview_screen").assertIsDisplayed()
-        rule.onNodeWithTag("template_preview_kcal").assertTextContains("Total · 270 kcal")
 
-        click("template_preview_edit")
-        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
         click("template_details_item_0")
         rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("200")
         click("template_food_sheet_save")
         click("template_details_save")
 
-        rule.onNodeWithTag("template_preview_screen").assertIsDisplayed()
-        rule.onNodeWithTag("template_preview_kcal").assertTextContains("Total · 350 kcal")
+        rule.onNodeWithTag("food_search_screen").assertIsDisplayed()
+        assertEquals(1, templates.saveCalls)
+        assertEquals(200.0, templates.templates.single().items.first().amount, 0.0)
         assertTrue(diary.addedBatches.isEmpty())
     }
 
     @Test
-    fun comidaDetails_anadir_logsTheComida_andLeavesTheSearch() {
+    fun comidaDetails_anadir_logsTheEditedFoodsToTheRouteMeal_leavesTheSearch_andStoresNothing() {
         showSearch()
         click("search_open_t1")
+        click("template_details_item_0")
+        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("200")
+        click("template_food_sheet_save")
 
-        click("template_preview_add")
+        click("template_details_add")
 
-        assertEquals(1, diary.addedBatches.size)
+        val batch = diary.addedBatches.single()
+        assertEquals(200.0, batch.first().amount, 0.0)
+        assertEquals("lunch", batch.first().mealSlotId)
+        assertEquals(0, templates.saveCalls)
         rule.onNodeWithTag("food_search_screen").assertDoesNotExist()
-        rule.onNodeWithTag("template_preview_screen").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_screen").assertDoesNotExist()
     }
 
     @Test
-    fun deletingTheComidaFromTheEditor_landsOnTheSearch_notOnAMissingDetails() {
+    fun deletingTheComida_landsOnTheSearch_notOnAMissingDetails() {
         showSearch()
         click("search_open_t1")
-        click("template_preview_edit")
 
         click("template_details_delete")
 
         rule.onNodeWithTag("food_search_screen").assertIsDisplayed()
-        rule.onNodeWithTag("template_preview_screen").assertDoesNotExist()
         rule.onNodeWithTag("template_details_screen").assertDoesNotExist()
     }
 }

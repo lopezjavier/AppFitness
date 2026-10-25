@@ -29,7 +29,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FoodSearchSlot
 import io.github.lopezjavier.appfitness.app.ProfileSlot
-import io.github.lopezjavier.appfitness.app.TemplatePreviewSlot
+import io.github.lopezjavier.appfitness.app.TemplateDetailsSlot
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
@@ -116,8 +116,8 @@ class DiaryHistoryFlowTest {
         }
     }
 
-    private val previewSlot: TemplatePreviewSlot = { modifier, _, _, _, onAdded, _ ->
-        Box(modifier.fillMaxSize().testTag("template_preview_screen")) {
+    private val detailsSlot: TemplateDetailsSlot = { modifier, _, _, onAdded, _, _, _, _ ->
+        Box(modifier.fillMaxSize().testTag("template_details_screen")) {
             Box(Modifier.size(48.dp).testTag("test_search_add").clickable(onClick = onAdded))
         }
     }
@@ -135,7 +135,7 @@ class DiaryHistoryFlowTest {
                 diary = diarySlot,
                 diaryHistory = historySlot,
                 foodSearch = searchSlot,
-                templatePreview = previewSlot,
+                templateDetails = detailsSlot,
                 editEntry = editSlot,
             )
         }

@@ -27,7 +27,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
-import io.github.lopezjavier.appfitness.composeapp.resources.template_preview_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
@@ -169,16 +168,12 @@ data class EditEntryRoute(val entryId: String, val date: String) : AppRoute
 @Serializable
 data class SaveTemplateRoute(val slotId: String, val date: String) : AppRoute
 
-/** The full-screen details of the comida [templateId] (US-21), opened from the Comidas tab of the food search. */
-@Serializable
-data class TemplateDetailsRoute(val templateId: String) : AppRoute
-
 /**
- * The read-only details of the comida [templateId] (US-53), opened from the Comidas tab of the food search; "Añadir"
- * logs it to the meal [slotId] (null = by the time of day) of the ISO day [date], "Editar" opens the editor.
+ * The full-screen, directly editable details of the comida [templateId] (US-53), opened from the Comidas tab of the
+ * food search; "Añadir" logs the foods as shown to the meal [slotId] (null = by the time of day) of the ISO day [date].
  */
 @Serializable
-data class TemplatePreviewRoute(val templateId: String, val slotId: String? = null, val date: String) : AppRoute
+data class TemplateDetailsRoute(val templateId: String, val slotId: String? = null, val date: String) : AppRoute
 
 /** The meals editor (US-23), opened from Perfil -> Preferencias. */
 @Serializable
@@ -315,9 +310,6 @@ val AppRoute.chrome: ShellChrome
             is TemplateDetailsRoute ->
                 ShellChrome.FullScreen(Res.string.template_details_title, topBarTag = "template_details")
 
-            is TemplatePreviewRoute ->
-                ShellChrome.FullScreen(Res.string.template_preview_title, topBarTag = "template_preview")
-
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
             DiaryHistoryRoute ->
@@ -358,8 +350,7 @@ object AppDestinations {
             AddFoodRoute("", null, ""),
             CreateFoodRoute(date = ""),
             EditFoodRoute("", null, ""),
-            TemplateDetailsRoute(""),
-            TemplatePreviewRoute("", null, ""),
+            TemplateDetailsRoute("", null, ""),
             MealSlotsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),

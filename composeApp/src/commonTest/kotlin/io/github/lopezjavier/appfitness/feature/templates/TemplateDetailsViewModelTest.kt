@@ -10,12 +10,19 @@ import io.github.lopezjavier.appfitness.domain.model.Micronutrient
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
+import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
+import io.github.lopezjavier.appfitness.feature.diary.DefaultMealSlots
+import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
+import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
+import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -24,6 +31,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -45,6 +55,8 @@ class TemplateDetailsViewModelTest {
     private val repository = FakeMealTemplateRepository(mutableMapOf("eggs" to eggs, "shake" to shake, "rice" to rice))
     private val foods = FakeFoodRepository()
     private val connectivity = FakeConnectivityObserver()
+    private val diary = FakeFoodDiaryRepository()
+    private val day = LocalDate(2026, 10, 19)
     private val desayunoA = MealTemplate(
         id = "t1",
         name = "Desayuno A",
@@ -67,16 +79,213 @@ class TemplateDetailsViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(state: SavedStateHandle = SavedStateHandle()) = TemplateDetailsViewModel(
+    private fun viewModel(
+        state: SavedStateHandle = SavedStateHandle(),
+        slotId: String? = "lunch",
+        slots: FakeMealSlotRepository = FakeMealSlotRepository(),
+    ) = TemplateDetailsViewModel(
         templateId = "t1",
+        slotId = slotId,
+        date = day,
         mealTemplates = repository,
         scaleNutrition = ScaleNutrition(),
         validateQuantity = ValidateQuantity(),
         validateTemplateName = ValidateTemplateName(),
         foodRepository = foods,
+        addTemplateToDiary = AddTemplateToDiary(diary, ScaleNutrition()),
+        mealSlots = slots,
+        defaultMealSlot = DefaultMealSlot(),
+        clock = MutableClock(),
         connectivity = connectivity,
         savedState = state,
+        timeZone = TimeZone.UTC,
     )
+
+    // --- Añadir (US-53, ADR-63): logs the draft as shown, never stores the comida ---
+
+    @Test
+    fun add_withAnUntouchedDraft_logsTheSavedFoodsToTheRouteMealAndDay_andEmitsAdded() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.effects.test {
+            model.onEvent(TemplateDetailsEvent.Add)
+            advanceUntilIdle()
+            assertEquals(TemplateDetailsEffect.Added, awaitItem())
+        }
+
+        val batch = diary.addedBatches.single()
+        assertEquals(listOf("eggs" to 120.0, "shake" to 300.0), batch.map { it.foodId to it.amount })
+        assertEquals(listOf(null, "1 vaso"), batch.map { it.portionLabel })
+        assertTrue(batch.all { it.mealSlotId == "lunch" && it.date == day })
+    }
+
+    @Test
+    fun add_withoutARouteMeal_usesTheMealOfTheTimeOfDay() = runTest(dispatcher) {
+        repository.templates += desayunoA
+        val model = viewModel(slotId = null)
+        advanceUntilIdle()
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        val expected = DefaultMealSlot()(LocalTime(10, 0), DefaultMealSlots)?.id
+        assertEquals(expected, diary.addedBatches.single().first().mealSlotId)
+    }
+
+    @Test
+    fun add_logsTheDraftAsShown_editedAmount_removedFood_andAddedFood() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
+        model.onEvent(TemplateDetailsEvent.RemoveFood(1))
+        model.onEvent(TemplateDetailsEvent.FoodPicked("rice", 80.0, "1 taza"))
+        advanceUntilIdle()
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        val batch = diary.addedBatches.single()
+        assertEquals(listOf("eggs" to 200.0, "rice" to 80.0), batch.map { it.foodId to it.amount })
+        assertEquals(listOf(null, "1 taza"), batch.map { it.portionLabel })
+        assertEquals(listOf(200.0, 104.0), batch.map { it.snapshot.kcal })
+    }
+
+    @Test
+    fun add_doesNotStoreTheComida_andKeepsTheDraft() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        assertEquals(0, repository.saveCalls)
+        assertEquals(desayunoA, repository.templates.single())
+        assertEquals("200", contentOf(model).rows.first().amountText)
+    }
+
+    @Test
+    fun add_isNotBlockedByAnInvalidOrTakenName() = runTest(dispatcher) {
+        val model = loaded()
+        repository.templates += desayunoA.copy(id = "t2", name = "Comida 2")
+        model.onEvent(TemplateDetailsEvent.Refresh)
+        advanceUntilIdle()
+        model.onEvent(TemplateDetailsEvent.NameChanged("Comida 2"))
+
+        val content = contentOf(model)
+        assertEquals(TemplateNameError.Taken, content.nameError)
+        assertTrue(content.canAdd)
+        assertFalse(content.canSave)
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        assertEquals(1, diary.addedBatches.size)
+    }
+
+    @Test
+    fun add_offline_doesNothing_andIsNotAllowed() = runTest(dispatcher) {
+        val model = loaded()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        assertFalse(contentOf(model).canAdd)
+        assertTrue(diary.addedBatches.isEmpty())
+    }
+
+    @Test
+    fun add_withAnInvalidAmount_isNotAllowed() = runTest(dispatcher) {
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "abc"))
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        assertFalse(contentOf(model).canAdd)
+        assertTrue(diary.addedBatches.isEmpty())
+    }
+
+    @Test
+    fun add_ofAnEmptyComida_isNotAllowed() = runTest(dispatcher) {
+        val model = loaded(desayunoA.copy(items = emptyList()))
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        assertFalse(contentOf(model).canAdd)
+        assertTrue(diary.addedBatches.isEmpty())
+    }
+
+    @Test
+    fun add_doubleTap_addsOnce() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        diary.batchGate = gate
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+        assertTrue(contentOf(model).adding)
+        assertFalse(contentOf(model).canAdd)
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, diary.addedBatches.size)
+        assertFalse(contentOf(model).adding)
+    }
+
+    @Test
+    fun add_whenTheWriteFails_setsAddFailed_emitsActionFailed_keepsTheDraft_andAllowsRetry() = runTest(dispatcher) {
+        diary.failBatch()
+        val model = loaded()
+        model.onEvent(TemplateDetailsEvent.AmountChanged(0, "200"))
+
+        model.effects.test {
+            model.onEvent(TemplateDetailsEvent.Add)
+            advanceUntilIdle()
+            assertEquals(TemplateDetailsEffect.ActionFailed(AppError.Network), awaitItem())
+        }
+
+        val failed = contentOf(model)
+        assertTrue(failed.addFailed)
+        assertFalse(failed.adding)
+        assertTrue(failed.canAdd)
+        assertEquals("200", failed.rows.first().amountText)
+        assertTrue(diary.addedBatches.isEmpty())
+    }
+
+    @Test
+    fun add_withNoRouteMealAndNoEnabledMeal_failsAndLogsNothing() = runTest(dispatcher) {
+        repository.templates += desayunoA
+        val model = viewModel(slotId = null, slots = FakeMealSlotRepository(Result.success(emptyList())))
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(TemplateDetailsEvent.Add)
+            advanceUntilIdle()
+            assertEquals(TemplateDetailsEffect.ActionFailed(null), awaitItem())
+        }
+
+        assertTrue(diary.addedBatches.isEmpty())
+        assertTrue(contentOf(model).addFailed)
+    }
+
+    @Test
+    fun add_afterProcessDeath_logsTheRestoredDraft() = runTest(dispatcher) {
+        repository.templates += desayunoA
+        val state = SavedStateHandle()
+        val first = viewModel(state)
+        advanceUntilIdle()
+        first.onEvent(TemplateDetailsEvent.AmountChanged(0, "250"))
+        first.onEvent(TemplateDetailsEvent.RemoveFood(1))
+
+        val restored = viewModel(state)
+        advanceUntilIdle()
+        restored.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        assertEquals(listOf("eggs" to 250.0), diary.addedBatches.single().map { it.foodId to it.amount })
+    }
 
     private fun TestScope.contentOf(model: TemplateDetailsViewModel): TemplateDetailsUiState.Content {
         advanceUntilIdle()

@@ -126,6 +126,8 @@ fun FoodSearchScreen(
 }
 
 /** Search box with a clear button, the scan and the create buttons; all are disabled offline (they need the server). */
+private const val SEARCH_FIELD_MIN_TARGETS = 3
+
 @Composable
 private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onPhotoClick: () -> Unit) {
     Row(
@@ -133,26 +135,27 @@ private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> 
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.Bottom,
     ) {
-        SearchBox(state, onEvent, Modifier.weight(1f))
-        // The photo button sits directly below the scanner button.
-        Column(Modifier.padding(bottom = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            AppIconButton(
-                contentDescription = stringResource(Res.string.food_scan_cd),
-                icon = Res.drawable.ic_barcode_scanner,
-                testTag = "food_search_scan_button",
-                onClick = { onEvent(FoodSearchEvent.ScanClicked) },
-                enabled = !state.isOffline,
-            )
-            val offlineState = stringResource(Res.string.food_photo_offline_state)
-            AppIconButton(
-                contentDescription = stringResource(Res.string.food_photo_cd),
-                icon = Res.drawable.ic_photo_camera,
-                testTag = "food_search_photo_button",
-                onClick = onPhotoClick,
-                enabled = !state.isOffline,
-                modifier = if (state.isOffline) Modifier.semantics { stateDescription = offlineState } else Modifier,
-            )
-        }
+        SearchBox(state, onEvent, Modifier.weight(1f).widthIn(min = Spacing.minTouchTarget * SEARCH_FIELD_MIN_TARGETS))
+        // The three 48 dp icons share the row with the field; they do not scale with the font.
+        val offlineState = stringResource(Res.string.food_photo_offline_state)
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_scan_cd),
+            icon = Res.drawable.ic_barcode_scanner,
+            testTag = "food_search_scan_button",
+            onClick = { onEvent(FoodSearchEvent.ScanClicked) },
+            enabled = !state.isOffline,
+            modifier = Modifier.padding(bottom = Spacing.xs),
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_photo_cd),
+            icon = Res.drawable.ic_photo_camera,
+            testTag = "food_search_photo_button",
+            onClick = onPhotoClick,
+            enabled = !state.isOffline,
+            modifier = Modifier
+                .padding(bottom = Spacing.xs)
+                .then(if (state.isOffline) Modifier.semantics { stateDescription = offlineState } else Modifier),
+        )
         AppIconButton(
             contentDescription = stringResource(Res.string.food_create_cd),
             icon = Res.drawable.ic_add,
