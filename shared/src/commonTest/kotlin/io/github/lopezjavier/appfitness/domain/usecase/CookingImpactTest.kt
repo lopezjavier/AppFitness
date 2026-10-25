@@ -12,75 +12,71 @@ class CookingImpactTest {
     private val defaults = FoodPreferences()
 
     @Test
-    fun griddleWithDefaultsRetainsTwoAndAHalfGrams() {
-        val retained = CookingImpact.retainedG(CookingMethod.Griddle, defaults)
-        assertEquals(2.5, retained)
-        assertEquals(22.5, CookingImpact.addedKcal(retained))
-        assertEquals(2.5, CookingImpact.addedFatG(retained))
+    fun griddleOf300gWithDefaultsAddsThreeGramsOfFat() {
+        val fat = CookingImpact.addedFatG(CookingMethod.Griddle, 300.0, defaults)
+        assertEquals(3.0, fat)
+        assertEquals(27.0, CookingImpact.addedKcal(fat))
     }
 
     @Test
-    fun airFryerWithDefaultsRetainsAllFiveGrams() {
-        val retained = CookingImpact.retainedG(CookingMethod.AirFryer, defaults)
-        assertEquals(5.0, retained)
-        assertEquals(45.0, CookingImpact.addedKcal(retained))
-        assertEquals(5.0, CookingImpact.addedFatG(retained))
+    fun airFryerOf300gWithDefaultsAddsSixGramsOfFat() {
+        val fat = CookingImpact.addedFatG(CookingMethod.AirFryer, 300.0, defaults)
+        assertEquals(6.0, fat)
+        assertEquals(54.0, CookingImpact.addedKcal(fat))
     }
 
     @Test
-    fun friedWithDefaultsRetainsTenPercentOfFiftyGrams() {
-        val retained = CookingImpact.retainedG(CookingMethod.Fried, defaults)
-        assertEquals(5.0, retained)
-        assertEquals(45.0, CookingImpact.addedKcal(retained))
+    fun friedOf300gWithDefaultsAddsTwentyFourGramsOfFat() {
+        val fat = CookingImpact.addedFatG(CookingMethod.Fried, 300.0, defaults)
+        assertEquals(24.0, fat)
+        assertEquals(216.0, CookingImpact.addedKcal(fat))
+    }
+
+    @Test
+    fun friedOf200gAddsSixteenGramsAndOneHundredFortyFourKcal() {
+        val fat = CookingImpact.addedFatG(CookingMethod.Fried, 200.0, defaults)
+        assertEquals(16.0, fat)
+        assertEquals(144.0, CookingImpact.addedKcal(fat))
     }
 
     @Test
     fun rawAddsNothing() {
-        val retained = CookingImpact.retainedG(CookingMethod.Raw, defaults)
-        assertEquals(0.0, retained)
-        assertEquals(0.0, CookingImpact.addedKcal(retained))
-        assertEquals(0.0, CookingImpact.addedFatG(retained))
+        val fat = CookingImpact.addedFatG(CookingMethod.Raw, 300.0, defaults)
+        assertEquals(0.0, fat)
+        assertEquals(0.0, CookingImpact.addedKcal(fat))
     }
 
     @Test
-    fun customGriddleAmountIsUsed() {
-        val retained = CookingImpact.retainedG(CookingMethod.Griddle, FoodPreferences(oliveOilGriddleG = 10.0))
-        assertEquals(5.0, retained)
-        assertEquals(45.0, CookingImpact.addedKcal(retained))
-        assertEquals(5.0, CookingImpact.addedFatG(retained))
+    fun customPercentageIsUsed() {
+        assertEquals(10.0, CookingImpact.addedFatG(CookingMethod.Griddle, 200.0, FoodPreferences(fatPctGriddle = 5.0)))
     }
 
     @Test
-    fun zeroGramsRetainsNothing() {
-        assertEquals(0.0, CookingImpact.retainedG(CookingMethod.Griddle, FoodPreferences(oliveOilGriddleG = 0.0)))
+    fun zeroPercentAddsNothing() {
+        assertEquals(0.0, CookingImpact.addedFatG(CookingMethod.Fried, 300.0, FoodPreferences(fatPctFried = 0.0)))
     }
 
     @Test
-    fun maximumFriedAmountRetainsFiftyGrams() {
-        val retained = CookingImpact.retainedG(CookingMethod.Fried, FoodPreferences(oliveOilFriedG = 500.0))
-        assertEquals(50.0, retained)
-        assertEquals(450.0, CookingImpact.addedKcal(retained))
-        assertEquals(50.0, CookingImpact.addedFatG(retained))
+    fun maximumPercentAddsTwentyPercentOfTheWeight() {
+        val fat = CookingImpact.addedFatG(CookingMethod.Fried, 300.0, FoodPreferences(fatPctFried = 20.0))
+        assertEquals(60.0, fat)
+        assertEquals(540.0, CookingImpact.addedKcal(fat))
     }
 
     @Test
-    fun retainedOilIsRoundedToTwoDecimals() {
-        // 3.33 g x 0.5 = 1.665 -> 1.67 (half up, like the server).
-        assertEquals(1.67, CookingImpact.retainedG(CookingMethod.Griddle, FoodPreferences(oliveOilGriddleG = 3.33)))
+    fun fatIsRoundedToOneDecimalHalfUpLikeTheServer() {
+        // 175 g x 1 % = 1.75 -> 1.8; kcal come from the rounded fat: 1.8 x 9 = 16.2.
+        val fat = CookingImpact.addedFatG(CookingMethod.Griddle, 175.0, defaults)
+        assertEquals(1.8, fat)
+        assertEquals(16.2, CookingImpact.addedKcal(fat))
     }
 
     @Test
-    fun addedKcalAndFatAreRoundedToOneDecimal() {
-        assertEquals(15.0, CookingImpact.addedKcal(1.67))
-        assertEquals(1.7, CookingImpact.addedFatG(1.67))
-    }
-
-    @Test
-    fun chickenGriddledAddsOilToKcalAndFatOnly() {
+    fun chickenGriddledAddsFatToKcalAndFatOnly() {
         val chicken = ScaleNutrition()(NutritionPer100(110.0, 23.0, 0.0, 3.0), 200.0)
-        val cooked = CookingImpact.apply(chicken, CookingMethod.Griddle, defaults)
-        assertEquals(242.5, cooked.kcal)
-        assertEquals(8.5, cooked.fatG)
+        val cooked = CookingImpact.apply(chicken, CookingMethod.Griddle, 200.0, defaults)
+        assertEquals(238.0, cooked.kcal)
+        assertEquals(8.0, cooked.fatG)
         assertEquals(chicken.proteinG, cooked.proteinG)
         assertEquals(chicken.carbsG, cooked.carbsG)
     }
@@ -88,7 +84,7 @@ class CookingImpactTest {
     @Test
     fun applyingRawLeavesTheSnapshotUnchanged() {
         val base = ScaleNutrition()(NutritionPer100(110.0, 23.0, 1.0, 3.0), 150.0)
-        assertEquals(base, CookingImpact.apply(base, CookingMethod.Raw, defaults))
+        assertEquals(base, CookingImpact.apply(base, CookingMethod.Raw, 150.0, defaults))
     }
 
     @Test

@@ -38,12 +38,12 @@ data class PreferencesForm(
     val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     /** "Calculadoras": default bar, available plates and the plate/dumbbell rounding. */
     val calculators: CalculatorSettings = CalculatorSettings(),
-    /** "Cocina": the olive-oil amounts per cooking method, as typed. */
+    /** "Cocina": the added-fat percentages per cooking method, as typed. */
     val foodPreferences: FoodPreferencesForm = FoodPreferencesForm(),
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
-    /** The typed oil amounts, or null while any is blank or outside 0..500. */
+    /** The typed fat percentages, or null while any is blank or outside 0..20. */
     fun toFoodPreferences(): FoodPreferences? = foodPreferences.toFoodPreferences()
 
     /** The name without surrounding blanks is what gets stored; an empty one is not valid. */
@@ -51,25 +51,25 @@ data class PreferencesForm(
 }
 
 /**
- * The three olive-oil amounts (grams) of "Cocina" as typed, so a blank or a negative text can exist. Comma and dot are
+ * The three added-fat percentages of "Cocina" as typed, so a blank or a negative text can exist. Comma and dot are
  * both decimal separators. A field is in error when it is blank, not a number or outside
- * 0..[FoodPreferences.MAX_OIL_G].
+ * 0..[FoodPreferences.MAX_PCT].
  */
 data class FoodPreferencesForm(
-    val griddleText: String = formatNumber(FoodPreferences.DEFAULT_GRIDDLE_G),
-    val airFryerText: String = formatNumber(FoodPreferences.DEFAULT_AIR_FRYER_G),
-    val friedText: String = formatNumber(FoodPreferences.DEFAULT_FRIED_G),
+    val griddleText: String = formatNumber(FoodPreferences.DEFAULT_GRIDDLE_PCT),
+    val airFryerText: String = formatNumber(FoodPreferences.DEFAULT_AIR_FRYER_PCT),
+    val friedText: String = formatNumber(FoodPreferences.DEFAULT_FRIED_PCT),
 ) {
-    val griddleError: Boolean get() = parseOil(griddleText) == null
-    val airFryerError: Boolean get() = parseOil(airFryerText) == null
-    val friedError: Boolean get() = parseOil(friedText) == null
+    val griddleError: Boolean get() = parseFatPct(griddleText) == null
+    val airFryerError: Boolean get() = parseFatPct(airFryerText) == null
+    val friedError: Boolean get() = parseFatPct(friedText) == null
 
     val isValid: Boolean get() = !griddleError && !airFryerError && !friedError
 
     fun toFoodPreferences(): FoodPreferences? {
-        val griddle = parseOil(griddleText)
-        val airFryer = parseOil(airFryerText)
-        val fried = parseOil(friedText)
+        val griddle = parseFatPct(griddleText)
+        val airFryer = parseFatPct(airFryerText)
+        val fried = parseFatPct(friedText)
         return if (griddle == null || airFryer == null || fried == null) {
             null
         } else {
@@ -79,14 +79,14 @@ data class FoodPreferencesForm(
 
     companion object {
         fun of(prefs: FoodPreferences) = FoodPreferencesForm(
-            formatNumber(prefs.oliveOilGriddleG),
-            formatNumber(prefs.oliveOilAirFryerG),
-            formatNumber(prefs.oliveOilFriedG),
+            formatNumber(prefs.fatPctGriddle),
+            formatNumber(prefs.fatPctAirFryer),
+            formatNumber(prefs.fatPctFried),
         )
     }
 }
 
-private fun parseOil(text: String): Double? = parseAmount(text)?.takeIf(FoodPreferences::isValidAmount)
+private fun parseFatPct(text: String): Double? = parseAmount(text)?.takeIf(FoodPreferences::isValidPct)
 
 /** State of the Preferencias screen. */
 sealed interface PreferencesUiState {
@@ -169,14 +169,14 @@ sealed interface PreferencesEvent {
     /** Switches one plate of the catalogue on or off; the last plate cannot be switched off (sets `platesError`). */
     data class SetPlateEnabled(val kg: Double, val enabled: Boolean) : PreferencesEvent
 
-    /** "Aceite a la plancha (g)" as typed; only a draft until [Save]. */
-    data class SetOilGriddle(val text: String) : PreferencesEvent
+    /** "Grasa añadida a la plancha (%)" as typed; only a draft until [Save]. */
+    data class SetFatPctGriddle(val text: String) : PreferencesEvent
 
-    /** "Aceite en air fryer (g)" as typed; only a draft until [Save]. */
-    data class SetOilAirFryer(val text: String) : PreferencesEvent
+    /** "Grasa añadida en air fryer (%)" as typed; only a draft until [Save]. */
+    data class SetFatPctAirFryer(val text: String) : PreferencesEvent
 
-    /** "Aceite al freír (g)" as typed; only a draft until [Save]. */
-    data class SetOilFried(val text: String) : PreferencesEvent
+    /** "Grasa añadida al freír (%)" as typed; only a draft until [Save]. */
+    data class SetFatPctFried(val text: String) : PreferencesEvent
 
     data object Save : PreferencesEvent
 

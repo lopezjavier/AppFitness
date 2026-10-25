@@ -15,8 +15,8 @@ sealed interface EntryRecalculation {
 /**
  * The amount and nutrition snapshot of a diary entry edited to [amountOrCount] (a count when [FoodPortion] is given):
  * validates what was typed, resolves the portion, validates the resolved amount and scales the food's per-100 values.
- * An entry keeps its cooked oil when the amount changes (ADR-60): [cookingOilRetainedG] (the entry's stored value, 0
- * for a raw one) is added to the scaled snapshot unchanged.
+ * An entry keeps its added fat when the amount changes (ADR-60/65): [cookingOilRetainedG] (the entry's stored grams
+ * of added fat, 0 for a raw one) is added to the scaled snapshot unchanged.
  */
 class RecalculateEntry(
     private val resolvePortion: ResolvePortion,

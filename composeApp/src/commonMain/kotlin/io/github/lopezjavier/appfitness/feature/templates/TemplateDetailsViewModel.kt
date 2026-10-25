@@ -693,7 +693,7 @@ class TemplateDetailsViewModel(
             cookingMethod = method,
             canCook = CookingImpact.appliesTo(entry.food.baseUnit),
             cookingImpact = retainedG?.let {
-                CookingImpactPreview(CookingImpact.addedKcal(it), CookingImpact.addedFatG(it))
+                CookingImpactPreview(CookingImpact.addedKcal(it), it)
             },
         )
     }

@@ -10,6 +10,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -79,6 +81,12 @@ class AddFoodCookingTest {
         rule.waitForIdle()
     }
 
+    private fun typeAmount(text: String) {
+        rule.onNodeWithTag("add_food_amount").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("add_food_amount").performTextInput(text)
+        rule.waitForIdle()
+    }
+
     private fun tap(tag: String) {
         rule.onNodeWithTag(tag).performScrollTo().performClick()
         rule.waitForIdle()
@@ -96,31 +104,45 @@ class AddFoodCookingTest {
     }
 
     @Test
-    fun griddle_showsTheOilImpact_andTheTotalsInclude() {
+    fun griddle_showsTheFatImpact_andTheTotalsInclude() {
         show()
+        typeAmount("300")
 
         tap("add_food_cooking_griddle")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+22,5 kcal y +2,5 g de grasa")
-        rule.onNodeWithTag("add_food_preview_kcal", useUnmergedTree = true).assertTextEquals("133 kcal")
+        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+27 kcal y +3 g de grasa")
+        rule.onNodeWithTag("add_food_preview_kcal", useUnmergedTree = true).assertTextEquals("357 kcal")
     }
 
     @Test
     fun airFryer_showsItsImpact() {
         show()
+        typeAmount("300")
 
         tap("add_food_cooking_air_fryer")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+45 kcal y +5 g de grasa")
+        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+54 kcal y +6 g de grasa")
     }
 
     @Test
     fun fried_showsItsImpact() {
         show()
+        typeAmount("300")
 
         tap("add_food_cooking_fried")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+45 kcal y +5 g de grasa")
+        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+216 kcal y +24 g de grasa")
+    }
+
+    @Test
+    fun changingTheAmount_updatesTheImpactLine() {
+        show()
+        typeAmount("300")
+        tap("add_food_cooking_fried")
+
+        typeAmount("200")
+
+        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+144 kcal y +16 g de grasa")
     }
 
     @Test
@@ -135,13 +157,14 @@ class AddFoodCookingTest {
     }
 
     @Test
-    fun customOilAmount_changesTheImpact() {
-        preferences.result = Result.success(FoodPreferences(10.0, 5.0, 50.0))
+    fun customPercentage_changesTheImpact() {
+        preferences.result = Result.success(FoodPreferences(5.0, 2.0, 8.0))
         show()
+        typeAmount("300")
 
         tap("add_food_cooking_griddle")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+45 kcal y +5 g de grasa")
+        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+135 kcal y +15 g de grasa")
     }
 
     @Test
@@ -164,17 +187,18 @@ class AddFoodCookingTest {
     }
 
     @Test
-    fun anadir_logsTheCookedEntry_withMethodRetainedOilAndAdjustedSnapshot() {
+    fun anadir_logsTheCookedEntry_withMethodAddedFatAndAdjustedSnapshot() {
         show()
+        typeAmount("300")
         tap("add_food_cooking_griddle")
 
         tap("add_food_submit")
 
         val entry = diary.added.single()
         assertEquals(CookingMethod.Griddle, entry.cookingMethod)
-        assertEquals(2.5, entry.cookingOilRetainedG, 0.0)
-        assertEquals(132.5, entry.snapshot.kcal, 0.001)
-        assertEquals(7.5, entry.snapshot.fatG, 0.001)
+        assertEquals(3.0, entry.cookingOilRetainedG, 0.0)
+        assertEquals(357.0, entry.snapshot.kcal, 0.001)
+        assertEquals(18.0, entry.snapshot.fatG, 0.001)
     }
 
     @Test
@@ -183,12 +207,13 @@ class AddFoodCookingTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(model(chicken, saved)) }
         rule.waitForIdle()
+        typeAmount("300")
         tap("add_food_cooking_air_fryer")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("add_food_cooking_air_fryer").assertIsSelected()
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+45 kcal y +5 g de grasa")
+        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+54 kcal y +6 g de grasa")
     }
 }

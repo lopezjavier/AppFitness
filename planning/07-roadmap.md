@@ -86,7 +86,7 @@ E1 … E8 ───────────────────────�
 | US-47 | E6 | Editing manual foods (added 2026-10-22, ADR-53) | UI + backend |
 | US-48 | E7 | Add a food from a camera or gallery photo with the AI estimate (added 2026-10-24, ADR-59) | UI + backend |
 | US-49 | E7 | AI nutrition-label and barcode photos (added 2026-10-24, ADR-59) | UI |
-| US-50 | E7 | Cooking methods with olive oil, including saved comidas (added 2026-10-24, ADR-60) | UI + backend |
+| US-50 | E7 | Cooking methods with added fat, including saved comidas (added 2026-10-24, ADR-60; fat as % of raw weight, ADR-65) | UI + backend |
 | US-51 | E7 | Default comidas per meal and weekday (added 2026-10-24, ADR-61) | UI + backend |
 
 ## 4. Traceability: requirements → stories
@@ -109,7 +109,7 @@ E1 … E8 ───────────────────────�
 | FR-2.12 Diary views and history | US-19, US-24 |
 | FR-2.14 Editing manual foods | US-47 |
 | FR-2.15 Photo food creation (AI dish, label and barcode) | US-48, US-49 |
-| FR-2.16 Cooking methods with olive oil | US-50 |
+| FR-2.16 Cooking methods with added fat | US-50 |
 | FR-2.17 Default comidas per meal and weekday | US-51 |
 | FR-3.1 Manual weight and circumferences | US-25 |
 | FR-3.2 Health Connect (read and write) | US-26 |

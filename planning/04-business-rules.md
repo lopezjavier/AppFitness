@@ -65,20 +65,22 @@ Example (target 2400 kcal; 180 g P / 270 g C / 67 g F): consumed 142 g P, 210 g 
 
 Only foods whose base unit is `g` are cooked; drinks stay raw. The default is always **Crudo**.
 
-| Method | Olive oil used (default) | Retained | Retained with the default |
-|---|---|---|---|
-| Crudo | 0 g | — | 0 g |
-| A la plancha | 5 g | 50 % | 2,5 g |
-| Air fryer | 5 g | 100 % | 5 g |
-| Frito | 50 g | 10 % | 5 g |
+Cooking adds fat as a percentage of the **raw weight** (ADR-65).
 
-- `retained_g = used_g × factor`; `added_fat_g = retained_g`; `added_kcal = 9 × retained_g`.
+| Method | Added fat (default, % of raw weight) | Added fat for 300 g |
+|---|---|---|
+| Crudo | 0 % | 0 g |
+| A la plancha | 1 % | 3 g (+27 kcal) |
+| Air fryer | 2 % | 6 g (+54 kcal) |
+| Frito | 8 % | 24 g (+216 kcal) |
+
+- `added_fat_g = round(raw_g × pct / 100, 1)`; `added_kcal = round(9 × added_fat_g, 1)`.
 - Protein, carbohydrates and micronutrients do not change.
-- The entry snapshot stores the adjusted `kcal` and `fat_g` plus `cooking_method` and `cooking_oil_retained_g`; the food's per-100 values are never modified.
-- Saved comidas store a method per item (`meal_template_items.cooking_method`, default raw), editable when saving or editing a comida. Adding a comida from the "Comidas" tab, copying it or applying a default uses that method and computes the retained oil with the current Preferencias; the template does not store oil.
-- Amounts are configured in Preferencias → "Cocina" (0–500 g); factors are fixed. A change applies to future entries only.
+- The entry snapshot stores the adjusted `kcal` and `fat_g` plus `cooking_method` and `cooking_oil_retained_g` (the added fat in grams); the food's per-100 values are never modified.
+- Saved comidas store a method per item (`meal_template_items.cooking_method`, default raw), editable when saving or editing a comida. Adding a comida from the "Comidas" tab, copying it or applying a default uses that method and computes the added fat from the item's amount and the current Preferencias; the template does not store the fat.
+- Percentages are configured in Preferencias → "Cocina" (0–20 %). A change applies to future entries only; past entries are never recalculated.
 
-Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g fat. A la plancha with 5 g used × 50 % = 2,5 g retained → 220 + 22,5 = **242,5 kcal** and 6 + 2,5 = **8,5 g fat**.
+Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g fat. Frito at 8 % → 16 g added fat, +144 kcal → **364 kcal** and 6 + 16 = **22 g fat**.
 
 ### 2.3 Default comidas (E7, US-51)
 
@@ -87,7 +89,7 @@ Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g f
 - The app evaluates **today only**, on the first load of the Diary, before reading entries:
   - If `diary_default_applications` already has the day, nothing happens (no duplicate, and deleted entries never come back).
   - If the day already has any entry, the day is marked and nothing is added.
-  - Otherwise the matching saved comidas are copied as normal entries, with their current amounts, saved cooking methods, retained oil from the current Preferencias and nutrition snapshots, and the day is marked.
+  - Otherwise the matching saved comidas are copied as normal entries, with their current amounts, saved cooking methods, added fat from the current Preferencias and nutrition snapshots, and the day is marked.
 - The server rejects dates more than one day from UTC today (`22023`); the client only sends its own today.
 - No backfill and no past days: a day the app was not opened on stays empty. Configuring or changing defaults after today's Diary was opened applies from the next new day.
 - Deleting a meal or a saved comida removes its assignments (cascade); entries already logged do not change. Editing a saved comida does not change entries already added, and a future application uses its current items and cooking methods.

@@ -1039,10 +1039,10 @@ class PreferencesViewModelTest {
         assertEquals(FoodPreferences(), defaults().form.toFoodPreferences())
         assertFalse(defaults().canSave)
 
-        foodPreferences.result = Result.success(FoodPreferences(10.0, 7.5, 30.0))
+        foodPreferences.result = Result.success(FoodPreferences(10.0, 7.5, 20.0))
         val (_, custom) = loaded()
 
-        assertEquals(FoodPreferences(10.0, 7.5, 30.0), custom().form.toFoodPreferences())
+        assertEquals(FoodPreferences(10.0, 7.5, 20.0), custom().form.toFoodPreferences())
         assertEquals("7.5", custom().form.foodPreferences.airFryerText)
     }
 
@@ -1064,9 +1064,9 @@ class PreferencesViewModelTest {
     fun cooking_editsMakeTheFormDirty_andSaveSendsThemOnce() = runTest {
         val (viewModel, state) = loaded()
 
-        viewModel.onEvent(PreferencesEvent.SetOilGriddle("8,5"))
-        viewModel.onEvent(PreferencesEvent.SetOilAirFryer("0"))
-        viewModel.onEvent(PreferencesEvent.SetOilFried("500"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("8,5"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctAirFryer("0"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctFried("20"))
         advanceUntilIdle()
         assertTrue(state().canSave)
         assertTrue(profile.preferenceSaves.isEmpty(), "nothing is written before Guardar")
@@ -1074,7 +1074,7 @@ class PreferencesViewModelTest {
         viewModel.onEvent(PreferencesEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(FoodPreferences(8.5, 0.0, 500.0), profile.preferenceSaves.single().foodPreferences)
+        assertEquals(FoodPreferences(8.5, 0.0, 20.0), profile.preferenceSaves.single().foodPreferences)
         assertFalse(state().canSave)
     }
 
@@ -1082,29 +1082,29 @@ class PreferencesViewModelTest {
     fun cooking_invalidAmounts_showTheFieldErrorAndBlockSaving() = runTest {
         val (viewModel, state) = loaded()
 
-        for (bad in listOf("-1", "501", "", "abc")) {
-            viewModel.onEvent(PreferencesEvent.SetOilGriddle(bad))
+        for (bad in listOf("-1", "20.1", "", "abc")) {
+            viewModel.onEvent(PreferencesEvent.SetFatPctGriddle(bad))
             advanceUntilIdle()
             assertTrue(state().form.foodPreferences.griddleError, "'$bad' must be an error")
             assertFalse(state().form.foodPreferences.airFryerError)
             assertFalse(state().canSave, "'$bad' must block saving")
         }
-        viewModel.onEvent(PreferencesEvent.SetOilGriddle("5"))
-        viewModel.onEvent(PreferencesEvent.SetOilFried("-0.5"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("5"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctFried("-0.5"))
         advanceUntilIdle()
         assertTrue(state().form.foodPreferences.friedError)
         assertFalse(state().canSave)
     }
 
     @Test
-    fun cooking_theBoundsZeroAndFiveHundred_areValid() = runTest {
+    fun cooking_theBoundsZeroAndTwenty_areValid() = runTest {
         val (viewModel, state) = loaded()
 
-        viewModel.onEvent(PreferencesEvent.SetOilFried("0"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctFried("0"))
         advanceUntilIdle()
         assertTrue(state().canSave)
 
-        viewModel.onEvent(PreferencesEvent.SetOilFried("500"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctFried("20"))
         advanceUntilIdle()
         assertTrue(state().canSave)
         assertFalse(state().form.foodPreferences.friedError)
@@ -1114,8 +1114,8 @@ class PreferencesViewModelTest {
     fun cooking_revertingTheAmount_makesTheFormCleanAgain() = runTest {
         val (viewModel, state) = loaded()
 
-        viewModel.onEvent(PreferencesEvent.SetOilGriddle("6"))
-        viewModel.onEvent(PreferencesEvent.SetOilGriddle("5"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("6"))
+        viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("1"))
         advanceUntilIdle()
 
         assertFalse(state().isDirty)
@@ -1126,8 +1126,8 @@ class PreferencesViewModelTest {
         val handle = SavedStateHandle()
         val first = viewModel(handle)
         advanceUntilIdle()
-        first.onEvent(PreferencesEvent.SetOilAirFryer("12"))
-        first.onEvent(PreferencesEvent.SetOilFried("abc"))
+        first.onEvent(PreferencesEvent.SetFatPctAirFryer("12"))
+        first.onEvent(PreferencesEvent.SetFatPctFried("abc"))
 
         val second = viewModel(handle)
         advanceUntilIdle()
@@ -1135,11 +1135,11 @@ class PreferencesViewModelTest {
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
         assertEquals("12", restored.form.foodPreferences.airFryerText)
         assertEquals("abc", restored.form.foodPreferences.friedText)
-        assertEquals("5", restored.saved.foodPreferences.airFryerText)
+        assertEquals("2", restored.saved.foodPreferences.airFryerText)
         assertFalse(restored.canSave)
 
-        second.onEvent(PreferencesEvent.SetOilAirFryer("5"))
-        second.onEvent(PreferencesEvent.SetOilFried("50"))
+        second.onEvent(PreferencesEvent.SetFatPctAirFryer("2"))
+        second.onEvent(PreferencesEvent.SetFatPctFried("8"))
         assertEquals(null, handle.get<String>("preferences_draft"))
     }
 

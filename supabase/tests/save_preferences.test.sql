@@ -158,38 +158,38 @@ select ok(
   'a rejected weight leaves the profile, the goals and the weight unchanged (atomic)');
 
 -- ---------------------------------------------------------------------------
--- Olive oil amounts (T-107, US-50)
+-- Added-fat percentages (T-107 / T-112, US-50, ADR-65)
 -- ---------------------------------------------------------------------------
 select is(
   (select count(*)::int from public.food_preferences where user_id = '11111111-1111-4111-8111-111111111111'),
-  0, 'saves without the oil amounts create no food_preferences row');
+  0, 'saves without the percentages create no food_preferences row');
 select lives_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint,
-      p_olive_oil_griddle_g => 2.5, p_olive_oil_air_fryer_g => 7, p_olive_oil_fried_g => 60)$$,
-  'A saves the three oil amounts');
+      p_fat_pct_griddle => 1.5, p_fat_pct_air_fryer => 3, p_fat_pct_fried => 12)$$,
+  'A saves the three percentages');
 select results_eq(
-  $$select olive_oil_griddle_g, olive_oil_air_fryer_g, olive_oil_fried_g from public.food_preferences
+  $$select fat_pct_griddle, fat_pct_air_fryer, fat_pct_fried from public.food_preferences
     where user_id = '11111111-1111-4111-8111-111111111111'$$,
-  $$values (2.5::numeric, 7.0::numeric, 60.0::numeric)$$,
-  'the three amounts are stored');
+  $$values (1.5::numeric, 3.0::numeric, 12.0::numeric)$$,
+  'the three percentages are stored');
 select lives_ok(
   $$select public.save_preferences('Ana', 'male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint,
-      p_olive_oil_fried_g => 80)$$,
-  'A saves only the fried amount');
+      p_fat_pct_fried => 20)$$,
+  'A saves only the fried percentage');
 select results_eq(
-  $$select olive_oil_griddle_g, olive_oil_air_fryer_g, olive_oil_fried_g from public.food_preferences
+  $$select fat_pct_griddle, fat_pct_air_fryer, fat_pct_fried from public.food_preferences
     where user_id = '11111111-1111-4111-8111-111111111111'$$,
-  $$values (2.5::numeric, 7.0::numeric, 80.0::numeric)$$,
-  'null amounts stay unchanged');
+  $$values (1.5::numeric, 3.0::numeric, 20.0::numeric)$$,
+  'null percentages stay unchanged');
 select throws_ok(
   $$select public.save_preferences('Cambiada', 'male', '1999-06-15', 181, 'high', 'surplus', 300, 3000, 30::smallint, 45::smallint, 25::smallint,
-      p_olive_oil_griddle_g => 500.1)$$,
-  '23514', null, 'an oil amount over 500 is rejected');
+      p_fat_pct_griddle => 20.1)$$,
+  '23514', null, 'a percentage over 20 is rejected');
 select ok(
   (select display_name = 'Ana' from public.profiles where id = '11111111-1111-4111-8111-111111111111')
-  and (select olive_oil_griddle_g = 2.5 from public.food_preferences
+  and (select fat_pct_griddle = 1.5 from public.food_preferences
        where user_id = '11111111-1111-4111-8111-111111111111'),
-  'a rejected amount leaves the profile and the amounts unchanged (atomic)');
+  'a rejected percentage leaves the profile and the percentages unchanged (atomic)');
 
 -- ---------------------------------------------------------------------------
 -- No profile row / no JWT

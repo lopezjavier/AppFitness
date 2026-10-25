@@ -75,25 +75,25 @@ class PreferencesCookingTest {
     private fun field(tag: String) = rule.onNodeWithTag(tag).performScrollTo()
 
     @Test
-    fun card_showsTheDefaultsAndWhatEachMethodRetains() {
+    fun card_showsThePercentageDefaults() {
         show()
 
         rule.onNodeWithTag("preferences_cooking_card").performScrollTo()
-        field("preferences_cooking_griddle").assertTextContains("5")
-        field("preferences_cooking_air_fryer").assertTextContains("5")
-        field("preferences_cooking_fried").assertTextContains("50")
-        rule.onNodeWithText("Aceite a la plancha (g)", ignoreCase = true).assertExists()
-        rule.onNodeWithText("Aceite en air fryer (g)", ignoreCase = true).assertExists()
-        rule.onNodeWithText("Aceite al freír (g)", ignoreCase = true).assertExists()
-        rule.onNodeWithText("Se retiene el 50 %").assertExists()
-        rule.onNodeWithText("Se retiene el 100 %").assertExists()
-        rule.onNodeWithText("Se retiene el 10 %").assertExists()
-        rule.onNodeWithText("El aceite que no se retiene no cuenta.").assertExists()
+        field("preferences_cooking_griddle").assertTextContains("1")
+        field("preferences_cooking_air_fryer").assertTextContains("2")
+        field("preferences_cooking_fried").assertTextContains("8")
+        rule.onNodeWithText("Grasa añadida a la plancha (%)", ignoreCase = true).assertExists()
+        rule.onNodeWithText("Grasa añadida en air fryer (%)", ignoreCase = true).assertExists()
+        rule.onNodeWithText("Grasa añadida al freír (%)", ignoreCase = true).assertExists()
+        rule.onNodeWithText("Del peso crudo. Por defecto 1 %").assertExists()
+        rule.onNodeWithText("Del peso crudo. Por defecto 2 %").assertExists()
+        rule.onNodeWithText("Del peso crudo. Por defecto 8 %").assertExists()
+        rule.onNodeWithText("Porcentaje del peso crudo que se añade como grasa.").assertExists()
         rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
     }
 
     @Test
-    fun validEdit_enablesTheSingleGuardar_andSavesTheNewAmounts() {
+    fun validEdit_enablesTheSingleGuardar_andSavesTheNewPercentages() {
         show()
 
         field("preferences_cooking_griddle").performTextClearance()
@@ -103,18 +103,18 @@ class PreferencesCookingTest {
         rule.waitForIdle()
 
         assertEquals(1, profile.preferenceSaves.size)
-        assertEquals(FoodPreferences(8.5, 5.0, 50.0), profile.preferenceSaves.single().foodPreferences)
+        assertEquals(FoodPreferences(8.5, 2.0, 8.0), profile.preferenceSaves.single().foodPreferences)
     }
 
     @Test
-    fun amountAbove500_showsTheError_andDisablesGuardar() {
+    fun percentageAbove20_showsTheError_andDisablesGuardar() {
         show()
 
         field("preferences_cooking_fried").performTextClearance()
-        field("preferences_cooking_fried").performTextInput("501")
+        field("preferences_cooking_fried").performTextInput("21")
         rule.waitForIdle()
 
-        field("preferences_cooking_fried_error").assertTextContains("Introduce un valor entre 0 y 500 g.")
+        field("preferences_cooking_fried_error").assertTextContains("Introduce un valor entre 0 y 20 %.")
         rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
     }
 
@@ -133,7 +133,7 @@ class PreferencesCookingTest {
     fun correctingAnInvalidAmount_clearsTheError_andEnablesGuardar() {
         show()
         field("preferences_cooking_fried").performTextClearance()
-        field("preferences_cooking_fried").performTextInput("501")
+        field("preferences_cooking_fried").performTextInput("21")
 
         field("preferences_cooking_fried").performTextClearance()
         field("preferences_cooking_fried").performTextInput("20")

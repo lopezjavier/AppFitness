@@ -37,18 +37,26 @@ class CookedItemNutritionTest {
     }
 
     @Test
-    fun griddle_addsRetainedOilWithDefaults() {
-        assertEquals(NutritionSnapshot(222.5, 40.0, 0.0, 6.5), cooked(item(method = CookingMethod.Griddle), defaults))
+    fun griddle_addsFatAsPercentOfTheAmountWithDefaults() {
+        assertEquals(NutritionSnapshot(218.0, 40.0, 0.0, 6.0), cooked(item(method = CookingMethod.Griddle), defaults))
     }
 
     @Test
-    fun airFryer_addsRetainedOilWithDefaults() {
-        assertEquals(NutritionSnapshot(245.0, 40.0, 0.0, 9.0), cooked(item(method = CookingMethod.AirFryer), defaults))
+    fun airFryer_addsFatAsPercentOfTheAmountWithDefaults() {
+        assertEquals(NutritionSnapshot(236.0, 40.0, 0.0, 8.0), cooked(item(method = CookingMethod.AirFryer), defaults))
     }
 
     @Test
-    fun fried_addsRetainedOilWithDefaults() {
-        assertEquals(NutritionSnapshot(245.0, 40.0, 0.0, 9.0), cooked(item(method = CookingMethod.Fried), defaults))
+    fun fried_addsFatAsPercentOfTheAmountWithDefaults() {
+        assertEquals(NutritionSnapshot(344.0, 40.0, 0.0, 20.0), cooked(item(method = CookingMethod.Fried), defaults))
+    }
+
+    @Test
+    fun fried_fatDependsOnTheAmount() {
+        assertEquals(
+            NutritionSnapshot(172.0, 20.0, 0.0, 10.0),
+            cooked(item(amount = 100.0, method = CookingMethod.Fried), defaults),
+        )
     }
 
     @Test
@@ -71,14 +79,14 @@ class CookedItemNutritionTest {
             defaults,
         )
 
-        assertEquals(NutritionSnapshot(222.5 + 145.0, 60.0, 0.0, 6.5 + 7.0), total)
+        assertEquals(NutritionSnapshot(218.0 + 172.0, 60.0, 0.0, 6.0 + 10.0), total)
     }
 
     @Test
     fun impactOf_isNullForRawAndDrinks() {
         assertEquals(null, cooked.retainedG(item(), defaults))
         assertEquals(null, cooked.retainedG(item("ml", method = CookingMethod.Fried), defaults))
-        assertEquals(2.5, cooked.retainedG(item(method = CookingMethod.Griddle), defaults))
+        assertEquals(2.0, cooked.retainedG(item(method = CookingMethod.Griddle), defaults))
         assertEquals(null, cooked.retainedG(item(method = CookingMethod.Griddle), null))
     }
 }

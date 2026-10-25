@@ -7,34 +7,34 @@ import kotlin.test.assertTrue
 
 class FoodPreferencesTest {
     @Test
-    fun defaultsAreFiveFiveAndFifty() {
+    fun defaultsAreOneTwoAndEightPercent() {
         val prefs = FoodPreferences()
-        assertEquals(5.0, prefs.oliveOilGriddleG)
-        assertEquals(5.0, prefs.oliveOilAirFryerG)
-        assertEquals(50.0, prefs.oliveOilFriedG)
+        assertEquals(1.0, prefs.fatPctGriddle)
+        assertEquals(2.0, prefs.fatPctAirFryer)
+        assertEquals(8.0, prefs.fatPctFried)
         assertTrue(prefs.isValid)
     }
 
     @Test
-    fun zeroAndFiveHundredAreValid() {
+    fun zeroAndTwentyAreValid() {
         assertTrue(FoodPreferences(0.0, 0.0, 0.0).isValid)
-        assertTrue(FoodPreferences(500.0, 500.0, 500.0).isValid)
+        assertTrue(FoodPreferences(20.0, 20.0, 20.0).isValid)
     }
 
     @Test
-    fun negativeOrAboveFiveHundredIsInvalid() {
-        assertFalse(FoodPreferences(oliveOilGriddleG = -0.1).isValid)
-        assertFalse(FoodPreferences(oliveOilAirFryerG = 500.1).isValid)
-        assertFalse(FoodPreferences(oliveOilFriedG = Double.NaN).isValid)
+    fun negativeOrAboveTwentyOrNaNIsInvalid() {
+        assertFalse(FoodPreferences(fatPctGriddle = -0.1).isValid)
+        assertFalse(FoodPreferences(fatPctAirFryer = 20.1).isValid)
+        assertFalse(FoodPreferences(fatPctFried = Double.NaN).isValid)
     }
 
     @Test
-    fun usedGReadsTheAmountOfEachMethod() {
-        val prefs = FoodPreferences(1.0, 2.0, 3.0)
-        assertEquals(0.0, prefs.usedG(CookingMethod.Raw))
-        assertEquals(1.0, prefs.usedG(CookingMethod.Griddle))
-        assertEquals(2.0, prefs.usedG(CookingMethod.AirFryer))
-        assertEquals(3.0, prefs.usedG(CookingMethod.Fried))
+    fun pctForReadsThePercentageOfEachMethod() {
+        val prefs = FoodPreferences(1.5, 2.5, 3.5)
+        assertEquals(0.0, prefs.pctFor(CookingMethod.Raw))
+        assertEquals(1.5, prefs.pctFor(CookingMethod.Griddle))
+        assertEquals(2.5, prefs.pctFor(CookingMethod.AirFryer))
+        assertEquals(3.5, prefs.pctFor(CookingMethod.Fried))
     }
 
     @Test

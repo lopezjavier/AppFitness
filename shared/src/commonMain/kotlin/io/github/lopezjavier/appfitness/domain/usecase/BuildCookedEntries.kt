@@ -18,7 +18,7 @@ class BuildCookedEntries(private val scaleNutrition: ScaleNutrition) {
         prefs: FoodPreferences,
     ): List<NewFoodEntry> = items.map { item ->
         val method = CookingImpact.effectiveMethod(item.cookingMethod, item.food.baseUnit)
-        val retainedG = CookingImpact.retainedG(method, prefs)
+        val retainedG = CookingImpact.addedFatG(method, item.amount, prefs)
         NewFoodEntry(
             date = date,
             mealSlotId = mealSlotId,

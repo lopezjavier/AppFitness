@@ -7,13 +7,13 @@ import kotlinx.serialization.Serializable
 /** Row of `public.food_preferences` as read. */
 @Serializable
 internal data class FoodPreferencesDto(
-    @SerialName("olive_oil_griddle_g") val oliveOilGriddleG: Double = FoodPreferences.DEFAULT_GRIDDLE_G,
-    @SerialName("olive_oil_air_fryer_g") val oliveOilAirFryerG: Double = FoodPreferences.DEFAULT_AIR_FRYER_G,
-    @SerialName("olive_oil_fried_g") val oliveOilFriedG: Double = FoodPreferences.DEFAULT_FRIED_G,
+    @SerialName("fat_pct_griddle") val fatPctGriddle: Double = FoodPreferences.DEFAULT_GRIDDLE_PCT,
+    @SerialName("fat_pct_air_fryer") val fatPctAirFryer: Double = FoodPreferences.DEFAULT_AIR_FRYER_PCT,
+    @SerialName("fat_pct_fried") val fatPctFried: Double = FoodPreferences.DEFAULT_FRIED_PCT,
 ) {
-    fun toDomain(): FoodPreferences = FoodPreferences(oliveOilGriddleG, oliveOilAirFryerG, oliveOilFriedG)
+    fun toDomain(): FoodPreferences = FoodPreferences(fatPctGriddle, fatPctAirFryer, fatPctFried)
 
     companion object {
-        const val COLUMNS = "olive_oil_griddle_g,olive_oil_air_fryer_g,olive_oil_fried_g"
+        const val COLUMNS = "fat_pct_griddle,fat_pct_air_fryer,fat_pct_fried"
     }
 }

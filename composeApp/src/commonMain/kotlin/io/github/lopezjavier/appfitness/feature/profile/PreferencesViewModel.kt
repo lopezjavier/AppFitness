@@ -141,11 +141,11 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetPlateEnabled -> setPlate(event.kg, event.enabled)
 
-            is PreferencesEvent.SetOilGriddle -> edit { it.withFood { copy(griddleText = event.text) } }
+            is PreferencesEvent.SetFatPctGriddle -> edit { it.withFood { copy(griddleText = event.text) } }
 
-            is PreferencesEvent.SetOilAirFryer -> edit { it.withFood { copy(airFryerText = event.text) } }
+            is PreferencesEvent.SetFatPctAirFryer -> edit { it.withFood { copy(airFryerText = event.text) } }
 
-            is PreferencesEvent.SetOilFried -> edit { it.withFood { copy(friedText = event.text) } }
+            is PreferencesEvent.SetFatPctFried -> edit { it.withFood { copy(friedText = event.text) } }
 
             PreferencesEvent.Save -> save()
 

@@ -90,7 +90,8 @@ class MealTemplatesTabTest {
         model.openTemplates()
         advanceUntilIdle()
 
-        assertEquals(292.5, model.templateRows().single().kcal, 0.0)
+        // Griddle default 1 % of 120 g = 1.2 g fat = 10.8 kcal on top of the 270 kcal.
+        assertEquals(280.8, model.templateRows().single().kcal, 0.0)
     }
 
     @Test
