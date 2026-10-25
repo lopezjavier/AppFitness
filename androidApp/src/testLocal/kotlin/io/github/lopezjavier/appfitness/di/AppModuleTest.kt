@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepositor
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
@@ -129,6 +131,8 @@ class AppModuleTest {
                 ResolvePortion::class,
                 RecalculateEntry::class,
                 ScaleNutrition::class,
+                CookedItemNutrition::class,
+                FoodPreferencesRepository::class,
                 ValidateQuantity::class,
                 ValidateMealSlots::class,
                 DefaultMealSlot::class,
