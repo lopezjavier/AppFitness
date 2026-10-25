@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-107 (E7). Checkpoint E7-A approved by the user on 2026-10-25. Last merged: T-106b (PR #209). T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-107 (E7), then T-106c (food-photo timeout message fix). Checkpoint E7-A approved by the user on 2026-10-25. Last merged: T-106b (PR #209). T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -2949,6 +2949,22 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 - [x] deno tests, lint and fmt green.
 
 **Dependencies:** T-106a · **Estimated scope:** S
+
+---
+
+## T-106c: Fix food-photo timeout shown as "no internet"
+
+**Story:** US-48 / US-49 · **Flow:** core (Kotlin data layer) · Source: user report, 2026-10-25 (function log `food-photo: provider failed timeout no-status`; the user had internet).
+
+**Description:** In `SupabaseFoodPhotoRepository`, a client-side `HttpRequestTimeoutException` on the `food-photo` call falls through to `AppError.Network` (`toAppError`), and `FoodPhotoViewModel.kindOf` shows the offline message. Map that timeout to `AppError.ServiceUnavailable` so the user sees the "try again" error with "Reintentar". Real connection failures (`HttpRequestException`, `IOException`) keep `AppError.Network`. No timeout value changes (client or Gemini): if the same log line repeats, revisit the timeouts then.
+
+**Acceptance criteria:**
+- [ ] A request timeout on `food-photo` ends in the error step with "Reintentar" and "Crear manualmente", not the offline message.
+- [ ] A connection failure still shows the offline message.
+
+**Host tests:** `SupabaseFoodPhotoRepositoryTest` (timeout → `ServiceUnavailable`; `IOException` → `Network`).
+
+**Dependencies:** T-107 · **Estimated scope:** XS
 
 ---
 
