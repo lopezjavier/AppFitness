@@ -1,13 +1,13 @@
 # E7 · Food photos, defaults and cooking → `v0.7.0`
 
 ## Goal
-Cut the typing out of food logging: create a personal food from a photo, fill a new day automatically with saved comidas, and account for the olive oil used when cooking, so the diary stays accurate with less effort.
+Cut the typing out of food logging: create a personal food from a photo, fill a new day automatically with saved comidas, and account for the fat added when cooking, so the diary stays accurate with less effort.
 
 ## Scope
 - Includes:
   - **Photo food creation**: an "Añadir desde foto" action in the add-food screen with three modes (AI estimate of a dish, nutrition-label photo, barcode photo), using the system camera or the Android photo picker. A fixed prompt per mode, an optional comment for the dish estimate, editable AI values and portions, saved as a personal food and then logged through the normal add-to-meal sheet.
   - **Default comidas**: from Preferencias → Comidas, assign saved comidas (the user's "Comidas", not Open Food Facts foods) to a meal on selected weekdays; the first time a new day's Diary is opened, their foods are added automatically.
-  - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat of the retained olive oil are added; the amounts are configurable in Preferencias. Saved comidas store an editable method per item; adding one or applying a default copies that method.
+  - **Cooking methods**: when logging a solid food, choose Crudo (default), A la plancha, Air fryer or Frito. The energy and fat added by cooking (a percentage of the raw weight) are counted; the percentages are configurable in Preferencias. Saved comidas store an editable method per item; adding one or applying a default copies that method.
   - **Checkpoint E6-C change requests (ADR-62)**: change the unit of a manual food while nothing references it (US-52); a saved comida opens straight into its editable details with "Guardar" and "Añadir" (US-53, ADR-63).
 - Out of scope:
   - Estimating a whole meal (several foods) from one photo; Phase 1 handles one food per photo.
@@ -147,10 +147,10 @@ Feature: Label and barcode photos
 
 ---
 
-## US-50 · Cooking methods with olive oil
+## US-50 · Cooking methods with added fat
 **As** a user
 **I want** to choose how a food was cooked
-**So that** the oil I use is reflected in the calories and fat I log.
+**So that** the fat added by cooking is reflected in the calories and fat I log.
 
 ```gherkin
 Feature: Cooking methods
@@ -162,24 +162,29 @@ Feature: Cooking methods
     And the totals equal the stored food values
 
   Scenario: Pan-seared impact
-    Given the defaults of 5 g of olive oil used and 50 % retained
+    Given the default of 1 % added fat and 300 g of a solid food
     When the user selects "A la plancha"
-    Then the sheet shows "+22,5 kcal y +2,5 g de grasa"
+    Then the sheet shows "+27 kcal y +3 g de grasa"
     And the kcal and fat totals include that impact
 
   Scenario: Air fryer impact
-    Given the defaults of 5 g of olive oil used and 100 % retained
+    Given the default of 2 % added fat and 300 g of a solid food
     When the user selects "Air fryer"
-    Then the sheet shows "+45 kcal y +5 g de grasa"
+    Then the sheet shows "+54 kcal y +6 g de grasa"
 
   Scenario: Fried impact
-    Given the defaults of 50 g of olive oil used and 10 % retained
+    Given the default of 8 % added fat and 300 g of a solid food
     When the user selects "Frito"
-    Then the sheet shows "+45 kcal y +5 g de grasa"
+    Then the sheet shows "+216 kcal y +24 g de grasa"
+
+  Scenario: The impact follows the amount
+    Given "Frito" is selected for 300 g of a solid food
+    When the user changes the amount to 200 g
+    Then the sheet shows "+144 kcal y +16 g de grasa"
 
   Scenario: Save
     When the user taps "Añadir"
-    Then the entry stores the cooking method, the retained oil and the adjusted kcal and fat snapshots
+    Then the entry stores the cooking method, the added fat and the adjusted kcal and fat snapshots
     And the diary totals include them
 
   Scenario: Cooking in a saved comida
@@ -187,7 +192,12 @@ Feature: Cooking methods
     When the user edits the comida and sets the chicken to "A la plancha" and the potatoes to "Frito"
     Then each item keeps its own method
     When they add the comida to a meal
-    Then each entry keeps its saved method and includes the corresponding retained oil
+    Then each entry keeps its saved method and includes the added fat for its own amount and method
+
+  Scenario: Default comidas use the percentage
+    Given a default comida with "Pechuga de pollo 300 g" cooked "Frito" and the default of 8 %
+    When a new day is applied
+    Then the entry stores +24 g of added fat and +216 kcal on top of the food's values
 
   Scenario: Saving a meal with cooking
     Given today's Comida has "Pechuga de pollo 200 g" cooked "A la plancha"
@@ -200,23 +210,24 @@ Feature: Cooking methods
 
   Scenario: Changing the preferences
     Given the user opens "Perfil" → "Preferencias" → "Cocina"
-    When they change the olive-oil grams used for "A la plancha", "Air fryer" or "Frito" and save
-    Then the new amounts apply to future entries only
+    Then three percentage fields are shown, for "A la plancha" (1 %), "Air fryer" (2 %) and "Frito" (8 %)
+    When they change a percentage and save
+    Then the new percentage applies to future entries only
     And existing entries keep their snapshots
 
-  Scenario: Invalid amount
-    When they enter a negative amount or more than 500 g
+  Scenario: Invalid percentage
+    When they enter a percentage below 0 or above 20
     Then "Guardar" is disabled and the field shows the error
 ```
 
 **Technical notes**
 - Enum `food_cooking_method` (`raw`, `griddle`, `air_fryer`, `fried`); UI labels Crudo, A la plancha, Air fryer, Frito. Only foods with `base_unit = 'g'` offer it; drinks stay raw.
-- Fixed retention factors: A la plancha 50 %, Air fryer 100 %, Frito 10 %. Defaults for the oil used: 5 g, 5 g and 50 g. The amounts are stored in `food_preferences` and edited from a new "Cocina" section in Preferencias; the factors are not configurable.
-- Domain pure function: `retained_g = used_g × factor`; `added_fat_g = retained_g`; `added_kcal = 9 × retained_g`; protein, carbohydrates and micronutrients do not change. Entries store `cooking_method`, `cooking_oil_retained_g` and the adjusted kcal/fat snapshots; the food itself is unchanged.
-- `meal_template_items.cooking_method` stores the method per item (default `raw`); it is editable when saving a meal as a comida and in the comida details, and `save_meal_template` accepts it per item. The template does not store oil: adding a comida from the "Comidas" tab, copying it or applying a default computes `cooking_oil_retained_g` with the current `food_preferences`. A saved comida's shown total kcal includes that cooking impact.
+- ADR-65: added fat is a percentage of the raw weight. Defaults: A la plancha 1 %, Air fryer 2 %, Frito 8 %, editable 0-20 %, stored in `food_preferences` (`fat_pct_*`) and edited from the "Cocina" section in Preferencias. There are no retention factors.
+- Domain pure function: `added_fat_g = round(raw_g × pct / 100, 1)`; `added_kcal = round(9 × added_fat_g, 1)`; protein, carbohydrates and micronutrients do not change. Entries store `cooking_method`, `cooking_oil_retained_g` (the column name is kept; it holds the added fat in grams) and the adjusted kcal/fat snapshots; the food itself is unchanged.
+- `meal_template_items.cooking_method` stores the method per item (default `raw`); it is editable when saving a meal as a comida and in the comida details, and `save_meal_template` accepts it per item. The template does not store the fat: adding a comida from the "Comidas" tab, copying it or applying a default computes the added fat (`cooking_oil_retained_g`) from the item's amount and the current `food_preferences`. A saved comida's shown total kcal includes that cooking impact.
 - `save_meal_template` and the client validate that only `g` foods carry a non-raw method; an `ml` item stays raw. Existing template items are backfilled to `raw`.
-- The add-to-meal sheet shows the impact before saving. Editing an entry's amount keeps the stored method and retained oil; re-selecting the method on an existing entry is out of scope for this epic.
-- `save_preferences` carries the three oil amounts so Preferencias keeps its single "Guardar"; a missing `food_preferences` row reads as the defaults.
+- The add-to-meal sheet shows the impact before saving. Editing an entry's amount keeps the stored method and added fat; re-selecting the method on an existing entry is out of scope for this epic.
+- `save_preferences` carries the three percentages so Preferencias keeps its single "Guardar"; a missing `food_preferences` row reads as the defaults.
 
 ---
 
@@ -325,7 +336,7 @@ Feature: Default comidas
 ```
 
 **Technical notes**
-- Source of truth is the saved comidas: `meal_templates` + `meal_template_items`. The picker never lists `foods` or Open Food Facts results. Applying a default inserts one `food_log_entries` row per template item, with the same amount, portion label, saved cooking method, retained oil (from the current `food_preferences`) and nutrition snapshots as adding a comida from the "Comidas" tab (US-21).
+- Source of truth is the saved comidas: `meal_templates` + `meal_template_items`. The picker never lists `foods` or Open Food Facts results. Applying a default inserts one `food_log_entries` row per template item, with the same amount, portion label, saved cooking method, added fat (from the item's amount and the current `food_preferences`) and nutrition snapshots as adding a comida from the "Comidas" tab (US-21).
 - The assignment's meal slot is authoritative; the template's suggested `meal_slot_id` is ignored. One saved comida may be assigned to several meals and days.
 - `meal_defaults` stores one row per `(user_id, meal_slot_id, weekday)`, unique, so a meal can have different comidas on different weekdays but never two on the same day. Weekday is ISO (Lunes = 1 … Domingo = 7).
 - `save_meal_defaults(p_defaults jsonb)` replaces all assignments for the caller atomically (`[{meal_slot_id, template_id, weekdays:[1,3,5]}]`). It validates ownership, weekday range/duplicates and rejects empty saved comidas.
