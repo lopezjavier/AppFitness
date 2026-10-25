@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
@@ -17,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -47,6 +49,7 @@ private const val TENTHS_PER_KG = 10.0
 private const val KEY_DRAFT = "preferences_draft"
 
 /** What [PreferencesViewModel] reads in parallel. */
+@Suppress("LongParameterList") // One result per read.
 private class PreferencesData(
     val profile: Result<ProfileSummary>,
     val biometrics: Result<SavedBiometrics>,
@@ -55,6 +58,7 @@ private class PreferencesData(
     val healthConnectWeight: BodyMeasurement?,
     val goals: Result<NutritionGoals?>,
     val training: Result<TrainingPreferences>,
+    val foodPreferences: Result<FoodPreferences>,
 )
 
 /**
@@ -68,6 +72,7 @@ class PreferencesViewModel(
     private val goalsRepository: NutritionGoalsRepository,
     private val bodyMeasurementRepository: BodyMeasurementRepository,
     private val trainingPreferencesRepository: TrainingPreferencesRepository,
+    private val foodPreferencesRepository: FoodPreferencesRepository,
     private val savePreferences: SavePreferences,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
@@ -136,6 +141,12 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetPlateEnabled -> setPlate(event.kg, event.enabled)
 
+            is PreferencesEvent.SetOilGriddle -> edit { it.withFood { copy(griddleText = event.text) } }
+
+            is PreferencesEvent.SetOilAirFryer -> edit { it.withFood { copy(airFryerText = event.text) } }
+
+            is PreferencesEvent.SetOilFried -> edit { it.withFood { copy(friedText = event.text) } }
+
             PreferencesEvent.Save -> save()
 
             PreferencesEvent.Retry -> if (_uiState.value == PreferencesUiState.LoadFailed) load()
@@ -143,6 +154,9 @@ class PreferencesViewModel(
             PreferencesEvent.Refresh -> refreshWeight()
         }
     }
+
+    private fun PreferencesForm.withFood(change: FoodPreferencesForm.() -> FoodPreferencesForm) =
+        copy(foodPreferences = foodPreferences.change())
 
     private fun setPlate(kg: Double, enabled: Boolean) {
         updateLoaded { state ->
@@ -210,6 +224,7 @@ class PreferencesViewModel(
                 val weight = async { bodyMeasurementRepository.getLatestWeight() }
                 val goals = async { goalsRepository.getOwn() }
                 val training = async { trainingPreferencesRepository.get() }
+                val food = async { foodPreferencesRepository.get() }
                 val latest = weight.await()
                 PreferencesData(
                     profile.await(),
@@ -218,6 +233,7 @@ class PreferencesViewModel(
                     healthConnectWeightOf(latest),
                     goals.await(),
                     training.await(),
+                    food.await(),
                 )
             }
             _uiState.value = loadedOrNull(data) ?: PreferencesUiState.LoadFailed
@@ -235,6 +251,7 @@ class PreferencesViewModel(
         if (profile == null || biometrics == null || weight == null) return null
         if (data.goals.isFailure) return null
         val training = data.training.getOrNull() ?: return null
+        val food = data.foodPreferences.getOrNull() ?: return null
         val goals = data.goals.getOrNull()
         val today = clock.today()
         val strategy = goals?.strategy ?: GoalStrategy.Maintenance
@@ -251,6 +268,7 @@ class PreferencesViewModel(
             warmUpIncluded = training.warmUpIncluded,
             previousValuesMode = training.previousValuesMode,
             calculators = training.calculators,
+            foodPreferences = FoodPreferencesForm.of(food),
         )
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
         return PreferencesUiState.Loaded(
@@ -324,6 +342,7 @@ class PreferencesViewModel(
                 warmUpIncluded = form.warmUpIncluded,
                 previousValuesMode = form.previousValuesMode,
                 calculators = form.calculators,
+                foodPreferences = form.toFoodPreferences(),
             )
             if (result.isSuccess) {
                 if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()

@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -111,6 +112,28 @@ fun AppToggleChip(
                 stateDescription = state
                 contentDescription?.let { this.contentDescription = it }
             },
+    )
+}
+
+/**
+ * Pill chip that acts as a button (opens or changes something) instead of choosing among options. Same look as
+ * [AppChip]; [highlighted] uses the selected colours. [contentDescription] is what a screen reader speaks instead of
+ * [label]. The caller's [modifier] lands on the clickable node.
+ */
+@Composable
+fun AppButtonChip(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    contentDescription: String? = null,
+) {
+    ChipFrame(
+        label = label,
+        selected = highlighted,
+        modifier = modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription?.let { this.contentDescription = it } },
     )
 }
 

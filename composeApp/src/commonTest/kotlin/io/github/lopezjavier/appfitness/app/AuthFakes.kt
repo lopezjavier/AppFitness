@@ -70,6 +70,7 @@ internal data class SavedPreferences(
     val warmUpIncluded: Boolean = false,
     val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     val calculators: CalculatorSettings? = null,
+    val foodPreferences: FoodPreferences? = null,
 )
 
 /** Test double of [ProfileRepository]: each read returns the next of [results] (the last one repeats). */
@@ -138,6 +139,7 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
             warmUpIncluded,
             previousValuesMode,
             calculators,
+            foodPreferences,
         )
         return settingsResult
     }

@@ -1358,4 +1358,23 @@
     <string name="catalog_action_row_hint">Usa la cámara</string>
     <string name="catalog_inline_note">Estimado por IA · revisa los valores</string>
     <string name="catalog_error_secondary">Crear manualmente</string>
+    <string name="catalog_section_cooking_selector">Selector de cocción</string>
+    <string name="cooking_method_raw">Crudo</string>
+    <string name="cooking_method_griddle">A la plancha</string>
+    <string name="cooking_method_air_fryer">Air fryer</string>
+    <string name="cooking_method_fried">Frito</string>
+    <string name="cooking_method_group_cd">Cocción</string>
+    <string name="cooking_chip_cd">Cocinado: %1$s. Cambiar</string>    <string name="cooking_impact_kcal">+%1$s kcal</string>
+    <string name="cooking_impact_and"> y </string>
+    <string name="cooking_impact_fat">+%1$s g de grasa</string>
+    <string name="diary_entry_amount_cooking">%1$s · %2$s</string>
+    <string name="preferences_cooking_title">Cocina</string>
+    <string name="preferences_cooking_griddle_label">Aceite a la plancha (g)</string>
+    <string name="preferences_cooking_air_fryer_label">Aceite en air fryer (g)</string>
+    <string name="preferences_cooking_fried_label">Aceite al freír (g)</string>
+    <string name="preferences_cooking_griddle_support">Se retiene el 50 %</string>
+    <string name="preferences_cooking_air_fryer_support">Se retiene el 100 %</string>
+    <string name="preferences_cooking_fried_support">Se retiene el 10 %</string>
+    <string name="preferences_cooking_helper">El aceite que no se retiene no cuenta.</string>
+    <string name="preferences_cooking_error">Introduce un valor entre 0 y 500 g.</string>
 </resources>

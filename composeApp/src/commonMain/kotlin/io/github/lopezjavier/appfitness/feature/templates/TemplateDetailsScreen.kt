@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,6 +57,9 @@ import io.github.lopezjavier.appfitness.feature.food.MacroTexts
 import org.jetbrains.compose.resources.stringResource
 
 private const val LOADING_ROWS = 4
+
+/** From this font scale the method chip sits under the name instead of beside the amount. */
+private const val LARGE_FONT_SCALE = 1.3f
 private val SkeletonHeight = Spacing.xl * 2
 
 /**
@@ -244,25 +248,7 @@ private fun DetailsRowItem(row: DetailsRow, onEvent: (TemplateDetailsEvent) -> U
                 .testTag("template_details_item_${row.index}"),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = row.name,
-                        style = AppTheme.typography.bodyLarge,
-                        color = AppTheme.colors.textPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    row.portionLabel?.let {
-                        Text(text = it, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
-                    }
-                }
-                Text(
-                    text = stringResource(Res.string.template_details_item_amount, row.amountText, row.unit),
-                    style = AppTheme.typography.labelNumeric,
-                    color = AppTheme.colors.textSecondary,
-                )
-            }
+            RowHeader(row) { onEvent(TemplateDetailsEvent.OpenFood(row.index)) }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
@@ -289,9 +275,44 @@ private fun DetailsSheets(content: TemplateDetailsUiState.Content, onEvent: (Tem
         TemplateFoodSheet(
             open = open,
             onAmountChange = { onEvent(TemplateDetailsEvent.FoodAmountChanged(it)) },
+            onMethodChange = { onEvent(TemplateDetailsEvent.MethodChanged(it)) },
             onSave = { onEvent(TemplateDetailsEvent.SaveFood) },
             onRemove = { onEvent(TemplateDetailsEvent.RemoveFood(open.row.index)) },
             onDismiss = { onEvent(TemplateDetailsEvent.DismissFood) },
+        )
+    }
+}
+
+/** Name, portion, method chip (beside the amount, or under the name at large fonts) and amount of a row. */
+@Composable
+private fun RowHeader(row: DetailsRow, onOpen: () -> Unit) {
+    val largeFont = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    val chip: @Composable () -> Unit = {
+        CookingMethodChip(
+            method = row.cookingMethod,
+            onClick = onOpen,
+            modifier = Modifier.testTag("template_details_cooking_chip_${row.index}"),
+        )
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Top) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = row.name,
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            row.portionLabel?.let {
+                Text(text = it, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+            }
+            if (row.canCook && largeFont) chip()
+        }
+        if (row.canCook && !largeFont) chip()
+        Text(
+            text = stringResource(Res.string.template_details_item_amount, row.amountText, row.unit),
+            style = AppTheme.typography.labelNumeric,
+            color = AppTheme.colors.textSecondary,
         )
     }
 }

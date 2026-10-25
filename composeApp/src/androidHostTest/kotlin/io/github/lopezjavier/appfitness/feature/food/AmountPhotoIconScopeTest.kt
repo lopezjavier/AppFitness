@@ -69,7 +69,7 @@ class AmountPhotoIconScopeTest {
         val row = DetailsRow(0, chicken.id, chicken.name, "g", "100", null, null, 100.0, 10.0, 20.0, 5.0, true)
         rule.setContent {
             AppTheme {
-                TemplateFoodSheet(OpenFood(row, chicken, null, true), {}, {}, {}, {})
+                TemplateFoodSheet(OpenFood(row, chicken, null, true), {}, {}, {}, {}, {})
             }
         }
         rule.waitForIdle()

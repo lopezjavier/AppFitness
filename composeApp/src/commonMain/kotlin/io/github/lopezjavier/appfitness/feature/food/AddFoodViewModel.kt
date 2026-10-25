@@ -4,15 +4,19 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
+import io.github.lopezjavier.appfitness.domain.usecase.CookingImpact
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -37,16 +41,22 @@ import kotlin.math.floor
 private const val KEY_AMOUNT = "add_food_amount"
 private const val KEY_PORTION = "add_food_portion"
 private const val KEY_SLOT = "add_food_slot"
+private const val KEY_COOKING = "add_food_cooking"
 private const val DEFAULT_AMOUNT = 100.0
 private const val SINGLE = 1.0
 private const val HALF = 0.5
 private const val TENTHS = 10.0
 
-/** What the sheet is built from once the food and the meals are loaded. */
-private class Setup(val food: Food, val slots: List<MealSlot>)
+/** What the sheet is built from once the food and the meals are loaded; [prefs] is null when they could not be read. */
+private class Setup(val food: Food, val slots: List<MealSlot>, val prefs: FoodPreferences?)
 
 /** The user's input: [portionId] is "" for the raw base unit (a saved state cannot hold null reliably). */
-private data class Draft(val amountText: String, val portionId: String, val slotId: String?)
+private data class Draft(
+    val amountText: String,
+    val portionId: String,
+    val slotId: String?,
+    val cookingMethod: CookingMethod = CookingMethod.Raw,
+)
 
 /**
  * Add-food sheet (US-17, US-22): the quantity in the base unit or in a named portion, the meal and the live
@@ -62,6 +72,7 @@ class AddFoodViewModel(
     private val foodRepository: FoodRepository,
     private val foodDiary: FoodDiaryRepository,
     private val mealSlots: MealSlotRepository,
+    private val foodPreferencesRepository: FoodPreferencesRepository,
     private val resolvePortion: ResolvePortion,
     private val scaleNutrition: ScaleNutrition,
     private val validateQuantity: ValidateQuantity,
@@ -104,6 +115,7 @@ class AddFoodViewModel(
             is AddFoodEvent.AmountEstimated -> applyEstimate(event.amount, event.baselineAmountText)
             is AddFoodEvent.PortionSelected -> selectPortion(event.portionId)
             is AddFoodEvent.SlotSelected -> updateDraft { it.copy(slotId = event.slotId) }
+            is AddFoodEvent.CookingMethodSelected -> selectCooking(event.method)
             AddFoodEvent.Submit -> submit()
             AddFoodEvent.Retry -> load()
             AddFoodEvent.Refresh -> load(silent = true)
@@ -116,12 +128,15 @@ class AddFoodViewModel(
             micronutrients.value = MicronutrientsState.Loading
         }
         viewModelScope.launch {
-            val (food, slots) = coroutineScope {
+            val loadedParts = coroutineScope {
                 val food = async { foodRepository.getById(foodId) }
                 // Pick mode logs nothing, so it needs no meals.
                 val slots = async { if (pick) Result.success(emptyList()) else mealSlots.listEnabled() }
-                food.await() to slots.await()
+                // Pick mode has no selector, so it does not read the preferences.
+                val prefs = async { if (pick) null else foodPreferencesRepository.get().getOrNull() }
+                Triple(food.await(), slots.await(), prefs.await())
             }
+            val (food, slots, prefs) = loadedParts
             val loadedFood = food.getOrNull()
             val loadedSlots = slots.getOrNull()
             if (loadedFood == null || loadedSlots == null) {
@@ -135,7 +150,7 @@ class AddFoodViewModel(
             } else if (previous != null) {
                 reconcilePortion(previous, loadedFood)
             }
-            loaded.value = Loaded.Ready(Setup(loadedFood, loadedSlots))
+            loaded.value = Loaded.Ready(Setup(loadedFood, loadedSlots, prefs))
             loadMicronutrients(loadedFood)
         }
     }
@@ -173,8 +188,19 @@ class AddFoodViewModel(
         val portionId = savedState.get<String>(KEY_PORTION).orEmpty().takeIf { id -> food.portions.any { it.id == id } }
             .orEmpty()
         val amount = savedState.get<String>(KEY_AMOUNT) ?: defaultAmountText(food, portionId)
-        return Draft(amount, portionId, slotId)
+        val method = CookingMethod.fromWireName(savedState.get<String>(KEY_COOKING)) ?: CookingMethod.Raw
+        return Draft(amount, portionId, slotId, method)
     }
+
+    /** Ignored for drinks, in pick mode (the comida editor chooses its own) and while the preferences are unknown. */
+    private fun selectCooking(method: CookingMethod) {
+        val setup = (loaded.value as? Loaded.Ready)?.setup ?: return
+        if (!showCooking(setup)) return
+        updateDraft { it.copy(cookingMethod = method) }
+    }
+
+    private fun showCooking(setup: Setup): Boolean =
+        !pick && setup.prefs != null && CookingImpact.appliesTo(setup.food.baseUnit)
 
     private fun selectPortion(portionId: String?) {
         val food = (loaded.value as? Loaded.Ready)?.setup?.food ?: return
@@ -194,6 +220,7 @@ class AddFoodViewModel(
         savedState[KEY_AMOUNT] = updated.amountText
         savedState[KEY_PORTION] = updated.portionId
         updated.slotId?.let { savedState[KEY_SLOT] = it }
+        savedState[KEY_COOKING] = updated.cookingMethod.wireName
     }
 
     private fun submit() {
@@ -245,6 +272,8 @@ class AddFoodViewModel(
                 amount = amount,
                 portionLabel = portion?.let { portionLabel(it, parseAmount(current.amountText)) },
                 snapshot = preview,
+                cookingMethod = content.cookingMethod,
+                cookingOilRetainedG = content.retainedOilG,
             )
         }
     }
@@ -274,6 +303,10 @@ class AddFoodViewModel(
         val resolved = if (typedCheck == QuantityCheck.Valid && typed != null) resolvePortion(typed, portion) else null
         val check = if (resolved != null) validateQuantity(resolved) else typedCheck
         val valid = check == QuantityCheck.Valid && resolved != null
+        val prefs = setup.prefs.takeIf { showCooking(setup) }
+        val method = if (prefs != null) draft.cookingMethod else CookingMethod.Raw
+        val retained = if (prefs != null) CookingImpact.retainedG(method, prefs) else 0.0
+        val scaled = resolved?.takeIf { valid }?.let { scaleNutrition(setup.food.nutrition, it) }
         return AddFoodContent(
             food = setup.food,
             amountText = draft.amountText,
@@ -281,12 +314,20 @@ class AddFoodViewModel(
             slots = setup.slots,
             selectedSlotId = draft.slotId,
             resolvedAmount = resolved.takeIf { valid },
-            preview = resolved?.takeIf { valid }?.let { scaleNutrition(setup.food.nutrition, it) },
+            preview = scaled?.let { CookingImpact.apply(it, retained) },
             quantityError = check.takeIf { it != QuantityCheck.Valid },
             isOffline = !online,
             submitting = submitting,
             micronutrients = micronutrients,
             pick = pick,
+            cookingMethod = method,
+            showCooking = prefs != null,
+            retainedOilG = retained,
+            cookingImpact = if (method == CookingMethod.Raw) {
+                null
+            } else {
+                CookingImpactPreview(CookingImpact.addedKcal(retained), CookingImpact.addedFatG(retained))
+            },
         )
     }
 }

@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
+import io.github.lopezjavier.appfitness.domain.usecase.CookingImpact
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +27,7 @@ import kotlinx.datetime.LocalDate
 
 private const val KEY_NAME = "save_template_name"
 private const val KEY_TAKEN = "save_template_taken"
+private const val KEY_METHOD_PREFIX = "save_template_method_"
 
 /** What the sheet is built from once the day is read: the entries of the chosen meal only. */
 private sealed interface Loaded {
@@ -56,12 +59,13 @@ class SaveTemplateViewModel(
     private val taken = MutableStateFlow(savedState.get<Boolean>(KEY_TAKEN) ?: false)
     private val online = MutableStateFlow(true)
     private val saving = MutableStateFlow(false)
+    private val methods = MutableStateFlow<Map<String, CookingMethod>>(emptyMap())
 
     private val effectChannel = Channel<SaveTemplateEffect>(Channel.BUFFERED)
     val effects: Flow<SaveTemplateEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<SaveTemplateUiState> =
-        combine(loaded, name, taken, online, saving, ::buildState)
+        combine(loaded, name, taken, online, combine(saving, methods, ::Pair), ::buildState)
             .stateIn(viewModelScope, SharingStarted.Eagerly, SaveTemplateUiState.Loading)
 
     init {
@@ -72,6 +76,7 @@ class SaveTemplateViewModel(
     fun onEvent(event: SaveTemplateEvent) {
         when (event) {
             is SaveTemplateEvent.NameChanged -> changeName(event.text)
+            is SaveTemplateEvent.MethodChanged -> changeMethod(event.entryId, event.method)
             SaveTemplateEvent.Submit -> save()
             SaveTemplateEvent.Retry -> load()
         }
@@ -82,11 +87,26 @@ class SaveTemplateViewModel(
         viewModelScope.launch {
             loaded.value = if (foodDiary.refresh(date).isSuccess) {
                 val sectionEntries = foodDiary.entries(date).first().filter { it.mealSlotId == slotId }
+                methods.value = restoreMethods(sectionEntries)
                 Loaded.Ready(sectionEntries)
             } else {
                 Loaded.Failed
             }
         }
+    }
+
+    private fun restoreMethods(entries: List<FoodLogEntry>): Map<String, CookingMethod> = buildMap {
+        entries.forEach { entry ->
+            CookingMethod.fromWireName(savedState.get<String>(KEY_METHOD_PREFIX + entry.id))
+                ?.let { put(entry.id, it) }
+        }
+    }
+
+    private fun changeMethod(entryId: String, method: CookingMethod) {
+        val entry = (loaded.value as? Loaded.Ready)?.sectionEntries?.firstOrNull { it.id == entryId } ?: return
+        if (!CookingImpact.appliesTo(entry.baseUnit)) return
+        methods.value = methods.value + (entryId to method)
+        savedState[KEY_METHOD_PREFIX + entryId] = method.wireName
     }
 
     private fun changeName(text: String) {
@@ -102,9 +122,9 @@ class SaveTemplateViewModel(
 
     private fun save() {
         val ready = loaded.value as? Loaded.Ready ?: return
-        val content = buildContent(ready, name.value, taken.value, online.value, saving.value)
+        val content = buildContent(ready, name.value, taken.value, online.value, saving.value, methods.value)
         if (!content.canSave) return
-        val items = buildTemplateItems(ready.sectionEntries)
+        val items = buildTemplateItems(ready.sectionEntries, methods.value)
         saving.value = true
         viewModelScope.launch {
             val result = mealTemplates.save(null, name.value.trim(), slotId, items)
@@ -127,11 +147,15 @@ class SaveTemplateViewModel(
         name: String,
         taken: Boolean,
         online: Boolean,
-        saving: Boolean,
+        savingAndMethods: Pair<Boolean, Map<String, CookingMethod>>,
     ): SaveTemplateUiState = when (loaded) {
         Loaded.Loading -> SaveTemplateUiState.Loading
+
         Loaded.Failed -> SaveTemplateUiState.Error
-        is Loaded.Ready -> SaveTemplateUiState.Content(buildContent(loaded, name, taken, online, saving))
+
+        is Loaded.Ready -> SaveTemplateUiState.Content(
+            buildContent(loaded, name, taken, online, savingAndMethods.first, savingAndMethods.second),
+        )
     }
 
     private fun buildContent(
@@ -140,6 +164,7 @@ class SaveTemplateViewModel(
         taken: Boolean,
         online: Boolean,
         saving: Boolean,
+        methods: Map<String, CookingMethod>,
     ): SaveTemplateContent = SaveTemplateContent(
         name = name,
         nameCheck = validateTemplateName(name),
@@ -147,5 +172,17 @@ class SaveTemplateViewModel(
         itemCount = ready.sectionEntries.size,
         isOffline = !online,
         saving = saving,
+        items = ready.sectionEntries.map { entry ->
+            val canCook = CookingImpact.appliesTo(entry.baseUnit)
+            SaveTemplateItemRow(
+                entryId = entry.id,
+                foodName = entry.foodName,
+                amount = entry.amount,
+                portionLabel = entry.portionLabel,
+                baseUnit = entry.baseUnit,
+                method = CookingImpact.effectiveMethod(methods[entry.id] ?: entry.cookingMethod, entry.baseUnit),
+                canCook = canCook,
+            )
+        },
     )
 }

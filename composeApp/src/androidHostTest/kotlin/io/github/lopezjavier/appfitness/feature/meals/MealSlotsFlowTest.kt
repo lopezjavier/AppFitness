@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.food.AddFoodSheet
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
+import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -300,6 +301,7 @@ class MealSlotsFlowTest {
             foodRepository = foods,
             foodDiary = diary,
             mealSlots = slots,
+            foodPreferencesRepository = FakeFoodPreferencesRepository(),
             resolvePortion = ResolvePortion(),
             scaleNutrition = ScaleNutrition(),
             validateQuantity = ValidateQuantity(),

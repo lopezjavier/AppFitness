@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.usecase.TemplateNameCheck
 
 /** Why the name cannot be saved yet. A blank name disables the save without a message. */
@@ -28,6 +29,7 @@ data class SaveTemplateContent(
     val itemCount: Int,
     val isOffline: Boolean,
     val saving: Boolean,
+    val items: List<SaveTemplateItemRow> = emptyList(),
 ) {
     /** The inline error under the field, if any. */
     val nameError: TemplateNameError?
@@ -42,7 +44,23 @@ data class SaveTemplateContent(
         get() = nameCheck == TemplateNameCheck.Valid && !nameTaken && itemCount > 0 && !isOffline && !saving
 }
 
+/**
+ * One food of the section. [method] starts as the entry's own method and can be changed when [canCook] (g foods;
+ * drinks are always raw). [amount] is in [baseUnit]; [portionLabel] is the entry's display label, if any.
+ */
+data class SaveTemplateItemRow(
+    val entryId: String,
+    val foodName: String,
+    val amount: Double,
+    val portionLabel: String?,
+    val baseUnit: String?,
+    val method: CookingMethod,
+    val canCook: Boolean,
+)
+
 sealed interface SaveTemplateEvent {
+    data class MethodChanged(val entryId: String, val method: CookingMethod) : SaveTemplateEvent
+
     data class NameChanged(val text: String) : SaveTemplateEvent
 
     data object Submit : SaveTemplateEvent

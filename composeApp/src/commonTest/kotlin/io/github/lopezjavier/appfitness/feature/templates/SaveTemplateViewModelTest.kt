@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
@@ -217,6 +218,76 @@ class SaveTemplateViewModelTest {
         }
         assertEquals("Desayuno A", model.content().name)
         assertNull(model.content().nameError)
+    }
+
+    private fun cookedEntries() {
+        diary.server[day] = listOf(
+            entry("e1", "breakfast", "eggs", 120.0).copy(cookingMethod = CookingMethod.Griddle),
+            entry("e2", "breakfast", "shake", 300.0).copy(baseUnit = "ml"),
+            entry("e3", "breakfast", "rice", 180.0),
+        )
+    }
+
+    @Test
+    fun items_listEachEntryWithItsOwnMethodAndWhetherItCanBeCooked() = runTest(dispatcher) {
+        cookedEntries()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val items = model.content().items
+        assertEquals(listOf("e1", "e2", "e3"), items.map { it.entryId })
+        assertEquals(listOf(CookingMethod.Griddle, CookingMethod.Raw, CookingMethod.Raw), items.map { it.method })
+        assertEquals(listOf(true, false, true), items.map { it.canCook })
+        assertEquals(listOf("g", "ml", "g"), items.map { it.baseUnit })
+        assertEquals("eggs", items.first().foodName)
+    }
+
+    @Test
+    fun methodChanged_updatesTheItemAndSurvivesRecreation() = runTest(dispatcher) {
+        cookedEntries()
+        val state = SavedStateHandle()
+        val model = viewModel(state = state)
+        advanceUntilIdle()
+
+        model.onEvent(SaveTemplateEvent.MethodChanged("e3", CookingMethod.Fried))
+        advanceUntilIdle()
+        assertEquals(CookingMethod.Fried, model.content().items.last().method)
+
+        val recreated = viewModel(state = state)
+        advanceUntilIdle()
+        assertEquals(CookingMethod.Fried, recreated.content().items.last().method)
+        assertEquals(CookingMethod.Griddle, recreated.content().items.first().method)
+    }
+
+    @Test
+    fun methodChanged_isIgnoredForDrinks() = runTest(dispatcher) {
+        cookedEntries()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(SaveTemplateEvent.MethodChanged("e2", CookingMethod.Fried))
+        advanceUntilIdle()
+
+        assertEquals(CookingMethod.Raw, model.content().items[1].method)
+    }
+
+    @Test
+    fun saving_carriesTheMethodsOfEachItem() = runTest(dispatcher) {
+        cookedEntries()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.type("Desayuno A")
+        model.onEvent(SaveTemplateEvent.MethodChanged("e3", CookingMethod.AirFryer))
+        model.onEvent(SaveTemplateEvent.MethodChanged("e1", CookingMethod.Raw))
+
+        model.onEvent(SaveTemplateEvent.Submit)
+        advanceUntilIdle()
+
+        val saved = repository.templates.single()
+        assertEquals(
+            listOf(CookingMethod.Raw, CookingMethod.Raw, CookingMethod.AirFryer),
+            saved.items.map { it.cookingMethod },
+        )
     }
 
     @Test

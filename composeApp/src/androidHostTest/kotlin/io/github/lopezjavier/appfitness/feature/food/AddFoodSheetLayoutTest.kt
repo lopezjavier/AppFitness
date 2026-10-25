@@ -60,6 +60,7 @@ class AddFoodSheetLayoutTest {
             foodRepository = foods,
             foodDiary = FakeFoodDiaryRepository(),
             mealSlots = FakeMealSlotRepository(),
+            foodPreferencesRepository = FakeFoodPreferencesRepository(),
             resolvePortion = ResolvePortion(),
             scaleNutrition = ScaleNutrition(),
             validateQuantity = ValidateQuantity(),

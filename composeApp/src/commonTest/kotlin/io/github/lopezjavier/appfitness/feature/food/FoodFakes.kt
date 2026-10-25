@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
@@ -14,8 +15,10 @@ import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.feature.templates.FakeMealTemplateRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -51,6 +54,17 @@ internal class FakeBarcodeScanner(var result: ScanResult = ScanResult.Cancelled)
 
     override suspend fun scan(): ScanResult {
         scans++
+        return result
+    }
+}
+
+/** Test double of [FoodPreferencesRepository]: [result] is what every read answers; [reads] counts them. */
+internal class FakeFoodPreferencesRepository(var result: Result<FoodPreferences> = Result.success(FoodPreferences())) :
+    FoodPreferencesRepository {
+    var reads = 0
+
+    override suspend fun get(): Result<FoodPreferences> {
+        reads++
         return result
     }
 }
@@ -221,12 +235,14 @@ internal fun foodSearchModel(
     state: SavedStateHandle = SavedStateHandle(),
     templates: MealTemplateRepository = FakeMealTemplateRepository(),
     pick: Boolean = false,
+    preferences: FoodPreferencesRepository = FakeFoodPreferencesRepository(),
 ) = FoodSearchViewModel(
     pick = pick,
     foodRepository = repository,
     connectivity = connectivity,
     barcodeScanner = scanner,
     mealTemplates = templates,
-    scaleNutrition = ScaleNutrition(),
+    foodPreferences = preferences,
+    cookedItemNutrition = CookedItemNutrition(ScaleNutrition()),
     savedState = state,
 )

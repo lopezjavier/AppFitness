@@ -35,6 +35,10 @@ internal data class PreferencesDraft(
     val barWeightKg: Double = CalculatorSettings.DEFAULT_BAR_KG,
     val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
     val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
+    /** "Cocina" oil amounts as typed; absent in drafts saved by older versions (the defaults then). */
+    val oilGriddleText: String = FoodPreferencesForm().griddleText,
+    val oilAirFryerText: String = FoodPreferencesForm().airFryerText,
+    val oilFriedText: String = FoodPreferencesForm().friedText,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -56,6 +60,9 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         barWeightKg = calculators.barWeightKg,
         plateKg = calculators.plateKg,
         dumbbellHandleKg = calculators.dumbbellHandleKg,
+        oilGriddleText = foodPreferences.griddleText,
+        oilAirFryerText = foodPreferences.airFryerText,
+        oilFriedText = foodPreferences.friedText,
     ),
 )
 
@@ -79,5 +86,6 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
             plateKg = draft.plateKg,
             dumbbellHandleKg = draft.dumbbellHandleKg,
         ),
+        foodPreferences = FoodPreferencesForm(draft.oilGriddleText, draft.oilAirFryerText, draft.oilFriedText),
     )
 }.getOrNull()

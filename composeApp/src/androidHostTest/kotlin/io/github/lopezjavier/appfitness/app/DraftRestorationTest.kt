@@ -61,6 +61,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
@@ -433,6 +434,7 @@ class DraftRestorationTest {
                             goals,
                             weights,
                             FakeTrainingPreferencesRepository(),
+                            FakeFoodPreferencesRepository(),
                             SavePreferences(profile),
                             connectivity,
                             FakeClock(),
@@ -458,6 +460,21 @@ class DraftRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_name_field").performScrollTo().assertTextContains("Beatriz")
+        rule.onNodeWithTag("preferences_save").assertIsEnabled()
+    }
+
+    @Test
+    fun preferencesCookingAmounts_surviveRecreation_andGuardarStaysEnabled() {
+        val tester = StateRestorationTester(rule)
+        showPreferences(tester, SavedStateHandle())
+        rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("preferences_cooking_fried").performTextInput("30")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().assertTextContains("30")
         rule.onNodeWithTag("preferences_save").assertIsEnabled()
     }
 

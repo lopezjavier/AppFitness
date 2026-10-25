@@ -181,6 +181,7 @@ private fun PreferencesLoaded(
                 } else {
                     PersonalAndEnergy(state, onEvent, onOpenMeals)
                     MacroSplitCard(state, onEvent)
+                    PreferencesCookingCard(state.form.foodPreferences, onEvent)
                     TrainingCard(
                         warmUpIncluded = state.form.warmUpIncluded,
                         onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
@@ -263,6 +264,7 @@ private fun TwoColumns(
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             MacroSplitCard(state, onEvent)
+            PreferencesCookingCard(state.form.foodPreferences, onEvent)
             TrainingCard(
                 warmUpIncluded = state.form.warmUpIncluded,
                 onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },

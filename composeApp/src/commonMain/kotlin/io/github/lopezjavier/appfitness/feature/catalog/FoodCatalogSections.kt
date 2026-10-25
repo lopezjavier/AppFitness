@@ -14,19 +14,23 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_lab
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_count_label
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_option
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_g
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_cooking_selector
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_favourite_toggle
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_portion_selector
 import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_add_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remove_cd
+import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
 import io.github.lopezjavier.appfitness.designsystem.PortionOption
 import io.github.lopezjavier.appfitness.designsystem.PortionSelector
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import org.jetbrains.compose.resources.stringResource
 
 /** Catalog sections of the food components: the favourite star and the quantity / portion selector. */
 internal fun LazyListScope.foodItems() {
     item { FavouriteToggleSection() }
     item { PortionSelectorSection() }
+    item { CookingMethodSelectorSection() }
 }
 
 @Composable
@@ -81,5 +85,16 @@ private fun PortionSelectorSection() {
             },
             testTagPrefix = "catalog_portion",
         )
+    }
+}
+
+@Composable
+private fun CookingMethodSelectorSection() {
+    var method by rememberSaveable { mutableStateOf(CookingMethod.Raw) }
+    CatalogSection(
+        stringResource(Res.string.catalog_section_cooking_selector),
+        "catalog_section_cooking_selector",
+    ) {
+        CookingMethodSelector(selected = method, onSelect = { method = it }, tagPrefix = "catalog_cooking")
     }
 }

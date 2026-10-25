@@ -4,13 +4,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
-import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
+import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -53,7 +55,8 @@ class FoodSearchViewModel(
     connectivity: ConnectivityObserver,
     private val barcodeScanner: BarcodeScanner,
     private val mealTemplates: MealTemplateRepository,
-    private val scaleNutrition: ScaleNutrition,
+    private val foodPreferences: FoodPreferencesRepository,
+    private val cookedItemNutrition: CookedItemNutrition,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val pick: Boolean = false,
 ) : ViewModel() {
@@ -253,23 +256,26 @@ class FoodSearchViewModel(
             return
         }
         viewModelScope.launch {
+            // Optional info: without the preferences the totals just omit the cooking oil.
+            val prefs = foodPreferences.get().getOrNull()
             templates.value = mealTemplates.list().fold(
-                onSuccess = ::templatesOrEmpty,
+                onSuccess = { templatesOrEmpty(it, prefs) },
                 onFailure = { TemplatesResults.Error },
             )
         }
     }
 
-    private fun templatesOrEmpty(list: List<MealTemplate>): TemplatesResults = if (list.isEmpty()) {
-        TemplatesResults.Empty
-    } else {
-        TemplatesResults.Content(
-            list.map { template ->
-                val kcal = template.items.sumOf { scaleNutrition(it.food.nutrition, it.amount).kcal }
-                TemplateSummary(template, kcal)
-            },
-        )
-    }
+    private fun templatesOrEmpty(list: List<MealTemplate>, prefs: FoodPreferences?): TemplatesResults =
+        if (list.isEmpty()) {
+            TemplatesResults.Empty
+        } else {
+            TemplatesResults.Content(
+                list.map { template ->
+                    val kcal = cookedItemNutrition.total(template.items, prefs).kcal
+                    TemplateSummary(template, kcal)
+                },
+            )
+        }
 
     private fun toggleFavourite(foodId: String) {
         val wasFavourite = foodId in favouriteIds.value

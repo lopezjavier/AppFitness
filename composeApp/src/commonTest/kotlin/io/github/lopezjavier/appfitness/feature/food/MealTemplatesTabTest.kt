@@ -3,8 +3,11 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
+import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.feature.templates.FakeMealTemplateRepository
 import kotlinx.coroutines.Dispatchers
@@ -42,12 +45,15 @@ class MealTemplatesTabTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
+    private val preferences = FakeFoodPreferencesRepository()
+
     private fun viewModel(state: SavedStateHandle = SavedStateHandle()) = FoodSearchViewModel(
         foodRepository = repository,
         connectivity = connectivity,
         barcodeScanner = FakeBarcodeScanner(),
         mealTemplates = templates,
-        scaleNutrition = ScaleNutrition(),
+        foodPreferences = preferences,
+        cookedItemNutrition = CookedItemNutrition(ScaleNutrition()),
         savedState = state,
     )
 
@@ -70,6 +76,32 @@ class MealTemplatesTabTest {
         assertEquals("Desayuno A", row.template.name)
         assertEquals(2, row.template.items.size)
         assertEquals(270.0, row.kcal, 0.0)
+    }
+
+    @Test
+    fun comidasTab_totalKcalIncludesTheCookingOil() = runTest(dispatcher) {
+        templates.templates += desayunoA.copy(
+            items = listOf(
+                MealTemplateItem(eggs, 120.0, null, CookingMethod.Griddle),
+                MealTemplateItem(shake, 300.0, "1 vaso"),
+            ),
+        )
+        val model = viewModel()
+        model.openTemplates()
+        advanceUntilIdle()
+
+        assertEquals(292.5, model.templateRows().single().kcal, 0.0)
+    }
+
+    @Test
+    fun comidasTab_totalKcalOmitsTheOil_whenThePreferencesCannotBeRead() = runTest(dispatcher) {
+        preferences.result = Result.failure(AppException(AppError.Network))
+        templates.templates += desayunoA.copy(items = listOf(MealTemplateItem(eggs, 120.0, null, CookingMethod.Fried)))
+        val model = viewModel()
+        model.openTemplates()
+        advanceUntilIdle()
+
+        assertEquals(120.0, model.templateRows().single().kcal, 0.0)
     }
 
     @Test

@@ -3101,6 +3101,10 @@ Journey: log what you cook with its oil, and let your usual comidas fill a new d
 
 ---
 
+**E7 backlog (user request, 2026-10-25, not yet a task):** simplify Entreno → Historial: show the calendar directly (drop the list, the "+" button and the calendar button); tapping a day opens its details, which gain an "Añadir entrenamiento" button that opens the current "+" flow with the new workout set on the selected day.
+
+---
+
 ## T-111: E7 closure
 
 **Story:** E7 Definition of Done · **Flow:** PM

@@ -121,6 +121,7 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
             proteinG = entry.snapshot.proteinG,
             carbsG = entry.snapshot.carbsG,
             fatG = entry.snapshot.fatG,
+            cookingMethod = entry.cookingMethod,
         )
         cache.update { days -> days[entry.date]?.let { days + (entry.date to (it + created)) } ?: days }
         return Result.success(created)

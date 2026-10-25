@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_amount
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_amount_cooking
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_kcal
@@ -29,6 +30,8 @@ import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
+import io.github.lopezjavier.appfitness.designsystem.labelRes
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -49,10 +52,17 @@ internal fun amountText(amount: Double): String {
     return if (decimal == 0L) whole else "$whole,$decimal"
 }
 
-/** Amount of an entry as shown: its portion ("2 × huevo") or the amount with its base unit ("220 g"). */
+/**
+ * Amount of an entry as shown: its portion ("2 × huevo") or the amount with its base unit ("220 g"), followed by the
+ * cooking method when it is not raw ("120 g · A la plancha").
+ */
 @Composable
-private fun entryDetail(entry: FoodLogEntry): String = entry.portionLabel
-    ?: stringResource(Res.string.diary_entry_amount, amountText(entry.amount), entry.baseUnit.orEmpty()).trim()
+private fun entryDetail(entry: FoodLogEntry): String {
+    val amount = entry.portionLabel
+        ?: stringResource(Res.string.diary_entry_amount, amountText(entry.amount), entry.baseUnit.orEmpty()).trim()
+    if (entry.cookingMethod == CookingMethod.Raw) return amount
+    return stringResource(Res.string.diary_entry_amount_cooking, amount, stringResource(entry.cookingMethod.labelRes()))
+}
 
 /**
  * A logged food: the name, the amount, the kcal and the P/C/F grams. Tapping the row calls [onEdit]; with [canDelete] a
@@ -99,7 +109,12 @@ private fun RowScope.DetailEntryContent(entry: FoodLogEntry) {
             maxLines = NAME_MAX_LINES,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(text = entryDetail(entry), style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+        Text(
+            text = entryDetail(entry),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.testTag("diary_entry_detail_${entry.id}"),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             MacroGrams(Res.string.diary_meal_protein, entry.proteinG, Macro.Protein)
             MacroGrams(Res.string.diary_meal_carbs, entry.carbsG, Macro.Carbs)
