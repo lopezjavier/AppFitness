@@ -54,6 +54,7 @@ grant select, insert, update, delete on table public.food_preferences to authent
 -- ---------------------------------------------------------------------------
 -- cooking_impact: oil retained by a cooking method and its kcal / fat, from the user's amounts.
 -- Retention factors: griddle 0.5, air_fryer 1, fried 0.1 (ADR-60). A missing row reads as the defaults.
+-- Mirrored by the Kotlin CookingImpact / FoodPreferences / CookingMethod (defaults 5/5/50 g, same factors); keep in sync.
 -- ---------------------------------------------------------------------------
 create function public.cooking_impact(
   p_method public.food_cooking_method,

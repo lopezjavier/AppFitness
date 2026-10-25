@@ -195,7 +195,7 @@ class EditEntryViewModel(
     private fun buildContent(setup: EditSetup, draft: EditDraft, online: Boolean, saving: Boolean): EditEntryContent {
         val portion = setup.food.portions.firstOrNull { it.id == draft.portionId }
         val typed = parseAmount(draft.amountText)
-        val result = typed?.let { recalculateEntry(setup.food, it, portion) }
+        val result = typed?.let { recalculateEntry(setup.food, it, portion, setup.entry.cookingOilRetainedG) }
         val valid = result as? EntryRecalculation.Valid
         return EditEntryContent(
             entry = setup.entry,

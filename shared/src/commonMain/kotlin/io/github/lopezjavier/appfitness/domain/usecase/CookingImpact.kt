@@ -7,7 +7,10 @@ import kotlin.math.floor
 
 /**
  * Olive oil a cooked food keeps (ADR-60, `04` §2.2): retained grams = oil used x retention factor; it adds
- * 9 kcal and 1 g of fat per gram. Rounded like the server (`cooking_impact`): oil to 2 decimals, kcal and fat to 1.
+ * 9 kcal and 1 g of fat per gram. The defaults (5/5/50 g, in [FoodPreferences]) and the factors (in
+ * [CookingMethod]) are mirrored by the SQL helper
+ * `public.cooking_impact` (migration 20261107100000); keep both in sync.
+ * Rounded like the server: oil to 2 decimals, kcal and fat to 1.
  */
 object CookingImpact {
     private const val KCAL_PER_G = 9.0
