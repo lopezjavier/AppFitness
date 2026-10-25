@@ -1,12 +1,16 @@
 package io.github.lopezjavier.appfitness.domain.model
 
+import kotlinx.serialization.Serializable
+
 /** A named amount of a new food, in base units. */
+@Serializable
 data class NewPortion(val label: String, val amount: Double)
 
 /**
  * The optional label values of a food: each typed in the nutrient's [MicronutrientKind.labelUnit]. A nutrient that
  * was not typed is not in the map.
  */
+@Serializable
 data class NewMicronutrients(val values: Map<MicronutrientKind, Double> = emptyMap())
 
 /** A personal food to create: [baseUnit] is "g" or "ml", [nutrition] is per 100 base units. */

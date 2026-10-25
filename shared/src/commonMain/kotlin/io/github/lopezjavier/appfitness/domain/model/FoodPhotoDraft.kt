@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.model
 
+import kotlinx.serialization.Serializable
+
 /** What the photo shows: a plated dish, a nutrition label or a barcode on a package. */
 enum class FoodPhotoMode { Dish, Label, Barcode }
 
@@ -24,6 +26,7 @@ data class FoodPhotoDraft(
 )
 
 /** Prefill of the create-food form: nothing is saved until the user confirms it. */
+@Serializable
 data class NewFoodDraft(
     val name: String,
     val brand: String?,

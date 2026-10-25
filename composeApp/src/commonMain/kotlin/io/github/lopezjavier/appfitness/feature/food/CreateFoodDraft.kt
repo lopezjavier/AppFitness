@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.food
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFood
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraft
 import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
@@ -85,6 +86,28 @@ internal data class FormDraft(
             portions = emptyList(),
             touched = emptySet(),
         )
+
+        /**
+         * The form for a photo estimate: a value the photo did not show stays blank (never "0") and an unknown unit
+         * falls back to "g". Nothing is touched, so no error shows before the user edits a field.
+         */
+        fun from(draft: NewFoodDraft): FormDraft = FormDraft(
+            fields = mapOf(
+                CreateFoodField.Name to draft.name,
+                CreateFoodField.Brand to draft.brand.orEmpty(),
+                CreateFoodField.Kcal to draft.kcal.asText(),
+                CreateFoodField.Protein to draft.protein.asText(),
+                CreateFoodField.Carbs to draft.carbs.asText(),
+                CreateFoodField.Fat to draft.fat.asText(),
+            ),
+            nutrients = MicronutrientKind.editableKinds.associateWith { draft.micronutrients.values[it].asText() },
+            baseUnit = draft.baseUnit.takeIf { it == "g" || it == "ml" } ?: "g",
+            barcode = draft.barcode?.takeIf { it.isNotBlank() },
+            portions = draft.portions.map { PortionRow(it.label, formatEditable(it.amount), touched = false) },
+            touched = emptySet(),
+        )
+
+        private fun Double?.asText(): String = if (this == null || !isFinite()) "" else formatEditable(this)
 
         /** The draft of an existing food: stored grams are shown in each nutrient's label unit. */
         fun from(editable: EditableFood): FormDraft {

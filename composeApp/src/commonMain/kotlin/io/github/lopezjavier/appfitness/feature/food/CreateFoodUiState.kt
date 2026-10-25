@@ -38,6 +38,8 @@ data class CreateFoodUiState(
     val loadFailed: Boolean = false,
     val labelRows: List<MicronutrientKind> = MicronutrientKind.editableKinds,
     val expandedSections: Set<CreateFoodSection> = emptySet(),
+    /** The form was prefilled from an AI photo estimate and nothing was edited yet: show "Estimado por IA". */
+    val aiEstimateNote: Boolean = false,
 )
 
 /**
