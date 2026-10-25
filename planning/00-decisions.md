@@ -130,7 +130,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** a bug can live on `main` for a task or two before its fix; UI scenarios must have host tests in the task itself. `CLAUDE.md`, `06-agent-workflow.md` and the qa-engineer, planner and pr-creator instructions are updated.
 - **Approval:** 2026-10-13, user (E1 retrospective; the user proposed the design).
 
-### ADR-24 · Onboarding resume and a single save on Profile (E2) (read-only weight amended by ADR-37)
+### ADR-24 · Onboarding resume and a single save on Profile (E2) (read-only weight amended by ADR-37; Preferencias becomes a hub of sections by ADR-69)
 - **Context:** the E2 breakdown found four product gaps in US-06…US-08: what an interrupted onboarding shows on restart, whether onboarding includes the macro sliders, how Profile saves (the Gherkin had "Guardar" and "Guardar objetivos", the mockup one button), and whether the current weight is editable on Profile before weight logging exists (E5).
 - **Decision:**
   - Resuming onboarding restarts at the first step with every step **prefilled** from the saved values. Finishing the last biometric step again **updates** the onboarding weight entry in `body_measurements`; it never adds a second row.
@@ -265,7 +265,7 @@ Format: context → decision → consequences. A decision is only changed by add
 - **Consequences:** `01` FR-5.1, `02`, `03` §2/§4, `05` §5–6, `07`, the E2, E3, E5 and E1 epic notes and `tasks/` are updated; the Profile code (T-037) is reworked in T-041; the Edad/Altura display bug is fixed first in T-040.
 - **Approval:** 2026-10-19, user (Checkpoint E2-B feedback).
 
-### ADR-41 · Meals are deleted when unused, never disabled (E4, T-067)
+### ADR-41 · Meals are deleted when unused, never disabled (E4, T-067) (inside the editor the removal waits for "Guardar": ADR-69)
 - **Context:** at Checkpoint E4-B the user found the enable/disable switch confusing and the meal editor too large on the Diary; a meal should simply be removed when it is not needed. Amends ADR-33.
 - **Decision:**
   - A meal is **deleted** with a trash button, at once (no dialog, no undo), only if it has no `food_log_entries` on any day and the user keeps at least one meal. Otherwise the delete is refused and the row explains why. There is no enable/disable: the `enabled` column is kept but always true (a migration re-enables any disabled slot).
@@ -365,7 +365,7 @@ Format: context → decision → consequences. A decision is only changed by add
   - The diary history (Día / Semana / Mes summaries and the month calendar) leaves the Diario and becomes a full-screen destination (back arrow) reached from an "Estadísticas" entry on the Perfil root (ADR-37 pattern). Tapping a day there opens the normal Diario on that day.
 - **Consequences:** US-24 in `epics/E4-food-diary.md`, `tasks/todo.md` and `tasks/plan.md` (T-071) reflect this; no data-model change.
 
-### ADR-45 · Interaction rules shared by every screen (E4, T-072) — folder-delete exception in ADR-51
+### ADR-45 · Interaction rules shared by every screen (E4, T-072) — folder-delete exception in ADR-51; rulebook, dialog policy and swipe behaviour superseded by ADR-69 (`05-design-system.md` §8–§10)
 - **Context:** Checkpoint E4-B/E4-C (user, 2026-10-21): the same UX defects were reported on several screens (swipe fires too easily, "Deshacer" added after the user had asked for none, edits saved per action, differing texts for the same concept). Fixing them screen by screen leaves the app inconsistent.
 - **Decision:** `05-design-system.md` §8 holds generic rules, enforced by ux-reviewer on every UI task:
   - **Delete:** runs at once, with no confirmation dialog and no "Deshacer" (a deliberate swipe or tap is the confirmation). Deleting from a details screen closes it. Confirmation dialogs stay only for account-level destructive actions ("Borrar cuenta").
@@ -608,3 +608,16 @@ Format: context → decision → consequences. A decision is only changed by add
   - Diary row: a collapsed group shows the name, total kcal and macros; expanding shows its entries like regular foods, each editable and deletable. The expanded state is kept across leaving the app. A food added to the meal later is never part of a group. Deleting some entries leaves the group with the rest; deleting the last one removes the group. Copying a day or a meal keeps the grouping with a new `group_id`.
 - **Consequences:** affects `03-data-model.md` (`food_log_entries`, the add-comida and save-as-comida RPCs), `04-business-rules.md` if totals are documented there, `epics/E8-training-insights.md` (US-55) and the E8 breakdown (T-117).
 - **Approval:** 2026-10-25, user (scope and behaviour); wording pending the user's OK in the docs PR.
+
+### ADR-69 · UX rulebook, templates and guards (E9, US-56)
+- **Context:** UX audit of 2026-10-25 (`ux-audit-2026-10.md`). The same UX defects recurred at every checkpoint because the design system offered atoms but no patterns, the rules were prose in four contradicting places, and `ux-reviewer` checked one plan at a time and never the implemented UI.
+- **Decision** (user, 2026-10-26: all audit recommendations D1…D14 accepted, except D12):
+  - `05-design-system.md` §8 (rules R-01…R-40 and the "decided, do not re-propose" list), §9 (templates, swipe and haptics specs) and §10 (Spanish glossary) are the single UX rulebook; it prevails over older rows and paragraphs.
+  - Templates in `designsystem/` encode the rules (`AppScreen`, `AppEditorScreen`, `AppTopBar` with actions, four sheet archetypes, Name sheet, `FoodSheet`, row components per object, `MetricCard`, `AppMessages`, `AppHaptics`, `OfflineState`, field upgrades); `scripts/check-ux-conventions.sh` runs in CI and fails when a feature reinvents one (warnings first, failures once a domain is migrated).
+  - Amends ADR-45: dialogs only for R-08 (delete account, sign out, delete a folder with routines, discard a live workout, discard unsaved changes in a full-screen editor); a custom exercise is deleted at once and "Archivar" becomes an immediate "Eliminar"; swipe-to-delete arms at 50 % with haptics instead of the 90 % rule; no "Deshacer" stays.
+  - Amends ADR-41: inside an editor every change, removals included, waits for "Guardar". Amends ADR-24: Preferencias becomes a hub of sections, each with its own "Guardar" (no scope change, same data).
+  - Tab roots have their own compact header; screens are titled with the object; actions of the object on screen go in the top bar; the rest bar of the live session moves to the bottom; the Diario shows the meals first with a one-line summary strip; Perfil gets a gear icon and the account actions move to Preferencias → "Cuenta".
+  - Dropped: the "Entreno en curso" bar on every tab (audit D12) is not built, now or in Phase 2 unless the user asks. Screenshot tests of the designsystem templates are adopted.
+  - Process: `ux-reviewer` works from a pattern map, the rules, a mandatory sweep and the glossary, and reviews the implemented diff in parallel with pr-reviewer; a convention stated at a checkpoint becomes a rule in `05` (not a table row); a repeated UX finding becomes a guard.
+- **Consequences:** affects `05-design-system.md`, `epics/E9-finalization.md` (US-56 and the refinement table), `CLAUDE.md`, `06-agent-workflow.md` and the agents `ux-reviewer`, `epic-planner`, `planner` and `compose-ui-developer` (separate workflow task, wording approved in chat first), `tasks/plan.md` and the E9 breakdown.
+- **Approval:** 2026-10-26, user (decisions); wording pending the user's OK in the docs PR.

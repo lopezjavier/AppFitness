@@ -99,6 +99,8 @@ Font: **Plus Jakarta Sans** (OFL), bundled in Compose Multiplatform resources (w
 
 ## 6. Components to build (US-03)
 
+> E9 (ADR-69): §8 (rules), §9 (templates and component specs) and §10 (glossary) prevail over any older row or paragraph of this file. Rows are updated as each component is built.
+
 Each component: a `@Composable` with explicit parameters, `Modifier` as the first optional parameter, a propagatable `testTag`, a preview and an entry in the catalog screen (debug only).
 
 | Component | Description / reference |
@@ -122,7 +124,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `WeekdaySelector` | Seven equal day chips "L M X J V S D" (48 dp targets, `Role.Checkbox`, full day names as `stateDescription`); every available day starts selected, assigned days are disabled and name the current comida. The row scrolls horizontally when the seven targets exceed the width (narrow phones or large font scales); it never wraps |
 | `FavouriteToggle` | Star icon toggle (lime when starred) in food rows and food detail |
 | `MealSlotEditor` | Rename, reorder, delete and add meals, opened from Perfil -> Preferencias (ADR-41). Compact rows, no card per meal: drag handle, label and icon buttons (edit, up, down, trash), one "Añadir comida" at the end. Rule for list rows that configure items: edit actions are icon buttons in one line, never a full button or card per item |
-| `ReorderableColumn` / `DragHandle` | Plain `Column` whose items are reordered by long-pressing and dragging their `DragHandle` (48 dp target, `drag_indicator` icon in `textSecondary`, labelled "Reordenar <item>"). Items keyed by a stable id; the dragged item follows the finger (`zIndex` above the rest), the others make room, and one `onMove(from, to)` is reported on drop. No auto-scroll and no haptics; every screen that uses it also offers a non-drag path ("Subir"/"Bajar"). First user: the routine builder (T-043); `MealSlotEditor` can reuse it |
+| `ReorderableColumn` / `DragHandle` | Plain `Column` whose items are reordered by long-pressing and dragging their `DragHandle` (48 dp target, `drag_indicator` icon in `textSecondary`, labelled "Reordenar <item>"). Items keyed by a stable id; the dragged item follows the finger (`zIndex` above the rest), the others make room, and one `onMove(from, to)` is reported on drop. Target behaviour (R-22, ADR-69): the handle drags at once, with haptics and auto-scroll. Every screen that uses it also offers a non-drag path ("Subir"/"Bajar"). First user: the routine builder (T-043); `MealSlotEditor` can reuse it |
 | `MonthCalendarGrid` | Calendar month grid with a per-day kcal indicator; tap opens that day |
 | `DiaryHistoryRow` | Date + kcal + P/C/F mini bars for a day, with a weekly/monthly summary header |
 | `DiaryGroupRow` | Comida group of a meal in the Diario (US-55): one merged `Role.Button` header (name `bodyLarge` max 2 lines, kcal `labelNumeric`, shared `MacroSummary`, rotating `ic_expand_more`), min height 48 dp, on `surfaceOverlay` with `AppShapes.base` and `Spacing.sm` padding; expanded ingredients are the usual `DiaryEntryRow`s indented `Spacing.md`. State via `diary_section_collapsed/expanded`. Feature component in its own file (`DiaryGroupRow.kt`) |
@@ -149,7 +151,7 @@ Each component: a `@Composable` with explicit parameters, `Modifier` as the firs
 | `ActionRow` | Tappable row of a choice sheet (E7 photo mode and source sheets): decorative 24 dp icon + `titleMedium` title + one-line `bodyMedium` `textSecondary` hint, >= 48 dp, `Role.Button`, 16 dp side margins, read as one node ("title, hint") |
 | `InlineNote` | Subtle form hint (E7 "Estimado por IA · revisa los valores"): decorative info icon + `bodyMedium` `textSecondary` text on `surfaceOverlay`, shape `md`, 12 dp padding; not interactive |
 | `OfflineBanner` | Full-width `surfaceRaised` strip below the Top Bar, 1 dp `borderSubtle` bottom line, 20 dp decorative `cloud_off` icon in `energyAmber` + "Sin conexión" `bodyMedium`; wraps at large font scale; polite live region; shown on every destination and layout (on the rail layout it spans the full width above the rail) |
-| `SwipeToDeleteRow` | Shared slow/heavy swipe-to-delete (ADR-45): `SwipeToDismissBox` end-to-start, confirms only at >= 90% of the travel (shorter drag or fling snaps back), error background with `ic_delete` + "Eliminar", custom accessibility action "Eliminar <name>", row >= 48 dp; no undo, no dialog |
+| `SwipeToDeleteRow` | Shared swipe-to-delete; behaviour in §9.1 (arms at 50 %, haptics, exit animation; ADR-69 supersedes the 90 % rule of ADR-45). Row >= 48 dp, custom accessibility action "Eliminar <name>", no undo |
 | `WipPlaceholder` | Work-in-progress screen container (E1 only) |
 
 Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vectors, with a `contentDescription` on every actionable icon.
@@ -165,7 +167,7 @@ Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vec
 - States: loading = circle skeleton (96 dp, `AppShapes.full`) + name-line skeleton + the action block; load failure = `ErrorState` with "Reintentar" above the sign-out button (as today); offline banner is global.
 - Tablet (>= 600 dp): same single column, centred (no two columns: the screen has no dense content).
 
-**Preferencias** (full-screen destination: `AppTopBar` back-arrow variant titled "Preferencias", no bottom bar, no FAB; pinned "Guardar" `PrimaryButton` footer as in T-037). Order of cards (12 dp apart, 16 dp margins): "Datos personales" (first row = name `AppTextField`, label "Nombre"; then Sexo, Edad, Altura, Nivel de actividad, **Peso actual** as `EditableRow` with chevron that opens the existing `PickerSheet`), energy/strategy card, macro split card, the E7 **"Cocina"** card, then the existing "Comidas" card. "Peso actual" sheet = two `WheelPicker`s (kg · decimal, range 20,0..400,0 as in onboarding; extract `WeightWheels` to `feature/biometrics` next to `HeightWheel`, parameterised by `tagPrefix`), "Listo" applies. The old read-only hint (`profile_weight_hint`) is removed. From 600 dp: personal data + energy left, macros and Cocina right (unchanged layout). Back with unsaved changes discards silently (no dialog).
+**Preferencias** (full-screen destination: `AppTopBar` back-arrow variant titled "Preferencias", no bottom bar, no FAB; pinned "Guardar" `PrimaryButton` footer as in T-037). Order of cards (12 dp apart, 16 dp margins): "Datos personales" (first row = name `AppTextField`, label "Nombre"; then Sexo, Edad, Altura, Nivel de actividad, **Peso actual** as `EditableRow` with chevron that opens the existing `PickerSheet`), energy/strategy card, macro split card, the E7 **"Cocina"** card, then the existing "Comidas" card. "Peso actual" sheet = two `WheelPicker`s (kg · decimal, range 20,0..400,0 as in onboarding; extract `WeightWheels` to `feature/biometrics` next to `HeightWheel`, parameterised by `tagPrefix`), "Listo" applies. The old read-only hint (`profile_weight_hint`) is removed. From 600 dp: personal data + energy left, macros and Cocina right (unchanged layout). Back with unsaved changes follows R-14 (ADR-69); the screen becomes a settings hub in E9 (D9).
 
 **Cocina (E7, US-50):** three numeric fields "Grasa añadida a la plancha (% del peso crudo)", "Grasa añadida en air fryer (%)" and "Grasa añadida al freír (%)", each 0–20 % with the food's `NumberInput`; helper "Porcentaje del peso crudo que se añade como grasa." Saves with the single Preferencias "Guardar".
 
@@ -192,11 +194,310 @@ Icons: Material Symbols (Outlined) via `material-icons-extended` or imported vec
 - Auto-sized labels never go below 11 sp; past that they wrap to 2 lines.
 - How it is verified: Robolectric + Compose UI tests (`androidHostTest`, run by `testLocalDebugUnitTest`) assert touch targets of every interactive node of the catalog (>= 48 dp), accessible labels, and the exact `stateDescription`/`contentDescription` strings; token and geometry values stay as unit tests in `commonTest`. Only haptics and listening with TalkBack remain manual (checkpoint E1-D).
 
-## 8. Interaction rules (ADR-45)
-Generic rules for every screen; ux-reviewer rejects a plan that breaks them.
-- **Delete** runs at once: no confirmation dialog, no "Deshacer". Deleting from a details screen closes it. Exceptions with a confirmation dialog: "Borrar cuenta" (ADR-29) and deleting a non-empty routine folder, which deletes its routines and names how many (ADR-51).
-- **Swipe-to-delete** uses the shared designsystem component: slow, heavy, fires only at the end of the travel; a shorter drag snaps back.
-- **Editing** screens have one "Guardar" that saves all changes together; nothing is saved per action (delete excepted). This includes bottom sheets and modals that edit a value: they have their own "Guardar", and closing them (X, back, swipe down, scrim) discards the change; nothing is applied on dismiss.
-- **Lists:** a row opens its details; editing starts from the details, and a row has no pencil or add button next to its tap. This holds for the Comidas tab of "Añadir comida" too (US-53): a row opens the comida details, which are directly editable (name, amounts, removing and adding foods) with a footer of secondary "Guardar" + primary "Añadir" (ADR-63); there is no "Editar" button and no exception left. Rows of the same kind show the same information everywhere.
-- **Wording:** the same concept has the same label on every screen and period.
-- **Sweep:** before approving, search the app for other instances of the pattern the task touches.
+## 8. Interaction rules and UX rulebook (ADR-45, amended by ADR-69)
+Generic rules for every screen, cited by number. ux-reviewer rejects a plan that breaks one of them, and checks the implemented diff too. Each rule is testable; a convention stated by the user at a checkpoint is written here, not in the E9 table.
+
+### Navigation
+- **R-01 Titles.** Tab roots show their own compact header, never a bar that repeats the tab label. A screen about one
+  object is titled with the object's name. An editor is titled with verb + object ("Nueva rutina", "Editar rutina").
+- **R-02 Object actions.** Actions for the object on screen go in the top bar: at most 2 icons (for example ✎, 🗑)
+  plus ⋮, which opens an action sheet with the rest. Never an extra icon row under the bar; never inside one tab or
+  section.
+- **R-03 Same kind of destination, same affordance.** A navigation entry is a `NavigationRow` (label, optional value,
+  chevron). The history or calendar of X is a calendar icon in X's top bar.
+- **R-04 Labels match titles.** An entry's label equals the title of the screen it opens.
+- **R-05 Bottom navigation** appears only on tab roots; every other screen has a back arrow.
+
+### Templates
+- **R-06** Every screen is built on `AppScreen` (to read) or `AppEditorScreen` (to edit). No screen draws its own top
+  bar, footer, message host or offline banner.
+- **R-07** Every bottom sheet is one of four archetypes:
+  - **Edit:** a form with a pinned footer;
+  - **Picker:** one choice that applies on tap, no footer;
+  - **Actions:** a menu;
+  - **Info:** help or read-only content.
+
+  Each has a header (title, optional "?", a close X described as "Cerrar"), a scrolling body and, where it applies, a
+  pinned footer.
+- **R-08 Dialogs** appear only to:
+  1. delete the account;
+  2. sign out;
+  3. delete many records at once (a folder with its routines);
+  4. discard an in-progress workout;
+  5. discard unsaved changes (R-14).
+
+  Nothing else gets a dialog.
+- **R-09** The primary action of a sheet or editor is pinned and always visible.
+
+### Editing
+- **R-10** Every edit surface has an explicit "Guardar". Closing it (X, back, swipe, tapping outside) never applies
+  anything.
+- **R-11** Inside an editor, every change waits for "Guardar" and is applied together, removals included. Immediate
+  deletion exists only outside editors (in a list or on a details screen).
+- **R-12** "Guardar" writes to the server. "Listo" applies to the unsaved changes of the screen underneath, which has
+  its own "Guardar". Single-choice pickers apply on tap, with no "Listo".
+- **R-13** After a successful "Guardar", the editor closes and returns to where it was opened, with a Confirm haptic.
+  A message appears only if the change is not visible there.
+- **R-14** A full-screen editor with unsaved changes asks "¿Descartar los cambios?" [Descartar] [Seguir editando] on
+  back or X. With no changes, it leaves silently. Sheets always discard silently.
+- **R-15** Creating or renaming a named item that has no editor of its own (meal, folder, "Guardar como comida",
+  "Guardar como rutina") uses the **Name sheet**:
+  - one field that receives focus at once;
+  - the keyboard's "Hecho" saves when the name is valid;
+  - names are unique per user, ignoring case and surrounding spaces.
+
+### Lists, rows, add and delete
+- **R-16** Each object type has one row component, showing the same information everywhere:
+  - `FoodEntryRow`;
+  - `ExerciseRow`;
+  - `WorkoutRow`;
+  - `MeasurementRow`;
+  - `NavigationRow`.
+- **R-17** Tapping a row opens its details (a sheet or a screen); editing starts from the details. In a picker
+  (select mode), tapping a row picks it, and the thumbnail or ⓘ opens the details.
+- **R-18** Tapping the name of a food or an exercise opens its details, on every screen.
+- **R-19** Actions on a row are icon buttons on one line. Adding a new item to a list is one labelled `AddItemButton`
+  at the end of the list ("Añadir <objeto>").
+- **R-20** Where delete lives:
+  - a record in a list: swipe, plus the same action in its sheet or details;
+  - a configuration row (meals, folders, plates): a trash icon in the row;
+  - the object on screen: the top bar.
+
+  Deleting never offers "Deshacer".
+- **R-21** Swipe-to-delete uses the shared component and behaves as specified in §14:
+  - right to left only; "Eliminar" for saved records, "Quitar" inside editors;
+  - it arms at 50 % of the row width, with a visual change and an Armed haptic;
+  - it disarms below 40 %, with a Disarmed haptic;
+  - releasing while armed deletes, with a Confirm haptic: the row slides out, the list closes the gap and the item
+    leaves the screen at once;
+  - releasing before the line, or a fling that is not armed, springs back;
+  - rows have stable keys.
+- **R-22** Reordering uses the shared component:
+  - the handle drags at once;
+  - Tick haptics on pick-up and each time the row moves past another;
+  - the list scrolls by itself near the edges;
+  - TalkBack custom actions "Subir" / "Bajar".
+- **R-23** Lists are lazy and animate insertions, removals and moves.
+
+### Forms
+- **R-24 Text fields.**
+  - The label sits above the field, in sentence case.
+  - All inputs share one label style and one focus treatment.
+  - An optional trailing slot holds clear, ✓ or a unit.
+  - Names start with a capital letter (sentence capitalization).
+  - The keyboard shows "Siguiente" between fields and "Hecho" on the last one; in a one-field sheet, "Hecho" saves.
+- **R-25 Numeric fields** select their whole value on focus, use the decimal keyboard and check ranges inline:
+  "Entre X y Y <unidad>".
+- **R-26 Search fields** use `AppSearchField`: search icon, clear button, keyboard "Buscar".
+- **R-27 Validation** appears under the field after the first edit, while "Guardar" stays disabled. Messages follow
+  the templates in Appendix A.
+
+### Feedback and states
+- **R-28 Messages.** There is one app-level message host, above the bottom bar and any pinned footer. Messages
+  survive navigation and have no action buttons.
+- **R-29 Haptics** go through `AppHaptics` (§14.4), with one vibration per action:
+  - Confirm: saved, added, deleted, set completed.
+  - Reject: an action was refused or failed.
+  - Armed / Disarmed: a gesture crosses its threshold (swipe, drag pick-up).
+  - Tick: a stepper step, a reorder step.
+  - Nothing else vibrates. Alerts such as the end of a rest are not UI feedback; they use the alert pattern in
+    §14.4.
+- **R-30 Offline.**
+  - Only the shell shows the "Sin conexión" banner.
+  - A write action disabled offline shows the standard hint under it.
+  - A load that fails offline shows `OfflineState`, which retries by itself when the connection returns.
+- **R-31 States.**
+  - Loading is a skeleton shaped like the final layout.
+  - Empty is an `EmptyState` with at most one action.
+  - Error is an `ErrorState` with "Reintentar".
+- **R-32 Help** is always `HelpButton`, never text that expands in place.
+
+### Selection controls
+- **R-33** Each control has one use:
+  - **Tabs** (`AppTabRow`) switch between sibling views of one screen.
+  - **A segmented control** (`SegmentedSelector`) picks one of 2–5 short options: a setting, a view mode, a range.
+  - **Chips** filter a list or pick among many or long options.
+
+  A control never changes type with the number of options.
+- **R-34** The same concept always uses the same control and the same labels. Chart ranges use `TimeRangeSelector`:
+  "1S 1M 3M 6M 1A".
+
+### Wording
+- **R-35** The glossary (Appendix A) is binding: one label per concept, and one concept per label.
+- **R-36** Generic actions use the shared `action_*` strings.
+- **R-37** Messages follow fixed templates:
+  - errors: "No se pudo <acción>. Inténtalo de nuevo.";
+  - offline: "Sin conexión: no se puede <acción>".
+
+  Sentences end with a period; titles and buttons do not. Use "…", never "...". Titles take a capital letter only on
+  the first word.
+- **R-38 Dates and numbers.**
+  - Dates come from `AppDateFormat` in three forms:
+    - in a list: "Hoy", "Ayer", "lun, 24 oct";
+    - in a title: "24 de octubre";
+    - a month: "octubre 2026".
+  - Numbers come from `AppNumberFormat`.
+  - Macro grams are whole numbers outside nutrition tables.
+
+### Process
+- **R-39 Sweep.** A task that adds or changes a pattern updates every other instance of it (found with the searches in
+  §11), or records each one in the E9 table with an owning task. A new designsystem component retires its ad-hoc
+  copies within the same epic.
+- **R-40 Guards.** `check-ux-conventions.sh` passes.
+
+### Decided — do not re-propose
+
+ux-reviewer rejects any plan that brings these back:
+- No "Deshacer" anywhere (ADR-45, T-066, E6 Q2).
+- No confirmation dialogs outside R-08.
+- An explicit "Guardar" on every edit surface; nothing applies on close (ADR-45, T-075).
+- Pickers with one choice apply on tap, with no "Quitar tipo" or "Quitar RPE"; "Normal" resets the type (ADR-55).
+- RPE is a whole number from 6 to 10 (ADR-56, T-097j).
+- Three tabs (Diario, Entreno, Perfil) and no floating action button (ADR-36, ADR-37).
+- Preferencias and the statistics hang off Perfil.
+- The meal structure is edited from Preferencias, never from the Diario (ADR-41).
+- A Health Connect weight wins; today's weight is edited with the pencil, not a button (ADR-47, ADR-48).
+- Help is explained in the app, not in the chat (ADR-55).
+- State survives leaving the app (ADR-40).
+- Meals are deleted, never disabled, and at least one remains (ADR-41).
+- Saved meals are called "comidas" (ADR-42), told apart from meal slots by Appendix A.
+- No "Comparar" (ADR-48).
+
+## 9. Patterns and templates (ADR-69)
+Each component gets a catalog entry, host tests and a short spec in §6. Together they make the rules the default; until a template exists, plans cite the rule and the reference screen instead.
+
+Audit IDs in the last column refer to [`ux-audit-2026-10.md`](ux-audit-2026-10.md).
+
+| Component | Purpose and spec | Replaces or fixes |
+|---|---|---|
+| `AppTopBar` v2 | Title, optional subtitle, back, `actions` (≤ 2 `AppIconButton` + ⋮ → `AppActionSheet`), optional collapse on scroll for long lists. 56 dp on full-screen destinations. | NAV-1, NAV-2, the custom live bar |
+| `AppScreen` | Screen template: `AppTopBar` v2, content width capped by window size, optional pinned footer, wired to `AppMessages`. Screens own their bar; the shell keeps the bottom navigation, the offline banner and the message host. | RC2, NAV-3 |
+| `AppEditorScreen` | `AppScreen` plus: <ul><li>"Guardar" pinned, with an optional destructive action;</li><li>the discard dialog when leaving with unsaved changes (R-14);</li><li>closes on success with a haptic (R-13);</li><li>the standard offline hint (R-30);</li><li>room for the keyboard.</li></ul> | EDT-2, EDT-3, FBK-2 |
+| Sheet archetypes | `AppEditSheet(commit = Save or Apply)`, `AppPickerSheet`, `AppActionSheet`, `AppInfoSheet`. All share the header and the pinned footer; the keyboard's "Hecho" saves when valid. Built on `AppBottomSheet` with a **top-only hairline** instead of the full outline. | SHT-1…3, EDT-4 |
+| Name sheet | An `AppEditSheet` with one `AppTextField` that receives focus at once, and a uniqueness check passed in by the caller. | EDT-5, items 20–22 and 25 |
+| `FoodSheet` | One sheet for a food with a quantity: <ul><li>header with name, brand, ★, and ✎ for manual foods;</li><li>quantity and portion;</li><li>live totals;</li><li>collapsible details (per 100, micronutrients);</li><li>a footer that depends on context.</li></ul> | LST-1, item 12 |
+| Rows | <ul><li>`AppListRow`: leading element, headline, supporting text, trailing element; 48 dp or more.</li><li>`FoodEntryRow`.</li><li>`ExerciseRow`: thumbnail; the name opens the detail.</li><li>`WorkoutRow`.</li><li>`MeasurementRow`.</li><li>`NavigationRow`: label, value, chevron.</li></ul> | LST-1, LST-2, NAV-4 |
+| `SectionHeader` / `AddItemButton` | A section title with an optional count, and one labelled "add to this list" button. | Item 28, LST-3 |
+| `MetricCard` | Label, value, supporting slot, trailing action, `onClick`, optional progress slot. | Item 24, A11Y-2, `GoalCard` |
+| `AppTextField` v2, `NumberInput` v2, `AppSearchField` | Trailing slot, `imeAction`, capitalization, autofocus, select-on-focus (numeric), one focus style and one label style. | FRM-1…5 |
+| `SwipeToDeleteRow` v2 | Arms at 50 % and disarms at 40 %, haptics, exit animation, "Eliminar" or "Quitar" label (§14). | LST-5, item 26 |
+| `ReorderableColumn` v2 | Immediate drag from the handle, haptics, scrolls by itself near the edges. | LST-6 |
+| `TimeRangeSelector` | One range control with one string set. | SEL-1 |
+| `AppMessages` | Shell-level message host plus `LocalAppMessages`. | FBK-1 |
+| `AppHaptics` | Named haptic calls: `armed()`, `disarmed()`, `confirm()`, `reject()`, `tick()`. The Android implementation uses `View.performHapticFeedback`, with fallbacks per API level (§14.4). | FBK-3 |
+| `OfflineState` | Offline load state that retries by itself on reconnect. | FBK-2 |
+| `AppDateFormat` | The three date forms of R-38. | WRD-4 |
+| `action_*` strings | Guardar, Cancelar, Cerrar, Eliminar, Quitar, Añadir, Editar, Listo, Descartar, Seguir editando, Reintentar. | WRD-3 |
+
+### 9.1 Swipe-to-delete
+
+| Moment | What you see | What you feel |
+|---|---|---|
+| The drag starts | The row follows the finger. A muted layer shows the icon and "Eliminar" ("Quitar" inside an editor). | — |
+| It passes 50 % of the row | The layer becomes fully active, the icon grows 1.0 → 1.2 with a spring, and the label turns bold. | Armed: one crisp tick |
+| It falls back below 40 % | The layer returns to muted. | Disarmed: a lighter tick |
+| You let go while armed | The row slides out (≈ 200 ms, at your finger's speed), then the rows below move up (≈ 200 ms). | Confirm |
+| You let go before the line | The row springs back, without wobbling. | — |
+| The server fails | The row reappears in place, with the message "No se pudo eliminar. Inténtalo de nuevo." | Reject |
+| TalkBack action "Eliminar <nombre>" | The same removal and gap animation. | Confirm |
+
+The muted and active colours are a style decision. The behaviour only requires two clearly different states.
+
+Starting values (tune them on your phone):
+
+| Parameter | Value | Why |
+|---|---|---|
+| Direction | Right to left only | One meaning everywhere |
+| Gesture start | System touch slop + horizontal lock | Scrolling never swipes |
+| Arm at | 50 % of the row width | Clearly deliberate, still reachable one-handed |
+| Disarm at | 40 % | A 10 % gap (hysteresis) avoids flicker and double ticks |
+| Fling | Never deletes unless already armed | This caused the first version's accidents |
+| Exit | Slide out ≈ 200 ms, then collapse ≈ 200 ms | Fast, but you can see what happened |
+| Return | Spring: damping ≈ 0.8, medium-low stiffness | Settles without bouncing |
+| Label | "Eliminar" for saved records; "Quitar" inside an editor, where the removal waits for "Guardar" | Glossary (Appendix A) |
+
+
+### 9.2 Haptics
+
+**Use the platform's semantic haptics, not raw vibrator pulses.** Compose's `LocalHapticFeedback` maps to Android's
+`HapticFeedbackConstants`. Those effects:
+- are tuned for each phone's motor (crisp on a Pixel);
+- respect your system touch-feedback setting;
+- feel like the rest of Android.
+
+A raw `Vibrator` one-shot, which is what `platform/AndroidHaptics.kt` does today (15 ms for a tick), is a blunt buzz.
+It feels different on every phone and ignores that setting.
+
+**Which constant, from which Android version.** Checked in this project's Compose UI 1.12.1 (`HapticFeedbackType`).
+Compose passes each type straight to Android, with no fallback, so the newer types are silent on older versions:
+
+| Compose type | Use it for | Needs |
+|---|---|---|
+| `GestureThresholdActivate` | Swipe armed; a dragged row picked up | Android 14 (API 34) |
+| `SegmentFrequentTick`, `SegmentTick` | Swipe disarmed; a reorder step; a stepper step | Android 14 (API 34) |
+| `Confirm` | Delete committed; saved; set completed | Android 11 (API 30) |
+| `Reject` | Action refused or failed | Android 11 (API 30) |
+| `LongPress`, `VirtualKey`, `KeyboardTap` | Fallbacks | Every version |
+
+Android 14 also has `GESTURE_THRESHOLD_DEACTIVATE` (the natural disarm effect) and `DRAG_START`, but Compose does not
+expose them. A View-based wrapper can use them. Your Pixel 9 supports everything above. Because `minSdk` is 26, the
+wrapper needs fallbacks.
+
+**One semantic wrapper: `AppHaptics`.** Feature code only calls meanings, never constants:
+
+```kotlin
+// designsystem/AppHaptics.kt (commonMain)
+interface AppHaptics {
+    fun armed()     // a gesture crossed its threshold
+    fun disarmed()  // it went back below it
+    fun confirm()   // the action happened: saved, added, deleted, set completed
+    fun reject()    // the action was refused or failed
+    fun tick()      // a small step: stepper, reorder
+}
+val LocalAppHaptics = staticCompositionLocalOf<AppHaptics> { NoAppHaptics }   // tests provide a recording fake
+```
+
+One action, one vibration, from the layer that knows the outcome (the component fires `confirm()` on commit; the ViewModel only triggers `reject()` on failure). Alerts such as the end of a rest are not UI feedback: they keep the `Haptics` port (`alert()`), with a longer pattern.
+
+### 9.3 Swipe checklist for ux-reviewer
+- [ ] Uses `SwipeToDeleteRow`; there is no other swipe code (guard G7).
+- [ ] Right to left only, labelled "Eliminar" or "Quitar" per the glossary.
+- [ ] Arms at 50 % and disarms at 40 %; deletes only when released while armed.
+- [ ] Haptics through `AppHaptics`: armed, disarmed, confirm, reject. Nothing else vibrates for the same action.
+- [ ] The row leaves at once (optimistic) and the gap closes; a failure brings it back with a message.
+- [ ] Stable keys, plus `animateItem` or `animateContentSize`.
+- [ ] The same action exists in the details and as a TalkBack action.
+- [ ] With reduced motion it snaps; the haptics stay.
+
+## 10. Glossary (Spanish UI)
+
+| Concept | Label to use | Never use for it | Notes |
+|---|---|---|---|
+| A meal of the day (Desayuno, Comida…) | The meal's name; in settings, "Comidas del día" | "Comidas" on its own in settings | Adding one: "Añadir comida del día"; the Name sheet title: "Nueva comida del día" |
+| A saved template | "Comida guardada" / "Comidas guardadas" | "Plantilla" | Search tab "Guardadas"; "Guardar como comida" stays |
+| A food from the catalogue | "Alimento" | "Comida" | "Crear alimento", "Editar alimento" |
+| The search screen title | "Añadir al desayuno" / "Añadir a <comida>", the same label as the button that opened it | "Añadir comida" | When choosing a food for a comida: "Añadir alimento" |
+| Delete a saved record | "Eliminar" | "Borrar", "Archivar" | Immediate; no "Deshacer" |
+| Take out of a draft or container | "Quitar" | "Eliminar" | A comida item, a routine exercise, a portion |
+| Abandon unsaved work or a live workout | "Descartar" | "Cancelar" | Dialog: "¿Descartar los cambios?" [Descartar] [Seguir editando] |
+| Delete the account | "Borrar cuenta" (approved, ADR-29) | — | The only use of "Borrar" besides clearing text ("Borrar búsqueda") |
+| Commit an edit | "Guardar" | "Aceptar", "Confirmar" | |
+| Apply to the screen underneath | "Listo" | "Guardar" | Only when that screen has its own "Guardar" |
+| Close a sheet | X described as "Cerrar" | "Cerrar sin guardar" | The sheet title gives the context |
+| List of past records | "Historial" | — | The title says whose: "Historial de entrenos", "Historial de peso" |
+| Month grid | "Calendario" | — | Opened by the calendar icon |
+| Diary statistics | "Calorías" | "Historial" | The entry and the screen title are the same |
+| Body fat | "Grasa corporal" (chip: "Grasa") | "Grasa (%)" | Field: "Grasa corporal (%)" |
+| Basal metabolism | "Metabolismo basal" (chip: "TMB") | "Tasa metabólica basal" | |
+| Bone | "Masa ósea" (chip: "Hueso" acceptable) | — | |
+| Workout | "Entreno" | "Sesión" in UI text | "Entreno pasado", "Editar entreno" |
+| Chart ranges | "1S 1M 3M 6M 1A" (spoken "1 semana"…) | "Último mes" and similar variants | One string set |
+
+Message templates:
+- Required: "Escribe un nombre".
+- Too long: "Máximo N caracteres".
+- Range: "Entre X y Y <unidad>".
+- Duplicate: "Ya existe <una comida / una carpeta / una rutina> con ese nombre".
+- Error: "No se pudo <acción>. Inténtalo de nuevo."
+- Offline action: "Sin conexión: no se puede <acción>".
+- Saved: "Cambios guardados".

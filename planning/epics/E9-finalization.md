@@ -4,7 +4,7 @@
 Close Phase 1: show the in-app credits and licences, polish the whole app into a stable, accessible build on phone and tablet, and apply the deferred UI-refinement pass. This epic ships `v1.0.0`.
 
 ## Scope
-- Includes: the "Acerca de · Licencias" screen; accessibility, empty/error states and tablet across every screen; the deferred UI-refinement items collected at the 👤 checkpoints.
+- Includes: the "Acerca de · Licencias" screen; accessibility, empty/error states and tablet across every screen; the UX rulebook, designsystem templates and CI guards with the migration of every screen to them (US-56, ADR-69); the deferred UI-refinement items collected at the 👤 checkpoints.
 - Out of scope: new features; AI training assistant and adaptive calorie adjustment (Phase 2).
 - This epic depends on every previous epic (`E1`…`E8`), because its polish pass and credits cover all domains (training, food and weight).
 
@@ -89,53 +89,108 @@ Feature: Version 1.0 quality
 
 ---
 
+## US-56 · UX consistency: one rulebook, templates and guards
+**As** a user
+**I want** every screen to look and behave like the rest of the app
+**So that** I never have to relearn a pattern and the app feels modern and professional.
+
+```gherkin
+Feature: UX consistency
+
+  Scenario: Same structure on every screen
+    Given any screen of the app
+    Then its top bar, pinned footer, message host and offline banner come from the shared templates
+    And a screen about one object is titled with the object's name and its actions are in the top bar
+
+  Scenario: Editing never applies silently
+    Given an editor or a bottom sheet with a changed value
+    When the user closes it without tapping "Guardar"
+    Then nothing is applied
+    And a full-screen editor with unsaved changes first asks "¿Descartar los cambios?"
+    And after a successful "Guardar" the editor closes and returns to where it was opened
+
+  Scenario: Primary action always visible
+    Given any bottom sheet with a form and the keyboard open
+    Then its primary action is pinned and visible without scrolling
+
+  Scenario: Swipe to delete feels like a modern app
+    Given a saved record in a list
+    When the user drags the row less than half of its width and releases
+    Then the row springs back and nothing is deleted
+    When the user drags past half of the width
+    Then the action is armed with a visible change and one vibration
+    When the user releases while armed
+    Then the row leaves at once, the rows below close the gap and the record is deleted
+    And if the deletion fails the row returns with "No se pudo eliminar. Inténtalo de nuevo."
+
+  Scenario: One vibration per action
+    Given the user completes a set, saves an edit or deletes a record
+    Then the phone gives exactly one vibration for that action
+
+  Scenario: One wording per concept
+    Given any screen
+    Then the same concept uses the same label everywhere, per the glossary
+    And "Comidas del día" (the structure) is never confused with "Comidas guardadas" (the templates)
+
+  Scenario: Offline
+    Given the phone has no connection
+    Then only one "Sin conexión" banner is shown
+    And an action that needs the network is disabled with "Sin conexión: no se puede <acción>"
+
+  Scenario: Guards
+    Given a change that reinvents a template or brings back a decided item
+    Then `check-ux-conventions.sh` fails the CI
+```
+
+**Technical notes**
+- Rules, templates and glossary: `05-design-system.md` §8–§10; decision and amendments of ADR-24, ADR-41 and ADR-45: ADR-69. Waves: (0) rulebook and workflow, (1) designsystem foundations and guards, (2) migration by domain (Diario/food/comidas, Peso, Training, Perfil/Preferencias/meals editor), (3) wording and motion, (4) 👤 checkpoints.
+- Every template task ends with a sweep: its ad-hoc copies are migrated in the same epic (R-39). Guards start as warnings and become failures per migrated domain.
+- Out of scope: the "Entreno en curso" bar (dropped, ADR-69) and any new feature.
+
+---
+
 ## UI refinement (deferred items)
 
-A presentation-only pass (FR-6) over the screens built in E2…E8. Every 👤 checkpoint that defers a UI detail appends it here with its source; it never changes features.
+A presentation-only pass (FR-6) over the screens built in E2…E8. Items collected at the 👤 checkpoints are mapped to the rule or template that closes them (audit `ux-audit-2026-10.md` §7; numbering is the audit's, **A…C** were added after it). Items already done, obsolete or superseded were dropped. A convention stated at a future checkpoint goes into `05-design-system.md` §8–§10, not into this table; only one-off visual details are appended here.
 
-| Item | Source |
-|---|---|
-| General onboarding polish (spacing, step layout, transitions) after the T-039 regrouping | Checkpoint E2-A |
-| Onboarding "Sexo": better use of the empty space around the two options | Checkpoint E2-A |
-| Typography review across screens (hierarchy and sizes of titles, descriptions and labels) | Checkpoint E2-A |
-| Tablet: move the primary action out of the top of the NavigationRail into each section's content | E1 closure checkpoint, 2026-10-13 (`tasks/todo.md`, "Notes for later epics") |
-| Preferencias: drop the helper line "Calorías que quemas al día según tu cuerpo y tu actividad." under "Gasto diario estimado" (not needed) | Checkpoint E2-B, 2026-10-19 |
-| Preferencias: "Guardar" should close the screen and return to the Perfil root (today the user taps Guardar and then back: two actions) | Checkpoint E2-B, 2026-10-19 |
-| Perfil root: replace the full-width "Preferencias" button with a gear or pencil icon button next to the user's name, to leave room for the metrics and charts the Perfil will gain | Checkpoint E2-B, 2026-10-19 |
-| Diario: remove the redundant "restantes" label and the macro percentages (the grams "9 g / 233 g" are enough) | Checkpoint E4-A, 2026-10-20 |
-| Diario: remove the full-width "Añadir comida" button (each meal already has its "Añadir a …" button) | Checkpoint E4-A, 2026-10-20 |
-| Diario: layout with the meals first (Desayuno, Comida, Merienda, Cena) and the calorie ring at the bottom | Checkpoint E4-A, 2026-10-20 |
-| Diario: each logged food shows P / C / G (not only the meal total), besides name, grams and kcal | Checkpoint E4-A, 2026-10-20 |
-| Diario: tapping a logged food opens its details (the nutrition data Open Food Facts returns for it); to be reconciled with the entry editing of T-060 | Checkpoint E4-A, 2026-10-20 |
-| Diario: add an "Almuerzo" meal between Desayuno and Comida (product decision: default meals / ADR-?, to confirm with the user) | Checkpoint E4-A, 2026-10-20 |
-| Diario: a calendar button next to the day name (to the right of "Hoy") to jump to a given day, e.g. the same day last month; to be reconciled with the history calendar of T-063 | Checkpoint E4-A, 2026-10-20 |
-| Rest timer alert (live session): the vibration when the rest ends is too short to notice; make it longer/stronger (functional fix, may be done earlier as a `fix(T-###)`) | User report during T-059, 2026-10-20 |
-| Rest timer alert (live session): the end-of-rest sound plays but sounds odd; replace it with a different one (ask the user which) | User report during T-059, 2026-10-20 |
-| Live session: remove the eye icon and "Pantalla activa" indicator (no value; the screen still stays on). | User report |
-| Preferencias: place the meal-structure section below "Distribución de macros" | Checkpoint E4-B round 2, 2026-10-21 |
-| Meal structure: removing a meal must be persisted by "Guardar" like adding and reordering (today the trash button writes at once; mixed behaviour) | Checkpoint E4-B round 2, 2026-10-21 |
-| Meal structure: "Añadir comida" name field gets a tick button inside the text input to confirm (today only the keyboard tick confirms) | Checkpoint E4-B round 2, 2026-10-21 |
-| Meal structure: meal names must be unique (case-insensitive); adding an existing name such as "Desayuno" is rejected with a hint | Checkpoint E4-B round 2, 2026-10-21 |
-| Meal structure: "Añadir comida" is disabled while a new meal is being created (no double-add) | Checkpoint E4-B round 2, 2026-10-21 |
-| Diario/Perfil/Comidas: top bar with the section name takes too much vertical space; make it smaller (all sections) | Checkpoint E4-C round 1, 2026-10-21 |
-| Weight screen: the "Objetivo" card differs in pencil alignment and text padding from "Peso actual"; extract one shared card component (title, value, subtitle, pencil) so similar cards cannot drift (local screenshot: `design/reported/e5b-r3-objetivo-vs-peso-actual-and-trend-two-dots.png`, gitignored) | Checkpoint E5-B round 3, 2026-10-22 |
-| Meal structure: a meal being created shows tick (save) and X (discard) buttons; discarding does not require saving then deleting | Checkpoint E4-B round 2, 2026-10-21 |
-| Swipe-to-delete still feels unlike modern apps: ux-reviewer researches how swipe works in modern apps and aligns the shared component; add haptic feedback when the drag reaches the action threshold and when the delete fires | Checkpoint E4-C round 3, 2026-10-21 |
-| Visual bug: a stray horizontal line crosses the value of text fields (seen on the quantity "30" of the food details sheet; reference `design/reported/e4c-line-through-quantity-field.png`). It recurs across screens: find the cause in the shared field/sheet components and fix it app-wide | Checkpoint E4-C round 3, 2026-10-21 |
-| Comida details: no visual separation between the comida summary and its first food; add a section divider with the label "Alimentos en esta comida" | Checkpoint E4-C approval, 2026-10-21 |
-| Weight screen: a pencil button inside the "Peso actual" card replaces the "Registrar peso de hoy" button | Checkpoint E5-B, 2026-10-22 |
-| Weight screen: the Health Connect sync status moves inside "Peso actual" and "Sincronizar" becomes a real button (not text) | Checkpoint E5-B, 2026-10-22 |
-| Weight screen: "Historial de mediciones" is reached from a calendar button, the same pattern as the calories (Diario) calendar | Checkpoint E5-B, 2026-10-22 |
-| Weight trend: goal progress is shown visually in "Tendencia" (first-weight marker, target line, shaded band between them) instead of a percentage on the goal card | Checkpoint E5-B, 2026-10-22 |
-| Diario: a logged food added with a portion shows the portion's unit amount next to its name, e.g. "1 vaso (200 ml)" in the meal summary; the same for grams | User request, 2026-10-22 |
-| "Añadir comida" → Comidas: tapping a row adds it and the trailing button is a pencil that opens "Editar comida" (visual swap; the rest of the comida editing is T-102b in E6) | User request, 2026-10-23 |
-| Live session / routine builder: set type icon for "Normal" (replace the current one) and show that icon (an "N") instead of the set number on Normal sets | Checkpoint E6-A re-test, 2026-10-24 |
-| Live session: planned weight/reps placeholders in a darker grey, clearly different from user-entered white values | Checkpoint E6-A re-test, 2026-10-24 |
-| "Qué es el RPE?" help as a list, one line per number | Checkpoint E6-A re-test, 2026-10-24 |
-| Estadísticas → Musculación radar: the label "Isquiotibiales" wraps with the final "s" on a second line; show "Isquios" instead (NIT) | Checkpoint E8-A, 2026-10-26 |
-| Estadísticas → Últimos 7 días: the body map feels unprofessional; study in E9 how to get a better result (ux-reviewer to assess options and complexity; reference `design/reported/E8-A-stats-radar-bodymap.png`, gitignored, with both topics) | Checkpoint E8-A, 2026-10-26 |
-| Routine folders: a stray horizontal line appears in the background when "Nueva carpeta" is tapped (the user will provide a screenshot if needed; save it in `design/reported/`) | Checkpoint E6-B, 2026-10-24 |
-| Comida details (editable screen): (1) the kcal/P/C/G summary, the "+" and the trash button are scattered; move "+" and trash to the name row and shrink the name field so they share one row; (2) "Guardar" is shown only when there are unsaved changes and sits in its own row above "Añadir" (not side by side); (3) remove the hint "Se añadirá tal como lo ves; Guardar para conservar los cambios" (reference `design/reported/E7-A-comida-details-layout.png`) | Checkpoint E7-A, 2026-10-25 |
+| # | Item | Solution (rule or template) |
+|---|---|---|
+| 1 | Onboarding polish: spacing, step layout, transitions (E2-A) | Step template and a slide transition. Spacing is visual and belongs to the UI pass. |
+| 2 | Onboarding "Sexo": empty space (E2-A) | Two equal `SelectableCard`s side by side, with the birth date in the same view. |
+| 3 | Typography review (E2-A) | Out of scope here. The templates fix the title *levels*: one style each for screen titles, section headers and sheet titles. |
+| 5 | Preferencias: remove the "Calorías que quemas…" helper (E2-B) | Delete `energy_tdee_helper` from both screens. |
+| 6 | Preferencias: "Guardar" closes the screen (E2-B) | R-13, through `AppEditorScreen`. |
+| 7 | Perfil: gear or pencil next to the name (E2-B) | D8: a gear in the profile header; the account actions move into Preferencias. |
+| 8 | Diario: remove "restantes" and the macro % (E4-A) | The ring shows only what you ate and "de N kcal", plus "+N kcal en exceso" when you go over. `MacroProgressBar` reads "9 g / 233 g". |
+| 9 | Diario: remove the full-width "Añadir comida" (E4-A) | Remove it; each meal keeps its own `AddItemButton`. |
+| 10 | Diario: meals first, ring at the bottom (E4-A) | D11: meals first and the full dashboard at the bottom. A one-line summary strip on top ("1.240 / 2.100 kcal · P 80 · C 150 · G 40") keeps the remaining budget visible without scrolling. |
+| 12 | Diario: tapping a logged food opens its details (E4-A) | One FoodSheet (LST-1). |
+| 14 | Diario day picker: mark the logged days and add a "Hoy" chip (the calendar button itself is done, T-071) | Mark the days with entries and show a "Hoy" chip whenever the visible day is not today. |
+| 15 | End of rest: the vibration is too short (T-059) | A longer pattern through the `Haptics` port, for example three strong pulses over about 1.2 s, tested on your phone (§14.4). Treat it as a functional fix. |
+| 16 | End of rest: the sound is odd (T-059) | You choose among 2–3 short candidates: the system notification sound, a soft chime or a double beep. Still silent when the phone is muted. |
+| 18 | Preferencias: meals below macros (E4-B round 2) | Reorder, or moot with the hub (D9). |
+| 19 | Meals editor: a removal is saved by "Guardar" (E4-B round 2) | R-11 (everything inside an editor waits for "Guardar"), amending ADR-41 (D3). The server still checks "in use" and "last meal" on save, and the row shows the hint beforehand. |
+| 20 | Meals editor: a ✓ inside the name field (E4-B round 2) | Name sheet (R-15, D6). If you keep inline rows, use the ✓ in the `AppTextField` v2 trailing slot. |
+| 21 | Meals editor: unique names, ignoring case (E4-B round 2) | One rule for every collection you name: meals, folders, saved comidas, routines. One message template: "Ya existe <una comida / una carpeta…> con ese nombre". |
+| 22 | Meals editor: "Añadir comida" disabled while a meal is being created (E4-B round 2) | Moot with the Name sheet, which blocks the screen behind it. |
+| 23 | Top bar too tall (E4-C round 1) | D1: tab roots without a title bar, compact screen headers, entity titles. |
+| 24 | Peso: "Objetivo" and "Peso actual" drift apart (E5-B round 3) | One `MetricCard` (§9); `GoalCard` becomes a `MetricCard` with a progress slot. |
+| 25 | Meals editor: ✓ and ✕ for a meal being created (E4-B round 2) | Name sheet (D6). |
+| 26 | Swipe like modern apps, with haptics (E4-C round 3) | R-21 and D5 (LST-5). The full specification, vibration design and implementation steps are in §14. |
+| 27 | Stray line across text fields (E4-C round 3) | SHT-3: diagnose with a screenshot test, then use a top-only hairline. |
+| 28 | Comida details: a divider "Alimentos en esta comida" (E4-C) | `SectionHeader` (§9). |
+| 30 | Peso: Health Connect status inside "Peso actual", and "Sincronizar" as a real button (E5-B) | The status becomes a supporting line of the "Peso actual" `MetricCard`, with "Sincronizar" as its action. |
+| 31 | Peso: measurement history opened from a calendar button (E5-B) | R-03: a calendar icon in the top bar. |
+| 32 | Weight trend: show goal progress visually (E5-B) | A chart overlay: a marker on the first weight, the target line (already there), and a shaded band between them. |
+| 33 | Diario: "1 vaso (200 ml)" (user, 2026-10-22) | `FoodEntryRow` shows the portion label plus the amount in base units. |
+| 35 | Normal set: an "N" instead of the number (E6-A) | `SetTypeBadge` everywhere: builder, live session, history, detail. |
+| 36 | Live session: planned placeholders darker (E6-A) | Planned values use `textSecondary` today, chosen for contrast. Make them clearly different from typed values without relying on colour alone (for example a lighter font weight), or switch to `ghostData` if you accept lower contrast for planned values. |
+| 37 | RPE help as a list (E6-A) | `HelpButton` with structured content (FBK-4). |
+| 38 | Folders: stray line on "Nueva carpeta" (E6-B) | Same as 27. |
+| A | Estadísticas → Musculación radar: "Isquiotibiales" wraps with the final "s"; show "Isquios" (NIT) | Shorter axis label (glossary). |
+| B | Estadísticas → Últimos 7 días: the body map feels unprofessional; study how to get a better result (reference `design/reported/E8-A-stats-radar-bodymap.png`, gitignored) | ux-reviewer assesses options and complexity in the Training migration task; the user picks before any rebuild. |
+| C | Comida details (editable screen): kcal/P/C/G summary, "+" and trash scattered; "Guardar" in its own row above "Añadir"; remove the hint "Se añadirá tal como lo ves…" (reference `design/reported/E7-A-comida-details-layout.png`) | Built on the shared templates: name in the title, actions in the top bar, `AddItemButton` at the end of the list, pinned "Guardar" (§6.3 of the audit). |
+
 ---
 
 ### UX consistency guardrails (E4 retrospective, 2026-10-21)
@@ -147,9 +202,10 @@ The user found repeated UX defects and inconsistencies across screens (icons vs.
 - Success criterion (E5 retrospective, 2026-10-22): after E9 the user must not see new screens follow a different approach than existing ones. The `ux-reviewer` refinement is part of the epic's Definition of Done, not optional polish.
 
 ## Epic Definition of Done
-- All stories US-01…US-51 closed; the app is verified manually at the checkpoints.
+- All stories US-01…US-56 closed (US-42…US-44 deferred, ADR-66); the app is verified manually at the checkpoints.
 - The "Acerca de" screen shows version/build, the RepDB, Open Food Facts and Google Gemini credits and the OSS licences.
 - Security checklist from `02-architecture.md` §7 reviewed and documented in the final PR.
 - The `prodDebug` APK installed on the user's phone and tablet; positive feedback.
-- The deferred UI-refinement items are applied.
+- The deferred UI-refinement items are applied and `check-ux-conventions.sh` passes in CI with every guard a failure.
+- The `ux-reviewer` refinement and the workflow changes of ADR-69 are in place and have run on the E9 UI tasks (plan and diff).
 - Tag `v1.0.0` and the Phase 1 GitHub Release (notes only, no APK) published.
