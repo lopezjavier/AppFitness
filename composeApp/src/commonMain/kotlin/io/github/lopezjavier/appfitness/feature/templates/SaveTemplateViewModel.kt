@@ -130,7 +130,15 @@ class SaveTemplateViewModel(
         val items = buildTemplateItems(ready.sectionEntries, methods.value)
         saving.value = true
         viewModelScope.launch {
-            val result = mealTemplates.save(null, name.value.trim(), slotId, items)
+            val result = mealTemplates.saveAsComida(
+                date,
+                slotId,
+                name.value.trim(),
+                ready.sectionEntries.map {
+                    it.id
+                },
+                items,
+            )
             saving.value = false
             if (result.isSuccess) {
                 effectChannel.send(SaveTemplateEffect.Saved)

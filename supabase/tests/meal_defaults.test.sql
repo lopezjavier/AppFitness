@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(74);
+select plan(78);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -251,6 +251,24 @@ select results_eq(
 select is(public.apply_meal_defaults((select v from days where k = 't')), 0, 'a second call adds nothing');
 select is((select count(*)::int from public.food_log_entries where log_date = (select v from days where k = 't')),
   4, 'the second call did not duplicate entries');
+
+-- T-117 (US-55, ADR-68): each default is one group named after its comida.
+select results_eq(
+  $$select count(distinct e.group_id)::int, count(e.group_id)::int, min(e.group_name)
+    from public.food_log_entries e
+    where e.log_date = (select v from days where k = 't')
+      and e.meal_slot_id = (select v from slots where k = 'a_breakfast')$$,
+  $$values (1, 2, 'Desayuno A'::text)$$, 'the breakfast default entries share one non-null group named after the comida');
+select is((select min(e.group_name) from public.food_log_entries e
+           where e.log_date = (select v from days where k = 't')
+             and e.meal_slot_id = (select v from slots where k = 'a_lunch')),
+  'Comida A', 'the lunch default entries are grouped under their own comida name');
+select is((select count(distinct e.group_id)::int from public.food_log_entries e
+           where e.log_date = (select v from days where k = 't')),
+  2, 'two meals with defaults give two different group ids');
+select is((select count(*)::int from public.food_log_entries e
+           where e.log_date = (select v from days where k = 't') and e.group_id is null),
+  0, 'no default entry is left ungrouped');
 
 -- Changes after an application only affect the next one: edit T1, raise the griddle percentage, apply yesterday.
 select lives_ok(

@@ -20,6 +20,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -155,6 +156,34 @@ class SupabaseMealTemplateRepositoryTest {
         assertEquals(listOf("eggs", "shake"), sent.map { it["food_id"]?.jsonPrimitive?.content })
         assertEquals(JsonNull, sent[0]["portion_label"])
         assertEquals("1 vaso", sent[1]["portion_label"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun saveAsComida_callsItsRpcWithTheEntryIdsAndTheTrimmedName() = runTest {
+        val repo = repository { "\"t9\"" }
+
+        val id = repo.saveAsComida(LocalDate(2026, 10, 21), "s1", " Mi desayuno ", listOf("e1", "e2"), items)
+            .getOrThrow()
+
+        assertEquals("t9", id)
+        val request = requests.last()
+        assertTrue(request.url.encodedPath.endsWith("/rpc/save_meal_as_comida"), request.url.toString())
+        val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
+        assertEquals("2026-10-21", body["p_log_date"]?.jsonPrimitive?.content)
+        assertEquals("s1", body["p_meal_slot_id"]?.jsonPrimitive?.content)
+        assertEquals("Mi desayuno", body["p_name"]?.jsonPrimitive?.content)
+        assertEquals(listOf("e1", "e2"), body["p_entry_ids"]!!.jsonArray.map { it.jsonPrimitive.content })
+        val sentItems = body["p_items"]!!.jsonArray.map { it.jsonObject }
+        assertEquals(listOf("eggs", "shake"), sentItems.map { it["food_id"]?.jsonPrimitive?.content })
+    }
+
+    @Test
+    fun saveAsComida_duplicateName_isNameAlreadyExists() = runTest {
+        val repo = failing(HttpStatusCode.Conflict, "23505")
+
+        val result = repo.saveAsComida(LocalDate(2026, 10, 21), "s1", "A", listOf("e1"), items)
+
+        assertEquals(AppError.NameAlreadyExists, result.appErrorOrNull())
     }
 
     @Test

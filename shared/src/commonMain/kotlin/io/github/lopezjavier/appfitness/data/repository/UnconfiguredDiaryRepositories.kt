@@ -43,6 +43,14 @@ class UnconfiguredMealTemplateRepository : MealTemplateRepository {
         items: List<NewTemplateItem>,
     ): Result<String> = failure()
 
+    override suspend fun saveAsComida(
+        date: LocalDate,
+        mealSlotId: String,
+        name: String,
+        entryIds: List<String>,
+        items: List<NewTemplateItem>,
+    ): Result<String> = failure()
+
     override suspend fun rename(id: String, name: String): Result<Unit> = failure()
 
     override suspend fun delete(id: String): Result<Unit> = failure()

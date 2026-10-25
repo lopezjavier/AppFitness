@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
+import io.github.lopezjavier.appfitness.domain.model.EntryGroup
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
@@ -189,6 +190,34 @@ class SupabaseFoodDiaryRepositoryTest {
         assertTrue(body.contains("\"cooking_oil_retained_g\":2.5"), body)
         assertEquals(CookingMethod.AirFryer, created.cookingMethod)
         assertEquals(2.5, created.cookingOilRetainedG)
+    }
+
+    @Test
+    fun addEntry_aGroupedEntryPostsTheGroupFields() = runTest {
+        val repo = signedInRepository { "[$ROW_ONE]" }
+
+        repo.addEntry(newEntry().copy(group = EntryGroup("g-1", "Avena con plátano"))).getOrThrow()
+
+        val body = requests.last().body.toByteArray().decodeToString()
+        assertTrue(body.contains("\"group_id\":\"g-1\""), body)
+        assertTrue(body.contains("\"group_name\":\"Avena con plátano\""), body)
+    }
+
+    @Test
+    fun refresh_selectsAndDecodesTheGroupColumns_andAbsentOnesAreNull() = runTest {
+        val grouped = ROW_ONE.replace("\"foods\"", "\"group_id\":\"g-1\",\"group_name\":\"Desayuno A\",\"foods\"")
+        val repo = signedInRepository { "[$grouped,$ROW_TWO]" }
+
+        repo.refresh(day).getOrThrow()
+
+        assertTrue(requests.last().url.parameters["select"].orEmpty().contains("group_id,group_name"))
+        repo.entries(day).test {
+            val (first, second) = awaitItem()
+            assertEquals("g-1", first.groupId)
+            assertEquals("Desayuno A", first.groupName)
+            assertEquals(null, second.groupId)
+            assertEquals(null, second.groupName)
+        }
     }
 
     @Test

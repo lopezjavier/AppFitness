@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -49,13 +50,14 @@ import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.MealCode
+import io.github.lopezjavier.appfitness.domain.model.MealRow
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private const val COLLAPSED_CHEVRON_ROTATION = 180f
+internal const val EXPANDED_CHEVRON_ROTATION = 180f
 
 /** Default label and add-button wording of the four default meals. */
 private fun defaultLabel(code: MealCode): StringResource = when (code) {
@@ -114,13 +116,19 @@ internal fun MealSectionCard(
 private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () -> Unit) {
     val id = section.slot.id
     Column(Modifier.padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        section.entries.forEach {
-            DiaryEntryRow(
-                entry = it,
-                canDelete = actions.canDelete,
-                onEdit = { actions.onEdit(it.id) },
-                onDelete = { actions.onDelete(it.id) },
-            )
+        section.rows.forEach { row ->
+            when (row) {
+                is MealRow.Single -> key(row.entry.id) {
+                    DiaryEntryRow(
+                        entry = row.entry,
+                        canDelete = actions.canDelete,
+                        onEdit = { actions.onEdit(row.entry.id) },
+                        onDelete = { actions.onDelete(row.entry.id) },
+                    )
+                }
+
+                is MealRow.Group -> key("group-${row.groupId}") { DiaryGroupCard(row, actions) }
+            }
         }
         if (section.showRemainingHint && section.remainingKcal != null) {
             Text(
@@ -219,7 +227,7 @@ private fun SectionToggle(
             painter = painterResource(Res.drawable.ic_expand_more),
             contentDescription = null,
             tint = AppTheme.colors.textSecondary,
-            modifier = Modifier.size(Spacing.xl).rotate(if (collapsed) 0f else COLLAPSED_CHEVRON_ROTATION),
+            modifier = Modifier.size(Spacing.xl).rotate(if (collapsed) 0f else EXPANDED_CHEVRON_ROTATION),
         )
     }
 }
@@ -234,7 +242,7 @@ private fun MealSummaryText(text: String, macro: Macro) {
 }
 
 @Composable
-private fun MacroSummary(totals: MealTotals) {
+internal fun MacroSummary(totals: MealTotals) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         MealSummaryText(stringResource(Res.string.diary_meal_protein, wholeHalfUp(totals.proteinG)), Macro.Protein)
         MealSummaryText(stringResource(Res.string.diary_meal_carbs, wholeHalfUp(totals.carbsG)), Macro.Carbs)

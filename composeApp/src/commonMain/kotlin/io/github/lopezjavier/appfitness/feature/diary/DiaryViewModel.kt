@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.DiaryTotals
+import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.feature.workout.sessionDateLabel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -39,6 +40,7 @@ import kotlinx.datetime.plus
 
 private const val KEY_DATE = "diary_date"
 private const val KEY_COLLAPSED = "diary_collapsed"
+private const val KEY_EXPANDED_GROUPS = "diary_expanded_groups"
 private const val ID_SEPARATOR = ","
 
 /** The meals and goals the day view needs besides the entries. */
@@ -79,10 +81,14 @@ class DiaryViewModel(
     private val connectivity: ConnectivityObserver,
     private val defaults: MealDefaultsRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val groupMealEntries: GroupMealEntries = GroupMealEntries(),
 ) : ViewModel() {
     private val date = MutableStateFlow(savedState.get<String>(KEY_DATE)?.let(LocalDate::parse) ?: clock.today())
     private val collapsed = MutableStateFlow(
         savedState.get<String>(KEY_COLLAPSED)?.split(ID_SEPARATOR)?.filter { it.isNotEmpty() }?.toSet().orEmpty(),
+    )
+    private val expandedGroups = MutableStateFlow(
+        savedState.get<String>(KEY_EXPANDED_GROUPS)?.split(ID_SEPARATOR)?.filter { it.isNotEmpty() }?.toSet().orEmpty(),
     )
     private val setup = MutableStateFlow<Setup>(Setup.Loading)
     private val entriesFailed = MutableStateFlow(false)
@@ -103,7 +109,8 @@ class DiaryViewModel(
     }
 
     val uiState: StateFlow<DiaryUiState> = combine(setup, dayEntries, collapsed, entriesFailed, online, ::DayInputs)
-        .combine(defaultsFailed, ::buildState)
+        .combine(defaultsFailed) { inputs, failed -> inputs to failed }
+        .combine(expandedGroups) { (inputs, failed), expanded -> buildState(inputs, failed, expanded) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiaryUiState.Loading)
 
     init {
@@ -121,6 +128,8 @@ class DiaryViewModel(
             is DiaryEvent.GoToDay -> if (event.date <= clock.today()) showDay(event.date)
 
             is DiaryEvent.ToggleSection -> toggle(event.slotId)
+
+            is DiaryEvent.ToggleGroup -> toggleGroup(event.groupId)
 
             DiaryEvent.Retry -> retry()
 
@@ -157,6 +166,11 @@ class DiaryViewModel(
     private fun toggle(slotId: String) {
         collapsed.update { if (slotId in it) it - slotId else it + slotId }
         savedState[KEY_COLLAPSED] = collapsed.value.joinToString(ID_SEPARATOR)
+    }
+
+    private fun toggleGroup(groupId: String) {
+        expandedGroups.update { if (groupId in it) it - groupId else it + groupId }
+        savedState[KEY_EXPANDED_GROUPS] = expandedGroups.value.joinToString(ID_SEPARATOR)
     }
 
     private fun retry() {
@@ -207,13 +221,13 @@ class DiaryViewModel(
         defaultsFailed.value = !applied
     }
 
-    private fun buildState(inputs: DayInputs, defaultsFailed: Boolean): DiaryUiState = when {
+    private fun buildState(inputs: DayInputs, defaultsFailed: Boolean, expanded: Set<String>): DiaryUiState = when {
         inputs.setup == Setup.Failed || (inputs.entriesFailed && inputs.loaded == null) -> DiaryUiState.Error
 
         inputs.setup !is Setup.Ready || inputs.loaded == null -> DiaryUiState.Loading
 
         else -> DiaryUiState.Content(
-            content(inputs.setup, inputs.loaded, inputs.collapsed, inputs.online, defaultsFailed),
+            content(inputs.setup, inputs.loaded, inputs.collapsed, inputs.online, defaultsFailed, expanded),
         )
     }
 
@@ -223,6 +237,7 @@ class DiaryViewModel(
         collapsedIds: Set<String>,
         online: Boolean,
         defaultsFailed: Boolean,
+        expandedGroupIds: Set<String>,
     ): DiaryContent {
         val day = buildDiaryDay(loaded.date, setup.slots, loaded.entries, setup.goals)
         val remaining = day.goals?.let { DiaryTotals.remainingKcal(it.targetKcal, day.totals.kcal) }
@@ -242,10 +257,12 @@ class DiaryViewModel(
                     isEmpty = isEmpty,
                     showRemainingHint = isEmpty && remaining != null && remaining > 0,
                     remainingKcal = remaining,
+                    rows = groupMealEntries(section.entries),
                 )
             },
             dayTotals = day.totals,
             collapsedSlotIds = collapsedIds,
+            expandedGroupIds = expandedGroupIds,
             isOffline = !online,
             defaultsFailed = defaultsFailed && loaded.date == today,
         )

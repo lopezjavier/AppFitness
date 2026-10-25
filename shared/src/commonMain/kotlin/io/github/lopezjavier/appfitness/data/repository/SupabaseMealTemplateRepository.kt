@@ -9,6 +9,7 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.MealTemplateDto
 import io.github.lopezjavier.appfitness.data.remote.RenameTemplateDto
+import io.github.lopezjavier.appfitness.data.remote.SaveMealAsComidaParams
 import io.github.lopezjavier.appfitness.data.remote.SaveMealTemplateParams
 import io.github.lopezjavier.appfitness.data.remote.SaveTemplateItemParam
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -16,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import kotlinx.datetime.LocalDate
 
 // Raised by the table constraints and `save_meal_template`.
 private const val UNIQUE_VIOLATION = "23505"
@@ -42,6 +44,25 @@ class SupabaseMealTemplateRepository(private val auth: Auth, private val postgre
         postgrest.rpc(
             "save_meal_template",
             SaveMealTemplateParams(id, name.trim(), mealSlotId, items.map(SaveTemplateItemParam::from)),
+        ).decodeAs<String>()
+    }.mapTemplateErrors()
+
+    override suspend fun saveAsComida(
+        date: LocalDate,
+        mealSlotId: String,
+        name: String,
+        entryIds: List<String>,
+        items: List<NewTemplateItem>,
+    ): Result<String> = auth.ownRow {
+        postgrest.rpc(
+            "save_meal_as_comida",
+            SaveMealAsComidaParams(
+                date.toString(),
+                mealSlotId,
+                name.trim(),
+                items.map(SaveTemplateItemParam::from),
+                entryIds,
+            ),
         ).decodeAs<String>()
     }.mapTemplateErrors()
 

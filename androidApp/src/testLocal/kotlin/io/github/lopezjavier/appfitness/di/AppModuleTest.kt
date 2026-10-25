@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
+import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -131,6 +132,7 @@ class AppModuleTest {
                 FoodDiaryRepository::class,
                 FoodRepository::class,
                 BuildDiaryDay::class,
+                GroupMealEntries::class,
                 ResolvePortion::class,
                 RecalculateEntry::class,
                 ScaleNutrition::class,

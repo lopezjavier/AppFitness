@@ -106,6 +106,18 @@ class SaveTemplateViewModelTest {
     }
 
     @Test
+    fun saving_groupsExactlyTheEntriesOfTheSection() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.type("Mi desayuno")
+
+        model.onEvent(SaveTemplateEvent.Submit)
+        advanceUntilIdle()
+
+        assertEquals(listOf(Triple(day, "breakfast", listOf("e1", "e2"))), repository.comidaSaves)
+    }
+
+    @Test
     fun saving_emitsSaved() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()

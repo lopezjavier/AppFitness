@@ -70,6 +70,16 @@ internal data class SaveMealTemplateParams(
     @SerialName("p_items") val items: List<SaveTemplateItemParam>,
 )
 
+/** Arguments of the `save_meal_as_comida` RPC: saves the template and groups the entries [entryIds] (ADR-68). */
+@Serializable
+internal data class SaveMealAsComidaParams(
+    @SerialName("p_log_date") val logDate: String,
+    @SerialName("p_meal_slot_id") val mealSlotId: String,
+    @SerialName("p_name") val name: String,
+    @SerialName("p_items") val items: List<SaveTemplateItemParam>,
+    @SerialName("p_entry_ids") val entryIds: List<String>,
+)
+
 /** Patch body of `meal_templates` for a rename. */
 @Serializable
 internal data class RenameTemplateDto(val name: String)

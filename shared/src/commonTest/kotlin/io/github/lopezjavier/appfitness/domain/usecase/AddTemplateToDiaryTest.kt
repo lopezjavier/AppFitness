@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
+import io.github.lopezjavier.appfitness.domain.model.EntryGroup
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
@@ -79,7 +80,9 @@ class AddTemplateToDiaryTest {
     private val date = LocalDate(2026, 10, 21)
     private val diary = RecordingDiary()
     private val preferences = FakePreferences()
-    private val addTemplate = AddTemplateToDiary(diary, preferences, BuildCookedEntries(ScaleNutrition()))
+    private var groupCounter = 0
+    private val addTemplate =
+        AddTemplateToDiary(diary, preferences, BuildCookedEntries(ScaleNutrition())) { "group-${++groupCounter}" }
 
     private fun food(id: String, name: String, kcal: Double, baseUnit: String = "g") = Food(
         id = id,
@@ -115,6 +118,22 @@ class AddTemplateToDiaryTest {
         assertEquals(listOf(120.0, 300.0), entries.map { it.amount })
         assertEquals(NutritionSnapshot(kcal = 180.0, proteinG = 12.0, carbsG = 24.0, fatG = 6.0), entries[0].snapshot)
         assertEquals(240.0, entries[1].snapshot.kcal)
+    }
+
+    @Test
+    fun allEntriesShareOneGroupNamedAfterTheTemplate() = runTest {
+        addTemplate(desayunoA, "lunch", date)
+
+        val groups = diary.addCalls.single().map { it.group }
+        assertEquals(listOf(EntryGroup("group-1", "Desayuno A")), groups.distinct())
+    }
+
+    @Test
+    fun eachApplicationGetsItsOwnGroupId() = runTest {
+        addTemplate(desayunoA, "lunch", date)
+        addTemplate(desayunoA, "lunch", date)
+
+        assertEquals(listOf("group-1", "group-2"), diary.addCalls.map { it.first().group?.id })
     }
 
     @Test

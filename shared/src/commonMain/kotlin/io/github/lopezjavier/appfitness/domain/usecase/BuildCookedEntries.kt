@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
+import io.github.lopezjavier.appfitness.domain.model.EntryGroup
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
@@ -16,6 +17,7 @@ class BuildCookedEntries(private val scaleNutrition: ScaleNutrition) {
         mealSlotId: String,
         date: LocalDate,
         prefs: FoodPreferences,
+        group: EntryGroup? = null,
     ): List<NewFoodEntry> = items.map { item ->
         val method = CookingImpact.effectiveMethod(item.cookingMethod, item.food.baseUnit)
         val retainedG = CookingImpact.addedFatG(method, item.amount, prefs)
@@ -29,6 +31,7 @@ class BuildCookedEntries(private val scaleNutrition: ScaleNutrition) {
             snapshot = CookingImpact.apply(scaleNutrition(item.food.nutrition, item.amount), retainedG),
             cookingMethod = method,
             cookingOilRetainedG = retainedG,
+            group = group,
         )
     }
 

@@ -163,6 +163,8 @@ private fun MealSections(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
         canDelete = !content.isOffline,
         onEdit = { onEvent(DiaryEvent.EditEntry(it)) },
         onDelete = { onEvent(DiaryEvent.DeleteEntry(it)) },
+        expandedGroupIds = content.expandedGroupIds,
+        onToggleGroup = { onEvent(DiaryEvent.ToggleGroup(it)) },
     )
     content.meals.forEach { section ->
         MealSectionCard(

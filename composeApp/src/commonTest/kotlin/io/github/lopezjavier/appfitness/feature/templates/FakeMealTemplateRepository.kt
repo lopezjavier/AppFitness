@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import kotlinx.datetime.LocalDate
 
 /**
  * In-memory [MealTemplateRepository]: names are unique ignoring case and surrounding spaces (as in the database),
@@ -59,6 +60,21 @@ internal class FakeMealTemplateRepository(val foods: MutableMap<String, Food> = 
         val index = templates.indexOfFirst { it.id == savedId }
         if (index < 0) templates += saved else templates[index] = saved
         return Result.success(savedId)
+    }
+
+    /** Every successful [saveAsComida] call as `(date, mealSlotId, entryIds)`. */
+    val comidaSaves = mutableListOf<Triple<LocalDate, String, List<String>>>()
+
+    override suspend fun saveAsComida(
+        date: LocalDate,
+        mealSlotId: String,
+        name: String,
+        entryIds: List<String>,
+        items: List<NewTemplateItem>,
+    ): Result<String> {
+        val result = save(null, name, mealSlotId, items)
+        if (result.isSuccess) comidaSaves += Triple(date, mealSlotId, entryIds)
+        return result
     }
 
     private fun renameError(id: String, name: String): AppError? = when {

@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
+import kotlinx.datetime.LocalDate
 
 /** The signed-in user's saved meals. A failure carries an [AppException]. */
 interface MealTemplateRepository {
@@ -15,6 +16,18 @@ interface MealTemplateRepository {
      * for an unknown [id].
      */
     suspend fun save(id: String?, name: String, mealSlotId: String?, items: List<NewTemplateItem>): Result<String>
+
+    /**
+     * Creates a template from meal [mealSlotId] of [date] AND turns the diary entries [entryIds] into one comida
+     * group, atomically (ADR-68); returns the template id. Errors as [save] for a new template.
+     */
+    suspend fun saveAsComida(
+        date: LocalDate,
+        mealSlotId: String,
+        name: String,
+        entryIds: List<String>,
+        items: List<NewTemplateItem>,
+    ): Result<String>
 
     /** Renames template [id]; fails with `AppError.NameAlreadyExists` for a taken name. */
     suspend fun rename(id: String, name: String): Result<Unit>
