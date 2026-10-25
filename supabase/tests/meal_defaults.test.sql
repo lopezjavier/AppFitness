@@ -235,34 +235,34 @@ select results_eq(
     order by s.position, e.created_at, e.amount desc, e.cooking_method$$,
   $$values
     ('breakfast'::text, 'Huevos revueltos'::text, 120.0::numeric, '1 plato'::text, 180.0::numeric, 12.0::numeric, 6.0::numeric, 9.6::numeric, 'raw'::text, null::numeric),
-    ('breakfast', 'Huevos revueltos', 100.0, null, 172.5, 10.0, 5.0, 10.5, 'griddle', 2.50),
+    ('breakfast', 'Huevos revueltos', 100.0, null, 159.0, 10.0, 5.0, 9.0, 'griddle', 1.00),
     ('lunch', 'Zumo', 200.0, null, 80.0, 1.0, 18.0, 0.2, 'raw', null),
     ('lunch', 'Huevos revueltos', 50.0, null, 75.0, 5.0, 2.5, 4.0, 'raw', null)$$,
-  'entries go to the default''s meal (not the comida''s suggestion) with scaled nutrition, griddle oil from the 5/5/50 defaults and the drink forced raw');
+  'entries go to the default''s meal (not the comida''s suggestion) with scaled nutrition, griddle fat from the 1 % default of the raw weight and the drink forced raw');
 select is(public.apply_meal_defaults((select v from days where k = 't')), 0, 'a second call adds nothing');
 select is((select count(*)::int from public.food_log_entries where log_date = (select v from days where k = 't')),
   4, 'the second call did not duplicate entries');
 
--- Changes after an application only affect the next one: edit T1, raise the griddle oil, apply yesterday.
+-- Changes after an application only affect the next one: edit T1, raise the griddle percentage, apply yesterday.
 select lives_ok(
   $$select public.save_meal_template('a1000000-0000-4000-8000-000000000001', 'Desayuno A',
       (select v from slots where k = 'a_breakfast'),
       '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":200,"portion_label":null},
         {"food_id":"0ff00000-0000-4000-8000-000000000001","amount":100,"portion_label":null,"cooking_method":"griddle"}]'::jsonb)$$,
   'the comida is edited after today was applied');
-insert into public.food_preferences (olive_oil_griddle_g) values (10);
+insert into public.food_preferences (fat_pct_griddle) values (10);
 select is(public.apply_meal_defaults((select v from days where k = 'ty')), 2, 'yesterday (an allowed date) applies the edited comida');
 select results_eq(
   $$select e.amount, e.kcal, e.fat_g, e.cooking_method::text, e.cooking_oil_retained_g
     from public.food_log_entries e where e.log_date = (select v from days where k = 'ty')
     order by e.amount desc$$,
   $$values (200.0::numeric, 300.0::numeric, 16.0::numeric, 'raw'::text, null::numeric),
-           (100.0, 195.0, 13.0, 'griddle', 5.00)$$,
-  'the new application uses the current items and the current oil preference (10 g griddle retains 5 g)');
+           (100.0, 240.0, 18.0, 'griddle', 10.00)$$,
+  'the new application uses the current items and the current preference (10 % of 100 g adds 10 g of fat)');
 select results_eq(
   $$select kcal from public.food_log_entries where log_date = (select v from days where k = 't')
     and meal_slot_id = (select v from slots where k = 'a_breakfast') order by kcal$$,
-  $$values (172.5::numeric), (180.0::numeric)$$, 'entries of the earlier application keep their snapshots');
+  $$values (159.0::numeric), (180.0::numeric)$$, 'entries of the earlier application keep their snapshots');
 
 -- Deleting a comida removes its default but not entries already logged on an earlier day.
 delete from public.meal_templates where id = 'a2000000-0000-4000-8000-000000000002';
