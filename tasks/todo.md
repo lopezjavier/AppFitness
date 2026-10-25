@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-106a (E7-A feedback fixes, 2026-10-25), then re-present Checkpoint E7-A (👤, hard gate), then T-107 (E7). Last merged: T-106 (PR #200). Carry to E7-A: the "unit not changed" refusal in the manual-food form is never cleared after a later edit or retry (`CreateFoodViewModel.refuseUnitChange`); fix it if the user sees it. T-106 pr-reviewer suggestions (non-blocking, fix only if the user sees them): `FoodPhotoViewModel` keeps the dish comment after success/`createManually()` (a stale comment pre-fills the next preview); `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo" (check at E7-A). T-102b was PR #186. E6 closed (tag `v0.6.0`); E5 tag `v0.5.0`.
+**Next:** re-present Checkpoint E7-A (👤, hard gate; T-106a merged as PR #206, `deploy-supabase` green), then T-107 (E7). Photo estimates: cause still unknown; `food-photo` now logs the Gemini HTTP status. If the user's retry still fails, read the function log line `food-photo: provider failed <kind> <status>` (auth 401/403 = key to renew; model 404 = change `GEMINI_MODEL`; provider 400 = schema; quota 429 = AI Studio) and open a fix(T-106b). Suggestions from the T-106a review (non-blocking): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; check the 2.0 font-scale search row by hand. T-106 suggestions: `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -2931,8 +2931,8 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 5. **Comida details are the editor.** Remove the "Editar" button: the comida details screen becomes directly editable (name, foods, amounts, removing a food), absorbing "Editar comida"; "Añadir" adds the foods as shown, without saving the comida (ADR-63); footer secondary "Guardar" + primary "Añadir", delete is a trash icon in the header. Unsaved edits survive leaving the app. Needs a host test per editing action; the old separate edit screen and its navigation are removed in the same pass (US-53 rewritten, ADR-63).
 
 **Acceptance criteria:**
-- [ ] Root cause of 1 found; photo estimates work against the deployed function (user retries at E7-A), or the exact user action is reported.
-- [ ] Host tests for 2–5; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
+- [x] *(PR #206, 2026-10-25: cause not found without function logs; status logging deployed, the user's retry at E7-A reveals it)* Root cause of 1 found; photo estimates work against the deployed function (user retries at E7-A), or the exact user action is reported.
+- [x] Host tests for 2–5; lint (incl. `check-design-tokens.sh`) + `testLocalDebugUnitTest` green.
 
 **Dependencies:** T-106 · **Estimated scope:** M
 
