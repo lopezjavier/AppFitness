@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅
 
-**Next:** T-107 (E7), then T-106c (food-photo timeout message fix). Checkpoint E7-A approved by the user on 2026-10-25. Last merged: T-106b (PR #209). T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-107b (E7: weight estimate from a photo for an existing food, plus dish estimate null → 0), then T-108. Checkpoint E7-A approved by the user on 2026-10-25. Last merged: T-107 (PR #212, with the T-106c timeout fix). T-106b review suggestions (non-blocking): a test for an all-thought/empty `parts` response; log the model id on a model 404. Checkpoint E7-A feedback: items 2, 3 fixed; the comida-details layout changes went to the E9 table (`design/reported/E7-A-comida-details-layout.png`). Non-blocking suggestions pending (fix only if the user sees them): move `SEARCH_FIELD_MIN_TARGETS` above its KDoc in `FoodSearchScreen.kt`; `TemplateDetailsViewModel.add()` early return instead of `?: 0.0`; `FoodPhotoViewModel` keeps the dish comment after success/`createManually()`; `AndroidPhotoCapture.capture()` leaves the raw `src_` file after a cancel until the next `sweep()`. Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -2959,8 +2959,8 @@ Checkpoints (agreed with the user on 2026-10-24). Every user-testable item of th
 **Description:** In `SupabaseFoodPhotoRepository`, a client-side `HttpRequestTimeoutException` on the `food-photo` call falls through to `AppError.Network` (`toAppError`), and `FoodPhotoViewModel.kindOf` shows the offline message. Map that timeout to `AppError.ServiceUnavailable` so the user sees the "try again" error with "Reintentar". Real connection failures (`HttpRequestException`, `IOException`) keep `AppError.Network`. No timeout value changes (client or Gemini): if the same log line repeats, revisit the timeouts then.
 
 **Acceptance criteria:**
-- [ ] A request timeout on `food-photo` ends in the error step with "Reintentar" and "Crear manualmente", not the offline message.
-- [ ] A connection failure still shows the offline message.
+- [x] A request timeout on `food-photo` ends in the error step with "Reintentar" and "Crear manualmente", not the offline message.
+- [x] A connection failure still shows the offline message.
 
 **Host tests:** `SupabaseFoodPhotoRepositoryTest` (timeout → `ServiceUnavailable`; `IOException` → `Network`).
 
@@ -2991,15 +2991,15 @@ Journey: add a new food without typing (from a photo of a dish, a label or a bar
 **Description:** New migration: enum `food_cooking_method` (`raw`, `griddle`, `air_fryer`, `fried`); `food_log_entries.cooking_method` (not null, default `raw`) and `cooking_oil_retained_g` with the `03` §3 check, existing rows backfilled to `raw`/null; `meal_template_items.cooking_method` (default `raw`, backfilled); table `food_preferences` (three oil amounts, defaults 5/5/50, check 0–500, RLS owner policy forced, cascade from `auth.users`); a SQL helper that computes the retained oil and the adjusted kcal/fat for a method with the caller's amounts (missing row = defaults), with the same cases as the domain; a new `save_preferences` version with `p_olive_oil_griddle_g`, `p_olive_oil_air_fryer_g`, `p_olive_oil_fried_g` (defaulted, null = unchanged, `23514` out of range; old signature dropped; Kotlin DTO in the same PR); a new `save_meal_template` version accepting `cooking_method` per item (missing = `raw`; a non-raw method on an `ml` food = `22023`). Entry writes (insert, comida add, copy) carry the method and the retained oil; the planner states whether they stay client-computed inserts (RLS) or need an RPC, and how "Añadir" a comida (T-104) computes the oil with the current amounts. Domain: `CookingMethod`, `FoodPreferences` (defaults), the pure `CookingImpact` function (`04` §2.2: plancha 5 g × 50 % = +22,5 kcal / +2,5 g fat; air fryer +45 / +5; frito +45 / +5; the 200 g chicken example 242,5 kcal / 8,5 g), validation (0–500, only `g` foods), repository reads/writes and DTOs. Editing an entry's amount keeps its method and retained oil. No UI in this task. `03` §3/§6 and `04` §2.2 updated if anything changes.
 
 **Acceptance criteria:**
-- [ ] Migration + pgTAP: enum and columns exist; existing entries and template items are `raw`; the entry check rejects oil on a raw entry; `food_preferences` RLS forced with cross-user isolation and cascade on user delete; `save_preferences` writes the three amounts (null = unchanged, out of range `23514`) and still works without them; `save_meal_template` stores a method per item and rejects a non-raw `ml` item; the SQL helper and the domain give the same results for the `04` §2.2 cases.
-- [ ] Domain: `CookingImpact` matches every Gherkin example and the chicken example; protein, carbs and micronutrients unchanged; drinks always raw.
-- [ ] An entry's amount edit keeps its method and retained oil (domain/repository test with an entry on a day outside the loaded range).
+- [x] Migration + pgTAP: enum and columns exist; existing entries and template items are `raw`; the entry check rejects oil on a raw entry; `food_preferences` RLS forced with cross-user isolation and cascade on user delete; `save_preferences` writes the three amounts (null = unchanged, out of range `23514`) and still works without them; `save_meal_template` stores a method per item and rejects a non-raw `ml` item; the SQL helper and the domain give the same results for the `04` §2.2 cases.
+- [x] Domain: `CookingImpact` matches every Gherkin example and the chicken example; protein, carbs and micronutrients unchanged; drinks always raw.
+- [x] An entry's amount edit keeps its method and retained oil (domain/repository test with an entry on a day outside the loaded range).
 
 **Host tests (per scenario):** `CookingImpactTest` (shared cases with pgTAP), `FoodPreferencesTest` (defaults, 0–500 validation), `FoodRepositoryTest` / `MealTemplateRepositoryTest` / `PreferencesRepositoryTest` payloads; pgTAP `food_preferences.test.sql`, `food_log_entries.test.sql`, `meal_templates.test.sql`, `save_preferences.test.sql` additions.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote; production entries and template items are `raw`.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green (run 40189877804); migration remote. Production rows were not queried: the column default and backfill make them `raw`.
 
 **Dependencies:** Checkpoint E7-A
 **Files likely touched:** `supabase/migrations/<ts>_cooking_methods.sql`, `supabase/tests/{food_preferences,food_log_entries,meal_templates,save_preferences}.test.sql`, `shared/…/domain/model/{CookingMethod,FoodPreferences,FoodLogEntry,MealTemplate}.kt`, `shared/…/domain/usecase/CookingImpact.kt` + tests, `shared/…/domain/repository/*`, `shared/…/data/repository/*`, `shared/…/data/remote/{NutritionGoalsDto,*Dto}.kt`, `planning/03-data-model.md`, tests
@@ -3011,7 +3011,7 @@ Journey: add a new food without typing (from a photo of a dish, a label or a bar
 
 **Backlog (user request, 2026-10-25), next task after T-107; to be planned (story, Gherkin and ADR decided by the planner/user, not yet written).** In "Añadir comida", a photo icon next to the amount sends the photo and the existing food's details to Gemini and prefills the amount with the estimated weight only (no food is created, nothing is kept); the user can still edit it.
 
-**Also in T-107b (backend, cosmetic; user report, 2026-10-25):** after a dish estimate the sugar field showed empty although the real value is 0. Keep two cases apart: the AI says the nutrient is 0 (the draft must carry `0`) and the AI does not know it (stays `null`/empty, which should be rare for a dish). `normalizeDraft` already keeps a `0` it receives, so first find where the value is lost (Gemini returns `null`/omits it because the schema is nullable, or the app drops it) and fix it there, e.g. with the prompt and schema. The E7 label scenario ("the rest stays empty") must keep working for label and barcode modes.
+**Also in T-107b (backend, cosmetic; user report and decision, 2026-10-25):** after a dish estimate the sugar field showed empty although the real value is 0; the AI most likely returns `null`. Decision: for dish mode `normalizeDraft` maps a missing/`null` macro or micronutrient to `0`. Label and barcode modes keep `null` (the E7 label scenario: "the rest stays empty"). Update the tests and the `planning/` mention in the same pass.
 
 **Dependencies:** T-107
 
