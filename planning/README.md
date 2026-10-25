@@ -14,6 +14,7 @@ Phase 2 (web client, whole-meal photo estimation, adaptive calorie adjustment an
 | [03-data-model.md](03-data-model.md) | Tables, relationships, RLS policies, RPCs and Edge Functions |
 | [04-business-rules.md](04-business-rules.md) | Formulas and calculation rules (TDEE, macros, moving average, 1RM…) |
 | [05-design-system.md](05-design-system.md) | Unified palette, typography, Compose components and mockup references |
+| [ux-audit-2026-10.md](ux-audit-2026-10.md) | UX audit behind the E9 rulebook (evidence and rationale; `05` §8–§10 prevail) |
 | [06-agent-workflow.md](06-agent-workflow.md) | Claude Code workflow, subagents and their specification |
 | [07-roadmap.md](07-roadmap.md) | Epics, order, dependencies, versions and deliverables |
 | [08-environment-setup.md](08-environment-setup.md) | Tools, accounts, secrets and local development |
