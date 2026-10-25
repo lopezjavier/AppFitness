@@ -107,7 +107,7 @@ CI and the unit tests build without the bundle (the catalog then shows only cust
 - **Backend:** automatic when changes in `supabase/**` are merged into `main` (`.github/workflows/deploy-supabase.yml`, `production` environment, deployable only from `main`): `supabase link` → `supabase db push` → `supabase functions deploy` (only if some `supabase/functions/*/index.ts` exists). The CLI version comes from `package-lock.json` (the same one `npx supabase` uses locally); the job fails if it differs from `package.json`.
   - Re-run manually: `gh workflow run deploy-supabase.yml` and follow it with `gh run watch` (or `gh run list --workflow deploy-supabase.yml`).
   - Result: the run log in GitHub Actions, and the deployment history under *Environments → production* on the repo page.
-- **App:** `prodDebug` APK at the end of each epic (manual install). In US-46, release signing is added with a keystore stored outside the repo (and optionally as a base64 secret for a tag-triggered release workflow).
+- **App:** `prodDebug` APK at the end of each epic (manual install). There is no release signing in Phase 1 (ADR-67).
 - **Keep-alive:** `keepalive.yml` calls `https://<ref>.supabase.co/functions/v1/health` (GET, publishable key as `apikey`; the function runs a `select 1`) every 3 days at 06:00 UTC (cron `0 6 */3 * *`, ADR-12). The log only prints `health OK`, never the URL or key.
   - Run manually: `gh workflow run keepalive.yml` and follow it with `gh run watch` (or `gh run list --workflow keepalive.yml`).
   - GitHub disables scheduled workflows after 60 days without repository activity: re-enable with `gh workflow enable keepalive.yml`.
