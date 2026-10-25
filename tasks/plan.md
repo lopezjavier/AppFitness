@@ -43,7 +43,7 @@ Checkpoint rule: every user-testable item of the epic is collected first, then g
 - [ ] T-112: fix — cooking adds fat as a % of the raw weight (ADR-65) — backend + UI — M
 
 ### Phase 3: Closure
-- [ ] T-111: E7 closure — PM — S
+- [x] T-111: E7 closure — PM — S
 
 Every checkpoint ends with "leave the app and come back: the same tab, screen and draft are restored". Internal milestones are not 👤 checkpoints:
 - pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task;
