@@ -37,7 +37,7 @@ Checkpoint rule for E8: a single 👤 checkpoint for the whole epic (user decisi
 | T-116: E8 closure | PM | S | PM only |
 
 ### Phase 1: Implementation
-- [ ] T-113: E7 carry-over cleanup and exercise charts — backend + core + UI — L
+- [x] T-113: E7 carry-over cleanup and exercise charts — backend + core + UI — L
 - [ ] T-114: Training statistics backend — backend + core — M
 - [ ] T-115: "Estadísticas" screen with the muscle distribution — UI + core — L
   - **Checkpoint E8-A 👤 Follow your progress and spot imbalances (7 items):** exercise charts (record markers, "Todo"); non-weight charts; key values per frame and warm-up toggle; sets over time and per muscle; main exercises; muscle distribution (radar, body map, tap detail); states and the final E8 regression (incl. the T-113 photo comment check). Why here: the single checkpoint of the epic, after the last implementation task.
