@@ -46,6 +46,7 @@ import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -84,6 +85,7 @@ class MealSlotsFlowTest {
             BuildDiaryDay(),
             MutableClock(),
             FakeConnectivityObserver(),
+            FakeMealDefaultsRepository(),
             SavedStateHandle(),
         )
         rule.setContent { Flow(diaryModel) }

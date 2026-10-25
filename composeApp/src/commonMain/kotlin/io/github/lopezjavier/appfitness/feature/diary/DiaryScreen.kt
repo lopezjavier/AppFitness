@@ -26,13 +26,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_food
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_defaults_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -100,6 +106,7 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                         .padding(Spacing.screenMargin),
                     verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
                 ) {
+                    if (content.defaultsFailed) DefaultsFailedMessage(onEvent)
                     DiaryDateHeader(content.label, content.canGoNext, onEvent, onOpenPicker)
                     DiaryDashboard(content, onEvent)
                 }
@@ -118,12 +125,35 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
                     .verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
                 verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
             ) {
+                if (content.defaultsFailed) DefaultsFailedMessage(onEvent)
                 DiaryDateHeader(content.label, content.canGoNext, onEvent, onOpenPicker)
                 DiaryDashboard(content, onEvent)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
                 AddFoodButton(onEvent)
             }
         }
+    }
+}
+
+/** Non-blocking notice that today's default comidas could not be added; the Diary stays usable. */
+@Composable
+private fun DefaultsFailedMessage(onEvent: (DiaryEvent) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(Res.string.diary_defaults_failed),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.weight(1f).testTag("diary_defaults_message"),
+        )
+        GhostButton(
+            text = stringResource(Res.string.state_retry),
+            onClick = { onEvent(DiaryEvent.RetryDefaults) },
+            modifier = Modifier.testTag("diary_defaults_retry"),
+        )
     }
 }
 

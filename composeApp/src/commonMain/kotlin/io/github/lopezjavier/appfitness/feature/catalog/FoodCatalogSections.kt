@@ -17,12 +17,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_cooking_selector
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_favourite_toggle
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_portion_selector
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weekday_selector
 import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_add_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remove_cd
 import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
 import io.github.lopezjavier.appfitness.designsystem.PortionOption
 import io.github.lopezjavier.appfitness.designsystem.PortionSelector
+import io.github.lopezjavier.appfitness.designsystem.WeekdaySelector
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import org.jetbrains.compose.resources.stringResource
 
@@ -31,6 +33,7 @@ internal fun LazyListScope.foodItems() {
     item { FavouriteToggleSection() }
     item { PortionSelectorSection() }
     item { CookingMethodSelectorSection() }
+    item { WeekdaySelectorSection() }
 }
 
 @Composable
@@ -96,5 +99,24 @@ private fun CookingMethodSelectorSection() {
         "catalog_section_cooking_selector",
     ) {
         CookingMethodSelector(selected = method, onSelect = { method = it }, tagPrefix = "catalog_cooking")
+    }
+}
+
+private const val MONDAY = 1
+private const val WEDNESDAY = 3
+private const val FRIDAY = 5
+
+@Composable
+private fun WeekdaySelectorSection() {
+    var days by rememberSaveable { mutableStateOf(setOf(MONDAY, WEDNESDAY, FRIDAY)) }
+    CatalogSection(
+        stringResource(Res.string.catalog_section_weekday_selector),
+        "catalog_section_weekday_selector",
+    ) {
+        WeekdaySelector(
+            selected = days,
+            disabled = mapOf(2 to "Desayuno A"),
+            onToggle = { days = if (it in days) days - it else days + it },
+        )
     }
 }

@@ -47,12 +47,13 @@ private fun editing(
     showDiscardConfirm: Boolean = false,
     saveError: MealSlotsSaveError? = null,
     canSave: Boolean = true,
+    isDirty: Boolean = true,
 ) = MealSlotsUiState.Editing(
     rows = rows,
     onlyOneMeal = onlyOneMeal,
     isOnline = isOnline,
     isSaving = isSaving,
-    isDirty = true,
+    isDirty = isDirty,
     showDiscardConfirm = showDiscardConfirm,
     saveError = saveError,
     canSave = canSave,
@@ -285,5 +286,28 @@ class MealSlotsScreenTest {
         rule.onNodeWithTag("meals_discard_confirm").performClick()
 
         assertEquals(listOf(MealSlotsEvent.DismissDiscard, MealSlotsEvent.ConfirmDiscard), events)
+    }
+
+    @Test
+    fun defaultsButton_isDisabledWhileDirty_andSaysWhy() {
+        show(editing(isDirty = true))
+
+        rule.onNodeWithTag("meal_slots_defaults_button").assertIsNotEnabled()
+        rule.onNodeWithTag("meal_slots_defaults_hint")
+            .assertTextEquals("Guarda los cambios de las comidas para continuar")
+    }
+
+    @Test
+    fun defaultsButton_isEnabledWhenClean_andOpensTheEditor() {
+        var opened = 0
+        rule.setContent {
+            AppTheme { MealSlotsScreen(editing(isDirty = false), { events += it }, onOpenDefaults = { opened++ }) }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("meal_slots_defaults_button").assertIsEnabled().performClick()
+
+        assertEquals(1, opened)
+        rule.onNodeWithTag("meal_slots_defaults_hint").assertDoesNotExist()
     }
 }

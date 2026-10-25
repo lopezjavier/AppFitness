@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -125,6 +126,7 @@ class AppModuleTest {
                 NutritionGoalsRepository::class,
                 TrainingPreferencesRepository::class,
                 MealSlotRepository::class,
+                MealDefaultsRepository::class,
                 FoodDiaryRepository::class,
                 FoodRepository::class,
                 BuildDiaryDay::class,

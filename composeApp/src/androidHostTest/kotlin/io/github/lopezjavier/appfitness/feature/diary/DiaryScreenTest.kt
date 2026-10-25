@@ -72,6 +72,7 @@ private fun content(
     canGoNext: Boolean = false,
     collapsed: Set<String> = emptySet(),
     date: LocalDate = Today,
+    defaultsFailed: Boolean = false,
 ) = DiaryUiState.Content(
     DiaryContent(
         date = date,
@@ -84,6 +85,7 @@ private fun content(
         },
         dayTotals = totals,
         collapsedSlotIds = collapsed,
+        defaultsFailed = defaultsFailed,
     ),
 )
 
@@ -423,5 +425,37 @@ class DiaryScreenTest {
         val ring = rule.onNodeWithTag("diary_ring").getUnclippedBoundsInRoot()
         val breakfast = rule.onNodeWithTag("diary_section_breakfast").getUnclippedBoundsInRoot()
         assertTrue("ring ${ring.bottom} above meals ${breakfast.top}", ring.bottom <= breakfast.top)
+    }
+
+    @Test
+    fun failedDefaults_showANonBlockingMessageWithRetryAndTheDiaryStaysVisible() {
+        show(content(defaultsFailed = true))
+
+        rule.onNodeWithTag("diary_defaults_message").assertIsDisplayed()
+        rule.onNodeWithTag("diary_ring").assertIsDisplayed()
+        rule.onNodeWithTag("diary_section_breakfast").assertIsDisplayed()
+        rule.onNodeWithTag("diary_defaults_retry").assertHeightIsAtLeast(48.dp).performClick()
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.RetryDefaults), events)
+    }
+
+    @Test
+    fun withoutAFailure_noDefaultsMessageIsShown() {
+        show(content())
+
+        rule.onNodeWithTag("diary_defaults_message").assertDoesNotExist()
+        rule.onNodeWithTag("diary_defaults_retry").assertDoesNotExist()
+    }
+
+    @Test
+    fun appliedDefaults_appearAsEntriesAndCountInTheTotals() {
+        show(
+            content(
+                entries = listOf(entry("d1", "breakfast", "Desayuno A", kcal = 420.0)),
+                totals = MealTotals(420.0, 0.0, 0.0, 0.0),
+            ),
+        )
+
+        rule.onNodeWithTag("diary_entry_d1").assertIsDisplayed()
+        rule.onNodeWithText("Desayuno A", substring = true).assertExists()
     }
 }

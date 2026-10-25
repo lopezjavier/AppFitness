@@ -92,7 +92,9 @@ fun AppChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Mod
 /**
  * Pill chip for one option of a multi-select group (several can be on at once). Same look as [AppChip]; it is
  * exposed as a checkbox with an "Activado" / "Desactivado" state description. [contentDescription], when set, is what
- * a screen reader speaks instead of [label]. The caller's [modifier] lands on the toggleable node.
+ * a screen reader speaks instead of [label]. A not [enabled] chip is inert and drawn with the disabled colours;
+ * [stateDescription] replaces the default state text (e.g. to say why it is disabled). The caller's [modifier] lands
+ * on the toggleable node.
  */
 @Composable
 fun AppToggleChip(
@@ -101,15 +103,19 @@ fun AppToggleChip(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
+    enabled: Boolean = true,
+    stateDescription: String? = null,
 ) {
-    val state = stringResource(if (checked) Res.string.chip_state_on else Res.string.chip_state_off)
+    val state = stateDescription
+        ?: stringResource(if (checked) Res.string.chip_state_on else Res.string.chip_state_off)
     ChipFrame(
         label = label,
         selected = checked,
+        enabled = enabled,
         modifier = modifier
-            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange)
             .semantics {
-                stateDescription = state
+                this.stateDescription = state
                 contentDescription?.let { this.contentDescription = it }
             },
     )
@@ -138,8 +144,12 @@ fun AppButtonChip(
 }
 
 @Composable
-private fun ChipFrame(label: String, selected: Boolean, modifier: Modifier = Modifier) {
-    val colors = AppChipDefaults.colors(selected, AppTheme.colors)
+private fun ChipFrame(label: String, selected: Boolean, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    val colors = if (enabled) {
+        AppChipDefaults.colors(selected, AppTheme.colors)
+    } else {
+        AppChipColors(AppTheme.colors.surfaceRaised, AppTheme.colors.ghostData, AppTheme.colors.borderSubtle)
+    }
     Box(
         modifier =
         modifier.sizeIn(minWidth = AppChipDefaults.MinTouchTarget, minHeight = AppChipDefaults.MinTouchTarget),

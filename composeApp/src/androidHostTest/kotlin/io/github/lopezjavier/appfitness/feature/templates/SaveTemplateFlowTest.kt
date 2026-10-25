@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.food.food
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -89,6 +90,7 @@ class SaveTemplateFlowTest {
             BuildDiaryDay(),
             MutableClock(),
             connectivity,
+            FakeMealDefaultsRepository(),
             SavedStateHandle(),
         )
         rule.setContent { Flow(diaryModel) }

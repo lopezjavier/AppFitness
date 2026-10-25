@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryUiState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
+import io.github.lopezjavier.appfitness.feature.meals.defaults.FakeMealDefaultsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -75,6 +76,7 @@ class FoodLoggingFlowTest {
             BuildDiaryDay(),
             MutableClock(),
             FakeConnectivityObserver(),
+            FakeMealDefaultsRepository(),
             SavedStateHandle(),
         )
         val searchModel = foodSearchModel(foods, connectivity, FakeBarcodeScanner(), SavedStateHandle())

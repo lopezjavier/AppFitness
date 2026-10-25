@@ -8,10 +8,14 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Stateful meals editor: connects [MealSlotsEditorViewModel] and calls [onClose] when saved or the user leaves. */
+/**
+ * Stateful meals editor: connects [MealSlotsEditorViewModel] and calls [onClose] when saved or the user leaves;
+ * [onOpenDefaults] opens the default comidas.
+ */
 @Composable
 fun MealSlotsRoot(
     onClose: () -> Unit,
+    onOpenDefaults: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MealSlotsEditorViewModel = koinViewModel(),
 ) {
@@ -24,5 +28,5 @@ fun MealSlotsRoot(
             }
         }
     }
-    MealSlotsScreen(state, viewModel::onEvent, modifier)
+    MealSlotsScreen(state, viewModel::onEvent, modifier, onOpenDefaults)
 }

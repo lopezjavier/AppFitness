@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
+import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
@@ -76,6 +77,7 @@ val uiModule =
                 buildDiaryDay = get(),
                 clock = get(),
                 connectivity = get(),
+                defaults = get(),
                 savedState = get(),
             )
         }
@@ -157,6 +159,17 @@ val uiModule =
                 waistHipRatio = get(),
                 connectivity = get(),
                 clock = get(),
+                savedState = get(),
+            )
+        }
+        viewModel {
+            MealDefaultsViewModel(
+                mealSlots = get(),
+                mealTemplates = get(),
+                mealDefaults = get(),
+                foodPreferences = get(),
+                cookedItemNutrition = get(),
+                connectivity = get(),
                 savedState = get(),
             )
         }
