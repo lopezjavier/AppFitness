@@ -55,6 +55,58 @@ Deno.test("sends the key in a header, never in the URL, with image, schema and p
     assert(body.systemInstruction.parts[0].text.length > 0);
 });
 
+async function urlFor(model: string | undefined): Promise<string> {
+    const calls: Call[] = [];
+    await generateFoodJson(
+        {
+            fetch: fakeFetch(200, fixtureText("dish-tortilla"), calls),
+            apiKey: KEY,
+            model,
+        },
+        { mode: "dish", imageBase64: "AAAA" },
+    );
+    return calls[0].url;
+}
+
+Deno.test("uses the default model when the override is unset or blank", async () => {
+    for (const model of [undefined, "", "   "]) {
+        assert(
+            (await urlFor(model)).endsWith(`/${GEMINI_MODEL}:generateContent`),
+        );
+    }
+});
+
+Deno.test("uses the override model in the URL path", async () => {
+    const url = await urlFor(" gemini-test-override ");
+    assert(url.endsWith("/models/gemini-test-override:generateContent"));
+    assert(!url.includes(GEMINI_MODEL));
+});
+
+Deno.test("an unsafe override falls back to the default model", async () => {
+    for (const model of ["../x?key=1", "a b", "x/y", "A?"]) {
+        const url = await urlFor(model);
+        assert(url.endsWith(`/models/${GEMINI_MODEL}:generateContent`), model);
+    }
+});
+
+Deno.test("skips thought parts and reads the answer part", async () => {
+    const body = JSON.stringify({
+        candidates: [{
+            content: {
+                parts: [
+                    { text: "reasoning...", thought: true },
+                    { text: '{"name":"Arroz"}' },
+                ],
+            },
+        }],
+    });
+    const out = await generateFoodJson(
+        { fetch: fakeFetch(200, body), apiKey: KEY },
+        { mode: "dish", imageBase64: "AAAA" },
+    ) as { name: string };
+    assertEquals(out.name, "Arroz");
+});
+
 Deno.test("puts the comment in a separate part labelled as data", async () => {
     const calls: Call[] = [];
     await generateFoodJson(

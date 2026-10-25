@@ -11,6 +11,7 @@ const handler = createFoodPhotoHandler({
         generateFoodJson({
             fetch: (input, init) => fetch(input, init),
             apiKey: Deno.env.get("GEMINI_API_KEY"),
+            model: Deno.env.get("GEMINI_MODEL"),
         }, req),
 });
 
