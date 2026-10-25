@@ -13,8 +13,10 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
+import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +29,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per scenario.
 class TemplateDetailsRestorationTest {
     @get:Rule
     val rule = createComposeRule()
@@ -37,6 +40,7 @@ class TemplateDetailsRestorationTest {
     private val templates = FakeMealTemplateRepository(mutableMapOf("eggs" to eggs, "shake" to shake, "rice" to rice))
     private val foods = FakeFoodRepository().apply { known["rice"] = rice }
     private var model: TemplateDetailsViewModel? = null
+    private val diary = FakeFoodDiaryRepository()
     private val connectivity = FakeConnectivityObserver()
 
     init {
@@ -51,7 +55,7 @@ class TemplateDetailsRestorationTest {
     private fun restorable(saved: SavedStateHandle, pickedFrom: SavedStateHandle? = null): StateRestorationTester {
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            val current = remember { detailsModel(templates, connectivity, saved, foods = foods) }
+            val current = remember { detailsModel(templates, connectivity, saved, foods = foods, diary = diary) }
             model = current
             val picked = pickedFrom?.getStateFlow<ArrayList<String>?>(PICKED_FOOD_KEY, null)?.collectAsState()?.value
             DetailsHost(current, pickedFood = picked, onConsumePickedFood = { pickedFrom?.set(PICKED_FOOD_KEY, null) })
@@ -161,5 +165,37 @@ class TemplateDetailsRestorationTest {
         rule.onNodeWithTag("template_food_sheet_close").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("template_details_item_0").assertTextContains("120 g")
+    }
+
+    @Test
+    fun anadir_afterRecreation_logsTheRestoredDraft_notTheSavedComida() {
+        val tester = restorable(SavedStateHandle())
+        rule.onNodeWithTag("template_details_item_0").performClick()
+        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("180")
+        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.waitForIdle()
+
+        recreate(tester)
+        rule.onNodeWithTag("template_details_add").performClick()
+        rule.waitForIdle()
+
+        assertEquals(
+            listOf("eggs" to 180.0, "shake" to 300.0),
+            diary.addedBatches.single().map {
+                it.foodId to it.amount
+            },
+        )
+        assertEquals(0, templates.saveCalls)
+    }
+
+    @Test
+    fun theComidaDetails_stayOnTheSameRouteArguments_afterRecreation() {
+        val saved = SavedStateHandle()
+        val tester = restorable(saved)
+
+        recreate(tester)
+
+        rule.onNodeWithTag("template_details_name_field").assertTextContains("Desayuno A")
+        rule.onNodeWithTag("template_details_add").assertIsDisplayed()
     }
 }

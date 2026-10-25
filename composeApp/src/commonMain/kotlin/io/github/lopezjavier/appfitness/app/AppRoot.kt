@@ -22,7 +22,6 @@ import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
-import io.github.lopezjavier.appfitness.feature.templates.TemplatePreviewRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
@@ -110,15 +109,19 @@ fun AppRoot(
         },
         templateDetails = {
                 detailsModifier,
-                templateId,
+                route,
                 onClose,
+                onAdded,
                 onDeleted,
                 onAddFood,
                 pickedFood,
                 onConsumePickedFood,
             ->
             TemplateDetailsRoot(
-                templateId = templateId,
+                templateId = route.templateId,
+                slotId = route.slotId,
+                date = route.date,
+                onAdd = onAdded,
                 onClose = onClose,
                 onDelete = onDeleted,
                 onAddFood = onAddFood,
@@ -126,9 +129,6 @@ fun AppRoot(
                 pickedFood = pickedFood,
                 onConsumePickedFood = onConsumePickedFood,
             )
-        },
-        templatePreview = { previewModifier, templateId, slotId, date, onAdd, onEdit ->
-            TemplatePreviewRoot(templateId, slotId, date, onAdd, onEdit, previewModifier)
         },
         editEntry = { entryId, date, onSaved, onDeleteRequested, onDismiss ->
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)

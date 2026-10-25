@@ -23,31 +23,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_g
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_nutrition_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_brand
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_carbs
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_carbs_total
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_negative
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_not_a_number
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_required
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_too_large
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_error_too_long
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_fat
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_fat_total
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_fiber
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_kcal_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_kcal_ml
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_label_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_load_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_name
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_offline_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_protein
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_salt
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_saturated_of
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_error
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_sugars_of
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_locked
@@ -68,11 +68,13 @@ import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_NAME_LENGTH = 200
 private const val NUTRIENT_DECIMALS = 2
+private const val LABEL_DECIMALS = 4
 private const val GRID_COLUMNS = 2
 private const val LARGE_FONT_SCALE = 1.3f
 private const val SKELETON_ROWS = 4
@@ -111,7 +113,6 @@ fun CreateFoodScreen(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Uni
                         }
                         IdentityBlock(state, onEvent)
                         NutritionBlock(state, onEvent)
-                        LabelBlock(state, onEvent)
                         PortionsBlock(state, onEvent)
                         CreateFoodSection.entries.forEach { SectionBlock(it, state, onEvent) }
                     }
@@ -212,50 +213,48 @@ internal class NutrientSpec(
     val decimals: Int = NUTRIENT_DECIMALS,
 )
 
+/**
+ * The nutrients in one column, in label order (US-18, US-25): calories per 100, total fat with its saturated part
+ * indented, carbohydrates with the sugars indented, fibre, protein and salt. Fat and saturated share the fat colour,
+ * carbohydrates and sugars the carbs colour; fibre and salt are neutral.
+ */
 @Composable
 private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
+    val errors = state.errors
+    fun change(field: CreateFoodField): (String) -> Unit = { onEvent(CreateFoodEvent.FieldChanged(field, it)) }
+
+    @Composable
+    fun KindField(kind: MicronutrientKind, label: String, macro: Macro?, indent: Boolean = false) {
+        val spec =
+            NutrientSpec(label, macro, "create_food_nutrient_${micronutrientTag(kind)}", decimals = LABEL_DECIMALS)
+        Box(if (indent) Modifier.padding(start = Spacing.lg) else Modifier) {
+            NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind]) {
+                onEvent(CreateFoodEvent.NutrientChanged(kind, it))
+            }
+        }
+    }
     val kcalLabel = stringResource(
         if (state.baseUnit == "ml") Res.string.create_food_kcal_ml else Res.string.create_food_kcal_g,
     )
-    val errors = state.errors
-    val kcal = NutrientSpec(kcalLabel, null, "create_food_kcal_field")
-    val protein =
-        NutrientSpec(stringResource(Res.string.create_food_protein), Macro.Protein, "create_food_protein_field")
-    val carbs = NutrientSpec(stringResource(Res.string.create_food_carbs), Macro.Carbs, "create_food_carbs_field")
-    val fat = NutrientSpec(stringResource(Res.string.create_food_fat), Macro.Fat, "create_food_fat_field")
-    fun change(field: CreateFoodField): (String) -> Unit = { onEvent(CreateFoodEvent.FieldChanged(field, it)) }
-    FieldGrid(
-        listOf(
-            { NutrientField(kcal, state.kcal, errors.kcal, change(CreateFoodField.Kcal)) },
-            { NutrientField(protein, state.protein, errors.protein, change(CreateFoodField.Protein)) },
-            { NutrientField(carbs, state.carbs, errors.carbs, change(CreateFoodField.Carbs)) },
-            { NutrientField(fat, state.fat, errors.fat, change(CreateFoodField.Fat)) },
-        ),
-    )
-}
-
-/** The usual label rows (US-25); the detailed groups follow as collapsible sections. */
-@Composable
-private fun LabelBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            text = stringResource(Res.string.create_food_label_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() }.testTag("create_food_label_title"),
+        NutrientField(
+            NutrientSpec(kcalLabel, null, "create_food_kcal_field"),
+            state.kcal,
+            errors.kcal,
+            change(CreateFoodField.Kcal),
         )
-        Text(
-            text = stringResource(
-                if (state.baseUnit == "ml") {
-                    Res.string.add_food_nutrition_per_100_ml
-                } else {
-                    Res.string.add_food_nutrition_per_100_g
-                },
-            ),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
-        KindGrid(CreateFoodSection.USUAL_KINDS, state, onEvent)
+        val fat = NutrientSpec(stringResource(Res.string.create_food_fat_total), Macro.Fat, "create_food_fat_field")
+        NutrientField(fat, state.fat, errors.fat, change(CreateFoodField.Fat))
+        KindField(MicronutrientKind.SaturatedFat, stringResource(Res.string.create_food_saturated_of), Macro.Fat, true)
+        val carbs =
+            NutrientSpec(stringResource(Res.string.create_food_carbs_total), Macro.Carbs, "create_food_carbs_field")
+        NutrientField(carbs, state.carbs, errors.carbs, change(CreateFoodField.Carbs))
+        KindField(MicronutrientKind.Sugars, stringResource(Res.string.create_food_sugars_of), Macro.Carbs, true)
+        KindField(MicronutrientKind.Fiber, stringResource(Res.string.create_food_fiber), null)
+        val protein =
+            NutrientSpec(stringResource(Res.string.create_food_protein), Macro.Protein, "create_food_protein_field")
+        NutrientField(protein, state.protein, errors.protein, change(CreateFoodField.Protein))
+        KindField(MicronutrientKind.Salt, stringResource(Res.string.create_food_salt), null)
     }
 }
 

@@ -21,7 +21,8 @@ import org.koin.core.parameter.parametersOf
  * [onDelete] run, with haptic feedback, after the comida was saved or deleted so the editor can be left. The comida
  * is reloaded when the screen resumes; the draft is kept. [onAddFood] opens the food picker. A food it returns arrives
  * as [pickedFood] (see [pickedFoodOf]); it is handed to the draft and [onConsumePickedFood] then clears it so it is
- * applied once.
+ * applied once. [slotId] (null: the meal of the time of day) and [date] (ISO yyyy-MM-dd) are where
+ * "Añadir" logs the foods, and [onAdd] runs, with haptic feedback, after it did.
  */
 @Composable
 @Suppress("LongParameterList") // One callback per navigation event plus the picker result.
@@ -30,10 +31,14 @@ fun TemplateDetailsRoot(
     onClose: () -> Unit,
     onDelete: () -> Unit,
     onAddFood: () -> Unit,
+    slotId: String?,
+    date: String,
     modifier: Modifier = Modifier,
     pickedFood: List<String>? = null,
     onConsumePickedFood: () -> Unit = {},
-    viewModel: TemplateDetailsViewModel = koinViewModel(parameters = { parametersOf(templateId) }),
+    onAdd: () -> Unit = {},
+    viewModel: TemplateDetailsViewModel =
+        koinViewModel(parameters = { parametersOf(templateId, slotId.orEmpty(), date) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var actionFailed by remember { mutableStateOf(false) }
@@ -41,6 +46,7 @@ fun TemplateDetailsRoot(
     val currentOnClose by rememberUpdatedState(onClose)
     val currentOnDelete by rememberUpdatedState(onDelete)
     val currentOnAddFood by rememberUpdatedState(onAddFood)
+    val currentOnAdded by rememberUpdatedState(onAdd)
     val currentOnConsumed by rememberUpdatedState(onConsumePickedFood)
     LaunchedEffect(pickedFood) {
         pickedFoodOf(pickedFood)?.let {
@@ -55,6 +61,11 @@ fun TemplateDetailsRoot(
                 TemplateDetailsEffect.Saved -> {
                     haptic.performHapticFeedback(HapticFeedbackType.Confirm)
                     currentOnClose()
+                }
+
+                TemplateDetailsEffect.Added -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    currentOnAdded()
                 }
 
                 TemplateDetailsEffect.Deleted -> {

@@ -24,15 +24,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_quantity_error
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_taken
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_too_long
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_add
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_add_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_add_food
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_item_amount
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_save
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_unsaved_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -40,10 +44,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
@@ -56,9 +59,10 @@ private const val LOADING_ROWS = 4
 private val SkeletonHeight = Spacing.xl * 2
 
 /**
- * The editor of a comida (US-21, US-47): the name field, the total kcal and macros of the draft with "Añadir alimento",
- * one swipeable row per food (tap opens its sheet), "Guardar" pinned at the bottom and "Eliminar comida".
- * Nothing is stored until "Guardar"; writes are disabled offline. The top bar (title and back) belongs to the shell.
+ * The details of a comida, directly editable (US-21, US-47, US-53): the name field, the total kcal and macros of the
+ * draft with "Añadir alimento" and the trash icon, one swipeable row per food (tap opens its sheet) and, pinned at the
+ * bottom, "Guardar" (secondary) and "Añadir" (primary: logs the foods as shown). Nothing is stored until "Guardar";
+ * writes are disabled offline. The top bar (title and back) belongs to the shell.
  */
 @Composable
 fun TemplateDetailsScreen(
@@ -111,7 +115,14 @@ private fun DetailsContent(
         ) {
             DetailsHeader(content, onEvent)
             if (content.isOffline) OfflineBanner(Modifier.fillMaxWidth(), testTagPrefix = "template_details_offline")
-            if (actionFailed) {
+            if (content.addFailed) {
+                Text(
+                    text = stringResource(Res.string.template_details_add_failed),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.error,
+                    modifier = Modifier.testTag("template_details_add_failed"),
+                )
+            } else if (actionFailed) {
                 Text(
                     text = stringResource(Res.string.template_manage_failed),
                     style = AppTheme.typography.bodySmall,
@@ -127,31 +138,46 @@ private fun DetailsContent(
         ) {
             items(content.rows, key = { it.index }) { row -> DetailsRowItem(row, onEvent) }
         }
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            PrimaryButton(
+        DetailsFooter(content, onEvent)
+    }
+    DetailsSheets(content, onEvent)
+}
+
+/** The bottom area: the unsaved-changes hint and the "Guardar" (secondary) and "Añadir" (primary) buttons. */
+@Composable
+private fun DetailsFooter(content: TemplateDetailsUiState.Content, onEvent: (TemplateDetailsEvent) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.screenMargin)
+            .padding(bottom = Spacing.lg)
+            .navigationBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        if (content.isDirty) {
+            Text(
+                text = stringResource(Res.string.template_details_unsaved_hint),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("template_details_unsaved_hint"),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SecondaryButton(
                 text = stringResource(Res.string.template_details_save),
                 onClick = { onEvent(TemplateDetailsEvent.SaveClicked) },
                 enabled = content.canSave,
-                loading = content.busy,
-                modifier = Modifier.fillMaxWidth().testTag("template_details_save"),
+                modifier = Modifier.weight(1f).testTag("template_details_save"),
             )
-            GhostButton(
-                text = stringResource(Res.string.template_details_delete),
-                onClick = { onEvent(TemplateDetailsEvent.Delete) },
-                enabled = !content.isOffline && !content.busy,
-                tone = GhostTone.Destructive,
-                modifier = Modifier.fillMaxWidth().testTag("template_details_delete"),
+            PrimaryButton(
+                text = stringResource(Res.string.template_details_add),
+                onClick = { onEvent(TemplateDetailsEvent.Add) },
+                enabled = content.canAdd,
+                loading = content.adding,
+                modifier = Modifier.weight(1f).testTag("template_details_add"),
             )
         }
     }
-    DetailsSheets(content, onEvent)
 }
 
 /** The name field with its inline hint, and under it the total kcal and macros of the draft with "Añadir alimento". */
@@ -183,6 +209,13 @@ private fun DetailsHeader(content: TemplateDetailsUiState.Content, onEvent: (Tem
                 testTag = "template_details_add_food",
                 onClick = { onEvent(TemplateDetailsEvent.AddFoodClicked) },
                 enabled = !content.busy,
+            )
+            AppIconButton(
+                contentDescription = stringResource(Res.string.template_details_delete),
+                icon = Res.drawable.ic_delete,
+                testTag = "template_details_delete",
+                onClick = { onEvent(TemplateDetailsEvent.Delete) },
+                enabled = !content.isOffline && !content.busy,
             )
         }
     }
