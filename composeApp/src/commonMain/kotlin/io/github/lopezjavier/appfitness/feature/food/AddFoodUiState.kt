@@ -77,6 +77,13 @@ sealed interface MicronutrientsState {
 sealed interface AddFoodEvent {
     data class AmountChanged(val text: String) : AddFoodEvent
 
+    /**
+     * The photo flow estimated [amount] in the base unit (US-54). It replaces the amount only if the field still holds
+     * [baselineAmountText], the text when the flow started: a late result never overwrites what the user typed since.
+     * A named portion is deselected so the amount is read in base units.
+     */
+    data class AmountEstimated(val amount: Double, val baselineAmountText: String) : AddFoodEvent
+
     /** Pick a named portion, or null to type an amount in the base unit again. */
     data class PortionSelected(val portionId: String?) : AddFoodEvent
 

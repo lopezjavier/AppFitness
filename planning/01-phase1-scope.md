@@ -50,6 +50,7 @@ Android app (phone and tablet) for personal use, shareable with close friends an
 - FR-2.17 Default comidas (E7, US-51): assign a saved comida to a meal on selected weekdays; on the first open of a new day's Diary, the matching comidas are added once. No backfill, no past dates and no re-add after deletion (ADR-61).
 - FR-2.18 Unit of a manual food (E7, US-52): the base unit can be changed while no diary entry or saved comida uses the food (ADR-62).
 - FR-2.19 Comida details (E7, US-53): a saved comida in "Añadir comida" opens straight into its editable details with "Guardar" and "Añadir", like the other food lists open their details (ADR-62, ADR-63).
+- FR-2.20 Amount from a photo (E7, US-54): in "Añadir comida" a photo icon next to the amount asks the AI for the estimated weight (g, or ml for drinks) of the portion shown and prefills only the amount; nothing is stored (ADR-64).
 
 ### FR-3 · Weight tracking — reached from Perfil (E5; there is no Progreso tab, ADR-37)
 - FR-3.1 Manual weight logging (optional body fat %); edit and delete. Body circumference measurements (neck, chest, waist, hip, arm, thigh, calf) with history, editing and deletion.

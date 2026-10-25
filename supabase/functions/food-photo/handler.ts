@@ -1,4 +1,5 @@
-// Pure request handler for `food-photo`: POST { image_base64, mode, comment? } -> { draft }.
+// Pure request handler for `food-photo`: POST { image_base64, mode, comment? } -> { draft };
+// mode weight: POST { image_base64, mode: "weight", food } -> { estimate } (ADR-64).
 // Auth and the Gemini call are injected so tests need no network. Never logs the image, the comment
 // or the provider body: only the error class / kind.
 import {
@@ -9,11 +10,17 @@ import {
     unauthorized,
 } from "../_shared/errors.ts";
 import { GeminiError } from "../_shared/gemini-client.ts";
-import { type FoodPhotoMode, MODES, normalizeDraft } from "./schema.ts";
+import {
+    type FoodPhotoMode,
+    MODES,
+    normalizeDraft,
+    normalizeWeight,
+} from "./schema.ts";
 
 /** Largest accepted image once decoded (the app sends ~1.5 MB JPEGs). */
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export const MAX_COMMENT_CHARS = 200;
+const MAX_FOOD_TEXT = 120;
 // Request bodies above this are refused unread (base64 of the cap plus JSON overhead).
 const MAX_BODY_CHARS = Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 1024;
 
@@ -26,6 +33,8 @@ export type FoodPhotoDeps = {
             mode: FoodPhotoMode;
             imageBase64: string;
             comment: string | null;
+            /** Chosen food's details; set only for mode weight. */
+            food: FoodContext | null;
         },
     ) => Promise<unknown>;
 };
@@ -58,13 +67,13 @@ export function createFoodPhotoHandler(
             if (body === null || typeof body !== "object") {
                 return invalid("Body must be a JSON object");
             }
-            const { image_base64, mode, comment } = body as Record<
+            const { image_base64, mode, comment, food } = body as Record<
                 string,
                 unknown
             >;
 
             if (!MODES.includes(mode as FoodPhotoMode)) {
-                return invalid("mode must be dish, label or barcode");
+                return invalid("mode must be dish, label, barcode or weight");
             }
             if (typeof image_base64 !== "string") {
                 return invalid("image_base64 is required");
@@ -95,11 +104,31 @@ export function createFoodPhotoHandler(
                 note = trimmed === "" ? null : trimmed;
             }
 
+            let foodContext: FoodContext | null = null;
+            if (mode === "weight") {
+                const parsed = parseFood(food);
+                if (typeof parsed === "string") return invalid(parsed);
+                foodContext = parsed;
+            } else if (food !== undefined && food !== null) {
+                return invalid("food is only allowed with mode weight");
+            }
+
             const output = await deps.generate({
                 mode: mode as FoodPhotoMode,
                 imageBase64: image,
                 comment: note,
+                food: foodContext,
             });
+            if (foodContext) {
+                const estimate = normalizeWeight(output, foodContext.base_unit);
+                if (!estimate) {
+                    return errorResponse(
+                        "NO_FOOD_RECOGNIZED",
+                        "The amount could not be estimated from the photo",
+                    );
+                }
+                return jsonResponse(200, { estimate });
+            }
             const draft = normalizeDraft(output, mode as FoodPhotoMode);
             if (!draft) {
                 return errorResponse(
@@ -142,6 +171,53 @@ export function createFoodPhotoHandler(
             return errorResponse("INTERNAL", "Could not analyze the photo");
         }
     };
+}
+
+type FoodContext = {
+    name: string;
+    brand: string | null;
+    base_unit: "g" | "ml";
+    kcal?: number;
+    protein_g?: number;
+    carbs_g?: number;
+    fat_g?: number;
+};
+
+const FOOD_NUMBERS = ["kcal", "protein_g", "carbs_g", "fat_g"] as const;
+
+/** Validates the `food` object of weight mode; returns an error message string when invalid. */
+function parseFood(value: unknown): FoodContext | string {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+        return "food is required with mode weight";
+    }
+    const f = value as Record<string, unknown>;
+    if (typeof f.name !== "string") return "food.name is required";
+    const name = f.name.trim();
+    if (name === "" || name.length > MAX_FOOD_TEXT) {
+        return `food.name must have 1 to ${MAX_FOOD_TEXT} characters`;
+    }
+    let brand: string | null = null;
+    if (f.brand !== undefined && f.brand !== null) {
+        if (typeof f.brand !== "string") return "food.brand must be a string";
+        const b = f.brand.trim();
+        if (b.length > MAX_FOOD_TEXT) {
+            return `food.brand must have at most ${MAX_FOOD_TEXT} characters`;
+        }
+        brand = b === "" ? null : b;
+    }
+    if (f.base_unit !== "g" && f.base_unit !== "ml") {
+        return "food.base_unit must be g or ml";
+    }
+    const out: FoodContext = { name, brand, base_unit: f.base_unit };
+    for (const key of FOOD_NUMBERS) {
+        const v = f[key];
+        if (v === undefined || v === null) continue;
+        if (typeof v !== "number" || !Number.isFinite(v) || v < 0) {
+            return `food.${key} must be a number >= 0`;
+        }
+        out[key] = v;
+    }
+    return out;
 }
 
 const tooLarge = () =>

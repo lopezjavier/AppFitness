@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"name\":\"Ensalada\",\"brand\":null,\"base_unit\":\"g\",\"nutrition\":{\"kcal\":40,\"protein_g\":null},\"micronutrients\":{\"fiber_100g\":null},\"estimated_grams\":null,\"confidence\":null}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

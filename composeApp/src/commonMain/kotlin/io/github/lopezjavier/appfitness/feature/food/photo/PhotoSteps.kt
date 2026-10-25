@@ -72,7 +72,7 @@ private val MaxImageHeight = Spacing.xl * 12
 
 /** A full-screen step of the flow: opaque over the search, back goes one step back (never while estimating). */
 @Composable
-private fun FullScreenStep(
+internal fun FullScreenStep(
     tag: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -145,7 +145,7 @@ fun PhotoPreview(
 }
 
 @Composable
-private fun PhotoImage(handle: String, readPhoto: suspend (String) -> ByteArray) {
+internal fun PhotoImage(handle: String, readPhoto: suspend (String) -> ByteArray) {
     val currentRead by rememberUpdatedState(readPhoto)
     val bitmap by produceState<ImageBitmap?>(null, handle) {
         value = runCatching { currentRead(handle).decodeToImageBitmap() }.getOrNull()

@@ -7,9 +7,12 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
+import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoConfidence
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
+import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -35,6 +38,8 @@ private const val TORTILLA =
     """{"draft":{"name":"Tortilla de patatas","brand":null,"base_unit":"g","nutrition":{"kcal":180,""" +
         """"protein_g":6,"carbs_g":15,"fat_g":10},"micronutrients":{"fiber_100g":1.5},"estimated_grams":250,""" +
         """"confidence":"medium"}}"""
+
+private const val WEIGHT_CHICKEN = """{"estimate":{"estimated_amount":180,"base_unit":"g","confidence":"medium"}}"""
 
 private const val ERROR_BODY = """{"error":{"code":"X","message":"generic"}}"""
 
@@ -172,5 +177,83 @@ class SupabaseFoodPhotoRepositoryTest {
         val result = signedIn(body = """{"unexpected":true}""").estimate(FoodPhotoMode.Dish, "QUJD", null)
 
         assertEquals(AppError.Unknown, result.appErrorOrNull())
+    }
+
+    private val chicken = Food(
+        id = "f1",
+        name = "Pechuga de pollo",
+        brand = null,
+        baseUnit = "g",
+        nutrition = NutritionPer100(kcal = 165.0, proteinG = 31.0, carbsG = 0.0, fatG = 3.6),
+        servingLabel = null,
+        servingAmount = null,
+        portions = emptyList(),
+        imageUrl = null,
+    )
+
+    @Test
+    fun estimateAmount_postsWeightModeWithTheFoodAsData() = runTest {
+        val repo = signedIn(body = WEIGHT_CHICKEN)
+
+        val estimate = repo.estimateAmount(chicken.copy(brand = "Hacendado"), "QUJD").getOrThrow()
+
+        assertTrue(requests.single().url.encodedPath.endsWith("/functions/v1/food-photo"))
+        assertEquals(
+            """{"image_base64":"QUJD","mode":"weight","food":{"name":"Pechuga de pollo","brand":"Hacendado",""" +
+                """"base_unit":"g","kcal":165.0,"protein_g":31.0,"carbs_g":0.0,"fat_g":3.6}}""",
+            bodies.single(),
+        )
+        assertEquals(AmountEstimate(180.0, "g", FoodPhotoConfidence.Medium), estimate)
+    }
+
+    @Test
+    fun estimateAmount_omitsANullBrand() = runTest {
+        val repo = signedIn(body = WEIGHT_CHICKEN)
+
+        repo.estimateAmount(chicken, "QUJD").getOrThrow()
+
+        assertFalse(bodies.single().contains("brand"))
+    }
+
+    @Test
+    fun estimateAmount_keepsMillilitresAndAMissingConfidence() = runTest {
+        val repo = signedIn(body = """{"estimate":{"estimated_amount":250,"base_unit":"ml","confidence":null}}""")
+
+        val estimate = repo.estimateAmount(chicken.copy(baseUnit = "ml"), "QUJD").getOrThrow()
+
+        assertEquals(AmountEstimate(250.0, "ml", null), estimate)
+    }
+
+    @Test
+    fun estimateAmount_mapsEachErrorStatusToItsAppError() = runTest {
+        val expected = mapOf(
+            HttpStatusCode.BadRequest to AppError.Validation,
+            HttpStatusCode.PayloadTooLarge to AppError.Validation,
+            HttpStatusCode.Unauthorized to AppError.Unauthorized,
+            HttpStatusCode.UnprocessableEntity to AppError.PhotoNotRecognized,
+            HttpStatusCode.TooManyRequests to AppError.QuotaExceeded,
+            HttpStatusCode.BadGateway to AppError.ServiceUnavailable,
+        )
+
+        expected.forEach { (status, error) ->
+            val result = signedIn(status = status, body = ERROR_BODY).estimateAmount(chicken, "QUJD")
+
+            assertEquals(error, result.appErrorOrNull(), "status ${status.value}")
+        }
+    }
+
+    @Test
+    fun estimateAmount_mapsTransportTimeoutAndMalformedBody() = runTest {
+        val timeout = HttpRequestTimeoutException("http://localhost:54321/functions/v1/food-photo", 30_000L)
+
+        assertEquals(AppError.Network, signedIn(fail = true).estimateAmount(chicken, "QUJD").appErrorOrNull())
+        assertEquals(
+            AppError.ServiceUnavailable,
+            signedIn(failWith = timeout).estimateAmount(chicken, "QUJD").appErrorOrNull(),
+        )
+        assertEquals(
+            AppError.Unknown,
+            signedIn(body = """{"unexpected":true}""").estimateAmount(chicken, "QUJD").appErrorOrNull(),
+        )
     }
 }

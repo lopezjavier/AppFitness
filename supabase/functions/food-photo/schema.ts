@@ -1,8 +1,16 @@
 // Gemini response schema and normalizer of `food-photo`. The model output is untrusted: the allow-list
 // normalizer below is the only thing that reaches the app (ADR-59).
 
-export type FoodPhotoMode = "dish" | "label" | "barcode";
-export const MODES: readonly FoodPhotoMode[] = ["dish", "label", "barcode"];
+export type FoodPhotoMode = "dish" | "label" | "barcode" | "weight";
+export const MODES: readonly FoodPhotoMode[] = [
+    "dish",
+    "label",
+    "barcode",
+    "weight",
+];
+
+/** Largest amount a diary entry accepts (`food_log_entries.amount` check). */
+export const MAX_AMOUNT = 5000;
 
 /**
  * Micronutrient keys the app understands: the `offKey` of Kotlin `MicronutrientKind` (same Open Food Facts
@@ -119,11 +127,59 @@ function obj(value: unknown): Record<string, unknown> {
         : {};
 }
 
+/** Schema sent to Gemini for `weight` mode. */
+export const WEIGHT_RESPONSE_SCHEMA = {
+    type: "OBJECT",
+    properties: {
+        estimated_amount: num,
+        confidence: {
+            type: "STRING",
+            nullable: true,
+            enum: ["low", "medium", "high"],
+        },
+    },
+    required: ["estimated_amount"],
+} as const;
+
+export type AmountEstimate = {
+    estimated_amount: number;
+    base_unit: "g" | "ml";
+    confidence: Confidence | null;
+};
+
+function confidenceOf(value: unknown): Confidence | null {
+    return value === "low" || value === "medium" || value === "high"
+        ? value
+        : null;
+}
+
+/**
+ * Validates the `weight` model output. Null when the amount is missing, not a finite number or <= 0
+ * (422 NO_FOOD_RECOGNIZED); amounts above MAX_AMOUNT are clamped. `base_unit` is the food's, not the model's.
+ */
+export function normalizeWeight(
+    raw: unknown,
+    baseUnit: "g" | "ml",
+): AmountEstimate | null {
+    const r = obj(raw);
+    const value = r.estimated_amount;
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+        return null;
+    }
+    return {
+        estimated_amount: Math.min(value, MAX_AMOUNT),
+        base_unit: baseUnit,
+        confidence: confidenceOf(r.confidence),
+    };
+}
+
 /**
  * Validates and cleans the model output. Returns null when it is not a usable food (no name, or neither
- * kcal nor any macro), which the handler answers as 422 NO_FOOD_RECOGNIZED.
+ * kcal nor any macro in the raw output), which the handler answers as 422 NO_FOOD_RECOGNIZED.
  * Rules: negatives clamp to 0; non-finite or non-numeric values become null/dropped; unknown micronutrient
- * keys are dropped; `estimated_grams` is only kept for dish and only when > 0; absent values stay null.
+ * keys are dropped; `estimated_grams` is only kept for dish and only when > 0.
+ * Absent values: label and barcode keep them null (macros) or omitted (micronutrients); dish (ADR-64) zero-fills
+ * them: every macro is a number and all micronutrient keys are present, after the "no usable food" check.
  */
 export function normalizeDraft(
     raw: unknown,
@@ -143,6 +199,9 @@ export function normalizeDraft(
     if (Object.values(nutrition).every((v) => v === null)) return null;
 
     const micronutrients: Record<string, number> = {};
+    if (mode === "dish") {
+        for (const key of ALLOWED_MICRO) micronutrients[key] = 0;
+    }
     for (const [key, value] of Object.entries(obj(r.micronutrients))) {
         if (!ALLOWED_MICRO.has(key)) continue;
         const v = amount(value);
@@ -150,16 +209,20 @@ export function normalizeDraft(
     }
 
     const grams = amount(r.estimated_grams);
-    const confidence = r.confidence === "low" || r.confidence === "medium" ||
-            r.confidence === "high"
-        ? r.confidence
-        : null;
+    const confidence = confidenceOf(r.confidence);
 
     return {
         name,
         brand: text(r.brand),
         base_unit: r.base_unit === "ml" ? "ml" : "g",
-        nutrition,
+        nutrition: mode === "dish"
+            ? {
+                kcal: nutrition.kcal ?? 0,
+                protein_g: nutrition.protein_g ?? 0,
+                carbs_g: nutrition.carbs_g ?? 0,
+                fat_g: nutrition.fat_g ?? 0,
+            }
+            : nutrition,
         micronutrients,
         estimated_grams: mode === "dish" && grams !== null && grams > 0
             ? grams

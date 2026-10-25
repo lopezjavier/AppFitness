@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"estimated_amount\":250,\"confidence\":\"high\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

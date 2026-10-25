@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.food.photo
 
+import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
+import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
@@ -57,6 +59,19 @@ internal class FakeFoodPhotoRepository(var result: Result<FoodPhotoDraft> = Resu
         calls += EstimateCall(mode, imageBase64, comment)
         gate?.await()
         return result
+    }
+
+    /** Answer of [estimateAmount]. */
+    var amountResult: Result<AmountEstimate> = Result.success(AmountEstimate(180.0, "g", null))
+    val amountCalls = mutableListOf<Pair<Food, String>>()
+
+    /** When set, [estimateAmount] suspends until it completes. */
+    var amountGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun estimateAmount(food: Food, imageBase64: String): Result<AmountEstimate> {
+        amountCalls += food to imageBase64
+        amountGate?.await()
+        return amountResult
     }
 
     companion object {

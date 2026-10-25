@@ -419,6 +419,70 @@ Feature: Comida details (ADR-62, ADR-63)
 
 ---
 
+## US-54 · Estimate the amount of a chosen food from a photo
+**As** a user
+**I want** to photograph the portion of a food I already chose and get its estimated weight
+**So that** I don't have to weigh it or guess the grams.
+
+```gherkin
+Feature: Amount estimate from a photo
+
+  Scenario: Photo icon next to the amount
+    Given the user opens "Añadir comida" for "Pechuga de pollo" (base unit g)
+    Then a photo icon with the description "Estimar cantidad con foto" is shown next to the amount field
+
+  Scenario: The estimate prefills only the amount
+    When they tap the icon, choose "Hacer foto" or "Elegir de la galería" and tap "Usar foto"
+    Then they see "Estimando…" while the AI responds
+    And the amount field shows the estimated weight, for example "180"
+    And the food, the meal and the day are unchanged
+    And the nutrition preview updates for 180 g
+    And nothing has been added to the diary yet
+
+  Scenario: The estimate is editable
+    Given the amount was prefilled with "180"
+    When the user changes it to "150"
+    Then "150" is kept and used by "Añadir"
+
+  Scenario: A named portion was selected
+    Given the portion "1 ración" is selected
+    When the estimate arrives
+    Then the selector switches to the base unit and the amount shows the estimate
+
+  Scenario: Drinks use millilitres
+    Given the food is "Leche" (base unit ml)
+    When the estimate arrives
+    Then the amount is in ml
+
+  Scenario: Cooking is chosen separately
+    Given the estimate is the weight of the food as shown
+    Then the cooking method is not changed by the estimate and the user chooses it afterwards
+
+  Scenario: Failure keeps the amount
+    Given the amount is "100" and the AI is unavailable, over quota or the photo is unreadable
+    Then "No hemos podido estimar la cantidad" is shown with "Reintentar"
+    And the amount stays "100"
+
+  Scenario: No photo is kept
+    When the estimate finishes, fails or is cancelled
+    Then the photo is removed from the app cache and nothing is stored in the database or in Storage
+
+  Scenario: Offline
+    Given there is no connection
+    Then the photo icon is disabled and the offline message is shown
+
+  Scenario: Leaving the app
+    Given the amount was prefilled
+    When the user leaves the app and comes back
+    Then the sheet shows the same amount and a photo not yet sent is not restored
+```
+
+**Technical notes (ADR-64)**
+- Same `food-photo` function, new mode `weight`: the request adds `food {name, brand, base_unit, kcal, protein_g, carbs_g, fat_g}` (per 100 base units, sent as data); the response is `{estimate:{estimated_amount, base_unit, confidence}}`. No comment is allowed. The icon appears only in "Añadir comida" (`AddFoodSheet`), not in the diary entry editor or the comida item sheet.
+- Dish mode (US-48) now returns `0` for a missing/`null` macro or micronutrient; label and barcode keep `null` ("the rest stays empty").
+
+---
+
 ## Epic Definition of Done
 - `food-photo` is covered by `deno test` with recorded Gemini fixtures (dish, label, barcode, unreadable, invalid input, provider error); CI never calls the network.
 - pgTAP covers `food_preferences`, `meal_defaults`, `diary_default_applications`, RLS isolation, the unique meal/weekday constraint, cascades, `save_meal_template` cooking validation, `save_meal_defaults` validation and `apply_meal_defaults` idempotency (including no re-add after deleting entries).
