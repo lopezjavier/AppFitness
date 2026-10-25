@@ -5,23 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
+import io.github.lopezjavier.appfitness.domain.usecase.CookingImpact
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.TemplateNameCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
+import io.github.lopezjavier.appfitness.feature.food.CookingImpactPreview
 import io.github.lopezjavier.appfitness.feature.food.formatNumber
 import io.github.lopezjavier.appfitness.feature.food.parseAmount
 import kotlinx.coroutines.channels.Channel
@@ -48,6 +54,8 @@ private const val KEY_ADDED_AMOUNTS = "template_details_added_amounts"
 private const val KEY_ADDED_LABELS = "template_details_added_labels"
 private const val KEY_OPEN_FOOD = "template_details_open_food"
 private const val KEY_OPEN_FOOD_AMOUNT = "template_details_open_food_amount"
+private const val KEY_METHOD = "template_details_method_"
+private const val KEY_OPEN_FOOD_METHOD = "template_details_open_food_method"
 private const val NO_FOOD = -1
 private const val NO_LABEL = ""
 
@@ -78,15 +86,34 @@ private data class DetailsDraft(
     val added: List<AddedItem>,
     val openFood: Int?,
     val openFoodAmount: String?,
+    val methods: Map<Int, CookingMethod>,
+    val openFoodMethod: CookingMethod?,
 )
 
-/** What is in flight or failed: saving or deleting ([busy]), and "Añadir" ([adding], [addFailed]). */
-private data class Progress(val busy: Boolean, val adding: Boolean, val addFailed: Boolean)
+/**
+ * What is in flight or failed: saving or deleting ([busy]), and "Añadir" ([adding], [addFailed]); plus the current
+ * olive oil [prefs] (null: not read, so cooking has no impact on the numbers shown).
+ */
+private data class Progress(
+    val busy: Boolean,
+    val adding: Boolean,
+    val addFailed: Boolean,
+    val prefs: FoodPreferences?,
+)
 
 /** A food of the comida as drafted (saved or added), before the draft's amount is applied. */
-private class Entry(val index: Int, val food: Food, val amount: Double, val portionLabel: String?, val added: Boolean)
+private class Entry(
+    val index: Int,
+    val food: Food,
+    val amount: Double,
+    val portionLabel: String?,
+    val added: Boolean,
+    val method: CookingMethod,
+)
 
 private fun amountKey(index: Int) = "$KEY_AMOUNT$index"
+
+private fun methodKey(index: Int) = "$KEY_METHOD$index"
 
 private fun removedKey(index: Int) = "$KEY_REMOVED$index"
 
@@ -95,10 +122,17 @@ private fun nameKey(name: String) = name.trim().lowercase()
 /** Every food of the draft, saved ones first, then the added ones in the order they arrived. */
 private fun entries(template: MealTemplate, draft: DetailsDraft): List<Entry> {
     val saved = template.items.mapIndexed { index, item ->
-        Entry(index, item.food, item.amount, item.portionLabel, added = false)
+        Entry(index, item.food, item.amount, item.portionLabel, added = false, method = item.cookingMethod)
     }
     val added = draft.added.mapIndexed { position, item ->
-        Entry(template.items.size + position, item.food, item.amount, item.portionLabel, added = true)
+        Entry(
+            template.items.size + position,
+            item.food,
+            item.amount,
+            item.portionLabel,
+            added = true,
+            method = CookingMethod.Raw,
+        )
     }
     return saved + added
 }
@@ -108,6 +142,10 @@ private fun remainingEntries(template: MealTemplate, draft: DetailsDraft): List<
     entries(template, draft).filter { it.index !in draft.removed }
 
 private fun amountText(draft: DetailsDraft, entry: Entry) = draft.amounts[entry.index] ?: formatNumber(entry.amount)
+
+/** The method the draft gives to [entry] (drinks are always raw). */
+private fun methodOf(draft: DetailsDraft, entry: Entry): CookingMethod =
+    CookingImpact.effectiveMethod(draft.methods[entry.index] ?: entry.method, entry.food.baseUnit)
 
 /**
  * Editor of a saved comida (US-21, US-47, ADR-45). Every change (name, amounts, removed and added foods) goes into a
@@ -128,6 +166,7 @@ class TemplateDetailsViewModel(
     private val validateQuantity: ValidateQuantity,
     private val validateTemplateName: ValidateTemplateName,
     private val foodRepository: FoodRepository,
+    private val foodPreferences: FoodPreferencesRepository,
     private val addTemplateToDiary: AddTemplateToDiary,
     private val mealSlots: MealSlotRepository,
     private val defaultMealSlot: DefaultMealSlot,
@@ -139,6 +178,8 @@ class TemplateDetailsViewModel(
     private val loaded = MutableStateFlow<DetailsLoaded>(DetailsLoaded.Loading)
     private val draft = MutableStateFlow<DetailsDraft?>(null)
     private val micronutrients = MutableStateFlow<Map<String, Micronutrients>>(emptyMap())
+    private val prefs = MutableStateFlow<FoodPreferences?>(null)
+    private val cookedItemNutrition = CookedItemNutrition(scaleNutrition)
     private val online = MutableStateFlow(true)
     private val busy = MutableStateFlow(false)
     private val adding = MutableStateFlow(false)
@@ -148,7 +189,14 @@ class TemplateDetailsViewModel(
     val effects: Flow<TemplateDetailsEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<TemplateDetailsUiState> =
-        combine(loaded, draft, micronutrients, online, combine(busy, adding, addFailed, ::Progress), ::buildState)
+        combine(
+            loaded,
+            draft,
+            micronutrients,
+            online,
+            combine(busy, adding, addFailed, prefs, ::Progress),
+            ::buildState,
+        )
             .stateIn(viewModelScope, SharingStarted.Eagerly, TemplateDetailsUiState.Loading)
 
     init {
@@ -160,10 +208,13 @@ class TemplateDetailsViewModel(
         when (event) {
             is TemplateDetailsEvent.OpenFood -> openFood(event.index)
 
-            TemplateDetailsEvent.DismissFood -> updateDraft { it.copy(openFood = null, openFoodAmount = null) }
+            TemplateDetailsEvent.DismissFood ->
+                updateDraft { it.copy(openFood = null, openFoodAmount = null, openFoodMethod = null) }
 
             is TemplateDetailsEvent.FoodAmountChanged ->
                 updateDraft { if (it.openFood == null) it else it.copy(openFoodAmount = event.text) }
+
+            is TemplateDetailsEvent.MethodChanged -> changeOpenFoodMethod(event.method)
 
             TemplateDetailsEvent.SaveFood -> saveFood()
 
@@ -193,6 +244,8 @@ class TemplateDetailsViewModel(
     private fun load(showLoading: Boolean) {
         if (showLoading) loaded.value = DetailsLoaded.Loading
         viewModelScope.launch {
+            // Optional info: without the preferences the numbers just omit the cooking oil.
+            prefs.value = foodPreferences.get().getOrNull()
             val all = mealTemplates.list().getOrNull()
             val template = all?.firstOrNull { it.id == templateId }
             if (all == null || template == null) {
@@ -225,8 +278,11 @@ class TemplateDetailsViewModel(
         indices.forEach {
             savedState.remove<String>(amountKey(it))
             savedState.remove<Boolean>(removedKey(it))
+            savedState.remove<String>(methodKey(it))
         }
-        listOf(KEY_NAME, KEY_TAKEN, KEY_OPEN_FOOD_AMOUNT).forEach { savedState.remove<String>(it) }
+        listOf(KEY_NAME, KEY_TAKEN, KEY_OPEN_FOOD_AMOUNT, KEY_OPEN_FOOD_METHOD).forEach {
+            savedState.remove<String>(it)
+        }
         listOf(KEY_ADDED_FOODS, KEY_ADDED_AMOUNTS, KEY_ADDED_LABELS).forEach {
             savedState.remove<ArrayList<String>>(it)
         }
@@ -252,6 +308,13 @@ class TemplateDetailsViewModel(
             added = added,
             openFood = restoredOpenFood,
             openFoodAmount = savedState.get<String>(KEY_OPEN_FOOD_AMOUNT)?.takeIf { restoredOpenFood != null },
+            methods = (0 until total)
+                .mapNotNull { index ->
+                    CookingMethod.fromWireName(savedState.get<String>(methodKey(index)))?.let { index to it }
+                }
+                .toMap(),
+            openFoodMethod = CookingMethod.fromWireName(savedState.get<String>(KEY_OPEN_FOOD_METHOD))
+                ?.takeIf { restoredOpenFood != null },
         )
     }
 
@@ -276,6 +339,7 @@ class TemplateDetailsViewModel(
         current.amounts.forEach { (index, text) -> savedState[amountKey(index)] = text }
         // Removals only grow (a removed food cannot be restored), so nothing stale is left behind.
         current.removed.forEach { savedState[removedKey(it)] = true }
+        current.methods.forEach { (index, method) -> savedState[methodKey(index)] = method.wireName }
         savedState[KEY_NAME] = current.name
         savedState[KEY_TAKEN] = current.takenName
         savedState[KEY_ADDED_FOODS] = ArrayList(current.added.map { it.foodId })
@@ -286,6 +350,11 @@ class TemplateDetailsViewModel(
             savedState.remove<String>(KEY_OPEN_FOOD_AMOUNT)
         } else {
             savedState[KEY_OPEN_FOOD_AMOUNT] = current.openFoodAmount
+        }
+        if (current.openFoodMethod == null) {
+            savedState.remove<String>(KEY_OPEN_FOOD_METHOD)
+        } else {
+            savedState[KEY_OPEN_FOOD_METHOD] = current.openFoodMethod.wireName
         }
     }
 
@@ -301,18 +370,46 @@ class TemplateDetailsViewModel(
             remainingEntries(template, current).firstOrNull { it.index == index }
         }
         if (current != null && entry != null) {
-            updateDraft { it.copy(openFood = index, openFoodAmount = amountText(current, entry)) }
+            updateDraft {
+                it.copy(
+                    openFood = index,
+                    openFoodAmount = amountText(current, entry),
+                    openFoodMethod = methodOf(current, entry),
+                )
+            }
             loadMicronutrients(entry.food)
         }
     }
 
-    /** Applies the pending food-sheet amount to the draft and closes the sheet; an invalid amount does nothing. */
+    /** Sets the method pending in the open food sheet; ignored for drinks (always raw). */
+    private fun changeOpenFoodMethod(method: CookingMethod) {
+        val template = readyTemplate()
+        val current = draft.value
+        val entry = if (template != null && current != null) {
+            remainingEntries(template, current).firstOrNull { it.index == current.openFood }
+        } else {
+            null
+        }
+        if (entry != null && CookingImpact.appliesTo(entry.food.baseUnit)) {
+            updateDraft { it.copy(openFoodMethod = method) }
+        }
+    }
+
+    /** Applies the pending food-sheet amount and method to the draft and closes the sheet (invalid amount: no-op). */
     private fun saveFood() {
         val current = draft.value
         val index = current?.openFood
         val text = current?.openFoodAmount
         if (index != null && text != null && currentContent()?.openFood?.canSave == true) {
-            updateDraft { it.copy(amounts = it.amounts + (index to text), openFood = null, openFoodAmount = null) }
+            updateDraft {
+                it.copy(
+                    amounts = it.amounts + (index to text),
+                    methods = it.openFoodMethod?.let { method -> it.methods + (index to method) } ?: it.methods,
+                    openFood = null,
+                    openFoodAmount = null,
+                    openFoodMethod = null,
+                )
+            }
         }
     }
 
@@ -336,10 +433,13 @@ class TemplateDetailsViewModel(
                 val stillOpen = it.openFood != index
                 it.copy(
                     removed = it.removed + index,
+                    methods = it.methods - index,
                     openFood = it.openFood.takeIf { stillOpen },
                     openFoodAmount = it.openFoodAmount.takeIf { stillOpen },
+                    openFoodMethod = it.openFoodMethod.takeIf { stillOpen },
                 )
             }
+            savedState.remove<String>(methodKey(index))
         }
     }
 
@@ -394,6 +494,7 @@ class TemplateDetailsViewModel(
                     // canAdd guarantees that every remaining amount parses.
                     amount = parseAmount(text) ?: 0.0,
                     portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
+                    cookingMethod = methodOf(current, entry),
                 )
             },
         )
@@ -447,7 +548,7 @@ class TemplateDetailsViewModel(
         draft.value,
         micronutrients.value,
         online.value,
-        Progress(busy.value, adding.value, addFailed.value),
+        Progress(busy.value, adding.value, addFailed.value, prefs.value),
     ) as?
         TemplateDetailsUiState.Content
 
@@ -465,6 +566,7 @@ class TemplateDetailsViewModel(
                     amount = parseAmount(text) ?: 0.0,
                     // Only an untouched amount keeps its portion label; the label is just a snapshot of the amount.
                     portionLabel = entry.portionLabel.takeIf { text == formatNumber(entry.amount) },
+                    cookingMethod = methodOf(current, entry),
                 )
             }
         }
@@ -495,6 +597,11 @@ class TemplateDetailsViewModel(
         else -> null
     }
 
+    /** The food is new or its amount or method differs from the saved comida. */
+    private fun isChanged(current: DetailsDraft, entry: Entry) = entry.added ||
+        parseAmount(amountText(current, entry)) != entry.amount ||
+        methodOf(current, entry) != entry.method
+
     private fun buildContent(
         ready: DetailsLoaded.Ready,
         current: DetailsDraft,
@@ -505,17 +612,24 @@ class TemplateDetailsViewModel(
         val busy = progress.busy
         val template = ready.template
         val remaining = remainingEntries(template, current)
-        val rows = remaining.map { buildRow(it, current, remaining.size > 1) }
+        val rows = remaining.map { buildRow(it, current, remaining.size > 1, progress.prefs) }
         val name = current.name ?: template.name
         val nameError = nameErrorOf(ready, name, current.takenName)
         val nameValid = validateTemplateName(name) == TemplateNameCheck.Valid && nameError == null
         val isDirty = name.trim() != template.name ||
             remaining.size != template.items.size ||
-            remaining.any { it.added || parseAmount(amountText(current, it)) != it.amount }
+            remaining.any { isChanged(current, it) }
         val open = current.openFood?.let { index ->
             remaining.firstOrNull { it.index == index }?.let { entry ->
                 // Live preview: the open row follows the amount typed in the sheet, not the committed one.
-                entry to buildRow(entry, current, remaining.size > 1, current.openFoodAmount)
+                entry to buildRow(
+                    entry,
+                    current,
+                    remaining.size > 1,
+                    progress.prefs,
+                    current.openFoodAmount,
+                    current.openFoodMethod,
+                )
             }
         }
         return TemplateDetailsUiState.Content(
@@ -548,13 +662,20 @@ class TemplateDetailsViewModel(
         entry: Entry,
         current: DetailsDraft,
         removable: Boolean,
+        prefs: FoodPreferences?,
         pendingText: String? = null,
+        pendingMethod: CookingMethod? = null,
     ): DetailsRow {
         val text = pendingText ?: amountText(current, entry)
         val amount = parseAmount(text)
         val check = amount?.let { validateQuantity(it) } ?: QuantityCheck.TooLow
         val error = check.takeUnless { it == QuantityCheck.Valid }
-        val nutrition = scaleNutrition(entry.food.nutrition, if (error == null) amount ?: 0.0 else 0.0)
+        val method = pendingMethod
+            ?.let { CookingImpact.effectiveMethod(it, entry.food.baseUnit) }
+            ?: methodOf(current, entry)
+        val item = MealTemplateItem(entry.food, if (error == null) amount ?: 0.0 else 0.0, null, method)
+        val nutrition = cookedItemNutrition(item, prefs.takeIf { error == null })
+        val retainedG = cookedItemNutrition.retainedG(item, prefs)?.takeIf { error == null }
         return DetailsRow(
             index = entry.index,
             foodId = entry.food.id,
@@ -569,6 +690,11 @@ class TemplateDetailsViewModel(
             fatG = nutrition.fatG,
             removable = removable,
             added = entry.added,
+            cookingMethod = method,
+            canCook = CookingImpact.appliesTo(entry.food.baseUnit),
+            cookingImpact = retainedG?.let {
+                CookingImpactPreview(CookingImpact.addedKcal(it), CookingImpact.addedFatG(it))
+            },
         )
     }
 }

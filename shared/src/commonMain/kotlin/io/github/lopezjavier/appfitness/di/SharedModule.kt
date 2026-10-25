@@ -70,6 +70,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
@@ -258,6 +259,7 @@ val sharedModule =
         factory { ValidateTemplateName() }
         factory { BuildTemplateItems() }
         factory { BuildCookedEntries(get()) }
+        factory { CookedItemNutrition(get()) }
         factory { AddTemplateToDiary(get(), get(), get()) }
         factory { ValidateMealSlots() }
         factory { SignInWithGoogle(get(), get(), get()) }

@@ -1,16 +1,20 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
+import io.github.lopezjavier.appfitness.feature.food.CookingImpactPreview
 
 /**
  * One food of the comida, identified by its [index] (the identity of a row, stable for the whole draft): the position
  * in the saved comida for a saved food, and the saved count plus the order of arrival for a food [added] in the editor
  * (the same food may appear twice). [amountText] is the typed amount in the base [unit]; [quantityError] is set when it
  * is not valid. [kcal] and the macros are the nutrition of that amount (0 while it is invalid). [portionLabel] is kept
- * only while the amount is untouched. [removable] is false for the last food left.
+ * only while the amount is untouched. [removable] is false for the last food left. [cookingMethod] is the drafted
+ * method (always raw when not [canCook], i.e. for drinks); [cookingImpact] is the oil it adds with the current
+ * preferences (null: raw, a drink, an invalid amount or preferences unavailable) and is already part of the nutrition.
  */
 data class DetailsRow(
     val index: Int,
@@ -26,6 +30,9 @@ data class DetailsRow(
     val fatG: Double,
     val removable: Boolean,
     val added: Boolean = false,
+    val cookingMethod: CookingMethod = CookingMethod.Raw,
+    val canCook: Boolean = false,
+    val cookingImpact: CookingImpactPreview? = null,
 )
 
 /**
@@ -85,6 +92,9 @@ sealed interface TemplateDetailsEvent {
 
     /** The food sheet's confirm: applies the pending amount to the comida draft and closes the sheet. */
     data object SaveFood : TemplateDetailsEvent
+
+    /** The method picked in the open food sheet: pending until [SaveFood]; discarded by [DismissFood]. */
+    data class MethodChanged(val method: CookingMethod) : TemplateDetailsEvent
 
     /** Sets the committed amount of a food in the draft. */
     data class AmountChanged(val index: Int, val text: String) : TemplateDetailsEvent

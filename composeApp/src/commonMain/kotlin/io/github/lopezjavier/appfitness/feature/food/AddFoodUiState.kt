@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.food
 
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.LabelNutrient
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
@@ -39,6 +40,14 @@ data class AddFoodContent(
     val submitting: Boolean,
     val micronutrients: MicronutrientsState = MicronutrientsState.Loading,
     val pick: Boolean = false,
+    /** The chosen method; always [CookingMethod.Raw] while [showCooking] is false. */
+    val cookingMethod: CookingMethod = CookingMethod.Raw,
+    /** The selector is shown: a food in grams, not in pick mode, with the preferences loaded. */
+    val showCooking: Boolean = false,
+    /** Grams of oil retained by [cookingMethod] with the user's preferences (what gets saved with the entry). */
+    val retainedOilG: Double = 0.0,
+    /** What the oil adds, null for [CookingMethod.Raw]. [preview] already includes it. */
+    val cookingImpact: CookingImpactPreview? = null,
 ) {
     /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
     val showEdit: Boolean get() = food.isManual
@@ -61,6 +70,9 @@ data class AddFoodContent(
         get() = quantityError == null && resolvedAmount != null && !submitting &&
             (pick || (selectedSlotId != null && !isOffline))
 }
+
+/** The extra [addedKcal] and [addedFatG] the retained cooking oil puts on the entry. */
+data class CookingImpactPreview(val addedKcal: Double, val addedFatG: Double)
 
 /**
  * The optional extra-nutrients section of the sheet. It never affects [AddFoodContent.canSubmit]: [Loading] renders
@@ -88,6 +100,9 @@ sealed interface AddFoodEvent {
     data class PortionSelected(val portionId: String?) : AddFoodEvent
 
     data class SlotSelected(val slotId: String) : AddFoodEvent
+
+    /** Cooking method for the entry; ignored for drinks, in pick mode and when the preferences are unknown. */
+    data class CookingMethodSelected(val method: CookingMethod) : AddFoodEvent
 
     data object Submit : AddFoodEvent
 

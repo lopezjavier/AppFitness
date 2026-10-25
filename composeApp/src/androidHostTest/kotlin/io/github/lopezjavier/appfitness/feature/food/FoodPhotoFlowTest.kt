@@ -145,6 +145,7 @@ class FoodPhotoFlowTest {
                 foodRepository = foods,
                 foodDiary = diary,
                 mealSlots = FakeMealSlotRepository(),
+                foodPreferencesRepository = FakeFoodPreferencesRepository(),
                 resolvePortion = ResolvePortion(),
                 scaleNutrition = ScaleNutrition(),
                 validateQuantity = ValidateQuantity(),

@@ -32,11 +32,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.template_food_save
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
+import io.github.lopezjavier.appfitness.feature.food.CookingImpactLine
 import io.github.lopezjavier.appfitness.feature.food.MicronutrientsCard
 import io.github.lopezjavier.appfitness.feature.food.Preview
 import io.github.lopezjavier.appfitness.feature.food.QuantityInput
@@ -49,10 +52,12 @@ private const val SHEET_TAG = "template_food_sheet"
  * draft), the live nutrition preview, its micronutrients when known, "Guardar" and "Quitar de la comida" (hidden for
  * the last food). The close button, back and drag discard the typed grams.
  */
+@Suppress("LongParameterList") // One callback per action of the sheet.
 @Composable
 internal fun TemplateFoodSheet(
     open: OpenFood,
     onAmountChange: (String) -> Unit,
+    onMethodChange: (CookingMethod) -> Unit,
     onSave: () -> Unit,
     onRemove: () -> Unit,
     onDismiss: () -> Unit,
@@ -81,6 +86,7 @@ internal fun TemplateFoodSheet(
                 onPortionSelect = {},
                 testTagPrefix = SHEET_TAG,
             )
+            if (row.canCook) CookingSection(row, onMethodChange)
             Preview(row.kcal, row.proteinG, row.carbsG, row.fatG, "${SHEET_TAG}_preview")
             open.micronutrients?.let { micros ->
                 Box(Modifier.testTag("${SHEET_TAG}_micronutrients")) {
@@ -104,6 +110,21 @@ internal fun TemplateFoodSheet(
                     modifier = Modifier.fillMaxWidth().testTag("${SHEET_TAG}_remove"),
                 )
             }
+        }
+    }
+}
+
+/** The method selector of a solid food and, when cooked, what its oil adds. Pending until the sheet's "Guardar". */
+@Composable
+private fun CookingSection(row: DetailsRow, onMethodChange: (CookingMethod) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        CookingMethodSelector(
+            selected = row.cookingMethod,
+            onSelect = onMethodChange,
+            tagPrefix = "template_details_food_cooking",
+        )
+        row.cookingImpact?.let {
+            CookingImpactLine(it, Modifier.testTag("template_details_food_cooking_impact"))
         }
     }
 }

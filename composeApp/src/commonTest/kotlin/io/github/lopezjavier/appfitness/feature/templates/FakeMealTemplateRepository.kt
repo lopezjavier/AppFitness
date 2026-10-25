@@ -52,7 +52,9 @@ internal class FakeMealTemplateRepository(val foods: MutableMap<String, Food> = 
         saveCalls++
         saveError(id, name, items)?.let { return failure(it) }
         val savedId = id ?: "template-${nextId++}"
-        val resolved = items.map { MealTemplateItem(foods.getValue(it.foodId), it.amount, it.portionLabel) }
+        val resolved = items.map {
+            MealTemplateItem(foods.getValue(it.foodId), it.amount, it.portionLabel, it.cookingMethod)
+        }
         val saved = MealTemplate(savedId, name.trim(), mealSlotId, resolved)
         val index = templates.indexOfFirst { it.id == savedId }
         if (index < 0) templates += saved else templates[index] = saved

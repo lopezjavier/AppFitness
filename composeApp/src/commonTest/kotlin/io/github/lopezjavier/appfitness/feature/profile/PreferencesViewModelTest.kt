@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
@@ -28,6 +29,7 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateTdee
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
+import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -64,6 +66,7 @@ class PreferencesViewModelTest {
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
     private val connectivity = FakeConnectivityObserver(initial = true)
     private val training = FakeTrainingPreferencesRepository()
+    private val foodPreferences = FakeFoodPreferencesRepository()
     private val health = FakeHealthDataSource()
 
     @BeforeTest
@@ -84,6 +87,7 @@ class PreferencesViewModelTest {
         goalsRepository = goals,
         bodyMeasurementRepository = weights,
         trainingPreferencesRepository = training,
+        foodPreferencesRepository = foodPreferences,
         savePreferences = SavePreferences(profile),
         connectivity = connectivity,
         clock = FakeClock(today, now),
@@ -165,6 +169,7 @@ class PreferencesViewModelTest {
             goals,
             weights,
             training,
+            foodPreferences,
             SavePreferences(failing),
             connectivity,
             FakeClock(today, now),
@@ -1024,5 +1029,126 @@ class PreferencesViewModelTest {
         advanceUntilIdle()
 
         assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
+    }
+
+    // -- cooking ("Cocina", US-50) ------------------------------------------------------------------------------
+
+    @Test
+    fun cooking_loadsTheSavedAmounts_andAMissingRowGivesTheDefaults() = runTest {
+        val (_, defaults) = loaded()
+        assertEquals(FoodPreferences(), defaults().form.toFoodPreferences())
+        assertFalse(defaults().canSave)
+
+        foodPreferences.result = Result.success(FoodPreferences(10.0, 7.5, 30.0))
+        val (_, custom) = loaded()
+
+        assertEquals(FoodPreferences(10.0, 7.5, 30.0), custom().form.toFoodPreferences())
+        assertEquals("7.5", custom().form.foodPreferences.airFryerText)
+    }
+
+    @Test
+    fun cooking_aFailedRead_isLoadFailed_andRetryReloads() = runTest {
+        foodPreferences.result = Result.failure(AppException(AppError.Network))
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        assertEquals(PreferencesUiState.LoadFailed, viewModel.uiState.value)
+
+        foodPreferences.result = Result.success(FoodPreferences())
+        viewModel.onEvent(PreferencesEvent.Retry)
+        advanceUntilIdle()
+
+        assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
+    }
+
+    @Test
+    fun cooking_editsMakeTheFormDirty_andSaveSendsThemOnce() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetOilGriddle("8,5"))
+        viewModel.onEvent(PreferencesEvent.SetOilAirFryer("0"))
+        viewModel.onEvent(PreferencesEvent.SetOilFried("500"))
+        advanceUntilIdle()
+        assertTrue(state().canSave)
+        assertTrue(profile.preferenceSaves.isEmpty(), "nothing is written before Guardar")
+
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(FoodPreferences(8.5, 0.0, 500.0), profile.preferenceSaves.single().foodPreferences)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun cooking_invalidAmounts_showTheFieldErrorAndBlockSaving() = runTest {
+        val (viewModel, state) = loaded()
+
+        for (bad in listOf("-1", "501", "", "abc")) {
+            viewModel.onEvent(PreferencesEvent.SetOilGriddle(bad))
+            advanceUntilIdle()
+            assertTrue(state().form.foodPreferences.griddleError, "'$bad' must be an error")
+            assertFalse(state().form.foodPreferences.airFryerError)
+            assertFalse(state().canSave, "'$bad' must block saving")
+        }
+        viewModel.onEvent(PreferencesEvent.SetOilGriddle("5"))
+        viewModel.onEvent(PreferencesEvent.SetOilFried("-0.5"))
+        advanceUntilIdle()
+        assertTrue(state().form.foodPreferences.friedError)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun cooking_theBoundsZeroAndFiveHundred_areValid() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetOilFried("0"))
+        advanceUntilIdle()
+        assertTrue(state().canSave)
+
+        viewModel.onEvent(PreferencesEvent.SetOilFried("500"))
+        advanceUntilIdle()
+        assertTrue(state().canSave)
+        assertFalse(state().form.foodPreferences.friedError)
+    }
+
+    @Test
+    fun cooking_revertingTheAmount_makesTheFormCleanAgain() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetOilGriddle("6"))
+        viewModel.onEvent(PreferencesEvent.SetOilGriddle("5"))
+        advanceUntilIdle()
+
+        assertFalse(state().isDirty)
+    }
+
+    @Test
+    fun cooking_editedAmountsSurviveARecreatedViewModel_andAnEqualFormClearsTheDraft() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetOilAirFryer("12"))
+        first.onEvent(PreferencesEvent.SetOilFried("abc"))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertEquals("12", restored.form.foodPreferences.airFryerText)
+        assertEquals("abc", restored.form.foodPreferences.friedText)
+        assertEquals("5", restored.saved.foodPreferences.airFryerText)
+        assertFalse(restored.canSave)
+
+        second.onEvent(PreferencesEvent.SetOilAirFryer("5"))
+        second.onEvent(PreferencesEvent.SetOilFried("50"))
+        assertEquals(null, handle.get<String>("preferences_draft"))
+    }
+
+    @Test
+    fun cooking_aDraftFromAnOlderVersionDecodesToTheDefaults() {
+        val old = """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","strategy":"Deficit","adjustment":-400,""" +
+            """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
+
+        assertEquals(FoodPreferences(), decodeDraft(old)!!.toFoodPreferences())
     }
 }

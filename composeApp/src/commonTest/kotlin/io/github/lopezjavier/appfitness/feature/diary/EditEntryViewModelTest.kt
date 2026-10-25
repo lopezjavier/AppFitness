@@ -142,6 +142,33 @@ class EditEntryViewModelTest {
     }
 
     @Test
+    fun editingTheAmountOfAnEntryOfAnotherDay_keepsMethodAndOil() = runTest(dispatcher) {
+        val yesterday = LocalDate(2026, 10, 18)
+        diary.server[yesterday] = listOf(
+            chickenEntry().copy(logDate = yesterday, cookingMethod = CookingMethod.Fried, cookingOilRetainedG = 5.0),
+        )
+        val model = EditEntryViewModel(
+            entryId = "e1",
+            date = yesterday,
+            foodRepository = foods,
+            foodDiary = diary,
+            mealSlots = slots,
+            recalculateEntry = RecalculateEntry(ResolvePortion(), ScaleNutrition(), ValidateQuantity()),
+            connectivity = connectivity,
+            savedState = SavedStateHandle(),
+        )
+        advanceUntilIdle()
+
+        model.onEvent(EditEntryEvent.AmountChanged("100"))
+        advanceUntilIdle()
+        model.onEvent(EditEntryEvent.Save)
+        advanceUntilIdle()
+
+        // 100 g raw = 110 kcal / 5 g fat, plus 5 g of retained oil (+45 kcal / +5 g fat).
+        assertEquals(NutritionSnapshot(155.0, 10.0, 20.0, 10.0), diary.updated.single().second.snapshot)
+    }
+
+    @Test
     fun saving_sendsTheRecalculatedValuesAndClosesOnSuccess() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()

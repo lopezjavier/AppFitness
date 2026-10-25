@@ -5,8 +5,11 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
+import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.LabelNutrientKey
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
@@ -31,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -49,12 +53,14 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // One method per scenario.
 class AddFoodViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val today = LocalDate(2026, 10, 19)
     private val foods = FakeFoodRepository()
     private val diary = FakeFoodDiaryRepository()
     private val slots = FakeMealSlotRepository()
+    private val preferences = FakeFoodPreferencesRepository()
     private val connectivity = FakeConnectivityObserver()
     private val clock = MutableClock(Instant.parse("2026-10-19T13:00:00Z"))
     private val savedState = SavedStateHandle()
@@ -84,6 +90,7 @@ class AddFoodViewModelTest {
         foodRepository = foods,
         foodDiary = diary,
         mealSlots = slots,
+        foodPreferencesRepository = preferences,
         resolvePortion = ResolvePortion(),
         scaleNutrition = ScaleNutrition(),
         validateQuantity = ValidateQuantity(),
@@ -743,5 +750,182 @@ class AddFoodViewModelTest {
         )
 
         assertEquals(listOf(old), diary.entries(oldDay).first())
+    }
+
+    // -- cooking (US-50) ---------------------------------------------------------------------------------------
+
+    private val chicken = food("chicken", "Pechuga de pollo", kcal = 100.0)
+
+    private fun TestScope.cookingModel(base: Food = chicken): AddFoodViewModel {
+        withFood(base)
+        val model = viewModel(base.id)
+        advanceUntilIdle()
+        return model
+    }
+
+    @Test
+    fun cooking_defaultsToRawWithTheFoodValuesAndTheSelectorShown() = runTest(dispatcher) {
+        val content = cookingModel().content()
+
+        assertEquals(CookingMethod.Raw, content.cookingMethod)
+        assertTrue(content.showCooking)
+        assertNull(content.cookingImpact)
+        assertEquals(100.0, content.preview?.kcal)
+        assertEquals(5.0, content.preview?.fatG)
+    }
+
+    @Test
+    fun cooking_defaultImpacts_addTheRetainedOilToThePreview() = runTest(dispatcher) {
+        val model = cookingModel()
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
+        advanceUntilIdle()
+        assertEquals(CookingImpactPreview(22.5, 2.5), model.content().cookingImpact)
+        assertEquals(122.5, model.content().preview?.kcal)
+        assertEquals(7.5, model.content().preview?.fatG)
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.AirFryer))
+        advanceUntilIdle()
+        assertEquals(CookingImpactPreview(45.0, 5.0), model.content().cookingImpact)
+        assertEquals(145.0, model.content().preview?.kcal)
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Fried))
+        advanceUntilIdle()
+        assertEquals(CookingImpactPreview(45.0, 5.0), model.content().cookingImpact)
+        assertEquals(10.0, model.content().preview?.fatG)
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Raw))
+        advanceUntilIdle()
+        assertNull(model.content().cookingImpact)
+        assertEquals(100.0, model.content().preview?.kcal)
+    }
+
+    @Test
+    fun cooking_customPreferences_changeTheImpact() = runTest(dispatcher) {
+        preferences.result = Result.success(FoodPreferences(oliveOilGriddleG = 10.0))
+        val model = cookingModel()
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
+        advanceUntilIdle()
+
+        assertEquals(CookingImpactPreview(45.0, 5.0), model.content().cookingImpact)
+    }
+
+    @Test
+    fun cooking_selectionAfterQuantityEdits_keepsMethodAndScalesOnlyTheFood() = runTest(dispatcher) {
+        val model = cookingModel()
+        model.onEvent(AddFoodEvent.AmountChanged("200"))
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
+        advanceUntilIdle()
+        assertEquals(222.5, model.content().preview?.kcal)
+
+        model.onEvent(AddFoodEvent.AmountChanged("300"))
+        advanceUntilIdle()
+
+        assertEquals(CookingMethod.Griddle, model.content().cookingMethod)
+        assertEquals(322.5, model.content().preview?.kcal)
+    }
+
+    @Test
+    fun cooking_mlFood_hidesTheSelectorAndIgnoresTheEvent() = runTest(dispatcher) {
+        val model = cookingModel(food("milk", "Leche", kcal = 50.0, baseUnit = "ml"))
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Fried))
+        advanceUntilIdle()
+
+        assertFalse(model.content().showCooking)
+        assertEquals(CookingMethod.Raw, model.content().cookingMethod)
+        assertEquals(50.0, model.content().preview?.kcal)
+    }
+
+    @Test
+    fun cooking_pickMode_hasNoSelectorAndIgnoresTheEvent() = runTest(dispatcher) {
+        withFood(chicken)
+        val model = viewModel("chicken", pick = true)
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Fried))
+        advanceUntilIdle()
+
+        assertFalse(model.content().showCooking)
+        assertEquals(CookingMethod.Raw, model.content().cookingMethod)
+        assertEquals(100.0, model.content().preview?.kcal)
+    }
+
+    @Test
+    fun cooking_submit_sendsMethodRetainedOilAndTheAdjustedSnapshot() = runTest(dispatcher) {
+        val model = cookingModel()
+        model.onEvent(AddFoodEvent.AmountChanged("200"))
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Griddle))
+        model.onEvent(AddFoodEvent.SlotSelected("lunch"))
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.Submit)
+        advanceUntilIdle()
+
+        val entry = diary.added.single()
+        assertEquals(CookingMethod.Griddle, entry.cookingMethod)
+        assertEquals(2.5, entry.cookingOilRetainedG)
+        assertEquals(222.5, entry.snapshot.kcal)
+        assertEquals(12.5, entry.snapshot.fatG)
+    }
+
+    @Test
+    fun cooking_rawSubmit_hasNoOil() = runTest(dispatcher) {
+        val model = cookingModel()
+        model.onEvent(AddFoodEvent.SlotSelected("lunch"))
+
+        model.onEvent(AddFoodEvent.Submit)
+        advanceUntilIdle()
+
+        val entry = diary.added.single()
+        assertEquals(CookingMethod.Raw, entry.cookingMethod)
+        assertEquals(0.0, entry.cookingOilRetainedG)
+    }
+
+    @Test
+    fun cooking_preferencesReadFailure_hidesTheSelectorButStillSubmitsRaw() = runTest(dispatcher) {
+        preferences.result = Result.failure(AppException(AppError.Network))
+        val model = cookingModel()
+        model.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.Fried))
+        model.onEvent(AddFoodEvent.SlotSelected("lunch"))
+        advanceUntilIdle()
+        assertFalse(model.content().showCooking)
+
+        model.onEvent(AddFoodEvent.Submit)
+        advanceUntilIdle()
+
+        val entry = diary.added.single()
+        assertEquals(CookingMethod.Raw, entry.cookingMethod)
+        assertEquals(100.0, entry.snapshot.kcal)
+    }
+
+    @Test
+    fun cooking_refreshReReadsThePreferences() = runTest(dispatcher) {
+        preferences.result = Result.failure(AppException(AppError.Network))
+        val model = cookingModel()
+        assertFalse(model.content().showCooking)
+
+        preferences.result = Result.success(FoodPreferences())
+        model.onEvent(AddFoodEvent.Refresh)
+        advanceUntilIdle()
+
+        assertTrue(model.content().showCooking)
+    }
+
+    @Test
+    fun cooking_chosenMethodSurvivesRecreation() = runTest(dispatcher) {
+        val state = SavedStateHandle()
+        withFood(chicken)
+        val first = viewModel("chicken", state = state)
+        advanceUntilIdle()
+        first.onEvent(AddFoodEvent.CookingMethodSelected(CookingMethod.AirFryer))
+        advanceUntilIdle()
+
+        val second = viewModel("chicken", state = state)
+        advanceUntilIdle()
+
+        assertEquals(CookingMethod.AirFryer, second.content().cookingMethod)
+        assertEquals(145.0, second.content().preview?.kcal)
     }
 }

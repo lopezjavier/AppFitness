@@ -54,6 +54,27 @@ class BuildTemplateItemsTest {
     }
 
     @Test
+    fun override_replacesTheEntryMethod() {
+        val cooked = entry("e1", "chicken", 200.0).copy(cookingMethod = CookingMethod.Griddle)
+
+        val items = build(
+            listOf(cooked, entry("e2", "rice", 100.0)),
+            mapOf("e1" to CookingMethod.Fried, "e2" to CookingMethod.AirFryer),
+        )
+
+        assertEquals(listOf(CookingMethod.Fried, CookingMethod.AirFryer), items.map { it.cookingMethod })
+    }
+
+    @Test
+    fun override_isIgnoredForDrinks() {
+        val drink = entry("e1", "milk", 250.0).copy(baseUnit = "ml")
+
+        val items = build(listOf(drink), mapOf("e1" to CookingMethod.Fried))
+
+        assertEquals(CookingMethod.Raw, items.single().cookingMethod)
+    }
+
+    @Test
     fun emptySection_hasNothingToSave() {
         assertTrue(build(emptyList()).isEmpty())
     }

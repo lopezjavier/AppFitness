@@ -43,6 +43,7 @@ internal fun detailsModel(
     validateQuantity = ValidateQuantity(),
     validateTemplateName = ValidateTemplateName(),
     foodRepository = foods,
+    foodPreferences = DefaultFoodPreferences,
     addTemplateToDiary = AddTemplateToDiary(diary, DefaultFoodPreferences, BuildCookedEntries(ScaleNutrition())),
     mealSlots = FakeMealSlotRepository(),
     defaultMealSlot = DefaultMealSlot(),

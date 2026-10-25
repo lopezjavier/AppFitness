@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MacroTargets
@@ -10,6 +11,8 @@ import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateMacroTargets
+import io.github.lopezjavier.appfitness.feature.food.formatNumber
+import io.github.lopezjavier.appfitness.feature.food.parseAmount
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyUiState
 import io.github.lopezjavier.appfitness.feature.goals.energyStrategyUiState
@@ -35,12 +38,55 @@ data class PreferencesForm(
     val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     /** "Calculadoras": default bar, available plates and the plate/dumbbell rounding. */
     val calculators: CalculatorSettings = CalculatorSettings(),
+    /** "Cocina": the olive-oil amounts per cooking method, as typed. */
+    val foodPreferences: FoodPreferencesForm = FoodPreferencesForm(),
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
+
+    /** The typed oil amounts, or null while any is blank or outside 0..500. */
+    fun toFoodPreferences(): FoodPreferences? = foodPreferences.toFoodPreferences()
 
     /** The name without surrounding blanks is what gets stored; an empty one is not valid. */
     val isNameValid: Boolean get() = name.isNotBlank()
 }
+
+/**
+ * The three olive-oil amounts (grams) of "Cocina" as typed, so a blank or a negative text can exist. Comma and dot are
+ * both decimal separators. A field is in error when it is blank, not a number or outside
+ * 0..[FoodPreferences.MAX_OIL_G].
+ */
+data class FoodPreferencesForm(
+    val griddleText: String = formatNumber(FoodPreferences.DEFAULT_GRIDDLE_G),
+    val airFryerText: String = formatNumber(FoodPreferences.DEFAULT_AIR_FRYER_G),
+    val friedText: String = formatNumber(FoodPreferences.DEFAULT_FRIED_G),
+) {
+    val griddleError: Boolean get() = parseOil(griddleText) == null
+    val airFryerError: Boolean get() = parseOil(airFryerText) == null
+    val friedError: Boolean get() = parseOil(friedText) == null
+
+    val isValid: Boolean get() = !griddleError && !airFryerError && !friedError
+
+    fun toFoodPreferences(): FoodPreferences? {
+        val griddle = parseOil(griddleText)
+        val airFryer = parseOil(airFryerText)
+        val fried = parseOil(friedText)
+        return if (griddle == null || airFryer == null || fried == null) {
+            null
+        } else {
+            FoodPreferences(griddle, airFryer, fried)
+        }
+    }
+
+    companion object {
+        fun of(prefs: FoodPreferences) = FoodPreferencesForm(
+            formatNumber(prefs.oliveOilGriddleG),
+            formatNumber(prefs.oliveOilAirFryerG),
+            formatNumber(prefs.oliveOilFriedG),
+        )
+    }
+}
+
+private fun parseOil(text: String): Double? = parseAmount(text)?.takeIf(FoodPreferences::isValidAmount)
 
 /** State of the Preferencias screen. */
 sealed interface PreferencesUiState {
@@ -68,7 +114,8 @@ sealed interface PreferencesUiState {
 
         /** "Guardar" needs a change, a filled name, the network and no save running. */
         val canSave: Boolean
-            get() = isDirty && form.isNameValid && form.calculators.plateKg.isNotEmpty() && isOnline && !isSaving
+            get() = isDirty && form.isNameValid && form.calculators.plateKg.isNotEmpty() &&
+                form.foodPreferences.isValid && isOnline && !isSaving
 
         val energy: EnergyStrategyUiState
             get() = energyStrategyUiState(
@@ -121,6 +168,15 @@ sealed interface PreferencesEvent {
 
     /** Switches one plate of the catalogue on or off; the last plate cannot be switched off (sets `platesError`). */
     data class SetPlateEnabled(val kg: Double, val enabled: Boolean) : PreferencesEvent
+
+    /** "Aceite a la plancha (g)" as typed; only a draft until [Save]. */
+    data class SetOilGriddle(val text: String) : PreferencesEvent
+
+    /** "Aceite en air fryer (g)" as typed; only a draft until [Save]. */
+    data class SetOilAirFryer(val text: String) : PreferencesEvent
+
+    /** "Aceite al freír (g)" as typed; only a draft until [Save]. */
+    data class SetOilFried(val text: String) : PreferencesEvent
 
     data object Save : PreferencesEvent
 

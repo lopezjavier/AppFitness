@@ -54,6 +54,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.Macro
@@ -170,6 +171,16 @@ private fun SheetContent(
             photoEnabled = amountPhoto?.isOffline == false,
         )
         amountPhoto?.let { AmountPhotoNotice(it, onAmountPhotoEvent) }
+        if (content.showCooking) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                CookingMethodSelector(
+                    selected = content.cookingMethod,
+                    onSelect = { onEvent(AddFoodEvent.CookingMethodSelected(it)) },
+                    tagPrefix = "add_food_cooking",
+                )
+                content.cookingImpact?.let { CookingImpactLine(it, Modifier.testTag("add_food_cooking_impact")) }
+            }
+        }
         content.preview?.let { Preview(it.kcal, it.proteinG, it.carbsG, it.fatG, "add_food_preview") }
         if (!content.pick) {
             MealSelector(

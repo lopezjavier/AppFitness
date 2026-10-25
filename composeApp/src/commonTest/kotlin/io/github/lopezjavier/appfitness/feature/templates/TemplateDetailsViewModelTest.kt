@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.model.MealTemplateItem
@@ -22,6 +24,8 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import io.github.lopezjavier.appfitness.feature.diary.DefaultMealSlots
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
+import io.github.lopezjavier.appfitness.feature.food.CookingImpactPreview
+import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -91,6 +95,7 @@ class TemplateDetailsViewModelTest {
         state: SavedStateHandle = SavedStateHandle(),
         slotId: String? = "lunch",
         slots: FakeMealSlotRepository = FakeMealSlotRepository(),
+        prefs: FoodPreferencesRepository = DefaultFoodPreferences,
     ) = TemplateDetailsViewModel(
         templateId = "t1",
         slotId = slotId,
@@ -100,7 +105,8 @@ class TemplateDetailsViewModelTest {
         validateQuantity = ValidateQuantity(),
         validateTemplateName = ValidateTemplateName(),
         foodRepository = foods,
-        addTemplateToDiary = AddTemplateToDiary(diary, DefaultFoodPreferences, BuildCookedEntries(ScaleNutrition())),
+        addTemplateToDiary = AddTemplateToDiary(diary, prefs, BuildCookedEntries(ScaleNutrition())),
+        foodPreferences = prefs,
         mealSlots = slots,
         defaultMealSlot = DefaultMealSlot(),
         clock = MutableClock(),
@@ -1058,6 +1064,197 @@ class TemplateDetailsViewModelTest {
 
         assertEquals(listOf(1), rows.map { it.index })
         assertEquals("80", rows.single().amountText)
+    }
+
+    // --- Cooking (US-50, ADR-60/63): a method per food, the impact in rows and totals ---
+
+    private val chicken = food("chicken", "Pollo", kcal = 100.0)
+    private val milk = food("milk", "Leche", kcal = 50.0, baseUnit = "ml")
+    private val cookedMeal = MealTemplate(
+        id = "t1",
+        name = "Comida",
+        mealSlotId = null,
+        items = listOf(
+            MealTemplateItem(chicken, 200.0, null, CookingMethod.Griddle),
+            MealTemplateItem(rice, 100.0, null, CookingMethod.Fried),
+            MealTemplateItem(milk, 200.0, null),
+        ),
+    )
+
+    private fun cookingModel(
+        state: SavedStateHandle = SavedStateHandle(),
+        prefs: FoodPreferencesRepository = DefaultFoodPreferences,
+    ): TemplateDetailsViewModel {
+        repository.foods["chicken"] = chicken
+        repository.foods["milk"] = milk
+        foods.known["chicken"] = chicken
+        if (repository.templates.none { it.id == cookedMeal.id }) repository.templates += cookedMeal
+        return viewModel(state = state, prefs = prefs)
+    }
+
+    private fun TestScope.setMethod(model: TemplateDetailsViewModel, index: Int, method: CookingMethod) {
+        model.onEvent(TemplateDetailsEvent.OpenFood(index))
+        model.onEvent(TemplateDetailsEvent.MethodChanged(method))
+        model.onEvent(TemplateDetailsEvent.SaveFood)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun cooking_rowsKeepTheirSavedMethod_andIncludeTheOilImpact() = runTest(dispatcher) {
+        val rows = contentOf(cookingModel()).rows
+
+        assertEquals(
+            listOf(CookingMethod.Griddle, CookingMethod.Fried, CookingMethod.Raw),
+            rows.map { it.cookingMethod },
+        )
+        assertEquals(listOf(true, true, false), rows.map { it.canCook })
+        assertEquals(listOf(222.5, 175.0, 100.0), rows.map { it.kcal })
+        assertEquals(listOf(12.5, 10.0, 10.0), rows.map { it.fatG })
+        assertEquals(CookingImpactPreview(22.5, 2.5), rows[0].cookingImpact)
+        assertEquals(CookingImpactPreview(45.0, 5.0), rows[1].cookingImpact)
+        assertNull(rows[2].cookingImpact)
+    }
+
+    @Test
+    fun cooking_totalsIncludeTheImpact() = runTest(dispatcher) {
+        val content = contentOf(cookingModel())
+
+        assertEquals(222.5 + 175.0 + 100.0, content.totalKcal)
+        assertEquals(32.5, content.totalFatG)
+    }
+
+    @Test
+    fun cooking_methodChangeThroughTheSheet_isDirtyAndMovesTheTotals() = runTest(dispatcher) {
+        val model = cookingModel()
+        assertFalse(contentOf(model).isDirty)
+
+        setMethod(model, 0, CookingMethod.Raw)
+
+        val content = contentOf(model)
+        assertTrue(content.isDirty)
+        assertEquals(CookingMethod.Raw, content.rows[0].cookingMethod)
+        assertEquals(200.0 + 175.0 + 100.0, content.totalKcal)
+    }
+
+    @Test
+    fun cooking_sheetPreviewsThePendingMethod_butDismissDiscardsIt() = runTest(dispatcher) {
+        val model = cookingModel()
+        contentOf(model)
+
+        model.onEvent(TemplateDetailsEvent.OpenFood(0))
+        model.onEvent(TemplateDetailsEvent.MethodChanged(CookingMethod.AirFryer))
+        val preview = contentOf(model)
+        assertEquals(CookingMethod.AirFryer, preview.openFood?.row?.cookingMethod)
+        assertEquals(245.0, preview.openFood?.row?.kcal)
+        assertEquals(CookingMethod.Griddle, preview.rows[0].cookingMethod)
+
+        model.onEvent(TemplateDetailsEvent.DismissFood)
+        val content = contentOf(model)
+        assertEquals(CookingMethod.Griddle, content.rows[0].cookingMethod)
+        assertFalse(content.isDirty)
+    }
+
+    @Test
+    fun cooking_drinksIgnoreTheMethod() = runTest(dispatcher) {
+        val model = cookingModel()
+        contentOf(model)
+
+        setMethod(model, 2, CookingMethod.Fried)
+
+        val row = contentOf(model).rows[2]
+        assertEquals(CookingMethod.Raw, row.cookingMethod)
+        assertEquals(100.0, row.kcal)
+    }
+
+    @Test
+    fun cooking_addHandsEachMethodAndTheCurrentOilToTheDiary() = runTest(dispatcher) {
+        val prefs = FakeFoodPreferencesRepository(Result.success(FoodPreferences(oliveOilGriddleG = 10.0)))
+        val model = cookingModel(prefs = prefs)
+        contentOf(model)
+
+        model.onEvent(TemplateDetailsEvent.Add)
+        advanceUntilIdle()
+
+        val batch = diary.addedBatches.single()
+        assertEquals(
+            listOf(CookingMethod.Griddle, CookingMethod.Fried, CookingMethod.Raw),
+            batch.map { it.cookingMethod },
+        )
+        assertEquals(listOf(5.0, 5.0, 0.0), batch.map { it.cookingOilRetainedG })
+        assertEquals(listOf(245.0, 175.0, 100.0), batch.map { it.snapshot.kcal })
+    }
+
+    @Test
+    fun cooking_saveStoresTheMethodOfEachFood() = runTest(dispatcher) {
+        val model = cookingModel()
+        contentOf(model)
+        setMethod(model, 1, CookingMethod.AirFryer)
+
+        model.onEvent(TemplateDetailsEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(CookingMethod.Griddle, CookingMethod.AirFryer, CookingMethod.Raw),
+            repository.templates.single().items.map { it.cookingMethod },
+        )
+    }
+
+    @Test
+    fun cooking_addedFoodsStartRaw_andCanBeCooked() = runTest(dispatcher) {
+        val model = cookingModel()
+        contentOf(model)
+        model.onEvent(TemplateDetailsEvent.FoodPicked("chicken", 100.0, null))
+        advanceUntilIdle()
+        assertEquals(CookingMethod.Raw, contentOf(model).rows.last().cookingMethod)
+
+        setMethod(model, 3, CookingMethod.Fried)
+
+        assertEquals(CookingMethod.Fried, contentOf(model).rows.last().cookingMethod)
+    }
+
+    @Test
+    fun cooking_removedRowDropsItsMethod() = runTest(dispatcher) {
+        val model = cookingModel()
+        contentOf(model)
+
+        model.onEvent(TemplateDetailsEvent.RemoveFood(0))
+
+        val content = contentOf(model)
+        assertEquals(listOf(CookingMethod.Fried, CookingMethod.Raw), content.rows.map { it.cookingMethod })
+        assertEquals(175.0 + 100.0, content.totalKcal)
+    }
+
+    @Test
+    fun cooking_preferencesFailure_meansNoImpact_andRefreshRetries() = runTest(dispatcher) {
+        val prefs = FakeFoodPreferencesRepository(Result.failure(AppException(AppError.Network)))
+        val model = cookingModel(prefs = prefs)
+
+        val failed = contentOf(model)
+        assertEquals(listOf(200.0, 130.0, 100.0), failed.rows.map { it.kcal })
+        assertNull(failed.rows[0].cookingImpact)
+
+        prefs.result = Result.success(FoodPreferences())
+        model.onEvent(TemplateDetailsEvent.Refresh)
+        assertEquals(222.5, contentOf(model).rows[0].kcal)
+    }
+
+    @Test
+    fun cooking_methodsAndThePendingSheetMethodSurviveRecreation() = runTest(dispatcher) {
+        val state = SavedStateHandle()
+        val first = cookingModel(state = state)
+        contentOf(first)
+        setMethod(first, 1, CookingMethod.Raw)
+        first.onEvent(TemplateDetailsEvent.OpenFood(0))
+        first.onEvent(TemplateDetailsEvent.MethodChanged(CookingMethod.AirFryer))
+        advanceUntilIdle()
+
+        val content = contentOf(viewModel(state = state))
+
+        assertEquals(
+            listOf(CookingMethod.Griddle, CookingMethod.Raw, CookingMethod.Raw),
+            content.rows.map { it.cookingMethod },
+        )
+        assertEquals(CookingMethod.AirFryer, content.openFood?.row?.cookingMethod)
     }
 
     @Test

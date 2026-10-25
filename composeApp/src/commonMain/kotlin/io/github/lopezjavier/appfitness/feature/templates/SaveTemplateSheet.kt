@@ -4,6 +4,7 @@ package io.github.lopezjavier.appfitness.feature.templates
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -15,9 +16,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_taken
@@ -28,15 +34,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.save_template_offli
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_submit
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_item_amount
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.feature.diary.amountText
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonHeight = Spacing.xl * 2
@@ -53,6 +62,8 @@ fun SaveTemplateSheet(
     modifier: Modifier = Modifier,
     saveFailed: Boolean = false,
 ) {
+    // Held outside the sheet window so it is restored with the screen (ADR-40).
+    var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
     AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "save_template_sheet") {
         Column(
             Modifier
@@ -81,7 +92,13 @@ fun SaveTemplateSheet(
                     testTagPrefix = "save_template_error_state",
                 )
 
-                is SaveTemplateUiState.Content -> SheetContent(state.content, onEvent, saveFailed)
+                is SaveTemplateUiState.Content -> SheetContent(
+                    state.content,
+                    onEvent,
+                    saveFailed,
+                    expandedId,
+                    { expandedId = it },
+                )
             }
         }
     }
@@ -92,8 +109,73 @@ private fun SheetLoading() {
     SkeletonBox(Modifier.fillMaxWidth().heightIn(min = SkeletonHeight).testTag("save_template_loading"))
 }
 
+/**
+ * The solid foods of the section, each with name, amount and its method chip. Tapping a chip expands the selector under
+ * that row (one at a time); the choice only fills the draft that "Guardar" stores. Drinks have no chip.
+ */
 @Composable
-private fun SheetContent(content: SaveTemplateContent, onEvent: (SaveTemplateEvent) -> Unit, saveFailed: Boolean) {
+private fun CookableItems(
+    items: List<SaveTemplateItemRow>,
+    expandedId: String?,
+    onExpandedChange: (String?) -> Unit,
+    onEvent: (SaveTemplateEvent) -> Unit,
+    enabled: Boolean,
+) {
+    val cookable = items.filter { it.canCook }
+    if (cookable.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        cookable.forEach { item ->
+            val expanded = expandedId == item.entryId
+            Column(Modifier.fillMaxWidth().testTag("save_template_item_${item.entryId}")) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = item.foodName,
+                            style = AppTheme.typography.bodyLarge,
+                            color = AppTheme.colors.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(
+                                Res.string.template_details_item_amount,
+                                amountText(item.amount),
+                                item.baseUnit ?: "g",
+                            ),
+                            style = AppTheme.typography.bodySmall,
+                            color = AppTheme.colors.textSecondary,
+                        )
+                    }
+                    CookingMethodChip(
+                        method = item.method,
+                        onClick = { if (enabled) onExpandedChange(if (expanded) null else item.entryId) },
+                        modifier = Modifier.testTag("save_template_cooking_chip_${item.entryId}"),
+                    )
+                }
+                if (expanded) {
+                    CookingMethodSelector(
+                        selected = item.method,
+                        onSelect = { onEvent(SaveTemplateEvent.MethodChanged(item.entryId, it)) },
+                        tagPrefix = "save_template_cooking",
+                        enabled = enabled,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SheetContent(
+    content: SaveTemplateContent,
+    onEvent: (SaveTemplateEvent) -> Unit,
+    saveFailed: Boolean,
+    expandedId: String?,
+    onExpandedChange: (String?) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         val errorText = content.nameError?.let {
             stringResource(
@@ -112,6 +194,7 @@ private fun SheetContent(content: SaveTemplateContent, onEvent: (SaveTemplateEve
             onDone = { onEvent(SaveTemplateEvent.Submit) },
             testTagPrefix = "save_template_name",
         )
+        CookableItems(content.items, expandedId, onExpandedChange, onEvent, enabled = !content.saving)
         if (content.isOffline) {
             Text(
                 text = stringResource(Res.string.save_template_offline_hint),
