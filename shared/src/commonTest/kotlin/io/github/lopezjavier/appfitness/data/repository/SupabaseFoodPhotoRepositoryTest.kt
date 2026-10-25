@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -45,6 +46,7 @@ class SupabaseFoodPhotoRepositoryTest {
         status: HttpStatusCode = HttpStatusCode.OK,
         body: String = TORTILLA,
         fail: Boolean = false,
+        failWith: Throwable? = null,
     ): SupabaseFoodPhotoRepository {
         val engine =
             MockEngine { request ->
@@ -54,6 +56,7 @@ class SupabaseFoodPhotoRepositoryTest {
                 } else {
                     requests += request
                     bodies += request.body.toByteArray().decodeToString()
+                    failWith?.let { throw it }
                     if (fail) throw IOException("offline")
                     respond(body, status, headers)
                 }
@@ -153,6 +156,15 @@ class SupabaseFoodPhotoRepositoryTest {
         val result = signedIn(fail = true).estimate(FoodPhotoMode.Dish, "QUJD", null)
 
         assertEquals(AppError.Network, result.appErrorOrNull())
+    }
+
+    @Test
+    fun estimate_mapsAClientTimeoutToServiceUnavailable() = runTest {
+        val timeout = HttpRequestTimeoutException("http://localhost:54321/functions/v1/food-photo", 30_000L)
+
+        val result = signedIn(failWith = timeout).estimate(FoodPhotoMode.Dish, "QUJD", null)
+
+        assertEquals(AppError.ServiceUnavailable, result.appErrorOrNull())
     }
 
     @Test

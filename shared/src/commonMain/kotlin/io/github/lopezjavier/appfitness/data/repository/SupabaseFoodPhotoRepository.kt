@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -51,6 +52,9 @@ class SupabaseFoodPhotoRepository(private val auth: Auth, private val functions:
                 }.bodyAsText()
             } catch (failure: RestException) {
                 throw AppException(failure.statusCode.toPhotoError(), failure)
+            } catch (failure: HttpRequestTimeoutException) {
+                // The estimate took too long: the service is reachable, so offer a retry instead of "offline".
+                throw AppException(AppError.ServiceUnavailable, failure)
             }
             try {
                 json.decodeFromString<FoodPhotoResponseDto>(text).draft.toDomain()
