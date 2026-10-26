@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -88,7 +89,16 @@ class CircumferencesViewModel(
     private val effectChannel = Channel<CircumferencesEffect>(Channel.BUFFERED)
     val effects: Flow<CircumferencesEffect> = effectChannel.receiveAsFlow()
 
-    val uiState: StateFlow<CircumferencesUiState> = combine(load, sheet, online, ::buildState)
+    /** Rows being deleted: hidden at once. Transient on purpose (not in [savedState]); a recreation shows them. */
+    private val hiddenIds = MutableStateFlow<Set<String>>(emptySet())
+
+    private val visibleLoad: Flow<CircumferenceLoad> = combine(load, hiddenIds) { loaded, hidden ->
+        (loaded as? CircumferenceLoad.Ready)?.let { ready ->
+            CircumferenceLoad.Ready(ready.rows.filterNot { it.id in hidden })
+        } ?: loaded
+    }
+
+    val uiState: StateFlow<CircumferencesUiState> = combine(visibleLoad, sheet, online, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, CircumferencesUiState.Loading)
 
     init {
@@ -234,14 +244,24 @@ class CircumferencesViewModel(
         }
     }
 
+    /**
+     * Optimistic: the row is hidden at once and comes back if the server refuses. Offline it is refused without
+     * hiding anything. A success keeps it hidden until a reload confirms it is gone.
+     */
     private fun delete(id: String) {
-        if (!online.value) return
+        if (id in hiddenIds.value) return
+        if (!online.value) {
+            effectChannel.trySend(CircumferencesEffect.DeleteFailed(offline = true))
+            return
+        }
+        hiddenIds.update { it + id }
         viewModelScope.launch {
             val result = repository.delete(id)
             if (result.isSuccess) {
-                fetch()
+                if (fetch()) hiddenIds.update { it - id }
                 if (sheet.value?.existingId == id) setSheet(null)
             } else {
+                hiddenIds.update { it - id }
                 effectChannel.send(CircumferencesEffect.DeleteFailed(result.appErrorOrNull() == AppError.Network))
             }
         }

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.meals
 
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -101,10 +102,11 @@ fun MealSlotsScreen(
 @Composable
 private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit, onOpenDefaults: () -> Unit) {
     val context = MealRowContext(interactive = !state.isSaving)
+    val scrollState = rememberScrollState()
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
@@ -113,6 +115,7 @@ private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent)
             key = { it.key },
             onMove = { from, to -> onEvent(MealSlotsEvent.MoveTo(from, to)) },
             modifier = Modifier.fillMaxWidth(),
+            onAutoScroll = { scrollState.scrollBy(it) },
         ) { row, index, _ ->
             MealSlotRow(row, index, context, onEvent)
         }

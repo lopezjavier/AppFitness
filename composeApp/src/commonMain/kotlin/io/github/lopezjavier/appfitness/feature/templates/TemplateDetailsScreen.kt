@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_quantity_error
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -238,6 +239,7 @@ private fun DetailsRowItem(row: DetailsRow, onEvent: (TemplateDetailsEvent) -> U
         enabled = row.removable,
         onDelete = { onEvent(TemplateDetailsEvent.RemoveFood(row.index)) },
         backgroundTag = "template_details_item_${row.index}_delete_bg",
+        label = stringResource(Res.string.action_remove),
     ) {
         Column(
             Modifier

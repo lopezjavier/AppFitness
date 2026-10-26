@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceProblem
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -424,6 +425,111 @@ class CircumferencesViewModelTest {
             assertEquals(CircumferencesEffect.DeleteFailed(offline = true), awaitItem())
         }
         assertEquals(1, model.content().groups.size)
+    }
+
+    @Test
+    fun delete_hidesTheRowAndTheRatioWhileTheServerCallIsPending() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(
+            row("w", CircumferenceSite.Waist, 84.5),
+            row("h", CircumferenceSite.Hip, 98.0),
+        )
+        repository.deleteGate = CompletableDeferred()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(CircumferencesEvent.Delete("h"))
+        advanceUntilIdle()
+
+        assertNull(model.content().ratio)
+        assertEquals(listOf(CircumferenceSite.Waist), model.content().groups.map { it.site })
+        assertTrue(repository.deletes.isEmpty())
+    }
+
+    @Test
+    fun delete_whenItSucceeds_staysGoneAfterTheReload() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(
+            row("w", CircumferenceSite.Waist, 84.5),
+            row("h", CircumferenceSite.Hip, 98.0),
+        )
+        repository.deleteGate = CompletableDeferred()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(CircumferencesEvent.Delete("h"))
+        advanceUntilIdle()
+        repository.deleteGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("h"), repository.deletes)
+        assertEquals(listOf(CircumferenceSite.Waist), model.content().groups.map { it.site })
+    }
+
+    @Test
+    fun delete_whenItFails_bringsTheRowBackAndEmitsTheEffect() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        repository.deleteGate = CompletableDeferred()
+        repository.writeFailure = AppException(AppError.Unknown)
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(CircumferencesEvent.Delete("w"))
+            advanceUntilIdle()
+            assertTrue(model.content().isEmpty)
+            repository.deleteGate?.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(CircumferencesEffect.DeleteFailed(offline = false), awaitItem())
+        }
+
+        assertEquals(1, model.content().groups.size)
+    }
+
+    @Test
+    fun delete_offline_keepsTheRowAndEmitsTheOfflineEffect() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        val model = viewModel(repository)
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(CircumferencesEvent.Delete("w"))
+            advanceUntilIdle()
+            assertEquals(CircumferencesEffect.DeleteFailed(offline = true), awaitItem())
+        }
+
+        assertEquals(1, model.content().groups.size)
+        assertTrue(repository.deletes.isEmpty())
+    }
+
+    @Test
+    fun delete_twiceWhilePending_deletesOnce() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        repository.deleteGate = CompletableDeferred()
+        val model = viewModel(repository)
+        advanceUntilIdle()
+
+        model.onEvent(CircumferencesEvent.Delete("w"))
+        model.onEvent(CircumferencesEvent.Delete("w"))
+        advanceUntilIdle()
+        repository.deleteGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("w"), repository.deletes)
+    }
+
+    @Test
+    fun recreatedWhileADeleteIsPending_showsTheRowAgain() = runTest(dispatcher) {
+        val repository = FakeCircumferenceRepository(row("w", CircumferenceSite.Waist, 84.5))
+        repository.deleteGate = CompletableDeferred()
+        val first = viewModel(repository)
+        advanceUntilIdle()
+        first.onEvent(CircumferencesEvent.Delete("w"))
+        advanceUntilIdle()
+
+        val second = viewModel(repository, savedState)
+        advanceUntilIdle()
+
+        assertEquals(1, second.content().groups.size)
     }
 
     // Offline and failures

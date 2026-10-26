@@ -34,7 +34,7 @@ internal fun ReorderableSection() {
             key = { it },
             onMove = { from, to -> order = moveExercise(order, from, to) },
         ) { number, _, _ ->
-            AppCard(Modifier.fillMaxWidth().testTag("catalog_reorderable_row_$number")) {
+            AppCard(Modifier.fillMaxWidth().reorderActions().testTag("catalog_reorderable_row_$number")) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     DragHandle(
                         contentDescription = stringResource(Res.string.catalog_reorderable_reorder_cd, number),

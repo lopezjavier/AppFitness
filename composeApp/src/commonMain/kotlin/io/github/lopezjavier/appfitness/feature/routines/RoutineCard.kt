@@ -53,7 +53,7 @@ internal fun ReorderableItemScope.RoutineCard(
     val startLabel = stringResource(Res.string.routines_start_cd, routine.name)
     val nextState = stringResource(Res.string.routines_next_state)
     AppCard(
-        modifier.fillMaxWidth().semantics { if (routine.isNext) stateDescription = nextState },
+        modifier.fillMaxWidth().reorderActions().semantics { if (routine.isNext) stateDescription = nextState },
         highlighted = routine.isNext,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

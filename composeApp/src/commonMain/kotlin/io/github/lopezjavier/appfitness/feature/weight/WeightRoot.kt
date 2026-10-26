@@ -13,10 +13,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_delete_error
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_delete_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error_offline
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import io.github.lopezjavier.appfitness.platform.rememberHealthConnectLauncher
 import org.jetbrains.compose.resources.stringResource
@@ -102,8 +104,10 @@ private fun CollectWeightEffects(
 ) {
     val failed = stringResource(Res.string.weight_delete_error)
     val offline = stringResource(Res.string.weight_delete_error_offline)
-    val circumferenceFailed = stringResource(Res.string.circumference_delete_error)
-    val circumferenceOffline = stringResource(Res.string.circumference_delete_error_offline)
+    val circumferenceFailed = stringResource(Res.string.delete_failed)
+    val circumferenceOffline = stringResource(Res.string.delete_offline)
+    val appMessages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -115,10 +119,10 @@ private fun CollectWeightEffects(
     LaunchedEffect(circumferencesViewModel) {
         circumferencesViewModel.effects.collect { effect ->
             when (effect) {
-                is CircumferencesEffect.DeleteFailed -> snackbarHost.showSnackbar(
-                    if (effect.offline) circumferenceOffline else circumferenceFailed,
-                    duration = SnackbarDuration.Long,
-                )
+                is CircumferencesEffect.DeleteFailed -> {
+                    haptics.reject()
+                    appMessages.show(if (effect.offline) circumferenceOffline else circumferenceFailed)
+                }
             }
         }
     }

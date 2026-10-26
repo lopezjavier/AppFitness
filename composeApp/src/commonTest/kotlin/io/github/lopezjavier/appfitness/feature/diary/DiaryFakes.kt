@@ -151,9 +151,14 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
     val deleted = mutableListOf<String>()
     var deleteResult: Result<Unit> = Result.success(Unit)
 
+    /** When set, [deleteEntry] suspends until it completes. */
+    var deleteGate: CompletableDeferred<Unit>? = null
+
     override suspend fun deleteEntry(id: String): Result<Unit> {
+        deleteGate?.await()
         if (deleteResult.isFailure) return deleteResult
         deleted += id
+        server.keys.toList().forEach { day -> server[day] = server.getValue(day).filterNot { it.id == id } }
         cache.update { days -> days.mapValues { (_, list) -> list.filterNot { it.id == id } } }
         return Result.success(Unit)
     }
