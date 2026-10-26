@@ -23,12 +23,16 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 private const val PHOTO_SESSION =
     """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
@@ -43,6 +47,11 @@ private const val WEIGHT_CHICKEN = """{"estimate":{"estimated_amount":180,"base_
 
 private const val ERROR_BODY = """{"error":{"code":"X","message":"generic"}}"""
 
+private const val SLOW_MS = 300L
+private const val VERY_SLOW_MS = 3_000L
+private val LONG_TIMEOUT = 5.seconds
+private val SHORT_TIMEOUT = 200.milliseconds
+
 class SupabaseFoodPhotoRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private val bodies = mutableListOf<String>()
@@ -52,6 +61,8 @@ class SupabaseFoodPhotoRepositoryTest {
         body: String = TORTILLA,
         fail: Boolean = false,
         failWith: Throwable? = null,
+        responseDelayMs: Long = 0,
+        requestTimeout: Duration = FOOD_PHOTO_TIMEOUT,
     ): SupabaseFoodPhotoRepository {
         val engine =
             MockEngine { request ->
@@ -61,6 +72,7 @@ class SupabaseFoodPhotoRepositoryTest {
                 } else {
                     requests += request
                     bodies += request.body.toByteArray().decodeToString()
+                    if (responseDelayMs > 0) delay(responseDelayMs)
                     failWith?.let { throw it }
                     if (fail) throw IOException("offline")
                     respond(body, status, headers)
@@ -69,7 +81,30 @@ class SupabaseFoodPhotoRepositoryTest {
         val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
         val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
         SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseFoodPhotoRepository(client.auth, client.functions)
+        return SupabaseFoodPhotoRepository(client.auth, client.functions, requestTimeout)
+    }
+
+    @Test
+    fun foodPhotoTimeout_isLongerThanTheFunctionsGeminiTimeout() {
+        assertTrue(FOOD_PHOTO_TIMEOUT > 25.seconds)
+    }
+
+    @Test
+    fun estimateAndEstimateAmount_succeedWhenTheAnswerArrivesWithinTheInjectedTimeout() = runTest {
+        val dish = signedIn(responseDelayMs = SLOW_MS, requestTimeout = LONG_TIMEOUT)
+        val weight = signedIn(body = WEIGHT_CHICKEN, responseDelayMs = SLOW_MS, requestTimeout = LONG_TIMEOUT)
+
+        assertTrue(dish.estimate(FoodPhotoMode.Dish, "QUJD", null).isSuccess)
+        assertTrue(weight.estimateAmount(chicken, "QUJD").isSuccess)
+    }
+
+    @Test
+    fun estimateAndEstimateAmount_failWithServiceUnavailableWhenSlowerThanTheInjectedTimeout() = runTest {
+        val dish = signedIn(responseDelayMs = VERY_SLOW_MS, requestTimeout = SHORT_TIMEOUT)
+        val weight = signedIn(body = WEIGHT_CHICKEN, responseDelayMs = VERY_SLOW_MS, requestTimeout = SHORT_TIMEOUT)
+
+        assertEquals(AppError.ServiceUnavailable, dish.estimate(FoodPhotoMode.Dish, "QUJD", null).appErrorOrNull())
+        assertEquals(AppError.ServiceUnavailable, weight.estimateAmount(chicken, "QUJD").appErrorOrNull())
     }
 
     @Test
