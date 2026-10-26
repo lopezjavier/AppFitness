@@ -111,6 +111,38 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
+    fun searchManual_readsOnlyTheUsersFoodsByNameAndMapsThem() = runTest {
+        val repo = signedIn { "[$EGG]" }
+
+        val foods = repo.searchManual("huevo").getOrThrow()
+
+        assertEquals(listOf("f1"), foods.map { it.id })
+        assertEquals(listOf("p1", "p2"), foods.single().portions.map { it.id })
+        val url = requests.last().url
+        assertTrue(url.encodedPath.endsWith("/rest/v1/foods"), url.toString())
+        assertEquals("eq.user", url.parameters["source"])
+        assertEquals("ilike.%huevo%", url.parameters["name"])
+        assertEquals("20", url.parameters["limit"])
+    }
+
+    @Test
+    fun searchManual_escapesLikeWildcardsInTheQuery() = runTest {
+        val repo = signedIn { "[]" }
+
+        repo.searchManual("100%_a").getOrThrow()
+
+        assertEquals("""ilike.%100\%\_a%""", requests.last().url.parameters["name"])
+    }
+
+    @Test
+    fun searchManual_failsWithTheNetworkErrorWhenTheCallFails() = runTest {
+        status = HttpStatusCode.InternalServerError
+        val repo = signedIn { """{"message":"boom"}""" }
+
+        assertTrue(repo.searchManual("huevo").isFailure)
+    }
+
+    @Test
     fun recent_dedupesLoggedFoodsKeepingTheMostRecentFirst() = runTest {
         val repo = signedIn { request ->
             if (request.url.encodedPath.endsWith("/food_log_entries")) {

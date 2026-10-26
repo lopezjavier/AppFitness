@@ -50,20 +50,20 @@ class FoodPhotoRestorationTest {
     fun modeSheet_survivesRecreation() {
         val tester = StateRestorationTester(rule)
         show(tester)
-        rule.onNodeWithTag("food_photo_mode_sheet").assertExists()
+        rule.onNodeWithTag("photo_mode").assertExists()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("food_photo_mode_sheet").assertExists()
+        rule.onNodeWithTag("photo_mode").assertExists()
     }
 
     @Test
     fun previewAfterRecreation_comesBackAsTheSourceSheet_neverAPreviewWithoutAPhoto() {
         val tester = StateRestorationTester(rule)
         show(tester)
-        rule.onNodeWithTag("food_photo_mode_estimate").performClick()
-        rule.onNodeWithTag("food_photo_source_camera").performClick()
+        rule.onNodeWithTag("photo_mode_row_1").performClick()
+        rule.onNodeWithTag("photo_source_row_1").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("food_photo_preview").assertExists()
 
@@ -71,6 +71,6 @@ class FoodPhotoRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("food_photo_preview").assertDoesNotExist()
-        rule.onNodeWithTag("food_photo_source_sheet").assertExists()
+        rule.onNodeWithTag("photo_source").assertExists()
     }
 }

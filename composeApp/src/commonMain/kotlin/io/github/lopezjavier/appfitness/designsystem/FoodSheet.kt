@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expan
 import io.github.lopezjavier.appfitness.composeapp.resources.food_sheet_details_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
+import io.github.lopezjavier.appfitness.composeapp.resources.template_food_remove
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -50,8 +51,8 @@ data class FoodSheetFavourite(val selected: Boolean, val contentDescription: Str
 data class FoodSheetTotals(val kcal: String, val proteinG: String, val carbsG: String, val fatG: String)
 
 /**
- * Footer of a [FoodSheet]. Only [Edit] exists today (T-121); the add and comida contexts join in T-122, so the
- * interface stays open for them.
+ * Footer of a [FoodSheet]: [Edit] a logged entry (T-121), [Add] a food to the diary and [Comida] an item of a comida
+ * being edited (T-122).
  */
 sealed interface FoodSheetContext {
     /**
@@ -67,6 +68,26 @@ sealed interface FoodSheetContext {
         val canDelete: Boolean,
         val offlineHint: String?,
     ) : FoodSheetContext
+
+    /**
+     * Adding a food: the pinned "Añadir" (enabled by [canAdd], busy while [saving]). [offlineHint] is the one shared
+     * hint under the footer (null when online or when nothing is written, e.g. choosing a food for a comida).
+     */
+    @Immutable
+    data class Add(val canAdd: Boolean, val saving: Boolean, val onAdd: () -> Unit, val offlineHint: String?) :
+        FoodSheetContext
+
+    /**
+     * An item of a comida opened from the comida editor: "Listo" only applies to the staged draft (the editor's
+     * "Guardar" persists) and a destructive "Quitar de la comida" ([canRemove]) only stages the removal.
+     */
+    @Immutable
+    data class Comida(
+        val onDone: () -> Unit,
+        val onRemove: () -> Unit,
+        val canRemove: Boolean,
+        val canDone: Boolean = true,
+    ) : FoodSheetContext
 }
 
 /**
@@ -74,7 +95,7 @@ sealed interface FoodSheetContext {
  * manual-food pencil in the header, then [quantity], the live [totals], collapsible [details] (expanded state saved
  * across recreation) and [extra] (the meal chips). The footer comes from [context]. Closing only calls [onDismiss].
  * Tags: `<prefix>_title`, `_brand`, `_totals` (+ `_kcal`), `_details_toggle`, `_details`, `_commit`, `_delete`,
- * `_commit_hint`, `_close`, `_favourite`, `_edit_food`.
+ * `_commit_hint`, `_remove` (comida), `_close`, `_favourite`, `_edit_food`.
  */
 @Suppress("LongParameterList") // Slots fixed by the T-121 contract.
 @Composable
@@ -90,30 +111,23 @@ fun FoodSheet(
     modifier: Modifier = Modifier,
     favourite: FoodSheetFavourite? = null,
     onEditFood: (() -> Unit)? = null,
+    editFoodEnabled: Boolean = true,
     testTagPrefix: String = "food_sheet",
 ) {
-    val edit = context as FoodSheetContext.Edit
     // Hoisted above the sheet window: state declared inside a sheet is not restored.
     var detailsExpanded by rememberSaveable { mutableStateOf(false) }
+    val footer = footerOf(context, testTagPrefix)
     AppEditSheet(
         title = name,
-        commit = SheetCommit.Save,
-        onCommit = edit.onSave,
+        commit = footer.commit,
+        onCommit = footer.onCommit,
         onDismiss = onDismiss,
         modifier = modifier,
-        commitEnabled = edit.canSave,
-        saving = edit.saving,
-        commitHint = edit.offlineHint,
-        help = headerActions(favourite, onEditFood, testTagPrefix),
-        secondaryAction = {
-            GhostButton(
-                text = stringResource(Res.string.action_delete),
-                onClick = edit.onDelete,
-                enabled = edit.canDelete && !edit.saving,
-                tone = GhostTone.Destructive,
-                modifier = Modifier.fillMaxWidth().testTag("${testTagPrefix}_delete"),
-            )
-        },
+        commitEnabled = footer.enabled,
+        saving = footer.saving,
+        commitHint = footer.hint,
+        help = headerActions(favourite, onEditFood, editFoodEnabled, testTagPrefix),
+        secondaryAction = footer.secondary,
         testTagPrefix = testTagPrefix,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -133,9 +147,65 @@ fun FoodSheet(
     }
 }
 
+/** What [AppEditSheet] needs from a [FoodSheetContext]. */
+private class SheetFooter(
+    val commit: SheetCommit,
+    val onCommit: () -> Unit,
+    val enabled: Boolean,
+    val saving: Boolean,
+    val hint: String?,
+    val secondary: (@Composable () -> Unit)?,
+)
+
+private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = when (context) {
+    is FoodSheetContext.Edit -> SheetFooter(
+        commit = SheetCommit.Save,
+        onCommit = context.onSave,
+        enabled = context.canSave,
+        saving = context.saving,
+        hint = context.offlineHint,
+        secondary = {
+            GhostButton(
+                text = stringResource(Res.string.action_delete),
+                onClick = context.onDelete,
+                enabled = context.canDelete && !context.saving,
+                tone = GhostTone.Destructive,
+                modifier = Modifier.fillMaxWidth().testTag("${prefix}_delete"),
+            )
+        },
+    )
+
+    is FoodSheetContext.Add -> SheetFooter(
+        commit = SheetCommit.Add,
+        onCommit = context.onAdd,
+        enabled = context.canAdd,
+        saving = context.saving,
+        hint = context.offlineHint,
+        secondary = null,
+    )
+
+    is FoodSheetContext.Comida -> SheetFooter(
+        commit = SheetCommit.Apply,
+        onCommit = context.onDone,
+        enabled = context.canDone,
+        saving = false,
+        hint = null,
+        secondary = {
+            GhostButton(
+                text = stringResource(Res.string.template_food_remove),
+                onClick = context.onRemove,
+                enabled = context.canRemove,
+                tone = GhostTone.Destructive,
+                modifier = Modifier.fillMaxWidth().testTag("${prefix}_remove"),
+            )
+        },
+    )
+}
+
 private fun headerActions(
     favourite: FoodSheetFavourite?,
     onEditFood: (() -> Unit)?,
+    editFoodEnabled: Boolean,
     prefix: String,
 ): (@Composable () -> Unit)? {
     if (favourite == null && onEditFood == null) return null
@@ -154,6 +224,7 @@ private fun headerActions(
                 icon = Res.drawable.ic_edit,
                 testTag = "${prefix}_edit_food",
                 onClick = onEditFood,
+                enabled = editFoodEnabled,
                 tint = AppTheme.colors.textSecondary,
             )
         }

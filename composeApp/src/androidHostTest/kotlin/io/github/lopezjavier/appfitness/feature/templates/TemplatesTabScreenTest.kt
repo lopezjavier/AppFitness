@@ -75,7 +75,7 @@ class TemplatesTabScreenTest {
     @Composable
     private fun SearchHost(model: FoodSearchViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { FoodSearchScreen(state, model::onEvent) }
+        AppTheme { FoodSearchScreen(state, model::onEvent, {}) }
     }
 
     private fun openComidasTab() {
@@ -134,6 +134,7 @@ class TemplatesTabScreenTest {
                 onOpenFood = {},
                 onCreateFood = { _, _, _ -> },
                 onOpenTemplate = onOpenTemplate,
+                onBack = {},
                 viewModel = model,
                 photoViewModel = foodPhotoModel(connectivity = connectivity),
                 photoCapture = FakePhotoCapture(),

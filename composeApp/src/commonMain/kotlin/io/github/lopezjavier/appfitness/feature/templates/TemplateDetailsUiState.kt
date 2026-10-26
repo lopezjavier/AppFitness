@@ -58,6 +58,8 @@ sealed interface TemplateDetailsUiState {
      * in flight; the name does not matter); [adding] is that request and [addFailed] its failure.
      */
     data class Content(
+        /** The saved comida's name: the screen title. Unlike [name] it does not follow the name being typed. */
+        val title: String,
         val name: String,
         val nameError: TemplateNameError?,
         val totalKcal: Double,
@@ -113,6 +115,12 @@ sealed interface TemplateDetailsEvent {
 
     /** "Guardar": stores name, removals, additions and amounts together (one request). */
     data object SaveClicked : TemplateDetailsEvent
+
+    /**
+     * The user confirmed "Descartar" in the discard dialog: the draft (name, amounts, staged removals and additions,
+     * open sheet) is dropped, also from the saved state, and the saved comida is shown again.
+     */
+    data object Discard : TemplateDetailsEvent
 
     /** "Añadir": logs the foods as shown to the route's meal and day, without storing the comida. */
     data object Add : TemplateDetailsEvent

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.food
 
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 
 /**
@@ -13,7 +14,17 @@ enum class FoodSearchTab { Recent, MostEaten, Favourites, Templates }
 sealed interface FoodResults {
     data object Loading : FoodResults
 
-    data class Content(val foods: List<Food>) : FoodResults
+    /**
+     * [foods] lists the user's manual foods first (the first [manualCount]), then the Open Food Facts results; the
+     * manual rows are never reordered. [remoteLoading] means Open Food Facts has not answered yet, [remoteFailed]
+     * that it failed (the manual rows stay and the screen shows an inline error with "Reintentar").
+     */
+    data class Content(
+        val foods: List<Food>,
+        val manualCount: Int = 0,
+        val remoteLoading: Boolean = false,
+        val remoteFailed: Boolean = false,
+    ) : FoodResults
 
     /** Nothing found for the query, or the selected tab has no foods yet. */
     data object Empty : FoodResults
@@ -49,6 +60,12 @@ data class FoodSearchUiState(
     val notFoundBarcode: String? = null,
     val templates: TemplatesResults = TemplatesResults.Loading,
     val pick: Boolean = false,
+    /**
+     * The meal the foods are added to (its [MealSlot.code] and label give the title "Añadir al desayuno"); null when
+     * no meal was preselected, in [pick] mode, or while it is not known yet (the title then falls back to the
+     * generic "Añadir alimento").
+     */
+    val mealSlot: MealSlot? = null,
 )
 
 sealed interface FoodSearchEvent {

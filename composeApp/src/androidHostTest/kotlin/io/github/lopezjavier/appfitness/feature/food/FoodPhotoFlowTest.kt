@@ -106,6 +106,7 @@ class FoodPhotoFlowTest {
                     FoodSearchScreen(
                         searchState,
                         searchModel::onEvent,
+                        onBack = {},
                         onPhotoClick = { photoModel.onEvent(FoodPhotoEvent.Open) },
                     )
                     FoodPhotoFlow(photoState, photoModel::onEvent, capture::readJpeg)
@@ -128,7 +129,7 @@ class FoodPhotoFlowTest {
                             }
                         }
                     }
-                    CreateFoodScreen(createState, model::onEvent)
+                    CreateFoodScreen(createState, model::onEvent, {})
                 }
                 openFoodId?.let { id -> Sheet(id) { openFoodId = null } }
             }
@@ -173,43 +174,38 @@ class FoodPhotoFlowTest {
 
     private fun absent(tag: String) = rule.onNodeWithTag(tag).assertDoesNotExist()
 
-    private fun toPreview(modeTag: String, sourceTag: String = "food_photo_source_camera") {
-        tap("food_search_photo_button")
+    private fun toPreview(modeTag: String, sourceTag: String = "photo_source_row_1") {
+        tap("food_search_action_photo")
         tap(modeTag)
         tap(sourceTag)
     }
 
     @Test
-    fun searchRow_holdsTheFieldThenScannerPhotoAndCreateIcons_inOneRow_withTheSameSize_andADescription() {
+    fun quickActions_sitInOneRowUnderTheField_withTheSameSize_andALabel() {
         start()
 
-        val field = rule.onNodeWithTag("food_search_input").getUnclippedBoundsInRoot()
-        val scan = rule.onNodeWithTag("food_search_scan_button").getUnclippedBoundsInRoot()
-        val photo = rule.onNodeWithTag("food_search_photo_button").getUnclippedBoundsInRoot()
-        val create = rule.onNodeWithTag("food_search_create_icon").getUnclippedBoundsInRoot()
-        assertTrue(field.right <= scan.left)
+        val field = rule.onNodeWithTag("food_search_field").getUnclippedBoundsInRoot()
+        val scan = rule.onNodeWithTag("food_search_action_scan").getUnclippedBoundsInRoot()
+        val photo = rule.onNodeWithTag("food_search_action_photo").getUnclippedBoundsInRoot()
+        val create = rule.onNodeWithTag("food_search_action_create").getUnclippedBoundsInRoot()
+        assertTrue("actions sit under the field", field.bottom <= scan.top)
         assertTrue(scan.right <= photo.left)
         assertTrue(photo.right <= create.left)
         assertEquals(scan.top, photo.top)
         assertEquals(photo.top, create.top)
         assertEquals(scan.right - scan.left, photo.right - photo.left)
-        assertEquals(scan.bottom - scan.top, photo.bottom - photo.top)
         assertTrue(photo.bottom - photo.top >= 48.dp)
-        assertTrue(field.bottom > scan.top && field.top < scan.bottom)
-        rule.onNodeWithTag("food_search_photo_button").assertIsEnabled()
-        val description = rule.onNodeWithTag("food_search_photo_button").fetchSemanticsNode()
-            .config[SemanticsProperties.ContentDescription]
-        assertEquals(listOf("Añadir desde foto"), description)
+        rule.onNodeWithTag("food_search_action_photo").assertIsEnabled()
+        rule.onNodeWithTag("food_search_action_photo").assertTextContains("Foto")
     }
 
     @Test
-    fun photoIcon_offline_isDisabled_andKeepsItsDescriptionAndState() {
+    fun photoAction_offline_isDisabled_andKeepsItsState() {
         connectivity.state.value = false
         start()
 
-        rule.onNodeWithTag("food_search_photo_button").assertIsNotEnabled()
-        val config = rule.onNodeWithTag("food_search_photo_button").fetchSemanticsNode().config
-        assertEquals(listOf("Añadir desde foto"), config[SemanticsProperties.ContentDescription])
+        rule.onNodeWithTag("food_search_action_photo").assertIsNotEnabled()
+        val config = rule.onNodeWithTag("food_search_action_photo").fetchSemanticsNode().config
         assertEquals("Sin conexión", config[SemanticsProperties.StateDescription])
     }
 
@@ -217,12 +213,12 @@ class FoodPhotoFlowTest {
     fun photoIcon_opensTheModeSheetWithThreeRows() {
         start()
 
-        tap("food_search_photo_button")
+        tap("food_search_action_photo")
 
-        exists("food_photo_mode_sheet")
-        exists("food_photo_mode_estimate")
-        exists("food_photo_mode_label")
-        exists("food_photo_mode_barcode")
+        exists("photo_mode")
+        exists("photo_mode_row_1")
+        exists("photo_mode_row_2")
+        exists("photo_mode_row_3")
         rule.onNodeWithText("Calorías y macros de un plato").assertExists()
     }
 
@@ -230,20 +226,20 @@ class FoodPhotoFlowTest {
     fun choosingAMode_opensTheSourceSheetWithTwoRows() {
         start()
 
-        tap("food_search_photo_button")
-        tap("food_photo_mode_estimate")
+        tap("food_search_action_photo")
+        tap("photo_mode_row_1")
 
-        exists("food_photo_source_sheet")
-        exists("food_photo_source_camera")
-        exists("food_photo_source_gallery")
-        absent("food_photo_mode_sheet")
+        exists("photo_source")
+        exists("photo_source_row_1")
+        exists("photo_source_row_2")
+        absent("photo_mode")
     }
 
     @Test
     fun galleryAndCamera_reachThePreview_withRepeatAndUse() {
         start()
 
-        toPreview("food_photo_mode_estimate", "food_photo_source_gallery")
+        toPreview("photo_mode_row_1", "photo_source_row_2")
 
         exists("food_photo_preview_image")
         exists("food_photo_preview_retake")
@@ -259,10 +255,10 @@ class FoodPhotoFlowTest {
         capture.results += CaptureResult.Cancelled
         start()
 
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
-        exists("food_photo_source_sheet")
-        absent("food_photo_capture_error")
+        exists("photo_source")
+        absent("photo_source_capture_error")
         absent("food_photo_preview")
     }
 
@@ -271,18 +267,18 @@ class FoodPhotoFlowTest {
         capture.results += CaptureResult.Error
         start()
 
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
-        rule.onNodeWithTag("food_photo_capture_error")
+        rule.onNodeWithTag("photo_source_capture_error")
             .assertTextContains("No se pudo abrir la cámara. Inténtalo de nuevo")
-        exists("food_photo_source_camera")
+        exists("photo_source_row_1")
     }
 
     @Test
     fun commentField_existsInDishMode() {
         start()
 
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         exists("food_photo_comment_input")
     }
@@ -291,7 +287,7 @@ class FoodPhotoFlowTest {
     fun commentField_isAbsentInLabelMode() {
         start()
 
-        toPreview("food_photo_mode_label")
+        toPreview("photo_mode_row_2")
 
         exists("food_photo_preview")
         absent("food_photo_comment_input")
@@ -300,11 +296,11 @@ class FoodPhotoFlowTest {
     @Test
     fun backFromThePreview_returnsToTheSourceSheet_andDiscardsThePhoto() {
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         pressBack()
 
-        exists("food_photo_source_sheet")
+        exists("photo_source")
         absent("food_photo_preview")
         assertEquals(listOf("photo-1"), capture.discarded)
     }
@@ -312,7 +308,7 @@ class FoodPhotoFlowTest {
     @Test
     fun comment_isSentWithTheEstimate_andCounterIsExposed() {
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         rule.onNodeWithTag("food_photo_comment_input").performTextInput("sin chorizo")
         rule.waitForIdle()
@@ -326,7 +322,7 @@ class FoodPhotoFlowTest {
     fun estimating_isShownWhileTheEstimateIsPending_withoutActions() {
         photoRepo.gate = CompletableDeferred()
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         tap("food_photo_preview_use")
 
@@ -340,7 +336,7 @@ class FoodPhotoFlowTest {
     @Test
     fun success_opensThePrefilledForm_withTheNote_editRemovesIt_andSaveOpensTheSheet() {
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         tap("food_photo_preview_use")
 
@@ -352,9 +348,9 @@ class FoodPhotoFlowTest {
         rule.waitForIdle()
         absent("create_food_ai_note")
         assertTrue(foods.created.isEmpty())
-        tap("create_food_save_button")
+        tap("create_food_save")
         assertEquals("Lentejas con pollo!", foods.created.single().name)
-        exists("add_food_sheet")
+        exists("food_sheet")
     }
 
     @Test
@@ -363,19 +359,19 @@ class FoodPhotoFlowTest {
             FakeFoodPhotoRepository.lentils.copy(name = "Galletas", kcal = null, protein = null),
         )
         start()
-        toPreview("food_photo_mode_label")
+        toPreview("photo_mode_row_2")
 
         tap("food_photo_preview_use")
 
         rule.onNodeWithTag("create_food_name_field").assertTextContains("Galletas")
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
     }
 
     @Test
     fun notRecognisedDish_showsTheDishMessage_andBothActions() {
         photoRepo.result = Result.failure(AppException(AppError.PhotoNotRecognized))
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         tap("food_photo_preview_use")
 
@@ -389,7 +385,7 @@ class FoodPhotoFlowTest {
     fun notRecognisedBarcode_showsTheProductMessage() {
         photoRepo.result = Result.failure(AppException(AppError.PhotoNotRecognized))
         start()
-        toPreview("food_photo_mode_barcode")
+        toPreview("photo_mode_row_3")
 
         tap("food_photo_preview_use")
 
@@ -400,7 +396,7 @@ class FoodPhotoFlowTest {
     fun networkFailure_showsTheConnectionMessage() {
         photoRepo.result = Result.failure(AppException(AppError.Network))
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
 
         tap("food_photo_preview_use")
 
@@ -411,7 +407,7 @@ class FoodPhotoFlowTest {
     fun retry_sendsTheSamePhotoAgain_andSucceeds() {
         photoRepo.result = Result.failure(AppException(AppError.ServiceUnavailable))
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
         tap("food_photo_preview_use")
         rule.onNodeWithText(
             "El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente",
@@ -429,7 +425,7 @@ class FoodPhotoFlowTest {
     fun createManually_opensTheEmptyForm_andCreatesNothing() {
         photoRepo.result = Result.failure(AppException(AppError.PhotoNotRecognized))
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
         tap("food_photo_preview_use")
 
         tap("food_photo_error_manual")
@@ -445,7 +441,7 @@ class FoodPhotoFlowTest {
     fun backFromTheError_returnsToThePreview() {
         photoRepo.result = Result.failure(AppException(AppError.PhotoNotRecognized))
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
         tap("food_photo_preview_use")
 
         pressBack()
@@ -456,7 +452,7 @@ class FoodPhotoFlowTest {
     @Test
     fun scannerIcon_stillStartsTheScanner_andThePhotoFlowNeverTouchesIt() {
         start()
-        toPreview("food_photo_mode_estimate")
+        toPreview("photo_mode_row_1")
         tap("food_photo_preview_use")
         assertEquals(0, scanner.scans)
         assertTrue(foods.barcodeLookups.isEmpty())
@@ -466,10 +462,10 @@ class FoodPhotoFlowTest {
     fun scannerIcon_doesNotStartThePhotoFlow() {
         start()
 
-        tap("food_search_scan_button")
+        tap("food_search_action_scan")
 
         assertEquals(1, scanner.scans)
         assertTrue(capture.captured.isEmpty())
-        absent("food_photo_mode_sheet")
+        absent("photo_mode")
     }
 }

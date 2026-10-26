@@ -35,7 +35,8 @@ object AppActionSheetDefaults {
  * Actions archetype of the sheet family (R-07): an optional [title], an X "Cerrar" and one [ActionRow] per action.
  * Tapping a row runs its action and then closes the sheet (it animates out first); the X only closes.
  * [onDismiss] is called once the sheet is gone, also for a scrim tap, a drag and back.
- * Rows are tagged `<prefix>_row_<n>` (from 1), the X `<prefix>_close`.
+ * Rows are tagged `<prefix>_row_<n>` (from 1), the X `<prefix>_close`. [notice] is an optional line (e.g. a failure
+ * message) between the header and the rows.
  *
  * The other archetypes are [AppEditSheet], [AppPickerSheet] and [AppInfoSheet] (`AppSheets.kt`).
  */
@@ -47,6 +48,7 @@ fun AppActionSheet(
     modifier: Modifier = Modifier,
     title: String? = null,
     testTagPrefix: String = AppActionSheetDefaults.TestTag,
+    notice: (@Composable () -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -57,6 +59,7 @@ fun AppActionSheet(
         testTagPrefix = testTagPrefix,
     ) {
         AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help = null)
+        notice?.invoke()
         actions.forEachIndexed { index, action ->
             ActionRow(
                 icon = action.icon,

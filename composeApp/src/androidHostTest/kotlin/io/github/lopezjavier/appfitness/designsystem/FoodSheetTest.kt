@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,10 +13,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import org.junit.Rule
 import org.junit.Test
@@ -22,8 +26,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-/** US-56 / LST-1: the food sheet in its Edit context. */
+/** US-56 / LST-1: the food sheet in its Edit, Add and Comida contexts. */
 @Suppress("TooManyFunctions") // One method per behaviour.
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h640dp-xxhdpi")
@@ -35,6 +40,16 @@ class FoodSheetTest {
     private var deletes = 0
     private var dismissed = 0
     private var open by mutableStateOf(true)
+
+    private var adds = 0
+    private var dones = 0
+    private var removes = 0
+
+    private fun add(canAdd: Boolean = true, saving: Boolean = false, hint: String? = null) =
+        FoodSheetContext.Add(canAdd, saving, { adds++ }, hint)
+
+    private fun comida(canRemove: Boolean = true, canDone: Boolean = true) =
+        FoodSheetContext.Comida({ dones++ }, { removes++ }, canRemove, canDone)
 
     private fun edit(
         canSave: Boolean = true,
@@ -77,6 +92,76 @@ class FoodSheetTest {
         rule.onNodeWithTag("food_sheet_slots").assertIsDisplayed()
         rule.onNodeWithTag("food_sheet_commit").assertIsDisplayed().assertIsEnabled()
         rule.onNodeWithTag("food_sheet_delete").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun addContext_pinsAnadir_andCallsOnAdd_withNoDeleteNorRemove() {
+        show(add())
+
+        rule.onNodeWithTag("food_sheet_commit").assertTextEquals("Añadir").assertIsEnabled().performClick()
+
+        assertEquals(1, adds)
+        rule.onNodeWithTag("food_sheet_delete").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_remove").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_commit_hint").assertDoesNotExist()
+    }
+
+    @Test
+    fun addContext_whenItCannotAdd_isDisabled_andShowsTheOfflineHint() {
+        show(add(canAdd = false, hint = offlineHint("añadir")))
+
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_commit_hint").assertTextEquals("Sin conexión: no se puede añadir")
+    }
+
+    @Test
+    fun addContext_whileSaving_cannotBeTappedTwice() {
+        show(add(saving = true))
+
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
+    }
+
+    @Test
+    fun addContext_anadirStaysOnScreen_whateverTheHeightOfTheBody() {
+        rule.setContent {
+            AppTheme {
+                FoodSheet(
+                    name = "Avena",
+                    brand = null,
+                    quantity = { Box(Modifier.height(2000.dp).testTag("tall_body")) },
+                    totals = null,
+                    details = null,
+                    extra = null,
+                    context = add(),
+                    onDismiss = {},
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        val commit = rule.onNodeWithTag("food_sheet_commit")
+        commit.assertIsDisplayed()
+        assertTrue(commit.getUnclippedBoundsInRoot().bottom <= 640.dp)
+    }
+
+    @Test
+    fun comidaContext_doneAppliesAndQuitarOnlyStagesTheRemoval() {
+        show(comida())
+
+        rule.onNodeWithTag("food_sheet_commit").assertTextEquals("Listo").performClick()
+        rule.onNodeWithTag("food_sheet_remove").assertTextEquals("Quitar de la comida").performClick()
+
+        assertEquals(1, dones)
+        assertEquals(1, removes)
+        rule.onNodeWithTag("food_sheet_delete").assertDoesNotExist()
+    }
+
+    @Test
+    fun comidaContext_lastFood_cannotBeRemoved_andAnInvalidAmountCannotBeApplied() {
+        show(comida(canRemove = false, canDone = false))
+
+        rule.onNodeWithTag("food_sheet_remove").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 
     @Test

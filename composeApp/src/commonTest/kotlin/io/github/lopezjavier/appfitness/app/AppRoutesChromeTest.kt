@@ -24,11 +24,6 @@ class AppRoutesChromeTest {
             MuscleVolumeRoute to "muscle_volume",
             StatsRoute to "stats",
             ExerciseProgressRoute("e") to "exercise_progress",
-            FoodSearchRoute(date = "2026-10-26") to "food_search",
-            AddFoodRoute("f", date = "2026-10-26") to "food_search",
-            CreateFoodRoute(date = "2026-10-26") to "create_food",
-            EditFoodRoute("f", date = "2026-10-26") to "edit_food",
-            TemplateDetailsRoute("t", date = "2026-10-26") to "template_details",
             MealSlotsRoute to "meals",
             MealDefaultsRoute to "meal_defaults",
             WeightRoute to "weight",
@@ -48,6 +43,22 @@ class AppRoutesChromeTest {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
         assertEquals(ShellChrome.Screen, DiaryHistoryRoute.chrome)
         assertEquals(ShellChrome.Screen, DiaryDayRoute("2026-10-26").chrome)
+    }
+
+    @Test
+    fun theFoodRoutes_useAppScreen_andHaveScreenChrome() {
+        val food = listOf(
+            FoodSearchRoute(date = "2026-10-26"),
+            AddFoodRoute("f", date = "2026-10-26"),
+            CreateFoodRoute(date = "2026-10-26"),
+            EditFoodRoute("f", date = "2026-10-26"),
+            TemplateDetailsRoute("t", date = "2026-10-26"),
+        )
+
+        food.forEach {
+            assertTrue(it.usesAppScreen, it.toString())
+            assertEquals(ShellChrome.Screen, it.chrome, it.toString())
+        }
     }
 
     @Test

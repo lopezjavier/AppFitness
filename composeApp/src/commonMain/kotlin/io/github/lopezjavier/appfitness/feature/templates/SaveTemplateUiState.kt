@@ -30,18 +30,28 @@ data class SaveTemplateContent(
     val isOffline: Boolean,
     val saving: Boolean,
     val items: List<SaveTemplateItemRow> = emptyList(),
+    /** The names of the user's comidas, as stored; pass them to `NameSheet(existingNames = ...)` (client check). */
+    val existingNames: List<String> = emptyList(),
 ) {
+    /** The typed name equals an existing comida name, ignoring case and surrounding spaces (`lower(btrim(name))`). */
+    val nameDuplicate: Boolean
+        get() {
+            val typed = name.trim().lowercase()
+            return typed.isNotEmpty() && existingNames.any { it.trim().lowercase() == typed }
+        }
+
     /** The inline error under the field, if any. */
     val nameError: TemplateNameError?
         get() = when {
-            nameTaken -> TemplateNameError.Taken
+            nameTaken || nameDuplicate -> TemplateNameError.Taken
             nameCheck == TemplateNameCheck.TooLong -> TemplateNameError.TooLong
             else -> null
         }
 
     /** The save button is enabled: a valid, untaken name, a non-empty section, and the server is reachable. */
     val canSave: Boolean
-        get() = nameCheck == TemplateNameCheck.Valid && !nameTaken && itemCount > 0 && !isOffline && !saving
+        get() = nameCheck == TemplateNameCheck.Valid && !nameTaken && !nameDuplicate && itemCount > 0 &&
+            !isOffline && !saving
 }
 
 /**

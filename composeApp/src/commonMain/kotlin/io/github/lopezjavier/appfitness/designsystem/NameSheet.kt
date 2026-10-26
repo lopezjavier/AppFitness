@@ -3,6 +3,7 @@
 
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +50,9 @@ object NameSheetDefaults {
  * and "Guardar" stays disabled. The check is client side only. The typed text survives recreation. Tags:
  * `<prefix>`, `<prefix>_input` (+ `_error`), `<prefix>_commit`, `<prefix>_close`.
  *
+ * [canSubmit] false (for example offline) keeps "Guardar" disabled whatever the name; [extra] adds content under the
+ * field (inside the sheet's scrolling body).
+ *
  * The caller follows the [AppEditSheet] contract: close and fire the Confirm haptic after a successful save.
  */
 @Suppress("LongParameterList") // Sheet contract of T-119.
@@ -66,13 +70,15 @@ fun NameSheet(
     commitHint: String? = null,
     maxLength: Int = AppTextFieldDefaults.DEFAULT_MAX_LENGTH,
     testTagPrefix: String = NameSheetDefaults.TEST_TAG,
+    canSubmit: Boolean = true,
+    extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     var edited by rememberSaveable { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
     LaunchedEffect(saving) { if (!saving) submitted = false }
     val duplicate = NameSheetDefaults.isDuplicate(name, existingNames, ignore = initialName.ifBlank { null })
-    val canSave = NameSheetDefaults.canSave(name, duplicate)
+    val canSave = NameSheetDefaults.canSave(name, duplicate) && canSubmit
     val save = {
         if (canSave && !saving && !submitted) {
             submitted = true
@@ -106,5 +112,6 @@ fun NameSheet(
             capitalization = KeyboardCapitalization.Sentences,
             autofocus = true,
         )
+        extra?.invoke(this)
     }
 }

@@ -68,20 +68,20 @@ class TemplateDetailsScreenTest {
     }
 
     private fun editFirstFoodTo(grams: String) {
-        rule.onNodeWithTag("template_details_item_0").performClick()
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement(grams)
-        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.onNodeWithTag("template_edit_item_0").performClick()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement(grams)
+        rule.onNodeWithTag("food_sheet_commit").performClick()
         rule.waitForIdle()
     }
 
     private fun typeInFoodSheet(grams: String) {
-        rule.onNodeWithTag("template_details_item_0").performClick()
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement(grams)
+        rule.onNodeWithTag("template_edit_item_0").performClick()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement(grams)
         rule.waitForIdle()
     }
 
     private fun swipeRowToTheEnd(index: Int) {
-        rule.onNodeWithTag("template_details_item_$index").performTouchInput {
+        rule.onNodeWithTag("template_edit_item_$index").performTouchInput {
             swipeLeft(startX = right - 1f, endX = 0f)
         }
         rule.waitForIdle()
@@ -92,17 +92,17 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").assertTextContains("Desayuno A")
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
-        rule.onNodeWithTag("template_details_macros").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_name").assertTextContains("Desayuno A")
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_edit_macros").assertIsDisplayed()
         rule.onNodeWithText("P 42 g").assertIsDisplayed()
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("Huevos revueltos")
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 g")
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 kcal", substring = true)
-        rule.onNodeWithTag("template_details_item_1").assertTextContains("Batido de proteína")
-        rule.onNodeWithTag("template_details_item_1").assertTextContains("1 vaso")
-        rule.onNodeWithTag("template_details_item_1").assertTextContains("300 g")
-        rule.onNodeWithTag("template_details_item_1").assertTextContains("150 kcal", substring = true)
+        rule.assertRowText("template_edit_item_0", "Huevos revueltos")
+        rule.assertRowText("template_edit_item_0", "120 g")
+        rule.assertRowText("template_edit_item_0", "120 kcal")
+        rule.assertRowText("template_edit_item_1", "Batido de proteína")
+        rule.assertRowText("template_edit_item_1", "1 vaso")
+        rule.assertRowText("template_edit_item_1", "300 g")
+        rule.assertRowText("template_edit_item_1", "150 kcal")
     }
 
     @Test
@@ -110,10 +110,10 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_name").assertIsDisplayed()
         rule.onNodeWithTag("template_details_rename").assertDoesNotExist()
         rule.onNodeWithText("Guardar como nueva").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_add_food").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_add_item").assertIsDisplayed()
     }
 
     @Test
@@ -121,10 +121,10 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("   ")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("   ")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
     }
 
     @Test
@@ -133,11 +133,11 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("comida 2 ")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("comida 2 ")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_name_hint").assertTextEquals("Ya existe una comida con ese nombre")
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("template_edit_name_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
     }
 
     @Test
@@ -145,7 +145,7 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_hint").assertDoesNotExist()
+        rule.onNodeWithTag("template_edit_name_error").assertDoesNotExist()
     }
 
     @Test
@@ -153,7 +153,7 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_add_food").performClick()
+        rule.onNodeWithTag("template_edit_add_item").performClick()
         rule.waitForIdle()
 
         assertEquals(1, callbacks.pickerOpened)
@@ -165,15 +165,15 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_item_0").performClick()
+        rule.onNodeWithTag("template_edit_item_0").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("template_food_sheet_name").assertTextContains("Huevos revueltos")
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("180")
+        rule.onNodeWithTag("food_sheet_title").assertTextContains("Huevos revueltos")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("180")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_food_sheet_preview_kcal", useUnmergedTree = true).assertTextContains("180 kcal")
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 kcal", substring = true)
+        rule.onNodeWithTag("food_sheet_totals_kcal", useUnmergedTree = true).assertTextContains("180 kcal")
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("270 kcal")
+        rule.assertRowText("template_edit_item_0", "120 kcal")
         assertTrue(templates.templates.single().items.first().amount == 120.0)
     }
 
@@ -184,10 +184,12 @@ class TemplateDetailsScreenTest {
             Result.success(Micronutrients(listOf(Micronutrient(MicronutrientKind.Fiber, 2.0, MicronutrientUnit.G))))
         showDetails()
 
-        rule.onNodeWithTag("template_details_item_0").performClick()
+        rule.onNodeWithTag("template_edit_item_0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_food_sheet_micronutrients").assertIsDisplayed()
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("food_sheet_details").assertIsDisplayed()
     }
 
     @Test
@@ -195,13 +197,13 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_item_1").performClick()
-        rule.onNodeWithTag("template_food_sheet_remove").performClick()
+        rule.onNodeWithTag("template_edit_item_1").performClick()
+        rule.onNodeWithTag("food_sheet_remove").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_item_1").assertDoesNotExist()
-        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("120 kcal")
+        rule.onNodeWithTag("template_edit_item_1").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("120 kcal")
         assertEquals(2, templates.templates.single().items.size)
     }
 
@@ -211,14 +213,14 @@ class TemplateDetailsScreenTest {
         showDetails()
         swipeRowToTheEnd(1)
 
-        rule.onNodeWithTag("template_details_item_0").performClick()
+        rule.onNodeWithTag("template_edit_item_0").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("template_food_sheet_remove").assertDoesNotExist()
-        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.onNodeWithTag("food_sheet_remove").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_close").performClick()
         rule.waitForIdle()
         swipeRowToTheEnd(0)
 
-        rule.onNodeWithTag("template_details_item_0").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_item_0").assertIsDisplayed()
     }
 
     @Test
@@ -228,8 +230,8 @@ class TemplateDetailsScreenTest {
 
         swipeRowToTheEnd(1)
 
-        rule.onNodeWithTag("template_details_item_1").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_item_0").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_item_1").assertDoesNotExist()
+        rule.onNodeWithTag("template_edit_item_0").assertIsDisplayed()
         assertEquals(2, templates.templates.single().items.size)
     }
 
@@ -238,25 +240,25 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_item_1").performTouchInput {
+        rule.onNodeWithTag("template_edit_item_1").performTouchInput {
             down(Offset(right - 1f, centerY))
             moveTo(Offset(right * 0.55f, centerY))
             up()
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_item_1").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_item_1").assertIsDisplayed()
     }
 
     @Test
     fun guardar_isDisabledUntilTheDraftChanges() {
         templates.templates += desayunoA
         showDetails()
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
 
         editFirstFoodTo("150")
 
-        rule.onNodeWithTag("template_details_save").assertIsEnabled()
+        rule.onNodeWithTag("template_edit_save").assertIsEnabled()
     }
 
     @Test
@@ -266,8 +268,8 @@ class TemplateDetailsScreenTest {
 
         typeInFoodSheet("0")
 
-        rule.onNodeWithTag("template_food_sheet_save").assertIsNotEnabled()
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
     }
 
     @Test
@@ -276,13 +278,13 @@ class TemplateDetailsScreenTest {
         showDetails()
         typeInFoodSheet("180")
 
-        rule.onNodeWithTag("template_food_sheet_close").performClick()
+        rule.onNodeWithTag("food_sheet_close").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("120 kcal", substring = true)
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
+        rule.assertRowText("template_edit_item_0", "120 kcal")
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
     }
 
     @Test
@@ -297,12 +299,12 @@ class TemplateDetailsScreenTest {
             dialog.onBackPressedDispatcher.onBackPressed()
         }
         rule.waitUntil(timeoutMillis = 5_000) {
-            rule.onAllNodesWithTag("template_food_sheet").fetchSemanticsNodes().isEmpty()
+            rule.onAllNodesWithTag("food_sheet").fetchSemanticsNodes().isEmpty()
         }
 
-        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
     }
 
     @Test
@@ -311,13 +313,13 @@ class TemplateDetailsScreenTest {
         showDetails()
         typeInFoodSheet("180")
 
-        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.onNodeWithTag("food_sheet_commit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_food_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("180 g", substring = true)
-        rule.onNodeWithTag("template_details_item_0").assertTextContains("180 kcal", substring = true)
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("330 kcal")
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
+        rule.assertRowText("template_edit_item_0", "180 g")
+        rule.assertRowText("template_edit_item_0", "180 kcal")
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("330 kcal")
         assertEquals(120.0, templates.templates.single().items.first().amount, 0.0)
     }
 
@@ -325,11 +327,11 @@ class TemplateDetailsScreenTest {
     fun guardar_appliesNameRemovalAndAmountTogether_inOneSave_andLeaves() {
         templates.templates += desayunoA
         showDetails()
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("Desayuno B")
         editFirstFoodTo("150")
         swipeRowToTheEnd(1)
 
-        rule.onNodeWithTag("template_details_save").performClick()
+        rule.onNodeWithTag("template_edit_save").performClick()
         rule.waitForIdle()
 
         val saved = templates.templates.single()
@@ -343,15 +345,15 @@ class TemplateDetailsScreenTest {
     fun guardar_withANameTakenOnTheServer_showsTheHint_andKeepsTheDraft() {
         templates.templates += desayunoA
         showDetails()
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Cena")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("Cena")
         templates.templates += desayunoA.copy(id = "t2", name = "Cena")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_save").performClick()
+        rule.onNodeWithTag("template_edit_save").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_name_hint").assertTextEquals("Ya existe una comida con ese nombre")
-        rule.onNodeWithTag("template_details_name_field").assertTextContains("Cena")
+        rule.onNodeWithTag("template_edit_name_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_edit_name").assertTextContains("Cena")
         assertEquals("Desayuno A", templates.templates.first { it.id == "t1" }.name)
         assertFalse(callbacks.saved)
     }
@@ -364,8 +366,8 @@ class TemplateDetailsScreenTest {
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
-        rule.onNodeWithTag("template_details_offline").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
+        rule.onNodeWithTag("offline_hint").assertIsDisplayed()
     }
 
     private val twiceEggs = MealTemplate(
@@ -379,12 +381,12 @@ class TemplateDetailsScreenTest {
     fun guardar_afterEditingOneOfTwoRowsOfTheSameFood_keepsTheOtherRowUntouched() {
         templates.templates += twiceEggs
         showDetails()
-        rule.onNodeWithTag("template_details_item_1").performClick()
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("80")
-        rule.onNodeWithTag("template_food_sheet_save").performClick()
+        rule.onNodeWithTag("template_edit_item_1").performClick()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("80")
+        rule.onNodeWithTag("food_sheet_commit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_save").performClick()
+        rule.onNodeWithTag("template_edit_save").performClick()
         rule.waitForIdle()
 
         val saved = templates.templates.single()
@@ -397,11 +399,11 @@ class TemplateDetailsScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_error_state_action").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_error_state_action").assertIsDisplayed()
         templates.listFailure = null
-        rule.onNodeWithTag("template_details_error_state_action").performClick()
+        rule.onNodeWithTag("template_edit_error_state_action").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_item_0").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_item_0").assertIsDisplayed()
     }
 }

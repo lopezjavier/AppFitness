@@ -172,6 +172,56 @@ class SaveTemplateViewModelTest {
     }
 
     @Test
+    fun existingComidaNames_areExposedForTheNameSheet() = runTest(dispatcher) {
+        repository.templates += MealTemplate("t0", "Desayuno A", null, emptyList())
+        repository.templates += MealTemplate("t1", "Cena ligera", null, emptyList())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(setOf("Desayuno A", "Cena ligera"), model.content().existingNames.toSet())
+    }
+
+    @Test
+    fun aNameEqualToAnExistingOneIgnoringCaseAndSpaces_isDuplicateBeforeSubmitting() = runTest(dispatcher) {
+        repository.templates += MealTemplate("t0", "Desayuno A", null, emptyList())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.type("  desayuno a")
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals(TemplateNameError.Taken, content.nameError)
+        assertFalse(content.canSave)
+        assertEquals(0, repository.saveCalls)
+    }
+
+    @Test
+    fun aDifferentName_isNotDuplicate_evenWhenOtherComidasExist() = runTest(dispatcher) {
+        repository.templates += MealTemplate("t0", "Desayuno A", null, emptyList())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.type("Desayuno B")
+        advanceUntilIdle()
+
+        assertNull(model.content().nameError)
+        assertTrue(model.content().canSave)
+    }
+
+    @Test
+    fun whenTheComidaNamesCannotBeRead_savingStillWorks_andTheServerGuardsDuplicates() = runTest(dispatcher) {
+        repository.listFailure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+        model.type("Desayuno A")
+        advanceUntilIdle()
+
+        assertTrue(model.content().existingNames.isEmpty())
+        assertTrue(model.content().canSave)
+    }
+
+    @Test
     fun blankName_disablesSave() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()

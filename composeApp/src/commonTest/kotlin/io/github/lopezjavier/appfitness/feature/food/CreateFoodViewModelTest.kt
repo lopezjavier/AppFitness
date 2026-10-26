@@ -71,6 +71,18 @@ class CreateFoodViewModelTest {
     }
 
     @Test
+    fun prefill_aloneIsNotADirtyForm_butTheFirstEditIs() = runTest(dispatcher) {
+        val model = viewModel(barcode = "8410000000001", name = "Tortilla")
+        advanceUntilIdle()
+        assertFalse(model.uiState.value.isDirty)
+
+        model.type(CreateFoodField.Kcal, "120")
+        advanceUntilIdle()
+
+        assertTrue(model.uiState.value.isDirty)
+    }
+
+    @Test
     fun prefill_doesNotOverwriteARestoredDraft() = runTest(dispatcher) {
         val first = viewModel(name = "Tortilla")
         first.type(CreateFoodField.Name, "Otra cosa")

@@ -40,13 +40,13 @@ class CreateFoodRestorationTest {
     @Composable
     private fun FormHost(model: CreateFoodViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { CreateFoodScreen(state, model::onEvent) }
+        AppTheme { CreateFoodScreen(state, model::onEvent, {}) }
     }
 
     @Composable
     private fun SearchHost(model: FoodSearchViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { FoodSearchScreen(state, model::onEvent) }
+        AppTheme { FoodSearchScreen(state, model::onEvent, {}) }
     }
 
     @Test
@@ -155,7 +155,7 @@ class CreateFoodRestorationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("create_food_unit_ml").performClick()
         foods.inUse += "yogurt"
-        rule.onNodeWithTag("create_food_save_button").performClick()
+        rule.onNodeWithTag("create_food_save").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("create_food_unit_refused").assertExists()
 
@@ -190,7 +190,7 @@ class CreateFoodRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SearchHost(foodSearchModel(foods, connectivity, scanner, saved)) }
         rule.waitForIdle()
-        rule.onNodeWithTag("food_search_scan_button").performClick()
+        rule.onNodeWithTag("food_search_action_scan").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("food_search_not_found_card").assertExists()
 

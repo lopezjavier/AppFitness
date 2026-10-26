@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
-
 package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.compose.foundation.layout.Arrangement
@@ -7,30 +5,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_ml
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_meal_label
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_no_meal_hint
@@ -39,33 +24,32 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_co
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_option
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_preview_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_quantity_error
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_submit
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_submit_error
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
+import io.github.lopezjavier.appfitness.designsystem.FoodSheet
+import io.github.lopezjavier.appfitness.designsystem.FoodSheetContext
+import io.github.lopezjavier.appfitness.designsystem.FoodSheetTotals
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.PortionOption
 import io.github.lopezjavier.appfitness.designsystem.PortionSelector
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.feature.diary.amountText
@@ -73,17 +57,22 @@ import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEvent
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoNotice
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoUiState
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoStep
 import org.jetbrains.compose.resources.stringResource
 
-private const val MAX_SEGMENTED_SLOTS = 4
 private const val SKELETON_ROWS = 3
+private const val SHEET_PREFIX = "food_sheet"
+private const val OFFLINE_ACTION = "añadir"
 private val SkeletonHeight = Spacing.xl * 2
 
 /**
- * Add-food bottom sheet (US-17, US-22): the nutrition of 100 base units, the quantity (base unit or named portion),
- * the live nutrition of that quantity, the meal and "Añadir". It only needs a [Food] and a preselected meal, so the
- * barcode, create-food and template flows can reuse it. [submitFailed] shows the logging error under the button.
- * With [amountPhoto] set, a photo icon next to the amount starts the estimate flow (US-54), drawn by `AmountPhotoFlow`.
+ * Add-food bottom sheet (US-17, US-22) on [FoodSheet] in its Add context: the quantity first (base unit or named
+ * portion), the cooking method, the live totals of that quantity, the nutrients per 100 base units collapsed under
+ * "Detalles", the meal chips and the pinned "Añadir". It only needs a [Food] and a preselected meal, so the barcode,
+ * create-food and template flows can reuse it. A failed add is reported by the caller through the app messages (R-28).
+ * With [amountPhoto] set, a photo icon in the amount field starts the estimate flow (US-54); "Estimando…" and its
+ * failure show inside the sheet, while the source sheet and the preview come from `AmountPhotoFlow`. This sheet is
+ * not composed while that full-screen preview is on screen.
  */
 @Composable
 fun AddFoodSheet(
@@ -91,53 +80,48 @@ fun AddFoodSheet(
     onEvent: (AddFoodEvent) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    submitFailed: Boolean = false,
     onEdit: () -> Unit = {},
     amountPhoto: AmountPhotoUiState? = null,
     onAmountPhotoEvent: (AmountPhotoEvent) -> Unit = {},
 ) {
-    // Hoisted here (not in the card) so it survives the card leaving while the sheet reloads.
-    var microExpanded by rememberSaveable { mutableStateOf(false) }
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "add_food_sheet") {
-        Column(
-            Modifier
-                .widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth)
-                .align(Alignment.CenterHorizontally)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+    if (amountPhoto?.step is FoodPhotoStep.Preview) return
+    when (state) {
+        AddFoodUiState.Loading -> AppInfoSheet(
+            title = stringResource(Res.string.add_food_sheet_title),
+            onDismiss = onDismiss,
+            modifier = modifier,
+            testTagPrefix = SHEET_PREFIX,
+        ) { SheetLoading() }
+
+        AddFoodUiState.Error -> AppInfoSheet(
+            title = stringResource(Res.string.add_food_sheet_title),
+            onDismiss = onDismiss,
+            modifier = modifier,
+            testTagPrefix = SHEET_PREFIX,
         ) {
-            when (state) {
-                AddFoodUiState.Loading -> SheetLoading()
-
-                AddFoodUiState.Error -> ErrorState(
-                    message = stringResource(Res.string.add_food_load_error),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(AddFoodEvent.Retry) },
-                    testTagPrefix = "add_food_error_state",
-                )
-
-                is AddFoodUiState.Content -> SheetContent(
-                    content = state.content,
-                    onEvent = onEvent,
-                    submitFailed = submitFailed,
-                    onEdit = onEdit,
-                    microExpanded = microExpanded,
-                    onMicroExpandedChange = { microExpanded = it },
-                    amountPhoto = amountPhoto,
-                    onAmountPhotoEvent = onAmountPhotoEvent,
-                )
-            }
+            ErrorState(
+                message = stringResource(Res.string.add_food_load_error),
+                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(AddFoodEvent.Retry) },
+                testTagPrefix = "${SHEET_PREFIX}_error_state",
+            )
         }
+
+        is AddFoodUiState.Content -> AddFoodContentSheet(
+            content = state.content,
+            onEvent = onEvent,
+            onDismiss = onDismiss,
+            onEdit = onEdit,
+            amountPhoto = amountPhoto,
+            onAmountPhotoEvent = onAmountPhotoEvent,
+            modifier = modifier,
+        )
     }
 }
 
 @Composable
 private fun SheetLoading() {
     Column(
-        Modifier.fillMaxWidth().testTag("add_food_loading"),
+        Modifier.fillMaxWidth().testTag("${SHEET_PREFIX}_loading"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         repeat(SKELETON_ROWS) { SkeletonBox(Modifier.fillMaxWidth().heightIn(min = SkeletonHeight)) }
@@ -145,20 +129,65 @@ private fun SheetLoading() {
 }
 
 @Composable
-@Suppress("LongParameterList") // The content, its events, the error flag, the edit action and the card state.
-private fun SheetContent(
+@Suppress("LongParameterList") // The content, its events, the edit action and the photo flow.
+private fun AddFoodContentSheet(
     content: AddFoodContent,
     onEvent: (AddFoodEvent) -> Unit,
-    submitFailed: Boolean,
+    onDismiss: () -> Unit,
     onEdit: () -> Unit,
-    microExpanded: Boolean,
-    onMicroExpandedChange: (Boolean) -> Unit,
+    amountPhoto: AmountPhotoUiState?,
+    onAmountPhotoEvent: (AmountPhotoEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Hoisted above the sheet window: state declared inside a sheet is not restored.
+    var microExpanded by rememberSaveable { mutableStateOf(false) }
+    FoodSheet(
+        name = content.food.name,
+        brand = content.food.brand,
+        quantity = { QuantityBlock(content, onEvent, amountPhoto, onAmountPhotoEvent) },
+        totals = content.preview?.let {
+            FoodSheetTotals(wholeHalfUp(it.kcal), amountText(it.proteinG), amountText(it.carbsG), amountText(it.fatG))
+        },
+        details = {
+            LabelNutrientsCard(content.labelNutrients, content.food.baseUnit, microExpanded, { microExpanded = it })
+        },
+        extra = if (content.pick) {
+            null
+        } else {
+            {
+                MealSelector(
+                    slots = content.slots,
+                    selectedSlotId = content.selectedSlotId,
+                    onSelect = { onEvent(AddFoodEvent.SlotSelected(it)) },
+                    containerTag = "${SHEET_PREFIX}_meals",
+                    optionTagPrefix = "${SHEET_PREFIX}_meal",
+                    emptyTag = "${SHEET_PREFIX}_no_meal",
+                )
+            }
+        },
+        context = FoodSheetContext.Add(
+            canAdd = content.canSubmit,
+            saving = content.submitting,
+            onAdd = { onEvent(AddFoodEvent.Submit) },
+            offlineHint = if (content.isOffline && !content.pick) offlineHint(OFFLINE_ACTION) else null,
+        ),
+        onDismiss = onDismiss,
+        modifier = modifier,
+        onEditFood = if (content.showEdit) onEdit else null,
+        editFoodEnabled = content.canEdit,
+        testTagPrefix = SHEET_PREFIX,
+    )
+}
+
+/** The quantity, what the photo flow says about it, and the cooking method with its impact. */
+@Composable
+private fun QuantityBlock(
+    content: AddFoodContent,
+    onEvent: (AddFoodEvent) -> Unit,
     amountPhoto: AmountPhotoUiState?,
     onAmountPhotoEvent: (AmountPhotoEvent) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        FoodHeader(content.food, content.showEdit, content.canEdit, onEdit)
-        LabelNutrientsCard(content.labelNutrients, content.food.baseUnit, microExpanded, onMicroExpandedChange)
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         QuantityInput(
             food = content.food,
             amountText = content.amountText,
@@ -166,7 +195,7 @@ private fun SheetContent(
             hasError = content.quantityError != null,
             onAmountChange = { onEvent(AddFoodEvent.AmountChanged(it)) },
             onPortionSelect = { onEvent(AddFoodEvent.PortionSelected(it)) },
-            testTagPrefix = "add_food",
+            testTagPrefix = SHEET_PREFIX,
             onPhotoClick = amountPhoto?.let { { onAmountPhotoEvent(AmountPhotoEvent.Open(content.amountText)) } },
             photoEnabled = amountPhoto?.isOffline == false,
         )
@@ -176,65 +205,12 @@ private fun SheetContent(
                 CookingMethodSelector(
                     selected = content.cookingMethod,
                     onSelect = { onEvent(AddFoodEvent.CookingMethodSelected(it)) },
-                    tagPrefix = "add_food_cooking",
+                    tagPrefix = "${SHEET_PREFIX}_cooking",
                 )
-                content.cookingImpact?.let { CookingImpactLine(it, Modifier.testTag("add_food_cooking_impact")) }
+                content.cookingImpact?.let {
+                    CookingImpactLine(it, Modifier.testTag("${SHEET_PREFIX}_cooking_impact"))
+                }
             }
-        }
-        content.preview?.let { Preview(it.kcal, it.proteinG, it.carbsG, it.fatG, "add_food_preview") }
-        if (!content.pick) {
-            MealSelector(
-                slots = content.slots,
-                selectedSlotId = content.selectedSlotId,
-                onSelect = { onEvent(AddFoodEvent.SlotSelected(it)) },
-                containerTag = "add_food_meals",
-                optionTagPrefix = "add_food_meal",
-                emptyTag = "add_food_no_meal",
-            )
-        }
-        if (submitFailed) {
-            Text(
-                text = stringResource(Res.string.add_food_submit_error),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("add_food_submit_error"),
-            )
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.add_food_submit),
-            onClick = { onEvent(AddFoodEvent.Submit) },
-            enabled = content.canSubmit,
-            loading = content.submitting,
-            modifier = Modifier.fillMaxWidth().testTag("add_food_submit"),
-        )
-    }
-}
-
-@Composable
-private fun FoodHeader(food: Food, showEdit: Boolean, canEdit: Boolean, onEdit: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = food.name,
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("add_food_name"),
-            )
-            food.brand?.takeIf { it.isNotBlank() }?.let {
-                Text(text = it, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-            }
-        }
-        if (showEdit) {
-            AppIconButton(
-                contentDescription = stringResource(Res.string.add_food_edit_cd),
-                icon = Res.drawable.ic_edit,
-                testTag = "add_food_edit",
-                onClick = onEdit,
-                enabled = canEdit,
-                tint = AppTheme.colors.textSecondary,
-            )
         }
     }
 }
@@ -274,8 +250,8 @@ internal fun MacroTexts(proteinG: Double, carbsG: Double, fatG: Double) {
 
 /**
  * The quantity field of [food]: base unit or named portion. Tags derive from [testTagPrefix] (see
- * [PortionSelector]); shared by the add-food and edit-entry sheets. A photo icon (US-54) sits after the field only when
- * [onPhotoClick] is set; it is disabled when [photoEnabled] is false.
+ * [PortionSelector]); shared by the add-food, edit-entry and comida-item sheets. A photo icon (US-54) sits after the
+ * field only when [onPhotoClick] is set (`<prefix>_amount_photo`); it is disabled when [photoEnabled] is false.
  */
 @Composable
 @Suppress("LongParameterList") // The field's value, its events and its tags.
@@ -319,7 +295,7 @@ internal fun QuantityInput(
                 AppIconButton(
                     contentDescription = stringResource(Res.string.add_food_photo_cd),
                     icon = Res.drawable.ic_photo_camera,
-                    testTag = "${testTagPrefix}_photo",
+                    testTag = "${testTagPrefix}_amount_photo",
                     onClick = click,
                     enabled = photoEnabled,
                 )
@@ -328,25 +304,9 @@ internal fun QuantityInput(
     )
 }
 
-/** The nutrition of the typed quantity; a polite live region so a screen reader announces the new total. */
-@Composable
-internal fun Preview(kcal: Double, proteinG: Double, carbsG: Double, fatG: Double, tag: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-            .testTag(tag),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        KcalText(kcal, Modifier.testTag("${tag}_kcal"))
-        MacroTexts(proteinG, carbsG, fatG)
-    }
-}
-
 /**
- * The meal choice: segments up to [MAX_SEGMENTED_SLOTS] meals, chips beyond. [containerTag] tags the control,
- * `<optionTagPrefix>_<slotId>` each option and [emptyTag] the hint shown when there is no meal.
+ * The meal choice (SEL-2): one single-select chip per meal, any number of meals. [containerTag] tags the group,
+ * `<optionTagPrefix>_<slotId>` each chip and [emptyTag] the hint shown when there is no meal.
  */
 @Composable
 @Suppress("LongParameterList") // The choice, its event and the three tags.
@@ -375,11 +335,6 @@ internal fun MealSelector(
         }
         val options = slots.map { AppOption(it.label, "${optionTagPrefix}_${it.id}") }
         val selected = slots.indexOfFirst { it.id == selectedSlotId }.takeIf { it >= 0 }
-        val select = { index: Int -> onSelect(slots[index].id) }
-        if (slots.size <= MAX_SEGMENTED_SLOTS) {
-            SegmentedSelector(options, selected, select, Modifier.testTag(containerTag))
-        } else {
-            FilterChipRow(options, selected, select, Modifier.testTag(containerTag))
-        }
+        FilterChipRow(options, selected, { onSelect(slots[it].id) }, Modifier.testTag(containerTag))
     }
 }

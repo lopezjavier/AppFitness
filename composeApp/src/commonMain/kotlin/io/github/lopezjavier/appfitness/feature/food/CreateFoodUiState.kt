@@ -32,6 +32,8 @@ data class CreateFoodUiState(
     val isOffline: Boolean = false,
     val saveFailed: Boolean = false,
     val isEdit: Boolean = false,
+    /** The form differs from where the user started: leaving asks "¿Descartar los cambios?" (a prefill is no edit). */
+    val isDirty: Boolean = false,
     val unitLocked: Boolean = false,
     val unitRefused: Boolean = false,
     val isLoading: Boolean = false,

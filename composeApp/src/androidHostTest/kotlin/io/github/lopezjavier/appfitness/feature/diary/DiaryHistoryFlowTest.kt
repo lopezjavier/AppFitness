@@ -113,14 +113,14 @@ class DiaryHistoryFlowTest {
         }
     }
 
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onOpenTemplate, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onOpenTemplate, _, _ ->
         Box(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("test_search_open").clickable { onOpenTemplate("t1") })
         }
     }
 
     private val detailsSlot: TemplateDetailsSlot = { modifier, _, _, onAdded, _, _, _, _ ->
-        Box(modifier.fillMaxSize().testTag("template_details_screen")) {
+        Box(modifier.fillMaxSize().testTag("template_edit_screen")) {
             Box(Modifier.size(48.dp).testTag("test_search_add").clickable(onClick = onAdded))
         }
     }

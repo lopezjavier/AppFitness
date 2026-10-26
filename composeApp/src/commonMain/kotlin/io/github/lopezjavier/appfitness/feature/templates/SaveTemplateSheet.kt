@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
-
 package io.github.lopezjavier.appfitness.feature.templates
 
 import androidx.compose.foundation.layout.Arrangement
@@ -7,13 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,34 +17,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_taken
-import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_too_long
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_name_label
-import io.github.lopezjavier.appfitness.composeapp.resources.save_template_offline_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.save_template_submit
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_item_amount
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.NameSheet
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.feature.diary.amountText
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonHeight = Spacing.xl * 2
+private const val SHEET_PREFIX = "save_template_name"
+private const val MAX_NAME_LENGTH = 60
 
 /**
- * Save-as-comida bottom sheet (US-21): names the meal section. The name field is the only input; a taken name shows
- * inline under it. [saveFailed] shows the generic failure under the button. [onDismiss] runs when the sheet closes.
+ * Save-as-comida sheet (US-21) on [NameSheet] ("Guardar como comida"): the focused name field with the duplicate
+ * message "Ya existe una comida con ese nombre" (checked against the user's comidas), the solid foods of the section
+ * with their cooking method, and "Guardar" (disabled offline, with the one offline hint). A failed save is reported by
+ * the caller through the app messages (R-28). [onDismiss] runs when the sheet closes.
  */
 @Composable
 fun SaveTemplateSheet(
@@ -60,53 +50,57 @@ fun SaveTemplateSheet(
     onEvent: (SaveTemplateEvent) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    saveFailed: Boolean = false,
 ) {
     // Held outside the sheet window so it is restored with the screen (ADR-40).
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "save_template_sheet") {
-        Column(
-            Modifier
-                .widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth)
-                .align(Alignment.CenterHorizontally)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+    when (state) {
+        SaveTemplateUiState.Loading -> AppInfoSheet(
+            title = stringResource(Res.string.save_template_title),
+            onDismiss = onDismiss,
+            modifier = modifier,
+            testTagPrefix = SHEET_PREFIX,
         ) {
-            Text(
-                text = stringResource(Res.string.save_template_title),
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
+            SkeletonBox(Modifier.fillMaxWidth().heightIn(min = SkeletonHeight).testTag("save_template_loading"))
+        }
+
+        SaveTemplateUiState.Error -> AppInfoSheet(
+            title = stringResource(Res.string.save_template_title),
+            onDismiss = onDismiss,
+            modifier = modifier,
+            testTagPrefix = SHEET_PREFIX,
+        ) {
+            ErrorState(
+                message = stringResource(Res.string.save_template_load_error),
+                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(SaveTemplateEvent.Retry) },
+                testTagPrefix = "save_template_error_state",
             )
-            when (state) {
-                SaveTemplateUiState.Loading -> SheetLoading()
+        }
 
-                SaveTemplateUiState.Error -> ErrorState(
-                    message = stringResource(Res.string.save_template_load_error),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) {
-                        onEvent(SaveTemplateEvent.Retry)
-                    },
-                    testTagPrefix = "save_template_error_state",
-                )
-
-                is SaveTemplateUiState.Content -> SheetContent(
-                    state.content,
-                    onEvent,
-                    saveFailed,
-                    expandedId,
-                    { expandedId = it },
-                )
-            }
+        is SaveTemplateUiState.Content -> {
+            val content = state.content
+            NameSheet(
+                title = stringResource(Res.string.save_template_title),
+                label = stringResource(Res.string.save_template_name_label),
+                itemLabel = "una comida",
+                // A name the server refused as taken counts too (the check can be stale).
+                existingNames = content.existingNames + listOfNotNull(content.name.takeIf { content.nameTaken }),
+                onSave = {
+                    onEvent(SaveTemplateEvent.NameChanged(it))
+                    onEvent(SaveTemplateEvent.Submit)
+                },
+                onDismiss = onDismiss,
+                modifier = modifier,
+                saving = content.saving,
+                commitHint = if (content.isOffline) offlineHint("guardar") else null,
+                maxLength = MAX_NAME_LENGTH,
+                testTagPrefix = SHEET_PREFIX,
+                canSubmit = !content.isOffline && content.itemCount > 0,
+                extra = {
+                    CookableItems(content.items, expandedId, { expandedId = it }, onEvent, enabled = !content.saving)
+                },
+            )
         }
     }
-}
-
-@Composable
-private fun SheetLoading() {
-    SkeletonBox(Modifier.fillMaxWidth().heightIn(min = SkeletonHeight).testTag("save_template_loading"))
 }
 
 /**
@@ -123,7 +117,7 @@ private fun CookableItems(
 ) {
     val cookable = items.filter { it.canCook }
     if (cookable.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(Modifier.padding(top = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         cookable.forEach { item ->
             val expanded = expandedId == item.entryId
             Column(Modifier.fillMaxWidth().testTag("save_template_item_${item.entryId}")) {
@@ -165,58 +159,5 @@ private fun CookableItems(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SheetContent(
-    content: SaveTemplateContent,
-    onEvent: (SaveTemplateEvent) -> Unit,
-    saveFailed: Boolean,
-    expandedId: String?,
-    onExpandedChange: (String?) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        val errorText = content.nameError?.let {
-            stringResource(
-                when (it) {
-                    TemplateNameError.Taken -> Res.string.save_template_error_taken
-                    TemplateNameError.TooLong -> Res.string.save_template_error_too_long
-                },
-            )
-        }
-        AppTextField(
-            value = content.name,
-            onValueChange = { onEvent(SaveTemplateEvent.NameChanged(it)) },
-            label = stringResource(Res.string.save_template_name_label),
-            errorText = errorText,
-            enabled = !content.isOffline && !content.saving,
-            onDone = { onEvent(SaveTemplateEvent.Submit) },
-            testTagPrefix = "save_template_name",
-        )
-        CookableItems(content.items, expandedId, onExpandedChange, onEvent, enabled = !content.saving)
-        if (content.isOffline) {
-            Text(
-                text = stringResource(Res.string.save_template_offline_hint),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("save_template_offline"),
-            )
-        }
-        if (saveFailed) {
-            Text(
-                text = stringResource(Res.string.save_template_error_failed),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.error,
-                modifier = Modifier.testTag("save_template_failed"),
-            )
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.save_template_submit),
-            onClick = { onEvent(SaveTemplateEvent.Submit) },
-            enabled = content.canSave,
-            loading = content.saving,
-            modifier = Modifier.fillMaxWidth().testTag("save_template_submit"),
-        )
     }
 }

@@ -235,6 +235,7 @@ class TemplateDetailsViewModel(
             TemplateDetailsEvent.SaveClicked -> saveDraft()
             TemplateDetailsEvent.Delete -> delete()
             TemplateDetailsEvent.Add -> add()
+            TemplateDetailsEvent.Discard -> discardDraft()
             TemplateDetailsEvent.Retry -> load(showLoading = true)
             TemplateDetailsEvent.Refresh -> load(showLoading = false)
             else -> Unit
@@ -271,6 +272,23 @@ class TemplateDetailsViewModel(
             loaded.value = DetailsLoaded.Ready(template, others)
             draft.value?.openFood?.let { index -> openFoodOf(template, index)?.let(::loadMicronutrients) }
         }
+    }
+
+    private fun discardDraft() {
+        val template = readyTemplate() ?: return
+        if (draft.value == null) return
+        clearSavedDraft(template)
+        draft.value = DetailsDraft(
+            amounts = emptyMap(),
+            removed = emptySet(),
+            name = null,
+            takenName = null,
+            added = emptyList(),
+            openFood = null,
+            openFoodAmount = null,
+            methods = emptyMap(),
+            openFoodMethod = null,
+        )
     }
 
     private fun clearSavedDraft(template: MealTemplate) {
@@ -631,6 +649,7 @@ class TemplateDetailsViewModel(
             }
         }
         return TemplateDetailsUiState.Content(
+            title = template.name,
             name = name,
             nameError = nameError,
             totalKcal = rows.sumOf { it.kcal },

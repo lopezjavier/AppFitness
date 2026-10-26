@@ -136,6 +136,7 @@ internal typealias FoodSearchSlot =
         onCreateFood: (barcode: String?, name: String?, prefill: String?) -> Unit,
         onOpenTemplate: (String) -> Unit,
         pick: Boolean,
+        onBack: () -> Unit,
     ) -> Unit
 
 /**
@@ -168,6 +169,7 @@ internal typealias CreateFoodSlot =
         name: String?,
         prefill: String?,
         editFoodId: String?,
+        onBack: () -> Unit,
         onSaved: (String) -> Unit,
     ) -> Unit
 
@@ -359,12 +361,12 @@ internal val DefaultWeightSlot: WeightSlot = { modifier ->
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _ ->
+internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("food_search_screen"))
 }
 
 /** Empty create-food form for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _, _ ->
+internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("create_food_screen"))
 }
 
@@ -707,6 +709,7 @@ private fun NavGraphBuilder.foodSearchDestination(
                 }
             },
             route.pick,
+            { navController.popFullScreen(entry) },
         )
     }
 }
@@ -728,7 +731,15 @@ private fun NavGraphBuilder.foodDestinations(
     templateDetailsDestination(navController, fullScreenPadding, templateDetails)
     composable<CreateFoodRoute> { entry ->
         val route = entry.toRoute<CreateFoodRoute>()
-        createFood(Modifier.padding(fullScreenPadding), route.barcode, route.name, route.prefill, null) { foodId ->
+        val onBack = { navController.popFullScreen(entry) }
+        createFood(
+            Modifier.padding(fullScreenPadding),
+            route.barcode,
+            route.name,
+            route.prefill,
+            null,
+            onBack,
+        ) { foodId ->
             // The form is replaced by the sheet: "Añadir" then pops back to the Diary like the normal flow.
             navController.navigate(AddFoodRoute(foodId, route.slotId, route.date, route.pick)) {
                 popUpTo<CreateFoodRoute> { inclusive = true }
@@ -738,7 +749,8 @@ private fun NavGraphBuilder.foodDestinations(
     }
     composable<EditFoodRoute> { entry ->
         val route = entry.toRoute<EditFoodRoute>()
-        createFood(Modifier.padding(fullScreenPadding), null, null, null, route.foodId) { foodId ->
+        val onBack = { navController.popFullScreen(entry) }
+        createFood(Modifier.padding(fullScreenPadding), null, null, null, route.foodId, onBack) { foodId ->
             // The sheet was closed when the form opened: reopen it on the saved food (it reads the new values).
             navController.navigate(AddFoodRoute(foodId, route.slotId, route.date, route.pick)) {
                 popUpTo<EditFoodRoute> { inclusive = true }

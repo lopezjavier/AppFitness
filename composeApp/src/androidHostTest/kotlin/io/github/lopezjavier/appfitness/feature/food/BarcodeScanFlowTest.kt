@@ -76,7 +76,7 @@ class BarcodeScanFlowTest {
         AppTheme {
             val open = form
             when {
-                open == null -> FoodSearchScreen(searchState, searchModel::onEvent)
+                open == null -> FoodSearchScreen(searchState, searchModel::onEvent, {})
 
                 else -> {
                     val model = remember { CreateFoodViewModel(open.barcode, open.name, foods, connectivity) }
@@ -89,7 +89,7 @@ class BarcodeScanFlowTest {
                             }
                         }
                     }
-                    CreateFoodScreen(createState, model::onEvent)
+                    CreateFoodScreen(createState, model::onEvent, {})
                 }
             }
             openFoodId?.let { id -> Sheet(id) { openFoodId = null } }
@@ -143,11 +143,11 @@ class BarcodeScanFlowTest {
         scanned(food("yogur", "Yogur natural", kcal = 60.0))
         start()
 
-        tap("food_search_scan_button")
+        tap("food_search_action_scan")
 
-        rule.onNodeWithTag("add_food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet").assertExists()
         rule.onNodeWithText("Yogur natural").assertExists()
-        tap("add_food_submit")
+        tap("food_sheet_commit")
         assertEquals("yogur", diary.added.single().foodId)
         assertEquals(listOf(CODE), foods.barcodeLookups)
     }
@@ -160,8 +160,9 @@ class BarcodeScanFlowTest {
         )
         start()
 
-        tap("food_search_scan_button")
+        tap("food_search_action_scan")
 
+        tap("food_sheet_details_toggle")
         rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
     }
 
@@ -170,9 +171,10 @@ class BarcodeScanFlowTest {
         scanned(food("cola", "Cola", kcal = 42.0, baseUnit = "ml"))
         start()
 
-        tap("food_search_scan_button")
+        tap("food_search_action_scan")
 
-        rule.onNodeWithTag("add_food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet").assertExists()
+        tap("food_sheet_details_toggle")
         rule.onNodeWithText("Por 100 ml").assertExists()
     }
 
@@ -181,7 +183,7 @@ class BarcodeScanFlowTest {
         scanned(null)
         start()
 
-        tap("food_search_scan_button")
+        tap("food_search_action_scan")
         rule.onNodeWithText("Producto no encontrado").assertExists()
         tap("food_search_not_found_create_button")
         rule.onNodeWithTag("create_food_barcode_text").assertTextContains(CODE, substring = true)
@@ -190,10 +192,10 @@ class BarcodeScanFlowTest {
         type("create_food_protein_field", "7")
         type("create_food_carbs_field", "15")
         type("create_food_fat_field", "11")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(CODE, foods.created.single().barcode)
-        rule.onNodeWithTag("add_food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet").assertExists()
         rule.onNodeWithText("Tortilla de patatas casera").assertExists()
     }
 
@@ -202,12 +204,12 @@ class BarcodeScanFlowTest {
         scanner.result = ScanResult.Cancelled
         start()
 
-        tap("food_search_scan_button")
+        tap("food_search_action_scan")
 
         rule.onNodeWithTag("food_search_screen").assertExists()
         rule.onNodeWithTag("food_search_not_found_card").assertDoesNotExist()
         rule.onNodeWithTag("food_search_scan_error").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
         assertEquals(emptyList<String>(), foods.barcodeLookups)
     }
 
@@ -215,7 +217,7 @@ class BarcodeScanFlowTest {
     fun noResults_createFood_opensTheFormPrefilledWithTheQuery() {
         start()
 
-        type("food_search_input", "tortilla")
+        type("food_search_field", "tortilla")
         rule.waitUntil(SEARCH_TIMEOUT_MS) {
             rule.onAllNodesWithTagExists("food_search_create_button")
         }
@@ -229,8 +231,8 @@ class BarcodeScanFlowTest {
     fun createIcon_withoutScanning_opensTheFormWithTheTypedNameAndNoBarcode() {
         start()
 
-        type("food_search_input", "tortilla")
-        tap("food_search_create_icon")
+        type("food_search_field", "tortilla")
+        tap("food_search_action_create")
 
         rule.onNodeWithTag("create_food_name_field").assertTextContains("tortilla")
         rule.onNodeWithTag("create_food_barcode_text").assertDoesNotExist()
@@ -241,9 +243,9 @@ class BarcodeScanFlowTest {
     fun createIcon_withoutQuery_opensAnEmptyForm() {
         start()
 
-        tap("food_search_create_icon")
+        tap("food_search_action_create")
 
-        rule.onNodeWithTag("create_food_save_button").assertExists()
+        rule.onNodeWithTag("create_food_save").assertExists()
         rule.onNodeWithTag("create_food_barcode_text").assertDoesNotExist()
     }
 

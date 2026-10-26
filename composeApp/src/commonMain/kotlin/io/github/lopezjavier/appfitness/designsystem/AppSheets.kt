@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_add
 import io.github.lopezjavier.appfitness.composeapp.resources.action_close
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.action_save
@@ -34,8 +35,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
-/** What the footer button of an [AppEditSheet] does (R-12): "Guardar" persists, "Listo" only applies to a draft. */
-enum class SheetCommit { Save, Apply }
+/**
+ * What the footer button of an [AppEditSheet] does (R-12): "Guardar" persists, "Listo" only applies to a draft and
+ * "Añadir" creates something new (same caller contract as [Save]).
+ */
+enum class SheetCommit { Save, Apply, Add }
 
 /** Tags of the sheet archetypes: `<prefix>_close`, `<prefix>_commit` and `<prefix>_commit_hint`. */
 object AppSheetsDefaults {
@@ -51,7 +55,8 @@ object AppSheetsDefaults {
 /**
  * Edit archetype of the sheet family (R-07): [AppSheetHeader] (title, optional "?" [help], X "Cerrar"), a body that
  * scrolls and a full-width footer button pinned above the keyboard (R-09). The footer reads "Guardar" for
- * [SheetCommit.Save] and "Listo" for [SheetCommit.Apply] (R-12), is tagged `<prefix>_commit` and is disabled while
+ * [SheetCommit.Save], "Listo" for [SheetCommit.Apply] (R-12) and "Añadir" for [SheetCommit.Add], is tagged
+ * `<prefix>_commit` and is disabled while
  * `!commitEnabled` or [saving] (so a second tap or a keyboard action cannot fire twice). [commitHint] is a short
  * line under the button, typically `offlineHint("guardar")` (R-30), tagged `<prefix>_commit_hint`.
  * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
@@ -84,7 +89,13 @@ fun AppEditSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val label = stringResource(if (commit == SheetCommit.Save) Res.string.action_save else Res.string.action_done)
+    val label = stringResource(
+        when (commit) {
+            SheetCommit.Save -> Res.string.action_save
+            SheetCommit.Apply -> Res.string.action_done
+            SheetCommit.Add -> Res.string.action_add
+        },
+    )
     AppBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,

@@ -92,16 +92,16 @@ class AmountPhotoRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { Host() }
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_photo").performClick()
-        rule.onNodeWithTag("add_food_photo_source_camera").performClick()
-        rule.onNodeWithTag("add_food_photo_use").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo_source_row_1").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo_use").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("180")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_amount").assertTextContains("180")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
     }
 
     @Test
@@ -109,16 +109,16 @@ class AmountPhotoRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { Host() }
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_photo").performClick()
-        rule.onNodeWithTag("add_food_photo_source_camera").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo_source_row_1").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_photo_use").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_use").assertExists()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_photo_use").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_photo_source_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_use").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount_photo_source").assertExists()
     }
 
     @Test
@@ -127,6 +127,6 @@ class AmountPhotoRestorationTest {
         rule.setContent { Host() }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_photo_source_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_source").assertExists()
     }
 }

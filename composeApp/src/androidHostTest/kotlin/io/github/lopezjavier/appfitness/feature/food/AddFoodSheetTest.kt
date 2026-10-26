@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -69,9 +70,9 @@ class AddFoodSheetTest {
     private val chicken = food("chicken", "Pechuga de pollo", kcal = 110.0)
     private val egg = food("egg", "Huevo", kcal = 200.0, portions = listOf(FoodPortion("p1", "huevo", 55.0)))
 
-    private fun show(state: AddFoodUiState, dismissed: () -> Unit = {}, submitFailed: Boolean = false) {
+    private fun show(state: AddFoodUiState, dismissed: () -> Unit = {}) {
         rule.setContent {
-            AppTheme { AddFoodSheet(state, { events += it }, dismissed, submitFailed = submitFailed) }
+            AppTheme { AddFoodSheet(state, { events += it }, dismissed) }
         }
         rule.waitForIdle()
     }
@@ -80,28 +81,29 @@ class AddFoodSheetTest {
     fun sheet_showsTheFoodNutritionPer100AndThePrefilledAmount() {
         show(content(chicken))
 
-        rule.onNodeWithTag("add_food_sheet").assertExists()
-        rule.onNodeWithTag("add_food_name").assertTextEquals("Pechuga de pollo")
+        rule.onNodeWithTag("food_sheet_title").assertTextEquals("Pechuga de pollo")
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
+        rule.waitForIdle()
         rule.onNodeWithText("Por 100 g").assertExists()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("100")
-        rule.onNodeWithTag("add_food_preview").assertTextContains("110 kcal", substring = true)
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("100")
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains("110 kcal", substring = true)
     }
 
     @Test
     fun pickMode_hidesTheMealSelector_andKeepsAddEnabledOffline() {
         show(content(chicken, slotId = null, slots = emptyList(), offline = true, pick = true))
 
-        rule.onNodeWithTag("add_food_meals").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_no_meal").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_submit").assertTextEquals("Añadir")
-        rule.onNodeWithTag("add_food_submit").assertIsEnabled()
+        rule.onNodeWithTag("food_sheet_meals").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_no_meal").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_commit").assertTextEquals("Añadir")
+        rule.onNodeWithTag("food_sheet_commit").assertIsEnabled()
     }
 
     @Test
     fun normalMode_stillShowsTheMealSelector() {
         show(content(chicken))
 
-        rule.onNodeWithTag("add_food_meals").assertExists()
+        rule.onNodeWithTag("food_sheet_meals").assertExists()
     }
 
     @Test
@@ -109,17 +111,19 @@ class AddFoodSheetTest {
         val milk = food("milk", "Leche", kcal = 45.0, baseUnit = "ml")
         show(content(milk, amount = "250", preview = NutritionSnapshot(112.5, 8.0, 12.0, 8.0)))
 
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
+        rule.waitForIdle()
         rule.onNodeWithText("Por 100 ml").assertExists()
-        rule.onNodeWithTag("add_food_preview").assertTextContains("113 kcal", substring = true)
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains("113 kcal", substring = true)
     }
 
     @Test
     fun foodWithPortions_offersThemNextToTheBaseUnit_andReportsThePick() {
         show(content(egg))
 
-        rule.onNodeWithTag("add_food_portion_option_base").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_portion_option_base").assertIsSelected()
         rule.onNodeWithText("huevo (55 g)").assertExists()
-        rule.onNodeWithTag("add_food_portion_option_p1").performClick()
+        rule.onNodeWithTag("food_sheet_portion_option_p1").performClick()
 
         assertEquals(listOf<AddFoodEvent>(AddFoodEvent.PortionSelected("p1")), events)
     }
@@ -128,40 +132,79 @@ class AddFoodSheetTest {
     fun foodWithoutPortions_hasNoPortionRow() {
         show(content(chicken))
 
-        rule.onNodeWithTag("add_food_portion").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_portion").assertDoesNotExist()
     }
 
     @Test
     fun invalidQuantity_disablesAdd_andShowsTheFieldError() {
         show(content(chicken, amount = "0", preview = null, error = QuantityCheck.TooLow))
 
-        rule.onNodeWithTag("add_food_error").assertTextEquals("Introduce una cantidad entre 0 y 5000")
-        rule.onNodeWithTag("add_food_submit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_error").assertTextEquals("Introduce una cantidad entre 0 y 5000")
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun quantityAbove5000_showsTheSameError() {
         show(content(chicken, amount = "5001", preview = null, error = QuantityCheck.TooHigh))
 
-        rule.onNodeWithTag("add_food_error").assertExists()
-        rule.onNodeWithTag("add_food_submit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_error").assertExists()
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun preselectedMeal_isTheSelectedOne_andChangingItEmitsTheChoice() {
         show(content(chicken, slotId = "dinner"))
 
-        rule.onNodeWithTag("add_food_meal_dinner").assertIsSelected()
-        rule.onNodeWithTag("add_food_meal_snack").performClick()
+        rule.onNodeWithTag("food_sheet_meal_dinner").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_meal_snack").performClick()
 
         assertEquals(listOf<AddFoodEvent>(AddFoodEvent.SlotSelected("snack")), events)
+    }
+
+    @Test
+    fun fiveMeals_areSingleSelectChips_andChoosingOneEmitsIt() {
+        val five = Slots + MealSlot("second", MealCode.Snack, "Segundo desayuno", 4)
+        show(content(chicken, slotId = "lunch", slots = five))
+
+        rule.onNodeWithTag("food_sheet_meal_lunch").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_meal_second").assertIsNotSelected()
+        rule.onNodeWithTag("food_sheet_meal_second").performClick()
+
+        assertEquals(listOf<AddFoodEvent>(AddFoodEvent.SlotSelected("second")), events)
+    }
+
+    @Test
+    fun fourMeals_alsoUseChips_withExactlyOneSelected() {
+        show(content(chicken, slotId = "dinner"))
+
+        rule.onNodeWithTag("food_sheet_meal_dinner").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_meal_breakfast").assertIsNotSelected()
+        rule.onNodeWithTag("food_sheet_meal_lunch").assertIsNotSelected()
+        rule.onNodeWithTag("food_sheet_meal_snack").assertIsNotSelected()
+    }
+
+    @Test
+    fun quantityComesBeforeTheTotalsAndTheMeals_withTheDetailsCollapsed() {
+        show(content(chicken))
+
+        rule.onNodeWithTag("food_sheet_details_toggle").assertExists()
+        rule.onNodeWithTag("add_food_label_nutrients").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_totals").assertExists()
+    }
+
+    @Test
+    fun offline_showsTheOneOfflineHint_andDisablesAdd() {
+        show(content(chicken, offline = true))
+
+        rule.onNodeWithTag("food_sheet_commit_hint").assertTextEquals("Sin conexión: no se puede añadir")
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun validSheet_enablesAdd_andSubmits() {
         show(content(chicken))
 
-        rule.onNodeWithTag("add_food_submit").assertIsEnabled().performClick()
+        rule.onNodeWithTag("food_sheet_commit").assertIsEnabled().performClick()
 
         assertEquals(listOf<AddFoodEvent>(AddFoodEvent.Submit), events)
     }
@@ -170,35 +213,28 @@ class AddFoodSheetTest {
     fun offline_disablesAdd() {
         show(content(chicken, offline = true))
 
-        rule.onNodeWithTag("add_food_submit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun noEnabledMeal_showsAHint_andDisablesAdd() {
         show(content(chicken, slotId = null, slots = emptyList()))
 
-        rule.onNodeWithTag("add_food_no_meal").assertExists()
-        rule.onNodeWithTag("add_food_submit").assertIsNotEnabled()
-    }
-
-    @Test
-    fun submitFailure_isShownUnderTheButton() {
-        show(content(chicken), submitFailed = true)
-
-        rule.onNodeWithTag("add_food_submit_error").assertExists()
+        rule.onNodeWithTag("food_sheet_no_meal").assertExists()
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun loading_showsPlaceholders_andFailureOffersARetry() {
         show(AddFoodUiState.Loading)
-        rule.onNodeWithTag("add_food_loading").assertExists()
+        rule.onNodeWithTag("food_sheet_loading").assertExists()
     }
 
     @Test
     fun loadError_offersARetry() {
         show(AddFoodUiState.Error)
 
-        rule.onNodeWithTag("add_food_error_state_action").performClick()
+        rule.onNodeWithTag("food_sheet_error_state_action").performClick()
 
         assertEquals(listOf<AddFoodEvent>(AddFoodEvent.Retry), events)
     }

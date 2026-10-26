@@ -50,7 +50,8 @@ object AppEditorScreenDefaults {
  *  - Back (the bar's arrow and the system back) leaves silently when clean; when dirty it asks "¿Descartar los
  *    cambios?" ([Descartar] / [Seguir editando]). The dialog survives recreation.
  *  - When [saved] turns true the editor closes exactly once and vibrates one Confirm.
- * [handleSystemBack] false leaves the system back to the host (a sample embedded in a larger screen).
+ * [canSave] false (an invalid draft) keeps "Guardar" disabled even while dirty. [handleSystemBack] false leaves the
+ * system back to the host (a sample embedded in a larger screen).
  * The caller owns the state: this template renders it and reports events ([onSave], [onClose]).
  * Tags: `<prefix>_save`, `<prefix>_delete`, `<prefix>_discard_dialog`, `<prefix>_discard_confirm`,
  * `<prefix>_keep_editing` besides the [AppScreen] ones.
@@ -68,6 +69,7 @@ fun AppEditorScreen(
     subtitle: String? = null,
     saved: Boolean = false,
     saveEnabledWhenClean: Boolean = false,
+    canSave: Boolean = true,
     handleSystemBack: Boolean = true,
     destructiveAction: EditorDestructiveAction? = null,
     actions: List<AppTopBarAction> = emptyList(),
@@ -79,6 +81,7 @@ fun AppEditorScreen(
     state.isDirty = isDirty
     state.isSaving = isSaving
     state.online = isOnline
+    state.valid = canSave
     val haptics = LocalAppHaptics.current
     val currentOnClose = rememberUpdatedState(onClose)
     val goBack: () -> Unit = {

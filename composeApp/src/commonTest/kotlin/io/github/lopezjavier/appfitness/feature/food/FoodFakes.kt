@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -88,9 +89,22 @@ internal class FakeFoodRepository : FoodRepository {
     val favouriteCalls = mutableListOf<Pair<String, Boolean>>()
     private val ids = MutableStateFlow<Set<String>?>(null)
 
+    /** When set, [search] (Open Food Facts) suspends until it completes. */
+    var searchGate: CompletableDeferred<Unit>? = null
+
+    /** Answers of [searchManual] by query (an unknown query finds nothing); every call is in [manualSearches]. */
+    val manualResults = mutableMapOf<String, Result<List<Food>>>()
+    val manualSearches = mutableListOf<String>()
+
     override suspend fun search(query: String, page: Int): Result<List<Food>> {
         searches += query
+        searchGate?.await()
         return searchResults[query] ?: Result.success(emptyList())
+    }
+
+    override suspend fun searchManual(query: String): Result<List<Food>> {
+        manualSearches += query
+        return manualResults[query] ?: Result.success(emptyList())
     }
 
     override suspend fun recent(days: Int): Result<List<Food>> = recentFoods
@@ -236,8 +250,12 @@ internal fun foodSearchModel(
     templates: MealTemplateRepository = FakeMealTemplateRepository(),
     pick: Boolean = false,
     preferences: FoodPreferencesRepository = FakeFoodPreferencesRepository(),
+    slotId: String? = null,
+    mealSlots: MealSlotRepository? = null,
 ) = FoodSearchViewModel(
     pick = pick,
+    slotId = slotId,
+    mealSlots = mealSlots,
     foodRepository = repository,
     connectivity = connectivity,
     barcodeScanner = scanner,

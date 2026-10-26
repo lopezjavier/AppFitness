@@ -54,7 +54,7 @@ class AddFoodSheetSmallScreenTest {
         rule.setContent { AppTheme { AddFoodSheet(state, {}, {}) } }
         rule.waitForIdle()
 
-        val amount = rule.onNodeWithTag("add_food_amount").getUnclippedBoundsInRoot()
+        val amount = rule.onNodeWithTag("food_sheet_amount").getUnclippedBoundsInRoot()
         assertTrue("quantity field within 640 dp: ${amount.bottom}", amount.bottom <= 640.dp)
     }
 }

@@ -139,10 +139,10 @@ class SaveTemplateCookingTest {
         show()
         tap("save_template_cooking_chip_e2")
         tap("save_template_cooking_fried")
-        rule.onNodeWithTag("save_template_name").performTextReplacement("Comida A")
+        rule.onNodeWithTag("save_template_name_input").performTextReplacement("Comida A")
         rule.waitForIdle()
 
-        tap("save_template_submit")
+        tap("save_template_name_commit")
 
         val saved = templates.templates.single()
         assertEquals(

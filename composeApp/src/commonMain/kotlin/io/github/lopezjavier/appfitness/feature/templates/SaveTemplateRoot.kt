@@ -3,13 +3,14 @@ package io.github.lopezjavier.appfitness.feature.templates
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_failed
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -28,8 +29,10 @@ fun SaveTemplateRoot(
     viewModel: SaveTemplateViewModel = koinViewModel(parameters = { parametersOf(slotId, date) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var saveFailed by remember { mutableStateOf(false) }
     val haptic = LocalAppHaptics.current
+    val messages = LocalAppMessages.current
+    val failedText = stringResource(Res.string.save_template_error_failed)
+    val currentFailedText by rememberUpdatedState(failedText)
     val currentOnSave by rememberUpdatedState(onSave)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -39,18 +42,17 @@ fun SaveTemplateRoot(
                     currentOnSave()
                 }
 
-                is SaveTemplateEffect.SaveFailed -> saveFailed = true
+                is SaveTemplateEffect.SaveFailed -> {
+                    haptic.reject()
+                    messages.show(currentFailedText)
+                }
             }
         }
     }
     SaveTemplateSheet(
         state = state,
-        onEvent = {
-            if (it == SaveTemplateEvent.Submit) saveFailed = false
-            viewModel.onEvent(it)
-        },
+        onEvent = viewModel::onEvent,
         onDismiss = onDismiss,
         modifier = modifier,
-        saveFailed = saveFailed,
     )
 }

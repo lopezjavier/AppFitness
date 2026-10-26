@@ -19,14 +19,20 @@ class EditorDiscardState(showDiscardDialog: Boolean = false, closed: Boolean = f
     var isSaving: Boolean = false
     var online: Boolean = true
 
+    /** The draft can be saved as it is (valid fields); false keeps "Guardar" disabled while it is still dirty. */
+    var valid: Boolean = true
+
     var showDiscardDialog: Boolean by mutableStateOf(showDiscardDialog)
         private set
 
     var closed: Boolean = closed
         private set
 
-    /** Save is available when something changed (or [forceEnabled]), nothing is saving and the device is online. */
-    fun canSave(forceEnabled: Boolean = false): Boolean = (isDirty || forceEnabled) && !isSaving && online
+    /**
+     * Save is available when something changed (or [forceEnabled]), the draft is [valid], nothing is saving and the
+     * device is online.
+     */
+    fun canSave(forceEnabled: Boolean = false): Boolean = (isDirty || forceEnabled) && valid && !isSaving && online
 
     /** Clean: leave silently. Dirty: open the discard dialog and stay. */
     fun onBack(): BackResult {

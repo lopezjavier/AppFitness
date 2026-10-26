@@ -189,7 +189,7 @@ class MealSlotsFlowTest {
 
         showFoodSheet()
 
-        rule.onNode(hasText("Segundo desayuno") and hasAnyAncestor(hasTestTag("add_food_meals"))).assertExists()
+        rule.onNode(hasText("Segundo desayuno") and hasAnyAncestor(hasTestTag("food_sheet_meals"))).assertExists()
     }
 
     @Test
@@ -269,7 +269,7 @@ class MealSlotsFlowTest {
         rule.onNodeWithTag("diary_screen").assertExists()
         rule.onNodeWithTag("diary_section_snack").assertDoesNotExist()
         showFoodSheet()
-        rule.onNode(hasText("Merienda") and hasAnyAncestor(hasTestTag("add_food_meals"))).assertDoesNotExist()
+        rule.onNode(hasText("Merienda") and hasAnyAncestor(hasTestTag("food_sheet_meals"))).assertDoesNotExist()
     }
 
     @Test

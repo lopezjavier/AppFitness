@@ -5,18 +5,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
+import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTemplate
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,7 +62,10 @@ class FoodSearchViewModel(
     private val cookedItemNutrition: CookedItemNutrition,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val pick: Boolean = false,
+    private val slotId: String? = null,
+    private val mealSlots: MealSlotRepository? = null,
 ) : ViewModel() {
+    private val mealSlot = MutableStateFlow<MealSlot?>(null)
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
     private val tab = MutableStateFlow(
         savedState.get<String>(KEY_TAB)?.let { name -> FoodSearchTab.entries.firstOrNull { it.name == name } }
@@ -96,9 +102,11 @@ class FoodSearchViewModel(
             combine(query, tab, results, favouriteIds, online) { q, t, r, f, o ->
                 FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
             },
-            notFoundBarcode,
+            combine(notFoundBarcode, mealSlot) { code, slot -> code to slot },
             combine(templates, deleting, ::withoutDeleting),
-        ) { state, code, rows -> state.copy(notFoundBarcode = code, templates = rows, pick = pick) }
+        ) { state, (code, slot), rows ->
+            state.copy(notFoundBarcode = code, templates = rows, pick = pick, mealSlot = slot)
+        }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -116,6 +124,16 @@ class FoodSearchViewModel(
         viewModelScope.launch { foodRepository.favouriteIds().collect { favouriteIds.value = it } }
         viewModelScope.launch { foodRepository.favourites() }
         if (tab.value == FoodSearchTab.Templates) loadTemplates()
+        loadMealSlot()
+    }
+
+    /** The title only needs the meal's label: a failed read keeps the generic title. */
+    private fun loadMealSlot() {
+        val repository = mealSlots
+        if (pick || slotId.isNullOrEmpty() || repository == null) return
+        viewModelScope.launch {
+            mealSlot.value = repository.listEnabled().getOrNull()?.firstOrNull { it.id == slotId }
+        }
     }
 
     fun onEvent(event: FoodSearchEvent) {
@@ -237,13 +255,43 @@ class FoodSearchViewModel(
             emit(FoodResults.Error)
             return@flow
         }
-        val loaded = when {
-            request.query.isNotBlank() -> foodRepository.search(request.query)
-            request.tab == FoodSearchTab.Recent -> foodRepository.recent()
-            request.tab == FoodSearchTab.MostEaten -> foodRepository.mostEaten()
+        if (request.query.isNotBlank()) {
+            emitTextSearch(request.query)
+            return@flow
+        }
+        val loaded = when (request.tab) {
+            FoodSearchTab.Recent -> foodRepository.recent()
+            FoodSearchTab.MostEaten -> foodRepository.mostEaten()
             else -> foodRepository.favourites()
         }
         emit(loaded.fold(::contentOrEmpty) { FoodResults.Error })
+    }
+
+    /**
+     * Text search: the user's manual foods (a database read) are shown as soon as they are read, then Open Food Facts
+     * results are appended below them (deduped by id; the manual rows never move).
+     */
+    private suspend fun FlowCollector<FoodResults>.emitTextSearch(text: String) {
+        val manual = foodRepository.searchManual(text).getOrNull().orEmpty()
+        if (manual.isNotEmpty()) {
+            emit(FoodResults.Content(manual, manualCount = manual.size, remoteLoading = true))
+        }
+        foodRepository.search(text).fold(
+            onSuccess = { remote ->
+                val manualIds = manual.mapTo(mutableSetOf()) { it.id }
+                val foods = manual + remote.filter { it.id !in manualIds }
+                emit(if (foods.isEmpty()) FoodResults.Empty else FoodResults.Content(foods, manualCount = manual.size))
+            },
+            onFailure = {
+                emit(
+                    if (manual.isEmpty()) {
+                        FoodResults.Error
+                    } else {
+                        FoodResults.Content(manual, manualCount = manual.size, remoteFailed = true)
+                    },
+                )
+            },
+        )
     }
 
     private fun contentOrEmpty(foods: List<Food>): FoodResults =

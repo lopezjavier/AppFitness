@@ -6,25 +6,33 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.template_details_add_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Stateful details (and editor) of the comida [templateId]: connects [TemplateDetailsViewModel]. [onClose] and
- * [onDelete] run, with haptic feedback, after the comida was saved or deleted so the editor can be left. The comida
- * is reloaded when the screen resumes; the draft is kept. [onAddFood] opens the food picker. A food it returns arrives
- * as [pickedFood] (see [pickedFoodOf]); it is handed to the draft and [onConsumePickedFood] then clears it so it is
- * applied once. [slotId] (null: the meal of the time of day) and [date] (ISO yyyy-MM-dd) are where
- * "Añadir" logs the foods, and [onAdd] runs, with haptic feedback, after it did.
+ * Stateful details (and editor) of the comida [templateId]: connects [TemplateDetailsViewModel]. It shows the read-only
+ * [TemplateDetailsScreen] and, after "Editar" (or "Añadir alimento"), the [TemplateEditorScreen] over the same draft;
+ * leaving the editor (saved or discarded) comes back to the details. [onClose] is the details' back arrow and
+ * [onDelete] runs, with haptic feedback, after the comida was deleted. The comida is reloaded when the screen
+ * resumes; the draft is kept. [onAddFood] opens the food picker. A food it returns arrives as [pickedFood] (see
+ * [pickedFoodOf]); it is handed to the draft and [onConsumePickedFood] then clears it so it is applied once.
+ * [slotId] (null: the meal of the time of day) and [date] (ISO yyyy-MM-dd) are where "Añadir" logs the foods, and
+ * [onAdd] runs, with haptic feedback, after it did. Failures go to the app messages (R-28).
  */
 @Composable
-@Suppress("LongParameterList") // One callback per navigation event plus the picker result.
+@Suppress("LongParameterList", "LongMethod") // One callback per navigation event; the effects of both screens.
 fun TemplateDetailsRoot(
     templateId: String,
     onClose: () -> Unit,
@@ -40,9 +48,13 @@ fun TemplateDetailsRoot(
         koinViewModel(parameters = { parametersOf(templateId, slotId.orEmpty(), date) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var actionFailed by remember { mutableStateOf(false) }
+    var editing by rememberSaveable { mutableStateOf(false) }
+    var saved by remember { mutableStateOf(false) }
     val haptic = LocalAppHaptics.current
-    val currentOnClose by rememberUpdatedState(onClose)
+    val messages = LocalAppMessages.current
+    val actionFailedText = stringResource(Res.string.template_manage_failed)
+    val addFailedText = stringResource(Res.string.template_details_add_failed)
+    val currentActionFailed by rememberUpdatedState(actionFailedText)
     val currentOnDelete by rememberUpdatedState(onDelete)
     val currentOnAddFood by rememberUpdatedState(onAddFood)
     val currentOnAdded by rememberUpdatedState(onAdd)
@@ -54,12 +66,21 @@ fun TemplateDetailsRoot(
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(TemplateDetailsEvent.Refresh) }
+    val addFailed = (state as? TemplateDetailsUiState.Content)?.addFailed == true
+    LaunchedEffect(addFailed) {
+        if (addFailed) {
+            haptic.reject()
+            messages.show(addFailedText)
+        }
+    }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                // The editor closes itself (with the one Confirm haptic) once it sees the save went through.
                 TemplateDetailsEffect.Saved -> {
-                    haptic.confirm()
-                    currentOnClose()
+                    saved = true
+                    // The saved comida replaces the draft: the details show the new name and foods.
+                    viewModel.onEvent(TemplateDetailsEvent.Refresh)
                 }
 
                 TemplateDetailsEffect.Added -> {
@@ -72,21 +93,36 @@ fun TemplateDetailsRoot(
                     currentOnDelete()
                 }
 
-                is TemplateDetailsEffect.ActionFailed -> actionFailed = true
+                is TemplateDetailsEffect.ActionFailed -> {
+                    haptic.reject()
+                    messages.show(currentActionFailed)
+                }
 
                 TemplateDetailsEffect.OpenFoodPicker -> currentOnAddFood()
             }
         }
     }
-    TemplateDetailsScreen(
-        state = state,
-        onEvent = {
-            actionFailed = false
-            viewModel.onEvent(it)
-        },
-        modifier = modifier,
-        actionFailed = actionFailed,
-    )
+    if (editing) {
+        TemplateEditorScreen(
+            state = state,
+            onEvent = viewModel::onEvent,
+            onClose = {
+                viewModel.onEvent(TemplateDetailsEvent.Discard)
+                saved = false
+                editing = false
+            },
+            modifier = modifier,
+            saved = saved,
+        )
+    } else {
+        TemplateDetailsScreen(
+            state = state,
+            onEvent = viewModel::onEvent,
+            onBack = onClose,
+            onEdit = { editing = true },
+            modifier = modifier,
+        )
+    }
 }
 
 /** The key under which the picker leaves its result in the editor's back-stack entry. */

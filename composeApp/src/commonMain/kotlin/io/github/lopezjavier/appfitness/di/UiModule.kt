@@ -188,6 +188,9 @@ val uiModule =
         viewModel { params ->
             FoodSearchViewModel(
                 pick = params.getOrNull<Boolean>() ?: false,
+                // FoodSearchRoot passes (slotId, date, pick): the first String is the meal the search adds to.
+                slotId = params.getOrNull<String>(),
+                mealSlots = get(),
                 foodRepository = get(),
                 connectivity = get(),
                 barcodeScanner = get(),

@@ -3,13 +3,10 @@ package io.github.lopezjavier.appfitness.app
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
-import io.github.lopezjavier.appfitness.composeapp.resources.edit_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
-import io.github.lopezjavier.appfitness.composeapp.resources.food_search_title
 import io.github.lopezjavier.appfitness.composeapp.resources.history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
@@ -27,7 +24,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
-import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
@@ -284,7 +280,9 @@ sealed interface ShellChrome {
  * title bar until its domain task migrates it; T-128 removes this switch.
  */
 val AppRoute.usesAppScreen: Boolean
-    get() = this is CatalogRoute || this is DiaryHome || this is DiaryHistoryRoute || this is DiaryDayRoute
+    get() = this is CatalogRoute || this is DiaryHome || this is DiaryHistoryRoute || this is DiaryDayRoute ||
+        this is FoodSearchRoute || this is AddFoodRoute || this is CreateFoodRoute || this is EditFoodRoute ||
+        this is TemplateDetailsRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -341,16 +339,10 @@ private val AppRoute.legacyChrome: ShellChrome
             is ExerciseProgressRoute ->
                 ShellChrome.FullScreen(Res.string.exercise_progress_title, topBarTag = "exercise_progress")
 
-            // The sheet shares the search chrome, so opening it does not redraw the bars.
-            is FoodSearchRoute, is AddFoodRoute ->
-                ShellChrome.FullScreen(Res.string.food_search_title, topBarTag = "food_search")
-
-            is CreateFoodRoute -> ShellChrome.FullScreen(Res.string.create_food_title, topBarTag = "create_food")
-
-            is EditFoodRoute -> ShellChrome.FullScreen(Res.string.edit_food_title, topBarTag = "edit_food")
-
-            is TemplateDetailsRoute ->
-                ShellChrome.FullScreen(Res.string.template_details_title, topBarTag = "template_details")
+            // Draw their own bar through AppScreen (T-122): never reached through [chrome]. The add-food sheet shares
+            // the search's chrome, so opening it does not redraw the bars.
+            is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, is TemplateDetailsRoute ->
+                ShellChrome.Screen
 
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
