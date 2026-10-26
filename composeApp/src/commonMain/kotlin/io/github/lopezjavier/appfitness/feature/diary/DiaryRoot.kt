@@ -11,11 +11,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_write_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_write_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.AppError
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -50,19 +50,31 @@ fun DiaryRoot(
     val currentEditHost by rememberUpdatedState(editHost)
     val snackbarHost = remember { SnackbarHostState() }
     val messages = DiaryMessages(
-        failed = stringResource(Res.string.diary_write_failed),
-        offline = stringResource(Res.string.diary_write_offline),
+        failed = stringResource(Res.string.delete_failed),
+        offline = stringResource(Res.string.delete_offline),
     )
     val currentMessages by rememberUpdatedState(messages)
+    val appMessages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is DiaryEffect.AddToMeal -> currentOnAddToMeal(effect.slotId, effect.date)
+
                 is DiaryEffect.AddFood -> currentOnAddFood(effect.date)
+
                 is DiaryEffect.OpenSaveTemplate -> currentOnSaveTemplate(effect.slotId, effect.date)
+
                 DiaryEffect.OpenPreferences -> currentOnOpenPreferences()
+
                 is DiaryEffect.OpenEditEntry -> currentEditHost.onEditEntry(effect.entryId, effect.date)
-                is DiaryEffect.WriteFailed -> showFailure(snackbarHost, currentMessages, effect.error)
+
+                is DiaryEffect.WriteFailed -> {
+                    haptics.reject()
+                    appMessages.show(
+                        if (effect.error == AppError.Network) currentMessages.offline else currentMessages.failed,
+                    )
+                }
             }
         }
     }
@@ -74,8 +86,4 @@ fun DiaryRoot(
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(DiaryEvent.Refresh) }
     DiaryScreen(state, viewModel::onEvent, modifier, snackbarHost)
-}
-
-private fun CoroutineScope.showFailure(host: SnackbarHostState, messages: DiaryMessages, error: AppError?) {
-    launch { host.showSnackbar(if (error == AppError.Network) messages.offline else messages.failed) }
 }

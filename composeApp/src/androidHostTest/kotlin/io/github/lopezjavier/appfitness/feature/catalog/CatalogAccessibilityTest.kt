@@ -41,7 +41,7 @@ private val ExpectedTags =
         "catalog_messages_show", "catalog_action_sheet_open", "catalog_offline_state_flip",
         "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_edit_sheet_open",
         "catalog_edit_apply_sheet_open", "catalog_picker_sheet_open", "catalog_info_sheet_open",
-        "catalog_name_sheet_open",
+        "catalog_name_sheet_open", "catalog_nav_row", "catalog_add_item", "catalog_time_range_week", "catalog_list_row",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
         "weekday_selector_day_1", "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
     )
@@ -62,7 +62,7 @@ private val ExpectedSections =
         "favourite_toggle", "portion_selector", "cooking_selector", "weekday_selector", "month_calendar",
         "diary_history_row",
         "muscle_split_bar",
-        "circumference_row", "goal_metrics",
+        "circumference_row", "goal_metrics", "swipe", "rows", "metric_card", "time_range",
         "top_bar",
         "screen", "editor", "messages", "offline_state", "action_sheet",
         "navigation", "bottom_sheet", "confirm_dialog", "date_picker", "logo", "skeleton", "wip", "theme",
@@ -146,7 +146,8 @@ class CatalogAccessibilityTest {
                 seen += node.config[SemanticsProperties.TestTag]
             }
         }
-        assertEquals(ExpectedSections.toSet(), seen)
+        // "catalog_section_header" tags the sample ListSectionHeader, not a catalog section.
+        assertEquals(ExpectedSections.toSet(), seen - "catalog_section_header")
     }
 
     @Test

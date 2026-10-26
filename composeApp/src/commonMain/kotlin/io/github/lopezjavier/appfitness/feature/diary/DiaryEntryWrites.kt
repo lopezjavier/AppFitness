@@ -15,9 +15,14 @@ internal class DiaryEntryWrites(
     private val isOnline: () -> Boolean,
     private val send: suspend (DiaryEffect) -> Unit,
 ) {
-    suspend fun delete(entry: FoodLogEntry) {
-        if (!isOnline()) return send(DiaryEffect.WriteFailed(AppError.Network))
+    /** True when the entry was deleted. */
+    suspend fun delete(entry: FoodLogEntry): Boolean {
+        if (!isOnline()) {
+            send(DiaryEffect.WriteFailed(AppError.Network))
+            return false
+        }
         val result = foodDiary.deleteEntry(entry.id)
         if (result.isFailure) send(DiaryEffect.WriteFailed(result.appErrorOrNull()))
+        return result.isSuccess
     }
 }

@@ -1,9 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.diary
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsEnabled
@@ -23,7 +25,12 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
+import io.github.lopezjavier.appfitness.designsystem.AppMessages
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
@@ -58,6 +65,8 @@ class DiaryEditFlowTest {
     private val diary = FakeFoodDiaryRepository()
     private val foods = FakeFoodRepository()
     private val connectivity = FakeConnectivityObserver()
+    private val haptics = RecordingAppHaptics()
+    private val shownMessages = mutableListOf<String>()
 
     /** 220 g of chicken (110 kcal per 100 g): 242 kcal, in the snack. */
     private val chicken =
@@ -85,32 +94,42 @@ class DiaryEditFlowTest {
     private fun Host(diaryModel: DiaryViewModel) {
         var editing by remember { mutableStateOf<String?>(null) }
         var pendingDelete by remember { mutableStateOf<String?>(null) }
+        val scope = rememberCoroutineScope()
+        val messages = remember {
+            object : AppMessages(scope) {
+                override fun show(text: String) {
+                    shownMessages += text
+                }
+            }
+        }
         AppTheme {
-            DiaryRoot(
-                onOpenPreferences = {},
-                onAddToMeal = { _, _ -> },
-                onAddFood = {},
-                onSaveTemplate = { _, _ -> },
-                editHost = DiaryEditHost(
-                    onEditEntry = { id, _ -> editing = id },
-                    pendingDeleteEntryId = pendingDelete,
-                    onConsumeDelete = { pendingDelete = null },
-                ),
-                viewModel = diaryModel,
-            )
-            editing?.let { id ->
-                val editModel = remember(id) { editModel(id) }
-                EditEntryRoot(
-                    entryId = id,
-                    date = Today.toString(),
-                    onSave = { editing = null },
-                    onDelete = {
-                        editing = null
-                        pendingDelete = it
-                    },
-                    onDismiss = { editing = null },
-                    viewModel = editModel,
+            CompositionLocalProvider(LocalAppMessages provides messages, LocalAppHaptics provides haptics) {
+                DiaryRoot(
+                    onOpenPreferences = {},
+                    onAddToMeal = { _, _ -> },
+                    onAddFood = {},
+                    onSaveTemplate = { _, _ -> },
+                    editHost = DiaryEditHost(
+                        onEditEntry = { id, _ -> editing = id },
+                        pendingDeleteEntryId = pendingDelete,
+                        onConsumeDelete = { pendingDelete = null },
+                    ),
+                    viewModel = diaryModel,
                 )
+                editing?.let { id ->
+                    val editModel = remember(id) { editModel(id) }
+                    EditEntryRoot(
+                        entryId = id,
+                        date = Today.toString(),
+                        onSave = { editing = null },
+                        onDelete = {
+                            editing = null
+                            pendingDelete = it
+                        },
+                        onDismiss = { editing = null },
+                        viewModel = editModel,
+                    )
+                }
             }
         }
     }
@@ -260,7 +279,9 @@ class DiaryEditFlowTest {
         rule.onNodeWithTag("diary_entry_e1").performTouchInput { swipeLeft() }
         rule.waitForIdle()
 
-        rule.onNode(hasText("Sin conexión. Inténtalo de nuevo cuando vuelvas a estar conectado.")).assertExists()
+        assertEquals(listOf("Sin conexión: no se puede eliminar"), shownMessages)
+        // The swipe itself arms and confirms; the failure then adds the single Reject.
+        assertEquals(listOf(HapticEvent.Armed, HapticEvent.Confirm, HapticEvent.Reject), haptics.calls)
         rule.onNode(inEntry("220 g")).assertExists()
     }
 

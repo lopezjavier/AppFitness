@@ -502,6 +502,108 @@ class DiaryViewModelTest {
     }
 
     @Test
+    fun deleteEntry_hidesTheEntryAndRecomputesTheTotalsWhileTheServerCallIsPending() = runTest(dispatcher) {
+        seedPlanExample()
+        diary.deleteGate = CompletableDeferred()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.DeleteEntry("a"))
+        advanceUntilIdle()
+
+        assertTrue(model.content().meals.first { it.slot.id == "breakfast" }.isEmpty)
+        assertEquals(1139.5, model.content().dayTotals.kcal)
+        assertTrue(diary.deleted.isEmpty())
+    }
+
+    @Test
+    fun deleteEntry_whenItSucceeds_staysGoneAfterTheReload() = runTest(dispatcher) {
+        seedPlanExample()
+        diary.deleteGate = CompletableDeferred()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.DeleteEntry("a"))
+        advanceUntilIdle()
+        diary.deleteGate?.complete(Unit)
+        advanceUntilIdle()
+        model.onEvent(DiaryEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(listOf("a"), diary.deleted)
+        assertTrue(model.content().meals.first { it.slot.id == "breakfast" }.isEmpty)
+        assertEquals(1139.5, model.content().dayTotals.kcal)
+    }
+
+    @Test
+    fun deleteEntry_whenItFails_bringsTheRowBackAndReportsTheError() = runTest(dispatcher) {
+        seedPlanExample()
+        diary.deleteGate = CompletableDeferred()
+        diary.failDelete()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(DiaryEvent.DeleteEntry("a"))
+            advanceUntilIdle()
+            assertEquals(1139.5, model.content().dayTotals.kcal)
+            diary.deleteGate?.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(DiaryEffect.WriteFailed(AppError.Network), awaitItem())
+        }
+
+        assertFalse(model.content().meals.first { it.slot.id == "breakfast" }.isEmpty)
+        assertEquals(1840.0, model.content().dayTotals.kcal)
+    }
+
+    @Test
+    fun deleteEntry_offline_keepsTheRowVisibleAndReportsOffline() = runTest(dispatcher) {
+        seedPlanExample()
+        connectivity.state.value = false
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(DiaryEvent.DeleteEntry("a"))
+            advanceUntilIdle()
+            assertEquals(DiaryEffect.WriteFailed(AppError.Network), awaitItem())
+        }
+
+        assertEquals(1840.0, model.content().dayTotals.kcal)
+    }
+
+    @Test
+    fun deleteEntry_twiceWhilePending_deletesOnce() = runTest(dispatcher) {
+        seedPlanExample()
+        diary.deleteGate = CompletableDeferred()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.DeleteEntry("a"))
+        model.onEvent(DiaryEvent.DeleteEntry("a"))
+        advanceUntilIdle()
+        diary.deleteGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("a"), diary.deleted)
+    }
+
+    @Test
+    fun recreatedWhileADeleteIsPending_showsTheRowAgain() = runTest(dispatcher) {
+        seedPlanExample()
+        diary.deleteGate = CompletableDeferred()
+        val first = viewModel()
+        advanceUntilIdle()
+        first.onEvent(DiaryEvent.DeleteEntry("a"))
+        advanceUntilIdle()
+
+        val second = viewModel(savedState)
+        advanceUntilIdle()
+
+        assertEquals(1840.0, second.content().dayTotals.kcal)
+    }
+
+    @Test
     fun deletingAnUnknownEntry_doesNothing() = runTest(dispatcher) {
         seedPlanExample()
         val model = viewModel()

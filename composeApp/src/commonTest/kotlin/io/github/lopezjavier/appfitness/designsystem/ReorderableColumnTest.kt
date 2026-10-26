@@ -53,4 +53,77 @@ class ReorderableColumnTest {
         assertNull(state.drop())
         assertNull(state.order)
     }
+
+    @Test
+    fun state_dragBy_returnsTheNumberOfSwapsOfThatDrag() {
+        val state = ReorderableState<String> { it }
+        listOf("A", "B", "C", "D").forEach { state.onHeight(it, 100) }
+        state.start(listOf("A", "B", "C", "D"), "A")
+
+        assertEquals(0, state.dragBy(30f))
+        assertEquals(2, state.dragBy(190f))
+    }
+
+    @Test
+    fun autoScrollDelta_inTheMiddle_isZero() {
+        assertEquals(
+            0f,
+            autoScrollDelta(
+                top = 300f,
+                bottom = 400f,
+                viewportTop = 0f,
+                viewportBottom = 800f,
+                edge = 100f,
+                maxStep = 20f,
+            ),
+        )
+    }
+
+    @Test
+    fun autoScrollDelta_nearTheTop_scrollsUpProportionally() {
+        val near =
+            autoScrollDelta(
+                top = 50f,
+                bottom = 150f,
+                viewportTop = 0f,
+                viewportBottom = 800f,
+                edge = 100f,
+                maxStep = 20f,
+            )
+        val past =
+            autoScrollDelta(
+                top = -50f,
+                bottom = 50f,
+                viewportTop = 0f,
+                viewportBottom = 800f,
+                edge = 100f,
+                maxStep = 20f,
+            )
+
+        assertEquals(-10f, near)
+        assertEquals(-20f, past)
+    }
+
+    @Test
+    fun autoScrollDelta_nearTheBottom_scrollsDown() {
+        val delta =
+            autoScrollDelta(
+                top = 650f,
+                bottom = 750f,
+                viewportTop = 0f,
+                viewportBottom = 800f,
+                edge = 100f,
+                maxStep = 20f,
+            )
+
+        assertEquals(10f, delta)
+    }
+
+    @Test
+    fun reorderTargets_atTheEnds_onlyOffersTheValidDirection() {
+        assertEquals(listOf(1), reorderTargets(index = 0, count = 3))
+        assertEquals(listOf(0, 2), reorderTargets(index = 1, count = 3))
+        assertEquals(listOf(1), reorderTargets(index = 2, count = 3))
+        assertEquals(emptyList(), reorderTargets(index = 0, count = 1))
+    }
 }

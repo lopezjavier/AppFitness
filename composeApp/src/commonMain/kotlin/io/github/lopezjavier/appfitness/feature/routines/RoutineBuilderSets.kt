@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_add_set
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_hint_kg
@@ -95,6 +96,7 @@ private fun PlannedSetRow(
         enabled = row.canRemoveSet,
         onDelete = { onEvent(RoutineBuilderEvent.RemoveSet(index, setIndex)) },
         backgroundTag = "routine_builder_set_row_delete_background_$tag",
+        label = stringResource(Res.string.action_remove),
         modifier = Modifier.testTag("routine_builder_set_row_$tag"),
     ) {
         Row(

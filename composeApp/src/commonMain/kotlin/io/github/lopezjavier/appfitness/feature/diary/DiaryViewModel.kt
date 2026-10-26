@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -104,11 +105,31 @@ class DiaryViewModel(
     val effects: Flow<DiaryEffect> = effectChannel.receiveAsFlow()
     private val writes = DiaryEntryWrites(foodDiary, { online.value }, { effectChannel.send(it) })
 
+    /** Entries being deleted: hidden at once. Transient on purpose (not in [savedState]); see [delete]. */
+    private val hiddenIds = MutableStateFlow<Set<String>>(emptySet())
+
     private val dayEntries: Flow<DayEntries?> = date.flatMapLatest { day ->
-        foodDiary.entries(day).map<List<FoodLogEntry>, DayEntries?> { DayEntries(day, it) }.onStart { emit(null) }
+        foodDiary.entries(day)
+            .onEach { list ->
+                val present = list.mapTo(mutableSetOf()) { it.id }
+                hiddenIds.update { hidden -> hidden.filterTo(mutableSetOf()) { it in present } }
+            }
+            .map<List<FoodLogEntry>, DayEntries?> { DayEntries(day, it) }
+            .onStart { emit(null) }
     }
 
-    val uiState: StateFlow<DiaryUiState> = combine(setup, dayEntries, collapsed, entriesFailed, online, ::DayInputs)
+    private val visibleDayEntries: Flow<DayEntries?> = combine(dayEntries, hiddenIds) { loaded, hidden ->
+        loaded?.let { day -> DayEntries(day.date, day.entries.filterNot { it.id in hidden }) }
+    }
+
+    val uiState: StateFlow<DiaryUiState> = combine(
+        setup,
+        visibleDayEntries,
+        collapsed,
+        entriesFailed,
+        online,
+        ::DayInputs,
+    )
         .combine(defaultsFailed) { inputs, failed -> inputs to failed }
         .combine(expandedGroups) { (inputs, failed), expanded -> buildState(inputs, failed, expanded) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiaryUiState.Loading)
@@ -147,9 +168,21 @@ class DiaryViewModel(
             is DiaryEvent.SaveSection,
             -> event.openEffect(date.value)?.let(effectChannel::trySend)
 
-            is DiaryEvent.DeleteEntry -> visibleEntries().firstOrNull { it.id == event.entryId }?.let {
-                viewModelScope.launch { writes.delete(it) }
-            }
+            is DiaryEvent.DeleteEntry -> visibleEntries().firstOrNull { it.id == event.entryId }?.let(::delete)
+        }
+    }
+
+    /**
+     * Optimistic: the entry is hidden at once (a hidden entry is no longer visible, so a second delete finds nothing)
+     * and returns if the server refuses. Offline it is refused without hiding. After a success it stays hidden until
+     * a day emission no longer contains it.
+     */
+    private fun delete(entry: FoodLogEntry) {
+        if (entry.id in hiddenIds.value) return
+        val hide = online.value
+        if (hide) hiddenIds.update { it + entry.id }
+        viewModelScope.launch {
+            if (!writes.delete(entry) && hide) hiddenIds.update { it - entry.id }
         }
     }
 

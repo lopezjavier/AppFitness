@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceEntry
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlin.time.Instant
 
 /** In-memory [CircumferenceRepository]; every row gets a growing `createdAt` so later saves order last. */
@@ -42,7 +43,11 @@ internal class FakeCircumferenceRepository(vararg initial: BodyCircumference) : 
         return if (index >= 0) Result.success(Unit) else Result.failure(AppException(AppError.NotFound))
     }
 
+    /** When set, [delete] suspends until it completes. */
+    var deleteGate: CompletableDeferred<Unit>? = null
+
     override suspend fun delete(id: String): Result<Unit> {
+        deleteGate?.await()
         writeFailure?.let { return Result.failure(it) }
         deletes += id
         rows.removeAll { it.id == id }

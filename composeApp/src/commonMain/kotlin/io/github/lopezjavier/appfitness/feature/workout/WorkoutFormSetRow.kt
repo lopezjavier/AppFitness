@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -129,6 +130,7 @@ internal fun FormSetRow(
         enabled = canRemove,
         onDelete = { onEvent(WorkoutFormEvent.RemoveSet(index, setIndex)) },
         backgroundTag = "${tag}_delete_background",
+        label = stringResource(Res.string.action_remove),
         modifier = Modifier.testTag("${tag}_row"),
     ) {
         Row(

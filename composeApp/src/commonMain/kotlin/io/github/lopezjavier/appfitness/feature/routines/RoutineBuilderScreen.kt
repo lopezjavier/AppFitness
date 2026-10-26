@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -163,10 +164,11 @@ private fun BuilderForm(
 ) {
     // The row whose menu sheet is open, by its stable id (positions change while editing).
     var menuRowId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val scrollState = rememberScrollState()
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
@@ -197,6 +199,7 @@ private fun BuilderForm(
                 onMove = { from, to -> onEvent(RoutineBuilderEvent.MoveTo(from, to)) },
                 modifier = Modifier.fillMaxWidth(),
                 spacing = Spacing.sm,
+                onAutoScroll = { scrollState.scrollBy(it) },
             ) { row, index, _ ->
                 // Rows of one superset sit 8 dp apart; every other row gets 12 dp from the previous one.
                 val continuesGroup = (row.supersetLabel?.number ?: 1) > 1

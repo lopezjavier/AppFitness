@@ -113,6 +113,7 @@ private fun CatalogItems() {
         diaryHistoryItems()
         circumferenceItems()
         goalMetricItems()
+        listsItems()
         shellItems()
         templateItems()
         themeItems()
