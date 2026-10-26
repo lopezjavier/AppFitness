@@ -17,9 +17,9 @@ sealed interface WeightTrendUiState {
     /**
      * [selectedPoint] is the point whose detail is open; null when none is selected or the selected day is not in
      * the current range. [trend] has [TrendData.hasEnoughData] false for the "not enough data" state. [targetKg] is
-     * the goal weight for the dashed target line (null when none is set or it could not be read); [maHelpOpen] shows
-     * the help of the 7-day average. [trend] is the series of [metric]; [weeklyRate] is always the weight's, and
-     * [targetKg] is null unless [metric] is Weight.
+     * the goal weight for the dashed target line (null when none is set or it could not be read); [startKg] is the
+     * onboarding weight for the goal overlay. [trend] is the series of [metric]; [weeklyRate] is always the weight's,
+     * and [targetKg] and [startKg] are null unless [metric] is Weight.
      */
     data class Content(
         val range: WeightChartRange,
@@ -28,7 +28,7 @@ sealed interface WeightTrendUiState {
         val weeklyRate: WeeklyRate,
         val selectedPoint: TrendPoint?,
         val targetKg: Double? = null,
-        val maHelpOpen: Boolean = false,
+        val startKg: Double? = null,
     ) : WeightTrendUiState {
         /**
          * Whether the chart is drawn instead of the "not enough data" hint. Weight needs an MA7 somewhere; the other
@@ -52,9 +52,6 @@ sealed interface WeightTrendEvent {
 
     /** Reloads without the loading state (after a weight was saved or deleted). */
     data object Refresh : WeightTrendEvent
-
-    /** Shows or hides the help of the 7-day average. */
-    data object ToggleMaHelp : WeightTrendEvent
 
     /** Reloads after a failed load. */
     data object Retry : WeightTrendEvent

@@ -37,7 +37,6 @@ private const val KEY_OPEN = "circumference_sheet_open"
 private const val KEY_EXISTING_ID = "circumference_draft_existing_id"
 private const val KEY_VALUES = "circumference_draft_values"
 private const val KEY_DATE = "circumference_draft_date"
-private const val KEY_HELP = "circumference_draft_help"
 private const val NONE = ""
 private const val ENTRY_SEPARATOR = ";"
 private const val PAIR_SEPARATOR = "="
@@ -59,9 +58,7 @@ private data class SheetDraft(
     val existingId: String?,
     val values: Map<CircumferenceSite, String>,
     val date: LocalDate,
-    val helpSite: CircumferenceSite? = null,
     val saving: Boolean = false,
-    val error: WeightSaveError? = null,
 )
 
 /**
@@ -126,10 +123,6 @@ class CircumferencesViewModel(
 
             is CircumferencesEvent.SetDate -> edit { it.copy(date = minOf(event.date, clock.today())) }
 
-            is CircumferencesEvent.ToggleHelp -> edit {
-                it.copy(helpSite = if (it.helpSite == event.site) null else event.site)
-            }
-
             CircumferencesEvent.Save -> save()
 
             is CircumferencesEvent.Delete -> delete(event.id)
@@ -175,7 +168,7 @@ class CircumferencesViewModel(
     private fun edit(change: (SheetDraft) -> SheetDraft) {
         val draft = sheet.value ?: return
         if (draft.saving) return
-        setSheet(change(draft).copy(error = null))
+        setSheet(change(draft))
     }
 
     private fun setSheet(draft: SheetDraft?) {
@@ -185,7 +178,6 @@ class CircumferencesViewModel(
         savedState[KEY_VALUES] = draft?.values?.entries
             ?.joinToString(ENTRY_SEPARATOR) { "${it.key.name}$PAIR_SEPARATOR${it.value}" } ?: NONE
         savedState[KEY_DATE] = draft?.date?.toString() ?: NONE
-        savedState[KEY_HELP] = draft?.helpSite?.name ?: NONE
     }
 
     private fun restoreSheet(): SheetDraft? {
@@ -201,7 +193,6 @@ class CircumferencesViewModel(
             existingId = existingId,
             values = if (existingId == null) CircumferenceSite.entries.associateWith { stored[it] ?: NONE } else stored,
             date = date,
-            helpSite = CircumferenceSite.entries.firstOrNull { it.name == savedState.get<String>(KEY_HELP) },
         )
     }
 
@@ -213,7 +204,7 @@ class CircumferencesViewModel(
         if (entries.isEmpty() || !online.value || draft.saving) return
         if (problemsOf(draft).isNotEmpty() || draft.date > clock.today()) return
         val measuredAt = instantFor(draft)
-        setSheet(draft.copy(saving = true, error = null))
+        setSheet(draft.copy(saving = true))
         viewModelScope.launch {
             val result = draft.existingId
                 ?.let { repository.update(it, entries.single().valueCm, measuredAt) }
@@ -221,13 +212,12 @@ class CircumferencesViewModel(
             if (result.isSuccess) {
                 fetch()
                 setSheet(null)
+                effectChannel.send(CircumferencesEffect.Saved)
             } else {
-                val error = if (result.appErrorOrNull() == AppError.Network) {
-                    WeightSaveError.Offline
-                } else {
-                    WeightSaveError.Failed
-                }
-                sheet.value?.let { setSheet(it.copy(saving = false, error = error)) }
+                sheet.value?.let { setSheet(it.copy(saving = false)) }
+                effectChannel.send(
+                    CircumferencesEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network),
+                )
             }
         }
     }
@@ -260,6 +250,7 @@ class CircumferencesViewModel(
             if (result.isSuccess) {
                 if (fetch()) hiddenIds.update { it - id }
                 if (sheet.value?.existingId == id) setSheet(null)
+                effectChannel.send(CircumferencesEffect.Deleted)
             } else {
                 hiddenIds.update { it - id }
                 effectChannel.send(CircumferencesEffect.DeleteFailed(result.appErrorOrNull() == AppError.Network))
@@ -313,12 +304,10 @@ class CircumferencesViewModel(
             problems = problems,
             date = draft.date,
             canGoNextDay = draft.date < clock.today(),
-            helpSite = draft.helpSite,
             canSave = entriesOf(draft).isNotEmpty() && problems.isEmpty() && draft.date <= clock.today() &&
                 online && !draft.saving,
             canDelete = draft.existingId != null && online && !draft.saving,
             isSaving = draft.saving,
-            saveError = draft.error,
         )
     }
 }

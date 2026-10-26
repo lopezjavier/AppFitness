@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_goal_metrics
-import io.github.lopezjavier.appfitness.designsystem.GoalCard
 import io.github.lopezjavier.appfitness.designsystem.MetricInterpretationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
@@ -23,18 +22,6 @@ internal fun LazyListScope.goalMetricItems() {
 private fun GoalMetricSection() {
     CatalogSection(stringResource(Res.string.catalog_section_goal_metrics), "catalog_section_goal_metrics") {
         Column(Modifier.testTag("catalog_goal_metrics"), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-            GoalCard(
-                title = "Objetivo",
-                targetText = "70,0 kg",
-                distanceText = "faltan 4,2 kg",
-                sinceFirstText = "Desde tu primer peso: -2,6 kg",
-                emptyHint = "Fija un peso objetivo para ver cuánto te falta.",
-                setLabel = "Fijar objetivo",
-                changeLabel = "Cambiar objetivo",
-                onSet = {},
-                onChange = {},
-                testTagPrefix = "catalog_goal",
-            )
             MetricInterpretationRow(
                 label = "IMC",
                 valueText = "23,4",

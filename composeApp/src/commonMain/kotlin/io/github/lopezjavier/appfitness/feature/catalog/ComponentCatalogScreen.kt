@@ -111,7 +111,6 @@ private fun CatalogItems() {
         stateMessageItems()
         foodItems()
         diaryHistoryItems()
-        circumferenceItems()
         goalMetricItems()
         listsItems()
         shellItems()

@@ -1,7 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,12 +13,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.goal_target_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import io.github.lopezjavier.appfitness.platform.rememberHealthConnectLauncher
+import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -29,6 +31,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Suppress("ViewModelForwarding")
 @Composable
 fun WeightRoot(
+    onOpenHistory: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WeightViewModel = koinViewModel(),
     circumferencesViewModel: CircumferencesViewModel = koinViewModel(),
@@ -44,15 +48,10 @@ fun WeightRoot(
     val trend by trendViewModel.uiState.collectAsStateWithLifecycle()
     val goal by goalViewModel.uiState.collectAsStateWithLifecycle()
     val launcher = launcherFor { granted -> healthSyncViewModel.onEvent(HealthSyncEvent.PermissionResult(granted)) }
-    val snackbarHost = remember { SnackbarHostState() }
-    CollectWeightEffects(
-        viewModel,
-        circumferencesViewModel,
-        healthSyncViewModel,
-        trendViewModel,
-        launcher,
-        snackbarHost,
-    )
+    CollectWeightEffects(viewModel)
+    CollectCircumferenceEffects(circumferencesViewModel.effects)
+    CollectGoalEffects(goalViewModel.effects)
+    CollectHealthEffects(healthSyncViewModel, viewModel, trendViewModel, launcher)
     // A saved, edited or deleted weight changes the latest reading or the month's days: the trend reloads.
     val measurements = (state as? WeightUiState.Content)?.content?.let { it.current to it.days }
     LaunchedEffect(measurements) {
@@ -86,46 +85,49 @@ fun WeightRoot(
         onTrendEvent = trendViewModel::onEvent,
         goal = goal,
         onGoalEvent = goalViewModel::onEvent,
-        snackbarHost = snackbarHost,
+        onOpenHistory = onOpenHistory,
+        onBack = onBack,
     )
 }
 
-// Collects the one-shot effects of the screen's view models: delete errors as snackbars, Health Connect requests.
-// The effects of all four view models are collected in one place, so they are passed whole.
-@Suppress("LongParameterList")
+/**
+ * Weight saves and deletes confirm with a haptic only, the change is visible (R-13); failures reject and show a
+ * message. Shared by the Peso and the history routes, each with its own [viewModel].
+ */
 @Composable
-private fun CollectWeightEffects(
-    viewModel: WeightViewModel,
-    circumferencesViewModel: CircumferencesViewModel,
-    healthSyncViewModel: HealthSyncViewModel,
-    trendViewModel: WeightTrendViewModel,
-    launcher: HealthConnectLauncher,
-    snackbarHost: SnackbarHostState,
-) {
+internal fun CollectWeightEffects(viewModel: WeightViewModel) {
     val failed = stringResource(Res.string.weight_delete_error)
     val offline = stringResource(Res.string.weight_delete_error_offline)
-    val circumferenceFailed = stringResource(Res.string.delete_failed)
-    val circumferenceOffline = stringResource(Res.string.delete_offline)
+    val saveFailed = stringResource(Res.string.weight_save_error)
+    val saveOffline = offlineHint("guardar")
     val appMessages = LocalAppMessages.current
     val haptics = LocalAppHaptics.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is WeightEffect.DeleteFailed ->
-                    snackbarHost.showSnackbar(if (effect.offline) offline else failed, duration = SnackbarDuration.Long)
-            }
-        }
-    }
-    LaunchedEffect(circumferencesViewModel) {
-        circumferencesViewModel.effects.collect { effect ->
-            when (effect) {
-                is CircumferencesEffect.DeleteFailed -> {
+                is WeightEffect.DeleteFailed -> {
                     haptics.reject()
-                    appMessages.show(if (effect.offline) circumferenceOffline else circumferenceFailed)
+                    appMessages.show(if (effect.offline) offline else failed)
+                }
+
+                WeightEffect.Saved, WeightEffect.Deleted -> haptics.confirm()
+
+                is WeightEffect.SaveFailed -> {
+                    haptics.reject()
+                    appMessages.show(if (effect.offline) saveOffline else saveFailed)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun CollectHealthEffects(
+    healthSyncViewModel: HealthSyncViewModel,
+    viewModel: WeightViewModel,
+    trendViewModel: WeightTrendViewModel,
+    launcher: HealthConnectLauncher,
+) {
     LaunchedEffect(healthSyncViewModel) {
         healthSyncViewModel.effects.collect { effect ->
             when (effect) {
@@ -136,6 +138,54 @@ private fun CollectWeightEffects(
                 is HealthSyncEffect.Synced -> {
                     viewModel.onEvent(WeightEvent.Refresh)
                     trendViewModel.onEvent(WeightTrendEvent.Refresh)
+                }
+            }
+        }
+    }
+}
+
+// Saves and deletes confirm with a haptic only, the change is visible (R-13); failures reject and show a message.
+@Composable
+private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>) {
+    val deleteFailed = stringResource(Res.string.delete_failed)
+    val deleteOffline = stringResource(Res.string.delete_offline)
+    val saveFailed = stringResource(Res.string.weight_save_error)
+    val saveOffline = offlineHint("guardar")
+    val appMessages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
+    LaunchedEffect(effects) {
+        effects.collect { effect ->
+            when (effect) {
+                is CircumferencesEffect.DeleteFailed -> {
+                    haptics.reject()
+                    appMessages.show(if (effect.offline) deleteOffline else deleteFailed)
+                }
+
+                CircumferencesEffect.Saved, CircumferencesEffect.Deleted -> haptics.confirm()
+
+                is CircumferencesEffect.SaveFailed -> {
+                    haptics.reject()
+                    appMessages.show(if (effect.offline) saveOffline else saveFailed)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollectGoalEffects(effects: Flow<GoalEffect>) {
+    val saveFailed = stringResource(Res.string.goal_target_save_error)
+    val saveOffline = offlineHint("guardar")
+    val appMessages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
+    LaunchedEffect(effects) {
+        effects.collect { effect ->
+            when (effect) {
+                GoalEffect.Saved -> haptics.confirm()
+
+                is GoalEffect.SaveFailed -> {
+                    haptics.reject()
+                    appMessages.show(if (effect.offline) saveOffline else saveFailed)
                 }
             }
         }

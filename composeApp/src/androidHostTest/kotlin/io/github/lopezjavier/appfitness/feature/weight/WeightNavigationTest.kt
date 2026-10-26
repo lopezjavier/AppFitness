@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.app.AppScaffold
 import io.github.lopezjavier.appfitness.app.ProfileSlot
+import io.github.lopezjavier.appfitness.app.WeightHistorySlot
+import io.github.lopezjavier.appfitness.app.WeightSlot
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import org.junit.Rule
 import org.junit.Test
@@ -39,13 +41,41 @@ class WeightNavigationTest {
         rule.waitForIdle()
     }
 
-    @Test
-    fun weightRow_opensTheWeightDestinationInAFullScreenChrome_andBackReturnsToPerfil() {
-        rule.setContent { AppTheme { AppScaffold(navController = rememberNavController(), profile = profileSlot) } }
-        rule.waitForIdle()
+    private val weightSlot: WeightSlot = { modifier, onOpenHistory, onBack ->
+        WeightScreen(
+            state = WeightUiState.Loading,
+            onEvent = {},
+            circumferences = CircumferencesUiState.Loading,
+            onCircumferenceEvent = {},
+            modifier = modifier,
+            onOpenHistory = onOpenHistory,
+            onBack = onBack,
+        )
+    }
 
+    private val historySlot: WeightHistorySlot = { modifier, onBack ->
+        WeightHistoryScreen(WeightUiState.Loading, {}, onBack, modifier)
+    }
+
+    private fun open() {
+        rule.setContent {
+            AppTheme {
+                AppScaffold(
+                    navController = rememberNavController(),
+                    profile = profileSlot,
+                    weight = weightSlot,
+                    weightHistory = historySlot,
+                )
+            }
+        }
+        rule.waitForIdle()
         tap("nav_tab_profile")
         tap("profile_weight_row")
+    }
+
+    @Test
+    fun weightRow_opensThePesoScreenWithItsOwnBar_andBackReturnsToPerfil() {
+        open()
 
         rule.onNodeWithTag("weight_screen").assertExists()
         rule.onNodeWithTag("weight_title").assertTextEquals("Peso")
@@ -55,5 +85,21 @@ class WeightNavigationTest {
 
         rule.onNodeWithTag("profile_screen").assertExists()
         rule.onNodeWithTag("weight_screen").assertDoesNotExist()
+    }
+
+    @Test
+    fun calendarIcon_opensHistorialDePeso_andBackReturnsToPeso() {
+        open()
+
+        tap("weight_action_1")
+
+        rule.onNodeWithTag("weight_history_screen").assertExists()
+        rule.onNodeWithTag("weight_history_title").assertTextEquals("Historial de peso")
+        rule.onNodeWithTag("weight_screen").assertDoesNotExist()
+
+        tap("weight_history_back")
+
+        rule.onNodeWithTag("weight_screen").assertExists()
+        rule.onNodeWithTag("weight_history_screen").assertDoesNotExist()
     }
 }

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -150,6 +151,66 @@ class ListComponentsTest {
         rule.onNodeWithTag("metric").assertHasClickAction().performClick()
 
         assertEquals(1, clicks)
+    }
+
+    @Test
+    fun metricCard_withOnClickAndTrailingAction_tappingTheValueFiresOnlyOnClick() {
+        var pencil = 0
+        show {
+            MetricCard(
+                "PESO",
+                "74,8 kg",
+                Modifier.testTag("metric"),
+                trailingAction = { Text("Editar", Modifier.clickable { pencil++ }) },
+                onClick = { clicks++ },
+            )
+        }
+
+        rule.onNodeWithText("74,8 kg").assertHasClickAction().performClick()
+
+        assertEquals(1, clicks)
+        assertEquals(0, pencil)
+    }
+
+    @Test
+    fun metricCard_withOnClickAndTrailingAction_tappingTheActionFiresOnlyTheAction() {
+        var pencil = 0
+        show {
+            MetricCard(
+                "PESO",
+                "74,8 kg",
+                Modifier.testTag("metric"),
+                trailingAction = { Text("Editar", Modifier.clickable { pencil++ }) },
+                onClick = { clicks++ },
+            )
+        }
+
+        rule.onNodeWithText("Editar").performClick()
+
+        assertEquals(0, clicks)
+        assertEquals(1, pencil)
+    }
+
+    @Test
+    fun metricCard_withOnClickAndTrailingAction_keepsTheSupportingContentOutsideTheButton() {
+        show {
+            MetricCard(
+                "PESO",
+                "74,8 kg",
+                Modifier.testTag("metric"),
+                supporting = { Text("Sincronizar", Modifier.testTag("sync")) },
+                trailingAction = { Text("Editar") },
+                onClick = {},
+            )
+        }
+
+        rule.onNodeWithTag("sync").assertIsDisplayed()
+        // The button node reads label and value only; the supporting line is a separate node.
+        rule.onNodeWithText("74,8 kg").assertTextContains("PESO", substring = true)
+        assertFalse(
+            rule.onNodeWithText("74,8 kg").fetchSemanticsNode().config
+                .getOrNull(SemanticsProperties.Text).orEmpty().any { it.text == "Sincronizar" },
+        )
     }
 
     @Test

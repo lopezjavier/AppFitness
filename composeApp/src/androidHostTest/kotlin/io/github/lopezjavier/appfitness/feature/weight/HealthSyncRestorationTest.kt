@@ -155,6 +155,8 @@ class HealthSyncRestorationTest {
         }
         AppTheme {
             WeightRoot(
+                onOpenHistory = {},
+                onBack = {},
                 modifier = Modifier,
                 viewModel = weight,
                 trendViewModel = trend,

@@ -210,6 +210,7 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Items collect
 | A | Estadísticas → Musculación radar: "Isquiotibiales" wraps with the final "s"; show "Isquios" (NIT) | Shorter axis label (glossary). |
 | B | Estadísticas → Últimos 7 días: the body map feels unprofessional; study how to get a better result (reference `design/reported/E8-A-stats-radar-bodymap.png`, gitignored) | ux-reviewer assesses options and complexity in the Training migration task; the user picks before any rebuild. |
 | C | Comida details (editable screen): kcal/P/C/G summary, "+" and trash scattered; "Guardar" in its own row above "Añadir"; remove the hint "Se añadirá tal como lo ves…" (reference `design/reported/E7-A-comida-details-layout.png`) | Built on the shared templates: name in the title, actions in the top bar, `AddItemButton` at the end of the list, pinned "Guardar" (§6.3 of the audit). |
+| D | Chart metric and range on other screens: `ExerciseProgressScreen` (`ProgressMetric` chips and its own range selector) and `TrainingStatsScreen` (`FrameChips`) still use chips, while Peso now picks the metric from the chart title (`AppPickerSheet`, T-123) and the range with `TimeRangeSelector` | Owner T-125: decide one pattern (title picker vs chips) and move both to `TimeRangeSelector` |
 
 ---
 

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
@@ -250,7 +251,7 @@ class GoalViewModelTest {
     }
 
     @Test
-    fun saveFailure_keepsTheDraftWithAnError() = runTest(dispatcher) {
+    fun saveFailure_keepsTheDraft() = runTest(dispatcher) {
         val vm = viewModel()
         advanceUntilIdle()
         send(vm, GoalEvent.OpenTargetSheet)
@@ -260,9 +261,66 @@ class GoalViewModelTest {
         send(vm, GoalEvent.SaveTarget)
         advanceUntilIdle()
 
-        assertEquals(WeightSaveError.Offline, vm.sheet().saveError)
         assertEquals("68", vm.sheet().text)
         assertTrue(vm.sheet().canSave)
+    }
+
+    @Test
+    fun successfulSave_emitsSavedOnce() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        send(vm, GoalEvent.OpenTargetSheet)
+        send(vm, GoalEvent.EditTarget("68"))
+
+        vm.effects.test {
+            send(vm, GoalEvent.SaveTarget)
+            assertEquals(GoalEffect.Saved, awaitItem())
+            expectNoEvents()
+        }
+        assertNull(vm.content().targetSheet)
+    }
+
+    @Test
+    fun failedSave_emitsSaveFailedWithTheCause() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        send(vm, GoalEvent.OpenTargetSheet)
+        send(vm, GoalEvent.EditTarget("68"))
+
+        vm.effects.test {
+            profile.targetWeightSaveResult = Result.failure(AppException(AppError.Network))
+            send(vm, GoalEvent.SaveTarget)
+            assertEquals(GoalEffect.SaveFailed(offline = true), awaitItem())
+            profile.targetWeightSaveResult = Result.failure(AppException(AppError.Unknown))
+            send(vm, GoalEvent.SaveTarget)
+            assertEquals(GoalEffect.SaveFailed(offline = false), awaitItem())
+        }
+    }
+
+    @Test
+    fun startKgAndProgress_comeFromTheOnboardingWeight() = runTest(dispatcher) {
+        weights.rows.clear()
+        weights.rows += row("latest", 74.0, "2026-10-20T08:00:00Z")
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(78.0, vm.content().startKg)
+        assertEquals(0.5, vm.content().progress)
+    }
+
+    @Test
+    fun withoutOnboardingWeightOrTarget_hasNoStartNorProgress() = runTest(dispatcher) {
+        weights.onboarding = null
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertNull(vm.content().startKg)
+        assertNull(vm.content().progress)
+
+        weights.onboarding = row("start", 78.0, "2026-09-01T08:00:00Z")
+        profile.targetWeight = Result.success(null)
+        send(vm, GoalEvent.Refresh)
+        assertEquals(78.0, vm.content().startKg)
+        assertNull(vm.content().progress)
     }
 
     @Test

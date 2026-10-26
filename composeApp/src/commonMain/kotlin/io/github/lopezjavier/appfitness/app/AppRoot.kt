@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
+import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
 import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
@@ -95,7 +96,8 @@ fun AppRoot(
                 onBack,
             )
         },
-        weight = { weightModifier -> WeightRoot(weightModifier) },
+        weight = { weightModifier, onOpenHistory, onBack -> WeightRoot(onOpenHistory, onBack, weightModifier) },
+        weightHistory = { historyModifier, onBack -> WeightHistoryRoot(onBack, historyModifier) },
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },

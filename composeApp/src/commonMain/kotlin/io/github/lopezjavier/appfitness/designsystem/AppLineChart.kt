@@ -42,6 +42,7 @@ import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvi
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.lineModel
 import com.patrykandpatrick.vico.compose.cartesian.decoration.Decoration
+import com.patrykandpatrick.vico.compose.cartesian.decoration.HorizontalBox
 import com.patrykandpatrick.vico.compose.cartesian.decoration.HorizontalLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
@@ -51,9 +52,9 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.common.DashedShape
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.LineComponent
+import com.patrykandpatrick.vico.compose.common.component.ShapeComponent
 import kotlin.math.ceil
 import kotlin.math.max
-import kotlin.math.min
 
 object AppLineChartDefaults {
     /** Height of the plot with its axes. */
@@ -86,6 +87,9 @@ object AppLineChartDefaults {
     /** Duration of the data-change animation when a chart asks for it. */
     const val ANIMATION_MILLIS = 300
 
+    /** Opacity of the shaded band of a goal range. */
+    const val BAND_ALPHA = 0.15f
+
     /** Thickness of the dashed reference line. */
     val ReferenceLineThickness: Dp = 2.dp
 
@@ -111,6 +115,9 @@ object AppLineChartDefaults {
  * consecutive non-null values across the null gaps (sparse readings); indices, dots and selection are unchanged.
  * [markers] are indices into [values] drawn on top of the line as record markers (decoration only; indices without a
  * value are ignored); empty by default, which leaves the chart as it was.
+ * [band] shades a horizontal value range (low-opacity athleticCyan, behind the line). It never widens the vertical
+ * range (only the data and [referenceLine] do): the band is clipped to the visible range and skipped when it lies
+ * outside; the caller mentions it in [description]. Null by default, which leaves the chart as it was.
  */
 @Composable
 // The extra parameters are the optional trend layer; every default keeps the single-series chart as it was.
@@ -131,6 +138,7 @@ fun AppLineChart(
     referenceLine: Double? = null,
     connectGaps: Boolean = false,
     markers: List<Int> = emptyList(),
+    band: ClosedFloatingPointRange<Double>? = null,
 ) {
     val producer = remember { CartesianChartModelProducer() }
     val markerPoints = markers.distinct().sorted().filter { values.getOrNull(it) != null }
@@ -166,7 +174,7 @@ fun AppLineChart(
         valueLabel,
         labels,
         pointCount,
-        referenceLine?.let { ReferenceSpec(it, referenceRange(it, values, dots)) },
+        overlaySpec(referenceLine, band, values, dots),
     )
     val animationSpec = if (animated) tween<Float>(AppLineChartDefaults.ANIMATION_MILLIS) else null
     Box(
@@ -191,33 +199,20 @@ fun AppLineChart(
  */
 private fun List<Double?>.present(): List<Pair<Int, Double>> = mapIndexedNotNull { i, v -> v?.let { i to it } }
 
-private class ReferenceSpec(val value: Double, val range: ClosedFloatingPointRange<Double>)
-
-/** The vertical range covering every plotted value and the [reference] (with a little room around it). */
-private fun referenceRange(
-    reference: Double,
-    values: List<Double?>,
-    dots: List<Double?>?,
-): ClosedFloatingPointRange<Double> {
-    val all = values.filterNotNull() + dots.orEmpty().filterNotNull() + reference
-    val low = all.min()
-    val high = all.max()
-    val pad = max((high - low) * REFERENCE_RANGE_PADDING, MIN_REFERENCE_PADDING)
-    return (min(low, reference) - pad)..(max(high, reference) + pad)
-}
-
 private const val EMPTY_LABEL = "-"
-private const val REFERENCE_RANGE_PADDING = 0.1
-private const val MIN_REFERENCE_PADDING = 0.5
 
 @Composable
-private fun rememberReferenceDecorations(reference: ReferenceSpec?): List<Decoration> {
+private fun rememberReferenceDecorations(overlay: OverlaySpec?): List<Decoration> {
     val color = AppTheme.colors.textSecondary
-    return remember(reference?.value, color) {
+    val bandColor = AppTheme.colors.athleticCyan.copy(alpha = AppLineChartDefaults.BAND_ALPHA)
+    return remember(overlay?.reference, overlay?.band, color, bandColor) {
         listOfNotNull(
-            reference?.let {
+            overlay?.band?.let { band ->
+                HorizontalBox(y = { _ -> band }, box = ShapeComponent(fill = Fill(bandColor)))
+            },
+            overlay?.reference?.let { value ->
                 HorizontalLine(
-                    y = { _ -> it.value },
+                    y = { _ -> value },
                     line = LineComponent(
                         fill = Fill(color),
                         thickness = AppLineChartDefaults.ReferenceLineThickness,
@@ -244,17 +239,17 @@ private fun rememberAppCartesianChart(
     valueLabel: (Double) -> String,
     labels: List<String>,
     pointCount: Int,
-    reference: ReferenceSpec?,
+    overlay: OverlaySpec?,
 ): CartesianChart {
     val axisLabel =
         rememberAxisLabelComponent(AppTheme.typography.bodySmall.copy(color = AppTheme.colors.textSecondary))
     val gridColor = AppTheme.colors.divider
     val bottomSpacing = max(1, ceil(pointCount / AppLineChartDefaults.MAX_BOTTOM_LABELS.toDouble()).toInt())
-    val decorations = rememberReferenceDecorations(reference)
+    val decorations = rememberReferenceDecorations(overlay)
     return rememberCartesianChart(
         rememberLineCartesianLayer(
             rangeProvider =
-            reference?.let {
+            overlay?.let {
                 CartesianLayerRangeProvider.fixed(minY = it.range.start, maxY = it.range.endInclusive)
             }
                 ?: CartesianLayerRangeProvider.auto(),

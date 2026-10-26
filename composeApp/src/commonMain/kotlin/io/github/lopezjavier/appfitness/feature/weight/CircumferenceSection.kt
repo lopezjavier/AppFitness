@@ -1,22 +1,17 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_add_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_date_other
+import io.github.lopezjavier.appfitness.composeapp.resources.circumference_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_error_message
@@ -25,7 +20,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_ratio
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_ratio_unavailable
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_row_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_row_edit_label
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_row_when
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_arm
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_calf
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_chest
@@ -35,29 +29,25 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_waist
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_title
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_value_cm
-import io.github.lopezjavier.appfitness.composeapp.resources.date_today
-import io.github.lopezjavier.appfitness.composeapp.resources.date_yesterday
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.CircumferenceRow
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
+import io.github.lopezjavier.appfitness.designsystem.MeasurementRow
+import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
-import io.github.lopezjavier.appfitness.feature.workout.shortLabel
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
@@ -83,9 +73,10 @@ internal fun CircumferenceSection(
         modifier.fillMaxWidth().testTag("circumference_section"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        SectionHeader(addEnabled = state is CircumferencesUiState.Content, onAdd = {
-            onEvent(CircumferencesEvent.OpenAdd)
-        })
+        ListSectionHeader(
+            title = stringResource(Res.string.circumference_title),
+            modifier = Modifier.testTag("circumference_title"),
+        )
         when (state) {
             CircumferencesUiState.Loading -> SectionLoading()
 
@@ -100,25 +91,6 @@ internal fun CircumferenceSection(
 
             is CircumferencesUiState.Content -> SectionContent(state.content, today, timeZone, onEvent, onRatioClick)
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(addEnabled: Boolean, onAdd: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = stringResource(Res.string.circumference_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f).semantics { heading() }.testTag("circumference_title"),
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.circumference_add_cd),
-            icon = Res.drawable.ic_add,
-            testTag = "circumference_add_button",
-            onClick = onAdd,
-            enabled = addEnabled,
-        )
     }
 }
 
@@ -141,33 +113,34 @@ private fun SectionContent(
     onEvent: (CircumferencesEvent) -> Unit,
     onRatioClick: (() -> Unit)?,
 ) {
-    if (content.isEmpty) {
-        EmptyState(
-            message = stringResource(Res.string.circumference_empty_message),
-            modifier = Modifier.fillMaxWidth(),
-            title = stringResource(Res.string.circumference_empty_title),
-            testTagPrefix = "circumference_empty",
-        )
-    } else {
-        RatioTile(content.ratio, onRatioClick)
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            content.groups.forEach { group -> SiteGroup(group, content.isOnline, today, timeZone, onEvent) }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        if (content.isEmpty) {
+            EmptyState(
+                message = stringResource(Res.string.circumference_empty_message),
+                modifier = Modifier.fillMaxWidth(),
+                title = stringResource(Res.string.circumference_empty_title),
+                testTagPrefix = "circumference_empty",
+            )
+        } else {
+            RatioCard(content.ratio, onRatioClick)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                content.groups.forEach { group -> SiteGroup(group, content.isOnline, today, timeZone, onEvent) }
+            }
         }
+        AddItemButton(
+            objectLabel = stringResource(Res.string.circumference_add_object),
+            onClick = { onEvent(CircumferencesEvent.OpenAdd) },
+            modifier = Modifier.testTag("circumference_add_button"),
+        )
     }
 }
 
 @Composable
-private fun RatioTile(ratio: Double?, onClick: (() -> Unit)?) {
-    val openLabel = stringResource(Res.string.metric_tile_open_label)
-    val tagged = if (onClick != null && ratio != null) {
-        Modifier.testTag("weight_whr_row").clickable(onClickLabel = openLabel, role = Role.Button, onClick = onClick)
-    } else {
-        Modifier.testTag("circumference_ratio")
-    }
-    MetricTile(
+private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?) {
+    MetricCard(
         label = stringResource(Res.string.circumference_ratio_label),
         value = ratio?.let(::ratioText) ?: stringResource(Res.string.circumference_ratio_unavailable),
-        modifier = Modifier.fillMaxWidth().then(tagged),
+        modifier = Modifier.testTag("weight_whr_card"),
         supporting = if (ratio == null) {
             {
                 Text(
@@ -179,6 +152,8 @@ private fun RatioTile(ratio: Double?, onClick: (() -> Unit)?) {
         } else {
             null
         },
+        onClick = if (ratio != null) onClick else null,
+        clickLabel = stringResource(Res.string.metric_tile_open_label),
     )
 }
 
@@ -221,14 +196,11 @@ private fun CircumferenceHistoryRow(
         modifier = Modifier.testTag("circumference_row_${row.id}"),
         containerColor = AppTheme.colors.surfaceBase,
     ) {
-        CircumferenceRow(
+        MeasurementRow(
             value = value,
-            whenText = stringResource(
-                Res.string.circumference_row_when,
-                circumferenceDayText(local.date, today),
-            ),
-            clickLabel = stringResource(Res.string.circumference_row_edit_label),
+            supporting = AppDateFormat.list(local.date, today),
             onClick = { onEvent(CircumferencesEvent.OpenEdit(row.id)) },
+            clickLabel = stringResource(Res.string.circumference_row_edit_label),
         )
     }
 }
@@ -240,14 +212,6 @@ internal fun ratioText(ratio: Double): String {
 }
 
 private const val HUNDREDTHS = 100.0
-
-/** "Hoy", "Ayer" or "12 oct". */
-@Composable
-internal fun circumferenceDayText(date: LocalDate, today: LocalDate): String = when (date) {
-    today -> stringResource(Res.string.date_today)
-    today.minus(1, DateTimeUnit.DAY) -> stringResource(Res.string.date_yesterday)
-    else -> stringResource(Res.string.circumference_date_other, date.day, date.month.shortLabel())
-}
 
 @Composable
 internal fun circumferenceSiteLabel(site: CircumferenceSite): String = stringResource(

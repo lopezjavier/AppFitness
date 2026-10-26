@@ -166,25 +166,34 @@ class WeightTrendViewModelTest {
     }
 
     @Test
-    fun toggleMaHelp_opensAndClosesAndSurvivesRecreation() = runTest(dispatcher) {
+    fun startKg_isTheOnboardingWeightForTheWeightMetric() = runTest(dispatcher) {
         val repository = FakeWeightRepository(*series(80.0, 0.0).toTypedArray())
-        val state = SavedStateHandle()
-        val vm = viewModel(repository, state)
+        repository.onboarding = measurement(LocalDate(2026, 9, 1), 85.0)
+        val vm = viewModel(repository)
         advanceUntilIdle()
-        assertFalse(vm.content().maHelpOpen)
 
-        vm.onEvent(WeightTrendEvent.ToggleMaHelp)
-        advanceUntilIdle()
-        assertTrue(vm.content().maHelpOpen)
-        assertEquals(true, state.get<Boolean>("weight_trend_ma_help_open"))
+        assertEquals(85.0, vm.content().startKg)
+    }
 
-        val recreated = viewModel(repository, state)
+    @Test
+    fun startKg_isNullWithoutAnOnboardingWeight() = runTest(dispatcher) {
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
-        assertTrue(recreated.content().maHelpOpen)
 
-        recreated.onEvent(WeightTrendEvent.ToggleMaHelp)
+        assertNull(vm.content().startKg)
+    }
+
+    @Test
+    fun startKg_isNullForOtherMetrics() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(*series(80.0, 0.0).toTypedArray())
+        repository.onboarding = measurement(LocalDate(2026, 9, 1), 85.0)
+        val vm = viewModel(repository)
         advanceUntilIdle()
-        assertFalse(recreated.content().maHelpOpen)
+
+        vm.onEvent(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat))
+        advanceUntilIdle()
+
+        assertNull(vm.content().startKg)
     }
 
     @Test

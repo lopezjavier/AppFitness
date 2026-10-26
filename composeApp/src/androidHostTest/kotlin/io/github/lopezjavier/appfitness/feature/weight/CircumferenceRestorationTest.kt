@@ -106,7 +106,7 @@ class CircumferenceRestorationTest {
     }
 
     @Test
-    fun addSheet_keepsTypedValuesDayAndOpenHelp_afterRecreation() {
+    fun addSheet_keepsTypedValuesAndDay_afterRecreation() {
         val savedState = SavedStateHandle()
         val tester = StateRestorationTester(rule)
         tester.setContent { Host(savedState) }
@@ -115,7 +115,6 @@ class CircumferenceRestorationTest {
         rule.onNodeWithTag("circumference_sheet_value_input_hip").performTextReplacement("98,5")
         rule.onNodeWithTag("circumference_sheet_value_input_neck").performTextReplacement("38,0")
         tap("circumference_sheet_date_prev")
-        tap("circumference_sheet_help_hip")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
@@ -124,7 +123,6 @@ class CircumferenceRestorationTest {
         assertEquals("98,5", editableText("circumference_sheet_value_input_hip"))
         assertEquals("38,0", editableText("circumference_sheet_value_input_neck"))
         rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("Ayer")
-        rule.onNodeWithTag("circumference_sheet_help_text_hip").assertExists()
     }
 
     @Test
@@ -142,7 +140,7 @@ class CircumferenceRestorationTest {
         rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Editar medida")
         assertEquals("90,0", editableText("circumference_sheet_value_input_waist"))
         rule.onNodeWithTag("circumference_sheet_value_input_hip").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("18 oct")
+        rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("dom, 18 oct")
         rule.onNodeWithTag("circumference_sheet_delete").assertExists()
     }
 }

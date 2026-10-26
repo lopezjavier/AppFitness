@@ -15,7 +15,6 @@ data class TargetSheetState(
     val problem: BodyMeasurementProblem?,
     val canSave: Boolean,
     val isSaving: Boolean,
-    val saveError: WeightSaveError?,
 )
 
 /**
@@ -36,6 +35,10 @@ data class GoalContent(
     val isOnline: Boolean,
     val targetSheet: TargetSheetState?,
     val openMetric: MetricKind?,
+    /** The onboarding weight, the start of the goal progress; null without one. */
+    val startKg: Double? = null,
+    /** Share of the way from [startKg] to [targetKg] covered by [currentKg], 0..1; null without the three. */
+    val progress: Double? = null,
 )
 
 sealed interface GoalUiState {
@@ -44,6 +47,14 @@ sealed interface GoalUiState {
     data object Error : GoalUiState
 
     data class Content(val content: GoalContent) : GoalUiState
+}
+
+sealed interface GoalEffect {
+    /** The target was saved; the UI gives one confirmation haptic and no message. */
+    data object Saved : GoalEffect
+
+    /** The save was rejected; [offline] when the cause was connectivity. The draft is kept. */
+    data class SaveFailed(val offline: Boolean) : GoalEffect
 }
 
 sealed interface GoalEvent {

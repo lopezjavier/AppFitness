@@ -7,9 +7,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.BodyMeasurementProblem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 
-/** Why a save did not go through. */
-enum class WeightSaveError { Offline, Failed }
-
 /**
  * The manual weight form of the day sheet. [existingId] is the manual row being edited (null while creating); the date
  * is never part of the form, so it cannot be changed when editing. The problems are null while the field is blank or
@@ -25,7 +22,6 @@ data class MeasurementForm(
     val canSave: Boolean,
     val canDelete: Boolean,
     val isSaving: Boolean,
-    val saveError: WeightSaveError?,
 ) {
     val isEditing: Boolean get() = existingId != null
 }
@@ -115,4 +111,13 @@ sealed interface WeightEvent {
 sealed interface WeightEffect {
     /** A delete was rejected; [offline] when the cause was connectivity. */
     data class DeleteFailed(val offline: Boolean) : WeightEffect
+
+    /** The day sheet was saved; one confirmation haptic, no message (the change is visible). */
+    data object Saved : WeightEffect
+
+    /** A row was deleted; one confirmation haptic, no message. */
+    data object Deleted : WeightEffect
+
+    /** A save was rejected and the draft kept; [offline] when the cause was connectivity. */
+    data class SaveFailed(val offline: Boolean) : WeightEffect
 }

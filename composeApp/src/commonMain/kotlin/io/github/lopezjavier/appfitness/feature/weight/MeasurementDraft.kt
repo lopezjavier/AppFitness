@@ -37,7 +37,6 @@ internal fun formOf(
     validate: ValidateBodyMeasurement,
     online: Boolean,
     saving: Boolean,
-    saveError: WeightSaveError?,
 ): MeasurementForm {
     val weight = draft.weightKg
     val fat = draft.bodyFatPct
@@ -60,6 +59,5 @@ internal fun formOf(
         canSave = weight != null && weightProblem == null && fatProblem == null && online && !saving,
         canDelete = draft.existingId != null && online && !saving,
         isSaving = saving,
-        saveError = saveError,
     )
 }

@@ -63,12 +63,7 @@ private sealed interface WeightLoad {
 }
 
 /** The open day sheet before it is joined with the data; [draft] is null for a Health Connect only day. */
-private data class SheetState(
-    val day: LocalDate,
-    val draft: MeasurementDraft?,
-    val saving: Boolean = false,
-    val error: WeightSaveError? = null,
-)
+private data class SheetState(val day: LocalDate, val draft: MeasurementDraft?, val saving: Boolean = false)
 
 /**
  * The weight screen (US-25): the current weight, a month calendar of the days with measurements and a day sheet that
@@ -234,7 +229,7 @@ class WeightViewModel(
         val state = sheet.value ?: return
         val draft = state.draft ?: return
         if (state.saving) return
-        setSheet(state.copy(draft = change(draft), error = null))
+        setSheet(state.copy(draft = change(draft)))
     }
 
     private fun setSheet(state: SheetState?) {
@@ -271,19 +266,16 @@ class WeightViewModel(
         if (data.days[state.day]?.hasHealthConnectWeight == true) return
         if (!online.value || state.saving) return
         val existing = draft.existingId?.let { id -> data.days[state.day]?.manual?.takeIf { it.id == id } }
-        setSheet(state.copy(saving = true, error = null))
+        setSheet(state.copy(saving = true))
         viewModelScope.launch {
             val result = saveBodyMeasurement(weight, draft.bodyFatPct, state.day, existing)
             if (result.isSuccess) {
                 refreshData()
                 setSheet(null)
+                effectChannel.send(WeightEffect.Saved)
             } else {
-                val error = if (result.appErrorOrNull() == AppError.Network) {
-                    WeightSaveError.Offline
-                } else {
-                    WeightSaveError.Failed
-                }
-                sheet.value?.let { setSheet(it.copy(saving = false, error = error)) }
+                sheet.value?.let { setSheet(it.copy(saving = false)) }
+                effectChannel.send(WeightEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network))
             }
         }
     }
@@ -313,6 +305,7 @@ class WeightViewModel(
             if (result.isSuccess) {
                 onDeleted()
                 afterReload(refreshData())
+                effectChannel.send(WeightEffect.Deleted)
             } else {
                 effectChannel.send(WeightEffect.DeleteFailed(offline = result.appErrorOrNull() == AppError.Network))
             }
@@ -357,7 +350,7 @@ class WeightViewModel(
             day = state.day,
             isToday = state.day == clock.today(),
             healthConnect = day?.healthConnect.orEmpty(),
-            form = state.draft?.takeUnless { locked }?.let { formOf(it, validate, online, state.saving, state.error) },
+            form = state.draft?.takeUnless { locked }?.let { formOf(it, validate, online, state.saving) },
             manualLocked = locked,
             dayComposition = composition?.takeIf { it != LatestComposition() },
         )

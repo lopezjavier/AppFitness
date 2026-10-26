@@ -11,7 +11,7 @@ data class SiteHistory(val site: CircumferenceSite, val rows: List<BodyCircumfer
 /**
  * The add/edit sheet. [existingId] is the row being edited (null while adding). Adding lists every site in [values]
  * (raw text, blank = not measured); editing has only that row's site. [problems] has an entry only for non-blank
- * invalid fields. [helpSite] is the site whose measuring instructions are open. [canSave] needs at least one value,
+ * invalid fields. [canSave] needs at least one value,
  * no problem, a day not in the future, connectivity and no save in flight.
  */
 data class CircumferenceSheetState(
@@ -20,11 +20,9 @@ data class CircumferenceSheetState(
     val problems: Map<CircumferenceSite, CircumferenceProblem>,
     val date: LocalDate,
     val canGoNextDay: Boolean,
-    val helpSite: CircumferenceSite?,
     val canSave: Boolean,
     val canDelete: Boolean,
     val isSaving: Boolean,
-    val saveError: WeightSaveError?,
 ) {
     val isEditing: Boolean get() = existingId != null
 
@@ -62,9 +60,6 @@ sealed interface CircumferencesEvent {
     /** Dates after today are clamped to today. */
     data class SetDate(val date: LocalDate) : CircumferencesEvent
 
-    /** Opens the instructions of [site], closing any other; closes them when already open. */
-    data class ToggleHelp(val site: CircumferenceSite) : CircumferencesEvent
-
     data object Save : CircumferencesEvent
 
     /** Delete a row at once (ADR-45): no confirmation, no undo. */
@@ -82,4 +77,13 @@ sealed interface CircumferencesEvent {
 sealed interface CircumferencesEffect {
     /** A delete was rejected; [offline] when the cause was connectivity. */
     data class DeleteFailed(val offline: Boolean) : CircumferencesEffect
+
+    /** A row was added or edited; one confirmation haptic, no message. */
+    data object Saved : CircumferencesEffect
+
+    /** A row was deleted; one confirmation haptic, no message. */
+    data object Deleted : CircumferencesEffect
+
+    /** A save was rejected and the draft kept; [offline] when the cause was connectivity. */
+    data class SaveFailed(val offline: Boolean) : CircumferencesEffect
 }
