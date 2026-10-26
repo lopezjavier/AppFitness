@@ -52,7 +52,7 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 
 ### Phase 1: Foundations (wave 1)
 - [x] T-118: UX guards, feedback layer and screen templates — UI + core — L
-- [ ] T-119: Sheet archetypes, Name sheet and field upgrades — UI — L
+- [x] T-119: Sheet archetypes, Name sheet and field upgrades — UI — L
 - [ ] T-120: Lists and cards — UI + core — L
 
 ### Phase 2: Food domain (wave 2.1)
