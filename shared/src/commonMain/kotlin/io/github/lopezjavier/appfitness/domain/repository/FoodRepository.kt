@@ -13,6 +13,12 @@ interface FoodRepository {
     /** Text search through the `food-search` Edge Function (online only). */
     suspend fun search(query: String, page: Int = 1): Result<List<Food>>
 
+    /**
+     * The user's own manual foods whose name contains [query] (case-insensitive, wildcards escaped), at most
+     * [MANUAL_SEARCH_LIMIT]. A database read, so it answers before [search] does (online only).
+     */
+    suspend fun searchManual(query: String): Result<List<Food>>
+
     /** Foods logged in the last [days] days, most recently logged first, without repeats. */
     suspend fun recent(days: Int = DEFAULT_RECENT_DAYS): Result<List<Food>>
 
@@ -58,5 +64,6 @@ interface FoodRepository {
     companion object {
         const val DEFAULT_RECENT_DAYS = 14
         const val DEFAULT_MOST_EATEN = 20
+        const val MANUAL_SEARCH_LIMIT = 20
     }
 }

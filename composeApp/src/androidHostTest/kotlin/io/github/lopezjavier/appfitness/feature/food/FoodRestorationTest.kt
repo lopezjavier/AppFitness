@@ -75,7 +75,7 @@ class FoodRestorationTest {
     @Composable
     private fun SearchHost(model: FoodSearchViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { FoodSearchScreen(state, model::onEvent) }
+        AppTheme { FoodSearchScreen(state, model::onEvent, {}) }
     }
 
     @Composable
@@ -99,7 +99,7 @@ class FoodRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("food_search_tab_favourites").assertIsSelected()
-        rule.onNodeWithTag("food_search_result_chicken").assertExists()
+        rule.onNodeWithTag("food_search_row_chicken").assertExists()
         assertEquals(emptyList<String>(), foods.searches)
     }
 
@@ -127,8 +127,8 @@ class FoodRestorationTest {
         rule.setContent { SearchHost(searchModel(saved)) }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("food_search_input").assertTextContains("pollo")
-        rule.onNodeWithTag("food_search_result_chicken").assertExists()
+        rule.onNodeWithTag("food_search_field").assertTextContains("pollo")
+        rule.onNodeWithTag("food_search_row_chicken").assertExists()
         assertEquals(listOf("pollo"), foods.searches)
     }
 
@@ -141,6 +141,8 @@ class FoodRestorationTest {
         )
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(addModel(SavedStateHandle())) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("add_food_label_nutrients").assertExists()
         rule.onNodeWithTag("add_food_label_row_${micronutrientTag(kinds.last())}").assertDoesNotExist()
@@ -165,13 +167,15 @@ class FoodRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(addModel(saved)) }
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_amount").performTextReplacement("150")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_amount").assertTextContains("150")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("150")
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
+        rule.waitForIdle()
         rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
     }
 
@@ -182,18 +186,18 @@ class FoodRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(addModel(saved)) }
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_portion_option_p1").performClick()
+        rule.onNodeWithTag("food_sheet_portion_option_p1").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_amount").performTextReplacement("3")
-        rule.onNodeWithTag("add_food_meal_snack").performClick()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("3")
+        rule.onNodeWithTag("food_sheet_meal_snack").performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_sheet").assertExists()
-        rule.onNodeWithTag("add_food_portion_option_p1").assertIsSelected()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("3")
-        rule.onNodeWithTag("add_food_meal_snack").assertIsSelected()
+        rule.onNodeWithTag("food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet_portion_option_p1").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("3")
+        rule.onNodeWithTag("food_sheet_meal_snack").assertIsSelected()
     }
 }

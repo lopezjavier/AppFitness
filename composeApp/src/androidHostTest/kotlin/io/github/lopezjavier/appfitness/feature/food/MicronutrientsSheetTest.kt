@@ -69,6 +69,8 @@ class MicronutrientsSheetTest {
     private fun show(state: AddFoodUiState) {
         rule.setContent { AppTheme { AddFoodSheet(state, {}, {}) } }
         rule.waitForIdle()
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
+        rule.waitForIdle()
     }
 
     private fun expand() {

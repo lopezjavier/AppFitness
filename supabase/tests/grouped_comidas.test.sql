@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(27);
+select plan(36);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -173,11 +173,13 @@ select set_config('request.jwt.claims',
 select is((select count(*)::int from public.food_log_entries), 0, 'Bea does not see Ana''s grouped entries');
 with u as (update public.food_log_entries set group_name = 'Hack' returning 1)
 select is((select count(*)::int from u), 0, 'Bea cannot update Ana''s grouped entries');
-select lives_ok(
+select throws_ok(
   $$select public.save_meal_as_comida(date '2030-01-01', (select v from slots where k = 'b_breakfast'), 'Comida de Bea',
       '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":100}]'::jsonb,
       array['e1000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000004']::uuid[])$$,
-  'Bea saving a comida with Ana''s entry ids succeeds without touching them');
+  '22023', 'unknown or foreign entry id', 'Bea saving a comida with Ana''s entry ids is refused');
+select is((select count(*)::int from public.meal_templates where name = 'Comida de Bea'),
+  0, 'the refused call did not keep Bea''s comida');
 select set_config('request.jwt.claims',
   '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
 select results_eq(
@@ -186,6 +188,41 @@ select results_eq(
   $$values ('e1000000-0000-4000-8000-000000000003'::uuid, null::text),
            ('e1000000-0000-4000-8000-000000000004'::uuid, 'Vieja'::text)$$,
   'Ana''s entries are unchanged after Bea''s attempt');
+
+-- ---------------------------------------------------------------------------
+-- Strictness (T-122): unknown ids, other day or meal raise and roll everything back
+-- ---------------------------------------------------------------------------
+select throws_ok(
+  $$select public.save_meal_as_comida(date '2030-01-01', (select v from slots where k = 'a_breakfast'), 'Estricta',
+      '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":100}]'::jsonb,
+      array['e1000000-0000-4000-8000-000000000003', 'deadbeef-0000-4000-8000-000000000000']::uuid[])$$,
+  '22023', 'unknown or foreign entry id', 'an unknown entry id is refused');
+select is((select count(*)::int from public.meal_templates where name = 'Estricta'),
+  0, 'the refused call did not keep the comida');
+select is((select group_id from public.food_log_entries where id = 'e1000000-0000-4000-8000-000000000003'),
+  null::uuid, 'the valid entry in a refused call stays ungrouped');
+select throws_ok(
+  $$select public.save_meal_as_comida(date '2030-01-01', (select v from slots where k = 'a_breakfast'), 'Estricta',
+      '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":100}]'::jsonb,
+      array['e1000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000005']::uuid[])$$,
+  '22023', 'unknown or foreign entry id', 'an entry id of another meal is refused');
+select throws_ok(
+  $$select public.save_meal_as_comida(date '2030-01-01', (select v from slots where k = 'a_breakfast'), 'Estricta',
+      '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":100}]'::jsonb,
+      array['e1000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000006']::uuid[])$$,
+  '22023', 'unknown or foreign entry id', 'an entry id of another day is refused');
+select is((select count(*)::int from public.food_log_entries
+           where id in ('e1000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000005',
+                        'e1000000-0000-4000-8000-000000000006')
+             and group_id is not null),
+  0, 'no entry was grouped by the refused calls');
+select lives_ok(
+  $$select public.save_meal_as_comida(date '2030-01-01', (select v from slots where k = 'a_breakfast'), 'Con duplicados',
+      '[{"food_id":"0ff00000-0000-4000-8000-000000000001","amount":100}]'::jsonb,
+      array['e1000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000003']::uuid[])$$,
+  'duplicate ids in the array are accepted');
+select isnt((select group_id from public.food_log_entries where id = 'e1000000-0000-4000-8000-000000000003'),
+  null::uuid, 'the entry listed twice is grouped');
 
 select * from finish();
 rollback;

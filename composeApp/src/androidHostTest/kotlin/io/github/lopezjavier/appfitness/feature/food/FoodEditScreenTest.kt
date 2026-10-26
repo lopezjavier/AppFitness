@@ -88,7 +88,7 @@ class FoodEditScreenTest {
                 }
             }
         }
-        AppTheme { CreateFoodScreen(state, model::onEvent) }
+        AppTheme { CreateFoodScreen(state, model::onEvent, {}) }
     }
 
     private fun showForm(model: CreateFoodViewModel = editModel()) {
@@ -131,7 +131,7 @@ class FoodEditScreenTest {
         rule.onNodeWithTag("create_food_unit_ml").assertIsEnabled()
         rule.onNodeWithTag("create_food_unit_locked").assertDoesNotExist()
         tap("create_food_unit_ml")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals("ml", foods.updates.single().baseUnit)
         assertEquals("ml", foods.known.getValue("yogurt").baseUnit)
@@ -169,7 +169,7 @@ class FoodEditScreenTest {
         replace("create_food_kcal_field", "70")
         foods.inUse += "yogurt" // The food got used after the form was opened.
 
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         rule.onNodeWithTag("create_food_screen").assertExists()
         rule.onNodeWithTag(
@@ -180,7 +180,7 @@ class FoodEditScreenTest {
         rule.onNodeWithTag("create_food_kcal_field").assertTextContains("70")
         assertEquals(emptyList<String>(), saved)
 
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals("g", foods.updates.last().baseUnit)
         assertEquals(70.0, foods.known.getValue("yogurt").nutrition.kcal, 0.0)
@@ -193,7 +193,7 @@ class FoodEditScreenTest {
         showForm()
 
         replace("create_food_kcal_field", "70")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(70.0, foods.updates.single().nutrition.kcal, 0.0)
         assertEquals(listOf("yogurt"), saved)
@@ -207,7 +207,7 @@ class FoodEditScreenTest {
         tap("create_food_add_portion_button")
         rule.onNodeWithTag("create_food_portion_label_0").performTextInput("1 tarrina")
         rule.onNodeWithTag("create_food_portion_amount_0").performTextInput("125")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(listOf(NewPortion("1 tarrina", 125.0)), foods.updates.single().portions)
     }
@@ -218,7 +218,7 @@ class FoodEditScreenTest {
         showForm()
 
         replace("create_food_portion_amount_0", "120")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(listOf(NewPortion("1 tarrina", 120.0)), foods.updates.single().portions)
     }
@@ -229,7 +229,7 @@ class FoodEditScreenTest {
         showForm()
 
         tap("create_food_portion_remove_0")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(emptyList<NewPortion>(), foods.updates.single().portions)
     }
@@ -283,7 +283,7 @@ class FoodEditScreenTest {
         showForm()
         tap("create_food_unit_ml")
         foods.inUse += "yogurt"
-        tap("create_food_save_button")
+        tap("create_food_save")
         rule.onNodeWithTag("create_food_unit_refused").assertExists()
 
         replace("create_food_kcal_field", "71")
@@ -304,7 +304,7 @@ class FoodEditScreenTest {
         tap("create_food_section_fats_toggle")
         rule.onNodeWithTag("create_food_nutrient_polyols").performTextInput("1,5")
         rule.waitForIdle()
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         val values = foods.updates.single().micronutrients.values
         assertEquals(12.0, values.getValue(MicronutrientKind.VitaminC), 0.0)
@@ -344,16 +344,16 @@ class FoodEditScreenTest {
         connectivity.state.value = false
         showForm()
 
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
-        rule.onNodeWithTag("create_food_offline_hint").assertExists()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+        rule.onNodeWithTag("offline_hint").assertExists()
     }
 
     @Test
-    fun saveButton_isEnabledForAnUnchangedLoadedFood() {
+    fun saveButton_isDisabledForAnUnchangedLoadedFood() {
         manualYogurt()
         showForm()
 
-        rule.onNodeWithTag("create_food_save_button").assertIsEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
     }
 
     @Test
@@ -366,7 +366,7 @@ class FoodEditScreenTest {
             AppTheme { AddFoodSheet(state, manual::onEvent, {}) }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("add_food_edit").assertIsEnabled()
+        rule.onNodeWithTag("food_sheet_edit_food").assertIsEnabled()
     }
 
     @Test
@@ -379,8 +379,8 @@ class FoodEditScreenTest {
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_name").assertExists()
-        rule.onNodeWithTag("add_food_edit").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_title").assertExists()
+        rule.onNodeWithTag("food_sheet_edit_food").assertDoesNotExist()
     }
 
     @Test
@@ -394,7 +394,7 @@ class FoodEditScreenTest {
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_edit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_edit_food").assertIsNotEnabled()
     }
 
     @Composable
@@ -417,13 +417,15 @@ class FoodEditScreenTest {
         manualYogurt()
         rule.setContent { SheetAndForm(sheetModel(), ::editModel) }
         rule.waitForIdle()
+        tap("food_sheet_details_toggle")
         rule.onNodeWithTag("add_food_label_row_energy").assertTextContains("60 kcal", substring = true)
 
-        tap("add_food_edit")
+        tap("food_sheet_edit_food")
         replace("create_food_kcal_field", "70")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         rule.onNodeWithTag("create_food_screen").assertDoesNotExist()
+        tap("food_sheet_details_toggle")
         rule.onNodeWithTag("add_food_label_row_energy").assertTextContains("70 kcal", substring = true)
     }
 
@@ -433,7 +435,7 @@ class FoodEditScreenTest {
         rule.setContent { SheetAndForm(sheetModel(), ::editModel) }
         rule.waitForIdle()
 
-        tap("add_food_edit")
+        tap("food_sheet_edit_food")
         replace("create_food_kcal_field", "99")
 
         assertTrue(foods.updates.isEmpty())

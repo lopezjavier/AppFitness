@@ -1,8 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.templates
 
-import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -10,8 +10,8 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
@@ -63,81 +63,79 @@ class TemplateDetailsCookingTest {
     }
 
     @Test
-    fun aSolidFood_hasARawChip_andADrinkHasNone() {
+    fun aRawSolidFood_showsNoMethodInItsRow_andADrinkNeverDoes() {
         show()
 
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertTextContains("Crudo")
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertContentDescriptionEquals("Cocinado: Crudo. Cambiar")
-        rule.onNodeWithTag("template_details_cooking_chip_1").assertDoesNotExist()
+        rule.assertRowText("template_edit_item_0", "120 g")
+        rule.onNodeWithText("Crudo", substring = true).assertDoesNotExist()
+        rule.assertRowText("template_edit_item_1", "200 ml")
     }
 
     @Test
-    fun theChip_hasATouchTargetOfAtLeast48dp() {
+    fun tappingASolidFood_opensTheFoodSheet_withTheSelectorOnRaw() {
         show()
 
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertHeightIsAtLeast(48.dp)
-    }
+        tap("template_edit_item_0")
 
-    @Test
-    fun theChip_opensTheFoodSheet_withTheSelectorOnRaw() {
-        show()
-
-        tap("template_details_cooking_chip_0")
-
-        rule.onNodeWithTag("template_details_food_cooking_raw").assertIsSelected()
-        rule.onNodeWithTag("template_details_food_cooking_griddle").assertIsNotSelected()
-        rule.onNodeWithTag("template_details_food_cooking_impact").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_cooking_griddle").assertIsNotSelected()
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertDoesNotExist()
     }
 
     @Test
     fun aDrinkSheet_hasNoSelector() {
         show()
 
-        tap("template_details_item_1")
+        tap("template_edit_item_1")
 
-        rule.onNodeWithTag("template_food_sheet_save").assertIsDisplayed()
-        rule.onNodeWithTag("template_details_food_cooking_raw").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_commit").assertIsDisplayed()
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertDoesNotExist()
     }
 
     @Test
     fun choosingGriddle_showsTheImpactLine_andGuardarAppliesItToTheRowAndTheTotals() {
         show()
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("220 kcal")
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("220 kcal")
 
-        tap("template_details_cooking_chip_0")
-        tap("template_details_food_cooking_griddle")
-        rule.onNodeWithTag("template_details_food_cooking_impact").assertTextEquals("+10,8 kcal y +1,2 g de grasa")
-        tap("template_food_sheet_save")
+        tap("template_edit_item_0")
+        tap("food_sheet_cooking_griddle")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+10,8 kcal y +1,2 g de grasa")
+        tap("food_sheet_commit")
 
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertTextContains("A la plancha")
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("231 kcal")
-        rule.onNodeWithTag("template_details_unsaved_hint").assertIsDisplayed()
+        rule.assertRowText("template_edit_item_0", "A la plancha")
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("231 kcal")
+        rule.onNodeWithTag("template_edit_save").assertIsEnabled()
     }
 
     @Test
     fun closingTheSheet_discardsThePendingMethod() {
         show()
 
-        tap("template_details_cooking_chip_0")
-        tap("template_details_food_cooking_fried")
-        tap("template_food_sheet_close")
+        tap("template_edit_item_0")
+        tap("food_sheet_cooking_fried")
+        tap("food_sheet_close")
 
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertTextContains("Crudo")
-        rule.onNodeWithTag("template_details_kcal").assertTextContains("220 kcal")
-        rule.onNodeWithTag("template_details_unsaved_hint").assertDoesNotExist()
-        tap("template_details_cooking_chip_0")
-        rule.onNodeWithTag("template_details_food_cooking_raw").assertIsSelected()
+        rule.onNodeWithText("Crudo", substring = true).assertDoesNotExist()
+        rule.onNodeWithTag("template_edit_kcal").assertTextContains("220 kcal")
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
+        tap("template_edit_item_0")
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertIsSelected()
     }
 
     @Test
-    fun anadir_logsTheFoodsWithTheirMethods_andTheAddedFat() {
+    fun guardar_storesTheMethods_andTheReadOnlyAnadirLogsThemWithTheAddedFat() {
         show()
-        tap("template_details_cooking_chip_0")
-        tap("template_details_food_cooking_griddle")
-        tap("template_food_sheet_save")
+        tap("template_edit_item_0")
+        tap("food_sheet_cooking_griddle")
+        tap("food_sheet_commit")
 
-        tap("template_details_add")
+        tap("template_edit_save")
 
+        assertEquals(
+            listOf(CookingMethod.Griddle, CookingMethod.Raw),
+            templates.templates.single().items.map { it.cookingMethod },
+        )
+        tap("template_details_primary")
         val batch = diary.addedBatches.single()
         assertEquals(listOf(CookingMethod.Griddle, CookingMethod.Raw), batch.map { it.cookingMethod })
         assertEquals(1.2, batch.first().cookingOilRetainedG, 0.0)
@@ -145,12 +143,12 @@ class TemplateDetailsCookingTest {
 
     @Test
     @Config(qualifiers = "w360dp-h2400dp-xxhdpi", fontScale = 2.0f)
-    fun atLargeFonts_theChipStillShowsAndOpensTheSheet() {
+    fun atLargeFonts_theRowStillShowsAndOpensTheSheet() {
         show()
 
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertIsDisplayed()
-        tap("template_details_cooking_chip_0")
-        rule.onNodeWithTag("template_details_food_cooking_raw").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_item_0").assertIsDisplayed()
+        tap("template_edit_item_0")
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertIsDisplayed()
     }
 
     @Test
@@ -159,15 +157,15 @@ class TemplateDetailsCookingTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { DetailsHost(detailsModel(templates, connectivity, saved, diary = diary)) }
         rule.waitForIdle()
-        tap("template_details_cooking_chip_0")
-        tap("template_details_food_cooking_air_fryer")
-        tap("template_food_sheet_save")
+        tap("template_edit_item_0")
+        tap("food_sheet_cooking_air_fryer")
+        tap("food_sheet_commit")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_cooking_chip_0").assertTextContains("Air fryer")
-        rule.onNodeWithTag("template_details_unsaved_hint").assertIsDisplayed()
+        rule.assertRowText("template_edit_item_0", "Air fryer")
+        rule.onNodeWithTag("template_edit_save").assertIsEnabled()
     }
 
     @Test
@@ -176,13 +174,13 @@ class TemplateDetailsCookingTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { DetailsHost(detailsModel(templates, connectivity, saved, diary = diary)) }
         rule.waitForIdle()
-        tap("template_details_cooking_chip_0")
-        tap("template_details_food_cooking_fried")
+        tap("template_edit_item_0")
+        tap("food_sheet_cooking_fried")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_food_cooking_fried").assertIsSelected()
-        rule.onNodeWithTag("template_details_food_cooking_impact").assertTextEquals("+86,4 kcal y +9,6 g de grasa")
+        rule.onNodeWithTag("food_sheet_cooking_fried").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+86,4 kcal y +9,6 g de grasa")
     }
 }

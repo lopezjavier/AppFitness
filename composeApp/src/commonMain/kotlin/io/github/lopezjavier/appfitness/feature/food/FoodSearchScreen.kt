@@ -1,6 +1,7 @@
+@file:Suppress("TooManyFunctions") // One composable per block of the search screen.
+
 package io.github.lopezjavier.appfitness.feature.food
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,26 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
+import io.github.lopezjavier.appfitness.composeapp.resources.add_item
+import io.github.lopezjavier.appfitness.composeapp.resources.food_action_photo
+import io.github.lopezjavier.appfitness.composeapp.resources.food_action_scan
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
-import io.github.lopezjavier.appfitness.composeapp.resources.food_create_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_recent
@@ -41,65 +36,70 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remo
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_g
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
-import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_offline_state
-import io.github.lopezjavier.appfitness.composeapp.resources.food_scan_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.food_remote_error
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppSearchField
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
-import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.feature.diary.addObjectLabel
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_ROWS = 6
 private const val NAME_FRACTION = 0.6f
 private const val DETAIL_FRACTION = 0.35f
+private const val TAG = "food_search"
 
 /**
- * Food search (US-17, US-21): the search box, the four empty-box tabs (hidden while a query is typed) and the results.
- * The top bar belongs to the shell. [scanFailed] shows the generic "could not read the code" message under the box;
- * [templateManageFailed] for a rename or delete of a comida that
- * was refused. [snackbarHost] shows generic messages at the bottom. The not-found card of a scanned
- * [FoodSearchUiState.notFoundBarcode] and the "Crear alimento" button of the empty result emit their events.
+ * Food search (US-17, US-21) on [AppScreen] (R-01): titled with the destination, "Añadir al desayuno" (the label of
+ * the button that opened it) or "Añadir alimento" when a food is chosen for a comida. Under the search field one row of
+ * quick actions ("Escanear", "Foto", "Crear alimento"), then the four views ("Recientes / Más comidos / Favoritos /
+ * Guardadas", hidden while a query is typed) as tabs and the results: the user's own foods first, the Open Food Facts
+ * ones below them (a skeleton while they load, an inline error with "Reintentar" if they failed). [scanFailed] shows
+ * the generic "could not read the code" message under the field; [templateManageFailed] a refused delete of a comida.
+ * Offline, the search and the actions that need the server are disabled.
  */
 @Composable
 fun FoodSearchScreen(
     state: FoodSearchUiState,
     onEvent: (FoodSearchEvent) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     scanFailed: Boolean = false,
     templateManageFailed: Boolean = false,
-    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     onPhotoClick: () -> Unit = {},
 ) {
-    Box(modifier.fillMaxSize().testTag("food_search_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
+    AppScreen(
+        title = titleOf(state),
+        modifier = modifier.testTag("food_search_screen"),
+        onBack = onBack,
+        testTagPrefix = TAG,
+    ) {
+        Column(Modifier.fillMaxSize()) {
             Column(
                 Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                SearchField(state, onEvent, onPhotoClick)
+                SearchBox(state, onEvent)
+                QuickActions(state, onEvent, onPhotoClick)
                 if (scanFailed) ScanError()
                 state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
                 if (state.query.isBlank()) Tabs(state, onEvent)
@@ -112,53 +112,17 @@ fun FoodSearchScreen(
                 }
             }
         }
-        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin)) { data ->
-            Snackbar {
-                Text(data.visuals.message)
-            }
-        }
     }
 }
 
-private const val SEARCH_FIELD_MIN_TARGETS = 3
-
-/** Search box with a clear button, the scan and the create buttons; all are disabled offline (they need the server). */
+/** "Añadir al desayuno" for the meal that opened the search, else the generic "Añadir alimento" (R-01). */
 @Composable
-private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onPhotoClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        SearchBox(state, onEvent, Modifier.weight(1f).widthIn(min = Spacing.minTouchTarget * SEARCH_FIELD_MIN_TARGETS))
-        // The three 48 dp icons share the row with the field; they do not scale with the font.
-        val offlineState = stringResource(Res.string.food_photo_offline_state)
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_scan_cd),
-            icon = Res.drawable.ic_barcode_scanner,
-            testTag = "food_search_scan_button",
-            onClick = { onEvent(FoodSearchEvent.ScanClicked) },
-            enabled = !state.isOffline,
-            modifier = Modifier.padding(bottom = Spacing.xs),
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_photo_cd),
-            icon = Res.drawable.ic_photo_camera,
-            testTag = "food_search_photo_button",
-            onClick = onPhotoClick,
-            enabled = !state.isOffline,
-            modifier = Modifier
-                .padding(bottom = Spacing.xs)
-                .then(if (state.isOffline) Modifier.semantics { stateDescription = offlineState } else Modifier),
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_create_cd),
-            icon = Res.drawable.ic_add,
-            testTag = "food_search_create_icon",
-            onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
-            enabled = !state.isOffline,
-            modifier = Modifier.padding(bottom = Spacing.xs),
-        )
+private fun titleOf(state: FoodSearchUiState): String {
+    val slot = state.mealSlot
+    return if (state.pick || slot == null) {
+        stringResource(Res.string.add_food_sheet_title)
+    } else {
+        stringResource(Res.string.add_item, addObjectLabel(slot))
     }
 }
 
@@ -170,25 +134,52 @@ private fun SearchBox(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Un
         label = stringResource(Res.string.food_search_label),
         placeholder = stringResource(Res.string.food_search_placeholder),
         onSearch = {}, // The search is live as the query changes; the keyboard action only hides the keyboard.
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         enabled = !state.isOffline,
-        testTagPrefix = "food_search_input",
-        clearTestTag = "food_search_clear",
+        testTagPrefix = "${TAG}_field",
+        clearTestTag = "${TAG}_clear",
     )
 }
 
-/** The empty-box tabs as a scrollable chip row (four chips do not fit the width of a segmented control). */
+/** One row of short actions under the field; all need the server, so they are disabled offline. */
+@Composable
+private fun QuickActions(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onPhotoClick: () -> Unit) {
+    val offlineState = stringResource(Res.string.food_photo_offline_state)
+    val offline = if (state.isOffline) Modifier.semantics { stateDescription = offlineState } else Modifier
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SecondaryButton(
+            text = stringResource(Res.string.food_action_scan),
+            onClick = { onEvent(FoodSearchEvent.ScanClicked) },
+            modifier = Modifier.weight(1f).then(offline).testTag("${TAG}_action_scan"),
+            enabled = !state.isOffline,
+        )
+        SecondaryButton(
+            text = stringResource(Res.string.food_action_photo),
+            onClick = onPhotoClick,
+            modifier = Modifier.weight(1f).then(offline).testTag("${TAG}_action_photo"),
+            enabled = !state.isOffline,
+        )
+        SecondaryButton(
+            text = stringResource(Res.string.food_create_action),
+            onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
+            modifier = Modifier.weight(1f).then(offline).testTag("${TAG}_action_create"),
+            enabled = !state.isOffline,
+        )
+    }
+}
+
+/** The empty-box views as tabs (SEL-3); a comida has no "Guardadas" while choosing a food for one. */
 @Composable
 private fun Tabs(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
-    val templatesTab = AppOption(stringResource(Res.string.food_tab_templates), "food_search_tab_templates")
+    val templatesTab = AppOption(stringResource(Res.string.food_tab_templates), "${TAG}_tab_templates")
     val options = listOf(
-        AppOption(stringResource(Res.string.food_tab_recent), "food_search_tab_recent"),
-        AppOption(stringResource(Res.string.food_tab_most_eaten), "food_search_tab_most_eaten"),
-        AppOption(stringResource(Res.string.food_tab_favourites), "food_search_tab_favourites"),
+        AppOption(stringResource(Res.string.food_tab_recent), "${TAG}_tab_recent"),
+        AppOption(stringResource(Res.string.food_tab_most_eaten), "${TAG}_tab_most_eaten"),
+        AppOption(stringResource(Res.string.food_tab_favourites), "${TAG}_tab_favourites"),
     ) + listOfNotNull(templatesTab.takeUnless { state.pick })
-    FilterChipRow(
+    AppTabRow(
         options = options,
-        selectedIndex = state.tab.ordinal,
+        selectedIndex = state.tab.ordinal.coerceAtMost(options.lastIndex),
         onSelect = { onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.entries[it])) },
     )
 }
@@ -198,7 +189,7 @@ private fun Results(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit
     when (val results = state.results) {
         FoodResults.Loading -> ResultsLoading()
 
-        is FoodResults.Content -> ResultsList(results.foods, state.favouriteIds, state.isOffline, onEvent)
+        is FoodResults.Content -> ResultsList(results, state.favouriteIds, state.isOffline, onEvent)
 
         FoodResults.Empty -> EmptyResults(state, onEvent)
 
@@ -208,7 +199,7 @@ private fun Results(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit
                     if (state.isOffline) Res.string.food_offline_message else Res.string.food_error_message,
                 ),
                 action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(FoodSearchEvent.Retry) },
-                testTagPrefix = "food_search_retry",
+                testTagPrefix = "${TAG}_retry",
             )
         }
     }
@@ -233,13 +224,13 @@ private fun EmptyResults(state: FoodSearchUiState, onEvent: (FoodSearchEvent) ->
         EmptyState(
             message = if (searching) stringResource(Res.string.food_empty_search_hint) else message,
             title = if (searching) message else null,
-            testTagPrefix = "food_search_empty",
+            testTagPrefix = "${TAG}_empty",
         )
         if (searching) {
             PrimaryButton(
                 text = stringResource(Res.string.food_create_action),
                 onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
-                modifier = Modifier.testTag("food_search_create_button"),
+                modifier = Modifier.testTag("${TAG}_create_button"),
             )
         }
     }
@@ -248,37 +239,41 @@ private fun EmptyResults(state: FoodSearchUiState, onEvent: (FoodSearchEvent) ->
 @Composable
 private fun ResultsLoading() {
     Column(
-        Modifier.fillMaxSize().padding(horizontal = Spacing.screenMargin).testTag("food_search_skeleton"),
+        Modifier.fillMaxSize().padding(horizontal = Spacing.screenMargin).testTag("${TAG}_skeleton"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        repeat(SKELETON_ROWS) {
-            Column(
-                Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).padding(vertical = Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                SkeletonBox(Modifier.fillMaxWidth(NAME_FRACTION).heightIn(min = Spacing.lg))
-                SkeletonBox(Modifier.fillMaxWidth(DETAIL_FRACTION).heightIn(min = Spacing.md))
-            }
-        }
+        repeat(SKELETON_ROWS) { SkeletonRow() }
     }
 }
 
 @Composable
+private fun SkeletonRow() {
+    Column(
+        Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).padding(vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        SkeletonBox(Modifier.fillMaxWidth(NAME_FRACTION).heightIn(min = Spacing.lg))
+        SkeletonBox(Modifier.fillMaxWidth(DETAIL_FRACTION).heightIn(min = Spacing.md))
+    }
+}
+
+/**
+ * The foods: the manual ones first (never reordered), then the Open Food Facts ones. While those load a skeleton row
+ * sits under the manual rows; if they failed an inline error with "Reintentar" does.
+ */
+@Composable
 private fun ResultsList(
-    foods: List<Food>,
+    results: FoodResults.Content,
     favouriteIds: Set<String>,
     isOffline: Boolean,
     onEvent: (FoodSearchEvent) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().testTag("food_search_list"),
-        contentPadding = PaddingValues(
-            horizontal = Spacing.screenMargin,
-            vertical = Spacing.sm,
-        ),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        modifier = Modifier.fillMaxSize().testTag("${TAG}_list"),
+        contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        items(foods, key = { it.id }) { food ->
+        items(results.foods, key = { it.id }) { food ->
             FoodRow(
                 food = food,
                 favourite = food.id in favouriteIds,
@@ -286,6 +281,21 @@ private fun ResultsList(
                 onClick = { onEvent(FoodSearchEvent.SelectFood(food)) },
                 onToggleFavourite = { onEvent(FoodSearchEvent.ToggleFavourite(food.id)) },
             )
+        }
+        if (results.remoteLoading) {
+            item(key = "remote_loading") {
+                Box(Modifier.testTag("${TAG}_remote_loading")) { SkeletonRow() }
+            }
+        }
+        if (results.remoteFailed) {
+            item(key = "remote_error") {
+                ErrorState(
+                    message = stringResource(Res.string.food_remote_error),
+                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(FoodSearchEvent.Retry) },
+                    testTagPrefix = "${TAG}_remote_error",
+                    actionTestTag = "${TAG}_remote_retry",
+                )
+            }
         }
     }
 }
@@ -305,45 +315,20 @@ private fun FoodRow(
     val favouriteLabel = stringResource(
         if (favourite) Res.string.food_favourite_remove_cd else Res.string.food_favourite_add_cd,
     )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = Spacing.minTouchTarget)
-            .clip(AppShapes.md)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .testTag("food_search_result_${food.id}"),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f).padding(vertical = Spacing.sm)) {
-            Text(
-                text = food.name,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+    val brand = food.brand?.takeIf { it.isNotBlank() }
+    AppListRow(
+        headline = food.name,
+        modifier = Modifier.testTag("${TAG}_row_${food.id}"),
+        supporting = if (brand != null) "$brand · $per100" else per100,
+        trailing = {
+            FavouriteToggle(
+                selected = favourite,
+                onToggle = onToggleFavourite,
+                contentDescription = favouriteLabel,
+                modifier = Modifier.testTag("${TAG}_favourite_${food.id}"),
+                enabled = enabled,
             )
-            food.brand?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = it,
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Text(
-                text = per100,
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-            )
-        }
-        FavouriteToggle(
-            selected = favourite,
-            onToggle = onToggleFavourite,
-            contentDescription = favouriteLabel,
-            modifier = Modifier.testTag("food_search_favourite_${food.id}"),
-            enabled = enabled,
-        )
-    }
+        },
+        onClick = if (enabled) onClick else null,
+    )
 }

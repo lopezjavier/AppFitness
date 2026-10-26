@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.food
 
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,7 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_submit_error
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_error
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEffect
@@ -22,6 +25,8 @@ import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEffect
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEvent
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoFlow
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
+import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -31,7 +36,7 @@ import org.koin.core.parameter.parametersOf
  * [date]. [onOpenFood] receives the id of the food to log (a tapped row or a scanned product; the add-food sheet is
  * opened by navigation, so it survives process death). [onCreateFood] opens the create-food form with the scanned
  * barcode and/or the typed name, or the JSON `NewFoodDraft` of a photo estimate (null prefill and name = empty form).
- * [onOpenTemplate] opens the read-only details of a comida; the list is reloaded when
+ * [onOpenTemplate] opens the read-only details of a comida, [onBack] is the top bar's arrow; the list is reloaded when
  * the search is shown again (the editor may have changed it). In [pick] mode the search chooses a food for a comida
  * draft (no Comidas tab; [slotId] and [date] are irrelevant).
  */
@@ -43,6 +48,7 @@ fun FoodSearchRoot(
     onOpenFood: (foodId: String) -> Unit,
     onCreateFood: (barcode: String?, name: String?, prefill: String?) -> Unit,
     onOpenTemplate: (templateId: String) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     pick: Boolean = false,
     viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date, pick) }),
@@ -56,7 +62,6 @@ fun FoodSearchRoot(
     val currentOpenFood by rememberUpdatedState(onOpenFood)
     val currentCreateFood by rememberUpdatedState(onCreateFood)
     val currentOpenTemplate by rememberUpdatedState(onOpenTemplate)
-    val snackbarHost = remember { SnackbarHostState() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(FoodSearchEvent.RefreshTemplates) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -93,10 +98,10 @@ fun FoodSearchRoot(
             templateManageFailed = false
             viewModel.onEvent(it)
         },
+        onBack = onBack,
         modifier = modifier,
         scanFailed = scanFailed,
         templateManageFailed = templateManageFailed,
-        snackbarHost = snackbarHost,
         onPhotoClick = { photoViewModel.onEvent(FoodPhotoEvent.Open) },
     )
     FoodPhotoFlow(photoState, photoViewModel::onEvent, photoCapture::readJpeg)
@@ -112,24 +117,15 @@ fun CreateFoodRoot(
     barcode: String?,
     name: String?,
     onSave: (foodId: String) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     prefill: String? = null,
     viewModel: CreateFoodViewModel =
         koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty(), "", prefill.orEmpty()) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentOnSaved by rememberUpdatedState(onSave)
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is CreateFoodEffect.Saved -> currentOnSaved(effect.foodId)
-
-                // The state already shows the inline error.
-                CreateFoodEffect.SaveFailed -> Unit
-            }
-        }
-    }
-    CreateFoodScreen(state, viewModel::onEvent, modifier)
+    FoodFormEffects(viewModel.effects, onSave)
+    CreateFoodScreen(state, viewModel::onEvent, onBack, modifier)
 }
 
 /**
@@ -158,8 +154,10 @@ fun AddFoodRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val amountPhotoState by amountPhotoViewModel.uiState.collectAsStateWithLifecycle()
-    var submitFailed by remember { mutableStateOf(false) }
     val haptic = LocalAppHaptics.current
+    val messages = LocalAppMessages.current
+    val submitError = stringResource(Res.string.add_food_submit_error)
+    val currentSubmitError by rememberUpdatedState(submitError)
     val currentOnAdded by rememberUpdatedState(onAdd)
     val currentOnPicked by rememberUpdatedState(onPick)
     LaunchedEffect(viewModel) {
@@ -170,7 +168,10 @@ fun AddFoodRoot(
                     currentOnAdded()
                 }
 
-                is AddFoodEffect.SubmitFailed -> submitFailed = true
+                is AddFoodEffect.SubmitFailed -> {
+                    haptic.reject()
+                    messages.show(currentSubmitError)
+                }
 
                 is AddFoodEffect.Picked -> currentOnPicked(effect)
             }
@@ -186,13 +187,9 @@ fun AddFoodRoot(
     }
     AddFoodSheet(
         state = state,
-        onEvent = {
-            if (it == AddFoodEvent.Submit) submitFailed = false
-            viewModel.onEvent(it)
-        },
+        onEvent = viewModel::onEvent,
         onDismiss = onDismiss,
         modifier = modifier,
-        submitFailed = submitFailed,
         onEdit = onEdit,
         amountPhoto = amountPhotoState,
         onAmountPhotoEvent = amountPhotoViewModel::onEvent,
@@ -208,19 +205,34 @@ fun AddFoodRoot(
 fun EditFoodRoot(
     foodId: String,
     onSave: (foodId: String) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CreateFoodViewModel =
         koinViewModel(key = "edit_$foodId", parameters = { parametersOf("", "", foodId, "") }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    FoodFormEffects(viewModel.effects, onSave)
+    CreateFoodScreen(state, viewModel::onEvent, onBack, modifier)
+}
+
+/** Saved opens the food's sheet; a failed save is a message and one Reject vibration (R-28, R-29). */
+@Composable
+private fun FoodFormEffects(effects: Flow<CreateFoodEffect>, onSave: (foodId: String) -> Unit) {
+    val haptic = LocalAppHaptics.current
+    val messages = LocalAppMessages.current
+    val failedText = stringResource(Res.string.create_food_save_error)
+    val currentFailedText by rememberUpdatedState(failedText)
     val currentOnSaved by rememberUpdatedState(onSave)
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
+    LaunchedEffect(effects) {
+        effects.collect { effect ->
             when (effect) {
                 is CreateFoodEffect.Saved -> currentOnSaved(effect.foodId)
-                CreateFoodEffect.SaveFailed -> Unit
+
+                CreateFoodEffect.SaveFailed -> {
+                    haptic.reject()
+                    messages.show(currentFailedText)
+                }
             }
         }
     }
-    CreateFoodScreen(state, viewModel::onEvent, modifier)
 }

@@ -8,6 +8,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -132,9 +134,9 @@ class SaveTemplateFlowTest {
     private fun saveBreakfastAs(name: String) {
         rule.onNodeWithTag("diary_section_breakfast_save_template").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("save_template_name").performTextReplacement(name)
+        rule.onNodeWithTag("save_template_name_input").performTextReplacement(name)
         rule.waitForIdle()
-        rule.onNodeWithTag("save_template_submit").performClick()
+        rule.onNodeWithTag("save_template_name_commit").performClick()
         rule.waitForIdle()
     }
 
@@ -148,7 +150,7 @@ class SaveTemplateFlowTest {
         assertEquals("Desayuno A", saved.name)
         assertEquals("breakfast", saved.mealSlotId)
         assertEquals(listOf("eggs" to 120.0, "shake" to 300.0), saved.items.map { it.food.id to it.amount })
-        rule.onNodeWithTag("save_template_name").assertDoesNotExist()
+        rule.onNodeWithTag("save_template_name_input").assertDoesNotExist()
     }
 
     @Test
@@ -158,9 +160,35 @@ class SaveTemplateFlowTest {
 
         saveBreakfastAs("Desayuno A")
 
-        rule.onNodeWithTag("save_template_name_error").assertIsDisplayed()
-        rule.onNodeWithTag("save_template_name_error").assertTextEquals("Ya existe una comida con ese nombre")
-        rule.onNodeWithTag("save_template_name").assertIsDisplayed()
+        rule.onNodeWithTag("save_template_name_input_error").assertIsDisplayed()
+        rule.onNodeWithTag("save_template_name_input_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("save_template_name_input").assertIsDisplayed()
+        assertEquals(1, templates.templates.size)
+    }
+
+    @Test
+    fun theSheet_isTitledGuardarComoComida_andFocusesTheName() {
+        start()
+
+        rule.onNodeWithTag("diary_section_breakfast_save_template").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("save_template_name_title").assertTextEquals("Guardar como comida")
+        rule.onNodeWithTag("save_template_name_input").assertIsFocused()
+    }
+
+    @Test
+    fun aDuplicateName_ignoresCaseAndSurroundingSpaces_andDisablesGuardar() {
+        templates.templates += MealTemplate("t0", "Desayuno A", null, emptyList())
+        start()
+        rule.onNodeWithTag("diary_section_breakfast_save_template").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("save_template_name_input").performTextReplacement("  desayuno a ")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("save_template_name_input_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("save_template_name_commit").assertIsNotEnabled()
         assertEquals(1, templates.templates.size)
     }
 

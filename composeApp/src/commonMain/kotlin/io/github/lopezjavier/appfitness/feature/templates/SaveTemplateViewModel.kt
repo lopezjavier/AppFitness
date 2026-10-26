@@ -35,7 +35,7 @@ private sealed interface Loaded {
 
     data object Failed : Loaded
 
-    data class Ready(val sectionEntries: List<FoodLogEntry>) : Loaded
+    data class Ready(val sectionEntries: List<FoodLogEntry>, val existingNames: List<String>) : Loaded
 }
 
 /** The save flag and the chosen cooking methods, combined as one input of the state. */
@@ -91,7 +91,9 @@ class SaveTemplateViewModel(
             loaded.value = if (foodDiary.refresh(date).isSuccess) {
                 val sectionEntries = foodDiary.entries(date).first().filter { it.mealSlotId == slotId }
                 methods.value = restoreMethods(sectionEntries)
-                Loaded.Ready(sectionEntries)
+                // Optional: without the names the server still refuses a duplicate (NameAlreadyExists).
+                val names = mealTemplates.list().getOrNull().orEmpty().map { it.name }
+                Loaded.Ready(sectionEntries, names)
             } else {
                 Loaded.Failed
             }
@@ -183,6 +185,7 @@ class SaveTemplateViewModel(
         itemCount = ready.sectionEntries.size,
         isOffline = !online,
         saving = saving,
+        existingNames = ready.existingNames,
         items = ready.sectionEntries.map { entry ->
             val canCook = CookingImpact.appliesTo(entry.baseUnit)
             SaveTemplateItemRow(

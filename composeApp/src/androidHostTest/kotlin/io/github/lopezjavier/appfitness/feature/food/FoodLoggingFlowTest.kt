@@ -100,7 +100,7 @@ class FoodLoggingFlowTest {
                     if (it is DiaryEvent.AddToMeal) searching = true else diaryModel.onEvent(it)
                 })
             } else {
-                FoodSearchScreen(searchState, searchModel::onEvent)
+                FoodSearchScreen(searchState, searchModel::onEvent, {})
                 val id = openFoodId
                 if (id != null && date != null) {
                     val addModel = remember(id) { addFoodModel(id, slotId, date) }
@@ -144,19 +144,19 @@ class FoodLoggingFlowTest {
 
     private fun openSearchAndPick(foodId: String) {
         tap("diary_section_breakfast_add")
-        tap("food_search_result_$foodId")
+        tap("food_search_row_$foodId")
     }
 
     private fun setAmount(text: String) {
-        rule.onNodeWithTag("add_food_amount").performTextReplacement(text)
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement(text)
         rule.waitForIdle()
     }
 
     private fun assertPreview(text: String) =
-        rule.onNodeWithTag("add_food_preview").assertTextContains(text, substring = true)
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains(text, substring = true)
 
     private fun submitAndAssertDiaryShows(kcal: String) {
-        tap("add_food_submit")
+        tap("food_sheet_commit")
         rule.onNodeWithTag("diary_screen").assertExists()
         rule.onNodeWithTag("diary_entry_new-1").assertExists()
         rule.onNode(hasText("$kcal kcal") and hasAnyAncestor(hasTestTag("diary_entry_new-1"))).assertExists()
@@ -199,7 +199,7 @@ class FoodLoggingFlowTest {
         start(Egg)
         openSearchAndPick("egg")
 
-        tap("add_food_portion_option_p1")
+        tap("food_sheet_portion_option_p1")
         setAmount("2")
         assertPreview("220 kcal")
         submitAndAssertDiaryShows("220")
@@ -214,8 +214,8 @@ class FoodLoggingFlowTest {
         start(Rice, slotId = "dinner")
         openSearchAndPick("rice")
 
-        rule.onNodeWithTag("add_food_meal_dinner").assertExists()
-        tap("add_food_submit")
+        rule.onNodeWithTag("food_sheet_meal_dinner").assertExists()
+        tap("food_sheet_commit")
 
         assertEquals("dinner", diary.added.single().mealSlotId)
     }
@@ -226,8 +226,8 @@ class FoodLoggingFlowTest {
         taps = 0
 
         tap("diary_section_breakfast_add")
-        tap("food_search_result_rice")
-        tap("add_food_submit")
+        tap("food_search_row_rice")
+        tap("food_sheet_commit")
 
         assertEquals(3, taps)
         assertEquals(100.0, diary.added.single().amount, 0.0)
@@ -239,9 +239,9 @@ class FoodLoggingFlowTest {
         start()
         tap("diary_section_breakfast_add")
 
-        rule.onNodeWithTag("food_search_input").performTextInput("pollo")
+        rule.onNodeWithTag("food_search_field").performTextInput("pollo")
         rule.waitUntil(SEARCH_TIMEOUT_MS) {
-            rule.onAllNodes(hasTestTag("food_search_result_chicken")).fetchSemanticsNodes().isNotEmpty()
+            rule.onAllNodes(hasTestTag("food_search_row_chicken")).fetchSemanticsNodes().isNotEmpty()
         }
 
         assertEquals(listOf("pollo"), foods.searches)

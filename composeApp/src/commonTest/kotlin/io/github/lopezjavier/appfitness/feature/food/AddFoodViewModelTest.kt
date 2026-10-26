@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateQuantity
+import io.github.lopezjavier.appfitness.feature.diary.DefaultMealSlots
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
 import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -211,6 +212,37 @@ class AddFoodViewModelTest {
 
         assertNull(model.content().selectedPortionId)
         assertEquals("100", model.content().amountText)
+    }
+
+    @Test
+    fun withFourMeals_allFourAreOfferedAndExactlyOneIsSelected() = runTest(dispatcher) {
+        withFood(food("rice"))
+        val model = viewModel("rice", initialSlotId = "snack")
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals(listOf("breakfast", "lunch", "snack", "dinner"), content.slots.map { it.id })
+        assertEquals("snack", content.selectedSlotId)
+
+        model.onEvent(AddFoodEvent.SlotSelected("dinner"))
+        advanceUntilIdle()
+
+        assertEquals("dinner", model.content().selectedSlotId)
+    }
+
+    @Test
+    fun withFiveMeals_theCustomMealIsOfferedAndCanBeSelected() = runTest(dispatcher) {
+        slots.result = Result.success(DefaultMealSlots + MealSlot("extra", null, "Pre-entreno", 4))
+        withFood(food("rice"))
+        val model = viewModel("rice", initialSlotId = "lunch")
+        advanceUntilIdle()
+        assertEquals(5, model.content().slots.size)
+
+        model.onEvent(AddFoodEvent.SlotSelected("extra"))
+        advanceUntilIdle()
+
+        assertEquals("extra", model.content().selectedSlotId)
+        assertTrue(model.content().canSubmit)
     }
 
     @Test

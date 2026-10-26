@@ -82,13 +82,16 @@ class AddFoodCookingTest {
     }
 
     private fun typeAmount(text: String) {
-        rule.onNodeWithTag("add_food_amount").performScrollTo().performTextClearance()
-        rule.onNodeWithTag("add_food_amount").performTextInput(text)
+        rule.onNodeWithTag("food_sheet_amount").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("food_sheet_amount").performTextInput(text)
         rule.waitForIdle()
     }
 
     private fun tap(tag: String) {
-        rule.onNodeWithTag(tag).performScrollTo().performClick()
+        // The pinned "Añadir" sits outside the scrolling body: it is always reachable.
+        val node = rule.onNodeWithTag(tag)
+        if (tag != "food_sheet_commit") node.performScrollTo()
+        node.performClick()
         rule.waitForIdle()
     }
 
@@ -96,11 +99,11 @@ class AddFoodCookingTest {
     fun sheetStartsOnCrudo_withTheFourOptions_andNoImpactLine() {
         show()
 
-        rule.onNodeWithTag("add_food_cooking_raw").assertTextEquals("Crudo").assertIsSelected()
-        rule.onNodeWithTag("add_food_cooking_griddle").assertTextEquals("A la plancha")
-        rule.onNodeWithTag("add_food_cooking_air_fryer").assertTextEquals("Air fryer")
-        rule.onNodeWithTag("add_food_cooking_fried").assertTextEquals("Frito")
-        rule.onNodeWithTag("add_food_cooking_impact").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertTextEquals("Crudo").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_cooking_griddle").assertTextEquals("A la plancha")
+        rule.onNodeWithTag("food_sheet_cooking_air_fryer").assertTextEquals("Air fryer")
+        rule.onNodeWithTag("food_sheet_cooking_fried").assertTextEquals("Frito")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertDoesNotExist()
     }
 
     @Test
@@ -108,10 +111,10 @@ class AddFoodCookingTest {
         show()
         typeAmount("300")
 
-        tap("add_food_cooking_griddle")
+        tap("food_sheet_cooking_griddle")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+27 kcal y +3 g de grasa")
-        rule.onNodeWithTag("add_food_preview_kcal", useUnmergedTree = true).assertTextEquals("357 kcal")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+27 kcal y +3 g de grasa")
+        rule.onNodeWithTag("food_sheet_totals_kcal", useUnmergedTree = true).assertTextEquals("357 kcal")
     }
 
     @Test
@@ -119,9 +122,9 @@ class AddFoodCookingTest {
         show()
         typeAmount("300")
 
-        tap("add_food_cooking_air_fryer")
+        tap("food_sheet_cooking_air_fryer")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+54 kcal y +6 g de grasa")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+54 kcal y +6 g de grasa")
     }
 
     @Test
@@ -129,31 +132,31 @@ class AddFoodCookingTest {
         show()
         typeAmount("300")
 
-        tap("add_food_cooking_fried")
+        tap("food_sheet_cooking_fried")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+216 kcal y +24 g de grasa")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+216 kcal y +24 g de grasa")
     }
 
     @Test
     fun changingTheAmount_updatesTheImpactLine() {
         show()
         typeAmount("300")
-        tap("add_food_cooking_fried")
+        tap("food_sheet_cooking_fried")
 
         typeAmount("200")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+144 kcal y +16 g de grasa")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+144 kcal y +16 g de grasa")
     }
 
     @Test
     fun backToCrudo_removesTheImpactLine() {
         show()
-        tap("add_food_cooking_fried")
+        tap("food_sheet_cooking_fried")
 
-        tap("add_food_cooking_raw")
+        tap("food_sheet_cooking_raw")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_preview_kcal", useUnmergedTree = true).assertTextEquals("110 kcal")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_totals_kcal", useUnmergedTree = true).assertTextEquals("110 kcal")
     }
 
     @Test
@@ -162,17 +165,17 @@ class AddFoodCookingTest {
         show()
         typeAmount("300")
 
-        tap("add_food_cooking_griddle")
+        tap("food_sheet_cooking_griddle")
 
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+135 kcal y +15 g de grasa")
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+135 kcal y +15 g de grasa")
     }
 
     @Test
     fun drink_hasNoCookingSelector() {
         show(milk)
 
-        rule.onNodeWithTag("add_food_cooking_raw").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_cooking_impact").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertDoesNotExist()
     }
 
     @Test
@@ -180,8 +183,8 @@ class AddFoodCookingTest {
         preferences.result = Result.failure(AppException(AppError.Network))
         show()
 
-        rule.onNodeWithTag("add_food_cooking_raw").assertDoesNotExist()
-        tap("add_food_submit")
+        rule.onNodeWithTag("food_sheet_cooking_raw").assertDoesNotExist()
+        tap("food_sheet_commit")
 
         assertEquals(CookingMethod.Raw, diary.added.single().cookingMethod)
     }
@@ -190,9 +193,9 @@ class AddFoodCookingTest {
     fun anadir_logsTheCookedEntry_withMethodAddedFatAndAdjustedSnapshot() {
         show()
         typeAmount("300")
-        tap("add_food_cooking_griddle")
+        tap("food_sheet_cooking_griddle")
 
-        tap("add_food_submit")
+        tap("food_sheet_commit")
 
         val entry = diary.added.single()
         assertEquals(CookingMethod.Griddle, entry.cookingMethod)
@@ -208,12 +211,12 @@ class AddFoodCookingTest {
         tester.setContent { SheetHost(model(chicken, saved)) }
         rule.waitForIdle()
         typeAmount("300")
-        tap("add_food_cooking_air_fryer")
+        tap("food_sheet_cooking_air_fryer")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_cooking_air_fryer").assertIsSelected()
-        rule.onNodeWithTag("add_food_cooking_impact").assertTextEquals("+54 kcal y +6 g de grasa")
+        rule.onNodeWithTag("food_sheet_cooking_air_fryer").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_cooking_impact").assertTextEquals("+54 kcal y +6 g de grasa")
     }
 }

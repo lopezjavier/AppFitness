@@ -64,6 +64,9 @@ class TemplateEditFlowTest {
     private val callbacks = DetailsCallbacks()
     private lateinit var nav: NavHostController
 
+    /** The picker journeys start in the editor; the ones that come from the search start on the read-only details. */
+    private var startInEditor = true
+
     private val desayunoA = MealTemplate(
         id = "t1",
         name = "Desayuno A",
@@ -93,14 +96,14 @@ class TemplateEditFlowTest {
         }
         var closed by remember { mutableStateOf(false) }
         Box(modifier) {
-            DetailsHost(model, callbacks, picked, consumed, onAddFood, onAdded)
-            if ((callbacks.saved || callbacks.deleted) && !closed) {
+            DetailsHost(model, callbacks, picked, consumed, onAddFood, onAdded, startInEditor, onClose)
+            if (callbacks.deleted && !closed) {
                 closed = true
-                if (callbacks.deleted) onDeleted() else onClose()
+                onDeleted()
             }
         }
     }
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, _, onOpenTemplate, pick ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, _, onOpenTemplate, pick, _ ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Text("pick=$pick", Modifier.testTag("search_pick_flag"))
             Box(Modifier.size(48.dp).testTag("search_rice").clickable { onOpenFood("rice") })
@@ -109,7 +112,7 @@ class TemplateEditFlowTest {
     }
     private val diary = FakeFoodDiaryRepository()
     private val addFoodSlot: AddFoodSlot = { foodId, _, _, _, _, _, pick, onPick ->
-        Column(Modifier.testTag("add_food_sheet")) {
+        Column(Modifier.testTag("food_sheet")) {
             Text("$foodId|pick=$pick", Modifier.testTag("sheet_args"))
             Box(Modifier.size(48.dp).testTag("sheet_pick").clickable { onPick(foodId, 150.0, null) })
         }
@@ -157,7 +160,7 @@ class TemplateEditFlowTest {
     }
 
     private fun openPickerAndChooseRice() {
-        click("template_details_add_food")
+        click("template_edit_add_item")
         rule.onNodeWithTag("search_pick_flag").assertTextEquals("pick=true")
         click("search_rice")
         rule.onNodeWithTag("sheet_args").assertTextEquals("rice|pick=true")
@@ -170,11 +173,11 @@ class TemplateEditFlowTest {
 
         openPickerAndChooseRice()
 
-        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_screen").assertIsDisplayed()
         rule.onNodeWithTag("food_search_screen").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("template_details_item_2").assertTextContains("Arroz")
-        rule.onNodeWithTag("template_details_item_2").assertTextContains("150 g")
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
+        rule.assertRowText("template_edit_item_2", "Arroz")
+        rule.assertRowText("template_edit_item_2", "150 g")
         assertEquals(2, templates.templates.single().items.size)
         assertEquals(0, templates.saveCalls)
     }
@@ -183,11 +186,11 @@ class TemplateEditFlowTest {
     fun guardar_afterAddingAFood_savesNameRemovalAndAdditionTogether_once() {
         showEditor()
         openPickerAndChooseRice()
-        rule.onNodeWithTag("template_details_item_1").performClick()
+        rule.onNodeWithTag("template_edit_item_1").performClick()
         rule.waitForIdle()
-        click("template_food_sheet_remove")
+        click("food_sheet_remove")
 
-        click("template_details_save")
+        click("template_edit_save")
 
         val saved = templates.templates.single()
         assertEquals(1, templates.saveCalls)
@@ -198,13 +201,13 @@ class TemplateEditFlowTest {
     @Test
     fun backFromThePickerWithoutChoosing_leavesTheDraftUntouched() {
         showEditor()
-        click("template_details_add_food")
+        click("template_edit_add_item")
 
         rule.runOnUiThread { nav.popBackStack() }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
-        rule.onNodeWithTag("template_details_item_2").assertDoesNotExist()
+        rule.onNodeWithTag("template_edit_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_item_2").assertDoesNotExist()
         assertEquals(0, templates.saveCalls)
     }
 
@@ -221,45 +224,48 @@ class TemplateEditFlowTest {
     }
 
     @Test
-    fun comidaRow_opensTheEditableDetailsDirectly_withNothingAdded_andNoEditarButton() {
+    fun comidaRow_opensTheReadOnlyDetails_withNothingAdded() {
+        startInEditor = false
         showSearch()
 
         click("search_open_t1")
 
         rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
-        rule.onNodeWithTag("template_preview_edit").assertDoesNotExist()
+        rule.onNodeWithTag("template_details_title").assertTextContains("Desayuno A")
         rule.onNodeWithTag("template_details_kcal").assertTextContains("270 kcal")
+        rule.onNodeWithTag("template_edit_screen").assertDoesNotExist()
         assertTrue(diary.addedBatches.isEmpty())
     }
 
     @Test
-    fun comidaDetails_changeAnAmount_guardar_returnsToTheSearch_withTheStoredEdit() {
+    fun comidaDetails_editar_changeAnAmount_guardar_comesBackToTheDetails_withTheStoredEdit() {
+        startInEditor = false
         showSearch()
         click("search_open_t1")
 
-        click("template_details_item_0")
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("200")
-        click("template_food_sheet_save")
-        click("template_details_save")
+        click("template_details_edit")
+        click("template_edit_item_0")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("200")
+        click("food_sheet_commit")
+        click("template_edit_save")
 
-        rule.onNodeWithTag("food_search_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_details_screen").assertIsDisplayed()
+        rule.onNodeWithTag("template_edit_screen").assertDoesNotExist()
         assertEquals(1, templates.saveCalls)
         assertEquals(200.0, templates.templates.single().items.first().amount, 0.0)
         assertTrue(diary.addedBatches.isEmpty())
     }
 
     @Test
-    fun comidaDetails_anadir_logsTheEditedFoodsToTheRouteMeal_leavesTheSearch_andStoresNothing() {
+    fun comidaDetails_anadir_logsTheFoodsToTheRouteMeal_leavesTheSearch_andStoresNothing() {
+        startInEditor = false
         showSearch()
         click("search_open_t1")
-        click("template_details_item_0")
-        rule.onNodeWithTag("template_food_sheet_amount").performTextReplacement("200")
-        click("template_food_sheet_save")
 
-        click("template_details_add")
+        click("template_details_primary")
 
         val batch = diary.addedBatches.single()
-        assertEquals(200.0, batch.first().amount, 0.0)
+        assertEquals(120.0, batch.first().amount, 0.0)
         assertEquals("lunch", batch.first().mealSlotId)
         assertEquals(0, templates.saveCalls)
         rule.onNodeWithTag("food_search_screen").assertDoesNotExist()
@@ -267,7 +273,19 @@ class TemplateEditFlowTest {
     }
 
     @Test
+    fun backFromTheDetails_returnsToTheSearch() {
+        startInEditor = false
+        showSearch()
+        click("search_open_t1")
+
+        click("template_details_back")
+
+        rule.onNodeWithTag("food_search_screen").assertIsDisplayed()
+    }
+
+    @Test
     fun deletingTheComida_landsOnTheSearch_notOnAMissingDetails() {
+        startInEditor = false
         showSearch()
         click("search_open_t1")
 

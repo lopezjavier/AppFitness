@@ -104,6 +104,56 @@ class AmountPhotoViewModelTest {
     }
 
     @Test
+    fun whileTheEstimateIsStillLoading_thePhaseIsEstimating_andNothingIsEmitted() = runTest(dispatcher) {
+        photos.amountGate = CompletableDeferred()
+        val model = viewModel()
+        toPreview(model)
+
+        model.effects.test {
+            model.onEvent(AmountPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+
+            assertEquals(AmountPhotoPhase.Estimating, model.uiState.value.phase)
+            expectNoEvents()
+            photos.amountGate?.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(AmountPhotoEffect.AmountEstimated(180.0, "100"), awaitItem())
+        }
+        assertEquals(AmountPhotoPhase.Idle, model.uiState.value.phase)
+    }
+
+    @Test
+    fun overQuotaAiFailureAndUnreadablePhoto_eachFailInPlaceWithRetryAndNeverEmitAnAmount() = runTest(dispatcher) {
+        listOf(AppError.QuotaExceeded, AppError.ServiceUnavailable, AppError.PhotoNotRecognized).forEach { error ->
+            photos.amountResult = Result.failure(AppException(error))
+            val model = viewModel(SavedStateHandle())
+            toPreview(model)
+
+            model.effects.test {
+                model.onEvent(AmountPhotoEvent.UsePhoto)
+                advanceUntilIdle()
+
+                assertEquals(AmountPhotoPhase.Failed(retryable = true), model.uiState.value.phase, "$error")
+                expectNoEvents()
+            }
+        }
+    }
+
+    @Test
+    fun aFailedEstimate_isNotRetryableOffline() = runTest(dispatcher) {
+        photos.amountResult = Result.failure(AppException(AppError.ServiceUnavailable))
+        val model = viewModel()
+        toPreview(model)
+        model.onEvent(AmountPhotoEvent.UsePhoto)
+        advanceUntilIdle()
+
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        assertEquals(AmountPhotoPhase.Failed(retryable = false), model.uiState.value.phase)
+    }
+
+    @Test
     fun success_discardsThePhotoFile() = runTest(dispatcher) {
         val model = viewModel()
         toPreview(model)

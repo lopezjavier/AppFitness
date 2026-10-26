@@ -61,7 +61,7 @@ class AmountPhotoIconScopeTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("food_sheet_amount").assertExists()
-        rule.onNodeWithTag("food_sheet_photo").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount_photo").assertDoesNotExist()
     }
 
     @Test
@@ -74,7 +74,7 @@ class AmountPhotoIconScopeTest {
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_food_sheet_amount").assertExists()
-        rule.onNodeWithTag("template_food_sheet_photo").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo").assertDoesNotExist()
     }
 }

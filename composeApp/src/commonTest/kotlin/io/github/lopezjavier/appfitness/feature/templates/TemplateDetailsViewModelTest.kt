@@ -313,6 +313,59 @@ class TemplateDetailsViewModelTest {
         return viewModel().also { advanceUntilIdle() }
     }
 
+    // --- T-122: title, staged removals and discard ---
+
+    @Test
+    fun title_isTheSavedName_andDoesNotFollowTheNameBeingTyped() = runTest(dispatcher) {
+        val model = loaded()
+
+        model.onEvent(TemplateDetailsEvent.NameChanged("Otro nombre"))
+
+        val content = contentOf(model)
+        assertEquals("Desayuno A", content.title)
+        assertEquals("Otro nombre", content.name)
+    }
+
+    @Test
+    fun aStagedRemoval_isNotStoredUntilSave_andMakesTheDraftDirty() = runTest(dispatcher) {
+        val model = loaded()
+        assertFalse(contentOf(model).isDirty)
+
+        model.onEvent(TemplateDetailsEvent.RemoveFood(1))
+
+        assertTrue(contentOf(model).isDirty)
+        assertEquals(0, repository.saveCalls)
+        assertEquals(2, repository.templates.single().items.size)
+
+        model.onEvent(TemplateDetailsEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.saveCalls)
+        assertEquals(listOf("eggs"), repository.templates.single().items.map { it.food.id })
+    }
+
+    @Test
+    fun discard_restoresTheSavedComida_andForgetsTheDraftAfterRecreation() = runTest(dispatcher) {
+        val state = SavedStateHandle()
+        repository.templates += desayunoA
+        val model = viewModel(state)
+        advanceUntilIdle()
+        model.onEvent(TemplateDetailsEvent.RemoveFood(1))
+        model.onEvent(TemplateDetailsEvent.NameChanged("Cambiado"))
+
+        model.onEvent(TemplateDetailsEvent.Discard)
+
+        val content = contentOf(model)
+        assertFalse(content.isDirty)
+        assertEquals(2, content.rows.size)
+        assertEquals("Desayuno A", content.name)
+        assertEquals(0, repository.saveCalls)
+        val recreated = viewModel(state)
+        val restored = contentOf(recreated)
+        assertFalse(restored.isDirty)
+        assertEquals(2, restored.rows.size)
+    }
+
     // --- Loading and totals ---
 
     @Test

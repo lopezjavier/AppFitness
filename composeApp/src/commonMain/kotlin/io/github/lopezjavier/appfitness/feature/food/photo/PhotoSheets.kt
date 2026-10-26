@@ -1,17 +1,15 @@
-@file:OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
-
 package io.github.lopezjavier.appfitness.feature.food.photo
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -34,8 +32,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_library
-import io.github.lopezjavier.appfitness.designsystem.ActionRow
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
+import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
@@ -45,36 +43,44 @@ import org.jetbrains.compose.resources.stringResource
 /** First sheet of the "add from photo" flow: what kind of photo. Scrim, swipe and back close the flow. */
 @Composable
 fun PhotoModeSheet(onModeChoose: (FoodPhotoMode) -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "food_photo_mode_sheet") {
-        SheetColumn(stringResource(Res.string.food_photo_mode_title)) {
-            ActionRow(
+    // A choice moves the flow on: the sheet's own closing callback must not cancel it.
+    var chosen by remember { mutableStateOf(false) }
+    val choose = { mode: FoodPhotoMode ->
+        chosen = true
+        onModeChoose(mode)
+    }
+    AppActionSheet(
+        actions = listOf(
+            AppSheetAction(
                 icon = Res.drawable.ic_auto_awesome,
                 title = stringResource(Res.string.food_photo_mode_estimate_title),
                 hint = stringResource(Res.string.food_photo_mode_estimate_hint),
-                onClick = { onModeChoose(FoodPhotoMode.Dish) },
-                testTag = "food_photo_mode_estimate",
-            )
-            ActionRow(
+                onClick = { choose(FoodPhotoMode.Dish) },
+            ),
+            AppSheetAction(
                 icon = Res.drawable.ic_label,
                 title = stringResource(Res.string.food_photo_mode_label_title),
                 hint = stringResource(Res.string.food_photo_mode_label_hint),
-                onClick = { onModeChoose(FoodPhotoMode.Label) },
-                testTag = "food_photo_mode_label",
-            )
-            ActionRow(
+                onClick = { choose(FoodPhotoMode.Label) },
+            ),
+            AppSheetAction(
                 icon = Res.drawable.ic_barcode_scanner,
                 title = stringResource(Res.string.food_photo_mode_barcode_title),
                 hint = stringResource(Res.string.food_photo_mode_barcode_hint),
-                onClick = { onModeChoose(FoodPhotoMode.Barcode) },
-                testTag = "food_photo_mode_barcode",
-            )
-        }
-    }
+                onClick = { choose(FoodPhotoMode.Barcode) },
+            ),
+        ),
+        onDismiss = { if (!chosen) onDismiss() },
+        modifier = modifier,
+        title = stringResource(Res.string.food_photo_mode_title),
+        testTagPrefix = "photo_mode",
+    )
 }
 
 /**
  * Second sheet: camera or gallery. After a failed capture ([captureFailedFor] is the source that failed) a short
- * message appears inside the sheet; a cancelled capture shows nothing. Tags derive from [tagPrefix].
+ * message appears inside the sheet; a cancelled capture shows nothing. Tags: `<tagPrefix>_row_1` (camera),
+ * `_row_2` (gallery), `_close` and `<tagPrefix>_capture_error`.
  */
 @Composable
 fun PhotoSourceSheet(
@@ -82,14 +88,37 @@ fun PhotoSourceSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     captureFailedFor: PhotoSource? = null,
-    tagPrefix: String = "food_photo",
+    tagPrefix: String = "photo_source",
 ) {
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "${tagPrefix}_source_sheet") {
-        SheetColumn(stringResource(Res.string.food_photo_source_title)) {
-            if (captureFailedFor != null) {
+    var chosen by remember { mutableStateOf(false) }
+    val choose = { source: PhotoSource ->
+        chosen = true
+        onSourceChoose(source)
+    }
+    AppActionSheet(
+        actions = listOf(
+            AppSheetAction(
+                icon = Res.drawable.ic_photo_camera,
+                title = stringResource(Res.string.food_photo_source_camera_title),
+                hint = stringResource(Res.string.food_photo_source_camera_hint),
+                onClick = { choose(PhotoSource.Camera) },
+            ),
+            AppSheetAction(
+                icon = Res.drawable.ic_photo_library,
+                title = stringResource(Res.string.food_photo_source_gallery_title),
+                hint = stringResource(Res.string.food_photo_source_gallery_hint),
+                onClick = { choose(PhotoSource.Gallery) },
+            ),
+        ),
+        onDismiss = { if (!chosen) onDismiss() },
+        modifier = modifier,
+        title = stringResource(Res.string.food_photo_source_title),
+        testTagPrefix = tagPrefix,
+        notice = captureFailedFor?.let { failed ->
+            {
                 Text(
                     text = stringResource(
-                        if (captureFailedFor == PhotoSource.Camera) {
+                        if (failed == PhotoSource.Camera) {
                             Res.string.food_photo_capture_error_camera
                         } else {
                             Res.string.food_photo_capture_error_gallery
@@ -103,35 +132,6 @@ fun PhotoSourceSheet(
                         .testTag("${tagPrefix}_capture_error"),
                 )
             }
-            ActionRow(
-                icon = Res.drawable.ic_photo_camera,
-                title = stringResource(Res.string.food_photo_source_camera_title),
-                hint = stringResource(Res.string.food_photo_source_camera_hint),
-                onClick = { onSourceChoose(PhotoSource.Camera) },
-                testTag = "${tagPrefix}_source_camera",
-            )
-            ActionRow(
-                icon = Res.drawable.ic_photo_library,
-                title = stringResource(Res.string.food_photo_source_gallery_title),
-                hint = stringResource(Res.string.food_photo_source_gallery_hint),
-                onClick = { onSourceChoose(PhotoSource.Gallery) },
-                testTag = "${tagPrefix}_source_gallery",
-            )
-        }
-    }
-}
-
-@Composable
-private fun SheetColumn(title: String, content: @Composable () -> Unit) {
-    Column(Modifier.navigationBarsPadding().padding(bottom = Spacing.lg)) {
-        Text(
-            text = title,
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm).semantics {
-                heading()
-            },
-        )
-        content()
-    }
+        },
+    )
 }

@@ -31,6 +31,11 @@ internal data class FormDraft(
 ) {
     fun text(field: CreateFoodField): String = fields[field].orEmpty()
 
+    /** Same values as [other], whatever the user touched on the way (typing a value back is no change). */
+    fun sameContentAs(other: FormDraft): Boolean = fields == other.fields && nutrients == other.nutrients &&
+        baseUnit == other.baseUnit &&
+        portions.map { it.label to it.amount } == other.portions.map { it.label to it.amount }
+
     fun text(kind: MicronutrientKind): String = nutrients[kind].orEmpty()
 
     private fun number(field: CreateFoodField, blankIsZero: Boolean): Double {

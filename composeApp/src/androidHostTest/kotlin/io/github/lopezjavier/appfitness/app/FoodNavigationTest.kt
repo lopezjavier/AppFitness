@@ -44,20 +44,22 @@ class FoodNavigationTest {
             Box(Modifier.size(48.dp).testTag("diary_add_dinner").clickable { onAddFood("dinner", Day) })
         }
     }
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, onCreateFood, _, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, onCreateFood, _, _, onBack ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
+            Box(Modifier.size(48.dp).testTag("food_search_back").clickable(onClick = onBack))
             Box(Modifier.size(48.dp).testTag("search_pick").clickable { onOpenFood("chicken") })
             Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla", null) })
         }
     }
-    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, _, editFoodId, onSaved ->
+    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, _, editFoodId, onBack, onSaved ->
         Column(modifier.fillMaxSize().testTag("create_food_screen")) {
+            Box(Modifier.size(48.dp).testTag("edit_food_back").clickable(onClick = onBack))
             Text("$barcode|$name|$editFoodId", Modifier.testTag("create_args"))
             Box(Modifier.size(48.dp).testTag("create_save").clickable { onSaved(editFoodId ?: "new-1") })
         }
     }
     private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss, onEdit, _, _ ->
-        Column(Modifier.testTag("add_food_sheet")) {
+        Column(Modifier.testTag("food_sheet")) {
             Box(Modifier.size(48.dp).testTag("sheet_edit").clickable(onClick = onEdit))
             Text("$foodId|$slotId|$date", Modifier.testTag("sheet_args"))
             Box(Modifier.size(48.dp).testTag("sheet_add").clickable(onClick = onAdded))
@@ -98,7 +100,6 @@ class FoodNavigationTest {
         click("diary_add_food")
 
         rule.onNodeWithTag("food_search_screen").assertExists()
-        rule.onNodeWithTag("food_search_back").assertExists()
         rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
     }
 

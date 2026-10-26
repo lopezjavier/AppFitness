@@ -12,7 +12,29 @@ data class AmountPhotoUiState(
     val lastSource: PhotoSource? = null,
     val captureFailed: Boolean = false,
     val isOffline: Boolean = false,
-)
+) {
+    /**
+     * What the add-food sheet shows in place, under the amount (never in a window below the sheet): nothing,
+     * "Estimando…" or "No hemos podido estimar la cantidad" with "Reintentar". The estimate itself arrives as an
+     * [AmountPhotoEffect.AmountEstimated]; on a failure the amount is never touched.
+     */
+    val phase: AmountPhotoPhase
+        get() = when (step) {
+            FoodPhotoStep.Estimating -> AmountPhotoPhase.Estimating
+            is FoodPhotoStep.Error -> AmountPhotoPhase.Failed(retryable = !isOffline)
+            else -> AmountPhotoPhase.Idle
+        }
+}
+
+/** The in-sheet state of the amount-from-photo flow, derived from [AmountPhotoUiState.step]. */
+sealed interface AmountPhotoPhase {
+    data object Idle : AmountPhotoPhase
+
+    data object Estimating : AmountPhotoPhase
+
+    /** The estimate failed (AI error, over quota, unreadable photo, network); [retryable] is false while offline. */
+    data class Failed(val retryable: Boolean) : AmountPhotoPhase
+}
 
 sealed interface AmountPhotoEvent {
     /** Open the source sheet (ignored offline). [amountText] is the amount field now: the baseline of the result. */

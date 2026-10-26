@@ -79,7 +79,7 @@ private fun addObject(code: MealCode): StringResource = when (code) {
  * [AddItemButton] reads "Añadir a la cena" and never disagrees with the meal's name.
  */
 @Composable
-private fun addObjectLabel(slot: MealSlot): String {
+internal fun addObjectLabel(slot: MealSlot): String {
     val code = slot.code
     return if (code != null && slot.label == stringResource(defaultLabel(code))) {
         stringResource(addObject(code))

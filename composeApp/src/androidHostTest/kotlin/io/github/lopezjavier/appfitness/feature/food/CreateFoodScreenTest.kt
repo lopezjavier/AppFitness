@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -40,6 +42,7 @@ class CreateFoodScreenTest {
     private val foods = FakeFoodRepository()
     private val connectivity = FakeConnectivityObserver()
     private val saved = mutableListOf<String>()
+    private var backs = 0
 
     @Composable
     private fun Host(model: CreateFoodViewModel) {
@@ -47,7 +50,7 @@ class CreateFoodScreenTest {
         androidx.compose.runtime.LaunchedEffect(model) {
             model.effects.collect { if (it is CreateFoodEffect.Saved) saved += it.foodId }
         }
-        AppTheme { CreateFoodScreen(state, model::onEvent) }
+        AppTheme { CreateFoodScreen(state, model::onEvent, { backs++ }) }
     }
 
     private fun show(barcode: String? = null, name: String? = null) {
@@ -77,11 +80,11 @@ class CreateFoodScreenTest {
     @Test
     fun manualCreation_savesTheFoodInGrams_andReportsTheNewId() {
         show()
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
 
         fillTortilla()
-        rule.onNodeWithTag("create_food_save_button").assertIsEnabled()
-        tap("create_food_save_button")
+        rule.onNodeWithTag("create_food_save").assertIsEnabled()
+        tap("create_food_save")
 
         val created = foods.created.single()
         assertEquals("Tortilla de patatas casera", created.name)
@@ -99,7 +102,7 @@ class CreateFoodScreenTest {
         tap("create_food_add_portion_button")
         type("create_food_portion_label_0", "1 ración")
         type("create_food_portion_amount_0", "250")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(listOf(NewPortion("1 ración", 250.0)), foods.created.single().portions)
     }
@@ -115,7 +118,7 @@ class CreateFoodScreenTest {
 
         fillTortilla()
 
-        rule.onNodeWithTag("create_food_save_button").assertIsEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsEnabled()
     }
 
     @Test
@@ -124,7 +127,7 @@ class CreateFoodScreenTest {
         fillTortilla()
         type("create_food_nutrient_fiber", "2,5")
         type("create_food_nutrient_salt", "0.5")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         val micro = foods.created.single().micronutrients
         assertEquals(mapOf(MicronutrientKind.Fiber to 2.5, MicronutrientKind.Salt to 0.5), micro.values)
@@ -141,13 +144,14 @@ class CreateFoodScreenTest {
                         errors = NewFoodErrors(nutrients = mapOf(MicronutrientKind.Sugars to NewFoodError.Negative)),
                     ),
                     {},
+                    {},
                 )
             }
         }
         rule.waitForIdle()
 
         rule.onNodeWithTag("create_food_nutrient_sugars_error").assertTextContains("No puede ser negativo")
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
     }
 
     @Test
@@ -183,7 +187,7 @@ class CreateFoodScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithText("Este campo es obligatorio").assertExists()
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
     }
 
     @Test
@@ -193,12 +197,13 @@ class CreateFoodScreenTest {
                 CreateFoodScreen(
                     CreateFoodUiState(name = "Pan", kcal = "-1", errors = NewFoodErrors(kcal = NewFoodError.Negative)),
                     {},
+                    {},
                 )
             }
         }
 
         rule.onNodeWithText("No puede ser negativo").assertExists()
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
     }
 
     @Test
@@ -207,6 +212,7 @@ class CreateFoodScreenTest {
             AppTheme {
                 CreateFoodScreen(
                     CreateFoodUiState(portions = List(10) { PortionDraft("p$it", "1") }, canAddPortion = false),
+                    {},
                     {},
                 )
             }
@@ -236,7 +242,7 @@ class CreateFoodScreenTest {
         type("create_food_name_field", "Queso")
         type("create_food_kcal_field", "250")
         type("create_food_protein_field", "7,5")
-        tap("create_food_save_button")
+        tap("create_food_save")
 
         assertEquals(7.5, foods.created.single().nutrition.proteinG, 0.0)
     }
@@ -247,20 +253,63 @@ class CreateFoodScreenTest {
         show()
         fillTortilla()
 
-        rule.onNodeWithTag("create_food_save_button").assertIsNotEnabled()
-        rule.onNodeWithTag("create_food_offline_hint").assertExists()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+        rule.onNodeWithTag("offline_hint").assertExists()
     }
 
     @Test
-    fun saveFailure_showsTheInlineError_andKeepsTheDraft() {
+    fun saveFailure_keepsTheDraft_andLeavesSaveEnabledToRetry() {
         foods.createFailure = AppException(AppError.Network)
         show()
         fillTortilla()
 
-        tap("create_food_save_button")
+        tap("create_food_save")
 
-        rule.onNodeWithTag("create_food_save_error").assertExists()
         rule.onNodeWithTag("create_food_name_field").assertTextContains("Tortilla de patatas casera")
+        rule.onNodeWithTag("create_food_save").assertIsEnabled()
         assertEquals(emptyList<String>(), saved)
+    }
+
+    @Test
+    fun backWithoutChanges_leavesAtOnce() {
+        show()
+
+        tap("create_food_back")
+
+        rule.onNodeWithTag("create_food_discard_dialog").assertDoesNotExist()
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun backAfterTyping_asksToDiscard_keepEditingStays_andDiscardLeaves() {
+        show()
+        type("create_food_name_field", "Tor")
+
+        tap("create_food_back")
+        rule.onNodeWithTag("create_food_discard_dialog").assertExists()
+        rule.onNodeWithText("¿Descartar los cambios?").assertExists()
+        tap("create_food_keep_editing")
+        assertEquals(0, backs)
+        rule.onNodeWithTag("create_food_name_field").assertTextContains("Tor")
+
+        tap("create_food_back")
+        tap("create_food_discard_confirm")
+        assertEquals(1, backs)
+        assertEquals(emptyList<String>(), saved)
+    }
+
+    @Test
+    fun nextOnTheKeyboard_movesFromNameToBrand_andFromCaloriesToFatToCarbs() {
+        show()
+
+        rule.onNodeWithTag("create_food_name_field").performClick()
+        rule.onNodeWithTag("create_food_name_field").performImeAction()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_brand_field").assertIsFocused()
+
+        rule.onNodeWithTag("create_food_kcal_field").performClick()
+        rule.onNodeWithTag("create_food_kcal_field").performImeAction()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_fat_field").assertIsFocused()
     }
 }

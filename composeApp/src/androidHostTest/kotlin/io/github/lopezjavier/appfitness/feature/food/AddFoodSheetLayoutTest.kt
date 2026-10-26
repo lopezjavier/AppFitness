@@ -8,6 +8,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -51,6 +52,11 @@ class AddFoodSheetLayoutTest {
         AppTheme { AddFoodSheet(state, model::onEvent, {}) }
     }
 
+    private fun openDetails() {
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
+        rule.waitForIdle()
+    }
+
     private fun show() {
         foods.known["egg"] = egg
         val model = AddFoodViewModel(
@@ -80,6 +86,7 @@ class AddFoodSheetLayoutTest {
             MicronutrientKind.Sugars to MicronutrientUnit.G,
         )
         show()
+        openDetails()
 
         rule.onNodeWithTag("add_food_label_row_fiber").assertTextContains("Fibra", substring = true)
         rule.onNodeWithTag("add_food_label_row_sugars").assertTextContains("Azúcares", substring = true)
@@ -89,6 +96,7 @@ class AddFoodSheetLayoutTest {
     fun manualFoodWithTypedValues_showsOnlyTheTypedRows() {
         foods.micronutrientResults["egg"] = nutrients(MicronutrientKind.Fiber to MicronutrientUnit.G)
         show()
+        openDetails()
 
         rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
         rule.onNodeWithTag("add_food_label_row_salt").assertDoesNotExist()
@@ -97,6 +105,7 @@ class AddFoodSheetLayoutTest {
     @Test
     fun foodWithoutData_showsOnlyTheMacroRows() {
         show()
+        openDetails()
 
         rule.onNodeWithTag("add_food_label_row_energy").assertExists()
         rule.onNodeWithTag("add_food_label_row_fiber").assertDoesNotExist()
@@ -108,19 +117,22 @@ class AddFoodSheetLayoutTest {
         show()
 
         assertTrue(rule.onAllNodesWithText("100 g (100 g)", substring = true).fetchSemanticsNodes().isEmpty())
-        rule.onNodeWithTag("add_food_portion_option_p100").assertTextContains("100 g")
-        rule.onNodeWithTag("add_food_portion_option_p1").assertTextContains("1 huevo (55 g)")
+        rule.onNodeWithTag("food_sheet_portion_option_p100").assertTextContains("100 g")
+        rule.onNodeWithTag("food_sheet_portion_option_p1").assertTextContains("1 huevo (55 g)")
     }
 
     @Test
-    fun quantityBlock_stacksChipsAboveTheAmountFieldWithoutOverlap() {
+    fun quantityComesFirst_chipsAboveTheAmountField_thenTheTotalsAndTheCollapsedDetails() {
         foods.micronutrientResults["egg"] = nutrients(MicronutrientKind.Fiber to MicronutrientUnit.G)
         show()
 
-        val card = rule.onNodeWithTag("add_food_label_nutrients").getUnclippedBoundsInRoot()
-        val chips = rule.onNodeWithTag("add_food_portion").getUnclippedBoundsInRoot()
-        val amount = rule.onNodeWithTag("add_food_amount").getUnclippedBoundsInRoot()
-        assertTrue("cards sit above the chips", card.bottom <= chips.top)
+        val chips = rule.onNodeWithTag("food_sheet_portion").getUnclippedBoundsInRoot()
+        val amount = rule.onNodeWithTag("food_sheet_amount").getUnclippedBoundsInRoot()
+        val totals = rule.onNodeWithTag("food_sheet_totals").getUnclippedBoundsInRoot()
+        val details = rule.onNodeWithTag("food_sheet_details_toggle").getUnclippedBoundsInRoot()
         assertTrue("chips sit above the amount field", chips.bottom <= amount.top)
+        assertTrue("totals follow the amount", amount.bottom <= totals.top)
+        assertTrue("details follow the totals", totals.bottom <= details.top)
+        rule.onNodeWithTag("add_food_label_nutrients").assertDoesNotExist()
     }
 }

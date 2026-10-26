@@ -84,13 +84,13 @@ class SaveTemplateRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(saved) }
         rule.waitForIdle()
-        rule.onNodeWithTag("save_template_name").performTextReplacement("Desayuno B")
+        rule.onNodeWithTag("save_template_name_input").performTextReplacement("Desayuno B")
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("save_template_name").assertTextContains("Desayuno B")
+        rule.onNodeWithTag("save_template_name_input").assertTextContains("Desayuno B")
     }
 
     @Test
@@ -100,17 +100,17 @@ class SaveTemplateRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(saved) }
         rule.waitForIdle()
-        rule.onNodeWithTag("save_template_name").performTextReplacement("Desayuno A")
+        rule.onNodeWithTag("save_template_name_input").performTextReplacement("Desayuno A")
         rule.waitForIdle()
-        rule.onNodeWithTag("save_template_submit").performClick()
+        rule.onNodeWithTag("save_template_name_commit").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("save_template_name_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("save_template_name_input_error").assertTextEquals("Ya existe una comida con ese nombre")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("save_template_name").assertTextContains("Desayuno A")
-        rule.onNodeWithTag("save_template_name_error").assertIsDisplayed()
+        rule.onNodeWithTag("save_template_name_input").assertTextContains("Desayuno A")
+        rule.onNodeWithTag("save_template_name_input_error").assertIsDisplayed()
         assertEquals(1, templates.templates.size)
     }
 }

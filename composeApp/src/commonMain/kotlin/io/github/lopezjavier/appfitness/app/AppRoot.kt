@@ -99,14 +99,14 @@ fun AppRoot(
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
-        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick ->
-            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, searchModifier, pick)
+        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, onBack ->
+            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, onBack, searchModifier, pick)
         },
-        createFood = { formModifier, barcode, name, prefill, editFoodId, onSaved ->
+        createFood = { formModifier, barcode, name, prefill, editFoodId, onBack, onSaved ->
             if (editFoodId != null) {
-                EditFoodRoot(editFoodId, onSaved, formModifier)
+                EditFoodRoot(editFoodId, onSaved, onBack, formModifier)
             } else {
-                CreateFoodRoot(barcode, name, onSaved, formModifier, prefill)
+                CreateFoodRoot(barcode, name, onSaved, onBack, formModifier, prefill)
             }
         },
         addFood = { foodId, slotId, date, onAdded, onDismiss, onEdit, pick, onPick ->

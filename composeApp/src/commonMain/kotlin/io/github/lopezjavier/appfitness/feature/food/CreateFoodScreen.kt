@@ -10,21 +10,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
@@ -41,19 +39,19 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_kcal_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_kcal_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_load_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_name
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_offline_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_salt
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_saturated_of
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_sugars_of
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_locked
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_refused
+import io.github.lopezjavier.appfitness.composeapp.resources.edit_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
@@ -63,11 +61,9 @@ import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import org.jetbrains.compose.resources.stringResource
@@ -81,43 +77,57 @@ private const val SKELETON_ROWS = 4
 private val SkeletonHeight = Spacing.xl * 2
 
 /**
- * Create / edit food form (US-18, US-22, US-47): name, brand, base unit, nutrition per 100, the label nutrients and
- * named portions. The top bar belongs to the shell; "Guardar" is anchored below the scrolling form, above the
- * keyboard. In edit mode the form shows a skeleton while loading and a retry when the food could not be read.
+ * Create / edit food form (US-18, US-22, US-47) on [AppEditorScreen] (R-10..R-14, FRM-2): name, brand, base unit,
+ * nutrition per 100, the label nutrients and named portions, one label style and "Siguiente" chaining from field to
+ * field. "Guardar" is pinned in the footer; back asks "¿Descartar los cambios?" once something was edited. In edit mode
+ * the form shows a skeleton while loading and a retry when the food could not be read. [onBack] leaves the form (also
+ * after "Descartar"); a failed save is reported by the caller through the app messages (R-28).
  */
 @Composable
-fun CreateFoodScreen(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize().testTag("create_food_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize().imePadding()) {
-            when {
-                state.loadFailed -> ErrorState(
-                    message = stringResource(Res.string.create_food_load_failed),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(CreateFoodEvent.Retry) },
-                    modifier = Modifier.padding(Spacing.screenMargin),
-                    testTagPrefix = "create_food_retry",
-                )
+fun CreateFoodScreen(
+    state: CreateFoodUiState,
+    onEvent: (CreateFoodEvent) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AppEditorScreen(
+        title = stringResource(if (state.isEdit) Res.string.edit_food_title else Res.string.create_food_title),
+        isDirty = state.isDirty,
+        isSaving = state.isSaving,
+        isOnline = !state.isOffline,
+        onSave = { onEvent(CreateFoodEvent.Save) },
+        onClose = onBack,
+        modifier = modifier.testTag("create_food_screen"),
+        // A new food (also one prefilled by a photo estimate) saves as soon as it is valid; an edit needs a change.
+        saveEnabledWhenClean = !state.isEdit,
+        canSave = state.canSave || state.isOffline,
+        testTagPrefix = "create_food",
+    ) {
+        when {
+            state.loadFailed -> ErrorState(
+                message = stringResource(Res.string.create_food_load_failed),
+                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(CreateFoodEvent.Retry) },
+                modifier = Modifier.padding(Spacing.screenMargin),
+                testTagPrefix = "create_food_retry",
+            )
 
-                state.isLoading -> FormLoading()
+            state.isLoading -> FormLoading()
 
-                else -> {
-                    Column(
-                        Modifier.weight(1f).verticalScroll(rememberScrollState())
-                            .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-                    ) {
-                        if (state.aiEstimateNote) {
-                            InlineNote(
-                                text = stringResource(Res.string.create_food_ai_note),
-                                testTag = "create_food_ai_note",
-                            )
-                        }
-                        IdentityBlock(state, onEvent)
-                        NutritionBlock(state, onEvent)
-                        PortionsBlock(state, onEvent)
-                        CreateFoodSection.entries.forEach { SectionBlock(it, state, onEvent) }
-                    }
-                    SaveBar(state, onEvent)
+            else -> Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+            ) {
+                if (state.aiEstimateNote) {
+                    InlineNote(
+                        text = stringResource(Res.string.create_food_ai_note),
+                        testTag = "create_food_ai_note",
+                    )
                 }
+                IdentityBlock(state, onEvent)
+                NutritionBlock(state, onEvent)
+                PortionsBlock(state, onEvent)
+                CreateFoodSection.entries.forEach { SectionBlock(it, state, onEvent) }
             }
         }
     }
@@ -143,6 +153,7 @@ private fun IdentityBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -
             maxLength = MAX_NAME_LENGTH,
             errorText = state.errors.name?.let { errorMessage(it) },
             testTagPrefix = "create_food_name_field",
+            imeAction = ImeAction.Next,
         )
         AppTextField(
             value = state.brand,
@@ -151,6 +162,7 @@ private fun IdentityBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -
             maxLength = MAX_NAME_LENGTH,
             errorText = state.errors.brand?.let { errorMessage(it) },
             testTagPrefix = "create_food_brand_field",
+            imeAction = ImeAction.Next,
         )
         state.barcode?.let {
             Text(
@@ -224,11 +236,17 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
     fun change(field: CreateFoodField): (String) -> Unit = { onEvent(CreateFoodEvent.FieldChanged(field, it)) }
 
     @Composable
-    fun KindField(kind: MicronutrientKind, label: String, macro: Macro?, indent: Boolean = false) {
+    fun KindField(
+        kind: MicronutrientKind,
+        label: String,
+        macro: Macro?,
+        indent: Boolean = false,
+        imeAction: ImeAction = ImeAction.Next,
+    ) {
         val spec =
             NutrientSpec(label, macro, "create_food_nutrient_${micronutrientTag(kind)}", decimals = LABEL_DECIMALS)
         Box(if (indent) Modifier.padding(start = Spacing.lg) else Modifier) {
-            NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind]) {
+            NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind], imeAction) {
                 onEvent(CreateFoodEvent.NutrientChanged(kind, it))
             }
         }
@@ -241,20 +259,21 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
             NutrientSpec(kcalLabel, null, "create_food_kcal_field"),
             state.kcal,
             errors.kcal,
+            ImeAction.Next,
             change(CreateFoodField.Kcal),
         )
         val fat = NutrientSpec(stringResource(Res.string.create_food_fat_total), Macro.Fat, "create_food_fat_field")
-        NutrientField(fat, state.fat, errors.fat, change(CreateFoodField.Fat))
+        NutrientField(fat, state.fat, errors.fat, ImeAction.Next, change(CreateFoodField.Fat))
         KindField(MicronutrientKind.SaturatedFat, stringResource(Res.string.create_food_saturated_of), Macro.Fat, true)
         val carbs =
             NutrientSpec(stringResource(Res.string.create_food_carbs_total), Macro.Carbs, "create_food_carbs_field")
-        NutrientField(carbs, state.carbs, errors.carbs, change(CreateFoodField.Carbs))
+        NutrientField(carbs, state.carbs, errors.carbs, ImeAction.Next, change(CreateFoodField.Carbs))
         KindField(MicronutrientKind.Sugars, stringResource(Res.string.create_food_sugars_of), Macro.Carbs, true)
         KindField(MicronutrientKind.Fiber, stringResource(Res.string.create_food_fiber), null)
         val protein =
             NutrientSpec(stringResource(Res.string.create_food_protein), Macro.Protein, "create_food_protein_field")
-        NutrientField(protein, state.protein, errors.protein, change(CreateFoodField.Protein))
-        KindField(MicronutrientKind.Salt, stringResource(Res.string.create_food_salt), null)
+        NutrientField(protein, state.protein, errors.protein, ImeAction.Next, change(CreateFoodField.Protein))
+        KindField(MicronutrientKind.Salt, stringResource(Res.string.create_food_salt), null, imeAction = ImeAction.Done)
     }
 }
 
@@ -274,7 +293,13 @@ internal fun FieldGrid(fields: List<@Composable () -> Unit>) {
 
 /** A decimal field with its label (in the macro colour when set) and the error text under it. */
 @Composable
-internal fun NutrientField(spec: NutrientSpec, value: String, error: NewFoodError?, onChange: (String) -> Unit) {
+internal fun NutrientField(
+    spec: NutrientSpec,
+    value: String,
+    error: NewFoodError?,
+    imeAction: ImeAction = ImeAction.Done,
+    onChange: (String) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = spec.label,
@@ -288,6 +313,7 @@ internal fun NutrientField(spec: NutrientSpec, value: String, error: NewFoodErro
             modifier = Modifier.fillMaxWidth().testTag(spec.tag),
             maxDecimals = spec.decimals,
             showLabel = false,
+            imeAction = imeAction,
         )
         error?.let { FieldErrorText(errorMessage(it), "${spec.tag}_error") }
     }
@@ -301,33 +327,6 @@ internal fun FieldErrorText(text: String, tag: String) {
         color = AppTheme.colors.error,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag(tag),
     )
-}
-
-@Composable
-private fun SaveBar(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin, vertical = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        if (state.isOffline) {
-            Text(
-                text = stringResource(Res.string.create_food_offline_hint),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("create_food_offline_hint"),
-            )
-        }
-        if (state.saveFailed) {
-            FieldErrorText(stringResource(Res.string.create_food_save_error), "create_food_save_error")
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.create_food_save),
-            onClick = { onEvent(CreateFoodEvent.Save) },
-            modifier = Modifier.fillMaxWidth().testTag("create_food_save_button"),
-            enabled = state.canSave,
-            loading = state.isSaving,
-        )
-    }
 }
 
 @Composable

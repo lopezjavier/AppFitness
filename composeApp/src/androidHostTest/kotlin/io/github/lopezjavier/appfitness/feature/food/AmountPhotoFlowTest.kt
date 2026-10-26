@@ -129,27 +129,27 @@ class AmountPhotoFlowTest {
         rule.waitForIdle()
     }
 
-    private fun toPreview(source: String = "add_food_photo_source_camera") {
-        tap("add_food_photo")
+    private fun toPreview(source: String = "food_sheet_amount_photo_source_row_1") {
+        tap("food_sheet_amount_photo")
         tap(source)
     }
 
     private fun estimate() {
         toPreview()
-        tap("add_food_photo_use")
+        tap("food_sheet_amount_photo_use")
     }
 
     @Test
     fun photoIcon_isNextToTheAmountField_withTheDescription_andATouchTarget() {
         start()
 
-        val field = rule.onNodeWithTag("add_food_amount").getUnclippedBoundsInRoot()
-        val icon = rule.onNodeWithTag("add_food_photo").getUnclippedBoundsInRoot()
+        val field = rule.onNodeWithTag("food_sheet_amount").getUnclippedBoundsInRoot()
+        val icon = rule.onNodeWithTag("food_sheet_amount_photo").getUnclippedBoundsInRoot()
         assertTrue(field.right <= icon.left)
         assertTrue(icon.bottom - icon.top >= 48.dp)
         assertTrue(field.bottom > icon.top && field.top < icon.bottom)
-        rule.onNodeWithTag("add_food_photo").assertIsEnabled()
-        val description = rule.onNodeWithTag("add_food_photo").fetchSemanticsNode()
+        rule.onNodeWithTag("food_sheet_amount_photo").assertIsEnabled()
+        val description = rule.onNodeWithTag("food_sheet_amount_photo").fetchSemanticsNode()
             .config[SemanticsProperties.ContentDescription]
         assertEquals(listOf("Estimar cantidad con foto"), description)
     }
@@ -158,15 +158,15 @@ class AmountPhotoFlowTest {
     fun icon_opensTheSourceSheet_andBothSourcesReachThePreview() {
         start()
 
-        tap("add_food_photo")
-        rule.onNodeWithTag("add_food_photo_source_camera").assertExists()
-        rule.onNodeWithTag("add_food_photo_source_gallery").assertExists()
-        tap("add_food_photo_source_gallery")
+        tap("food_sheet_amount_photo")
+        rule.onNodeWithTag("food_sheet_amount_photo_source_row_1").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_source_row_2").assertExists()
+        tap("food_sheet_amount_photo_source_row_2")
 
-        rule.onNodeWithTag("add_food_photo_retake").assertExists()
-        rule.onNodeWithTag("add_food_photo_use").assertExists()
-        tap("add_food_photo_retake")
-        rule.onNodeWithTag("add_food_photo_use").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_retake").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_use").assertExists()
+        tap("food_sheet_amount_photo_retake")
+        rule.onNodeWithTag("food_sheet_amount_photo_use").assertExists()
     }
 
     @Test
@@ -175,16 +175,16 @@ class AmountPhotoFlowTest {
         start()
         estimate()
 
-        rule.onNodeWithTag("add_food_photo_estimating").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_estimating").assertExists()
         rule.onNodeWithText("Estimando…").assertExists()
         photoRepo.amountGate?.complete(Unit)
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_photo_estimating").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("180")
-        rule.onNodeWithTag("add_food_preview").assertTextContains("180 kcal", substring = true)
-        rule.onNodeWithTag("add_food_name").assertTextContains("Pechuga de pollo")
-        rule.onNodeWithTag("add_food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_estimating").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains("180 kcal", substring = true)
+        rule.onNodeWithTag("food_sheet_title").assertTextContains("Pechuga de pollo")
+        rule.onNodeWithTag("food_sheet").assertExists()
         assertEquals(chicken.id, photoRepo.amountCalls.single().first.id)
     }
 
@@ -193,23 +193,23 @@ class AmountPhotoFlowTest {
         start()
         estimate()
 
-        rule.onNodeWithTag("add_food_amount").performTextReplacement("150")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_amount").assertTextContains("150")
-        rule.onNodeWithTag("add_food_preview").assertTextContains("150 kcal", substring = true)
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("150")
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains("150 kcal", substring = true)
     }
 
     @Test
     fun namedPortionSelected_switchesBackToTheBaseUnit() {
         start()
-        tap("add_food_portion_option_ration")
-        rule.onNodeWithTag("add_food_portion_option_ration").assertIsSelected()
+        tap("food_sheet_portion_option_ration")
+        rule.onNodeWithTag("food_sheet_portion_option_ration").assertIsSelected()
 
         estimate()
 
-        rule.onNodeWithTag("add_food_portion_option_base").assertIsSelected()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("180")
+        rule.onNodeWithTag("food_sheet_portion_option_base").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
     }
 
     @Test
@@ -219,7 +219,7 @@ class AmountPhotoFlowTest {
 
         estimate()
 
-        rule.onNodeWithTag("add_food_amount").assertTextContains("250")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("250")
         assertEquals("ml", photoRepo.amountCalls.single().first.baseUnit)
     }
 
@@ -229,15 +229,16 @@ class AmountPhotoFlowTest {
         start()
         estimate()
 
-        rule.onNodeWithTag("add_food_photo_error").assertTextContains("No hemos podido estimar la cantidad")
+        rule.onNodeWithTag("food_sheet_amount_error").assertExists()
+        rule.onNodeWithText("No hemos podido estimar la cantidad").assertExists()
         rule.onNodeWithText("Reintentar").assertExists()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("100")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("100")
 
         photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", null))
-        tap("add_food_photo_retry")
+        tap("food_sheet_amount_retry")
 
-        rule.onNodeWithTag("add_food_photo_error").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("180")
+        rule.onNodeWithTag("food_sheet_amount_error").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
         assertEquals(2, photoRepo.amountCalls.size)
         assertEquals(1, capture.captured.size)
     }
@@ -257,12 +258,12 @@ class AmountPhotoFlowTest {
         start()
         estimate()
 
-        tap("add_food_photo_cancel")
+        tap("food_sheet_amount_cancel")
         photoRepo.amountGate?.complete(Unit)
         rule.waitForIdle()
 
-        rule.onNodeWithTag("add_food_photo_estimating").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_amount").assertTextContains("100")
+        rule.onNodeWithTag("food_sheet_amount_estimating").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("100")
         assertEquals(listOf("photo-1"), capture.discarded)
     }
 
@@ -273,10 +274,10 @@ class AmountPhotoFlowTest {
 
         pressBack()
 
-        rule.onNodeWithTag("add_food_photo_source_sheet").assertExists()
-        rule.onNodeWithTag("add_food_photo_use").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount_photo_source").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo_use").assertDoesNotExist()
         assertEquals(listOf("photo-1"), capture.discarded)
-        rule.onNodeWithTag("add_food_amount").assertTextContains("100")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("100")
     }
 
     @Test
@@ -284,8 +285,8 @@ class AmountPhotoFlowTest {
         connectivity.state.value = false
         start()
 
-        rule.onNodeWithTag("add_food_photo").assertIsNotEnabled()
-        rule.onNodeWithTag("add_food_photo_offline").assertExists()
+        rule.onNodeWithTag("food_sheet_amount_photo").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_amount_offline").assertExists()
         rule.onNodeWithText("Sin conexión: no puedes estimar la cantidad con foto").assertExists()
     }
 
@@ -293,6 +294,6 @@ class AmountPhotoFlowTest {
     fun online_showsNoOfflineMessage() {
         start()
 
-        rule.onNodeWithTag("add_food_photo_offline").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount_offline").assertDoesNotExist()
     }
 }

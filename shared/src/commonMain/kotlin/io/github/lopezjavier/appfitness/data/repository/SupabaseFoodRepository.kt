@@ -48,6 +48,9 @@ private const val CHECK_VIOLATION = "23514"
 private const val RECENT_ENTRIES_LIMIT = 200
 private const val RECENT_FOODS_LIMIT = 30
 
+/** Escapes the LIKE wildcards (and the escape character) so the query matches literally. */
+private fun String.escapeLike(): String = replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
 /**
  * Food catalogue over `food-search` (text search), `foods` (read through RLS) and the signed-in user's
  * `favorite_foods`. The favourite ids are cached so the UI can flip a star without re-reading the list.
@@ -77,6 +80,21 @@ class SupabaseFoodRepository(
             }
         }
         json.decodeFromString<FoodSearchResponseDto>(response.bodyAsText()).results.map { it.toDomain() }.remembered()
+    }
+
+    override suspend fun searchManual(query: String): Result<List<Food>> = auth.ownRow {
+        postgrest.from("foods")
+            .select(Columns.raw(FoodDto.COLUMNS)) {
+                filter {
+                    eq("source", "user")
+                    ilike("name", "%${query.escapeLike()}%")
+                }
+                order("name", Order.ASCENDING)
+                limit(FoodRepository.MANUAL_SEARCH_LIMIT.toLong())
+            }
+            .decodeList<FoodDto>()
+            .map { it.toDomain() }
+            .remembered()
     }
 
     override suspend fun recent(days: Int): Result<List<Food>> = auth.ownRow {

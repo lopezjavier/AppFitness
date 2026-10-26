@@ -60,6 +60,11 @@ class CreateFoodViewModel(
     private val editFoodId: String? = null,
     prefill: String? = null,
 ) : ViewModel() {
+    /**
+     * What the form held when the user started (the prefill, or the stored food once read): the edit is "dirty" only
+     * while the draft differs from it. Null for an edit restored after process death, where the touched fields tell.
+     */
+    private var baseline: FormDraft? = if (editFoodId == null) createDraft(barcode, name, prefill) else null
     private val draft = MutableStateFlow(restoreOrPrefill(barcode, name, prefill))
     private val aiNote = MutableStateFlow(savedState.get<Boolean>(KEY_AI_NOTE) == true)
     private val online = MutableStateFlow(true)
@@ -172,6 +177,7 @@ class CreateFoodViewModel(
                     // A draft typed meanwhile (restored state) is never overwritten.
                     if (savedState.get<Boolean>(KEY_STARTED) != true) {
                         FormDraft.from(it).also { prefilled ->
+                            baseline = prefilled
                             draft.value = prefilled
                             originalUnit = prefilled.baseUnit
                             unitLocked.value = it.inUse
@@ -250,11 +256,21 @@ class CreateFoodViewModel(
 
     private fun restoreOrPrefill(barcode: String?, name: String?, prefill: String?): FormDraft {
         if (savedState.get<Boolean>(KEY_STARTED) == true) return restore()
-        val photoDraft = if (editFoodId == null) NewFoodDraftCodec.decode(prefill) else null
-        val blank = photoDraft?.let(FormDraft::from) ?: FormDraft.blank(name, barcode)
-        if (photoDraft != null) savedState[KEY_AI_NOTE] = true
+        val blank = createDraft(barcode, name, prefill)
+        if (editFoodId == null && NewFoodDraftCodec.decode(prefill) != null) savedState[KEY_AI_NOTE] = true
         // In edit mode the draft only starts once the stored food has been read.
         return if (editFoodId == null) blank.also(::persist) else blank
+    }
+
+    private fun createDraft(barcode: String?, name: String?, prefill: String?): FormDraft {
+        val photoDraft = if (editFoodId == null) NewFoodDraftCodec.decode(prefill) else null
+        return photoDraft?.let(FormDraft::from) ?: FormDraft.blank(name, barcode)
+    }
+
+    private fun isDirty(value: FormDraft): Boolean {
+        val start = baseline
+        if (start != null) return !value.sameContentAs(start)
+        return value.touched.isNotEmpty() || value.portions.any { it.touched } || value.baseUnit != originalUnit
     }
 
     private fun restore() = FormDraft(
@@ -317,6 +333,7 @@ class CreateFoodViewModel(
             isOffline = !online,
             saveFailed = failed,
             isEdit = editFoodId != null,
+            isDirty = isDirty(value),
             isLoading = load == LoadState.Loading,
             loadFailed = load == LoadState.Failed,
         )

@@ -47,8 +47,8 @@ class TemplateManageScreenTest {
         items = listOf(MealTemplateItem(eggs, 120.0, null), MealTemplateItem(shake, 300.0, "1 vaso")),
     )
 
-    private fun showDetails() {
-        rule.setContent { DetailsHost(detailsModel(templates, connectivity), callbacks) }
+    private fun showDetails(startInEditor: Boolean = true) {
+        rule.setContent { DetailsHost(detailsModel(templates, connectivity), callbacks, startInEditor = startInEditor) }
         rule.waitForIdle()
     }
 
@@ -57,11 +57,11 @@ class TemplateManageScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("Desayuno B")
         rule.waitForIdle()
 
         assertEquals("Desayuno A", templates.templates.single().name)
-        rule.onNodeWithTag("template_details_save").performClick()
+        rule.onNodeWithTag("template_edit_save").performClick()
         rule.waitForIdle()
         assertEquals("Desayuno B", templates.templates.single().name)
         assertTrue(callbacks.saved)
@@ -72,7 +72,7 @@ class TemplateManageScreenTest {
         templates.templates += desayunoA
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("Desayuno B")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("Desayuno B")
         rule.waitForIdle()
 
         assertEquals(0, templates.saveCalls)
@@ -85,18 +85,18 @@ class TemplateManageScreenTest {
         templates.templates += desayunoA.copy(id = "t2", name = "Comida 2")
         showDetails()
 
-        rule.onNodeWithTag("template_details_name_field").performTextReplacement("comida 2")
+        rule.onNodeWithTag("template_edit_name").performTextReplacement("comida 2")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_name_hint").assertTextEquals("Ya existe una comida con ese nombre")
-        rule.onNodeWithTag("template_details_save").assertIsNotEnabled()
+        rule.onNodeWithTag("template_edit_name_error").assertTextEquals("Ya existe una comida con ese nombre")
+        rule.onNodeWithTag("template_edit_save").assertIsNotEnabled()
         assertEquals("Desayuno A", templates.templates.first { it.id == "t1" }.name)
     }
 
     @Test
     fun eliminarComida_deletesAtOnce_withoutADialog_andLeavesTheDetails() {
         templates.templates += desayunoA
-        showDetails()
+        showDetails(startInEditor = false)
 
         rule.onNodeWithTag("template_details_delete").performClick()
         rule.waitForIdle()
@@ -124,7 +124,7 @@ class TemplateManageScreenTest {
             fatG = 5.0,
         )
         diary.server[day] = listOf(logged)
-        showDetails()
+        showDetails(startInEditor = false)
         rule.onNodeWithTag("template_details_delete").performClick()
         rule.waitForIdle()
 
@@ -132,13 +132,17 @@ class TemplateManageScreenTest {
     }
 
     @Test
-    fun offline_theDeleteButtonIsDisabled_andTheOfflineBannerShows() {
+    fun offline_theDeleteActionDoesNothing_andAnadirShowsTheOfflineHint() {
         templates.templates += desayunoA
-        showDetails()
+        showDetails(startInEditor = false)
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag("template_details_delete").assertIsNotEnabled()
-        rule.onNodeWithTag("template_details_offline").assertIsDisplayed()
+        rule.onNodeWithTag("template_details_delete").performClick()
+        rule.waitForIdle()
+
+        assertEquals(false, callbacks.deleted)
+        assertEquals(1, templates.templates.size)
+        rule.onNodeWithTag("offline_hint").assertIsDisplayed()
     }
 }

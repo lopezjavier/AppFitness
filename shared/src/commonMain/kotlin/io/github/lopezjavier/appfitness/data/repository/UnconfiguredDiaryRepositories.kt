@@ -107,6 +107,8 @@ class UnconfiguredFoodRepository : FoodRepository {
 
     override suspend fun search(query: String, page: Int): Result<List<Food>> = failure()
 
+    override suspend fun searchManual(query: String): Result<List<Food>> = failure()
+
     override suspend fun recent(days: Int): Result<List<Food>> = failure()
 
     override suspend fun mostEaten(limit: Int): Result<List<Food>> = failure()

@@ -6,10 +6,12 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
+import io.github.lopezjavier.appfitness.feature.diary.FakeMealSlotRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -66,6 +68,37 @@ class FoodSearchViewModelTest {
         advanceUntilIdle()
 
         assertEquals(FoodSearchTab.Recent, model.uiState.value.tab)
+    }
+
+    @Test
+    fun theMealTheSearchAddsTo_isExposedForTheTitle() = runTest(dispatcher) {
+        val model = foodSearchModel(
+            repository,
+            connectivity,
+            scanner,
+            slotId = "dinner",
+            mealSlots = FakeMealSlotRepository(),
+        )
+        advanceUntilIdle()
+
+        assertEquals("Cena", model.uiState.value.mealSlot?.label)
+    }
+
+    @Test
+    fun withoutAPreselectedMealOrInPickMode_noMealIsExposed() = runTest(dispatcher) {
+        val none = foodSearchModel(repository, connectivity, scanner, mealSlots = FakeMealSlotRepository())
+        val picking = foodSearchModel(
+            repository,
+            connectivity,
+            scanner,
+            pick = true,
+            slotId = "dinner",
+            mealSlots = FakeMealSlotRepository(),
+        )
+        advanceUntilIdle()
+
+        assertNull(none.uiState.value.mealSlot)
+        assertNull(picking.uiState.value.mealSlot)
     }
 
     @Test
@@ -224,6 +257,163 @@ class FoodSearchViewModelTest {
 
         assertEquals(listOf("pollo"), repository.searches)
         assertEquals(FoodResults.Content(listOf(chicken)), model.uiState.value.results)
+    }
+
+    private val myBowl = food("my-bowl", "Bowl de pollo casero", kcal = 150.0)
+
+    private fun TestScope.search(model: FoodSearchViewModel, text: String) {
+        model.type(text)
+        advanceTimeBy(400)
+        runCurrent()
+    }
+
+    @Test
+    fun manualFoods_showBeforeOpenFoodFactsAnswers_withTheRemoteStillLoading() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.success(listOf(myBowl))
+        repository.searchResults["pollo"] = Result.success(listOf(chicken))
+        repository.searchGate = CompletableDeferred()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "pollo")
+
+        assertEquals(
+            FoodResults.Content(listOf(myBowl), manualCount = 1, remoteLoading = true),
+            model.uiState.value.results,
+        )
+    }
+
+    @Test
+    fun openFoodFactsResults_areAppendedBelowTheManualFoods() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.success(listOf(myBowl))
+        repository.searchResults["pollo"] = Result.success(listOf(chicken))
+        val gate = CompletableDeferred<Unit>()
+        repository.searchGate = gate
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "pollo")
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(myBowl, chicken), manualCount = 1), model.uiState.value.results)
+    }
+
+    @Test
+    fun aRemoteResultWithAManualFoodsId_isNotListedTwice_andTheManualRowStaysOnTop() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.success(listOf(myBowl))
+        repository.searchResults["pollo"] = Result.success(listOf(chicken, myBowl.copy(name = "Dup")))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "pollo")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(myBowl, chicken), manualCount = 1), model.uiState.value.results)
+    }
+
+    @Test
+    fun whenOpenFoodFactsFails_theManualFoodsStay_andTheStateFlagsTheRemoteFailure() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.success(listOf(myBowl))
+        repository.failSearch("pollo")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "pollo")
+        advanceUntilIdle()
+
+        assertEquals(
+            FoodResults.Content(listOf(myBowl), manualCount = 1, remoteFailed = true),
+            model.uiState.value.results,
+        )
+    }
+
+    @Test
+    fun retryAfterARemoteFailure_loadsTheRemoteResultsBelowTheManualFoods() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.success(listOf(myBowl))
+        repository.failSearch("pollo")
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "pollo")
+        advanceUntilIdle()
+
+        repository.searchResults["pollo"] = Result.success(listOf(chicken))
+        model.onEvent(FoodSearchEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(myBowl, chicken), manualCount = 1), model.uiState.value.results)
+    }
+
+    @Test
+    fun bothSourcesFailing_isAnError() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.failure(AppException(AppError.Network))
+        repository.failSearch("pollo")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "pollo")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Error, model.uiState.value.results)
+    }
+
+    @Test
+    fun manualSearchFailing_onlyShowsTheRemoteResults() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.failure(AppException(AppError.Network))
+        repository.searchResults["pollo"] = Result.success(listOf(chicken))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "pollo")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(chicken)), model.uiState.value.results)
+    }
+
+    @Test
+    fun noManualAndNoRemoteResults_isEmpty() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "xyz")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Empty, model.uiState.value.results)
+    }
+
+    @Test
+    fun onlyManualResultsAndEmptyRemote_keepsTheManualContent() = runTest(dispatcher) {
+        repository.manualResults["bowl"] = Result.success(listOf(myBowl))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "bowl")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(myBowl), manualCount = 1), model.uiState.value.results)
+    }
+
+    @Test
+    fun switchingTabWhileSearching_doesNotRepeatTheManualSearch() = runTest(dispatcher) {
+        repository.manualResults["pollo"] = Result.success(listOf(myBowl))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "pollo")
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.Favourites))
+        advanceUntilIdle()
+
+        assertEquals(listOf("pollo"), repository.manualSearches)
+    }
+
+    @Test
+    fun aBlankQuery_neverSearchesManualFoods() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertTrue(repository.manualSearches.isEmpty())
+        assertEquals(FoodResults.Empty, model.uiState.value.results)
     }
 
     @Test

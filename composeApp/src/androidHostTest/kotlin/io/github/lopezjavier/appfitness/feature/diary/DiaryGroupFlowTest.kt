@@ -236,9 +236,9 @@ class DiaryGroupFlowTest {
         start(entry("a", "Avena", 150.0), entry("b", "Plátano", 105.0))
 
         tap("diary_section_breakfast_save_template")
-        rule.onNodeWithTag("save_template_name").performTextReplacement("Mi desayuno")
+        rule.onNodeWithTag("save_template_name_input").performTextReplacement("Mi desayuno")
         rule.waitForIdle()
-        tap("save_template_submit")
+        tap("save_template_name_commit")
 
         rule.onNodeWithTag("diary_group_new-group").assertExists()
         rule.onNode(
