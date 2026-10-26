@@ -49,6 +49,7 @@ class FoodPhotoProductionEngineTest {
         http.createContext("/") { exchange ->
             val isFunction = exchange.requestURI.path.contains("/functions/")
             exchange.requestBody.readBytes()
+            // The real ~12 s delay is intentional: it must exceed OkHttp's own 10 s read timeout.
             if (isFunction) Thread.sleep(delayMs)
             exchange.respondJson(if (isFunction) WEIGHT else SESSION)
         }

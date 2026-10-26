@@ -9,7 +9,6 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.toNewFoodDraft
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
-import io.github.lopezjavier.appfitness.domain.port.PhotoQuality
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -98,7 +97,6 @@ class FoodPhotoViewModelTest {
         toPreview(viewModel(SavedStateHandle()), source = PhotoSource.Camera)
 
         assertEquals(listOf(PhotoSource.Gallery, PhotoSource.Camera), capture.captured)
-        assertEquals(listOf(PhotoQuality.Full, PhotoQuality.Full), capture.qualities)
     }
 
     @Test

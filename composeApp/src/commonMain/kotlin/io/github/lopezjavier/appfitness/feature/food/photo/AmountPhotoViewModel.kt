@@ -8,7 +8,6 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
-import io.github.lopezjavier.appfitness.domain.port.PhotoQuality
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -99,7 +98,7 @@ class AmountPhotoViewModel(
         setStep(FoodPhotoStep.Capturing(source))
         viewModelScope.launch {
             photoCapture.sweep()
-            val result = photoCapture.capture(source, PhotoQuality.Compact)
+            val result = photoCapture.capture(source)
             if (id != captureId || step() != FoodPhotoStep.Capturing(source)) {
                 // Late result: the flow was closed meanwhile.
                 if (result is CaptureResult.Photo) photoCapture.discard(result.handle)

@@ -7,7 +7,6 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
-import io.github.lopezjavier.appfitness.domain.port.PhotoQuality
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodRepository
 import io.github.lopezjavier.appfitness.feature.food.food
@@ -66,13 +65,6 @@ class AmountPhotoViewModelTest {
         model.onEvent(AmountPhotoEvent.Open("100"))
 
         assertEquals(FoodPhotoStep.SourceSheet, model.step())
-    }
-
-    @Test
-    fun sourceChosen_capturesWithTheCompactQualityForTheAmountEstimate() = runTest(dispatcher) {
-        toPreview(viewModel())
-
-        assertEquals(listOf(PhotoQuality.Compact), capture.qualities)
     }
 
     @Test
