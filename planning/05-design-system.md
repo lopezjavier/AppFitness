@@ -249,7 +249,7 @@ Generic rules for every screen, cited by number. ux-reviewer rejects a plan that
 - **R-09** The primary action of a sheet or editor is pinned and always visible.
 
 ### Editing
-- **R-10** Every edit surface has an explicit "Guardar". Closing it (X, back, swipe, tapping outside) never applies
+- **R-10** Every edit surface has an explicit "Guardar". Closing it (X, back) never applies
   anything.
 - **R-11** Inside an editor, every change waits for "Guardar" and is applied together, removals included. Immediate
   deletion exists only outside editors (in a list or on a details screen).
@@ -342,6 +342,11 @@ Generic rules for every screen, cited by number. ux-reviewer rejects a plan that
   A control never changes type with the number of options.
 - **R-34** The same concept always uses the same control and the same labels. Chart ranges use `TimeRangeSelector`:
   "1S 1M 3M 6M 1A".
+- **R-38** A bottom sheet closes only with its X, the system back button or, where it has one, "Cancelar" (ADR-71).
+  Dragging it down or tapping outside does not close it, and no sheet shows the drag handle (the small horizontal
+  line).
+- **R-39** Where an icon clearly represents an action (photo, add, remove, retry, scan), the control is an icon with a
+  contentDescription; text buttons are for actions with no clear icon (ADR-71).
 
 ### Wording
 - **R-35** The glossary (Appendix A) is binding: one label per concept, and one concept per label.

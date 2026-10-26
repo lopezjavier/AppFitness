@@ -630,3 +630,13 @@ Format: context → decision → consequences. A decision is only changed by add
   - When finishing a workout from a routine, the update is applied without asking only if the global setting is on; otherwise the existing "Actualizar rutina" choice is offered as today.
 - **Consequences:** affects `03-data-model.md` (`training_preferences`, `routines`, `save_routine`), `epics/E6-training-depth.md` (US-36 notes), `09-open-questions.md` (E6-B Q1 resolved) and the E9 tasks T-124 (migration, builder, finish flow, temporary switch) and T-127 (switch in the "Entrenamiento" section). The data-model and epic text are updated in T-124's PR.
 - **Approval:** 2026-10-26, user (option A).
+
+### ADR-71 · Diario layout restored, sheets close only with their X, icons for clear actions (E9-A feedback; amends ADR-69)
+- **Context:** Checkpoint E9-A feedback (2026-10-26): the meals-first Diario layout of T-121 (requested earlier) is worse than the previous one; the X already closes every sheet, so the drag handle and swipe-down dismissal add nothing; the text quick actions of the food search take a full row of height.
+- **Decision:**
+  - The Diario goes back to its pre-T-121 layout (dashboard on top, meals below); the one-line summary strip goes away. The rest of T-121 stays (food details sheet, swipe, day picker with "Hoy", titles).
+  - New rule R-38: a bottom sheet closes only with its X, the system back button or, where it has one, "Cancelar". Dragging it down or tapping outside does not close it, and no sheet shows the drag handle (the small horizontal line). R-10 is amended accordingly.
+  - New rule R-39: where an icon clearly represents an action (photo, add, remove, retry, scan), the control is an icon with a contentDescription; text buttons are for actions with no clear icon. The food search quick actions (scan, photo, create) go back to icons in the "Buscar alimentos" row.
+  - In the add-food sheet the label above the meal chips is "Añadir a:" (it clashed with the "Comida" meal chip).
+- **Consequences:** `05-design-system.md` (R-10, R-38, R-39), a guard in `check-ux-conventions.sh`, task T-131 (`tasks/todo.md`); the E9-A checkpoint is re-presented after it.
+- **Approval:** 2026-10-26, user (chat; "Añadir a:" chosen for the label).
