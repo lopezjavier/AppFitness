@@ -61,7 +61,7 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
   - **Checkpoint E9-A 👤 Log food the new way (7 items):** Diario layout; a logged food's sheet (incl. the T-112 caveat); swipe and delete; day picker; adding with the new search and sheet; saved comidas details and editor; messages and offline. Why here: the first domain on every template, before the other domains copy the same patterns, so feedback can still change the templates.
 
 ### Phase 3: Remaining domains, wording and motion (waves 2.2–3)
-- [ ] T-123: Peso migration — UI + core — M
+- [x] T-123: Peso migration — UI + core — M
 - [ ] T-124: Routines, builder and exercises — backend + core + UI — L
 - [ ] T-125: Live session, history and statistics — UI + core — L
 - [ ] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
