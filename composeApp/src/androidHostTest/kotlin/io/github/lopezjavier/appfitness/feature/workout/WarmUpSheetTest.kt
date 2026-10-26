@@ -105,7 +105,7 @@ class WarmUpSheetTest {
     fun theWeightField_isLabelledPesoObjetivo() {
         show()
 
-        rule.onNodeWithText("PESO OBJETIVO (KG)", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Peso objetivo (kg)", useUnmergedTree = true).assertExists()
     }
 
     @Test

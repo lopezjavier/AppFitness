@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -20,15 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_set_normal
-import io.github.lopezjavier.appfitness.composeapp.resources.set_type_close_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_picker_title
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.painterResource
@@ -60,34 +54,22 @@ fun SetTypePickerSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "set_type_picker") {
-        Column(
-            Modifier.padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg).navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.set_type_picker_title),
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.weight(1f).semantics { heading() },
-                )
-                HelpButton(
-                    contentDescription = stringResource(Res.string.help_set_type_cd),
-                    title = stringResource(Res.string.set_type_picker_title),
-                    body = stringResource(Res.string.help_set_type_body),
-                    testTag = "set_type_help",
-                )
-                AppIconButton(
-                    contentDescription = stringResource(Res.string.set_type_close_cd),
-                    icon = Res.drawable.ic_close,
-                    testTag = "set_type_picker_close",
-                    onClick = onDismiss,
-                )
-            }
-            Column(Modifier.selectableGroup()) {
-                SetTypePickerOptions(current, onSelect)
-            }
+    AppPickerSheet(
+        title = stringResource(Res.string.set_type_picker_title),
+        onDismiss = onDismiss,
+        modifier = modifier,
+        help = {
+            HelpButton(
+                contentDescription = stringResource(Res.string.help_set_type_cd),
+                title = stringResource(Res.string.set_type_picker_title),
+                body = stringResource(Res.string.help_set_type_body),
+                testTag = "set_type_help",
+            )
+        },
+        testTagPrefix = "set_type_picker",
+    ) {
+        Column(Modifier.selectableGroup()) {
+            SetTypePickerOptions(current, onSelect)
         }
     }
 }

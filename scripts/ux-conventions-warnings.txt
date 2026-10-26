@@ -5,7 +5,6 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/catalog/OverlayCatalogSections\.kt   # owner T-119
 G2 feature/diary/DiaryDayPickerSheet\.kt   # owner T-121
 G2 feature/diary/EditEntrySheet\.kt   # owner T-121
 G2 feature/food/AddFoodSheet\.kt   # owner T-122

@@ -4,26 +4,16 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
-import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_close_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_title
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
@@ -53,52 +43,32 @@ fun RpePickerSheet(
     modifier: Modifier = Modifier,
     completesSet: Boolean = false,
 ) {
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "rpe_picker") {
-        Column(
-            Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            RpePickerHeader(setNumber, onDismiss)
-            if (completesSet) {
-                Text(
-                    text = stringResource(Res.string.rpe_picker_hint),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                )
-            }
-            Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                RpePickerDefaults.Options.forEach { value ->
-                    RpeOptionRow(value = value, selected = value == current, onClick = { onSelect(value) })
-                }
+    AppPickerSheet(
+        title = stringResource(Res.string.rpe_picker_title, AppNumberFormat.integer(setNumber)),
+        onDismiss = onDismiss,
+        modifier = modifier,
+        help = {
+            HelpButton(
+                contentDescription = stringResource(Res.string.help_rpe_cd),
+                title = stringResource(Res.string.help_rpe_title),
+                body = stringResource(Res.string.help_rpe_body),
+                testTag = "live_rpe_help",
+            )
+        },
+        testTagPrefix = "rpe_picker",
+    ) {
+        if (completesSet) {
+            Text(
+                text = stringResource(Res.string.rpe_picker_hint),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.padding(bottom = Spacing.xs),
+            )
+        }
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            RpePickerDefaults.Options.forEach { value ->
+                RpeOptionRow(value = value, selected = value == current, onClick = { onSelect(value) })
             }
         }
-    }
-}
-
-@Composable
-private fun RpePickerHeader(setNumber: Int, onDismiss: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = stringResource(Res.string.rpe_picker_title, AppNumberFormat.integer(setNumber)),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f).semantics { heading() },
-        )
-        HelpButton(
-            contentDescription = stringResource(Res.string.help_rpe_cd),
-            title = stringResource(Res.string.help_rpe_title),
-            body = stringResource(Res.string.help_rpe_body),
-            testTag = "live_rpe_help",
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.rpe_picker_close_cd),
-            icon = Res.drawable.ic_close,
-            testTag = "rpe_picker_close",
-            onClick = onDismiss,
-        )
     }
 }

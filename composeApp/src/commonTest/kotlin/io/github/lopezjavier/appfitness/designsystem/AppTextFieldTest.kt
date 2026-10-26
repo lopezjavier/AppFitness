@@ -40,4 +40,23 @@ class AppTextFieldTest {
         assertEquals(AppBorder.focus, AppTextFieldDefaults.borderWidth(focused = false, hasError = true))
         assertEquals(AppBorder.thin, AppTextFieldDefaults.borderWidth(focused = false, hasError = false))
     }
+
+    @Test
+    fun style_isSharedWithNumberInput() {
+        listOf(true, false).forEach { focused ->
+            listOf(true, false).forEach { error ->
+                assertEquals(
+                    AppInputStyle.borderColor(focused, error, c),
+                    AppTextFieldDefaults.borderColor(focused, error, c),
+                )
+                assertEquals(
+                    AppInputStyle.borderWidth(focused, error),
+                    AppTextFieldDefaults.borderWidth(focused, error),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun slotSize_isATouchTarget() = assertTrue(AppTextFieldDefaults.SlotSize >= 48.dp)
 }

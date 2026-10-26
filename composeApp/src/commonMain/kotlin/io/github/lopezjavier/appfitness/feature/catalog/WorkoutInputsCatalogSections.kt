@@ -20,6 +20,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_checkbox_un
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_grams
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_reps
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_search_label
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_search_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_number_input
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_number_stepper
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_set_checkbox
@@ -32,11 +34,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_type_cl
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.name_error_blank
+import io.github.lopezjavier.appfitness.composeapp.resources.number_range_error
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppSearchField
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
+import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SetCompletionCheckbox
 import io.github.lopezjavier.appfitness.designsystem.SetRow
@@ -47,6 +52,8 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
 
+private const val RANGE_MIN_KG = 30.0
+private const val RANGE_MAX_KG = 300.0
 private const val WEIGHT_PLACEHOLDER = "85"
 private const val REPS_PLACEHOLDER = "8"
 private const val GRAMS_DEFAULT = "150"
@@ -92,6 +99,15 @@ private fun NumberInputSection() {
                     placeholder = WEIGHT_PLACEHOLDER,
                     maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
                     maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
+                    errorText = NumberInputDefaults.rangeError(
+                        value = NumberInputDefaults.parse(weight),
+                        min = RANGE_MIN_KG,
+                        max = RANGE_MAX_KG,
+                        unit = "kg",
+                        template = stringResource(Res.string.number_range_error),
+                    ),
+                    errorTestTag = "catalog_number_input_weight_error",
+                    unit = "kg",
                 )
                 NumberInput(
                     value = reps,
@@ -119,9 +135,18 @@ private fun NumberInputSection() {
 private fun TextFieldSection() {
     var name by rememberSaveable { mutableStateOf("Ana") }
     var empty by rememberSaveable { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
     CatalogSection(stringResource(Res.string.catalog_section_text_field), "catalog_section_text_field") {
         AppCard(Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                AppSearchField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = stringResource(Res.string.catalog_search_label),
+                    placeholder = stringResource(Res.string.catalog_search_placeholder),
+                    onSearch = {},
+                    testTagPrefix = "catalog_search_field",
+                )
                 AppTextField(
                     value = name,
                     onValueChange = { name = it },

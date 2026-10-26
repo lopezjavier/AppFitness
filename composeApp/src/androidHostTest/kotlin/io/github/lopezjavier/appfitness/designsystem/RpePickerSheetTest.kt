@@ -82,6 +82,7 @@ class RpePickerSheetTest {
         show()
 
         rule.onNodeWithTag("rpe_picker_close").performClick()
+        rule.waitForIdle() // The sheet animates out before it reports the dismissal.
 
         assertTrue(reported.isEmpty())
         assertEquals(1, dismissed)

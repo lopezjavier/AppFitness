@@ -160,9 +160,9 @@ class NumberInputTest {
     }
 
     @Test
-    fun colors_unfocused_borderStrong_focused_neonLime() {
+    fun colors_unfocused_borderStrong_focused_cyan() {
         assertEquals(c.borderStrong, colors(focused = false).border)
-        assertEquals(c.neonLime, colors(focused = true).border)
+        assertEquals(c.athleticCyan, colors(focused = true).border)
     }
 
     @Test
@@ -176,7 +176,7 @@ class NumberInputTest {
         assertEquals(c.textPrimary, colors.text)
         assertEquals(c.surfaceOverlay, colors.container)
         assertEquals(c.textSecondary, colors.label)
-        assertEquals(c.neonLime, colors.cursor)
+        assertEquals(c.athleticCyan, colors.cursor)
     }
 
     @Test
@@ -201,6 +201,56 @@ class NumberInputTest {
     }
 
     @Test
-    fun labelStyle_isLabelTechnical() =
-        assertEquals(typography.labelTechnical, NumberInputDefaults.labelStyle(typography))
+    fun colors_sharedWithAppTextField_forEveryState() {
+        listOf(true, false).forEach { focused ->
+            assertEquals(
+                AppTextFieldDefaults.borderColor(focused, hasError = false, appColors = c),
+                colors(focused).border,
+            )
+            assertEquals(
+                AppTextFieldDefaults.borderWidth(focused, hasError = false),
+                NumberInputDefaults.borderWidth(focused, readOnly = false),
+            )
+        }
+        assertEquals(c.error, NumberInputDefaults.colors(false, false, c, hasError = true).border)
+        assertEquals(AppBorder.focus, NumberInputDefaults.borderWidth(false, false, hasError = true))
+    }
+
+    @Test
+    fun labelStyle_isSentenceCaseBodyMedium() =
+        assertEquals(typography.bodyMedium, NumberInputDefaults.labelStyle(typography))
+
+    @Test
+    fun rangeError_inRange_isNull() {
+        assertNull(NumberInputDefaults.rangeError(87.5, 30.0, 300.0, "kg", TEMPLATE))
+        assertNull(NumberInputDefaults.rangeError(30.0, 30.0, 300.0, "kg", TEMPLATE))
+        assertNull(NumberInputDefaults.rangeError(300.0, 30.0, 300.0, "kg", TEMPLATE))
+    }
+
+    @Test
+    fun rangeError_noValue_isNull() = assertNull(NumberInputDefaults.rangeError(null, 30.0, 300.0, "kg", TEMPLATE))
+
+    @Test
+    fun rangeError_belowAndAbove_namesTheRange() {
+        assertEquals("Entre 30 y 300 kg", NumberInputDefaults.rangeError(10.0, 30.0, 300.0, "kg", TEMPLATE))
+        assertEquals("Entre 30 y 300 kg", NumberInputDefaults.rangeError(301.0, 30.0, 300.0, "kg", TEMPLATE))
+    }
+
+    @Test
+    fun rangeError_usesDecimalComma() =
+        assertEquals("Entre 0,5 y 2,5 kg", NumberInputDefaults.rangeError(3.0, 0.5, 2.5, "kg", TEMPLATE))
+
+    @Test
+    fun rangeError_minEqualsMax_otherValueFails() {
+        assertNull(NumberInputDefaults.rangeError(5.0, 5.0, 5.0, "reps", TEMPLATE))
+        assertEquals("Entre 5 y 5 reps", NumberInputDefaults.rangeError(6.0, 5.0, 5.0, "reps", TEMPLATE))
+    }
+
+    @Test
+    fun rangeError_withoutUnit_hasNoTrailingSpace() =
+        assertEquals("Entre 1 y 10", NumberInputDefaults.rangeError(11.0, 1.0, 10.0, "", TEMPLATE))
+
+    private companion object {
+        const val TEMPLATE = "Entre %1\$s y %2\$s %3\$s"
+    }
 }
