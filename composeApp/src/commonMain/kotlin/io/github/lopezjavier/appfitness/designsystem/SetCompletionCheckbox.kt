@@ -14,8 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,8 +42,8 @@ object SetCompletionCheckboxDefaults {
         SetCheckboxColors(container = appColors.surfaceOverlay, icon = appColors.ghostData)
     }
 
-    fun hapticFor(newChecked: Boolean): HapticFeedbackType =
-        if (newChecked) HapticFeedbackType.Confirm else HapticFeedbackType.ToggleOff
+    /** Completing a set is a Confirm (R-29); un-checking vibrates nothing. */
+    fun hapticFor(newChecked: Boolean): HapticEvent? = if (newChecked) HapticEvent.Confirm else null
 }
 
 /**
@@ -59,7 +57,7 @@ fun SetCompletionCheckbox(
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptics = LocalAppHaptics.current
     val colors = SetCompletionCheckboxDefaults.colors(checked, AppTheme.colors)
     Box(
         modifier =
@@ -69,7 +67,7 @@ fun SetCompletionCheckbox(
                 value = checked,
                 role = Role.Checkbox,
                 onValueChange = {
-                    haptic.performHapticFeedback(SetCompletionCheckboxDefaults.hapticFor(it))
+                    SetCompletionCheckboxDefaults.hapticFor(it)?.let(haptics::perform)
                     onCheckedChange(it)
                 },
             )

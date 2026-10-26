@@ -77,7 +77,7 @@ class HealthConnectBannerTest {
     fun syncing_showsSincronizandoWithADisabledButton() {
         show(HealthSyncStatus.Syncing)
 
-        statusText().assertTextEquals("Sincronizando...")
+        statusText().assertTextEquals("Sincronizando…")
         rule.onNodeWithTag("weight_hc_sync_button").assertIsNotEnabled()
     }
 

@@ -104,7 +104,7 @@ private fun StatusDot(color: Color) {
 }
 
 /**
- * The status is a polite live region so "Sincronizando..." -> "Sincronizado ahora" is announced; once the age ticks on
+ * The status is a polite live region so "Sincronizando…" -> "Sincronizado ahora" is announced; once the age ticks on
  * ("hace 1 min") the region is off, so the minute ticker never re-announces.
  */
 @Composable

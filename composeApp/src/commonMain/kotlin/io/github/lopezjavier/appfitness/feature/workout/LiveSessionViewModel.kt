@@ -687,7 +687,6 @@ class LiveSessionViewModel(
 
     /** Haptic, completion stamp, stopwatch stop, one write and the rest timer. */
     private fun completeSet(position: Int, setIndex: Int) {
-        haptics.tick()
         val now = clock.now()
         updateSet(position, setIndex) {
             it.copy(completedAt = now, invalid = false, stopwatch = it.stopwatch.stop(now))

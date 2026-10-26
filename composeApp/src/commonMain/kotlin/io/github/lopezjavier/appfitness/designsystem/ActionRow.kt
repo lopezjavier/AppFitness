@@ -36,15 +36,15 @@ object ActionRowDefaults {
 }
 
 /**
- * Tappable row of a choice sheet: decorative [icon], [title] (`titleMedium`) and a one-line [hint] (`bodyMedium`,
- * `textSecondary`). At least 48 dp tall, `Role.Button`, and read as one node ("title, hint"). [testTag] lands on the
- * row.
+ * Tappable row of a choice sheet: decorative [icon], [title] (`titleMedium`) and an optional one-line [hint]
+ * (`bodyMedium`, `textSecondary`; null for a title-only row). At least 48 dp tall, `Role.Button`, and read as one
+ * node ("title, hint"). [testTag] lands on the row.
  */
 @Composable
 fun ActionRow(
     icon: DrawableResource,
     title: String,
-    hint: String,
+    hint: String?,
     onClick: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
@@ -68,7 +68,9 @@ fun ActionRow(
         )
         Column(Modifier.weight(1f)) {
             Text(text = title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-            Text(text = hint, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            if (hint != null) {
+                Text(text = hint, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            }
         }
     }
 }

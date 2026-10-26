@@ -30,8 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -58,6 +56,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_act
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_step_measures
 import io.github.lopezjavier.appfitness.designsystem.AppButtonDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -141,14 +140,14 @@ fun OnboardingScreen(
 /** Confirms with a haptic once, waits [OnboardingDefaults.ConfirmationDuration], then reports completion. */
 @Composable
 private fun ConfirmationEffect(onComplete: () -> Unit) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalAppHaptics.current
     val currentOnCompleted by rememberUpdatedState(onComplete)
     // Survives rotation: the haptic fires once even if the composition is recreated during the delay.
     var buzzed by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!buzzed) {
             buzzed = true
-            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+            haptic.confirm()
         }
         delay(OnboardingDefaults.ConfirmationDuration)
         currentOnCompleted()

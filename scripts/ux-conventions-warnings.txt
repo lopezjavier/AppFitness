@@ -1,0 +1,72 @@
+# Warning list of scripts/check-ux-conventions.sh (T-118). Format: `G<n> <path-regex>`, one per line.
+# A hit in a listed path is migration debt: it prints WARN and does not fail. Each owning domain task
+# deletes its lines when it migrates the screens; T-128 empties the file (every guard a failure).
+# G1, G6 (apart from the weight screens), G7, G8 and G10 have no entries: they fail at once.
+# Tests: scripts/tests/test-check-ux-conventions.sh.
+
+# G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
+G2 feature/catalog/OverlayCatalogSections\.kt   # owner T-119
+G2 feature/diary/DiaryDayPickerSheet\.kt   # owner T-121
+G2 feature/diary/EditEntrySheet\.kt   # owner T-121
+G2 feature/food/AddFoodSheet\.kt   # owner T-122
+G2 feature/food/photo/PhotoSheets\.kt   # owner T-122
+G2 feature/templates/SaveTemplateSheet\.kt   # owner T-122
+G2 feature/templates/TemplateFoodSheet\.kt   # owner T-122
+G2 feature/weight/CircumferenceSheet\.kt   # owner T-123
+G2 feature/weight/CompositionSheet\.kt   # owner T-123
+G2 feature/weight/GoalSheets\.kt   # owner T-123
+G2 feature/weight/WeightDaySheet\.kt   # owner T-123
+G2 feature/exercises/ExerciseFormSheet\.kt   # owner T-124
+G2 feature/routines/FolderSheet\.kt   # owner T-124
+G2 feature/routines/RoutineSheetActions\.kt   # owner T-124
+G2 feature/routines/RoutinesSheets\.kt   # owner T-124
+G2 feature/analytics/stats/MuscleDetailSheet\.kt   # owner T-125
+G2 feature/workout/CalculatorSheetParts\.kt   # owner T-125
+G2 feature/workout/ExerciseMenu\.kt   # owner T-125
+G2 feature/workout/FinishSessionSheet\.kt   # owner T-125
+G2 feature/workout/PastWorkoutChooserSheet\.kt   # owner T-125
+G2 feature/workout/SaveAsRoutineSheet\.kt   # owner T-125
+G2 feature/workout/UpdateRoutineSheet\.kt   # owner T-125
+G2 feature/workout/VolumeOptionsSheets\.kt   # owner T-125
+G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
+G2 feature/profile/PersonalDataCard\.kt   # owner T-127
+
+# G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
+G3 feature/diary/DiaryScreen\.kt   # owner T-121
+G3 feature/food/FoodSearchScreen\.kt   # owner T-122
+G3 feature/weight/WeightScreen\.kt   # owner T-123
+G3 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
+G3 feature/exercises/ExercisePickerScreen\.kt   # owner T-124
+G3 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
+G3 feature/routines/RoutinesScreen\.kt   # owner T-124
+G3 feature/workout/EditWorkoutScreen\.kt   # owner T-125
+G3 feature/workout/LiveSessionScreen\.kt   # owner T-125
+G3 feature/workout/PastWorkoutScreen\.kt   # owner T-125
+G3 feature/workout/SessionDetailScreen\.kt   # owner T-125
+G3 feature/workout/WorkoutEntry\.kt   # owner T-125
+G3 feature/profile/PreferencesScreen\.kt   # owner T-127
+G3 feature/profile/ProfileRootScreen\.kt   # owner T-127
+G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128
+
+# G4: duplicate in-screen OfflineBanner( (the shell draws the single banner, R-30).
+G4 feature/weight/WeightScreen\.kt   # owner T-123
+G4 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
+G4 feature/templates/TemplateDetailsScreen\.kt   # owner T-122
+G4 feature/meals/MealSlotsScreen\.kt   # owner T-126
+G4 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
+
+# G5: AppConfirmDialog( outside the R-08 allow-list (account deletion, sign out, folder deletion,
+# discarding the live workout). RoutinesSheets.kt holds the allowed folder deletion and the archive
+# dialog that T-124 replaces by an immediate "Eliminar".
+G5 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
+G5 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
+G5 feature/routines/RoutinesSheets\.kt   # owner T-124
+G5 feature/meals/MealSlotsScreen\.kt   # owner T-126
+G5 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
+
+# G6: ic_help outside HelpButton.
+G6 feature/weight/CircumferenceSheet\.kt   # owner T-123
+G6 feature/weight/WeightChart\.kt   # owner T-123
+
+# G9: generic action texts outside action_* keys; T-128 adopts the shared keys.
+G9 composeResources/values/strings\.xml   # owner T-128

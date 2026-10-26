@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,8 +12,8 @@ class ShellChromeTest {
         listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome)
 
     @Test
-    fun catalogRoute_chrome_isFullScreenWithCatalogTitle() {
-        assertEquals(ShellChrome.FullScreen(Res.string.catalog_title), CatalogRoute.chrome)
+    fun catalogRoute_chrome_isScreen_becauseItDrawsItsOwnBarThroughAppScreen() {
+        assertEquals(ShellChrome.Screen, CatalogRoute.chrome)
     }
 
     @Test
@@ -98,7 +97,7 @@ class ShellChromeTest {
 
     @Test
     fun fullScreenRoutes_allHaveFullScreenChrome_exceptTheOnesThatDrawTheirOwnBar() {
-        AppDestinations.fullScreenRoutes.filter { it != LiveSessionRoute }
+        AppDestinations.fullScreenRoutes.filter { it != LiveSessionRoute && !it.usesAppScreen }
             .forEach { assertIs<ShellChrome.FullScreen>(it.chrome) }
     }
 

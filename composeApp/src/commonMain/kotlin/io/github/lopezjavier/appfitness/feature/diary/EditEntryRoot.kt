@@ -8,9 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -31,14 +30,14 @@ fun EditEntryRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var saveFailed by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalAppHaptics.current
     val currentOnSave by rememberUpdatedState(onSave)
     val currentOnDelete by rememberUpdatedState(onDelete)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 EditEntryEffect.Saved -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    haptic.confirm()
                     currentOnSave()
                 }
 

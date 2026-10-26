@@ -1,10 +1,10 @@
 package io.github.lopezjavier.appfitness.domain.port
 
-/** Short tactile feedback of the device. Implemented per platform. */
+/**
+ * Device haptics that do not belong to a UI gesture. UI feedback (set completed, saved, refused...)
+ * goes through the design system's `AppHaptics`; this port only keeps the end-of-rest alert.
+ */
 interface Haptics {
-    /** One short tick, for example when a set is checked. */
-    fun tick()
-
-    /** A longer buzz than [tick], for example when the rest timer ends. */
+    /** A long buzz, for example when the rest timer ends. */
     fun alert()
 }

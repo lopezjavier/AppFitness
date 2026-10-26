@@ -631,7 +631,9 @@ internal fun AppNavHost(
         workoutFormDestinations(navController, fullScreenPadding, editWorkout, pastWorkout)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
-            composable<CatalogRoute> { ComponentCatalogScreen(Modifier.padding(fullScreenPadding)) }
+            composable<CatalogRoute> {
+                ComponentCatalogScreen(Modifier.padding(fullScreenPadding), onBack = { navController.popBackStack() })
+            }
         }
     }
 }
