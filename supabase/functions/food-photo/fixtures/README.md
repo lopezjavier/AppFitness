@@ -15,3 +15,6 @@ T-107b adds `weight-chicken`, `weight-ml`, `weight-invalid` (weight mode
 answers: `{estimated_amount, confidence}`) and `dish-sparse` (dish answer with
 null/absent values, which the dish normalizer zero-fills). Same hand-written
 provenance.
+
+T-131 (ADR-72): weight fixtures now carry an integer confidence (1-10). Still
+hand-written, not recorded from the real API.

@@ -131,26 +131,45 @@ function obj(value: unknown): Record<string, unknown> {
 export const WEIGHT_RESPONSE_SCHEMA = {
     type: "OBJECT",
     properties: {
-        estimated_amount: num,
-        confidence: {
-            type: "STRING",
-            nullable: true,
-            enum: ["low", "medium", "high"],
-        },
+        estimated_amount: { type: "NUMBER" },
+        // 1-10 is stated in the prompt and enforced by the normalizer: no minimum/maximum here, so a
+        // response schema the provider might reject can never break the call (ADR-72).
+        confidence: { type: "INTEGER" },
     },
-    required: ["estimated_amount"],
+    required: ["estimated_amount", "confidence"],
 } as const;
 
+/** Weight mode (ADR-72): confidence is an integer 1-10, or null when the model sent none. */
 export type AmountEstimate = {
     estimated_amount: number;
     base_unit: "g" | "ml";
-    confidence: Confidence | null;
+    confidence: number | null;
 };
+
+/** Finite number rounded and clamped to 1-10, else null. */
+function scoreOf(value: unknown): number | null {
+    if (typeof value !== "number" || !Number.isFinite(value)) return null;
+    return Math.min(10, Math.max(1, Math.round(value)));
+}
 
 function confidenceOf(value: unknown): Confidence | null {
     return value === "low" || value === "medium" || value === "high"
         ? value
         : null;
+}
+
+/** Why `normalizeWeight` rejects an output: shape and value type only, never the content (safe to log). */
+export function weightRejectReason(raw: unknown): string {
+    if (Array.isArray(raw)) return "output array";
+    if (raw === null || typeof raw !== "object") {
+        return `output ${raw === null ? "null" : typeof raw}`;
+    }
+    const value = (raw as Record<string, unknown>).estimated_amount;
+    if (value === null) return "amount null";
+    if (typeof value !== "number") {
+        return `amount ${typeof value}`;
+    }
+    return "amount not positive";
 }
 
 /**
@@ -169,7 +188,7 @@ export function normalizeWeight(
     return {
         estimated_amount: Math.min(value, MAX_AMOUNT),
         base_unit: baseUnit,
-        confidence: confidenceOf(r.confidence),
+        confidence: scoreOf(r.confidence),
     };
 }
 

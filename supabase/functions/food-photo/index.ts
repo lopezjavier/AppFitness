@@ -8,6 +8,8 @@ import { createFoodPhotoHandler } from "./handler.ts";
 const handler = createFoodPhotoHandler({
     authenticate,
     model: Deno.env.get("GEMINI_MODEL"),
+    // Non-blank FOOD_PHOTO_DEBUG turns the diagnostic log line on; read per request.
+    debug: () => (Deno.env.get("FOOD_PHOTO_DEBUG") ?? "").trim() !== "",
     generate: (req) =>
         generateFoodJson({
             fetch: (input, init) => fetch(input, init),

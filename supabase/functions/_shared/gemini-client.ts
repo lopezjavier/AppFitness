@@ -55,8 +55,8 @@ export type GenerateRequest = {
     mode: FoodPhotoMode;
     imageBase64: string;
     comment?: string | null;
-    /** Chosen food's details (weight mode only); sent as a data part. */
-    food?: Record<string, unknown> | null;
+    /** Chosen food's identity (weight mode only); sent as a data part. No nutrition values (ADR-72). */
+    food?: { name: string; brand: string | null; base_unit: "g" | "ml" } | null;
 };
 
 function mimeType(base64: string): string {
@@ -75,7 +75,12 @@ export function buildBody(req: GenerateRequest) {
     }];
     if (req.comment) parts.push({ text: COMMENT_PREFIX + req.comment });
     if (req.food) {
-        parts.push({ text: FOOD_CONTEXT_PREFIX + JSON.stringify(req.food) });
+        // Explicit fields: anything else a caller passes never reaches the model.
+        const { name, brand, base_unit } = req.food;
+        parts.push({
+            text: FOOD_CONTEXT_PREFIX +
+                JSON.stringify({ name, brand, base_unit }),
+        });
     }
     return {
         systemInstruction: { parts: [{ text: PROMPTS[req.mode] }] },
