@@ -37,7 +37,7 @@ class DiaryEntryCookingTest {
             cookingMethod = method,
         )
         rule.setContent {
-            AppTheme { DiaryEntryRow(entry, canDelete = true, onEdit = {}, onDelete = {}) }
+            AppTheme { LoggedEntryRow(entry, EntryActions(canDelete = true, onEdit = {}, onDelete = {})) }
         }
         rule.waitForIdle()
     }
@@ -53,7 +53,10 @@ class DiaryEntryCookingTest {
     fun cookedEntryWithAPortion_showsThePortionAndTheMethod() {
         show(CookingMethod.Fried, portionLabel = "2 × filete")
 
-        rule.onNodeWithTag("diary_entry_detail_e1", useUnmergedTree = true).assertTextEquals("2 × filete · Frito")
+        rule.onNodeWithTag(
+            "diary_entry_detail_e1",
+            useUnmergedTree = true,
+        ).assertTextEquals("2 × filete (120 g) · Frito")
     }
 
     @Test

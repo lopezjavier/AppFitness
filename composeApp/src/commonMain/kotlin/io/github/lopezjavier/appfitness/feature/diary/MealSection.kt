@@ -22,11 +22,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_breakfast
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_custom
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_dinner
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_lunch
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_snack
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_breakfast
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_custom
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_dinner
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_lunch
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_snack
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_breakfast
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_dinner
@@ -41,13 +41,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_colla
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealRow
@@ -59,7 +59,7 @@ import org.jetbrains.compose.resources.stringResource
 
 internal const val EXPANDED_CHEVRON_ROTATION = 180f
 
-/** Default label and add-button wording of the four default meals. */
+/** Default label of the four default meals. */
 private fun defaultLabel(code: MealCode): StringResource = when (code) {
     MealCode.Breakfast -> Res.string.diary_meal_breakfast
     MealCode.Lunch -> Res.string.diary_meal_lunch
@@ -67,21 +67,24 @@ private fun defaultLabel(code: MealCode): StringResource = when (code) {
     MealCode.Dinner -> Res.string.diary_meal_dinner
 }
 
-private fun addLabel(code: MealCode): StringResource = when (code) {
-    MealCode.Breakfast -> Res.string.diary_add_breakfast
-    MealCode.Lunch -> Res.string.diary_add_lunch
-    MealCode.Snack -> Res.string.diary_add_snack
-    MealCode.Dinner -> Res.string.diary_add_dinner
+private fun addObject(code: MealCode): StringResource = when (code) {
+    MealCode.Breakfast -> Res.string.diary_add_object_breakfast
+    MealCode.Lunch -> Res.string.diary_add_object_lunch
+    MealCode.Snack -> Res.string.diary_add_object_snack
+    MealCode.Dinner -> Res.string.diary_add_object_dinner
 }
 
-/** "Añadir a la cena" for a default meal; "Añadir a <label>" for a custom or renamed one, so it never disagrees. */
+/**
+ * The object of the add button ("a la cena" for a default meal, "a <label>" for a custom or renamed one), so the
+ * [AddItemButton] reads "Añadir a la cena" and never disagrees with the meal's name.
+ */
 @Composable
-private fun addButtonText(slot: MealSlot): String {
+private fun addObjectLabel(slot: MealSlot): String {
     val code = slot.code
     return if (code != null && slot.label == stringResource(defaultLabel(code))) {
-        stringResource(addLabel(code))
+        stringResource(addObject(code))
     } else {
-        stringResource(Res.string.diary_add_custom, slot.label)
+        stringResource(Res.string.diary_add_object_custom, slot.label)
     }
 }
 
@@ -118,15 +121,7 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
     Column(Modifier.padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         section.rows.forEach { row ->
             when (row) {
-                is MealRow.Single -> key(row.entry.id) {
-                    DiaryEntryRow(
-                        entry = row.entry,
-                        canDelete = actions.canDelete,
-                        onEdit = { actions.onEdit(row.entry.id) },
-                        onDelete = { actions.onDelete(row.entry.id) },
-                    )
-                }
-
+                is MealRow.Single -> key(row.entry.id) { LoggedEntryRow(row.entry, actions) }
                 is MealRow.Group -> key("group-${row.groupId}") { DiaryGroupCard(row, actions) }
             }
         }
@@ -141,10 +136,10 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
                 modifier = Modifier.testTag("diary_section_${id}_empty_hint"),
             )
         }
-        SecondaryButton(
-            text = addButtonText(section.slot),
+        AddItemButton(
+            objectLabel = addObjectLabel(section.slot),
             onClick = onAdd,
-            modifier = Modifier.fillMaxWidth().testTag("diary_section_${id}_add"),
+            modifier = Modifier.testTag("diary_section_${id}_add"),
         )
     }
 }

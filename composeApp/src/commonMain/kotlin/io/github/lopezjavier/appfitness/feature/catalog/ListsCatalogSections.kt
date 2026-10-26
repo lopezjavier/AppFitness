@@ -15,6 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_entry_detail
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_entry_name
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_label
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_value
@@ -24,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_h
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_nav_label
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_nav_value
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_food_entry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_metric_card
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_rows
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_swipe
@@ -35,6 +38,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_swipe_item_
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.FoodEntryRow
+import io.github.lopezjavier.appfitness.designsystem.FoodEntryRowModel
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
@@ -59,6 +64,7 @@ private val DemoRanges = listOf(TimeRange.Week, TimeRange.Month, TimeRange.Three
 internal fun LazyListScope.listsItems() {
     item { SwipeSection() }
     item { RowsSection() }
+    item { FoodEntryRowSection() }
     item { MetricCardSection() }
     item { TimeRangeSection() }
 }
@@ -174,3 +180,31 @@ private fun TimeRangeSection() {
         )
     }
 }
+
+@Composable
+private fun FoodEntryRowSection() {
+    var present by rememberSaveable { mutableStateOf(true) }
+    CatalogSection(stringResource(Res.string.catalog_section_food_entry), "catalog_section_food_entry") {
+        if (present) {
+            FoodEntryRow(
+                model = FoodEntryRowModel(
+                    id = "sample",
+                    name = stringResource(Res.string.catalog_food_entry_name),
+                    detail = stringResource(Res.string.catalog_food_entry_detail),
+                    kcal = FOOD_SAMPLE_KCAL,
+                    proteinG = FOOD_SAMPLE_PROTEIN,
+                    carbsG = FOOD_SAMPLE_CARBS,
+                    fatG = FOOD_SAMPLE_FAT,
+                ),
+                onClick = {},
+                onDelete = { present = false },
+                tagPrefix = "catalog_food_entry",
+            )
+        }
+    }
+}
+
+private const val FOOD_SAMPLE_KCAL = 1240
+private const val FOOD_SAMPLE_PROTEIN = 80
+private const val FOOD_SAMPLE_CARBS = 150
+private const val FOOD_SAMPLE_FAT = 40

@@ -39,6 +39,10 @@ data class EditEntryContent(
     /** The save button is enabled. */
     val canSave: Boolean
         get() = quantityError == null && resolvedAmount != null && !isOffline && !saving
+
+    /** The delete button is enabled: deleting needs the server. */
+    val canDelete: Boolean
+        get() = !isOffline
 }
 
 sealed interface EditEntryEvent {

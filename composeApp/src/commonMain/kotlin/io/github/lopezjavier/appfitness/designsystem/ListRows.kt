@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -27,7 +28,7 @@ private const val HEADLINE_MAX_LINES = 2
  * Generic list row: optional [leading] and [trailing] slots around a [headline] (`bodyLarge`) and an optional
  * [supporting] line (`bodyMedium`, `textSecondary`). At least 48 dp high. With [onClick] the whole row is one
  * `Role.Button` target that reads as a single node; without it the row is plain content. The caller owns the
- * tag (pass it in [modifier]).
+ * tag (pass it in [modifier]); [supportingTestTag] tags the supporting line.
  */
 @Composable
 fun AppListRow(
@@ -37,6 +38,7 @@ fun AppListRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    supportingTestTag: String? = null,
 ) {
     val clickable = if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
     Row(
@@ -62,6 +64,7 @@ fun AppListRow(
                     text = supporting,
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.textSecondary,
+                    modifier = if (supportingTestTag != null) Modifier.testTag(supportingTestTag) else Modifier,
                 )
             }
         }

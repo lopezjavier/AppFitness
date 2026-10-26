@@ -25,7 +25,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -36,6 +38,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
@@ -63,6 +66,13 @@ private class DayInputs(
     val collapsed: Set<String>,
     val entriesFailed: Boolean,
     val online: Boolean,
+)
+
+/** The rest of the state: the defaults failure, the expanded comida groups and the day picker's marked days. */
+private class DayExtras(
+    val defaultsFailed: Boolean,
+    val expandedGroups: Set<String>,
+    val pickerMarkedDays: Set<LocalDate>,
 )
 
 /**
@@ -122,7 +132,10 @@ class DiaryViewModel(
         loaded?.let { day -> DayEntries(day.date, day.entries.filterNot { it.id in hidden }) }
     }
 
-    val uiState: StateFlow<DiaryUiState> = combine(
+    private val pickerMonth = MutableStateFlow<YearMonth?>(null)
+    private val pickerMarkedDays = MutableStateFlow<Set<LocalDate>>(emptySet())
+
+    private val inputs: Flow<DayInputs> = combine(
         setup,
         visibleDayEntries,
         collapsed,
@@ -130,23 +143,39 @@ class DiaryViewModel(
         online,
         ::DayInputs,
     )
-        .combine(defaultsFailed) { inputs, failed -> inputs to failed }
-        .combine(expandedGroups) { (inputs, failed), expanded -> buildState(inputs, failed, expanded) }
+
+    private val extras: Flow<DayExtras> = combine(defaultsFailed, expandedGroups, pickerMarkedDays, ::DayExtras)
+
+    val uiState: StateFlow<DiaryUiState> = combine(inputs, extras, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, DiaryUiState.Loading)
 
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
+        viewModelScope.launch { keepPickerMarksFresh() }
         loadSetup(silent = false)
         refreshDay(date.value)
     }
 
+    /**
+     * Loads the marked days of the picker's month; a new month or a change of the visible day's entries cancels the
+     * running load and starts another. A failure leaves the marks empty: they are decoration.
+     */
+    private suspend fun keepPickerMarksFresh() {
+        pickerMonth.filterNotNull().combine(visibleDayEntries) { month, _ -> month }.collectLatest { month ->
+            val loaded = foodDiary.summaries(month.firstDay, month.lastDay).getOrNull()
+            pickerMarkedDays.value = loaded?.map { it.date }?.toSet().orEmpty()
+        }
+    }
+
     fun onEvent(event: DiaryEvent) {
         when (event) {
-            DiaryEvent.PreviousDay -> showDay(date.value.minus(1, DateTimeUnit.DAY))
+            DiaryEvent.PreviousDay,
+            DiaryEvent.NextDay,
+            is DiaryEvent.GoToDay,
+            DiaryEvent.GoToToday,
+            -> navigate(event)
 
-            DiaryEvent.NextDay -> if (date.value < clock.today()) showDay(date.value.plus(1, DateTimeUnit.DAY))
-
-            is DiaryEvent.GoToDay -> if (event.date <= clock.today()) showDay(event.date)
+            is DiaryEvent.PickerMonthShown -> pickerMonth.value = event.month
 
             is DiaryEvent.ToggleSection -> toggle(event.slotId)
 
@@ -170,6 +199,19 @@ class DiaryViewModel(
 
             is DiaryEvent.DeleteEntry -> visibleEntries().firstOrNull { it.id == event.entryId }?.let(::delete)
         }
+    }
+
+    /** The day-changing events; never past today. */
+    private fun navigate(event: DiaryEvent) {
+        val today = clock.today()
+        val target = when (event) {
+            DiaryEvent.PreviousDay -> date.value.minus(1, DateTimeUnit.DAY)
+            DiaryEvent.NextDay -> date.value.plus(1, DateTimeUnit.DAY)
+            is DiaryEvent.GoToDay -> event.date
+            DiaryEvent.GoToToday -> today
+            else -> return
+        }
+        if (target <= today) showDay(target)
     }
 
     /**
@@ -254,24 +296,13 @@ class DiaryViewModel(
         defaultsFailed.value = !applied
     }
 
-    private fun buildState(inputs: DayInputs, defaultsFailed: Boolean, expanded: Set<String>): DiaryUiState = when {
+    private fun buildState(inputs: DayInputs, extras: DayExtras): DiaryUiState = when {
         inputs.setup == Setup.Failed || (inputs.entriesFailed && inputs.loaded == null) -> DiaryUiState.Error
-
         inputs.setup !is Setup.Ready || inputs.loaded == null -> DiaryUiState.Loading
-
-        else -> DiaryUiState.Content(
-            content(inputs.setup, inputs.loaded, inputs.collapsed, inputs.online, defaultsFailed, expanded),
-        )
+        else -> DiaryUiState.Content(content(inputs.setup, inputs.loaded, inputs, extras))
     }
 
-    private fun content(
-        setup: Setup.Ready,
-        loaded: DayEntries,
-        collapsedIds: Set<String>,
-        online: Boolean,
-        defaultsFailed: Boolean,
-        expandedGroupIds: Set<String>,
-    ): DiaryContent {
+    private fun content(setup: Setup.Ready, loaded: DayEntries, inputs: DayInputs, extras: DayExtras): DiaryContent {
         val day = buildDiaryDay(loaded.date, setup.slots, loaded.entries, setup.goals)
         val remaining = day.goals?.let { DiaryTotals.remainingKcal(it.targetKcal, day.totals.kcal) }
         val today = clock.today()
@@ -294,10 +325,13 @@ class DiaryViewModel(
                 )
             },
             dayTotals = day.totals,
-            collapsedSlotIds = collapsedIds,
-            expandedGroupIds = expandedGroupIds,
-            isOffline = !online,
-            defaultsFailed = defaultsFailed && loaded.date == today,
+            collapsedSlotIds = inputs.collapsed,
+            expandedGroupIds = extras.expandedGroups,
+            isOffline = !inputs.online,
+            defaultsFailed = extras.defaultsFailed && loaded.date == today,
+            isToday = loaded.date == today,
+            summary = DiarySummary.of(day.totals, day.goals?.targetKcal),
+            pickerMarkedDays = extras.pickerMarkedDays,
         )
     }
 }

@@ -63,14 +63,25 @@ class DiaryHistoryScreenTest {
     val rule = createComposeRule()
 
     private val events = mutableListOf<DiaryHistoryEvent>()
+    private var backs = 0
 
     private fun show(state: DiaryHistoryUiState) {
-        rule.setContent { AppTheme { DiaryHistoryScreen(state, { events += it }) } }
+        rule.setContent { AppTheme { DiaryHistoryScreen(state, { events += it }, onBack = { backs++ }) } }
         rule.waitForIdle()
     }
 
     private fun inside(tag: String, text: String) =
         rule.onNode(hasText(text, substring = true) and hasAnyAncestor(hasTestTag(tag)))
+
+    @Test
+    fun theTitleIsCaloriasAndTheBackArrowGoesBack() {
+        show(content())
+
+        rule.onNodeWithTag("diary_history_title").assertTextEquals("Calorías")
+        rule.onNodeWithTag("diary_history_back").performClick()
+
+        assertEquals(1, backs)
+    }
 
     @Test
     fun openingTheHistory_showsTheCalendarWithTheDaysWithEntriesMarked() {

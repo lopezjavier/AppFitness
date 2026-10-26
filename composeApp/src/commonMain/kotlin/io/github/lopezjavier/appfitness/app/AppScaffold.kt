@@ -115,18 +115,19 @@ internal fun AppScaffold(
             containerColor = AppTheme.colors.surfaceBase,
             topBar = { ShellTopBar(chrome, backButton) },
             bottomBar = {
-                if (isBar && chrome is ShellChrome.Tabs) {
+                val tab = chrome.tabOrNull()
+                if (isBar && tab != null) {
                     AppNavigation(
                         modifier = Modifier.testTag("nav_bar"),
                         items = items,
-                        selectedIndex = chrome.tab.ordinal,
+                        selectedIndex = tab.ordinal,
                         onItemSelect = onTabSelect,
                     )
                 }
             },
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
-                BelowTopBar(isOffline, innerPadding, consumeInsets = chrome is ShellChrome.Screen) {
+                BelowTopBar(isOffline, innerPadding, consumeInsets = chrome.drawsOwnHeader()) {
                         contentPadding,
                         contentModifier,
                     ->
@@ -136,10 +137,11 @@ internal fun AppScaffold(
                         navigationType = navigationType,
                         innerPadding = contentPadding,
                         rail = {
-                            if (chrome is ShellChrome.Tabs) {
+                            val railTab = chrome.tabOrNull()
+                            if (railTab != null) {
                                 ShellRail(
                                     items = items,
-                                    selectedIndex = chrome.tab.ordinal,
+                                    selectedIndex = railTab.ordinal,
                                     onTabSelect = onTabSelect,
                                     modifier = it,
                                 )
@@ -377,7 +379,17 @@ private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
             )
 
         // The destination draws its own bar; the shell reserves the status bar so the offline banner sits below it.
-        ShellChrome.Own, ShellChrome.Screen ->
+        ShellChrome.Own, ShellChrome.Screen, is ShellChrome.TabScreen ->
             Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
     }
 }
+
+/** The tab whose bottom bar or rail this chrome shows, or null for a full-screen chrome. */
+internal fun ShellChrome.tabOrNull(): TopLevelTab? = when (this) {
+    is ShellChrome.Tabs -> tab
+    is ShellChrome.TabScreen -> tab
+    is ShellChrome.FullScreen, ShellChrome.Own, ShellChrome.Screen -> null
+}
+
+/** True when the destination draws its own header through `AppScreen` and consumes the insets itself. */
+internal fun ShellChrome.drawsOwnHeader(): Boolean = this is ShellChrome.Screen || this is ShellChrome.TabScreen

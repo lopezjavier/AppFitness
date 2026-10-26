@@ -37,8 +37,10 @@ class ShellChromeTest {
     }
 
     @Test
-    fun tabRoutes_chrome_isTabsWithTheirTab() {
-        tabRoutes.forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
+    fun tabRoutes_chrome_isTabsWithTheirTab_exceptDiaryHomeWhichDrawsItsOwnHeader() {
+        tabRoutes.filter { it != DiaryHome }
+            .forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
     }
 
     @Test
@@ -116,9 +118,9 @@ class ShellChromeTest {
     }
 
     @Test
-    fun diaryHistoryRoutes_haveFullScreenChrome_withTheirTopBarTags() {
-        assertEquals("diary_history", (DiaryHistoryRoute.chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("diary_day", (DiaryDayRoute("2026-10-18").chrome as ShellChrome.FullScreen).topBarTag)
+    fun diaryHistoryRoutes_drawTheirOwnBarThroughAppScreen() {
+        assertEquals(ShellChrome.Screen, DiaryHistoryRoute.chrome)
+        assertEquals(ShellChrome.Screen, DiaryDayRoute("2026-10-18").chrome)
     }
 
     @Test

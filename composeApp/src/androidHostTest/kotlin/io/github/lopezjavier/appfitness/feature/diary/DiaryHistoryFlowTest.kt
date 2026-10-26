@@ -63,7 +63,7 @@ class DiaryHistoryFlowTest {
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25)))
     private val clock = MutableClock()
 
-    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, edit ->
+    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, edit, onBack ->
         val model: DiaryViewModel = viewModel(
             factory = viewModelFactory {
                 initializer {
@@ -87,6 +87,7 @@ class DiaryHistoryFlowTest {
                 onAddFood = { onAddFood(null, it) },
                 onSaveTemplate = { _, _ -> },
                 editHost = edit,
+                onBack = onBack,
                 viewModel = model,
             )
             // Reach the callbacks the real screen does not expose with a fixed day.
@@ -97,13 +98,13 @@ class DiaryHistoryFlowTest {
         }
     }
 
-    private val historySlot: DiaryHistorySlot = { modifier, onOpenDay ->
+    private val historySlot: DiaryHistorySlot = { modifier, onOpenDay, onBack ->
         val model: DiaryHistoryViewModel = viewModel(
             factory = viewModelFactory {
                 initializer { DiaryHistoryViewModel(diary, goals, clock, createSavedStateHandle()) }
             },
         )
-        DiaryHistoryRoot(onOpenDay, modifier, model)
+        DiaryHistoryRoot(onOpenDay, onBack, modifier, model)
     }
 
     private val profileSlot: ProfileSlot = { modifier, _, _, _, onOpenDiaryHistory, _, _ ->
@@ -173,7 +174,7 @@ class DiaryHistoryFlowTest {
         openHistory()
 
         rule.onNodeWithTag("diary_history_screen").assertExists()
-        rule.onNodeWithTag("diary_history_title").assertTextEquals("Historial")
+        rule.onNodeWithTag("diary_history_title").assertTextEquals("Calorías")
         rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
         rule.onNodeWithTag("month_calendar_day_$Marked").assertExists()
     }
@@ -193,7 +194,7 @@ class DiaryHistoryFlowTest {
         openDayFromHistory()
 
         rule.onNodeWithTag("diary_date_label").assertTextEquals("jue, 15 oct")
-        rule.onNodeWithTag("diary_day_back").assertExists()
+        rule.onNodeWithTag("diary_back").assertExists()
         rule.onNodeWithTag("diary_day_picker_open").assertExists()
         rule.onNodeWithTag("diary_history_open").assertDoesNotExist()
         rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
@@ -219,7 +220,7 @@ class DiaryHistoryFlowTest {
 
         rule.onNodeWithTag("diary_date_label").assertTextEquals("jue, 15 oct")
         rule.onNodeWithTag("diary_day_picker_open").assertExists()
-        rule.onNodeWithTag("diary_day_back").assertExists()
+        rule.onNodeWithTag("diary_back").assertExists()
     }
 
     @Test
@@ -227,7 +228,7 @@ class DiaryHistoryFlowTest {
         start()
         openDayFromHistory()
 
-        tap("diary_day_back")
+        tap("diary_back")
 
         rule.onNodeWithTag("diary_history_screen").assertExists()
         rule.onNodeWithTag("month_calendar_day_$Marked").assertIsSelected()
@@ -241,7 +242,7 @@ class DiaryHistoryFlowTest {
         tap("test_open_edit")
 
         rule.onNodeWithTag("edit_sheet").assertExists()
-        rule.onNodeWithTag("diary_day_back").assertExists()
+        rule.onNodeWithTag("diary_back").assertExists()
         rule.onNodeWithTag("nav_tab_diary").assertDoesNotExist()
     }
 
@@ -253,7 +254,7 @@ class DiaryHistoryFlowTest {
 
         rule.onNodeWithTag("edit_sheet").assertExists()
         rule.onNodeWithTag("nav_tab_diary").assertExists()
-        rule.onNodeWithTag("diary_day_back").assertDoesNotExist()
+        rule.onNodeWithTag("diary_back").assertDoesNotExist()
     }
 
     @Test
@@ -265,7 +266,7 @@ class DiaryHistoryFlowTest {
         tap("test_search_open")
         tap("test_search_add")
 
-        rule.onNodeWithTag("diary_day_back").assertExists()
+        rule.onNodeWithTag("diary_back").assertExists()
         rule.onNodeWithTag("diary_date_label").assertTextEquals("jue, 15 oct")
     }
 }

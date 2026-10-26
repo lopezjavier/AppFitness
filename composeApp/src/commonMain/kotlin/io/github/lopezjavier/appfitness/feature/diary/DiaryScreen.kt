@@ -4,47 +4,51 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_food
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_defaults_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_summary_spoken
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_summary_spoken_no_goal
+import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
+import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonDashboardHeight = Spacing.xl * 9
@@ -52,87 +56,168 @@ private val SkeletonSectionHeight = Spacing.xl * 3
 private const val SKELETON_SECTIONS = 4
 
 /**
- * Stateless "Diario" tab (US-19, US-20): the date header, the day's progress and one card per meal, rendered from
- * [state]. Wide windows put the dashboard left of the meals.
+ * Stateless "Diario" screen (US-19, US-20) on `AppScreen` with the date switcher as its header: the defaults notice,
+ * the day summary strip, one card per meal and the progress dashboard at the bottom. Wide windows put the dashboard
+ * left of the meals. [onBack] (a past-day route) adds the back arrow to the header.
  */
 @Composable
 fun DiaryScreen(
     state: DiaryUiState,
     onEvent: (DiaryEvent) -> Unit,
     modifier: Modifier = Modifier,
-    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    onBack: (() -> Unit)? = null,
 ) {
     Box(modifier.fillMaxSize().testTag("diary_screen")) {
         when (state) {
-            DiaryUiState.Loading -> DiaryLoading()
+            DiaryUiState.Loading -> PlainDiary(onBack) { DiaryLoading() }
 
-            DiaryUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                ErrorState(
-                    message = stringResource(Res.string.diary_error_message),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(DiaryEvent.Retry) },
-                    testTagPrefix = "diary_error",
-                )
+            DiaryUiState.Error -> PlainDiary(onBack) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ErrorState(
+                        message = stringResource(Res.string.diary_error_message),
+                        action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(DiaryEvent.Retry) },
+                        testTagPrefix = "diary_error",
+                    )
+                }
             }
 
-            is DiaryUiState.Content -> DiaryDay(state.content, onEvent)
+            is DiaryUiState.Content -> DiaryDay(state.content, onEvent, onBack)
         }
-        DiarySnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin))
     }
 }
 
-/** The failure messages (a failed or refused write). */
+/** Loading and error have no date yet: the standard bar with the section title instead of the date switcher. */
 @Composable
-private fun DiarySnackbarHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
-    SnackbarHost(state, modifier) { data -> Snackbar { Text(data.visuals.message) } }
+private fun PlainDiary(onBack: (() -> Unit)?, content: @Composable () -> Unit) {
+    AppScreen(
+        title = stringResource(Res.string.nav_diary),
+        onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.CardColumnMaxWidth,
+        testTagPrefix = "diary_bar",
+    ) { content() }
 }
 
 @Composable
-private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
+private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, onBack: (() -> Unit)?) {
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
-    val onOpenPicker = { pickerOpen = true }
     if (pickerOpen) {
         DiaryDayPickerSheet(
             selected = content.date,
             today = content.today,
+            isToday = content.isToday,
+            markedDays = content.pickerMarkedDays,
             onPickDay = { onEvent(DiaryEvent.GoToDay(it)) },
+            onGoToToday = { onEvent(DiaryEvent.GoToToday) },
+            onMonthChange = { onEvent(DiaryEvent.PickerMonthShown(it)) },
             onDismiss = { pickerOpen = false },
         )
     }
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        if (windowWidthClassFor(maxWidth) == WindowWidthClass.Wide) {
-            Row(Modifier.widthIn(max = WindowWidthClassDefaults.TwoColumnContentMaxWidth).fillMaxSize()) {
-                Column(
-                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
-                        .padding(Spacing.screenMargin),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-                ) {
-                    if (content.defaultsFailed) DefaultsFailedMessage(onEvent)
-                    DiaryDateHeader(content.label, content.canGoNext, onEvent, onOpenPicker)
-                    DiaryDashboard(content, onEvent)
-                }
-                Column(
-                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
-                        .padding(Spacing.screenMargin),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
-                ) {
-                    MealSections(content, onEvent)
-                    AddFoodButton(onEvent)
-                }
-            }
-        } else {
-            Column(
-                Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth).fillMaxSize()
-                    .verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
-                verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-            ) {
-                if (content.defaultsFailed) DefaultsFailedMessage(onEvent)
-                DiaryDateHeader(content.label, content.canGoNext, onEvent, onOpenPicker)
-                DiaryDashboard(content, onEvent)
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) { MealSections(content, onEvent) }
-                AddFoodButton(onEvent)
-            }
+    val actions = EntryActions(
+        canDelete = !content.isOffline,
+        onEdit = { onEvent(DiaryEvent.EditEntry(it)) },
+        onDelete = { onEvent(DiaryEvent.DeleteEntry(it)) },
+        expandedGroupIds = content.expandedGroupIds,
+        onToggleGroup = { onEvent(DiaryEvent.ToggleGroup(it)) },
+    )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
+        AppScreen(
+            title = content.label.text(),
+            header = {
+                DiaryDateHeader(content.label, content.canGoNext, onEvent, { pickerOpen = true }, onBack = onBack)
+            },
+            maxContentWidth = if (wide) {
+                WindowWidthClassDefaults.TwoColumnContentMaxWidth
+            } else {
+                WindowWidthClassDefaults.CardColumnMaxWidth
+            },
+            testTagPrefix = "diary",
+        ) {
+            if (wide) WideDay(content, actions, onEvent) else NarrowDay(content, actions, onEvent)
         }
     }
+}
+
+@Composable
+private fun NarrowDay(content: DiaryContent, actions: EntryActions, onEvent: (DiaryEvent) -> Unit) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(Spacing.screenMargin),
+        verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+    ) {
+        if (content.defaultsFailed) item(key = "defaults") { DefaultsFailedMessage(onEvent) }
+        item(key = "summary") { DiarySummaryStrip(content.summary) }
+        mealItems(content, actions, onEvent)
+        item(key = "dashboard") { DiaryDashboard(content, onEvent, Modifier.padding(top = Spacing.blockGap)) }
+    }
+}
+
+@Composable
+private fun WideDay(content: DiaryContent, actions: EntryActions, onEvent: (DiaryEvent) -> Unit) {
+    Row(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
+            verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
+        ) {
+            if (content.defaultsFailed) DefaultsFailedMessage(onEvent)
+            DiarySummaryStrip(content.summary)
+            DiaryDashboard(content, onEvent)
+        }
+        LazyColumn(
+            Modifier.weight(1f).fillMaxHeight(),
+            contentPadding = PaddingValues(Spacing.screenMargin),
+            verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+        ) { mealItems(content, actions, onEvent) }
+    }
+}
+
+/** One lazy item per meal card, keyed by the slot so a reordered or collapsed meal animates in place. */
+private fun LazyListScope.mealItems(content: DiaryContent, actions: EntryActions, onEvent: (DiaryEvent) -> Unit) {
+    items(content.meals, key = { it.slot.id }) { section ->
+        MealSectionCard(
+            section = section,
+            collapsed = section.slot.id in content.collapsedSlotIds,
+            actions = actions,
+            onToggle = { onEvent(DiaryEvent.ToggleSection(section.slot.id)) },
+            onAdd = { onEvent(DiaryEvent.AddToMeal(section.slot.id)) },
+            onSaveTemplate = { onEvent(DiaryEvent.SaveSection(section.slot.id)) },
+            modifier = Modifier.animateItem(),
+        )
+    }
+}
+
+/** The day at a glance on one line ("1.240 / 2.100 kcal · P 80 · C 150 · G 40"), read out in full words. */
+@Composable
+internal fun DiarySummaryStrip(summary: DiarySummary, modifier: Modifier = Modifier) {
+    val consumed = AppNumberFormat.integer(summary.kcal)
+    val target = summary.targetKcal
+    val spoken = if (target != null) {
+        stringResource(
+            Res.string.diary_summary_spoken,
+            consumed,
+            AppNumberFormat.integer(target),
+            summary.proteinG,
+            summary.carbsG,
+            summary.fatG,
+        )
+    } else {
+        stringResource(
+            Res.string.diary_summary_spoken_no_goal,
+            consumed,
+            summary.proteinG,
+            summary.carbsG,
+            summary.fatG,
+        )
+    }
+    Text(
+        text = summary.text,
+        style = AppTheme.typography.labelNumeric,
+        color = AppTheme.colors.textSecondary,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = spoken }
+            .testTag("diary_summary_strip"),
+    )
 }
 
 /** Non-blocking notice that today's default comidas could not be added; the Diary stays usable. */
@@ -155,37 +240,6 @@ private fun DefaultsFailedMessage(onEvent: (DiaryEvent) -> Unit) {
             modifier = Modifier.testTag("diary_defaults_retry"),
         )
     }
-}
-
-@Composable
-private fun MealSections(content: DiaryContent, onEvent: (DiaryEvent) -> Unit) {
-    val actions = EntryActions(
-        canDelete = !content.isOffline,
-        onEdit = { onEvent(DiaryEvent.EditEntry(it)) },
-        onDelete = { onEvent(DiaryEvent.DeleteEntry(it)) },
-        expandedGroupIds = content.expandedGroupIds,
-        onToggleGroup = { onEvent(DiaryEvent.ToggleGroup(it)) },
-    )
-    content.meals.forEach { section ->
-        MealSectionCard(
-            section = section,
-            collapsed = section.slot.id in content.collapsedSlotIds,
-            actions = actions,
-            onToggle = { onEvent(DiaryEvent.ToggleSection(section.slot.id)) },
-            onAdd = { onEvent(DiaryEvent.AddToMeal(section.slot.id)) },
-            onSaveTemplate = { onEvent(DiaryEvent.SaveSection(section.slot.id)) },
-        )
-    }
-}
-
-/** The Diary-level add action: opens the food search with no meal preselected. */
-@Composable
-private fun AddFoodButton(onEvent: (DiaryEvent) -> Unit) {
-    PrimaryButton(
-        text = stringResource(Res.string.diary_add_food),
-        onClick = { onEvent(DiaryEvent.AddFood) },
-        modifier = Modifier.fillMaxWidth().testTag("diary_add_food"),
-    )
 }
 
 @Composable

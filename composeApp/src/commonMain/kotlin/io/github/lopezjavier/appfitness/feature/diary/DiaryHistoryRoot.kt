@@ -11,10 +11,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Stateful diary history: connects [DiaryHistoryViewModel]; [onOpenDay] opens the Diary of a day. */
+/**
+ * Stateful diary history: connects [DiaryHistoryViewModel]; [onOpenDay] opens the Diary of a day and [onBack] is the
+ * back arrow of its screen.
+ */
 @Composable
 fun DiaryHistoryRoot(
     onOpenDay: (LocalDate) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DiaryHistoryViewModel = koinViewModel(),
 ) {
@@ -28,5 +32,5 @@ fun DiaryHistoryRoot(
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(DiaryHistoryEvent.Refresh) }
-    DiaryHistoryScreen(state, viewModel::onEvent, modifier)
+    DiaryHistoryScreen(state, viewModel::onEvent, onBack, modifier)
 }

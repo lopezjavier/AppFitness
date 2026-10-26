@@ -2,9 +2,12 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -49,6 +52,7 @@ class AppEditSheetTest {
         commitEnabled: Boolean = true,
         saving: Boolean = false,
         commitHint: String? = null,
+        secondary: (@Composable () -> Unit)? = null,
     ) {
         rule.setContent {
             AppTheme {
@@ -64,6 +68,7 @@ class AppEditSheetTest {
                         commitEnabled = commitEnabled,
                         saving = saving,
                         commitHint = commitHint,
+                        secondaryAction = secondary,
                         testTagPrefix = "sheet",
                     ) { Text("Contenido") }
                 }
@@ -157,5 +162,19 @@ class AppEditSheetTest {
         rule.waitForIdle()
         assertEquals(1, dismissed)
         assertEquals(0, commits)
+    }
+
+    @Test
+    fun secondaryAction_rendersUnderTheCommitButton() {
+        showEdit(secondary = { Text("Eliminar", Modifier.testTag("sheet_secondary")) })
+        val commitBottom = rule.onNodeWithTag("sheet_commit").getUnclippedBoundsInRoot().bottom
+        val secondaryTop = rule.onNodeWithTag("sheet_secondary").getUnclippedBoundsInRoot().top
+        assertTrue(secondaryTop >= commitBottom)
+    }
+
+    @Test
+    fun secondaryAction_isAbsentByDefault() {
+        showEdit()
+        rule.onNodeWithTag("sheet_secondary").assertDoesNotExist()
     }
 }

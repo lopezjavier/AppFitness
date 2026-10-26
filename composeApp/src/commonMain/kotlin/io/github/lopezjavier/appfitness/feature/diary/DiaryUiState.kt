@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.YearMonth
 
 /** What the diary tab shows. */
 sealed interface DiaryUiState {
@@ -57,6 +58,12 @@ data class DiaryContent(
     val defaultsFailed: Boolean = false,
     /** Ids of the comida groups the user expanded; groups are collapsed by default. */
     val expandedGroupIds: Set<String> = emptySet(),
+    /** [date] is today (the day picker offers "Hoy" otherwise). */
+    val isToday: Boolean = true,
+    /** The day at a glance for the summary strip. */
+    val summary: DiarySummary = DiarySummary(0, null, 0, 0, 0),
+    /** Days with entries in the month the day picker shows; empty until loaded or when loading fails. */
+    val pickerMarkedDays: Set<LocalDate> = emptySet(),
 )
 
 sealed interface DiaryEvent {
@@ -86,6 +93,12 @@ sealed interface DiaryEvent {
 
     /** Jump to [date] (day-picker sheet); ignored when [date] is after today. */
     data class GoToDay(val date: LocalDate) : DiaryEvent
+
+    /** Back to today (the "Hoy" chip of the day picker). */
+    data object GoToToday : DiaryEvent
+
+    /** The day picker shows [month]: load its marked days. */
+    data class PickerMonthShown(val month: YearMonth) : DiaryEvent
 
     /** Save the entries of meal [slotId] of the visible day as a comida (US-21). */
     data class SaveSection(val slotId: String) : DiaryEvent

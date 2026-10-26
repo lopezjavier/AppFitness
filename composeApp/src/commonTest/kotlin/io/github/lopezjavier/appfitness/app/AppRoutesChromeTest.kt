@@ -31,8 +31,6 @@ class AppRoutesChromeTest {
             TemplateDetailsRoute("t", date = "2026-10-26") to "template_details",
             MealSlotsRoute to "meals",
             MealDefaultsRoute to "meal_defaults",
-            DiaryHistoryRoute to "diary_history",
-            DiaryDayRoute("2026-10-26") to "diary_day",
             WeightRoute to "weight",
         )
 
@@ -43,10 +41,20 @@ class AppRoutesChromeTest {
     }
 
     @Test
+    fun theDiaryRoutes_useAppScreen() {
+        assertTrue(DiaryHome.usesAppScreen)
+        assertTrue(DiaryHistoryRoute.usesAppScreen)
+        assertTrue(DiaryDayRoute("2026-10-26").usesAppScreen)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
+        assertEquals(ShellChrome.Screen, DiaryHistoryRoute.chrome)
+        assertEquals(ShellChrome.Screen, DiaryDayRoute("2026-10-26").chrome)
+    }
+
+    @Test
     fun everyOtherRoute_doesNotUseAppScreen() {
         val others = legacyFullScreenTags.map { it.first } +
             listOf(LiveSessionRoute, EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
-            listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome)
+            listOf(DiaryGraph, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome)
 
         others.forEach { assertFalse(it.usesAppScreen, it.toString()) }
     }
@@ -68,7 +76,7 @@ class AppRoutesChromeTest {
 
     @Test
     fun tabRoutes_keepTheirTabsChrome() {
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), DiaryHome.chrome)
+        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), DiaryGraph.chrome)
         assertEquals(ShellChrome.Tabs(TopLevelTab.Workout), WorkoutGraph.chrome)
         assertEquals(ShellChrome.Tabs(TopLevelTab.Profile), ProfileHome.chrome)
     }

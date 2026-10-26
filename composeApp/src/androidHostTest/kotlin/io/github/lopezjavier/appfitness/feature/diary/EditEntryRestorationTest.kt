@@ -69,19 +69,21 @@ class EditEntryRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { SheetHost(model(saved)) }
         rule.waitForIdle()
-        rule.onNodeWithTag("edit_entry_portion_option_p1").performClick()
+        rule.onNodeWithTag("food_sheet_portion_option_p1").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("edit_entry_amount").performTextReplacement("3")
-        rule.onNodeWithTag("edit_entry_slot_dinner").performClick()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("3")
+        rule.onNodeWithTag("food_sheet_slot_dinner").performClick()
+        rule.onNodeWithTag("food_sheet_details_toggle").performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("edit_entry_sheet").assertExists()
-        rule.onNodeWithTag("edit_entry_portion_option_p1").assertIsSelected()
-        rule.onNodeWithTag("edit_entry_amount").assertTextContains("3")
-        rule.onNodeWithTag("edit_entry_slot_dinner").assertIsSelected()
+        rule.onNodeWithTag("food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet_portion_option_p1").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("3")
+        rule.onNodeWithTag("food_sheet_slot_dinner").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_details").assertExists()
     }
 
     @Test
@@ -92,7 +94,7 @@ class EditEntryRestorationTest {
         rule.setContent { SheetHost(model(saved)) }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("edit_entry_amount").assertTextContains("75")
-        rule.onNodeWithTag("edit_entry_slot_lunch").assertIsSelected()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("75")
+        rule.onNodeWithTag("food_sheet_slot_lunch").assertIsSelected()
     }
 }

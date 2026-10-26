@@ -84,11 +84,19 @@ fun AppRoot(
         routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit ->
-            DiaryRoot(onOpenPreferences, onAddFood, { onAddFood(null, it) }, onSaveTemplate, edit, diaryModifier)
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onBack ->
+            DiaryRoot(
+                onOpenPreferences,
+                onAddFood,
+                { onAddFood(null, it) },
+                onSaveTemplate,
+                edit,
+                diaryModifier,
+                onBack,
+            )
         },
         weight = { weightModifier -> WeightRoot(weightModifier) },
-        diaryHistory = { historyModifier, onOpenDay -> DiaryHistoryRoot(onOpenDay, historyModifier) },
+        diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick ->

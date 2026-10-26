@@ -113,4 +113,27 @@ class AppScreenTest {
         show(withFooter = false)
         rule.onNodeWithTag("footer").assertDoesNotExist()
     }
+
+    @Test
+    fun header_replacesTheBar_andTheBarTagIsAbsent() {
+        rule.setContent {
+            AppTheme {
+                AppScreen(
+                    title = "Pantalla",
+                    header = { Box(Modifier.fillMaxWidth().height(48.dp).testTag("custom_header")) },
+                    testTagPrefix = "sample",
+                ) { Box(Modifier.testTag("body")) }
+            }
+        }
+        rule.onNodeWithTag("custom_header").assertIsDisplayed()
+        rule.onNodeWithTag("body").assertExists()
+        rule.onNodeWithTag("sample").assertDoesNotExist()
+        rule.onNodeWithTag("sample_title").assertDoesNotExist()
+    }
+
+    @Test
+    fun defaultHeader_keepsTheBar() {
+        show()
+        rule.onNodeWithTag("sample").assertIsDisplayed()
+    }
 }

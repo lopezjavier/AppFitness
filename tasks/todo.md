@@ -3438,18 +3438,18 @@ Checkpoints (agreed with the user, 2026-10-26): **E9-A** after T-122 (wave 1 + D
 **Description:** The Diario tab root and its sheets on the templates. **Templates and patterns:** `AppScreen` with the date switcher as the compact tab-root header (D1, R-01; the calendar icon keeps opening the day picker); meals first, a one-line summary strip on top ("1.240 / 2.100 kcal · P 80 · C 150 · G 40") and the full dashboard at the bottom (D11, item 10); the ring shows only what was eaten and "de N kcal", plus "+N kcal en exceso" when over (item 8); `MacroProgressBar` reads "9 g / 233 g" with no %; the fifth full-width "Añadir comida" is removed and each meal keeps its own `AddItemButton` (item 9, R-19); meal sections as a lazy list with stable keys. New **`FoodEntryRow`** (on `AppListRow`): name, portion label plus base amount ("1 vaso (200 ml)", item 33), kcal and whole-gram macros (LST-8, R-38); replaces `DiaryEntryRow` and is used inside `DiaryGroupRow`. New **`FoodSheet`** (the one sheet for a food with a quantity, `05` §9): header (name, brand, ★, ✎ for manual foods), quantity and portion first, live totals, collapsible details (per 100, micronutrients), context footer; here the **edit context** ("Guardar" + "Eliminar") replaces `EditEntrySheet`, so tapping a logged food opens its details (item 12, R-17). Delete: swipe on the row plus "Eliminar" in the sheet (R-20), optimistic (T-120). Day picker on `AppPickerSheet`: days with entries are marked and a "Hoy" chip shows whenever the visible day is not today (item 14). "Calorías" (diary history, `DiaryHistoryScreen`) on `AppScreen`, titled "Calorías" (glossary). Guards G1/G2/G3/G7 become failures for `feature/diary`. **T-112 caveat:** editing the amount of an already cooked entry keeps the fat stored at logging time (ADR-65); no recalculation. **Carry-over (E8 review note):** `DiaryViewModel` combines through a small state holder instead of a `Pair`.
 
 **Acceptance criteria:**
-- [ ] Diario opens with the meals first, the summary strip on top and the dashboard at the bottom; no title bar repeats "Diario"; no fifth "Añadir comida".
-- [ ] Ring: "de 2.100 kcal"; over target: "+150 kcal en exceso"; no "restantes"; bars "9 g / 233 g".
-- [ ] A row for 1 vaso of milk reads "1 vaso (200 ml)"; macros are whole grams in rows, headers and bars.
-- [ ] Tapping a logged food opens `FoodSheet` with its details; changing the quantity updates the totals live; X does not apply; "Guardar" saves and closes with one Confirm; a cooked entry keeps its stored fat.
-- [ ] Swipe-delete and "Eliminar" in the sheet delete at once; a failure restores the row with the standard message.
-- [ ] The day picker marks logged days; "Hoy" appears on another day and returns to today.
-- [ ] Two columns from 600 dp unchanged; the open `FoodSheet` draft and the visible day survive background and process death.
+- [x] Diario opens with the meals first, the summary strip on top and the dashboard at the bottom; no title bar repeats "Diario"; no fifth "Añadir comida".
+- [x] Ring: "de 2.100 kcal"; over target: "+150 kcal en exceso"; no "restantes"; bars "9 g / 233 g".
+- [x] A row for 1 vaso of milk reads "1 vaso (200 ml)"; macros are whole grams in rows, headers and bars.
+- [x] Tapping a logged food opens `FoodSheet` with its details; changing the quantity updates the totals live; X does not apply; "Guardar" saves and closes with one Confirm; a cooked entry keeps its stored fat.
+- [x] Swipe-delete and "Eliminar" in the sheet delete at once; a failure restores the row with the standard message.
+- [x] The day picker marks logged days; "Hoy" appears on another day and returns to today.
+- [x] Two columns from 600 dp unchanged; the open `FoodSheet` draft and the visible day survive background and process death.
 
 **Host tests:** `DiaryScreen` Robolectric tests (order, strip, ring texts, no fifth add, group rows), `FoodEntryRowTest`, `FoodSheetTest` (edit context, live totals, discard on close, cooked entry), `DiaryViewModelTest` (state holder, optimistic delete and restore), `DiaryDayPickerSheet` tests (marked days, "Hoy"), `DiaryHistoryScreen` title test, restoration tests.
 
 **Verification:**
-- [ ] lint (incl. `check-ux-conventions.sh` with `feature/diary` out of the warning list) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-ux-conventions.sh` with `feature/diary` out of the warning list) + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 20 files.
 **Dependencies:** T-120

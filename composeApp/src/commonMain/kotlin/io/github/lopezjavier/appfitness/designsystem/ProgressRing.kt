@@ -36,9 +36,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_excess
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_excess_spoken
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_of_target
-import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_remaining
-import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_remaining_spoken
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_state
+import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_state_within
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.floor
 import kotlin.math.min
@@ -71,7 +70,7 @@ object ProgressRingDefaults {
 
     /**
      * Rounds [consumed] half up to whole kcal first, so the shown value, the remaining and the over-target flag
-     * always agree (1839.6 shows "1.840" and "560 restantes").
+     * always agree (1839.6 shows "1.840" and stays under a 2.400 target).
      */
     fun state(consumed: Double, target: Int): ProgressRingState = state(roundHalfUp(consumed), target)
 
@@ -97,9 +96,9 @@ object ProgressRingDefaults {
 }
 
 /**
- * Daily calorie ring: consumed value and target in the centre, remaining or excess in a pill below
- * (it wraps at large font scales instead of clipping). The whole ring is one accessibility node
- * carrying the caller's [modifier] (and its testTag).
+ * Daily calorie ring: consumed value and "de N kcal" in the centre, and a pill below only when over target
+ * ("+N kcal en exceso"; it wraps at large font scales instead of clipping). The whole ring is one accessibility
+ * node carrying the caller's [modifier] (and its testTag).
  */
 @Composable
 fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifier) =
@@ -122,17 +121,17 @@ fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Mod
         if (state.isOverTarget) {
             stringResource(Res.string.progress_ring_excess, AppNumberFormat.integer(-state.remaining))
         } else {
-            stringResource(Res.string.progress_ring_remaining, AppNumberFormat.integer(state.remaining))
-        }
-    val spokenStatus =
-        if (state.isOverTarget) {
-            stringResource(Res.string.progress_ring_excess_spoken, AppNumberFormat.integer(-state.remaining))
-        } else {
-            stringResource(Res.string.progress_ring_remaining_spoken, AppNumberFormat.integer(state.remaining))
+            null
         }
     val description = stringResource(Res.string.progress_ring_cd)
     val stateDescriptionText =
-        stringResource(Res.string.progress_ring_state, consumedText, targetText, spokenStatus)
+        if (state.isOverTarget) {
+            val spokenExcess =
+                stringResource(Res.string.progress_ring_excess_spoken, AppNumberFormat.integer(-state.remaining))
+            stringResource(Res.string.progress_ring_state, consumedText, targetText, spokenExcess)
+        } else {
+            stringResource(Res.string.progress_ring_state_within, consumedText, targetText)
+        }
     val fraction = min(wholeKcal.coerceAtLeast(0).toFloat() / targetKcal, 1f)
     Column(
         modifier =
@@ -145,7 +144,7 @@ fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Mod
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         RingBody(sweep, colors, consumedText, targetText)
-        StatusPill(statusText, colors.status)
+        if (statusText != null) StatusPill(statusText, colors.status)
     }
 }
 

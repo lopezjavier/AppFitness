@@ -1,10 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.diary
 
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
@@ -20,7 +18,7 @@ import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** The snackbar texts, read in composition so the effect collector always has the current resources. */
+/** The message texts, read in composition so the effect collector always has the current resources. */
 private class DiaryMessages(val failed: String, val offline: String)
 
 /**
@@ -29,7 +27,8 @@ private class DiaryMessages(val failed: String, val offline: String)
  * add action (no meal preselected).
  * [onSaveTemplate] receives the meal and day whose entries are saved as a comida.
  * On resume the goals are reloaded so a goal set in Preferencias shows up. Deleting
- * an entry is immediate and silent; a failed write shows a message.
+ * an entry is immediate and silent; a failed write fires Reject and shows a message. [onBack] adds a back arrow to the
+ * header (a past-day route).
  */
 @Composable
 @Suppress("LongParameterList") // One callback per destination plus the edit host.
@@ -40,6 +39,7 @@ fun DiaryRoot(
     onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
     editHost: DiaryEditHost,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     viewModel: DiaryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -48,7 +48,6 @@ fun DiaryRoot(
     val currentOnSaveTemplate by rememberUpdatedState(onSaveTemplate)
     val currentOnOpenPreferences by rememberUpdatedState(onOpenPreferences)
     val currentEditHost by rememberUpdatedState(editHost)
-    val snackbarHost = remember { SnackbarHostState() }
     val messages = DiaryMessages(
         failed = stringResource(Res.string.delete_failed),
         offline = stringResource(Res.string.delete_offline),
@@ -85,5 +84,5 @@ fun DiaryRoot(
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(DiaryEvent.Refresh) }
-    DiaryScreen(state, viewModel::onEvent, modifier, snackbarHost)
+    DiaryScreen(state, viewModel::onEvent, modifier, onBack)
 }
