@@ -1,9 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -80,15 +82,11 @@ class WeightDeleteOldTest {
             if (measurements != null) trend.onEvent(WeightTrendEvent.Refresh)
         }
         AppTheme {
-            WeightScreen(
-                state,
-                weight::onEvent,
-                CircumferencesUiState.Loading,
-                {},
-                trend = trendState,
-                onTrendEvent = trend::onEvent,
-                timeZone = TimeZone.UTC,
-            )
+            // The calendar lives on the history route, the chart on the Peso screen: both read the same data here.
+            Column {
+                WeightHistoryScreen(state, weight::onEvent, {}, Modifier.weight(1f), TimeZone.UTC)
+                WeightChart(trendState, trend::onEvent)
+            }
         }
     }
 

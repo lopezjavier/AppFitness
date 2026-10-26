@@ -33,7 +33,7 @@ private object PlacementClock : Clock {
     override fun now(): Instant = Instant.parse("2026-10-22T10:30:00Z")
 }
 
-/** The Health Connect card sits below the primary "Registrar peso de hoy" action (UX notes 1). */
+/** The Health Connect status is a supporting line of "Peso actual", not a card of its own (item 30). */
 @RunWith(RobolectricTestRunner::class)
 class WeightHealthBannerPlacementTest {
     @get:Rule
@@ -77,22 +77,24 @@ class WeightHealthBannerPlacementTest {
 
     @Test
     @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
-    fun phone_bannerIsBelowTheLogButtonAndAboveTheCalendar() {
+    fun statusLineAndSyncButton_liveInsideThePesoActualCard() {
         show(HealthSyncUiState(HealthSyncStatus.NeverSynced))
 
-        rule.onNodeWithTag("weight_hc_banner").assertIsDisplayed()
-        assertTrue(bounds("weight_hc_banner").top >= bounds("weight_edit_today_button").bottom)
-        assertTrue(bounds("weight_hc_banner").bottom <= bounds("weight_calendar").top)
+        val card = bounds("weight_current_card")
+        listOf("weight_hc_banner", "weight_hc_status", "weight_hc_sync_button").forEach { tag ->
+            val box = bounds(tag)
+            assertTrue("$tag is inside the card", box.top >= card.top && box.bottom <= card.bottom)
+        }
     }
 
     @Test
-    @Config(qualifiers = "w900dp-h1200dp-xxhdpi")
-    fun tablet_bannerIsUnderTheLogButtonInTheLeftColumn() {
+    @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun noSeparateHealthCard_isDrawn() {
         show(HealthSyncUiState(HealthSyncStatus.NeverSynced))
 
-        val banner = bounds("weight_hc_banner")
-        assertTrue(banner.top >= bounds("weight_edit_today_button").bottom)
-        assertTrue(banner.right <= bounds("weight_calendar").left)
+        rule.onNodeWithTag("weight_hc_banner").assertIsDisplayed()
+        // The pencil and the status share the one card; there is a single weight_current_card.
+        assertTrue(bounds("weight_edit_today_button").top >= bounds("weight_current_card").top)
     }
 
     @Test

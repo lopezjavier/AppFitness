@@ -3,14 +3,17 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -30,7 +33,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,11 +79,29 @@ class WeightScreenTest {
         )
 
     @Composable
-    private fun Host(model: WeightViewModel) {
+    private fun Host(model: WeightViewModel, history: Boolean = false) {
         val state by model.uiState.collectAsState()
         AppTheme {
-            WeightScreen(state, model::onEvent, CircumferencesUiState.Loading, {}, timeZone = TimeZone.UTC)
+            if (history) {
+                WeightHistoryScreen(state, model::onEvent, {}, timeZone = TimeZone.UTC)
+            } else {
+                WeightScreen(state, model::onEvent, CircumferencesUiState.Loading, {}, timeZone = TimeZone.UTC)
+            }
         }
+    }
+
+    private fun showHistory(vararg rows: BodyMeasurement) {
+        repository = FakeWeightRepository(*rows)
+        val model = viewModel(repository)
+        rule.setContent { Host(model, history = true) }
+        rule.waitForIdle()
+    }
+
+    private fun assertCurrentWeight(text: String) {
+        rule.onNode(
+            hasText(text, substring = true) and hasAnyAncestor(hasTestTag("weight_current_card")),
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     private fun show(vararg rows: BodyMeasurement) {
@@ -105,36 +125,41 @@ class WeightScreenTest {
         rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
             ?.firstOrNull()
 
+    private fun customActionLabels(tag: String): Set<String> =
+        rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions)
+            ?.map { it.label }.orEmpty().toSet()
+
+    private fun runCustomAction(tag: String, label: String) {
+        val action = rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions)
+            ?.firstOrNull { it.label == label } ?: error("No action '$label' on $tag")
+        rule.runOnUiThread { action.action() }
+        rule.waitForIdle()
+    }
+
     private fun SemanticsNodeInteraction.text(): String =
         fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
 
     // -- Current weight panel ---------------------------------------------------------------------------------------
 
     @Test
-    fun panel_showsTheLatestManualWeightWithItsDateOnlyAndBodyFat() {
+    fun panel_showsTheLatestManualWeightWithItsDateOnly_andNoBodyFatLine() {
         show(
             manual("a", "2026-10-02T08:00:00Z", 75.0),
             manual("b", "2026-10-18T07:30:00Z", 73.9, fat = 15.1),
         )
 
-        rule.onNodeWithTag("weight_current_value").assertTextContains("73,9 kg", substring = true)
-        rule.onNodeWithTag("weight_current_value", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("18 oct")
-        rule.onNodeWithTag("weight_current_fat", useUnmergedTree = true).assertTextEquals("Grasa corporal: 15,1 %")
+        assertCurrentWeight("73,9 kg")
+        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("dom, 18 oct")
+        // The body fat is shown once, by its tile; the current card repeats nothing.
+        rule.onNodeWithTag("weight_current_fat", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Grasa corporal: 15,1 %").assertDoesNotExist()
     }
 
     @Test
     fun panel_ofAHealthConnectReading_keepsItsTime() {
         show(manual("a", "2026-10-02T08:00:00Z", 75.0), healthConnect("h", "2026-10-19T06:00:00Z", 73.5))
 
-        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("19 oct, 06:00")
-    }
-
-    @Test
-    fun panel_withoutBodyFat_showsNoFatLine() {
-        show(manual("a", "2026-10-18T07:30:00Z", 73.9))
-
-        rule.onNodeWithTag("weight_current_fat", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("weight_current_when", useUnmergedTree = true).assertTextEquals("lun, 19 oct, 06:00")
     }
 
     @Test
@@ -144,14 +169,14 @@ class WeightScreenTest {
             healthConnect("h", "2026-10-19T06:00:00Z", 73.5),
         )
 
-        rule.onNodeWithTag("weight_current_value").assertTextContains("73,5 kg", substring = true)
+        assertCurrentWeight("73,5 kg")
     }
 
     // -- Calendar ---------------------------------------------------------------------------------------------------
 
     @Test
     fun calendar_marksTheDaysWithMeasurements() {
-        show(manual("a", "2026-10-18T07:30:00Z", 73.9))
+        showHistory(manual("a", "2026-10-18T07:30:00Z", 73.9))
 
         assertEquals("18 de octubre, con registros", description("month_calendar_day_2026-10-18"))
         assertEquals("19 de octubre, sin registros", description("month_calendar_day_2026-10-19"))
@@ -159,7 +184,7 @@ class WeightScreenTest {
 
     @Test
     fun calendar_nextArrowIsDisabledAtTheCurrentMonth_andPreviousLoadsTheOtherMonth() {
-        show(manual("a", "2026-09-15T07:30:00Z", 75.2))
+        showHistory(manual("a", "2026-09-15T07:30:00Z", 75.2))
 
         rule.onNodeWithTag("month_calendar_next").assertIsNotEnabled()
         tap("month_calendar_prev")
@@ -171,7 +196,7 @@ class WeightScreenTest {
 
     @Test
     fun calendar_doesNotLetYouPickAFutureDay() {
-        show(manual("a", "2026-10-18T07:30:00Z", 73.9))
+        showHistory(manual("a", "2026-10-18T07:30:00Z", 73.9))
 
         rule.onNodeWithTag("month_calendar_day_2026-10-22").assertIsNotEnabled()
     }
@@ -183,16 +208,16 @@ class WeightScreenTest {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("weight_edit_today_button")
-        rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Registrar peso")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Registrar peso")
         assertEquals("74,2", rule.onNodeWithTag("weight_sheet_weight_input").text())
         rule.onNodeWithTag("weight_sheet_delete").assertDoesNotExist()
         type("weight_sheet_weight_input", "73,9")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         assertEquals(73.9, repository.saves.single().weightKg, 0.0)
         assertEquals(null, repository.saves.single().bodyFatPct)
         rule.onNodeWithTag("weight_day_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("weight_current_value").assertTextContains("73,9 kg", substring = true)
+        assertCurrentWeight("73,9 kg")
     }
 
     @Test
@@ -202,10 +227,9 @@ class WeightScreenTest {
         tap("weight_edit_today_button")
         type("weight_sheet_weight_input", "73,9")
         type("weight_sheet_fat_input", "15,1")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         assertEquals(15.1, repository.saves.single().bodyFatPct!!, 0.0)
-        rule.onNodeWithTag("weight_current_fat", useUnmergedTree = true).assertTextEquals("Grasa corporal: 15,1 %")
     }
 
     @Test
@@ -213,15 +237,15 @@ class WeightScreenTest {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
         tap("weight_edit_today_button")
         type("weight_sheet_weight_input", "73,9")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         tap("weight_edit_today_button")
 
         assertEquals("73,9", rule.onNodeWithTag("weight_sheet_weight_input").text())
         rule.onNodeWithTag("weight_sheet_delete").assertExists()
-        rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 21 oct")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 21 oct")
         type("weight_sheet_weight_input", "73,5")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
         assertEquals(
             1,
             repository.rows.count {
@@ -235,13 +259,13 @@ class WeightScreenTest {
 
     @Test
     fun emptyPastDay_opensTheSheetWithoutTime_andSavesAtNoon() {
-        show(manual("a", "2026-10-18T07:30:00Z", 74.2))
+        showHistory(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("month_calendar_day_$Yesterday")
-        rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 20 oct")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 20 oct")
         assertNoTimeFields()
         type("weight_sheet_weight_input", "74,0")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         assertEquals(Instant.parse("2026-10-20T12:00:00Z"), repository.saves.single().measuredAt)
         assertEquals("20 de octubre, con registros", description("month_calendar_day_$Yesterday"))
@@ -249,13 +273,13 @@ class WeightScreenTest {
 
     @Test
     fun editingADay_changesWeight_keepsTheStoredInstant_andOffersNoDateOrTime() {
-        show(manual("a", "2026-10-18T07:30:00Z", 74.2))
+        showHistory(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("month_calendar_day_2026-10-18")
-        rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 18 oct")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 18 oct")
         assertNoTimeFields()
         type("weight_sheet_weight_input", "73,8")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         val save = repository.saves.single()
         assertEquals("a", save.id)
@@ -271,7 +295,7 @@ class WeightScreenTest {
         tap("weight_edit_today_button")
         assertNoTimeFields()
         type("weight_sheet_weight_input", "74,0")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         assertEquals(Instant.parse("2026-10-21T10:30:00Z"), repository.saves.single().measuredAt)
     }
@@ -319,7 +343,7 @@ class WeightScreenTest {
 
         type("weight_sheet_weight_input", "19,9")
 
-        rule.onNodeWithTag("weight_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_sheet_range_hint").assertTextEquals("El peso debe estar entre 20 y 400 kg")
     }
 
@@ -329,7 +353,7 @@ class WeightScreenTest {
 
         type("weight_sheet_weight_input", "401")
 
-        rule.onNodeWithTag("weight_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_sheet_range_hint").assertExists()
     }
 
@@ -339,7 +363,7 @@ class WeightScreenTest {
 
         type("weight_sheet_fat_input", "80")
 
-        rule.onNodeWithTag("weight_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_sheet_range_hint")
             .assertTextEquals("La grasa corporal debe estar entre 2 y 75 %")
     }
@@ -351,7 +375,7 @@ class WeightScreenTest {
         type("weight_sheet_weight_input", "20")
         type("weight_sheet_fat_input", "75")
 
-        rule.onNodeWithTag("weight_sheet_save").assertIsEnabled()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertIsEnabled()
         rule.onNodeWithTag("weight_sheet_range_hint").assertDoesNotExist()
     }
 
@@ -361,7 +385,7 @@ class WeightScreenTest {
 
         type("weight_sheet_weight_input", "")
 
-        rule.onNodeWithTag("weight_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_sheet_range_hint").assertDoesNotExist()
     }
 
@@ -369,7 +393,7 @@ class WeightScreenTest {
 
     @Test
     fun eliminar_deletesTheManualWeightAtOnce_withNoUndo() {
-        show(
+        showHistory(
             manual("a", "2026-10-18T07:30:00Z", 74.2),
             manual("b", "2026-10-19T07:30:00Z", 73.0),
         )
@@ -381,29 +405,29 @@ class WeightScreenTest {
         rule.onNodeWithTag("weight_day_sheet").assertDoesNotExist()
         rule.onNodeWithText("Deshacer").assertDoesNotExist()
         assertEquals("19 de octubre, sin registros", description("month_calendar_day_2026-10-19"))
-        rule.onNodeWithTag("weight_current_value").assertTextContains("74,2 kg", substring = true)
     }
 
     @Test
-    fun healthConnectRow_showsItsIconAndOnlyADeleteButton() {
-        show(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
+    fun healthConnectRow_showsItsIconAndOnlyASwipeToDelete() {
+        showHistory(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
 
         tap("month_calendar_day_2026-10-19")
 
         rule.onNodeWithTag("weight_hc_row_h1").assertExists()
         rule.onNodeWithTag("weight_hc_icon_h1", useUnmergedTree = true).assertExists()
-        assertEquals("Eliminar medición de 06:00", description("weight_hc_delete_h1"))
-        rule.onNodeWithTag("weight_sheet_save").assertDoesNotExist()
+        assertEquals(setOf("Eliminar medición de 06:00"), customActionLabels("weight_hc_row_h1"))
+        rule.onNodeWithTag("weight_hc_delete_h1").assertDoesNotExist()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertDoesNotExist()
         rule.onNodeWithTag("weight_sheet_weight_input").assertDoesNotExist()
         rule.onNodeWithTag("weight_set_manual_button").assertDoesNotExist()
     }
 
     @Test
     fun healthConnectDelete_removesTheRowAtOnce() {
-        show(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
+        showHistory(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
 
         tap("month_calendar_day_2026-10-19")
-        tap("weight_hc_delete_h1")
+        runCustomAction("weight_hc_row_h1", "Eliminar medición de 06:00")
 
         assertEquals(listOf("h1"), repository.deletes)
         rule.onNodeWithTag("weight_day_sheet").assertDoesNotExist()
@@ -411,14 +435,14 @@ class WeightScreenTest {
 
     @Test
     fun dayWithHealthConnectRows_offersNoManualWeight() {
-        show(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
+        showHistory(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
 
         tap("month_calendar_day_2026-10-19")
 
         rule.onNodeWithTag("weight_hc_row_h1").assertExists()
         rule.onNodeWithTag("weight_set_manual_button").assertDoesNotExist()
         rule.onNodeWithTag("weight_sheet_weight_input").assertDoesNotExist()
-        rule.onNodeWithTag("weight_sheet_save").assertDoesNotExist()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertDoesNotExist()
     }
 
     // -- States -----------------------------------------------------------------------------------------------------
@@ -440,7 +464,7 @@ class WeightScreenTest {
 
         rule.onNodeWithTag("weight_empty").assertExists()
         rule.onNodeWithTag("weight_edit_today_button").assertExists()
-        rule.onNodeWithTag("weight_panel").assertDoesNotExist()
+        rule.onNodeWithTag("weight_current_card").assertExists()
     }
 
     @Test
@@ -455,60 +479,79 @@ class WeightScreenTest {
         repository.failReads = false
         tap("weight_error_action")
 
-        rule.onNodeWithTag("weight_current_value").assertTextContains("73,9 kg", substring = true)
+        assertCurrentWeight("73,9 kg")
     }
 
     @Test
-    fun offline_showsTheBanner_andDisablesGuardarAndEliminar() {
+    fun offline_drawsNoBanner_andDisablesGuardarAndEliminar_withTheOfflineHint() {
         connectivity.state.value = false
-        show(manual("a", "2026-10-19T07:30:00Z", 74.2))
+        showHistory(manual("a", "2026-10-19T07:30:00Z", 74.2))
 
-        rule.onNodeWithTag("weight_offline_banner").assertExists()
+        rule.onNodeWithTag("weight_offline_banner").assertDoesNotExist()
         tap("month_calendar_day_2026-10-19")
 
-        rule.onNodeWithTag("weight_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_day_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_sheet_delete").assertIsNotEnabled()
-        rule.onNodeWithTag("weight_sheet_message").assertExists()
+        rule.onNodeWithTag("weight_day_sheet_commit_hint").assertTextEquals("Sin conexión: no se puede guardar")
     }
 
     @Test
-    fun failedSave_keepsTheSheetOpenWithAnError() {
+    fun failedSave_keepsTheSheetOpen_withNoInlineError() {
         show(manual("a", "2026-10-18T07:30:00Z", 74.2))
         repository.saveFailure = AppException(AppError.Unknown)
 
         tap("weight_edit_today_button")
-        tap("weight_sheet_save")
+        tap("weight_day_sheet_commit")
 
         rule.onNodeWithTag("weight_day_sheet").assertExists()
-        rule.onNodeWithTag("weight_sheet_message").assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
+        rule.onNodeWithTag("weight_sheet_message").assertDoesNotExist()
     }
 
     @Test
-    fun circumferenceSection_isPresentBelowTheCalendar() {
+    fun circumferenceSection_isPresent() {
         show(manual("a", "2026-10-18T07:30:00Z", 73.9))
 
         rule.onNodeWithTag("circumference_section").assertExists()
         rule.onNodeWithTag("circumference_title").assertTextEquals("Circunferencias")
     }
 
-    // -- Layout -----------------------------------------------------------------------------------------------------
+    // -- Template -----------------------------------------------------------------------------------------------------
 
     @Test
-    fun phone_stacksThePanelAboveTheCalendar() {
-        show(manual("a", "2026-10-18T07:30:00Z", 73.9))
+    fun topBar_hasTheTitleBackArrowAndTheCalendarAction_andNoCalendarGrid() {
+        var history = 0
+        var back = 0
+        rule.setContent {
+            AppTheme {
+                WeightScreen(
+                    WeightUiState.Loading,
+                    {},
+                    CircumferencesUiState.Loading,
+                    {},
+                    onOpenHistory = { history++ },
+                    onBack = { back++ },
+                    timeZone = TimeZone.UTC,
+                )
+            }
+        }
 
-        val panel = rule.onNodeWithTag("weight_panel").getUnclippedBoundsInRoot()
-        val calendar = rule.onNodeWithTag("weight_calendar").getUnclippedBoundsInRoot()
-        assertTrue(calendar.top >= panel.bottom)
+        rule.onNodeWithTag("weight_title").assertTextEquals("Peso")
+        assertEquals("Historial de peso", description("weight_action_1"))
+        tap("weight_action_1")
+        tap("weight_back")
+
+        assertEquals(1, history)
+        assertEquals(1, back)
+        rule.onNodeWithTag("weight_calendar").assertDoesNotExist()
+        rule.onNodeWithTag("month_calendar_title").assertDoesNotExist()
     }
 
     @Test
-    @Config(qualifiers = "w900dp-h1200dp-mdpi")
-    fun wideWindow_putsThePanelLeftOfTheCalendar() {
+    fun screen_drawsNoOfflineBannerNorSnackbar_evenOffline() {
+        connectivity.state.value = false
         show(manual("a", "2026-10-18T07:30:00Z", 73.9))
 
-        val panel = rule.onNodeWithTag("weight_panel").getUnclippedBoundsInRoot()
-        val calendar = rule.onNodeWithTag("weight_calendar").getUnclippedBoundsInRoot()
-        assertTrue(calendar.left >= panel.right)
+        rule.onNodeWithTag("weight_offline_banner").assertDoesNotExist()
+        rule.onNodeWithTag("offline_banner").assertDoesNotExist()
     }
 }

@@ -113,3 +113,15 @@ internal fun signedTenths(value: Double): String {
 
 /** True when the delta rounds to 0,0. */
 internal fun isZeroTenths(value: Double): Boolean = (abs(value) * TENTHS).roundToInt() == 0
+
+/**
+ * Share of the way from [startKg] to [targetKg] already covered by [currentKg], clamped to 0..1 (0 when moving away
+ * from the target, 1 at or past it). Null without the three values or when start equals target.
+ */
+@Suppress("ComplexCondition") // Four plain null/equality guards.
+internal fun goalProgress(startKg: Double?, currentKg: Double?, targetKg: Double?): Double? =
+    if (startKg == null || currentKg == null || targetKg == null || startKg == targetKg) {
+        null
+    } else {
+        ((startKg - currentKg) / (startKg - targetKg)).coerceIn(0.0, 1.0)
+    }

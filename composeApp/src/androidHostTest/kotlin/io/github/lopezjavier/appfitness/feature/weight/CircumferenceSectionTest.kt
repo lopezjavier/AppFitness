@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -15,6 +14,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -121,6 +121,13 @@ class CircumferenceSectionTest {
         rule.onNode(hasText(text, substring = true) and hasAnyAncestor(hasTestTag(rowTag))).assertExists()
     }
 
+    private fun assertCardShows(cardTag: String, text: String) {
+        rule.onNode(
+            hasText(text, substring = true, ignoreCase = true) and hasAnyAncestor(hasTestTag(cardTag)),
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
     private fun type(tag: String, text: String) {
         rule.onNodeWithTag(tag).performTextReplacement(text)
         rule.waitForIdle()
@@ -136,19 +143,35 @@ class CircumferenceSectionTest {
     private fun logMeasurement(value: String) {
         tap("circumference_add_button")
         type("circumference_sheet_value_input_waist", value)
-        tap("circumference_sheet_save")
+        tap("circumference_sheet_commit")
     }
 
     // -- Logging a circumference ------------------------------------------------------------------------------------
 
     @Test
-    fun section_hasAHeadingAndAnAddIconButton() {
+    fun section_hasAHeadingAndAnAddItemButton() {
         show()
 
         rule.onNodeWithTag("circumference_title").assertTextEquals("Circunferencias")
-        val description = rule.onNodeWithTag("circumference_add_button").fetchSemanticsNode().config
-            .getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
-        assertEquals("Añadir medida", description)
+        rule.onNodeWithTag("circumference_add_button").assertTextEquals("Añadir circunferencia")
+    }
+
+    @Test
+    fun addButton_isTheLastElementOfTheList() {
+        show(row("w", CircumferenceSite.Waist, 84.5), row("h", CircumferenceSite.Hip, 98.0))
+
+        val add = rule.onNodeWithTag("circumference_add_button").getUnclippedBoundsInRoot()
+        listOf("circumference_row_w", "circumference_row_h", "weight_whr_card").forEach {
+            assertTrue("$it above the add button", rule.onNodeWithTag(it).getUnclippedBoundsInRoot().bottom <= add.top)
+        }
+    }
+
+    @Test
+    fun history_rowsAreMeasurementRows_withTheListDate() {
+        show(row("w", CircumferenceSite.Waist, 84.5))
+
+        assertRowShows("circumference_row_w", "84,5 cm")
+        assertRowShows("circumference_row_w", "dom, 18 oct")
     }
 
     @Test
@@ -158,7 +181,7 @@ class CircumferenceSectionTest {
         tap("circumference_add_button")
         rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Añadir medida")
         type("circumference_sheet_value_input_waist", "84,5")
-        tap("circumference_sheet_save")
+        tap("circumference_sheet_commit")
 
         val saved = repository.rows.single()
         assertEquals(CircumferenceSite.Waist, saved.site)
@@ -190,30 +213,30 @@ class CircumferenceSectionTest {
         show()
 
         tap("circumference_add_button")
-        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
         type("circumference_sheet_value_input_waist", "84,5")
         type("circumference_sheet_value_input_hip", "98,0")
-        tap("circumference_sheet_save")
+        tap("circumference_sheet_commit")
 
         assertEquals(setOf(CircumferenceSite.Waist, CircumferenceSite.Hip), repository.rows.map { it.site }.toSet())
         assertEquals(2, repository.rows.size)
         rule.onNodeWithTag("circumference_group_hip").assertExists()
-        rule.onNodeWithTag("circumference_ratio").assertTextContains("0,86", substring = true)
+        assertCardShows("weight_whr_card", "0,86")
     }
 
     @Test
-    fun tappingTheHelp_showsTheInstructionsOfThatSiteOnly_andTogglesThem() {
+    fun tappingTheHelp_opensAnInfoSheetWithTheInstructionsOfThatSite_andXClosesIt() {
         show()
         tap("circumference_add_button")
 
         tap("circumference_sheet_help_waist")
-        rule.onNodeWithTag("circumference_sheet_help_text_waist").assertTextContains("ombligo", substring = true)
-        tap("circumference_sheet_help_hip")
-        rule.onNodeWithTag("circumference_sheet_help_text_waist").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_sheet_help_text_hip").assertExists()
-        tap("circumference_sheet_help_hip")
+        rule.onNodeWithTag("circumference_sheet_help_waist_sheet_body").assertTextContains("ombligo", substring = true)
+        tap("circumference_sheet_help_waist_sheet_close")
 
-        rule.onNodeWithTag("circumference_sheet_help_text_hip").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_help_waist_sheet_body").assertDoesNotExist()
+        // Nothing expands in place and the add sheet is still open.
+        rule.onNodeWithTag("circumference_sheet_help_text_waist").assertDoesNotExist()
+        rule.onNodeWithTag("circumference_sheet_title").assertExists()
     }
 
     @Test
@@ -227,9 +250,9 @@ class CircumferenceSectionTest {
         rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("Ayer")
         rule.onNodeWithTag("circumference_sheet_date_next").assertIsEnabled()
         tap("circumference_sheet_date_prev")
-        rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("19 oct")
+        rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("lun, 19 oct")
         type("circumference_sheet_value_input_waist", "84,5")
-        tap("circumference_sheet_save")
+        tap("circumference_sheet_commit")
 
         assertEquals(Instant.parse("2026-10-19T12:00:00Z"), repository.rows.single().measuredAt)
     }
@@ -240,16 +263,15 @@ class CircumferenceSectionTest {
     fun waistAndHip_showTheRatio() {
         show(row("w", CircumferenceSite.Waist, 84.5), row("h", CircumferenceSite.Hip, 98.0))
 
-        rule.onNodeWithTag("circumference_ratio").assertTextContains("0,86", substring = true)
-        rule.onNodeWithTag("circumference_ratio")
-            .assertTextContains("Relación cintura-cadera", substring = true, ignoreCase = true)
+        assertCardShows("weight_whr_card", "0,86")
+        assertCardShows("weight_whr_card", "Relación cintura-cadera")
     }
 
     @Test
     fun onlyWaist_showsNotEnoughData() {
         show(row("w", CircumferenceSite.Waist, 84.5))
 
-        rule.onNodeWithTag("circumference_ratio").assertTextContains("Sin datos suficientes", substring = true)
+        assertCardShows("weight_whr_card", "Sin datos suficientes")
     }
 
     // -- Editing and deleting ---------------------------------------------------------------------------------------
@@ -263,11 +285,11 @@ class CircumferenceSectionTest {
         rule.onNodeWithTag("circumference_sheet_value_input_waist").assertExists()
         rule.onNodeWithTag("circumference_sheet_value_input_hip").assertDoesNotExist()
         type("circumference_sheet_value_input_waist", "86,0")
-        tap("circumference_sheet_save")
+        tap("circumference_sheet_commit")
 
         assertEquals(86.0, repository.rows.first { it.id == "w" }.valueCm, 0.0)
         assertRowShows("circumference_row_w", "86,0 cm")
-        rule.onNodeWithTag("circumference_ratio").assertTextContains("0,88", substring = true)
+        assertCardShows("weight_whr_card", "0,88")
     }
 
     @Test
@@ -285,13 +307,13 @@ class CircumferenceSectionTest {
     @Test
     fun swipeDelete_removesTheRowAtOnceAndUpdatesTheRatio_withNoUndo() {
         show(row("w", CircumferenceSite.Waist, 84.5), row("h", CircumferenceSite.Hip, 98.0))
-        rule.onNodeWithTag("circumference_ratio").assertTextContains("0,86", substring = true)
+        assertCardShows("weight_whr_card", "0,86")
 
         deleteBySwipeAction("circumference_row_w", "Eliminar Cintura 84,5 cm")
 
         assertEquals(listOf("w"), repository.deletes)
         rule.onNodeWithTag("circumference_row_w").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_ratio").assertTextContains("Sin datos suficientes", substring = true)
+        assertCardShows("weight_whr_card", "Sin datos suficientes")
         rule.onNodeWithText("Deshacer").assertDoesNotExist()
     }
 
@@ -318,7 +340,7 @@ class CircumferenceSectionTest {
 
         type("circumference_sheet_value_input_neck", "19,9")
 
-        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("circumference_sheet_range_hint_neck").assertTextEquals("Entre 20 y 250 cm")
     }
 
@@ -329,7 +351,7 @@ class CircumferenceSectionTest {
 
         type("circumference_sheet_value_input_calf", "251")
 
-        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("circumference_sheet_range_hint_calf").assertTextEquals("Entre 20 y 250 cm")
     }
 
@@ -341,7 +363,7 @@ class CircumferenceSectionTest {
         type("circumference_sheet_value_input_waist", "84,5")
         type("circumference_sheet_value_input_hip", "251")
 
-        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
@@ -350,10 +372,10 @@ class CircumferenceSectionTest {
         tap("circumference_add_button")
 
         type("circumference_sheet_value_input_waist", "20")
-        rule.onNodeWithTag("circumference_sheet_save").assertIsEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsEnabled()
         type("circumference_sheet_value_input_waist", "250")
 
-        rule.onNodeWithTag("circumference_sheet_save").assertIsEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsEnabled()
         rule.onNodeWithTag("circumference_sheet_range_hint_waist").assertDoesNotExist()
     }
 
@@ -362,7 +384,7 @@ class CircumferenceSectionTest {
         show()
         tap("circumference_add_button")
 
-        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("circumference_sheet_range_hint_waist").assertDoesNotExist()
     }
 
@@ -387,7 +409,7 @@ class CircumferenceSectionTest {
 
         rule.onNodeWithTag("circumference_empty").assertExists()
         rule.onNodeWithText("Aún no hay medidas").assertExists()
-        rule.onNodeWithText("Registra tu primera circunferencia con el botón +.").assertExists()
+        rule.onNodeWithText("Registra tu primera circunferencia.").assertExists()
     }
 
     @Test
@@ -419,7 +441,7 @@ class CircumferenceSectionTest {
     }
 
     @Test
-    fun offline_disablesGuardarAndEliminar_withTheReason_andLocksSwipeDelete() {
+    fun offline_disablesGuardarAndEliminar_withTheHint_andLocksSwipeDelete() {
         connectivity.state.value = false
         show(row("w", CircumferenceSite.Waist, 84.5))
 
@@ -428,43 +450,46 @@ class CircumferenceSectionTest {
         assertTrue(actions.isNullOrEmpty())
         tap("circumference_row_w")
 
-        rule.onNodeWithTag("circumference_sheet_save").assertIsNotEnabled()
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("circumference_sheet_delete").assertIsNotEnabled()
-        rule.onNodeWithTag("circumference_sheet_message")
-            .assertTextEquals("Sin conexión: no se puede guardar ni eliminar")
+        rule.onNodeWithTag("circumference_sheet_commit_hint").assertTextEquals("Sin conexión: no se puede guardar")
     }
 
     @Test
-    fun failedSave_keepsTheSheetOpenWithAnError() {
+    fun failedSave_keepsTheSheetOpenAndGuardarEnabled_withNoInlineError() {
         show()
         repository.writeFailure = AppException(AppError.Unknown)
 
         logMeasurement("84,5")
 
         rule.onNodeWithTag("circumference_sheet").assertExists()
-        rule.onNodeWithTag("circumference_sheet_message").assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
+        rule.onNodeWithTag("circumference_sheet_commit").assertIsEnabled()
+        rule.onNodeWithTag("circumference_sheet_message").assertDoesNotExist()
+    }
+
+    @Test
+    fun closingWithX_neverCommits() {
+        show()
+        tap("circumference_add_button")
+        type("circumference_sheet_value_input_waist", "84,5")
+
+        tap("circumference_sheet_close")
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodesWithTag("circumference_sheet_title").fetchSemanticsNodes().isEmpty()
+        }
+
+        assertTrue(repository.rows.isEmpty())
     }
 
     // -- Layout -----------------------------------------------------------------------------------------------------
 
     @Test
-    fun phone_putsTheSectionBelowTheCalendar() {
+    fun noCalendarGrid_isOnThePesoScreen_andTheSectionIsBelowThePesoActualCard() {
         show(row("w", CircumferenceSite.Waist, 84.5))
 
-        val calendar = rule.onNodeWithTag("weight_calendar").getUnclippedBoundsInRoot()
+        rule.onNodeWithTag("weight_calendar").assertDoesNotExist()
+        val card = rule.onNodeWithTag("weight_current_card").getUnclippedBoundsInRoot()
         val section = rule.onNodeWithTag("circumference_section").getUnclippedBoundsInRoot()
-        assertTrue(section.top >= calendar.bottom)
-    }
-
-    @Test
-    @Config(qualifiers = "w900dp-h1200dp-mdpi")
-    fun wideWindow_putsTheSectionUnderTheCalendarInTheRightColumn() {
-        show(row("w", CircumferenceSite.Waist, 84.5))
-
-        val calendar = rule.onNodeWithTag("weight_calendar").getUnclippedBoundsInRoot()
-        val section = rule.onNodeWithTag("circumference_section").getUnclippedBoundsInRoot()
-        val panel = rule.onNodeWithTag("weight_edit_today_button").getUnclippedBoundsInRoot()
-        assertTrue(section.top >= calendar.bottom)
-        assertTrue(section.left >= panel.right)
+        assertTrue(section.top >= card.bottom)
     }
 }

@@ -458,17 +458,69 @@ class WeightViewModelTest {
 
         val form = model.form()
         assertEquals("73,9", form.weightText)
-        assertEquals(WeightSaveError.Failed, form.saveError)
         assertFalse(form.isSaving)
         assertTrue(form.canSave)
-
-        model.type("73,8")
-        assertNull(model.form().saveError)
 
         repository.saveFailure = AppException(AppError.Network)
         model.onEvent(WeightEvent.Save)
         advanceUntilIdle()
-        assertEquals(WeightSaveError.Offline, model.form().saveError)
+        assertTrue(model.form().canSave)
+    }
+
+    @Test
+    fun successfulSave_emitsSavedOnce() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("a", "2026-10-18T08:00:00Z", 74.2))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.LogToday)
+        advanceUntilIdle()
+        model.type("73,9")
+
+        model.effects.test {
+            model.onEvent(WeightEvent.Save)
+            advanceUntilIdle()
+            assertEquals(WeightEffect.Saved, awaitItem())
+            expectNoEvents()
+        }
+        assertNull(model.content().sheet)
+    }
+
+    @Test
+    fun failedSave_emitsSaveFailedWithTheCauseAndKeepsTheDraft() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("a", "2026-10-18T08:00:00Z", 74.2))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.LogToday)
+        advanceUntilIdle()
+        model.type("73,9")
+
+        model.effects.test {
+            repository.saveFailure = AppException(AppError.Unknown)
+            model.onEvent(WeightEvent.Save)
+            advanceUntilIdle()
+            assertEquals(WeightEffect.SaveFailed(offline = false), awaitItem())
+            repository.saveFailure = AppException(AppError.Network)
+            model.onEvent(WeightEvent.Save)
+            advanceUntilIdle()
+            assertEquals(WeightEffect.SaveFailed(offline = true), awaitItem())
+        }
+        assertEquals("73,9", model.form().weightText)
+    }
+
+    @Test
+    fun successfulDelete_emitsDeletedOnce() = runTest(dispatcher) {
+        val repository = FakeWeightRepository(manual("m", "2026-10-18T08:00:00Z", 74.2))
+        val model = viewModel(repository)
+        advanceUntilIdle()
+        model.onEvent(WeightEvent.OpenDay(LocalDate(2026, 10, 18)))
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(WeightEvent.DeleteManual)
+            advanceUntilIdle()
+            assertEquals(WeightEffect.Deleted, awaitItem())
+            expectNoEvents()
+        }
     }
 
     // Validation

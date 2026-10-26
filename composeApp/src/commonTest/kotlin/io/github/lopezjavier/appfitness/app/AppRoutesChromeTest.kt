@@ -26,7 +26,6 @@ class AppRoutesChromeTest {
             ExerciseProgressRoute("e") to "exercise_progress",
             MealSlotsRoute to "meals",
             MealDefaultsRoute to "meal_defaults",
-            WeightRoute to "weight",
         )
 
     @Test
@@ -43,6 +42,14 @@ class AppRoutesChromeTest {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
         assertEquals(ShellChrome.Screen, DiaryHistoryRoute.chrome)
         assertEquals(ShellChrome.Screen, DiaryDayRoute("2026-10-26").chrome)
+    }
+
+    @Test
+    fun theWeightRoutes_useAppScreen_andHaveScreenChrome() {
+        listOf(WeightRoute, WeightHistoryRoute).forEach {
+            assertTrue(it.usesAppScreen, it.toString())
+            assertEquals(ShellChrome.Screen, it.chrome, it.toString())
+        }
     }
 
     @Test

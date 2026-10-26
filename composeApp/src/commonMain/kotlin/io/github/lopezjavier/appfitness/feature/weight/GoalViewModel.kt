@@ -21,10 +21,13 @@ import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -56,7 +59,7 @@ private sealed interface GoalLoadState {
     data class Ready(val load: GoalLoad) : GoalLoadState
 }
 
-private data class TargetDraft(val text: String, val saving: Boolean = false, val error: WeightSaveError? = null)
+private data class TargetDraft(val text: String, val saving: Boolean = false)
 
 /**
  * The goal card and metric tiles of the weight screen (US-27): target weight, distance, progress, BMI, body fat and
@@ -86,6 +89,9 @@ class GoalViewModel(
     private val openMetric = MutableStateFlow(restoreMetric())
     private val online = MutableStateFlow(true)
 
+    private val effectChannel = Channel<GoalEffect>(Channel.BUFFERED)
+    val effects: Flow<GoalEffect> = effectChannel.receiveAsFlow()
+
     val uiState: StateFlow<GoalUiState> =
         combine(load, draft, openMetric, online) { values ->
             buildState(values)
@@ -99,7 +105,7 @@ class GoalViewModel(
     fun onEvent(event: GoalEvent) {
         when (event) {
             GoalEvent.OpenTargetSheet -> openSheet()
-            is GoalEvent.EditTarget -> editDraft { it.copy(text = event.text, error = null) }
+            is GoalEvent.EditTarget -> editDraft { it.copy(text = event.text) }
             GoalEvent.SaveTarget -> saveTarget()
             GoalEvent.Dismiss -> setDraft(null)
             is GoalEvent.OpenMetric -> setMetric(event.kind)
@@ -167,21 +173,16 @@ class GoalViewModel(
         val value = parseDecimal(current.text)
         if (value == null || problemOf(current.text) != null || !online.value || current.saving) return
         if (sameTenths(value, ready.load.targetKg)) return
-        setDraft(current.copy(saving = true, error = null))
+        setDraft(current.copy(saving = true))
         viewModelScope.launch {
             val result = profile.setTargetWeight(value)
             if (result.isSuccess) {
                 setDraft(null)
                 reload(silent = true)
+                effectChannel.send(GoalEffect.Saved)
             } else {
-                val error = if (result.appErrorOrNull() ==
-                    AppError.Network
-                ) {
-                    WeightSaveError.Offline
-                } else {
-                    WeightSaveError.Failed
-                }
-                draft.value?.let { setDraft(it.copy(saving = false, error = error)) }
+                draft.value?.let { setDraft(it.copy(saving = false)) }
+                effectChannel.send(GoalEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network))
             }
         }
     }
@@ -241,6 +242,8 @@ class GoalViewModel(
             isOnline = isOnline,
             targetSheet = sheet?.let { sheetOf(it, data.targetKg, isOnline) },
             openMetric = metric,
+            startKg = data.onboarding?.weightKg,
+            progress = goalProgress(data.onboarding?.weightKg, current, target),
         )
     }
 
@@ -260,7 +263,6 @@ class GoalViewModel(
             canSave = value != null && problemOf(sheet.text) == null && !sameTenths(value, saved) && isOnline &&
                 !sheet.saving,
             isSaving = sheet.saving,
-            saveError = sheet.error,
         )
     }
 }

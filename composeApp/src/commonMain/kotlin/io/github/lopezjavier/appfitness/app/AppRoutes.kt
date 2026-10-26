@@ -24,7 +24,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
-import io.github.lopezjavier.appfitness.composeapp.resources.weight_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -188,9 +187,13 @@ data object MealDefaultsRoute : AppRoute
 @Serializable
 data object DiaryHistoryRoute : AppRoute
 
-/** The weight screen (US-25): current weight and the measurement calendar, opened from Perfil > Estadísticas. */
+/** The weight screen (US-25): current weight, goal, trend and circumferences, opened from Perfil > Estadísticas. */
 @Serializable
 data object WeightRoute : AppRoute
+
+/** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
+@Serializable
+data object WeightHistoryRoute : AppRoute
 
 /**
  * The Diary of one past [date] (ISO yyyy-MM-dd), opened from the history in a full-screen chrome with a back arrow. The
@@ -282,7 +285,7 @@ sealed interface ShellChrome {
 val AppRoute.usesAppScreen: Boolean
     get() = this is CatalogRoute || this is DiaryHome || this is DiaryHistoryRoute || this is DiaryDayRoute ||
         this is FoodSearchRoute || this is AddFoodRoute || this is CreateFoodRoute || this is EditFoodRoute ||
-        this is TemplateDetailsRoute
+        this is TemplateDetailsRoute || this is WeightRoute || this is WeightHistoryRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -352,7 +355,8 @@ private val AppRoute.legacyChrome: ShellChrome
             // Draw their own bar through AppScreen (T-121): never reached through [chrome].
             DiaryHistoryRoute, is DiaryDayRoute -> ShellChrome.Screen
 
-            WeightRoute -> ShellChrome.FullScreen(Res.string.weight_title, topBarTag = "weight")
+            // Draw their own bar through AppScreen (T-123): never reached through [chrome].
+            WeightRoute, WeightHistoryRoute -> ShellChrome.Screen
 
             // A sheet over the Diary tab or over a past day: the shell draws the chrome of the entry below it
             // instead (see [chromeOf]); this one is the fallback for the sheet opened over the Diary tab.
@@ -392,5 +396,6 @@ object AppDestinations {
             DiaryHistoryRoute,
             DiaryDayRoute(""),
             WeightRoute,
+            WeightHistoryRoute,
         )
 }

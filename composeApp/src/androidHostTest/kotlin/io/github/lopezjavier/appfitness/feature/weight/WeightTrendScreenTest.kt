@@ -10,11 +10,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
@@ -72,9 +77,9 @@ private fun content(
     rate: WeeklyRate = WeeklyRate(-0.45, RateTone.Favorable),
     selected: TrendPoint? = null,
     targetKg: Double? = null,
-    maHelpOpen: Boolean = false,
     metric: BodyMetric = BodyMetric.Weight,
     weeklyRate: WeeklyRate = rate,
+    startKg: Double? = null,
 ) = WeightTrendUiState.Content(
     range = range,
     metric = metric,
@@ -82,7 +87,7 @@ private fun content(
     weeklyRate = weeklyRate,
     selectedPoint = selected,
     targetKg = targetKg,
-    maHelpOpen = maHelpOpen,
+    startKg = startKg,
 )
 
 /** US-27 on the weight screen: the metrics pill, the two-layer chart, the range filter and the point detail. */
@@ -132,6 +137,24 @@ class WeightTrendScreenTest {
         rule.waitForIdle()
     }
 
+    private fun assertCurrentWeight(text: String) {
+        rule.onNode(
+            hasText(text, substring = true) and hasAnyAncestor(hasTestTag("weight_current_card")),
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
+    private fun openPicker() {
+        rule.onNodeWithTag("weight_chart_metric_title").performClick()
+        rule.waitForIdle()
+    }
+
+    private fun pick(tag: String) {
+        openPicker()
+        rule.onNodeWithTag("weight_chart_metric_$tag").performClick()
+        rule.waitForIdle()
+    }
+
     private fun toneOf(tag: String) =
         rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
 
@@ -140,7 +163,7 @@ class WeightTrendScreenTest {
         showScreen(content())
 
         rule.onNodeWithTag("weight_trend_pill").assertTextContains("−0,45 kg esta semana")
-        rule.onNodeWithTag("weight_current_value").assertTextContains("74,2 kg")
+        assertCurrentWeight("74,2 kg")
     }
 
     @Test
@@ -163,7 +186,7 @@ class WeightTrendScreenTest {
 
         rule.onNodeWithTag("weight_trend_pill").assertDoesNotExist()
         rule.onNodeWithText("Sin datos suficientes").assertDoesNotExist()
-        rule.onNodeWithTag("weight_current_value").assertTextContains("74,2 kg")
+        assertCurrentWeight("74,2 kg")
         rule.onNodeWithTag("weight_chart_empty").assertTextEquals("Registra tu peso varios días para ver la tendencia")
     }
 
@@ -171,19 +194,45 @@ class WeightTrendScreenTest {
     fun withoutTrendState_theScreenIsAsBefore() {
         showScreen(null)
 
-        rule.onNodeWithTag("weight_current_value").assertIsDisplayed()
+        rule.onNodeWithTag("weight_current_card").assertIsDisplayed()
         rule.onAllNodesCount("weight_chart_card", 0)
     }
 
     @Test
-    fun twoLayerChart_showsTheLegendAndFiveFiltersWithThreeMonthsSelected() {
+    fun twoLayerChart_showsTheLegendAndFiveRangesWithThreeMonthsSelected() {
         showChart(content())
 
         rule.onNodeWithTag("weight_chart").assertIsDisplayed()
         rule.onNodeWithTag("weight_chart_legend").assertTextContains("Media 7 días")
-        rule.onNodeWithTag("weight_chart_filter_3m").assertIsSelected()
-        listOf("1s", "1m", "3m", "6m", "1a").forEach {
-            rule.onNodeWithTag("weight_chart_filter_$it").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_range_threemonths").assertIsSelected()
+        val ranges = listOf("week", "month", "threemonths", "sixmonths", "year")
+        ranges.forEach { rule.onNodeWithTag("weight_chart_range_$it").assertIsDisplayed() }
+        val segments = rule.onAllNodes(
+            SemanticsMatcher("range segment") {
+                it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("weight_chart_range_") == true
+            },
+        ).fetchSemanticsNodes()
+        assertEquals(ranges.size, segments.size)
+        rule.onNodeWithTag("weight_chart_metric_selector").assertDoesNotExist()
+    }
+
+    @Test
+    fun rangeSelector_speaksTheSpokenRanges() {
+        showChart(content())
+
+        val spoken = mapOf(
+            "week" to "1 semana",
+            "month" to "1 mes",
+            "threemonths" to "3 meses",
+            "sixmonths" to "6 meses",
+            "year" to "1 año",
+        )
+        spoken.forEach { (tag, text) ->
+            rule.onNodeWithTag("weight_chart_range_$tag").assert(
+                SemanticsMatcher("speaks $text") { node ->
+                    node.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(text) == true
+                },
+            )
         }
     }
 
@@ -191,24 +240,24 @@ class WeightTrendScreenTest {
     fun timeFilter_tappingOneMonthSendsTheEvent() {
         showChart(content())
 
-        rule.onNodeWithTag("weight_chart_filter_1m").performClick()
+        rule.onNodeWithTag("weight_chart_range_month").performClick()
 
         assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectRange(WeightChartRange.Month)), events)
     }
 
     @Test
-    fun timeFilter_theSavedRangeIsTheSelectedChip() {
+    fun timeFilter_theSavedRangeIsTheSelectedSegment() {
         showChart(content(range = WeightChartRange.Year))
 
-        rule.onNodeWithTag("weight_chart_filter_1a").assertIsSelected()
+        rule.onNodeWithTag("weight_chart_range_year").assertIsSelected()
     }
 
     @Test
-    fun notEnoughData_chartCardKeepsTheFiltersAndShowsTheHint() {
+    fun notEnoughData_chartCardKeepsTheTitleAndRangesAndShowsTheHint() {
         showChart(content(points = points(1)))
 
         rule.onNodeWithTag("weight_chart_empty").assertIsDisplayed()
-        rule.onNodeWithTag("weight_chart_filter_3m").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_range_threemonths").assertIsDisplayed()
     }
 
     @Test
@@ -258,21 +307,26 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun maHelp_isHiddenByDefaultAndTheButtonAsksToToggleIt() {
+    fun maHelp_opensAnInfoSheetFromTheHelpButton_andNothingExpandsInPlace() {
         showChart(content())
 
-        rule.onNodeWithTag("weight_chart_ma_help_text").assertDoesNotExist()
-        rule.onNodeWithTag("weight_chart_ma_help_button").assertHeightIsAtLeast(48.dp).performClick()
+        rule.onNodeWithTag("weight_chart_ma_help_sheet_body").assertDoesNotExist()
+        rule.onNodeWithTag("weight_chart_ma_help").assertHeightIsAtLeast(48.dp).performClick()
+        rule.waitForIdle()
 
-        assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.ToggleMaHelp), events)
+        rule.onNodeWithTag("weight_chart_ma_help_sheet_body")
+            .assertTextContains("Promedio de tu peso en ese día y los 6 anteriores.", substring = true)
+        rule.onNodeWithTag("weight_chart_ma_help_text").assertDoesNotExist()
+        rule.onNodeWithTag("weight_chart_ma_help_sheet_close").performClick()
     }
 
     @Test
-    fun maHelp_whenOpenExplainsTheAverage() {
-        showChart(content(maHelpOpen = true))
+    fun maHelp_hasTheSpokenAyudaLabel() {
+        showChart(content())
 
-        rule.onNodeWithTag("weight_chart_ma_help_text")
-            .assertTextEquals("Promedio de tu peso en ese día y los 6 anteriores. Suaviza las oscilaciones diarias.")
+        val cd = rule.onNodeWithTag("weight_chart_ma_help").fetchSemanticsNode().config
+            .getOrNull(SemanticsProperties.ContentDescription)
+        assertEquals(listOf("Ayuda: Media 7 días"), cd)
     }
 
     @Test
@@ -281,6 +335,14 @@ class WeightTrendScreenTest {
 
         rule.onNodeWithTag("weight_chart_target_legend").assertTextContains("Objetivo")
         assertTrue(toneOf("weight_chart").orEmpty().endsWith("Línea de objetivo en 70,0 kg."))
+    }
+
+    @Test
+    fun goalOverlay_summaryTellsTheTargetAndTheStartingWeightForTalkBack() {
+        showChart(content(targetKg = 70.0, startKg = 78.0))
+
+        assertTrue(toneOf("weight_chart").orEmpty().endsWith("Objetivo 70,0 kg; peso inicial 78,0 kg."))
+        rule.onNodeWithTag("weight_chart_target_legend").assertIsDisplayed()
     }
 
     @Test
@@ -308,56 +370,75 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun metricSelector_offersTheEightMetricsWithWeightSelected() {
+    fun metricTitle_isAButtonNamedForScreenReaders_andOpensThePickerWithTheEightMetrics() {
         showChart(content())
 
+        val cd = rule.onNodeWithTag("weight_chart_metric_title").fetchSemanticsNode().config
+            .getOrNull(SemanticsProperties.ContentDescription)
+        assertEquals(listOf("Métrica del gráfico: Peso. Cambiar"), cd)
+        rule.onNodeWithTag("weight_chart_metric_title").assertHeightIsAtLeast(48.dp)
+        openPicker()
+
+        rule.onNodeWithTag("weight_chart_metric_picker_sheet_title").assertTextEquals("Métrica del gráfico")
         metricTags.forEach { rule.onNodeWithTag("weight_chart_metric_$it").assertExists() }
-        rule.onNodeWithTag("weight_chart_metric_selector").assertExists()
         rule.onNodeWithTag("weight_chart_metric_weight").assertIsSelected()
+        rule.onNodeWithTag("weight_chart_metric_selector").assertDoesNotExist()
     }
 
     @Test
-    fun metricSelector_chipsAreNamedForScreenReaders() {
+    fun metricPicker_usesTheGlossaryNames() {
         showChart(content())
+        openPicker()
 
-        val descriptions = listOf("body_fat" to "Grasa corporal", "bmr" to "Tasa metabólica basal")
-        descriptions.forEach { (tag, name) ->
-            val cd = rule.onNodeWithTag("weight_chart_metric_$tag").fetchSemanticsNode().config
-                .getOrNull(SemanticsProperties.ContentDescription)
-            assertEquals(listOf(name), cd)
+        listOf("Grasa corporal", "Masa ósea", "Metabolismo basal").forEach {
+            rule.onNodeWithText(it).assertExists()
         }
     }
 
     @Test
-    fun metricSelector_tappingBodyFatSendsTheEvent() {
+    fun metricPicker_tappingBodyFatAppliesAtOnceAndClosesThePicker() {
         showChart(content())
 
-        rule.onNodeWithTag("weight_chart_metric_body_fat").performClick()
+        pick("body_fat")
 
         assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectMetric(BodyMetric.BodyFat)), events)
+        rule.onNodeWithTag("weight_chart_metric_picker_sheet_title").assertDoesNotExist()
     }
 
     @Test
-    fun metricSelector_bodyFatShowsItsChartAndDetailInPercent() {
+    fun metricPicker_closingWithXAppliesNothing() {
+        showChart(content())
+        openPicker()
+
+        rule.onNodeWithTag("weight_chart_metric_picker_sheet_close").performClick()
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodes(hasTestTag("weight_chart_metric_picker_sheet_title")).fetchSemanticsNodes().isEmpty()
+        }
+
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun metric_bodyFatShowsItsChartAndDetailInPercent() {
         showChart(content(metric = BodyMetric.BodyFat, points = fatPoints(), selected = fatPoints()[3]))
 
-        rule.onNodeWithTag("weight_chart_metric_body_fat").assertIsSelected()
+        rule.onNodeWithTag("weight_chart_metric_title").assertTextContains("Grasa corporal")
         rule.onNodeWithTag("weight_chart").assertIsDisplayed()
         rule.onNodeWithText("Grasa corporal: 18,3 %").assertIsDisplayed()
         rule.onNodeWithText("Media 7 días: 18,3 %").assertIsDisplayed()
     }
 
     @Test
-    fun metricSelector_filtersStayUsableWithAnotherMetric() {
+    fun metric_rangesStayUsableWithAnotherMetric() {
         showChart(content(metric = BodyMetric.BodyFat, points = fatPoints()))
 
-        rule.onNodeWithTag("weight_chart_filter_1m").performClick()
+        rule.onNodeWithTag("weight_chart_range_month").performClick()
 
         assertEquals(listOf<WeightTrendEvent>(WeightTrendEvent.SelectRange(WeightChartRange.Month)), events)
     }
 
     @Test
-    fun metricSelector_longPressReadsTheMetricValue() {
+    fun metric_longPressReadsTheMetricValue() {
         showChart(content(metric = BodyMetric.BodyFat, points = fatPoints()))
 
         rule.onNodeWithTag("weight_chart").performTouchInput { longClick(centerRight.copy(x = right - 1f)) }
@@ -366,13 +447,13 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun metricSelector_targetLegendIsWeightOnly() {
+    fun metric_targetLegendIsWeightOnly() {
         showChart(content(metric = BodyMetric.BodyFat, points = fatPoints(), targetKg = null))
         rule.onNodeWithTag("weight_chart_target_legend").assertDoesNotExist()
     }
 
     @Test
-    fun metricSelector_summaryNamesTheMetricAndOmitsTheWeeklyRate() {
+    fun metric_summaryNamesTheMetricAndOmitsTheWeeklyRate() {
         showChart(content(metric = BodyMetric.BodyFat, points = fatPoints()))
 
         assertEquals(
@@ -382,7 +463,7 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun metricSelector_weeklyRatePillStaysOnWeightWhileAnotherMetricIsCharted() {
+    fun metric_weeklyRatePillStaysOnWeightWhileAnotherMetricIsCharted() {
         showScreen(
             content(
                 metric = BodyMetric.BodyFat,
@@ -395,26 +476,26 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun metricSelector_bmrReadoutIsAnIntegerInKcal() {
+    fun metric_bmrReadoutIsAnIntegerInKcal() {
         val bmr = List(5) { TrendPoint(LocalDate(2026, 10, 1 + it), 1650.0 + it, if (it == 0) null else 1650.0 + it) }
         showChart(content(metric = BodyMetric.Bmr, points = bmr, selected = bmr[2]))
 
-        rule.onNodeWithText("Tasa metabólica basal: 1652 kcal").assertIsDisplayed()
+        rule.onNodeWithText("Metabolismo basal: 1652 kcal").assertIsDisplayed()
     }
 
     @Test
-    fun metricSelector_metricWithoutDataShowsTheGenericHintAndKeepsBothChipRows() {
+    fun metric_metricWithoutDataShowsTheGenericHintAndKeepsTheTitleAndRanges() {
         showChart(content(metric = BodyMetric.Bone, points = emptyList()))
 
         rule.onNodeWithTag(
             "weight_chart_empty",
-        ).assertTextEquals("Hueso: sin datos en este periodo. Regístralos para ver la tendencia")
-        rule.onNodeWithTag("weight_chart_metric_waist").assertExists()
-        rule.onNodeWithTag("weight_chart_filter_3m").assertIsDisplayed()
+        ).assertTextEquals("Masa ósea: sin datos en este periodo. Regístralos para ver la tendencia")
+        rule.onNodeWithTag("weight_chart_metric_title").assertIsDisplayed()
+        rule.onNodeWithTag("weight_chart_range_threemonths").assertIsDisplayed()
     }
 
     @Test
-    fun metricSelector_sparseMetricWithoutAnAverageStillPlotsItsDots() {
+    fun metric_sparseMetricWithoutAnAverageStillPlotsItsDots() {
         val sparse = listOf(TrendPoint(LocalDate(2026, 10, 5), 84.0, null))
         showChart(content(metric = BodyMetric.Waist, points = sparse))
 
@@ -478,8 +559,9 @@ class WeightTrendScreenTest {
     }
 
     @Test
-    fun metricSelector_lastChipIsVisibleWhenHipIsSelected() {
+    fun metricPicker_marksTheCurrentMetricWhenHipIsSelected() {
         showChart(content(metric = BodyMetric.Hip, points = fatPoints()))
+        openPicker()
 
         rule.onNodeWithTag("weight_chart_metric_hip").assertIsDisplayed().assertIsSelected()
     }
@@ -564,9 +646,8 @@ class WeightTrendScreenTest {
             key(generation) { TrendHost(remember { trendViewModel(savedState, preferences) }) }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("weight_chart_metric_body_fat").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("weight_chart_filter_1m").performClick()
+        pick("body_fat")
+        rule.onNodeWithTag("weight_chart_range_month").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("weight_chart").performTouchInput { longClick(centerRight.copy(x = right - 1f)) }
         rule.waitForIdle()
@@ -575,27 +656,9 @@ class WeightTrendScreenTest {
         generation++
         rule.waitForIdle()
 
-        rule.onNodeWithTag("weight_chart_metric_body_fat").assertIsSelected()
-        rule.onNodeWithTag("weight_chart_filter_1m").assertIsSelected()
+        rule.onNodeWithTag("weight_chart_metric_title").assertTextContains("Grasa corporal")
+        rule.onNodeWithTag("weight_chart_range_month").assertIsSelected()
         rule.onNodeWithTag("weight_chart_point_detail").assertIsDisplayed()
-    }
-
-    @Test
-    fun maHelp_isShownAgainWhenTheHostAndViewModelAreRecreated() {
-        val savedState = SavedStateHandle()
-        var generation by mutableIntStateOf(0)
-        rule.setContent {
-            key(generation) { TrendHost(remember { trendViewModel(savedState) }) }
-        }
-        rule.waitForIdle()
-        rule.onNodeWithTag("weight_chart_ma_help_button").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("weight_chart_ma_help_text").assertIsDisplayed()
-
-        generation++
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("weight_chart_ma_help_text").assertIsDisplayed()
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesCount(tag: String, expected: Int) {

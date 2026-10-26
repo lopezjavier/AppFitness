@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,9 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_hours
 import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_minutes
 import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_now
 import io.github.lopezjavier.appfitness.composeapp.resources.health_syncing
-import io.github.lopezjavier.appfitness.composeapp.resources.health_title
 import io.github.lopezjavier.appfitness.composeapp.resources.health_update_needed
-import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
@@ -44,49 +43,40 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import org.jetbrains.compose.resources.stringResource
 
-private val SkeletonBannerHeight = Spacing.xl * 4
+private val SkeletonLineHeight = Spacing.xl
 
 /**
- * The Health Connect card of the weight screen (US-26): a status dot, the status text and one trailing button. While
- * the state loads a skeleton of the card's height is drawn, so "Sin sincronizar" never flashes.
+ * The Health Connect status of "Peso actual" (US-26): a status dot, the status text and one button ("Sincronizar" and
+ * its siblings). While the state loads a skeleton line is drawn, so "Sin sincronizar" never flashes.
  */
 @Composable
-fun HealthConnectBanner(state: HealthSyncUiState, onEvent: (HealthSyncEvent) -> Unit, modifier: Modifier = Modifier) {
+fun HealthStatusLine(state: HealthSyncUiState, onEvent: (HealthSyncEvent) -> Unit, modifier: Modifier = Modifier) {
     val spec = healthBannerSpec(state)
     if (spec == null) {
         SkeletonBox(
-            modifier.fillMaxWidth().height(SkeletonBannerHeight).testTag("weight_hc_skeleton"),
-            AppShapes.lg,
+            modifier.fillMaxWidth().height(SkeletonLineHeight).testTag("weight_hc_skeleton"),
+            AppShapes.base,
         )
         return
     }
-    AppCard(modifier.fillMaxWidth().testTag("weight_hc_banner")) {
-        Text(
-            text = stringResource(Res.string.health_title),
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-        )
+    Column(
+        modifier.fillMaxWidth().testTag("weight_hc_banner"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
         Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                StatusDot(toneColor(spec.tone))
-                StatusText(spec)
-            }
-            GhostButton(
-                text = actionLabel(spec.action),
-                onClick = { onEvent(HealthSyncEvent.Tap) },
-                modifier = Modifier.testTag(spec.action.testTag),
-                enabled = spec.actionEnabled,
-                loading = spec.actionLoading,
-            )
+            StatusDot(toneColor(spec.tone))
+            StatusText(spec)
         }
+        GhostButton(
+            text = actionLabel(spec.action),
+            onClick = { onEvent(HealthSyncEvent.Tap) },
+            modifier = Modifier.testTag(spec.action.testTag),
+            enabled = spec.actionEnabled,
+            loading = spec.actionLoading,
+        )
     }
 }
 

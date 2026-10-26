@@ -17,9 +17,11 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_entry_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_entry_name
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_measurement_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_label
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_value
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_progress_state
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_header
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_headline
@@ -36,12 +38,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_swipe_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_swipe_item
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_swipe_item_cd
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRow
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRowModel
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.MeasurementRow
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -53,6 +57,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 private const val SWIPE_ITEMS = 3
+private const val CATALOG_PROGRESS = 0.6f
 
 /** The sample row whose delete "fails": it comes back after [FAILED_DELETE_DELAY_MILLIS] with a Reject. */
 private const val FAILING_ITEM = 2
@@ -164,7 +169,19 @@ private fun MetricCardSection() {
                     color = AppTheme.colors.textSecondary,
                 )
             },
+            progress = {
+                AppLinearProgress(
+                    fraction = CATALOG_PROGRESS,
+                    stateDescription = stringResource(Res.string.catalog_progress_state),
+                    modifier = Modifier.testTag("catalog_linear_progress"),
+                )
+            },
         )
+        val editLabel = stringResource(Res.string.catalog_measurement_edit)
+        Column(Modifier.testTag("catalog_measurement_rows")) {
+            MeasurementRow("84,5 cm", "12 oct", onClick = {}, clickLabel = editLabel)
+            MeasurementRow("85,0 cm", "5 oct", onClick = {}, clickLabel = editLabel)
+        }
     }
 }
 

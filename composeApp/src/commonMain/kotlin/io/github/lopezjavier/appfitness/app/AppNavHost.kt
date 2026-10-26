@@ -101,8 +101,11 @@ internal typealias DiarySlot =
 internal typealias DiaryHistorySlot =
     @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit, onBack: () -> Unit) -> Unit
 
-/** Weight screen content: modifier (full-screen insets). */
-internal typealias WeightSlot = @Composable (modifier: Modifier) -> Unit
+/** Weight screen content: modifier (full-screen insets), the opener of the history and the back arrow. */
+internal typealias WeightSlot = @Composable (modifier: Modifier, onOpenHistory: () -> Unit, onBack: () -> Unit) -> Unit
+
+/** Weight history content: modifier (full-screen insets) and the back arrow. */
+internal typealias WeightHistorySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /** Key under which the edit sheet leaves the id of the entry to delete for the Diary. */
 const val DELETED_ENTRY_KEY = "deleted_entry_id"
@@ -356,8 +359,13 @@ internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _, _ ->
 }
 
 /** Empty weight screen for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultWeightSlot: WeightSlot = { modifier ->
+internal val DefaultWeightSlot: WeightSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("weight_screen"))
+}
+
+/** Empty weight history for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultWeightHistorySlot: WeightHistorySlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("weight_history_screen"))
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -484,6 +492,7 @@ internal fun AppNavHost(
     muscleVolume: MuscleVolumeSlot = DefaultMuscleVolumeSlot,
     trainingStats: TrainingStatsSlot = DefaultTrainingStatsSlot,
     weight: WeightSlot = DefaultWeightSlot,
+    weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -581,7 +590,16 @@ internal fun AppNavHost(
                 )
             }
         }
-        composable<WeightRoute> { weight(Modifier.padding(fullScreenPadding)) }
+        composable<WeightRoute> { entry ->
+            weight(
+                Modifier.padding(fullScreenPadding),
+                { navController.navigateToFullScreen(WeightHistoryRoute) },
+                { navController.popFullScreen(entry) },
+            )
+        }
+        composable<WeightHistoryRoute> { entry ->
+            weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
         composable<StatsRoute> { trainingStats(Modifier.padding(fullScreenPadding), openProgress) }
         composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding), openMeals) }
         composable<ExercisePickerRoute> { entry ->

@@ -63,7 +63,7 @@ private val ExpectedSections =
         "favourite_toggle", "portion_selector", "cooking_selector", "weekday_selector", "month_calendar",
         "diary_history_row",
         "muscle_split_bar",
-        "circumference_row", "goal_metrics", "swipe", "rows", "food_entry", "metric_card", "time_range",
+        "goal_metrics", "swipe", "rows", "food_entry", "metric_card", "time_range",
         "top_bar",
         "screen", "editor", "messages", "offline_state", "action_sheet",
         "navigation", "bottom_sheet", "confirm_dialog", "date_picker", "logo", "skeleton", "wip", "theme",

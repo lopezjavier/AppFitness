@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
  *
  * The default [rootRoute] is [RootRoute.Main], so previews and shell tests need no session.
  */
+@Suppress("LongMethod") // One slot per destination, wired in one place.
 @Composable
 fun App(
     modifier: Modifier = Modifier,
@@ -55,6 +56,7 @@ fun App(
     diary: DiarySlot = DefaultDiarySlot,
     diaryHistory: DiaryHistorySlot = DefaultDiaryHistorySlot,
     weight: WeightSlot = DefaultWeightSlot,
+    weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     editEntry: EditEntrySlot = DefaultEditEntrySlot,
@@ -103,6 +105,7 @@ fun App(
                         diary = diary,
                         diaryHistory = diaryHistory,
                         weight = weight,
+                        weightHistory = weightHistory,
                         foodSearch = foodSearch,
                         addFood = addFood,
                         editEntry = editEntry,

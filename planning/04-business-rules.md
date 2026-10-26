@@ -35,6 +35,7 @@ Example: male, 26 years, 178 cm, 74.2 kg, moderate → BMR = 742 + 1112.5 − 13
 - Safety floor by sex (ADR-25): `target_kcal ≥ 1200` for women and `≥ 1500` for men; if the calculation gives less, it is set to the floor and a warning is shown.
 - Adjustment label: |adjustment| ≤ 300 → "ligero" (light); ≤ 600 → "moderado" (moderate); > 600 → "agresivo" (aggressive) (e.g. "−400 kcal · Déficit moderado").
 - The target is **only recalculated when the user saves in Profile** (the screen's single "Guardar" button, ADR-24), using the latest weight, and the new value is stored in `nutrition_goals`. Logging a new weight does not change the target automatically (that will be Phase 2's adaptive adjustment).
+- **Goal progress** (Peso "Objetivo" card): `progress = (start − current) / (start − target)` clamped to 0..1, where `start` is the onboarding weight. Null without the three values or when `start == target`. Examples: 90 → 85 with target 80 = 0.5; at or past the target = 1.0; weight above start = 0.0.
 
 ### 1.5 Macro split (auto-balance)
 - Integer percentages, each in [5, 90], always adding up to 100. Default: P 30 / C 45 / F 25.

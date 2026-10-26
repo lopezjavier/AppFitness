@@ -1,9 +1,13 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -14,10 +18,12 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.Density
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
@@ -183,11 +189,11 @@ class WeightScreenGoalTest {
         rule.waitForIdle()
 
         tap("weight_goal_set_button")
-        rule.onNodeWithTag("weight_target_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_target_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_target_field").performTextReplacement("70,0")
         rule.waitForIdle()
-        rule.onNodeWithTag("weight_target_save_button").assertIsEnabled()
-        tap("weight_target_save_button")
+        rule.onNodeWithTag("weight_target_sheet_commit").assertIsEnabled()
+        tap("weight_target_sheet_commit")
 
         assertEquals(listOf<Double?>(70.0), profile.targetWeightSaves)
         rule.onNodeWithTag("weight_target_sheet").assertDoesNotExist()
@@ -201,20 +207,23 @@ class WeightScreenGoalTest {
         rule.onNodeWithTag("weight_target_field").performTextReplacement("5,0")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("weight_target_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("weight_target_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("weight_target_error").assertIsDisplayed()
     }
 
     @Test
-    fun cancellingTheTargetSheet_savesNothing() {
+    fun closingTheTargetSheetWithX_savesNothing_andThereIsNoCancelButton() {
         show()
 
         tap("weight_goal_change_button")
         rule.onNodeWithTag("weight_target_field").performTextReplacement("65,0")
-        tap("weight_target_cancel_button")
+        rule.onNodeWithText("Cancelar").assertDoesNotExist()
+        tap("weight_target_sheet_close")
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodesWithTag("weight_target_sheet_title").fetchSemanticsNodes().isEmpty()
+        }
 
         assertTrue(profile.targetWeightSaves.isEmpty())
-        rule.onNodeWithTag("weight_target_sheet").assertDoesNotExist()
     }
 
     @Test
@@ -228,8 +237,11 @@ class WeightScreenGoalTest {
         rule.onNodeWithTag(
             "weight_metric_disclaimer",
         ).assertTextContains("no es un dispositivo médico", substring = true)
-        tap("weight_metric_close_button")
-        rule.onNodeWithTag("weight_metric_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("weight_metric_close_button").assertDoesNotExist()
+        tap("weight_metric_sheet_close")
+        rule.waitUntil(timeoutMillis = 5_000) {
+            rule.onAllNodesWithTag("weight_metric_sheet_title").fetchSemanticsNodes().isEmpty()
+        }
     }
 
     @Test
@@ -268,12 +280,44 @@ class WeightScreenGoalTest {
     }
 
     @Test
-    @Config(qualifiers = "w900dp-h1200dp-mdpi")
-    fun wideWindow_putsTheGoalCardInTheSummaryColumnLeftOfTheCalendar() {
+    fun goalCard_hasAProgressBarWithASpokenPercentage_andAPencil() {
         show()
 
-        val card = rule.onNodeWithTag("weight_goal_card").getUnclippedBoundsInRoot()
-        val calendar = rule.onNodeWithTag("weight_calendar").getUnclippedBoundsInRoot()
-        assertTrue(calendar.left >= card.right)
+        val progress = rule.onNodeWithTag("weight_goal_progress").fetchSemanticsNode().config
+            .getOrNull(SemanticsProperties.StateDescription)
+        assertEquals("Progreso hacia el objetivo, 47 %", progress)
+        rule.onNodeWithTag("weight_goal_change_button").assertIsDisplayed()
+    }
+
+    @Test
+    fun pesoActualAndObjetivo_areCardsOfEqualWidth() {
+        show()
+
+        val current = rule.onNodeWithTag("weight_current_card").getUnclippedBoundsInRoot()
+        val goal = rule.onNodeWithTag("weight_goal_card").getUnclippedBoundsInRoot()
+        assertEquals(current.right - current.left, goal.right - goal.left)
+    }
+
+    @Test
+    fun bmiAndBodyFat_shareARow_atTheDefaultFontScale() {
+        show()
+
+        val bmi = rule.onNodeWithTag("weight_bmi_tile").getUnclippedBoundsInRoot()
+        val fat = rule.onNodeWithTag("weight_body_fat_tile").getUnclippedBoundsInRoot()
+        assertEquals(bmi.top, fat.top)
+    }
+
+    @Test
+    fun bmiAndBodyFat_stackAtLargeFontScale() {
+        prepare()
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) { Host(SavedStateHandle()) }
+        }
+        rule.waitForIdle()
+
+        val bmi = rule.onNodeWithTag("weight_bmi_tile").getUnclippedBoundsInRoot()
+        val fat = rule.onNodeWithTag("weight_body_fat_tile").getUnclippedBoundsInRoot()
+        assertTrue(fat.top >= bmi.bottom)
     }
 }

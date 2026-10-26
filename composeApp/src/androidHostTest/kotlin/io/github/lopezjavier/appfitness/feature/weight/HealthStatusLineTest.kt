@@ -31,11 +31,11 @@ import kotlin.time.Instant
 
 private val SyncedAt = Instant.parse("2026-10-22T10:00:00Z")
 
-/** US-26 banner states: one test per scenario state, with its single button. */
+/** US-26 status line states: one test per scenario state, with its single button. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per state.
-class HealthConnectBannerTest {
+class HealthStatusLineTest {
     @get:Rule
     val rule = createComposeRule()
 
@@ -48,7 +48,7 @@ class HealthConnectBannerTest {
                 LocalDensity provides Density(density.density, fontScale),
             ) {
                 AppTheme {
-                    HealthConnectBanner(HealthSyncUiState(status, online), { events += it }, Modifier)
+                    HealthStatusLine(HealthSyncUiState(status, online), { events += it }, Modifier)
                 }
             }
         }

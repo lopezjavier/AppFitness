@@ -16,8 +16,11 @@ import androidx.compose.ui.semantics.Role
 /**
  * A card with one headline number: the technical [label] over the [value] (`headlineMetric`, same styles as
  * [MetricTile]), then optional [supporting] content (a trend, a hint), a [trailingAction] at the end of the
- * header (for example an edit icon button) and a [progress] bar under everything. With [onClick] the card is
- * one `Role.Button` target (the trailing action then must not be interactive). At least 48 dp high.
+ * header (for example an edit icon button) and a [progress] bar under everything. With [onClick] and no
+ * [trailingAction] the whole card is one `Role.Button` target. With both, only the label and value block is the
+ * button; [supporting] and [trailingAction] are sibling nodes outside it, so they may hold interactive content (an
+ * edit pencil, a "Sincronizar" button). [clickLabel] is the spoken action of [onClick] ("Ver detalle"). At least
+ * 48 dp high.
  */
 @Composable
 fun MetricCard(
@@ -28,21 +31,33 @@ fun MetricCard(
     trailingAction: (@Composable () -> Unit)? = null,
     progress: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    clickLabel: String? = null,
 ) {
-    val clickable = if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
-    AppCard(modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(clickable)) {
+    // With a trailing action only the label and value block is the button, so the action is a sibling node.
+    val cardClick = onClick.takeIf { trailingAction == null }?.let {
+        Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = it)
+    } ?: Modifier
+    val headClick = onClick.takeIf { trailingAction != null }?.let {
+        Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = it)
+    } ?: Modifier
+    AppCard(modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(cardClick)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(
-                    text = label,
-                    style = MetricTileDefaults.labelStyle(AppTheme.typography),
-                    color = AppTheme.colors.textSecondary,
-                )
-                Text(
-                    text = value,
-                    style = MetricTileDefaults.valueStyle(AppTheme.typography),
-                    color = AppTheme.colors.textPrimary,
-                )
+                Column(
+                    Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(headClick),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    Text(
+                        text = label,
+                        style = MetricTileDefaults.labelStyle(AppTheme.typography),
+                        color = AppTheme.colors.textSecondary,
+                    )
+                    Text(
+                        text = value,
+                        style = MetricTileDefaults.valueStyle(AppTheme.typography),
+                        color = AppTheme.colors.textPrimary,
+                    )
+                }
                 supporting?.invoke()
             }
             trailingAction?.invoke()

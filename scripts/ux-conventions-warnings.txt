@@ -5,10 +5,6 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/weight/CircumferenceSheet\.kt   # owner T-123
-G2 feature/weight/CompositionSheet\.kt   # owner T-123
-G2 feature/weight/GoalSheets\.kt   # owner T-123
-G2 feature/weight/WeightDaySheet\.kt   # owner T-123
 G2 feature/exercises/ExerciseFormSheet\.kt   # owner T-124
 G2 feature/routines/FolderSheet\.kt   # owner T-124
 G2 feature/routines/RoutineSheetActions\.kt   # owner T-124
@@ -25,7 +21,6 @@ G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
 G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
-G3 feature/weight/WeightScreen\.kt   # owner T-123
 G3 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
 G3 feature/exercises/ExercisePickerScreen\.kt   # owner T-124
 G3 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
@@ -40,7 +35,6 @@ G3 feature/profile/ProfileRootScreen\.kt   # owner T-127
 G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128
 
 # G4: duplicate in-screen OfflineBanner( (the shell draws the single banner, R-30).
-G4 feature/weight/WeightScreen\.kt   # owner T-123
 G4 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
 G4 feature/meals/MealSlotsScreen\.kt   # owner T-126
 G4 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
@@ -55,8 +49,6 @@ G5 feature/meals/MealSlotsScreen\.kt   # owner T-126
 G5 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 
 # G6: ic_help outside HelpButton.
-G6 feature/weight/CircumferenceSheet\.kt   # owner T-123
-G6 feature/weight/WeightChart\.kt   # owner T-123
 
 # G9: generic action texts outside action_* keys; T-128 adopts the shared keys.
 G9 composeResources/values/strings\.xml   # owner T-128

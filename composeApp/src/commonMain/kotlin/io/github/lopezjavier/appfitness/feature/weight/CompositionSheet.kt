@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
-
 package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.foundation.layout.Arrangement
@@ -7,12 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
@@ -36,10 +27,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_value_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_value_kg
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Dated
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
@@ -58,24 +48,13 @@ internal fun CompositionSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AppBottomSheet(onDismissRequest = onDismiss, modifier = modifier, testTagPrefix = "weight_composition_sheet") {
-        Column(
-            Modifier
-                .widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth)
-                .fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                text = stringResource(Res.string.weight_composition_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.semantics { heading() }.testTag("weight_composition_title"),
-            )
+    AppInfoSheet(
+        title = stringResource(Res.string.weight_composition_title),
+        onDismiss = onDismiss,
+        modifier = modifier,
+        testTagPrefix = "weight_composition_sheet",
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             val value = composition ?: LatestComposition()
             CompositionRow(
                 "weight_composition_fat",

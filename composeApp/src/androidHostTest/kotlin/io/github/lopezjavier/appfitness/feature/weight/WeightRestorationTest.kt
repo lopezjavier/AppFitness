@@ -65,8 +65,34 @@ class WeightRestorationTest {
     private fun Host(model: WeightViewModel) {
         val state by model.uiState.collectAsState()
         AppTheme {
+            WeightHistoryScreen(state, model::onEvent, {}, timeZone = TimeZone.UTC)
+        }
+    }
+
+    @Composable
+    private fun PesoHost(model: WeightViewModel) {
+        val state by model.uiState.collectAsState()
+        AppTheme {
             WeightScreen(state, model::onEvent, CircumferencesUiState.Loading, {}, timeZone = TimeZone.UTC)
         }
+    }
+
+    @Test
+    fun todaysSheetOnPeso_surviveRecreationWithItsDraft() {
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { PesoHost(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_edit_today_button").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("weight_sheet_weight_input").performTextReplacement("74,6")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Registrar peso")
+        assertEquals("74,6", editableText("weight_sheet_weight_input"))
     }
 
     @Test
@@ -87,7 +113,7 @@ class WeightRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("month_calendar_title").assertTextEquals("septiembre 2026")
-        rule.onNodeWithTag("weight_sheet_title").assertTextEquals("Peso del 15 sep")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 15 sep")
         assertEquals("74,6", editableText("weight_sheet_weight_input"))
         assertEquals("16,2", editableText("weight_sheet_fat_input"))
     }
