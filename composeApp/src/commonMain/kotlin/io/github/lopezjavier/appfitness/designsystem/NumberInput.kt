@@ -68,6 +68,9 @@ object NumberInputDefaults {
     /** Narrow table cells. */
     val HorizontalPadding: Dp = Spacing.xs
     val LabelSpacing: Dp = Spacing.xs
+
+    /** End space kept free for the unit text so a long value never overlaps it. */
+    val UnitReserve: Dp = 28.dp
     const val DECIMAL_SEPARATOR = ','
     const val DEFAULT_MAX_INTEGER_DIGITS = 4
     private const val ALTERNATE_SEPARATOR = '.'
@@ -147,23 +150,16 @@ object NumberInputDefaults {
      * "Entre 30 y 300 kg" when [value] is outside [min]..[max]; null when it is in range or absent (an empty
      * field is not a range error). [template] is the `number_range_error` string with `%1$s %2$s %3$s`.
      */
-    fun rangeError(
-        value: Double?,
-        min: Double,
-        max: Double,
-        unit: String,
-        template: String = DEFAULT_RANGE_TEMPLATE,
-    ): String? = if (value == null || value in min..max) {
-        null
-    } else {
-        template
-            .replace("%1\$s", AppNumberFormat.decimal(min))
-            .replace("%2\$s", AppNumberFormat.decimal(max))
-            .replace("%3\$s", unit)
-            .trim()
-    }
-
-    private const val DEFAULT_RANGE_TEMPLATE = "Entre %1\$s y %2\$s %3\$s"
+    fun rangeError(value: Double?, min: Double, max: Double, unit: String, template: String): String? =
+        if (value == null || value in min..max) {
+            null
+        } else {
+            template
+                .replace("%1\$s", AppNumberFormat.decimal(min))
+                .replace("%2\$s", AppNumberFormat.decimal(max))
+                .replace("%3\$s", unit)
+                .trim()
+        }
 
     fun textStyle(typography: AppTypography): TextStyle = typography.labelNumeric.copy(textAlign = TextAlign.Center)
 
@@ -258,7 +254,11 @@ fun NumberInput(
                             colors.border,
                             NumberInputDefaults.Shape,
                         )
-                        .padding(horizontal = NumberInputDefaults.HorizontalPadding),
+                        .padding(
+                            start = NumberInputDefaults.HorizontalPadding,
+                            end = NumberInputDefaults.HorizontalPadding +
+                                if (unit != null) NumberInputDefaults.UnitReserve else 0.dp,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (value.isEmpty() && placeholder != null) NumberInputPlaceholder(placeholder, textStyle, colors)

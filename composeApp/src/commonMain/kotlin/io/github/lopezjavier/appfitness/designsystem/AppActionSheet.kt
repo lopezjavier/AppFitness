@@ -56,7 +56,7 @@ fun AppActionSheet(
         sheetState = sheetState,
         testTagPrefix = testTagPrefix,
     ) {
-        AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) {} }, testTagPrefix, help = null)
+        AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help = null)
         actions.forEachIndexed { index, action ->
             ActionRow(
                 icon = action.icon,

@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -100,6 +101,24 @@ class AppTextFieldV2Test {
         }
         rule.onNodeWithTag("field").performImeAction()
         assertEquals(1, done)
+    }
+
+    @Test
+    fun nextWithoutOnImeAction_movesFocusToTheNextField() {
+        rule.setContent {
+            AppTheme {
+                Column {
+                    AppTextField("", {
+                    }, "Primero", testTagPrefix = "first", imeAction = ImeAction.Next, autofocus = true)
+                    AppTextField("", {}, "Segundo", testTagPrefix = "second")
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("first").assertIsFocused()
+        rule.onNodeWithTag("first").performImeAction()
+        rule.waitForIdle()
+        rule.onNodeWithTag("second").assertIsFocused()
     }
 
     @Test

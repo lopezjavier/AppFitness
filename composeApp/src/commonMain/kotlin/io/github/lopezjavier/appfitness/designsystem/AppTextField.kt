@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -128,14 +129,25 @@ fun AppTextField(
             keyboard?.show()
         }
     }
-    val imeHandler: () -> Unit = {
-        if (onImeAction != null) {
-            onImeAction()
-        } else if (imeAction == ImeAction.Done) {
-            keyboard?.hide()
-            focusManager.clearFocus()
-            onDone()
-        }
+    // An explicit [onImeAction] owns the action; otherwise Done finishes the edit, Next keeps the default focus
+    // traversal and the remaining actions keep the platform default.
+    val keyboardActions = if (onImeAction != null) {
+        KeyboardActions(
+            onDone = { onImeAction() },
+            onNext = { onImeAction() },
+            onSearch = { onImeAction() },
+            onGo = { onImeAction() },
+            onSend = { onImeAction() },
+        )
+    } else {
+        KeyboardActions(
+            onDone = {
+                keyboard?.hide()
+                focusManager.clearFocus()
+                onDone()
+            },
+            onNext = { focusManager.moveFocus(FocusDirection.Next) },
+        )
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(AppTextFieldDefaults.LabelSpacing)) {
         Text(
@@ -172,13 +184,7 @@ fun AppTextField(
                 keyboardType = keyboardType,
                 imeAction = imeAction,
             ),
-            keyboardActions = KeyboardActions(
-                onDone = { imeHandler() },
-                onNext = { imeHandler() },
-                onSearch = { imeHandler() },
-                onGo = { imeHandler() },
-                onSend = { imeHandler() },
-            ),
+            keyboardActions = keyboardActions,
             singleLine = true,
             interactionSource = interactionSource,
             cursorBrush = SolidColor(colors.athleticCyan),

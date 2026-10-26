@@ -222,31 +222,35 @@ class NumberInputTest {
 
     @Test
     fun rangeError_inRange_isNull() {
-        assertNull(NumberInputDefaults.rangeError(87.5, 30.0, 300.0, "kg"))
-        assertNull(NumberInputDefaults.rangeError(30.0, 30.0, 300.0, "kg"))
-        assertNull(NumberInputDefaults.rangeError(300.0, 30.0, 300.0, "kg"))
+        assertNull(NumberInputDefaults.rangeError(87.5, 30.0, 300.0, "kg", TEMPLATE))
+        assertNull(NumberInputDefaults.rangeError(30.0, 30.0, 300.0, "kg", TEMPLATE))
+        assertNull(NumberInputDefaults.rangeError(300.0, 30.0, 300.0, "kg", TEMPLATE))
     }
 
     @Test
-    fun rangeError_noValue_isNull() = assertNull(NumberInputDefaults.rangeError(null, 30.0, 300.0, "kg"))
+    fun rangeError_noValue_isNull() = assertNull(NumberInputDefaults.rangeError(null, 30.0, 300.0, "kg", TEMPLATE))
 
     @Test
     fun rangeError_belowAndAbove_namesTheRange() {
-        assertEquals("Entre 30 y 300 kg", NumberInputDefaults.rangeError(10.0, 30.0, 300.0, "kg"))
-        assertEquals("Entre 30 y 300 kg", NumberInputDefaults.rangeError(301.0, 30.0, 300.0, "kg"))
+        assertEquals("Entre 30 y 300 kg", NumberInputDefaults.rangeError(10.0, 30.0, 300.0, "kg", TEMPLATE))
+        assertEquals("Entre 30 y 300 kg", NumberInputDefaults.rangeError(301.0, 30.0, 300.0, "kg", TEMPLATE))
     }
 
     @Test
     fun rangeError_usesDecimalComma() =
-        assertEquals("Entre 0,5 y 2,5 kg", NumberInputDefaults.rangeError(3.0, 0.5, 2.5, "kg"))
+        assertEquals("Entre 0,5 y 2,5 kg", NumberInputDefaults.rangeError(3.0, 0.5, 2.5, "kg", TEMPLATE))
 
     @Test
     fun rangeError_minEqualsMax_otherValueFails() {
-        assertNull(NumberInputDefaults.rangeError(5.0, 5.0, 5.0, "reps"))
-        assertEquals("Entre 5 y 5 reps", NumberInputDefaults.rangeError(6.0, 5.0, 5.0, "reps"))
+        assertNull(NumberInputDefaults.rangeError(5.0, 5.0, 5.0, "reps", TEMPLATE))
+        assertEquals("Entre 5 y 5 reps", NumberInputDefaults.rangeError(6.0, 5.0, 5.0, "reps", TEMPLATE))
     }
 
     @Test
     fun rangeError_withoutUnit_hasNoTrailingSpace() =
-        assertEquals("Entre 1 y 10", NumberInputDefaults.rangeError(11.0, 1.0, 10.0, ""))
+        assertEquals("Entre 1 y 10", NumberInputDefaults.rangeError(11.0, 1.0, 10.0, "", TEMPLATE))
+
+    private companion object {
+        const val TEMPLATE = "Entre %1\$s y %2\$s %3\$s"
+    }
 }

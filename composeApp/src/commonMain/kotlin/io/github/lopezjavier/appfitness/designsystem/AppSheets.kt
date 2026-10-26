@@ -89,7 +89,7 @@ fun AppEditSheet(
     ) {
         AppSheetLayout(
             header = {
-                AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) {} }, testTagPrefix, help)
+                AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help)
             },
             footer = {
                 PrimaryButton(
@@ -161,12 +161,17 @@ private fun ReadOnlySheet(
         testTagPrefix = testTagPrefix,
     ) {
         AppSheetLayout(
-            header = { AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) {} }, testTagPrefix, help) },
+            header = { AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help) },
             footer = null,
             body = content,
         )
     }
 }
+
+/** [closeThen] with nothing to run in between (the X button). */
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun closeThen(scope: CoroutineScope, sheetState: SheetState, onDismiss: () -> Unit) =
+    closeThen(scope, sheetState, onDismiss) {}
 
 /** Hides the sheet first so it animates out, runs [action], then calls [onDismiss]. */
 @OptIn(ExperimentalMaterial3Api::class)
