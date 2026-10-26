@@ -15,6 +15,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_date_picker
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_dialog_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_edit_apply_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_edit_sheet_open
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_entry_detail
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_entry_name
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_sheet_brand
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_food_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_info_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_name_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_picker_sheet_open
@@ -46,6 +50,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppLogo
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.FoodSheet
+import io.github.lopezjavier.appfitness.designsystem.FoodSheetContext
+import io.github.lopezjavier.appfitness.designsystem.FoodSheetTotals
 import io.github.lopezjavier.appfitness.designsystem.NameSheet
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
@@ -65,6 +72,7 @@ private const val SHEET_EDIT_APPLY = "edit_apply"
 private const val SHEET_PICKER = "picker"
 private const val SHEET_INFO = "info"
 private const val SHEET_NAME = "name"
+private const val SHEET_FOOD = "food"
 private val CatalogTakenNames = listOf("Torso", "Pierna")
 
 @Composable
@@ -77,6 +85,7 @@ private fun BottomSheetSection() {
             Triple(SHEET_PICKER, Res.string.catalog_picker_sheet_open, "catalog_picker_sheet_open"),
             Triple(SHEET_INFO, Res.string.catalog_info_sheet_open, "catalog_info_sheet_open"),
             Triple(SHEET_NAME, Res.string.catalog_name_sheet_open, "catalog_name_sheet_open"),
+            Triple(SHEET_FOOD, Res.string.catalog_food_sheet_open, "catalog_food_sheet_open"),
         ).forEach { (key, label, tag) ->
             SecondaryButton(
                 text = stringResource(label),
@@ -117,6 +126,8 @@ private fun BottomSheetSection() {
             )
         }
 
+        SHEET_FOOD -> CatalogFoodSheet(close)
+
         SHEET_NAME -> NameSheet(
             title = stringResource(Res.string.catalog_sheet_name_title),
             label = stringResource(Res.string.profile_name_label),
@@ -127,6 +138,36 @@ private fun BottomSheetSection() {
             testTagPrefix = "catalog_name_sheet",
         )
     }
+}
+
+@Composable
+private fun CatalogFoodSheet(close: () -> Unit) {
+    FoodSheet(
+        name = stringResource(Res.string.catalog_food_entry_name),
+        brand = stringResource(Res.string.catalog_food_sheet_brand),
+        quantity = {
+            Text(stringResource(Res.string.catalog_food_entry_detail), style = AppTheme.typography.bodyLarge)
+        },
+        totals = FoodSheetTotals("165", "6", "28", "3,5"),
+        details = {
+            Text(
+                text = stringResource(Res.string.wip_message),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+            )
+        },
+        extra = null,
+        context = FoodSheetContext.Edit(
+            canSave = true,
+            saving = false,
+            onSave = close,
+            onDelete = close,
+            canDelete = true,
+            offlineHint = null,
+        ),
+        onDismiss = close,
+        testTagPrefix = "catalog_food_sheet",
+    )
 }
 
 @Composable

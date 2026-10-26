@@ -9,14 +9,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_next_day
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_prev_day
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_back
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_left
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -25,8 +29,9 @@ import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Previous/next day arrows around the centred day label (next is disabled and dimmed on today) and, at the end, the
- * day-picker button.
+ * The header of the Diario screen (the `AppScreen.header` slot): previous/next day arrows around the centred day
+ * label (next is disabled and dimmed on today) and, at the end, the calendar button. With [onBack] (a past-day route)
+ * a back arrow `diary_back` replaces the 48 dp spacer that keeps the label centred.
  */
 @Composable
 internal fun DiaryDateHeader(
@@ -35,10 +40,19 @@ internal fun DiaryDateHeader(
     onEvent: (DiaryEvent) -> Unit,
     onOpenDayPicker: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // Keeps the day label centred between the arrows while the day-picker button sits at the end.
-        Spacer(Modifier.size(Spacing.minTouchTarget))
+        if (onBack != null) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.topbar_back_cd),
+                icon = Res.drawable.ic_arrow_back,
+                testTag = "diary_back",
+                onClick = onBack,
+            )
+        } else {
+            Spacer(Modifier.size(Spacing.minTouchTarget))
+        }
         AppIconButton(
             contentDescription = stringResource(Res.string.diary_prev_day),
             icon = Res.drawable.ic_chevron_left,
@@ -50,7 +64,7 @@ internal fun DiaryDateHeader(
             style = AppTheme.typography.titleMedium,
             color = AppTheme.colors.textPrimary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f).testTag("diary_date_label"),
+            modifier = Modifier.weight(1f).semantics { heading() }.testTag("diary_date_label"),
         )
         AppIconButton(
             contentDescription = stringResource(Res.string.diary_next_day),

@@ -96,7 +96,9 @@ class FoodLoggingFlowTest {
         val date = (diaryState as? DiaryUiState.Content)?.content?.date
         AppTheme {
             if (!searching) {
-                DiaryScreen(diaryState, { if (it == DiaryEvent.AddFood) searching = true else diaryModel.onEvent(it) })
+                DiaryScreen(diaryState, {
+                    if (it is DiaryEvent.AddToMeal) searching = true else diaryModel.onEvent(it)
+                })
             } else {
                 FoodSearchScreen(searchState, searchModel::onEvent)
                 val id = openFoodId
@@ -141,7 +143,7 @@ class FoodLoggingFlowTest {
     }
 
     private fun openSearchAndPick(foodId: String) {
-        tap("diary_add_food")
+        tap("diary_section_breakfast_add")
         tap("food_search_result_$foodId")
     }
 
@@ -223,7 +225,7 @@ class FoodLoggingFlowTest {
         start(Rice)
         taps = 0
 
-        tap("diary_add_food")
+        tap("diary_section_breakfast_add")
         tap("food_search_result_rice")
         tap("add_food_submit")
 
@@ -235,7 +237,7 @@ class FoodLoggingFlowTest {
     fun debouncedSearch_typingFindsFoodsWithOneRequest() {
         foods.searchResults["pollo"] = Result.success(listOf(Chicken))
         start()
-        tap("diary_add_food")
+        tap("diary_section_breakfast_add")
 
         rule.onNodeWithTag("food_search_input").performTextInput("pollo")
         rule.waitUntil(SEARCH_TIMEOUT_MS) {
@@ -248,7 +250,7 @@ class FoodLoggingFlowTest {
     @Test
     fun markingAFavourite_fillsTheStar_andAsksTheServer() {
         start(Chicken)
-        tap("diary_add_food")
+        tap("diary_section_breakfast_add")
 
         tap("food_search_favourite_chicken")
 

@@ -40,9 +40,9 @@ import kotlin.math.floor
 
 /** Display strings of a macro bar; unit symbols are not translatable copy. */
 @Immutable
-data class MacroBarText(val consumed: String, val target: String, val percent: String) {
-    /** "142 g / 180 g · 79 %". */
-    val full: String get() = "$consumed / $target · $percent"
+data class MacroBarText(val consumed: String, val target: String) {
+    /** "142 g / 180 g". */
+    val full: String get() = "$consumed / $target"
 }
 
 /** Geometry and pure logic of [MacroProgressBar] (04 §2). */
@@ -50,54 +50,31 @@ object MacroProgressBarDefaults {
     val BarHeight: Dp = 8.dp
     val DotSize: Dp = Spacing.sm
     val Shape = AppShapes.full
-    private const val PERCENT = 100L
-    private const val TENTHS = 10L
     private const val HALF = 0.5
-
-    /** `round(consumed / target x 100)`, half up, in integer math. A negative consumed counts as 0. */
-    fun percent(consumedGrams: Int, targetGrams: Int): Int {
-        require(targetGrams > 0) { "target must be positive but was $targetGrams" }
-        val consumed = consumedGrams.coerceAtLeast(0).toLong()
-        val target = targetGrams.toLong()
-        return ((consumed * PERCENT * 2 + target) / (target * 2)).toInt()
-    }
-
-    /**
-     * Half-up percent of a gram value with decimals (the data keeps 0.1 g). It is rounded to tenths first, so the
-     * integer math stays exact: 100.9 / 200 -> 50.
-     */
-    fun percent(consumedGrams: Double, targetGrams: Int): Int {
-        require(targetGrams > 0) { "target must be positive but was $targetGrams" }
-        val tenths = floor(consumedGrams.coerceAtLeast(0.0) * TENTHS + HALF).toLong()
-        val target = targetGrams.toLong()
-        return ((tenths * PERCENT * 2 + TENTHS * target) / (TENTHS * target * 2)).toInt()
-    }
 
     fun fillFraction(consumedGrams: Double, targetGrams: Int): Float {
         require(targetGrams > 0) { "target must be positive but was $targetGrams" }
         return (consumedGrams / targetGrams).toFloat().coerceIn(0f, 1f)
     }
 
-    /** Whole grams (half up) for the consumed value; the percentage comes from the tenths. */
+    /** Whole grams (half up) for the consumed value. */
     fun text(consumedGrams: Double, targetGrams: Int): MacroBarText = MacroBarText(
         consumed = "${AppNumberFormat.integer(wholeGrams(consumedGrams))} g",
         target = "${AppNumberFormat.integer(targetGrams)} g",
-        percent = "${AppNumberFormat.integer(percent(consumedGrams, targetGrams))} %",
     )
 
     internal fun wholeGrams(consumedGrams: Double): Int = floor(consumedGrams.coerceAtLeast(0.0) + HALF).toInt()
 
-    /** Fill fraction capped to 0f..1f; the text still shows the real percentage. */
+    /** Fill fraction capped to 0f..1f. */
     fun fillFraction(consumedGrams: Int, targetGrams: Int): Float {
         require(targetGrams > 0) { "target must be positive but was $targetGrams" }
         return (consumedGrams.toFloat() / targetGrams).coerceIn(0f, 1f)
     }
 
-    /** A negative consumed value is shown as 0 (like the percent and the fill). */
+    /** A negative consumed value is shown as 0 (like the fill). */
     fun text(consumedGrams: Int, targetGrams: Int): MacroBarText = MacroBarText(
         consumed = "${AppNumberFormat.integer(consumedGrams.coerceAtLeast(0))} g",
         target = "${AppNumberFormat.integer(targetGrams)} g",
-        percent = "${AppNumberFormat.integer(percent(consumedGrams, targetGrams))} %",
     )
 
     fun trackColor(appColors: AppColors): Color = appColors.surfaceOverlay
@@ -108,7 +85,7 @@ object MacroProgressBarDefaults {
 }
 
 /**
- * Horizontal macro progress: dot and uppercase [label] on the left, "consumed / target . percent" on
+ * Horizontal macro progress: dot and uppercase [label] on the left, "consumed / target" on
  * the right, then an 8 dp bar in the macro colour. The bar is capped at 100%, the text is not. It is
  * one accessibility node carrying the caller's [modifier].
  */
@@ -139,7 +116,6 @@ fun MacroProgressBar(
             Res.string.macro_bar_state,
             AppNumberFormat.integer(MacroProgressBarDefaults.wholeGrams(consumedGrams)),
             AppNumberFormat.integer(targetGrams),
-            AppNumberFormat.integer(MacroProgressBarDefaults.percent(consumedGrams, targetGrams)),
         )
     Column(
         modifier =
@@ -163,8 +139,7 @@ fun MacroProgressBar(
                 text =
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = colors.textPrimary)) { append(text.consumed) }
-                    withStyle(SpanStyle(color = colors.textSecondary)) { append(" / ${text.target} ") }
-                    withStyle(SpanStyle(color = macroColor, fontWeight = FontWeight.W700)) { append(text.percent) }
+                    withStyle(SpanStyle(color = colors.textSecondary)) { append(" / ${text.target}") }
                 },
                 style = MacroProgressBarDefaults.valueStyle(AppTheme.typography),
                 modifier = Modifier.padding(start = Spacing.sm),

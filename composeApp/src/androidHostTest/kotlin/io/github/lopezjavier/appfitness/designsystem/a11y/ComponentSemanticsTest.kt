@@ -77,7 +77,27 @@ class ComponentSemanticsTest {
     fun progressRing_stateDescription_normal() {
         rule.setContent { AppTheme { ProgressRing(1840, 2400) } }
         rule.onNodeWithContentDescription("Calorías")
-            .assert(stateDescription("1.840 de 2.400 kcal, 560 kcal restantes"))
+            .assert(stateDescription("1.840 de 2.400 kcal"))
+    }
+
+    @Test
+    fun progressRing_withinTarget_showsOfTargetAndNoRemainingPill() {
+        rule.setContent { AppTheme { ProgressRing(1840, 2400) } }
+        rule.onNodeWithText("de 2.400 kcal", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("restantes", substring = true, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun progressRing_overTarget_showsExcessText() {
+        rule.setContent { AppTheme { ProgressRing(2550, 2400) } }
+        rule.onNodeWithText("+150 kcal en exceso", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun macroBar_text_hasGramsOnlyNoPercent() {
+        rule.setContent { AppTheme { MacroProgressBar("Proteínas", Macro.Protein, 9, 233) } }
+        rule.onNodeWithText("9 g / 233 g", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("%", substring = true, useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -119,14 +139,14 @@ class ComponentSemanticsTest {
     fun macroBar_stateDescription() {
         rule.setContent { AppTheme { MacroProgressBar("Proteínas", Macro.Protein, 142, 180) } }
         rule.onNodeWithContentDescription("Proteínas")
-            .assert(stateDescription("142 de 180 gramos, 79 por ciento"))
+            .assert(stateDescription("142 de 180 gramos"))
     }
 
     @Test
     fun macroBar_negativeConsumed_spokenAsZero() {
         rule.setContent { AppTheme { MacroProgressBar("Proteínas", Macro.Protein, -5, 180) } }
         rule.onNodeWithContentDescription("Proteínas")
-            .assert(stateDescription("0 de 180 gramos, 0 por ciento"))
+            .assert(stateDescription("0 de 180 gramos"))
     }
 
     @Test

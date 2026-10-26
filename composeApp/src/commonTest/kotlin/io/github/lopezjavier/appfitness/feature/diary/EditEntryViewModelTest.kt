@@ -280,6 +280,31 @@ class EditEntryViewModelTest {
     }
 
     @Test
+    fun canDelete_isTrueOnlineAndFalseOffline() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        assertTrue(model.content().canDelete)
+
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        assertFalse(model.content().canDelete)
+    }
+
+    @Test
+    fun deleting_offline_emitsNothing() = runTest(dispatcher) {
+        connectivity.state.value = false
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(EditEntryEvent.Delete)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
     fun anEntryThatNoLongerExists_isAnErrorAndRetryReloads() = runTest(dispatcher) {
         val model = viewModel(entryId = "gone")
         advanceUntilIdle()

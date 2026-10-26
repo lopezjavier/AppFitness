@@ -8,20 +8,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_view_day
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_view_month
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_view_week
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -38,54 +38,66 @@ private val SkeletonCalendarHeight = Spacing.xl * 11
 private val SkeletonRowHeight = Spacing.xl * 6
 
 /**
- * Stateless diary history (US-24): the Día / Semana / Mes selector, the month calendar and the summary of the chosen
- * panel. Wide windows put the calendar and the summary side by side.
+ * Stateless diary history (US-24, glossary "Calorías"): the Día / Semana / Mes selector, the month calendar and the
+ * summary of the chosen panel on an `AppScreen` with a back arrow. Wide windows put the calendar and the summary side
+ * by side.
  */
 @Composable
 fun DiaryHistoryScreen(
     state: DiaryHistoryUiState,
     onEvent: (DiaryHistoryEvent) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().testTag("diary_history_screen")) {
-        when (state) {
-            DiaryHistoryUiState.Loading -> HistoryLoading()
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
+        AppScreen(
+            title = stringResource(Res.string.diary_history_title),
+            onBack = onBack,
+            maxContentWidth = if (wide) {
+                WindowWidthClassDefaults.TwoColumnContentMaxWidth
+            } else {
+                WindowWidthClassDefaults.CardColumnMaxWidth
+            },
+            testTagPrefix = "diary_history",
+        ) {
+            Column(Modifier.fillMaxSize().testTag("diary_history_screen")) {
+                when (state) {
+                    DiaryHistoryUiState.Loading -> HistoryLoading()
 
-            DiaryHistoryUiState.Error -> ErrorState(
-                message = stringResource(Res.string.diary_history_error_message),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(DiaryHistoryEvent.Retry) },
-                testTagPrefix = "diary_history_error",
-            )
+                    DiaryHistoryUiState.Error -> ErrorState(
+                        message = stringResource(Res.string.diary_history_error_message),
+                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                            onEvent(DiaryHistoryEvent.Retry)
+                        },
+                        testTagPrefix = "diary_history_error",
+                    )
 
-            is DiaryHistoryUiState.Content -> HistoryContent(state.content, onEvent)
+                    is DiaryHistoryUiState.Content -> HistoryContent(state.content, wide, onEvent)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun HistoryContent(content: DiaryHistoryContent, onEvent: (DiaryHistoryEvent) -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
-        val maxContentWidth =
-            if (wide) WindowWidthClassDefaults.TwoColumnContentMaxWidth else WindowWidthClassDefaults.CardColumnMaxWidth
-        Column(
-            Modifier
-                .widthIn(max = maxContentWidth)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(Spacing.screenMargin),
-            verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-        ) {
-            ViewSelector(content.view, onEvent)
-            if (wide) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-                    Calendar(content, onEvent, Modifier.weight(1f))
-                    DiaryHistorySummary(content, onEvent, Modifier.weight(1f))
-                }
-            } else {
-                Calendar(content, onEvent)
-                DiaryHistorySummary(content, onEvent)
+private fun HistoryContent(content: DiaryHistoryContent, wide: Boolean, onEvent: (DiaryHistoryEvent) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.screenMargin),
+        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
+    ) {
+        ViewSelector(content.view, onEvent)
+        if (wide) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
+                Calendar(content, onEvent, Modifier.weight(1f))
+                DiaryHistorySummary(content, onEvent, Modifier.weight(1f))
             }
+        } else {
+            Calendar(content, onEvent)
+            DiaryHistorySummary(content, onEvent)
         }
     }
 }

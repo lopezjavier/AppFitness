@@ -5,8 +5,6 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/diary/DiaryDayPickerSheet\.kt   # owner T-121
-G2 feature/diary/EditEntrySheet\.kt   # owner T-121
 G2 feature/food/AddFoodSheet\.kt   # owner T-122
 G2 feature/food/photo/PhotoSheets\.kt   # owner T-122
 G2 feature/templates/SaveTemplateSheet\.kt   # owner T-122
@@ -31,7 +29,6 @@ G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
 G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
-G3 feature/diary/DiaryScreen\.kt   # owner T-121
 G3 feature/food/FoodSearchScreen\.kt   # owner T-122
 G3 feature/weight/WeightScreen\.kt   # owner T-123
 G3 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124

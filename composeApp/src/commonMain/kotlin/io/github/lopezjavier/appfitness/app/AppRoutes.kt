@@ -4,7 +4,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
@@ -261,6 +260,12 @@ sealed interface ShellChrome {
     /** Top bar with the section title plus the bottom bar. */
     data class Tabs(val tab: TopLevelTab) : ShellChrome
 
+    /**
+     * A tab root that draws its own header through `AppScreen` ([usesAppScreen]) but keeps the bottom bar and the
+     * rail. The shell reserves only the status bar (like [Screen]).
+     */
+    data class TabScreen(val tab: TopLevelTab) : ShellChrome
+
     /** Top bar with a back arrow, no bottom bar. Its tags are `<topBarTag>`, `_title` and `_back`. */
     data class FullScreen(val title: StringResource, val topBarTag: String = AppTopBarDefaults.TestTag) : ShellChrome
 
@@ -279,11 +284,19 @@ sealed interface ShellChrome {
  * title bar until its domain task migrates it; T-128 removes this switch.
  */
 val AppRoute.usesAppScreen: Boolean
-    get() = this is CatalogRoute
+    get() = this is CatalogRoute || this is DiaryHome || this is DiaryHistoryRoute || this is DiaryDayRoute
 
-/** Shell chrome of this route: [ShellChrome.Screen] when it [usesAppScreen], else the legacy chrome. */
+/**
+ * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
+ * any other route that does, else the legacy chrome.
+ */
 val AppRoute.chrome: ShellChrome
-    get() = if (usesAppScreen) ShellChrome.Screen else legacyChrome
+    get() =
+        when {
+            !usesAppScreen -> legacyChrome
+            this is TabRoute -> ShellChrome.TabScreen(tab)
+            else -> ShellChrome.Screen
+        }
 
 /** Shell chrome of a route that still relies on the shell title bar. Exhaustive on purpose. */
 private val AppRoute.legacyChrome: ShellChrome
@@ -344,10 +357,8 @@ private val AppRoute.legacyChrome: ShellChrome
             MealDefaultsRoute ->
                 ShellChrome.FullScreen(Res.string.meal_defaults_title, topBarTag = "meal_defaults")
 
-            DiaryHistoryRoute ->
-                ShellChrome.FullScreen(Res.string.diary_history_title, topBarTag = "diary_history")
-
-            is DiaryDayRoute -> ShellChrome.FullScreen(Res.string.nav_diary, topBarTag = "diary_day")
+            // Draw their own bar through AppScreen (T-121): never reached through [chrome].
+            DiaryHistoryRoute, is DiaryDayRoute -> ShellChrome.Screen
 
             WeightRoute -> ShellChrome.FullScreen(Res.string.weight_title, topBarTag = "weight")
 

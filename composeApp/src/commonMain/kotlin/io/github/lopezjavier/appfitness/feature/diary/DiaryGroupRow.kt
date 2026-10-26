@@ -37,7 +37,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * A comida group of a meal (ADR-68): a header (name, kcal, macros, chevron; one merged button) and, while expanded,
- * its ingredients as the usual swipe-to-delete entry rows. Collapsed ingredients are not composed.
+ * its ingredients as [LoggedEntryRow]s (tap to edit, swipe to delete). Collapsed ingredients are not composed.
  */
 @Composable
 internal fun DiaryGroupCard(group: MealRow.Group, actions: EntryActions, modifier: Modifier = Modifier) {
@@ -60,14 +60,7 @@ internal fun DiaryGroupCard(group: MealRow.Group, actions: EntryActions, modifie
         if (expanded) {
             Column(Modifier.padding(start = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 group.entries.forEach {
-                    key(it.id) {
-                        DiaryEntryRow(
-                            entry = it,
-                            canDelete = actions.canDelete,
-                            onEdit = { actions.onEdit(it.id) },
-                            onDelete = { actions.onDelete(it.id) },
-                        )
-                    }
+                    key(it.id) { LoggedEntryRow(it, actions) }
                 }
             }
         }

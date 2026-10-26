@@ -41,6 +41,8 @@ enum class SheetCommit { Save, Apply }
 object AppSheetsDefaults {
     fun closeTag(prefix: String): String = "${prefix}_close"
 
+    fun titleTag(prefix: String): String = "${prefix}_title"
+
     fun commitTag(prefix: String): String = "${prefix}_commit"
 
     fun commitHintTag(prefix: String): String = "${prefix}_commit_hint"
@@ -52,6 +54,7 @@ object AppSheetsDefaults {
  * [SheetCommit.Save] and "Listo" for [SheetCommit.Apply] (R-12), is tagged `<prefix>_commit` and is disabled while
  * `!commitEnabled` or [saving] (so a second tap or a keyboard action cannot fire twice). [commitHint] is a short
  * line under the button, typically `offlineHint("guardar")` (R-30), tagged `<prefix>_commit_hint`.
+ * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
  *
  * Closing (X, back, scrim, swipe) only calls [onDismiss] and never [onCommit]: an edit is never applied silently
  * (R-10, no dialog, R-08). The sheet draws no state of its own; the caller owns the draft.
@@ -75,6 +78,7 @@ fun AppEditSheet(
     saving: Boolean = false,
     commitHint: String? = null,
     help: (@Composable () -> Unit)? = null,
+    secondaryAction: (@Composable () -> Unit)? = null,
     testTagPrefix: String = "edit_sheet",
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -99,6 +103,11 @@ fun AppEditSheet(
                     enabled = commitEnabled && !saving,
                     loading = saving,
                 )
+                secondaryAction?.let { action ->
+                    Box(Modifier.fillMaxWidth().padding(top = Spacing.xs), contentAlignment = Alignment.Center) {
+                        action()
+                    }
+                }
                 if (commitHint != null) {
                     Text(
                         text = commitHint,
@@ -196,7 +205,7 @@ internal fun AppSheetHeader(title: String?, onClose: () -> Unit, prefix: String,
                 text = title,
                 style = AppTheme.typography.titleLarge,
                 color = AppTheme.colors.textPrimary,
-                modifier = Modifier.weight(1f).semantics { heading() },
+                modifier = Modifier.weight(1f).testTag(AppSheetsDefaults.titleTag(prefix)).semantics { heading() },
             )
         } else {
             Spacer(Modifier.weight(1f))

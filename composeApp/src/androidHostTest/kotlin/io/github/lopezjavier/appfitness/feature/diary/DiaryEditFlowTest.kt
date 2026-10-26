@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.designsystem.HapticEvent
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
@@ -160,13 +161,14 @@ class DiaryEditFlowTest {
         rule.onNode(inEntry("242 kcal")).assertExists()
 
         tap("diary_entry_e1")
-        rule.onNodeWithTag("edit_entry_amount").assertTextContains("220")
-        rule.onNodeWithTag("edit_entry_amount").performTextReplacement("150")
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("220")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
         rule.waitForIdle()
-        rule.onNodeWithTag("edit_entry_preview").assertTextContains("165 kcal", substring = true)
-        tap("edit_entry_save")
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains("165 kcal", substring = true)
+        tap("food_sheet_commit")
 
-        rule.onNodeWithTag("edit_entry_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
+        assertEquals(listOf(HapticEvent.Confirm), haptics.calls)
         rule.onNode(inEntry("150 g")).assertExists()
         rule.onNode(inEntry("165 kcal")).assertExists()
         rule.onNode(
@@ -177,12 +179,62 @@ class DiaryEditFlowTest {
     }
 
     @Test
+    fun tappingARow_opensTheFoodSheetWithTheNameTotalsAndDetails() {
+        start()
+
+        tap("diary_entry_e1")
+
+        rule.onNodeWithTag("food_sheet_title").assertTextContains("Pechuga de pollo")
+        rule.onNodeWithTag("food_sheet_totals").assertTextContains("242 kcal", substring = true)
+        tap("food_sheet_details_toggle")
+        rule.onNodeWithTag("add_food_label_nutrients").assertExists()
+    }
+
+    @Test
+    fun closingWithXFiresNoHapticAndSavesNothing() {
+        start()
+        tap("diary_entry_e1")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
+
+        tap("food_sheet_close")
+
+        assertEquals(emptyList<HapticEvent>(), haptics.calls)
+        assertEquals(0, diary.updated.size)
+    }
+
+    @Test
+    fun aCookedEntry_keepsItsStoredFatWhenTheAmountChanges() {
+        foods.known["chicken"] = food("chicken", "Pechuga de pollo", kcal = 110.0)
+        diary.server[Today] = listOf(chicken.copy(cookingMethod = CookingMethod.Griddle, cookingOilRetainedG = 2.5))
+        val diaryModel = DiaryViewModel(
+            FakeMealSlotRepository(),
+            diary,
+            FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25))),
+            BuildDiaryDay(),
+            MutableClock(),
+            connectivity,
+            FakeMealDefaultsRepository(),
+            SavedStateHandle(),
+        )
+        rule.setContent { Host(diaryModel) }
+        rule.waitForIdle()
+        tap("diary_entry_e1")
+
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
+        rule.waitForIdle()
+        tap("food_sheet_commit")
+
+        // 150 g raw has 7.5 g of fat (110 kcal per 100 g); the stored 2.5 g of oil keeps counting.
+        assertEquals(10.0, diary.updated.single().second.snapshot.fatG, 0.001)
+    }
+
+    @Test
     fun movingTheEntryFromMeriendaToCena_showsItUnderCena() {
         start()
         tap("diary_entry_e1")
 
-        tap("edit_entry_slot_dinner")
-        tap("edit_entry_save")
+        tap("food_sheet_slot_dinner")
+        tap("food_sheet_commit")
 
         rule.onNode(hasTestTag("diary_entry_e1") and hasAnyAncestor(hasTestTag("diary_section_dinner"))).assertExists()
         rule.onNode(
@@ -195,24 +247,24 @@ class DiaryEditFlowTest {
         start()
         tap("diary_entry_e1")
 
-        rule.onNodeWithTag("edit_entry_amount").performTextReplacement("0")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("0")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("edit_entry_save").assertIsNotEnabled()
-        rule.onNodeWithTag("edit_entry_amount").performTextReplacement("90")
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("90")
         rule.waitForIdle()
-        rule.onNodeWithTag("edit_entry_save").assertIsEnabled()
+        rule.onNodeWithTag("food_sheet_commit").assertIsEnabled()
     }
 
     @Test
     fun closingTheSheetWithoutSaving_leavesTheEntryUntouched() {
         start()
         tap("diary_entry_e1")
-        rule.onNodeWithTag("edit_entry_amount").performTextReplacement("150")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
 
-        tap("edit_entry_close")
+        tap("food_sheet_close")
 
-        rule.onNodeWithTag("edit_entry_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
         rule.onNode(inEntry("220 g")).assertExists()
         assertEquals(0, diary.updated.size)
     }
@@ -250,11 +302,12 @@ class DiaryEditFlowTest {
         start()
         tap("diary_entry_e1")
 
-        tap("edit_entry_delete")
+        tap("food_sheet_delete")
 
-        rule.onNodeWithTag("edit_entry_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet").assertDoesNotExist()
         rule.onNodeWithTag("diary_entry_e1").assertDoesNotExist()
         assertEquals(listOf("e1"), diary.deleted)
+        assertEquals(listOf(HapticEvent.Confirm), haptics.calls)
         rule.onNodeWithTag("diary_undo").assertDoesNotExist()
     }
 
@@ -262,13 +315,15 @@ class DiaryEditFlowTest {
     fun aFailedSave_keepsTheSheetOpenWithTheMessageAndTheInput() {
         start()
         tap("diary_entry_e1")
-        rule.onNodeWithTag("edit_entry_amount").performTextReplacement("150")
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
         diary.failUpdate()
 
-        tap("edit_entry_save")
+        tap("food_sheet_commit")
 
-        rule.onNodeWithTag("edit_entry_save_error").assertTextContains("No se pudo guardar. Inténtalo de nuevo.")
-        rule.onNodeWithTag("edit_entry_amount").assertTextContains("150")
+        assertEquals(listOf("No se pudo guardar. Inténtalo de nuevo."), shownMessages)
+        assertEquals(listOf(HapticEvent.Reject), haptics.calls)
+        rule.onNodeWithTag("food_sheet").assertExists()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("150")
     }
 
     @Test
@@ -292,9 +347,10 @@ class DiaryEditFlowTest {
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag("edit_entry_offline").assertExists()
-        rule.onNodeWithTag("edit_entry_save").assertIsNotEnabled()
-        rule.onNodeWithTag("edit_entry_delete").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_commit_hint")
+            .assertTextContains("Sin conexión: no se puede guardar ni eliminar")
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
+        rule.onNodeWithTag("food_sheet_delete").assertIsNotEnabled()
     }
 
     @Test
@@ -302,11 +358,11 @@ class DiaryEditFlowTest {
         start()
         diary.failRefresh()
         tap("diary_entry_e1")
-        rule.onNodeWithTag("edit_entry_error_state").assertExists()
+        rule.onNodeWithTag("food_sheet_error_state").assertExists()
 
         diary.refreshResult = Result.success(Unit)
-        tap("edit_entry_error_state_action")
+        tap("food_sheet_error_state_action")
 
-        rule.onNodeWithTag("edit_entry_amount").assertExists()
+        rule.onNodeWithTag("food_sheet_amount").assertExists()
     }
 }

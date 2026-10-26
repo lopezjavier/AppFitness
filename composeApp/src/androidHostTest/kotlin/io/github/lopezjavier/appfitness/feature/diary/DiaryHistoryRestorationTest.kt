@@ -48,7 +48,7 @@ class DiaryHistoryRestorationTest {
     @Composable
     private fun Host(model: DiaryHistoryViewModel) {
         val state by model.uiState.collectAsState()
-        AppTheme { DiaryHistoryScreen(state, model::onEvent) }
+        AppTheme { DiaryHistoryScreen(state, model::onEvent, onBack = {}) }
     }
 
     @Test

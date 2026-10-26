@@ -70,7 +70,8 @@ class ShellAppScreenRoutingTest {
         rule.onNodeWithTag("catalog_bar_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("catalog_screen").assertDoesNotExist()
-        rule.onNodeWithTag("topbar_title").assertExists()
+        rule.onNodeWithTag("diary_screen").assertExists()
+        rule.onNodeWithTag("nav_bar").assertExists()
     }
 
     @Test
@@ -82,9 +83,19 @@ class ShellAppScreenRoutingTest {
     }
 
     @Test
-    fun tabRoute_keepsTheShellBar() {
+    fun legacyTabRoot_keepsTheShellBar() {
         show()
+        rule.onNodeWithTag("nav_tab_profile").performClick()
+        rule.waitForIdle()
         rule.onNodeWithTag("topbar_title").assertExists()
+    }
+
+    @Test
+    fun diaryTabRoot_drawsItsOwnHeader_butKeepsTheBottomBar() {
+        show()
+        rule.onNodeWithTag("topbar").assertDoesNotExist()
+        rule.onNodeWithTag("diary_screen").assertExists()
+        rule.onNodeWithTag("nav_bar").assertExists()
     }
 
     @Test

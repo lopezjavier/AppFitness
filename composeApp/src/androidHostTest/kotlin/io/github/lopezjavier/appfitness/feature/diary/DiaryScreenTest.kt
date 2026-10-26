@@ -73,6 +73,7 @@ private fun content(
     collapsed: Set<String> = emptySet(),
     date: LocalDate = Today,
     defaultsFailed: Boolean = false,
+    isToday: Boolean = date == Today,
 ) = DiaryUiState.Content(
     DiaryContent(
         date = date,
@@ -86,6 +87,8 @@ private fun content(
         dayTotals = totals,
         collapsedSlotIds = collapsed,
         defaultsFailed = defaultsFailed,
+        isToday = isToday,
+        summary = DiarySummary.of(totals, (goals as? DiaryGoalsState.Set)?.goals?.targetKcal),
     ),
 )
 
@@ -108,6 +111,9 @@ class DiaryScreenTest {
         }
         rule.waitForIdle()
     }
+
+    /** The events without the month-shown notifications the open picker sends. */
+    private fun pickerFree() = events.filterNot { it is DiaryEvent.PickerMonthShown }
 
     private fun left(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().left
 
@@ -148,13 +154,46 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun diaryLevelAddButton_sitsAfterTheLastSection_andEmitsAddFood() {
+    fun noDiaryLevelAddFoodButton_eachMealKeepsItsOwn() {
         show(content())
 
-        assertTrue(top("diary_add_food") > top("diary_section_dinner"))
-        rule.onNodeWithTag("diary_add_food").performScrollTo().performClick()
+        rule.onNodeWithTag("diary_add_food").assertDoesNotExist()
+        rule.onNodeWithText("Añadir comida").assertDoesNotExist()
+        DefaultSlots.forEach { rule.onNodeWithTag("diary_section_${it.id}_add").assertExists() }
+    }
 
-        assertEquals(listOf<DiaryEvent>(DiaryEvent.AddFood), events)
+    @Test
+    fun summaryStrip_sitsAboveTheFirstMeal_andTheDashboardBelowTheLast() {
+        show(content())
+
+        assertTrue(top("diary_summary_strip") < top("diary_section_breakfast"))
+        assertTrue(top("diary_ring") > top("diary_section_dinner"))
+    }
+
+    @Test
+    fun summaryStrip_showsTheDayAgainstTheTargetAndIsSpokenInFullWords() {
+        show(content())
+
+        rule.onNodeWithTag("diary_summary_strip").assertTextEquals("1.840 / 2.400 kcal · P 142 · C 210 · G 48")
+        assertEquals(
+            "1.840 de 2.400 kilocalorías, proteínas 142 gramos, hidratos 210 gramos, grasas 48 gramos",
+            rule.onNodeWithTag("diary_summary_strip").fetchSemanticsNode().config
+                .getOrNull(SemanticsProperties.ContentDescription)?.single(),
+        )
+    }
+
+    @Test
+    fun summaryStrip_withoutGoalsShowsNoTarget() {
+        show(content(goals = DiaryGoalsState.NotSet))
+
+        rule.onNodeWithTag("diary_summary_strip").assertTextEquals("1.840 kcal · P 142 · C 210 · G 48")
+    }
+
+    @Test
+    fun noLocalSnackbarHost_theScreenDrawsNoMessageSurface() {
+        show(content())
+
+        rule.onNodeWithTag("diary_snackbar").assertDoesNotExist()
     }
 
     @Test
@@ -218,7 +257,7 @@ class DiaryScreenTest {
     fun entryRow_withPortionLabel_showsThePortionInsteadOfTheAmount() {
         show(content(entries = listOf(entry("a", "lunch", "Huevo", 55.0, portion = "1 huevo"))))
 
-        rule.onNodeWithText("1 huevo").assertExists()
+        rule.onNodeWithText("1 huevo (55 g)").assertExists()
     }
 
     @Test
@@ -234,10 +273,12 @@ class DiaryScreenTest {
 
         rule.onNodeWithText("1.840", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("de 2.400 kcal", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("560 restantes", useUnmergedTree = true).assertExists()
-        assertEquals("142 de 180 gramos, 79 por ciento", stateDescription("diary_macro_protein"))
-        assertEquals("210 de 270 gramos, 78 por ciento", stateDescription("diary_macro_carbs"))
-        assertEquals("48 de 67 gramos, 72 por ciento", stateDescription("diary_macro_fat"))
+        rule.onNodeWithText("restantes", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("142 g / 180 g", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("%", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        assertEquals("142 de 180 gramos", stateDescription("diary_macro_protein"))
+        assertEquals("210 de 270 gramos", stateDescription("diary_macro_carbs"))
+        assertEquals("48 de 67 gramos", stateDescription("diary_macro_fat"))
     }
 
     @Test
@@ -316,7 +357,7 @@ class DiaryScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("diary_day_picker_sheet").assertExists()
-        rule.onNodeWithText("Ir a un día").assertExists()
+        rule.onNodeWithText("Calendario").assertExists()
     }
 
     @Test
@@ -335,7 +376,7 @@ class DiaryScreenTest {
         rule.onNodeWithTag("month_calendar_day_2026-10-12").performClick()
         rule.waitForIdle()
 
-        assertEquals(listOf<DiaryEvent>(DiaryEvent.GoToDay(LocalDate(2026, 10, 12))), events)
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.GoToDay(LocalDate(2026, 10, 12))), pickerFree())
         rule.onNodeWithTag("diary_day_picker_sheet").assertDoesNotExist()
     }
 
@@ -348,7 +389,7 @@ class DiaryScreenTest {
         rule.onNodeWithTag("month_calendar_day_2026-10-20").performClick()
         rule.waitForIdle()
 
-        assertTrue(events.isEmpty())
+        assertTrue(pickerFree().isEmpty())
         rule.onNodeWithTag("diary_day_picker_sheet").assertExists()
     }
 
@@ -419,12 +460,12 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun compactWindow_stacksTheDashboardAboveTheMeals() {
+    fun compactWindow_stacksTheDashboardBelowTheMeals() {
         show(content())
 
         val ring = rule.onNodeWithTag("diary_ring").getUnclippedBoundsInRoot()
-        val breakfast = rule.onNodeWithTag("diary_section_breakfast").getUnclippedBoundsInRoot()
-        assertTrue("ring ${ring.bottom} above meals ${breakfast.top}", ring.bottom <= breakfast.top)
+        val dinner = rule.onNodeWithTag("diary_section_dinner").getUnclippedBoundsInRoot()
+        assertTrue("ring ${ring.top} below meals ${dinner.bottom}", ring.top >= dinner.bottom)
     }
 
     @Test

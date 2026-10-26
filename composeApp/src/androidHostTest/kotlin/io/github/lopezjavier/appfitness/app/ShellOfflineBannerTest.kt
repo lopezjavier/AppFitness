@@ -39,6 +39,8 @@ class ShellOfflineBannerTest {
 
     private fun bounds(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
 
+    private fun rootBounds() = rule.onRoot().getUnclippedBoundsInRoot()
+
     @Test
     fun online_noBanner() {
         rule.setContent { AppTheme { AppScaffold(isOffline = false) } }
@@ -49,7 +51,8 @@ class ShellOfflineBannerTest {
     fun offline_bar_bannerBelowTopBarAboveContent() {
         rule.setContent { AppTheme { AppScaffold(isOffline = true) } }
         rule.waitForIdle()
-        assertAtLeast("banner top vs topbar bottom", bounds("offline_banner").top, bounds("topbar").bottom)
+        rule.onNodeWithTag("topbar").assertDoesNotExist() // the Diario draws its own header (TabScreen)
+        assertAtLeast("banner top vs root top", bounds("offline_banner").top, rootBounds().top)
         assertAtLeast("content top vs banner bottom", bounds("diary_screen").top, bounds("offline_banner").bottom)
         rule.onNodeWithTag("offline_banner_message", useUnmergedTree = true).assertTextEquals("Sin conexión")
         rule.onNodeWithTag("offline_banner").assert(
@@ -63,9 +66,9 @@ class ShellOfflineBannerTest {
         rule.setContent { AppTheme { AppScaffold(navigationType = AppNavigationType.Rail, isOffline = true) } }
         rule.waitForIdle()
         val banner = bounds("offline_banner")
-        assertAtLeast("banner top vs topbar bottom", banner.top, bounds("topbar").bottom)
+        assertAtLeast("banner top vs root top", banner.top, rootBounds().top)
         assertAtLeast("rail top vs banner bottom", bounds("nav_rail").top, banner.bottom)
-        assertTrue("banner spans the root width", kotlin.math.abs((banner.width - bounds("topbar").width).value) < 1f)
+        assertTrue("banner spans the root width", kotlin.math.abs((banner.width - rootBounds().width).value) < 1f)
         assertAtLeast("content left vs rail right", bounds("diary_screen").left, bounds("nav_rail").right)
     }
 
@@ -103,8 +106,8 @@ class ShellOfflineBannerTest {
         rule.waitForIdle()
         rule.onNodeWithTag("offline_banner").assertDoesNotExist()
         assertTrue(
-            "content returns to the top bar bottom",
-            kotlin.math.abs((bounds("diary_screen").top - bounds("topbar").bottom).value) < 1f,
+            "content returns to the top of the screen",
+            kotlin.math.abs((bounds("diary_screen").top - rootBounds().top).value) < 1f,
         )
     }
 }

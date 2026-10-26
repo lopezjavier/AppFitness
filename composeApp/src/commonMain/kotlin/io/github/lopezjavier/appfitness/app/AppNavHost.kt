@@ -84,7 +84,8 @@ internal typealias RoutinesSlot =
 /**
  * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
  * search for a day (the meal is null for the Diary-level add action), [edit] the edit sheet of an entry
- * (and brings back an entry the sheet asked to delete). The same slot renders a past day ([DiaryDayRoute]).
+ * (and brings back an entry the sheet asked to delete). The same slot renders a past day ([DiaryDayRoute]), where
+ * [onBack] is the back arrow of its header (null on the tab root).
  */
 internal typealias DiarySlot =
     @Composable (
@@ -93,10 +94,12 @@ internal typealias DiarySlot =
         onAddFood: (slotId: String?, date: LocalDate) -> Unit,
         onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
         edit: DiaryEditHost,
+        onBack: (() -> Unit)?,
     ) -> Unit
 
-/** Diary history content: modifier (full-screen insets) and the opener of the Diary of a day. */
-internal typealias DiaryHistorySlot = @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit) -> Unit
+/** Diary history content: modifier (full-screen insets), the opener of the Diary of a day and the back arrow. */
+internal typealias DiaryHistorySlot =
+    @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit, onBack: () -> Unit) -> Unit
 
 /** Weight screen content: modifier (full-screen insets). */
 internal typealias WeightSlot = @Composable (modifier: Modifier) -> Unit
@@ -341,12 +344,12 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
 /** Empty diary history for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _ ->
+internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_history_screen"))
 }
 
@@ -514,6 +517,7 @@ internal fun AppNavHost(
                     openFoodSearch,
                     openSaveTemplate,
                     destinationModifier,
+                    onBack = null,
                 )
             }
         }
@@ -527,12 +531,15 @@ internal fun AppNavHost(
                 openFoodSearch,
                 openSaveTemplate,
                 destinationModifier,
+                onBack = { navController.popFullScreen(entry) },
             )
         }
-        composable<DiaryHistoryRoute> {
-            diaryHistory(Modifier.padding(fullScreenPadding)) { date ->
-                navController.navigateToFullScreen(DiaryDayRoute(date.toString()))
-            }
+        composable<DiaryHistoryRoute> { entry ->
+            diaryHistory(
+                Modifier.padding(fullScreenPadding),
+                { date -> navController.navigateToFullScreen(DiaryDayRoute(date.toString())) },
+                { navController.popFullScreen(entry) },
+            )
         }
         // The sheets over the Diary or a past day are root destinations, so they open over whichever is below.
         dialog<SaveTemplateRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
@@ -652,6 +659,7 @@ private fun DiaryDestination(
     openFoodSearch: (String?, LocalDate) -> Unit,
     openSaveTemplate: (String, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)?,
 ) {
     val handle = entry.savedStateHandle
     val deleted by handle.getStateFlow<String?>(DELETED_ENTRY_KEY, null).collectAsState()
@@ -665,6 +673,7 @@ private fun DiaryDestination(
             pendingDeleteEntryId = deleted,
             onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
         ),
+        onBack,
     )
 }
 
@@ -973,13 +982,13 @@ internal fun NavController.chromeOf(entry: NavBackStackEntry?): ShellChrome {
 /** Chrome of an entry's destination ([TopLevelTab.Start] tabs before the first entry exists). */
 internal fun NavBackStackEntry?.chrome(): ShellChrome {
     val destination = this?.destination
-    val fullScreen = destination.fullScreenRoute()
-    if (fullScreen != null) return fullScreen.chrome
     val tab =
         TopLevelTab.entries.firstOrNull { tab ->
             destination?.hierarchy?.any { it.hasRoute(tab.graph::class) } == true
         } ?: TopLevelTab.Start
-    return ShellChrome.Tabs(tab)
+    return destination.fullScreenRoute()?.chrome
+        ?: DiaryHome.chrome.takeIf { destination?.hasRoute(DiaryHome::class) == true }
+        ?: ShellChrome.Tabs(tab)
 }
 
 /**
