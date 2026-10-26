@@ -57,6 +57,7 @@ import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEvent
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoNotice
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoUiState
+import io.github.lopezjavier.appfitness.feature.food.photo.EstimateConfidenceLine
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoStep
 import org.jetbrains.compose.resources.stringResource
 
@@ -199,6 +200,7 @@ private fun QuantityBlock(
             onPhotoClick = amountPhoto?.let { { onAmountPhotoEvent(AmountPhotoEvent.Open(content.amountText)) } },
             photoEnabled = amountPhoto?.isOffline == false,
         )
+        content.estimateConfidence?.let { EstimateConfidenceLine(it) }
         amountPhoto?.let { AmountPhotoNotice(it, onAmountPhotoEvent) }
         if (content.showCooking) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

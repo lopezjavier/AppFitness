@@ -181,7 +181,9 @@ fun AddFoodRoot(
         amountPhotoViewModel.effects.collect { effect ->
             when (effect) {
                 is AmountPhotoEffect.AmountEstimated ->
-                    viewModel.onEvent(AddFoodEvent.AmountEstimated(effect.amount, effect.baselineAmountText))
+                    viewModel.onEvent(
+                        AddFoodEvent.AmountEstimated(effect.amount, effect.baselineAmountText, effect.confidence),
+                    )
             }
         }
     }

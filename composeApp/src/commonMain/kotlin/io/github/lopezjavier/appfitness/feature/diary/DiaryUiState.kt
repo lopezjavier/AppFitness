@@ -60,8 +60,6 @@ data class DiaryContent(
     val expandedGroupIds: Set<String> = emptySet(),
     /** [date] is today (the day picker offers "Hoy" otherwise). */
     val isToday: Boolean = true,
-    /** The day at a glance for the summary strip. */
-    val summary: DiarySummary = DiarySummary(0, null, 0, 0, 0),
     /** Days with entries in the month the day picker shows; empty until loaded or when loading fails. */
     val pickerMarkedDays: Set<LocalDate> = emptySet(),
 )

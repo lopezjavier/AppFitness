@@ -21,6 +21,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.BackInterceptor
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.LocalBackInterceptor
+import io.github.lopezjavier.appfitness.designsystem.AppTextFieldDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -48,6 +49,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.math.abs
 
 /** US-54: add-food sheet -> photo icon -> source -> preview -> estimate -> only the amount is prefilled. */
 @RunWith(RobolectricTestRunner::class)
@@ -101,7 +103,7 @@ class AmountPhotoFlowTest {
         LaunchedEffect(photoModel) {
             photoModel.effects.collect {
                 if (it is AmountPhotoEffect.AmountEstimated) {
-                    addModel.onEvent(AddFoodEvent.AmountEstimated(it.amount, it.baselineAmountText))
+                    addModel.onEvent(AddFoodEvent.AmountEstimated(it.amount, it.baselineAmountText, it.confidence))
                 }
             }
         }
@@ -155,6 +157,17 @@ class AmountPhotoFlowTest {
     }
 
     @Test
+    fun photoIcon_isCentredOnTheInputBox_notOnLabelPlusInput() {
+        start()
+
+        val field = rule.onNodeWithTag("food_sheet_amount").getUnclippedBoundsInRoot()
+        val icon = rule.onNodeWithTag("food_sheet_amount_photo").getUnclippedBoundsInRoot()
+        val inputCentre = field.bottom - AppTextFieldDefaults.MinHeight / 2
+        val iconCentre = icon.top + (icon.bottom - icon.top) / 2
+        assertTrue("icon $iconCentre, input $inputCentre", abs((iconCentre - inputCentre).value) <= 1f)
+    }
+
+    @Test
     fun icon_opensTheSourceSheet_andBothSourcesReachThePreview() {
         start()
 
@@ -186,6 +199,71 @@ class AmountPhotoFlowTest {
         rule.onNodeWithTag("food_sheet_title").assertTextContains("Pechuga de pollo")
         rule.onNodeWithTag("food_sheet").assertExists()
         assertEquals(chicken.id, photoRepo.amountCalls.single().first.id)
+    }
+
+    @Test
+    fun confidence_showsTheTextWithASingleSpokenDescription() {
+        photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", 7))
+        start()
+        estimate()
+
+        val line = rule.onNodeWithTag("amount_photo_confidence")
+        line.assertExists()
+        rule.onNodeWithText("Confianza 7/10", useUnmergedTree = true).assertExists()
+        assertEquals(
+            listOf("Confianza 7 de 10"),
+            line.fetchSemanticsNode().config[SemanticsProperties.ContentDescription],
+        )
+        rule.onNodeWithTag("amount_photo_confidence_dot", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun confidence_doesNotMoveThePinnedFooter() {
+        photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", 7))
+        start()
+        val before = rule.onNodeWithTag("food_sheet_commit").getUnclippedBoundsInRoot()
+        estimate()
+
+        rule.onNodeWithTag("amount_photo_confidence").assertExists()
+        assertEquals(before.bottom, rule.onNodeWithTag("food_sheet_commit").getUnclippedBoundsInRoot().bottom)
+    }
+
+    @Test
+    fun confidenceOneAndTen_render() {
+        photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", 1))
+        start()
+        estimate()
+        rule.onNodeWithText("Confianza 1/10", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun confidenceTen_rendersItsText() {
+        photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", 10))
+        start()
+        estimate()
+        rule.onNodeWithText("Confianza 10/10", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun nullConfidence_hidesTheLine() {
+        start()
+        estimate()
+
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
+        rule.onNodeWithTag("amount_photo_confidence").assertDoesNotExist()
+    }
+
+    @Test
+    fun editingTheAmountByHand_hidesTheConfidence() {
+        photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", 7))
+        start()
+        estimate()
+        rule.onNodeWithTag("amount_photo_confidence").assertExists()
+
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("amount_photo_confidence").assertDoesNotExist()
     }
 
     @Test

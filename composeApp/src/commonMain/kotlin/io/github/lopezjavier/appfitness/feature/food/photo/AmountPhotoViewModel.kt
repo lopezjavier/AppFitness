@@ -151,7 +151,7 @@ class AmountPhotoViewModel(
                 onSuccess = {
                     dropPhoto()
                     setStep(FoodPhotoStep.Closed)
-                    effectChannel.send(AmountPhotoEffect.AmountEstimated(it.amount, baseline))
+                    effectChannel.send(AmountPhotoEffect.AmountEstimated(it.amount, baseline, it.confidence))
                 },
                 onFailure = { setStep(FoodPhotoStep.Error(kindOf((it as? AppException)?.error))) },
             )

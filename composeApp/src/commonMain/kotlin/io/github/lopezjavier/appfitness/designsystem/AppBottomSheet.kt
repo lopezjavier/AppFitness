@@ -1,15 +1,13 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -25,7 +23,6 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,18 +31,10 @@ import androidx.compose.ui.unit.dp
 
 /** Colours of the [AppBottomSheet]. */
 @Immutable
-data class AppBottomSheetColors(
-    val container: Color,
-    val content: Color,
-    val scrim: Color,
-    val handle: Color,
-    val border: Color,
-)
+data class AppBottomSheetColors(val container: Color, val content: Color, val scrim: Color, val border: Color)
 
 /** Sizes, shape and colour mapping of the [AppBottomSheet]. */
 object AppBottomSheetDefaults {
-    val HandleWidth: Dp = 36.dp
-    val HandleHeight: Dp = 4.dp
     val Shape: Shape = AppShapes.sheetTop
 
     /** The hairline covers the top edge and the two corner arcs only: it is clipped below the top radius. */
@@ -55,7 +44,6 @@ object AppBottomSheetDefaults {
         container = appColors.surfaceOverlay,
         content = appColors.textPrimary,
         scrim = appColors.scrim,
-        handle = appColors.sheetHandle,
         border = appColors.borderStrong,
     )
 
@@ -80,11 +68,11 @@ object AppBottomSheetDefaults {
 }
 
 /**
- * Modal bottom sheet (top radius 24, 36x4 handle, 65 % scrim, top-only hairline). A scrim tap, back and a
- * downward drag all call [onDismissRequest]. To close it from a button, hide it first so it animates out:
+ * Modal bottom sheet (top radius 24, no drag handle, 65 % scrim, top-only hairline, R-38). Only back calls
+ * [onDismissRequest]: a scrim tap and a drag do nothing. To close it from a button, hide it first so it animates out:
  * `scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }`.
  *
- * The root is tagged [testTagPrefix] and the decorative handle `<prefix>_handle`. Screens use the archetypes
+ * The root is tagged [testTagPrefix]. Screens use the archetypes
  * ([AppEditSheet], [AppPickerSheet], [AppInfoSheet], [AppActionSheet]) rather than this surface.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,7 +80,7 @@ object AppBottomSheetDefaults {
 fun AppBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    sheetState: SheetState = rememberAppSheetState(),
     testTagPrefix: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -111,34 +99,24 @@ fun AppBottomSheet(
         tonalElevation = 0.dp,
         scrimColor = colors.scrim,
         dragHandle = null,
+        sheetGesturesEnabled = false,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = true, shouldDismissOnClickOutside = false),
     ) {
         with(AppBottomSheetDefaults) {
             Column(Modifier.fillMaxWidth().topHairline(colors.border)) {
-                SheetHandle(colors.handle, testTagPrefix?.let { "${it}_handle" })
                 content()
             }
         }
     }
 }
 
+/**
+ * The one sheet state of the app (R-38): the sheet cannot be swiped away (gestures are off in [AppBottomSheet]),
+ * but `hide()` from X, Cancelar or Guardar still animates it out.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ColumnScope.SheetHandle(color: Color, testTag: String?) {
-    // Decorative: cleared semantics, so the tag lives on a wrapper (same pattern as SkeletonBox).
-    Box(
-        Modifier
-            .align(Alignment.CenterHorizontally)
-            .padding(vertical = Spacing.md)
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
-    ) {
-        Box(
-            Modifier
-                .clearAndSetSemantics {}
-                .width(AppBottomSheetDefaults.HandleWidth)
-                .height(AppBottomSheetDefaults.HandleHeight)
-                .background(color, AppShapes.full),
-        )
-    }
-}
+fun rememberAppSheetState(): SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
 @Preview
 @Composable
@@ -154,7 +132,6 @@ private fun AppBottomSheetPreview() {
                 .then(with(AppBottomSheetDefaults) { Modifier.topHairline(colors.border) }),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SheetHandle(colors.handle, null)
             Text(
                 "Título de ejemplo",
                 color = colors.content,

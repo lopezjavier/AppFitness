@@ -1,9 +1,11 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -79,28 +81,16 @@ fun PortionSelector(
                 modifier = Modifier.testTag("${testTagPrefix}_portion"),
             )
         }
-        val field: @Composable (Modifier) -> Unit = { fieldModifier ->
-            AmountField(
-                value = typed,
-                label = amountLabel,
-                onValueChange = {
-                    typed = it
-                    onAmountChange(it)
-                },
-                modifier = fieldModifier.testTag("${testTagPrefix}_amount"),
-            )
-        }
-        if (amountTrailing == null) {
-            field(Modifier.fillMaxWidth())
-        } else {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                field(Modifier.weight(1f))
-                amountTrailing()
-            }
-        }
+        AmountRow(
+            value = typed,
+            label = amountLabel,
+            onValueChange = {
+                typed = it
+                onAmountChange(it)
+            },
+            tag = "${testTagPrefix}_amount",
+            trailing = amountTrailing,
+        )
         if (errorText != null) {
             Text(
                 text = errorText,
@@ -114,6 +104,30 @@ fun PortionSelector(
                     .testTag("${testTagPrefix}_error"),
             )
         }
+    }
+}
+
+@Composable
+private fun AmountRow(
+    value: String,
+    label: String,
+    onValueChange: (String) -> Unit,
+    tag: String,
+    trailing: (@Composable () -> Unit)?,
+) {
+    if (trailing == null) {
+        AmountField(value, label, onValueChange, Modifier.fillMaxWidth().testTag(tag))
+        return
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        // The label sits above the input (R-24): bottom-align and lift the trailing control by half the height
+        // difference so it is centred on the input box, not on label plus input.
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        AmountField(value, label, onValueChange, Modifier.weight(1f).testTag(tag))
+        val lift = (AppTextFieldDefaults.MinHeight - AppTopBarDefaults.NavigationTouchTarget) / 2
+        Box(Modifier.padding(bottom = lift)) { trailing() }
     }
 }
 

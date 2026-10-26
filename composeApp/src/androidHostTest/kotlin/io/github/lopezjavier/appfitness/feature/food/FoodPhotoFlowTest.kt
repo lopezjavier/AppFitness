@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -181,14 +182,14 @@ class FoodPhotoFlowTest {
     }
 
     @Test
-    fun quickActions_sitInOneRowUnderTheField_withTheSameSize_andALabel() {
+    fun actionIcons_sitInTheSearchFieldRow_withTheSameSize_andADescription() {
         start()
 
         val field = rule.onNodeWithTag("food_search_field").getUnclippedBoundsInRoot()
         val scan = rule.onNodeWithTag("food_search_action_scan").getUnclippedBoundsInRoot()
         val photo = rule.onNodeWithTag("food_search_action_photo").getUnclippedBoundsInRoot()
         val create = rule.onNodeWithTag("food_search_action_create").getUnclippedBoundsInRoot()
-        assertTrue("actions sit under the field", field.bottom <= scan.top)
+        assertTrue("actions sit after the field", field.right <= scan.left)
         assertTrue(scan.right <= photo.left)
         assertTrue(photo.right <= create.left)
         assertEquals(scan.top, photo.top)
@@ -196,7 +197,7 @@ class FoodPhotoFlowTest {
         assertEquals(scan.right - scan.left, photo.right - photo.left)
         assertTrue(photo.bottom - photo.top >= 48.dp)
         rule.onNodeWithTag("food_search_action_photo").assertIsEnabled()
-        rule.onNodeWithTag("food_search_action_photo").assertTextContains("Foto")
+        rule.onNodeWithTag("food_search_action_photo").assertContentDescriptionEquals("Añadir con foto")
     }
 
     @Test

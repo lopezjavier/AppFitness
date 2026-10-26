@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G10).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G11).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file]
 #   root-dir       tree to scan (default: repository root). Tests pass a fixture tree.
@@ -29,7 +29,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|10) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[01]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -127,6 +127,10 @@ scan G5 "AppConfirmDialog outside the R-08 allow-list" '\bAppConfirmDialog\(' \
 scan G6 "ic_help outside HelpButton" '\bic_help\b' '' "${kotlin_feature[@]}"
 scan G7 "SwipeToDismissBox outside SwipeToDeleteRow" '\bSwipeToDismissBox\b' '' "${kotlin_feature[@]}"
 scan G8 "detectDragGestures outside ReorderableColumn" '\bdetectDragGestures\b' '' "${kotlin_feature[@]}"
+
+# G11: R-38 sheets have no drag handle, no outside/swipe dismissal and one state factory.
+scan G11 "sheet drag handle or outside dismissal (R-38)" 'dragHandle = \{|BottomSheetDefaults\.DragHandle|SheetHandle|shouldDismissOnClickOutside = true' '' "${kotlin_all[@]}"
+scan G11 "rememberModalBottomSheetState outside AppBottomSheet.kt (use rememberAppSheetState)" 'rememberModalBottomSheetState\(' '.*/designsystem/AppBottomSheet\.kt' "${kotlin_all[@]}"
 
 # G9 / G10: strings.xml.
 if [ -f "$strings_file" ]; then

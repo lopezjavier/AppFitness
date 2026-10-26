@@ -104,6 +104,20 @@ class AmountPhotoViewModelTest {
     }
 
     @Test
+    fun usePhoto_carriesTheConfidenceOfTheEstimateInTheEffect() = runTest(dispatcher) {
+        photos.amountResult = Result.success(AmountEstimate(180.0, "g", 7))
+        val model = viewModel()
+        toPreview(model, amountText = "100")
+
+        model.effects.test {
+            model.onEvent(AmountPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+
+            assertEquals(AmountPhotoEffect.AmountEstimated(180.0, "100", confidence = 7), awaitItem())
+        }
+    }
+
+    @Test
     fun whileTheEstimateIsStillLoading_thePhaseIsEstimating_andNothingIsEmitted() = runTest(dispatcher) {
         photos.amountGate = CompletableDeferred()
         val model = viewModel()

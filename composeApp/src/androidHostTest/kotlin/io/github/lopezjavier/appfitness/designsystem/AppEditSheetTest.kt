@@ -147,21 +147,19 @@ class AppEditSheetTest {
     }
 
     @Test
-    fun scrimTap_dismissesWithoutCommitting() {
+    fun scrim_isNotATapTarget_andTheSheetStaysOpen() {
         showEdit()
-        rule.onNodeWithContentDescription("Close Sheet", ignoreCase = true).performClick()
-        rule.waitForIdle()
-        assertEquals(1, dismissed)
-        assertEquals(0, commits)
+        rule.onNodeWithContentDescription("Close Sheet", ignoreCase = true).assertDoesNotExist()
+        assertEquals(0, dismissed)
     }
 
     @Test
-    fun swipeDown_dismissesWithoutCommitting() {
+    fun swipeDown_doesNotDismiss() {
         showEdit()
         rule.onNodeWithTag("sheet").performTouchInput { swipeDown() }
         rule.waitForIdle()
-        assertEquals(1, dismissed)
-        assertEquals(0, commits)
+        assertEquals(0, dismissed)
+        rule.onNodeWithTag("sheet").assertIsDisplayed()
     }
 
     @Test

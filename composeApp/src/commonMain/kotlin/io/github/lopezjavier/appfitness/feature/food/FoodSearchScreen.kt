@@ -22,8 +22,6 @@ import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
-import io.github.lopezjavier.appfitness.composeapp.resources.food_action_photo
-import io.github.lopezjavier.appfitness.composeapp.resources.food_action_scan
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_most_eaten
@@ -39,12 +37,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_messag
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_offline_state
 import io.github.lopezjavier.appfitness.composeapp.resources.food_remote_error
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_label
+import io.github.lopezjavier.appfitness.composeapp.resources.food_search_photo_description
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeholder
+import io.github.lopezjavier.appfitness.composeapp.resources.food_search_scan_description
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -55,7 +59,6 @@ import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.Food
@@ -70,8 +73,9 @@ private const val TAG = "food_search"
 
 /**
  * Food search (US-17, US-21) on [AppScreen] (R-01): titled with the destination, "Añadir al desayuno" (the label of
- * the button that opened it) or "Añadir alimento" when a food is chosen for a comida. Under the search field one row of
- * quick actions ("Escanear", "Foto", "Crear alimento"), then the four views ("Recientes / Más comidos / Favoritos /
+ * the button that opened it) or "Añadir alimento" when a food is chosen for a comida. The search field carries
+ * the three actions
+ * as icon buttons (scan, photo, "Crear alimento"), then the four views ("Recientes / Más comidos / Favoritos /
  * Guardadas", hidden while a query is typed) as tabs and the results: the user's own foods first, the Open Food Facts
  * ones below them (a skeleton while they load, an inline error with "Reintentar" if they failed). [scanFailed] shows
  * the generic "could not read the code" message under the field; [templateManageFailed] a refused delete of a comida.
@@ -98,8 +102,7 @@ fun FoodSearchScreen(
                 Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                SearchBox(state, onEvent)
-                QuickActions(state, onEvent, onPhotoClick)
+                SearchRow(state, onEvent, onPhotoClick)
                 if (scanFailed) ScanError()
                 state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
                 if (state.query.isBlank()) Tabs(state, onEvent)
@@ -126,43 +129,58 @@ private fun titleOf(state: FoodSearchUiState): String {
     }
 }
 
+/**
+ * The search field with the three server actions as trailing icon buttons (R-39): scan, photo and "Crear alimento".
+ * The field label sits above the input (R-24), so the 48 dp icons align to the bottom of the row, the input box.
+ * All three need the server, so they are disabled offline.
+ */
 @Composable
-private fun SearchBox(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, modifier: Modifier = Modifier) {
-    AppSearchField(
-        value = state.query,
-        onValueChange = { onEvent(FoodSearchEvent.QueryChanged(it)) },
-        label = stringResource(Res.string.food_search_label),
-        placeholder = stringResource(Res.string.food_search_placeholder),
-        onSearch = {}, // The search is live as the query changes; the keyboard action only hides the keyboard.
-        modifier = modifier.fillMaxWidth(),
-        enabled = !state.isOffline,
-        testTagPrefix = "${TAG}_field",
-        clearTestTag = "${TAG}_clear",
-    )
-}
-
-/** One row of short actions under the field; all need the server, so they are disabled offline. */
-@Composable
-private fun QuickActions(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, onPhotoClick: () -> Unit) {
+private fun SearchRow(
+    state: FoodSearchUiState,
+    onEvent: (FoodSearchEvent) -> Unit,
+    onPhotoClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val offlineState = stringResource(Res.string.food_photo_offline_state)
     val offline = if (state.isOffline) Modifier.semantics { stateDescription = offlineState } else Modifier
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        SecondaryButton(
-            text = stringResource(Res.string.food_action_scan),
+    Row(
+        modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        AppSearchField(
+            value = state.query,
+            onValueChange = { onEvent(FoodSearchEvent.QueryChanged(it)) },
+            label = stringResource(Res.string.food_search_label),
+            placeholder = stringResource(Res.string.food_search_placeholder),
+            onSearch = {}, // The search is live as the query changes; the keyboard action only hides the keyboard.
+            modifier = Modifier.weight(1f),
+            enabled = !state.isOffline,
+            testTagPrefix = "${TAG}_field",
+            clearTestTag = "${TAG}_clear",
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_search_scan_description),
+            icon = Res.drawable.ic_barcode_scanner,
+            testTag = "${TAG}_action_scan",
             onClick = { onEvent(FoodSearchEvent.ScanClicked) },
-            modifier = Modifier.weight(1f).then(offline).testTag("${TAG}_action_scan"),
+            modifier = offline,
             enabled = !state.isOffline,
         )
-        SecondaryButton(
-            text = stringResource(Res.string.food_action_photo),
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_search_photo_description),
+            icon = Res.drawable.ic_photo_camera,
+            testTag = "${TAG}_action_photo",
             onClick = onPhotoClick,
-            modifier = Modifier.weight(1f).then(offline).testTag("${TAG}_action_photo"),
+            modifier = offline,
             enabled = !state.isOffline,
         )
-        SecondaryButton(
-            text = stringResource(Res.string.food_create_action),
+        AppIconButton(
+            contentDescription = stringResource(Res.string.food_create_action),
+            icon = Res.drawable.ic_add,
+            testTag = "${TAG}_action_create",
             onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
-            modifier = Modifier.weight(1f).then(offline).testTag("${TAG}_action_create"),
+            modifier = offline,
             enabled = !state.isOffline,
         )
     }

@@ -330,7 +330,6 @@ class DiaryViewModel(
             isOffline = !inputs.online,
             defaultsFailed = extras.defaultsFailed && loaded.date == today,
             isToday = loaded.date == today,
-            summary = DiarySummary.of(day.totals, day.goals?.targetKcal),
             pickerMarkedDays = extras.pickerMarkedDays,
         )
     }
