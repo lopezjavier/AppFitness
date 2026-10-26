@@ -640,3 +640,13 @@ Format: context → decision → consequences. A decision is only changed by add
   - In the add-food sheet the label above the meal chips is "Añadir a:" (it clashed with the "Comida" meal chip).
 - **Consequences:** `05-design-system.md` (R-10, R-38, R-39), a guard in `check-ux-conventions.sh`, task T-131 (`tasks/todo.md`); the E9-A checkpoint is re-presented after it.
 - **Approval:** 2026-10-26, user (chat; "Añadir a:" chosen for the label).
+
+### ADR-72 · Amount from a photo always gives a best estimate; confidence is a 1–10 scale (E9-A feedback, T-131; amends ADR-64)
+- **Context:** Checkpoint E9-A (2026-10-26): the weight estimate always fails with "No hemos podido estimar la cantidad". The feature exists for users without a scale, so a `null` estimate is the worst outcome. The root cause is not confirmed (the agents have no logs or API key); the user will retry after the merge and deploy and read the logs.
+- **Decision** (all inside T-131):
+  - `weight` mode must always return a best estimate: the prompt has no null escape and `estimated_amount` is non-null in the response schema. The normalizer still rejects a non-number or a value <= 0 with 422 `NO_FOOD_RECOGNIZED` ("No hemos podido estimar la cantidad" + "Reintentar"). Dish, label and barcode are unchanged.
+  - The `food` context of weight mode carries only `name`, `brand?` and `base_unit` (no kcal or macros), in the client DTO and in the function validation.
+  - In `weight` mode `confidence` is an integer 1–10 returned by the model (the prompt defines the scale: 1 = pure guess, 10 = near certain); the app shows it in the amount-photo flow as a colour scale red to green plus the text "Confianza 7/10" (new rule R-41). Dish, label and barcode keep the `low|medium|high` enum (`FoodPhotoConfidence`), which no screen displays.
+  - The function logs diagnostics only when the optional secret `FOOD_PHOTO_DEBUG` is set (unset = off, no redeploy): mode, model, elapsed ms, provider status, response shape, rejection reason, raw `estimated_amount` and `confidence`; never the photo, tokens, user note or a full body.
+- **Consequences:** `03-data-model.md` (`food-photo` weight contract), `epics/E7-...` (US-54 technical notes), `epics/E9-finalization.md` (US-56 scenarios), `05-design-system.md` (R-41, confidence colour scale), `08-environment-setup.md` (optional secret), task T-131.
+- **Approval:** 2026-10-26, user (chat).

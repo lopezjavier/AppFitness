@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G10 a small tree under
+# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 a small tree under
 # scripts/tests/ux-conventions/g<n>/ holds one violating file. Three cases per guard:
 #   violation  : no warning list              -> exit 1
 #   listed     : path in the warning list     -> exit 0 and a WARN line
@@ -38,7 +38,7 @@ expect() { # name expected-rc [WARN|NOWARN]
 empty="$work/empty.txt"
 : > "$empty"
 
-for n in 1 2 3 4 5 6 7 8 9 10; do
+for n in 1 2 3 4 5 6 7 8 9 10 11; do
   tree="$here/ux-conventions/g$n"
   listed="$work/listed-g$n.txt"
   other="$work/other-g$n.txt"

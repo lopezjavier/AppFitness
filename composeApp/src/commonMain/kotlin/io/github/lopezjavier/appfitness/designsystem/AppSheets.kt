@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -87,7 +86,7 @@ fun AppEditSheet(
     testTagPrefix: String = "edit_sheet",
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberAppSheetState()
     val scope = rememberCoroutineScope()
     val label = stringResource(
         when (commit) {
@@ -172,7 +171,7 @@ private fun ReadOnlySheet(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberAppSheetState()
     val scope = rememberCoroutineScope()
     AppBottomSheet(
         onDismissRequest = onDismiss,

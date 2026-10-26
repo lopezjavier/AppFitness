@@ -832,8 +832,6 @@
     <string name="diary_entry_kcal">%1$s kcal</string>
     <string name="catalog_section_favourite_toggle">Botón de favorito</string>
     <string name="catalog_section_portion_selector">Cantidad y porción</string>
-    <string name="diary_summary_spoken">%1$s de %2$s kilocalorías, proteínas %3$s gramos, hidratos %4$s gramos, grasas %5$s gramos</string>
-    <string name="diary_summary_spoken_no_goal">%1$s kilocalorías, proteínas %2$s gramos, hidratos %3$s gramos, grasas %4$s gramos</string>
     <string name="food_search_back_cd">Volver</string>
     <string name="food_search_label">Buscar alimentos</string>
     <string name="food_search_placeholder">Nombre o marca</string>
@@ -842,8 +840,8 @@
     <string name="food_tab_favourites">Favoritos</string>
     <string name="food_empty_search">No hemos encontrado alimentos</string>
     <string name="food_create_action">Crear alimento</string>
-    <string name="food_action_scan">Escanear</string>
-    <string name="food_action_photo">Foto</string>
+    <string name="food_search_scan_description">Escanear código de barras</string>
+    <string name="food_search_photo_description">Añadir con foto</string>
     <string name="food_remote_error">No se pudo buscar en Open Food Facts. Inténtalo de nuevo.</string>
     <string name="food_empty_search_hint">Prueba con otro nombre o marca.</string>
     <string name="food_empty_recent">Aún no has registrado alimentos</string>
@@ -910,7 +908,7 @@
     <string name="add_food_portion_group">Porción</string>
     <string name="add_food_portion_option">%1$s (%2$s %3$s)</string>
     <string name="add_food_quantity_error">Introduce una cantidad entre 0 y 5000</string>
-    <string name="add_food_meal_label">Comida</string>
+    <string name="add_food_meal_label">Añadir a:</string>
     <string name="add_food_no_meal_hint">No tienes ninguna comida activa</string>
     <string name="add_food_preview_kcal">%1$s kcal</string>
     <string name="add_food_submit">Añadir</string>
@@ -1456,6 +1454,8 @@
     <string name="food_photo_comment_counter">%1$d de %2$d</string>
     <string name="food_photo_estimating">Estimando…</string>
     <string name="add_food_photo_cd">Estimar cantidad con foto</string>
+    <string name="amount_photo_confidence">Confianza %1$d/10</string>
+    <string name="amount_photo_confidence_cd">Confianza %1$d de 10</string>
     <string name="add_food_photo_error">No hemos podido estimar la cantidad</string>
     <string name="add_food_photo_cancel">Cancelar</string>
     <string name="add_food_photo_offline">Sin conexión: no puedes estimar la cantidad con foto</string>

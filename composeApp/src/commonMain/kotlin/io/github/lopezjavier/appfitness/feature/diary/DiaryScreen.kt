@@ -26,17 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_defaults_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_summary_spoken
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_summary_spoken_no_goal
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -57,7 +53,7 @@ private const val SKELETON_SECTIONS = 4
 
 /**
  * Stateless "Diario" screen (US-19, US-20) on `AppScreen` with the date switcher as its header: the defaults notice,
- * the day summary strip, one card per meal and the progress dashboard at the bottom. Wide windows put the dashboard
+ * the progress dashboard on top and one card per meal below it. Wide windows put the dashboard
  * left of the meals. [onBack] (a past-day route) adds the back arrow to the header.
  */
 @Composable
@@ -146,9 +142,8 @@ private fun NarrowDay(content: DiaryContent, actions: EntryActions, onEvent: (Di
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         if (content.defaultsFailed) item(key = "defaults") { DefaultsFailedMessage(onEvent) }
-        item(key = "summary") { DiarySummaryStrip(content.summary) }
+        item(key = "dashboard") { DiaryDashboard(content, onEvent) }
         mealItems(content, actions, onEvent)
-        item(key = "dashboard") { DiaryDashboard(content, onEvent, Modifier.padding(top = Spacing.blockGap)) }
     }
 }
 
@@ -160,7 +155,6 @@ private fun WideDay(content: DiaryContent, actions: EntryActions, onEvent: (Diar
             verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
         ) {
             if (content.defaultsFailed) DefaultsFailedMessage(onEvent)
-            DiarySummaryStrip(content.summary)
             DiaryDashboard(content, onEvent)
         }
         LazyColumn(
@@ -184,40 +178,6 @@ private fun LazyListScope.mealItems(content: DiaryContent, actions: EntryActions
             modifier = Modifier.animateItem(),
         )
     }
-}
-
-/** The day at a glance on one line ("1.240 / 2.100 kcal · P 80 · C 150 · G 40"), read out in full words. */
-@Composable
-internal fun DiarySummaryStrip(summary: DiarySummary, modifier: Modifier = Modifier) {
-    val consumed = AppNumberFormat.integer(summary.kcal)
-    val target = summary.targetKcal
-    val spoken = if (target != null) {
-        stringResource(
-            Res.string.diary_summary_spoken,
-            consumed,
-            AppNumberFormat.integer(target),
-            summary.proteinG,
-            summary.carbsG,
-            summary.fatG,
-        )
-    } else {
-        stringResource(
-            Res.string.diary_summary_spoken_no_goal,
-            consumed,
-            summary.proteinG,
-            summary.carbsG,
-            summary.fatG,
-        )
-    }
-    Text(
-        text = summary.text,
-        style = AppTheme.typography.labelNumeric,
-        color = AppTheme.colors.textSecondary,
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = spoken }
-            .testTag("diary_summary_strip"),
-    )
 }
 
 /** Non-blocking notice that today's default comidas could not be added; the Diary stays usable. */

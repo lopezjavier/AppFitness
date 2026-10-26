@@ -7,6 +7,11 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+import kotlin.math.roundToInt
 
 /** Body of `POST food-photo`; [comment] is omitted when null (the client does not encode defaults). */
 @Serializable
@@ -32,26 +37,18 @@ internal data class FoodPhotoRequestDto(
     }
 }
 
-/** The food already chosen, sent as data for a weight estimate; nutrition is per 100 base units. */
+/** The food already chosen, sent as data for a weight estimate (ADR-72: name, brand and base unit only). */
 @Serializable
 internal data class FoodContextDto(
     val name: String,
     val brand: String? = null,
     @SerialName("base_unit") val baseUnit: String,
-    val kcal: Double,
-    @SerialName("protein_g") val proteinG: Double,
-    @SerialName("carbs_g") val carbsG: Double,
-    @SerialName("fat_g") val fatG: Double,
 ) {
     companion object {
         fun from(food: Food) = FoodContextDto(
             name = food.name,
             brand = food.brand?.takeIf { it.isNotBlank() },
             baseUnit = if (food.baseUnit == "ml") "ml" else "g",
-            kcal = food.nutrition.kcal,
-            proteinG = food.nutrition.proteinG,
-            carbsG = food.nutrition.carbsG,
-            fatG = food.nutrition.fatG,
         )
     }
 }
@@ -72,13 +69,22 @@ internal data class AmountRequestDto(
 internal data class AmountEstimateDto(
     @SerialName("estimated_amount") val estimatedAmount: Double,
     @SerialName("base_unit") val baseUnit: String = "g",
-    val confidence: String? = null,
+    // Decoded leniently: an old string answer ("high") or any non-number must not fail the whole estimate.
+    val confidence: JsonElement? = null,
 ) {
     fun toDomain() = AmountEstimate(
         amount = estimatedAmount,
         baseUnit = if (baseUnit == "ml") "ml" else "g",
-        confidence = confidence.toConfidence(),
+        confidence = confidence.toScore(),
     )
+}
+
+private const val MIN_SCORE = 1
+private const val MAX_SCORE = 10
+
+private fun JsonElement?.toScore(): Int? {
+    val number = (this as? JsonPrimitive)?.takeUnless { it is JsonNull || it.isString }
+    return number?.doubleOrNull?.roundToInt()?.takeIf { it in MIN_SCORE..MAX_SCORE }
 }
 
 @Serializable

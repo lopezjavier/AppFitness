@@ -29,7 +29,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** The day-at-a-glance summary, `isToday`, "Hoy" and the day picker's marked days of [DiaryViewModel]. */
@@ -67,26 +66,6 @@ class DiaryDayPickerViewModelTest {
         FoodLogEntry(id, today, "lunch", "f-$id", "Food $id", 100.0, null, "g", kcal, protein, carbs, fat)
 
     private fun summaryOf(day: LocalDate) = DiaryDaySummary(day, MealTotals(100.0, 0.0, 0.0, 0.0))
-
-    @Test
-    fun summary_roundsHalfUpAndTakesTheTargetFromTheGoals() = runTest(dispatcher) {
-        diary.server[today] = listOf(entry("a", 1839.6, 79.5, 149.4, 40.05))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        assertEquals(DiarySummary(1840, 2400, 80, 149, 40), model.content().summary)
-    }
-
-    @Test
-    fun summary_withoutGoals_hasNoTarget() = runTest(dispatcher) {
-        goals.row = null
-        diary.server[today] = listOf(entry("a", 500.0))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        assertNull(model.content().summary.targetKcal)
-        assertEquals(500, model.content().summary.kcal)
-    }
 
     @Test
     fun isToday_isTrueOnTodayAndFalseAfterGoingToYesterday() = runTest(dispatcher) {

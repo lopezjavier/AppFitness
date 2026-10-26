@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +54,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.rememberAppSheetState
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.feature.biometrics.ActivityCards
@@ -323,7 +323,7 @@ private fun <T> PickerSheet(
     // What the wheels show right now. It runs ahead of [draft] while a snap animation is still settling, so "Listo"
     // applies the centred item and not the value from before the swipe.
     var centred by rememberSaveable(stateSaver = saver) { mutableStateOf(initial) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberAppSheetState()
     val scope = rememberCoroutineScope()
     AppBottomSheet(onDismissRequest = onClose, sheetState = sheetState, testTagPrefix = "preferences_sheet") {
         Column(

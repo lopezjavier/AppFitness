@@ -88,7 +88,6 @@ private fun content(
         collapsedSlotIds = collapsed,
         defaultsFailed = defaultsFailed,
         isToday = isToday,
-        summary = DiarySummary.of(totals, (goals as? DiaryGoalsState.Set)?.goals?.targetKcal),
     ),
 )
 
@@ -163,30 +162,11 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun summaryStrip_sitsAboveTheFirstMeal_andTheDashboardBelowTheLast() {
+    fun dashboard_sitsAboveTheFirstMeal_andThereIsNoSummaryStrip() {
         show(content())
 
-        assertTrue(top("diary_summary_strip") < top("diary_section_breakfast"))
-        assertTrue(top("diary_ring") > top("diary_section_dinner"))
-    }
-
-    @Test
-    fun summaryStrip_showsTheDayAgainstTheTargetAndIsSpokenInFullWords() {
-        show(content())
-
-        rule.onNodeWithTag("diary_summary_strip").assertTextEquals("1.840 / 2.400 kcal · P 142 · C 210 · G 48")
-        assertEquals(
-            "1.840 de 2.400 kilocalorías, proteínas 142 gramos, hidratos 210 gramos, grasas 48 gramos",
-            rule.onNodeWithTag("diary_summary_strip").fetchSemanticsNode().config
-                .getOrNull(SemanticsProperties.ContentDescription)?.single(),
-        )
-    }
-
-    @Test
-    fun summaryStrip_withoutGoalsShowsNoTarget() {
-        show(content(goals = DiaryGoalsState.NotSet))
-
-        rule.onNodeWithTag("diary_summary_strip").assertTextEquals("1.840 kcal · P 142 · C 210 · G 48")
+        assertTrue(top("diary_ring") < top("diary_section_breakfast"))
+        rule.onNodeWithTag("diary_summary_strip").assertDoesNotExist()
     }
 
     @Test
@@ -460,12 +440,12 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun compactWindow_stacksTheDashboardBelowTheMeals() {
+    fun compactWindow_stacksTheDashboardAboveTheMeals() {
         show(content())
 
         val ring = rule.onNodeWithTag("diary_ring").getUnclippedBoundsInRoot()
-        val dinner = rule.onNodeWithTag("diary_section_dinner").getUnclippedBoundsInRoot()
-        assertTrue("ring ${ring.top} below meals ${dinner.bottom}", ring.top >= dinner.bottom)
+        val breakfast = rule.onNodeWithTag("diary_section_breakfast").getUnclippedBoundsInRoot()
+        assertTrue("ring ${ring.bottom} above meals ${breakfast.top}", ring.bottom <= breakfast.top)
     }
 
     @Test

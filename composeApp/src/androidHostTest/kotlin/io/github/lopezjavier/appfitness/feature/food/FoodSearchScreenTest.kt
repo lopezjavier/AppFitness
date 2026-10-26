@@ -1,10 +1,10 @@
 package io.github.lopezjavier.appfitness.feature.food
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
@@ -100,7 +100,7 @@ class FoodSearchScreenTest {
     fun createIcon_isShownWithAndWithoutAQuery_andEmitsCreate() {
         show(content(Chicken))
         rule.onNodeWithTag("food_search_action_create").assertExists()
-        rule.onNodeWithTag("food_search_action_create").assertTextContains("Crear alimento")
+        rule.onNodeWithTag("food_search_action_create").assertContentDescriptionEquals("Crear alimento")
         rule.onNodeWithTag("food_search_action_create").performClick()
         rule.onNodeWithTag("food_search_create_button").assertDoesNotExist()
 
@@ -126,10 +126,22 @@ class FoodSearchScreenTest {
     fun scanAction_isLabelled_andEmitsTheScanEvent() {
         show(content(Chicken))
 
-        rule.onNodeWithTag("food_search_action_scan").assertTextContains("Escanear")
+        rule.onNodeWithTag("food_search_action_scan").assertContentDescriptionEquals("Escanear código de barras")
         rule.onNodeWithTag("food_search_action_scan").performClick()
 
         assertEquals(listOf<FoodSearchEvent>(FoodSearchEvent.ScanClicked), events)
+    }
+
+    @Test
+    fun actionIcons_shareTheSearchFieldRow_alignedToTheInputBox() {
+        show(content(Chicken))
+
+        val field = rule.onNodeWithTag("food_search_field").getUnclippedBoundsInRoot()
+        listOf("scan", "photo", "create").forEach { name ->
+            val icon = rule.onNodeWithTag("food_search_action_$name").getUnclippedBoundsInRoot()
+            assertEquals(field.bottom.value, icon.bottom.value, 1f)
+            assertTrue(icon.left >= field.right)
+        }
     }
 
     @Test
@@ -148,7 +160,7 @@ class FoodSearchScreenTest {
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("food_search_action_photo").assertTextContains("Foto")
+        rule.onNodeWithTag("food_search_action_photo").assertContentDescriptionEquals("Añadir con foto")
         rule.onNodeWithTag("food_search_action_photo").performClick()
 
         assertEquals(1, photo)

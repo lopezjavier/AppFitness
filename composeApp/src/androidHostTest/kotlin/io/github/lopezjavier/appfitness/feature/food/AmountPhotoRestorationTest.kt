@@ -9,10 +9,12 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -63,8 +65,11 @@ class AmountPhotoRestorationTest {
         savedState = addSaved,
     )
 
-    private fun photoModel() =
-        AmountPhotoViewModel(chicken.id, foods, FakeFoodPhotoRepository(), capture, connectivity, photoSaved)
+    private val photoRepo = FakeFoodPhotoRepository().apply {
+        amountResult = Result.success(AmountEstimate(180.0, "g", 7))
+    }
+
+    private fun photoModel() = AmountPhotoViewModel(chicken.id, foods, photoRepo, capture, connectivity, photoSaved)
 
     @Composable
     private fun Host() {
@@ -76,7 +81,7 @@ class AmountPhotoRestorationTest {
         LaunchedEffect(photoModel) {
             photoModel.effects.collect {
                 if (it is AmountPhotoEffect.AmountEstimated) {
-                    addModel.onEvent(AddFoodEvent.AmountEstimated(it.amount, it.baselineAmountText))
+                    addModel.onEvent(AddFoodEvent.AmountEstimated(it.amount, it.baselineAmountText, it.confidence))
                 }
             }
         }
@@ -102,6 +107,23 @@ class AmountPhotoRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("food_sheet_amount").assertTextContains("180")
+    }
+
+    @Test
+    fun confidenceLine_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host() }
+        rule.waitForIdle()
+        rule.onNodeWithTag("food_sheet_amount_photo").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo_source_row_1").performClick()
+        rule.onNodeWithTag("food_sheet_amount_photo_use").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("Confianza 7/10", useUnmergedTree = true).assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Confianza 7/10", useUnmergedTree = true).assertExists()
     }
 
     @Test

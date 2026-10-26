@@ -720,6 +720,49 @@ class AddFoodViewModelTest {
     }
 
     @Test
+    fun amountEstimated_exposesTheConfidenceUntilTheUserChangesTheAmount() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 180.0, baselineAmountText = "100", confidence = 7))
+        advanceUntilIdle()
+        assertEquals(7, model.content().estimateConfidence)
+
+        model.onEvent(AddFoodEvent.AmountChanged("150"))
+        advanceUntilIdle()
+        assertNull(model.content().estimateConfidence)
+    }
+
+    @Test
+    fun amountEstimated_withoutConfidenceShowsNone() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        val model = viewModel("rice")
+        advanceUntilIdle()
+
+        model.onEvent(AddFoodEvent.AmountEstimated(amount = 180.0, baselineAmountText = "100", confidence = null))
+        advanceUntilIdle()
+
+        assertNull(model.content().estimateConfidence)
+    }
+
+    @Test
+    fun amountEstimated_confidenceSurvivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
+        withFood(food("rice", kcal = 130.0))
+        val saved = SavedStateHandle()
+        val first = viewModel("rice", state = saved)
+        advanceUntilIdle()
+        first.onEvent(AddFoodEvent.AmountEstimated(amount = 180.0, baselineAmountText = "100", confidence = 7))
+        advanceUntilIdle()
+
+        val second = viewModel("rice", state = saved)
+        advanceUntilIdle()
+
+        assertEquals("180", second.content().amountText)
+        assertEquals(7, second.content().estimateConfidence)
+    }
+
+    @Test
     fun amountEstimated_isDiscardedWhenTheUserTypedAnAmountSinceTheRequestStarted() = runTest(dispatcher) {
         withFood(food("rice", kcal = 130.0))
         val model = viewModel("rice")

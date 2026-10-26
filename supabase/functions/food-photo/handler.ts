@@ -15,6 +15,7 @@ import {
     MODES,
     normalizeDraft,
     normalizeWeight,
+    weightRejectReason,
 } from "./schema.ts";
 
 /** Largest accepted image once decoded (the app sends ~1.5 MB JPEGs). */
@@ -29,6 +30,12 @@ export type FoodPhotoDeps = {
     authenticate: (token: string) => Promise<string | null>;
     /** Value of the optional GEMINI_MODEL secret; only used to name the model in the 404 log line. */
     model?: string;
+    /**
+     * FOOD_PHOTO_DEBUG on/off (a getter is read per request). When on, one diagnostic line per request:
+     * mode, model, elapsed, status, response shape, reason, raw amount/confidence numbers. Never the photo,
+     * tokens, note, food name or any body.
+     */
+    debug?: boolean | (() => boolean);
     /** Calls the model; returns its raw JSON output. Throws GeminiError. */
     generate: (
         req: {
@@ -41,6 +48,10 @@ export type FoodPhotoDeps = {
     ) => Promise<unknown>;
 };
 
+/** Evaluated per request so flipping the FOOD_PHOTO_DEBUG secret needs no redeploy. */
+const isDebug = (deps: FoodPhotoDeps) =>
+    typeof deps.debug === "function" ? deps.debug() : deps.debug === true;
+
 const invalid = (message: string) => errorResponse("INVALID_INPUT", message);
 
 export function createFoodPhotoHandler(
@@ -51,6 +62,7 @@ export function createFoodPhotoHandler(
         const token = bearerToken(req);
         if (!token) return unauthorized();
 
+        let debugCtx: { mode: string; started: number } | null = null;
         try {
             const userId = await deps.authenticate(token);
             if (!userId) return unauthorized();
@@ -115,32 +127,70 @@ export function createFoodPhotoHandler(
                 return invalid("food is only allowed with mode weight");
             }
 
+            debugCtx = { mode: mode as string, started: Date.now() };
             const output = await deps.generate({
                 mode: mode as FoodPhotoMode,
                 imageBase64: image,
                 comment: note,
                 food: foodContext,
             });
+            const diag = (reason: string) => {
+                if (!isDebug(deps) || !debugCtx) return;
+                const out = output as Record<string, unknown> | null;
+                const numbers = foodContext && out && typeof out === "object" &&
+                        !Array.isArray(out)
+                    ? ` amount=${
+                        numberOrType(out.estimated_amount)
+                    } confidence=${numberOrType(out.confidence)}`
+                    : "";
+                console.log(
+                    `food-photo debug: mode=${debugCtx.mode} model=${
+                        resolveModel(deps.model)
+                    } elapsed_ms=${
+                        Date.now() - debugCtx.started
+                    } status=200 shape=${
+                        shapeOf(output)
+                    } reason=${reason}${numbers}`,
+                );
+            };
             if (foodContext) {
                 const estimate = normalizeWeight(output, foodContext.base_unit);
                 if (!estimate) {
+                    const reason = weightRejectReason(output);
+                    diag(reason);
+                    console.error(
+                        "food-photo: unrecognized weight output",
+                        reason,
+                    );
                     return errorResponse(
                         "NO_FOOD_RECOGNIZED",
                         "The amount could not be estimated from the photo",
                     );
                 }
+                diag("ok");
                 return jsonResponse(200, { estimate });
             }
             const draft = normalizeDraft(output, mode as FoodPhotoMode);
             if (!draft) {
+                diag("no_food");
                 return errorResponse(
                     "NO_FOOD_RECOGNIZED",
                     "No food with nutrition could be recognized in the photo",
                 );
             }
+            diag("ok");
             return jsonResponse(200, { draft });
         } catch (err) {
             if (err instanceof GeminiError) {
+                if (isDebug(deps) && debugCtx) {
+                    console.log(
+                        `food-photo debug: mode=${debugCtx.mode} model=${
+                            resolveModel(deps.model)
+                        } elapsed_ms=${Date.now() - debugCtx.started} status=${
+                            err.status ?? "none"
+                        } reason=${err.kind}`,
+                    );
+                }
                 // A retired model is actionable only if the log names it (config id, never the body).
                 console.error(
                     "food-photo: provider failed",
@@ -181,15 +231,12 @@ type FoodContext = {
     name: string;
     brand: string | null;
     base_unit: "g" | "ml";
-    kcal?: number;
-    protein_g?: number;
-    carbs_g?: number;
-    fat_g?: number;
 };
 
-const FOOD_NUMBERS = ["kcal", "protein_g", "carbs_g", "fat_g"] as const;
-
-/** Validates the `food` object of weight mode; returns an error message string when invalid. */
+/**
+ * Validates the `food` object of weight mode; returns an error message string when invalid.
+ * Unknown keys (e.g. the macros older app builds still send) are ignored, never rejected or forwarded.
+ */
 function parseFood(value: unknown): FoodContext | string {
     if (value === null || typeof value !== "object" || Array.isArray(value)) {
         return "food is required with mode weight";
@@ -212,17 +259,26 @@ function parseFood(value: unknown): FoodContext | string {
     if (f.base_unit !== "g" && f.base_unit !== "ml") {
         return "food.base_unit must be g or ml";
     }
-    const out: FoodContext = { name, brand, base_unit: f.base_unit };
-    for (const key of FOOD_NUMBERS) {
-        const v = f[key];
-        if (v === undefined || v === null) continue;
-        if (typeof v !== "number" || !Number.isFinite(v) || v < 0) {
-            return `food.${key} must be a number >= 0`;
-        }
-        out[key] = v;
-    }
-    return out;
+    return { name, brand, base_unit: f.base_unit };
 }
+
+/** Key names and value types of a model output; never values (safe to log). */
+function shapeOf(raw: unknown): string {
+    if (Array.isArray(raw)) return "array";
+    if (raw === null || typeof raw !== "object") {
+        return raw === null ? "null" : typeof raw;
+    }
+    return Object.entries(raw as Record<string, unknown>).slice(0, 20)
+        .map(([k, v]) =>
+            `${k.replace(/[^A-Za-z0-9_-]/g, "?").slice(0, 40)}:${
+                v === null ? "null" : Array.isArray(v) ? "array" : typeof v
+            }`
+        ).join(",");
+}
+
+/** A number as text, or its type, so a log line never carries free text from the model. */
+const numberOrType = (v: unknown) =>
+    typeof v === "number" ? String(v) : v === null ? "null" : typeof v;
 
 const tooLarge = () =>
     errorResponse(

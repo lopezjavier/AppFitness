@@ -59,6 +59,8 @@ Tokens M3 does not cover (macros, ghostData, electricGreen…) are exposed throu
 ### 2.5 RPE scale (only inside `RpePickerSheet`, ADR-55)
 `AppTheme.colors.rpeScale(value)` returns one colour per grid value, green (easy) to red (hard). The picker lists 10 at the top down to 6 (whole numbers, ADR-56). The nine stops below are spread over the five values and interpolated (RPE 6 = first stop, RPE 10 = last). Each row is `surfaceOverlay` tinted with the ramp colour at 16 %, with an 8 dp leading marker bar in the full colour; the number is always shown in `textPrimary` (colour is never the only cue) and the selected row adds a 1.5 dp border plus a check. Every colour is at least 3:1 against `surfaceOverlay`.
 
+`AppTheme.colors.confidenceScale(value)` (ADR-72) reuses the same stops reversed for a whole value 1 to 10 (clamped): 1 = red end, 10 = green end. It colours only a graphic of at least 12 dp (the dot of the "Confianza 7/10" line, 3:1 against `surfaceOverlay`); the text is always `textPrimary`.
+
 | Stop | Hex | Stop | Hex |
 |---|---|---|---|
 | 1 | `#22C55E` | 6 | `#FB923C` |
@@ -347,6 +349,9 @@ Generic rules for every screen, cited by number. ux-reviewer rejects a plan that
   line).
 - **R-39** Where an icon clearly represents an action (photo, add, remove, retry, scan), the control is an icon with a
   contentDescription; text buttons are for actions with no clear icon (ADR-71).
+- **R-41** A quality or confidence level is never shown by colour alone: it is a colour from a design-system scale
+  (low = red to high = green, `AppColors.confidenceScale`, built on the RPE ramp stops, §2.5) plus text ("Confianza
+  7/10"), and the node's contentDescription/`stateDescription` carries the same text for TalkBack (ADR-72).
 
 ### Wording
 - **R-35** The glossary (Appendix A) is binding: one label per concept, and one concept per label.

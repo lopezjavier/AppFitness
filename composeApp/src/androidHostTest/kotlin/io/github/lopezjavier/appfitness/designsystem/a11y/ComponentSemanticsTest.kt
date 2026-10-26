@@ -57,7 +57,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -261,15 +260,12 @@ class ComponentSemanticsTest {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Test
-    fun bottomSheet_handleIsDecorative() {
+    fun bottomSheet_hasNoHandle() {
         rule.setContent {
             AppTheme { AppBottomSheet(onDismissRequest = {}, testTagPrefix = "sheet") { Text("contenido") } }
         }
         rule.waitForIdle()
-        val handle = rule.onNodeWithTag("sheet_handle", useUnmergedTree = true).fetchSemanticsNode()
-        val cds = handle.children.mapNotNull { it.config.getOrNull(SemanticsProperties.ContentDescription) }
-        assertTrue(cds.isEmpty())
-        assertTrue(handle.children.none { it.config.getOrNull(SemanticsActions.OnClick) != null })
+        rule.onNodeWithTag("sheet_handle", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

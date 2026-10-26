@@ -76,20 +76,12 @@ class HelpButtonTest {
     }
 
     @Test
-    fun scrimTap_closes() {
+    fun scrimTap_andSwipeDown_doNotClose() {
         open()
-        rule.onNodeWithTag("help_sheet").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Close Sheet", ignoreCase = true).performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("help_sheet").assertDoesNotExist()
-    }
-
-    @Test
-    fun swipeDown_closes() {
-        open()
+        rule.onNodeWithContentDescription("Close Sheet", ignoreCase = true).assertDoesNotExist()
         rule.onNodeWithTag("help_sheet").performTouchInput { swipeDown() }
         rule.waitForIdle()
-        rule.onNodeWithTag("help_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("help_sheet").assertIsDisplayed()
     }
 
     @Test
@@ -100,6 +92,9 @@ class HelpButtonTest {
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
+        rule.onNodeWithTag("help_sheet").assertIsDisplayed()
+        rule.onNodeWithTag("help_sheet").performTouchInput { swipeDown() }
+        rule.waitForIdle()
         rule.onNodeWithTag("help_sheet").assertIsDisplayed()
     }
 }

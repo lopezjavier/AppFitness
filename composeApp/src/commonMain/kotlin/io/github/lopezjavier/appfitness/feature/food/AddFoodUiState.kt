@@ -48,6 +48,8 @@ data class AddFoodContent(
     val retainedOilG: Double = 0.0,
     /** What the oil adds, null for [CookingMethod.Raw]. [preview] already includes it. */
     val cookingImpact: CookingImpactPreview? = null,
+    /** Confidence 1..10 of the amount filled from a photo; null once the user edits the amount (or none was given). */
+    val estimateConfidence: Int? = null,
 ) {
     /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
     val showEdit: Boolean get() = food.isManual
@@ -94,7 +96,12 @@ sealed interface AddFoodEvent {
      * [baselineAmountText], the text when the flow started: a late result never overwrites what the user typed since.
      * A named portion is deselected so the amount is read in base units.
      */
-    data class AmountEstimated(val amount: Double, val baselineAmountText: String) : AddFoodEvent
+    data class AmountEstimated(
+        val amount: Double,
+        val baselineAmountText: String,
+        /** 1 (guess) to 10 (near certain), null when unknown; shown until the user changes the amount. */
+        val confidence: Int? = null,
+    ) : AddFoodEvent
 
     /** Pick a named portion, or null to type an amount in the base unit again. */
     data class PortionSelected(val portionId: String?) : AddFoodEvent

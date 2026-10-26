@@ -60,8 +60,11 @@ sealed interface AmountPhotoEvent {
 
 sealed interface AmountPhotoEffect {
     /**
-     * The estimate in the food's base unit. Forward it as `AddFoodEvent.AmountEstimated(amount, baselineAmountText)`:
-     * [baselineAmountText] lets the sheet drop the result if the user typed another amount meanwhile.
+     * The estimate in the food's base unit. Forward it as
+     * `AddFoodEvent.AmountEstimated(amount, baselineAmountText, confidence)`: [baselineAmountText] lets the sheet drop
+     * the result if the user typed another amount meanwhile. [confidence] is the model's 1 (guess) to 10 (near certain)
+     * score, null when the server sent none (ADR-72).
      */
-    data class AmountEstimated(val amount: Double, val baselineAmountText: String) : AmountPhotoEffect
+    data class AmountEstimated(val amount: Double, val baselineAmountText: String, val confidence: Int? = null) :
+        AmountPhotoEffect
 }

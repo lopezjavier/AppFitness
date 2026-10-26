@@ -54,7 +54,21 @@ class AppColors(
         val lower = position.toInt().coerceAtMost(RpeRamp.lastIndex - 1)
         return lerp(RpeRamp[lower], RpeRamp[lower + 1], (position - lower).toFloat())
     }
+
+    /**
+     * §2.5 Confidence ramp for a whole value 1 to 10 (clamped): 1 = red end, 10 = green end of the RPE ramp, reversed.
+     * Reinforcement only: the value is always also written as text.
+     */
+    fun confidenceScale(value: Int): Color {
+        val position = (value.coerceIn(CONFIDENCE_MIN, CONFIDENCE_MAX) - CONFIDENCE_MIN).toFloat() /
+            (CONFIDENCE_MAX - CONFIDENCE_MIN) * RpeRamp.lastIndex
+        val lower = position.toInt().coerceAtMost(RpeRamp.lastIndex - 1)
+        return lerp(RpeRamp[RpeRamp.lastIndex - lower], RpeRamp[RpeRamp.lastIndex - lower - 1], position - lower)
+    }
 }
+
+private const val CONFIDENCE_MIN = 1
+private const val CONFIDENCE_MAX = 10
 
 private const val RPE_RAMP_MIN = 6.0
 private const val RPE_RAMP_MAX = 10.0

@@ -42,6 +42,8 @@ private const val KEY_AMOUNT = "add_food_amount"
 private const val KEY_PORTION = "add_food_portion"
 private const val KEY_SLOT = "add_food_slot"
 private const val KEY_COOKING = "add_food_cooking"
+private const val KEY_CONFIDENCE = "add_food_estimate_confidence"
+private const val MAX_CONFIDENCE = 10
 private const val DEFAULT_AMOUNT = 100.0
 private const val SINGLE = 1.0
 private const val HALF = 0.5
@@ -56,6 +58,8 @@ private data class Draft(
     val portionId: String,
     val slotId: String?,
     val cookingMethod: CookingMethod = CookingMethod.Raw,
+    /** Confidence 1..10 of the photo estimate now in the amount; 0 = none (a saved state cannot hold null reliably). */
+    val estimateConfidence: Int = 0,
 )
 
 /**
@@ -111,13 +115,21 @@ class AddFoodViewModel(
 
     fun onEvent(event: AddFoodEvent) {
         when (event) {
-            is AddFoodEvent.AmountChanged -> updateDraft { it.copy(amountText = event.text) }
-            is AddFoodEvent.AmountEstimated -> applyEstimate(event.amount, event.baselineAmountText)
+            is AddFoodEvent.AmountChanged -> updateDraft { it.copy(amountText = event.text, estimateConfidence = 0) }
+
+            is AddFoodEvent.AmountEstimated ->
+                applyEstimate(event.amount, event.baselineAmountText, event.confidence)
+
             is AddFoodEvent.PortionSelected -> selectPortion(event.portionId)
+
             is AddFoodEvent.SlotSelected -> updateDraft { it.copy(slotId = event.slotId) }
+
             is AddFoodEvent.CookingMethodSelected -> selectCooking(event.method)
+
             AddFoodEvent.Submit -> submit()
+
             AddFoodEvent.Retry -> load()
+
             AddFoodEvent.Refresh -> load(silent = true)
         }
     }
@@ -189,7 +201,8 @@ class AddFoodViewModel(
             .orEmpty()
         val amount = savedState.get<String>(KEY_AMOUNT) ?: defaultAmountText(food, portionId)
         val method = CookingMethod.fromWireName(savedState.get<String>(KEY_COOKING)) ?: CookingMethod.Raw
-        return Draft(amount, portionId, slotId, method)
+        val confidence = savedState.get<Int>(KEY_CONFIDENCE) ?: 0
+        return Draft(amount, portionId, slotId, method, confidence)
     }
 
     /** Ignored for drinks, in pick mode (the comida editor chooses its own) and while the preferences are unknown. */
@@ -206,12 +219,18 @@ class AddFoodViewModel(
         val food = (loaded.value as? Loaded.Ready)?.setup?.food ?: return
         val id = portionId.orEmpty()
         if (id.isNotEmpty() && food.portions.none { it.id == id }) return
-        updateDraft { it.copy(portionId = id, amountText = defaultAmountText(food, id)) }
+        updateDraft { it.copy(portionId = id, amountText = defaultAmountText(food, id), estimateConfidence = 0) }
     }
 
-    private fun applyEstimate(amount: Double, baselineAmountText: String) {
+    private fun applyEstimate(amount: Double, baselineAmountText: String, confidence: Int?) {
         if (draft.value?.amountText != baselineAmountText) return
-        updateDraft { it.copy(portionId = "", amountText = estimatedAmountText(amount)) }
+        updateDraft {
+            it.copy(
+                portionId = "",
+                amountText = estimatedAmountText(amount),
+                estimateConfidence = confidence?.takeIf { score -> score in 1..MAX_CONFIDENCE } ?: 0,
+            )
+        }
     }
 
     private fun updateDraft(change: (Draft) -> Draft) {
@@ -221,6 +240,7 @@ class AddFoodViewModel(
         savedState[KEY_PORTION] = updated.portionId
         updated.slotId?.let { savedState[KEY_SLOT] = it }
         savedState[KEY_COOKING] = updated.cookingMethod.wireName
+        savedState[KEY_CONFIDENCE] = updated.estimateConfidence
     }
 
     private fun submit() {
@@ -326,6 +346,7 @@ class AddFoodViewModel(
             micronutrients = micronutrients,
             pick = pick,
             cookingMethod = method,
+            estimateConfidence = draft.estimateConfidence.takeIf { it > 0 },
             showCooking = prefs != null,
             retainedOilG = retained,
             cookingImpact = if (method == CookingMethod.Raw) {

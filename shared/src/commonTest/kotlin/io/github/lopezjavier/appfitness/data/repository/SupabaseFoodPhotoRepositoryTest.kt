@@ -39,7 +39,7 @@ private const val TORTILLA =
         """"protein_g":6,"carbs_g":15,"fat_g":10},"micronutrients":{"fiber_100g":1.5},"estimated_grams":250,""" +
         """"confidence":"medium"}}"""
 
-private const val WEIGHT_CHICKEN = """{"estimate":{"estimated_amount":180,"base_unit":"g","confidence":"medium"}}"""
+private const val WEIGHT_CHICKEN = """{"estimate":{"estimated_amount":180,"base_unit":"g","confidence":7}}"""
 
 private const val ERROR_BODY = """{"error":{"code":"X","message":"generic"}}"""
 
@@ -200,10 +200,30 @@ class SupabaseFoodPhotoRepositoryTest {
         assertTrue(requests.single().url.encodedPath.endsWith("/functions/v1/food-photo"))
         assertEquals(
             """{"image_base64":"QUJD","mode":"weight","food":{"name":"Pechuga de pollo","brand":"Hacendado",""" +
-                """"base_unit":"g","kcal":165.0,"protein_g":31.0,"carbs_g":0.0,"fat_g":3.6}}""",
+                """"base_unit":"g"}}""",
             bodies.single(),
         )
-        assertEquals(AmountEstimate(180.0, "g", FoodPhotoConfidence.Medium), estimate)
+        assertEquals(AmountEstimate(180.0, "g", 7), estimate)
+    }
+
+    @Test
+    fun estimateAmount_mapsLegacyOrOutOfRangeConfidenceToNullWithoutError() = runTest {
+        listOf("\"high\"", "0", "11", "-3", "true", "\"7\"").forEach { raw ->
+            val repo = signedIn(body = """{"estimate":{"estimated_amount":180,"base_unit":"g","confidence":$raw}}""")
+
+            val estimate = repo.estimateAmount(chicken, "QUJD").getOrThrow()
+
+            assertEquals(AmountEstimate(180.0, "g", null), estimate, "confidence $raw")
+        }
+    }
+
+    @Test
+    fun estimateAmount_keepsTheBoundaryConfidences() = runTest {
+        listOf(1, 10).forEach { value ->
+            val repo = signedIn(body = """{"estimate":{"estimated_amount":50,"base_unit":"g","confidence":$value}}""")
+
+            assertEquals(value, repo.estimateAmount(chicken, "QUJD").getOrThrow().confidence)
+        }
     }
 
     @Test

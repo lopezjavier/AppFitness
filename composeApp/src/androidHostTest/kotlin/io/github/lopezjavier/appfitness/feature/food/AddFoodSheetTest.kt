@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.NutritionSnapshot
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -87,6 +89,16 @@ class AddFoodSheetTest {
         rule.onNodeWithText("Por 100 g").assertExists()
         rule.onNodeWithTag("food_sheet_amount").assertTextContains("100")
         rule.onNodeWithTag("food_sheet_totals").assertTextContains("110 kcal", substring = true)
+    }
+
+    @Test
+    fun mealSelector_isLabelledAnadirAAboveTheChips() {
+        show(content(chicken))
+
+        rule.onNodeWithText("Añadir a:").assertExists()
+        val labelTop = rule.onNodeWithText("Añadir a:").getUnclippedBoundsInRoot().top
+        val chipsTop = rule.onNodeWithTag("food_sheet_meals").getUnclippedBoundsInRoot().top
+        assertTrue(labelTop < chipsTop)
     }
 
     @Test

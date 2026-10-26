@@ -12,12 +12,6 @@ class AppBottomSheetDefaultsTest {
     private val colors = AppBottomSheetDefaults.colors(KineticDarkColors)
 
     @Test
-    fun handle_is36By4() {
-        assertEquals(36.dp, AppBottomSheetDefaults.HandleWidth)
-        assertEquals(4.dp, AppBottomSheetDefaults.HandleHeight)
-    }
-
-    @Test
     fun shape_isSheetTopWithRadius24() {
         assertEquals(AppShapes.sheetTop, AppBottomSheetDefaults.Shape)
         val shape = AppBottomSheetDefaults.Shape as RoundedCornerShape
@@ -36,7 +30,6 @@ class AppBottomSheetDefaultsTest {
     fun colors_mapTokens() {
         assertEquals(KineticDarkColors.surfaceOverlay, colors.container)
         assertEquals(KineticDarkColors.textPrimary, colors.content)
-        assertEquals(KineticDarkColors.sheetHandle, colors.handle)
         assertEquals(KineticDarkColors.borderStrong, colors.border)
     }
 

@@ -5,7 +5,7 @@
         "role": "model",
         "parts": [
           {
-            "text": "{\"estimated_amount\":180,\"confidence\":\"medium\"}"
+            "text": "{\"estimated_amount\":180,\"confidence\":7}"
           }
         ]
       },
