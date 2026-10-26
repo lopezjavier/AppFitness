@@ -1,50 +1,54 @@
 package io.github.lopezjavier.appfitness.feature.catalog
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_date_picker_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_dialog_open
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_edit_apply_sheet_open
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_edit_sheet_open
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_info_sheet_open
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_name_sheet_open
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_picker_sheet_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bottom_sheet
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_confirm_dialog
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_date_picker
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_logo
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_close
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_open
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_title
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_edit_title
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_info_title
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_name_item
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_name_title
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_picker_option
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_dismiss
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_message
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.designsystem.ActionRow
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppDatePickerDialog
+import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
+import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppLogo
+import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.NameSheet
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
-import io.github.lopezjavier.appfitness.designsystem.Spacing
-import kotlinx.coroutines.launch
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
@@ -56,50 +60,92 @@ internal fun LazyListScope.overlayItems() {
     item { LogoSection() }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val SHEET_EDIT = "edit"
+private const val SHEET_EDIT_APPLY = "edit_apply"
+private const val SHEET_PICKER = "picker"
+private const val SHEET_INFO = "info"
+private const val SHEET_NAME = "name"
+private val CatalogTakenNames = listOf("Torso", "Pierna")
+
 @Composable
 private fun BottomSheetSection() {
-    var open by rememberSaveable { mutableStateOf(false) }
+    var active by rememberSaveable { mutableStateOf<String?>(null) }
     CatalogSection(stringResource(Res.string.catalog_section_bottom_sheet), "catalog_section_bottom_sheet") {
-        SecondaryButton(
-            text = stringResource(Res.string.catalog_sheet_open),
-            onClick = { open = true },
-            modifier = Modifier.fillMaxWidth().testTag("catalog_sheet_open"),
+        listOf(
+            Triple(SHEET_EDIT, Res.string.catalog_edit_sheet_open, "catalog_edit_sheet_open"),
+            Triple(SHEET_EDIT_APPLY, Res.string.catalog_edit_apply_sheet_open, "catalog_edit_apply_sheet_open"),
+            Triple(SHEET_PICKER, Res.string.catalog_picker_sheet_open, "catalog_picker_sheet_open"),
+            Triple(SHEET_INFO, Res.string.catalog_info_sheet_open, "catalog_info_sheet_open"),
+            Triple(SHEET_NAME, Res.string.catalog_name_sheet_open, "catalog_name_sheet_open"),
+        ).forEach { (key, label, tag) ->
+            SecondaryButton(
+                text = stringResource(label),
+                onClick = { active = key },
+                modifier = Modifier.fillMaxWidth().testTag(tag),
+            )
+        }
+    }
+    val close = { active = null }
+    when (active) {
+        SHEET_EDIT -> CatalogEditSheet(SheetCommit.Save, "catalog_edit_sheet", close)
+
+        SHEET_EDIT_APPLY -> CatalogEditSheet(SheetCommit.Apply, "catalog_edit_apply_sheet", close)
+
+        SHEET_PICKER -> AppPickerSheet(
+            title = stringResource(Res.string.catalog_sheet_picker_title),
+            onDismiss = close,
+            testTagPrefix = "catalog_picker_sheet",
+        ) {
+            ActionRow(
+                icon = Res.drawable.ic_check,
+                title = stringResource(Res.string.catalog_sheet_picker_option),
+                hint = null,
+                onClick = close,
+                testTag = "catalog_picker_sheet_option",
+            )
+        }
+
+        SHEET_INFO -> AppInfoSheet(
+            title = stringResource(Res.string.catalog_sheet_info_title),
+            onDismiss = close,
+            testTagPrefix = "catalog_info_sheet",
+        ) {
+            Text(
+                text = stringResource(Res.string.wip_message),
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.textSecondary,
+            )
+        }
+
+        SHEET_NAME -> NameSheet(
+            title = stringResource(Res.string.catalog_sheet_name_title),
+            label = stringResource(Res.string.profile_name_label),
+            itemLabel = stringResource(Res.string.catalog_sheet_name_item),
+            existingNames = CatalogTakenNames,
+            onSave = { close() },
+            onDismiss = close,
+            testTagPrefix = "catalog_name_sheet",
         )
     }
-    if (open) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val scope = rememberCoroutineScope()
-        AppBottomSheet(
-            onDismissRequest = { open = false },
-            sheetState = sheetState,
-            testTagPrefix = "catalog_sheet",
-        ) {
-            Column(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(start = Spacing.screenMargin, end = Spacing.screenMargin, bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Text(
-                    text = stringResource(Res.string.catalog_sheet_title),
-                    style = AppTheme.typography.titleLarge,
-                    modifier = Modifier.semantics { heading() }.testTag("catalog_sheet_title"),
-                )
-                Text(
-                    text = stringResource(Res.string.wip_message),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
-                PrimaryButton(
-                    text = stringResource(Res.string.catalog_sheet_close),
-                    onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { open = false } },
-                    modifier = Modifier.fillMaxWidth().testTag("catalog_sheet_close"),
-                )
-            }
-        }
+}
+
+@Composable
+private fun CatalogEditSheet(commit: SheetCommit, prefix: String, close: () -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    AppEditSheet(
+        title = stringResource(Res.string.catalog_sheet_edit_title),
+        commit = commit,
+        onCommit = close,
+        onDismiss = close,
+        commitEnabled = text.isNotBlank(),
+        testTagPrefix = prefix,
+    ) {
+        AppTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = stringResource(Res.string.profile_name_label),
+            testTagPrefix = "${prefix}_input",
+        )
     }
 }
 

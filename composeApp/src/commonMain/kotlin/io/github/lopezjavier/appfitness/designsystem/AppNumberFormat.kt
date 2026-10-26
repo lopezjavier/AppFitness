@@ -20,6 +20,13 @@ object AppNumberFormat {
         return if (value < 0) "$MINUS$grouped" else grouped
     }
 
+    /** A whole value without decimals ("300"), otherwise the shortest form with a decimal comma ("87,5"). */
+    fun decimal(value: Double): String {
+        val whole = value.toLong()
+        if (whole.toDouble() == value) return integer(whole.toInt())
+        return value.toString().replace('.', ',')
+    }
+
     /** Like [integer] but a positive value carries "+" ("+250", "−400", "0"). */
     fun signedInteger(value: Int): String = if (value > 0) "+${integer(value)}" else integer(value)
 }

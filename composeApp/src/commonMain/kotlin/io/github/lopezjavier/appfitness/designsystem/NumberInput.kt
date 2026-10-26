@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,8 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -119,22 +125,49 @@ object NumberInputDefaults {
         if (maxDecimals > 0) KeyboardType.Decimal else KeyboardType.Number
 
     /** Read-only fields never show the focus border. */
-    fun colors(focused: Boolean, readOnly: Boolean, appColors: AppColors): NumberInputColors = NumberInputColors(
+    fun colors(
+        focused: Boolean,
+        readOnly: Boolean,
+        appColors: AppColors,
+        hasError: Boolean = false,
+    ): NumberInputColors = NumberInputColors(
         container = appColors.surfaceOverlay,
-        border = if (focused && !readOnly) appColors.neonLime else appColors.borderStrong,
+        border = AppInputStyle.borderColor(focused && !readOnly, hasError, appColors),
         text = appColors.textPrimary,
         // Planned values are editable data, so AA contrast (textSecondary) rather than ghostData.
         placeholder = appColors.textSecondary,
-        label = appColors.textSecondary,
-        cursor = appColors.neonLime,
+        label = AppInputStyle.labelColor(appColors),
+        cursor = appColors.athleticCyan,
     )
 
-    fun borderWidth(focused: Boolean, readOnly: Boolean): Dp =
-        if (focused && !readOnly) FocusBorderWidth else BorderWidth
+    fun borderWidth(focused: Boolean, readOnly: Boolean, hasError: Boolean = false): Dp =
+        if ((focused && !readOnly) || hasError) FocusBorderWidth else BorderWidth
+
+    /**
+     * "Entre 30 y 300 kg" when [value] is outside [min]..[max]; null when it is in range or absent (an empty
+     * field is not a range error). [template] is the `number_range_error` string with `%1$s %2$s %3$s`.
+     */
+    fun rangeError(
+        value: Double?,
+        min: Double,
+        max: Double,
+        unit: String,
+        template: String = DEFAULT_RANGE_TEMPLATE,
+    ): String? = if (value == null || value in min..max) {
+        null
+    } else {
+        template
+            .replace("%1\$s", AppNumberFormat.decimal(min))
+            .replace("%2\$s", AppNumberFormat.decimal(max))
+            .replace("%3\$s", unit)
+            .trim()
+    }
+
+    private const val DEFAULT_RANGE_TEMPLATE = "Entre %1\$s y %2\$s %3\$s"
 
     fun textStyle(typography: AppTypography): TextStyle = typography.labelNumeric.copy(textAlign = TextAlign.Center)
 
-    fun labelStyle(typography: AppTypography): TextStyle = typography.labelTechnical
+    fun labelStyle(typography: AppTypography): TextStyle = AppInputStyle.labelStyle(typography)
 }
 
 /**
@@ -147,6 +180,7 @@ object NumberInputDefaults {
  * state). A `StateFlow` + `collectAsState` round-trip reverts for one frame and moves the cursor to the end on
  * mid-text edits (relevant to the E3/E5 ViewModels).
  */
+@Suppress("LongMethod", "CyclomaticComplexMethod") // One BasicTextField wiring with its decoration.
 @Composable
 fun NumberInput(
     value: String,
@@ -159,16 +193,25 @@ fun NumberInput(
     showLabel: Boolean = true,
     readOnly: Boolean = false,
     imeAction: ImeAction = ImeAction.Done,
+    onImeAction: (() -> Unit)? = null,
+    errorText: String? = null,
+    errorTestTag: String? = null,
+    unit: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val colors = NumberInputDefaults.colors(focused, readOnly, AppTheme.colors)
+    val hasError = errorText != null
+    val colors = NumberInputDefaults.colors(focused, readOnly, AppTheme.colors, hasError)
     val textStyle = NumberInputDefaults.textStyle(AppTheme.typography).copy(color = colors.text)
     val fieldModifier = if (showLabel) modifier else modifier.semantics { contentDescription = label }
     // The cursor lives in a TextFieldValue so normalization ("," -> "0,") can move it; an external change of
     // [value] (e.g. fill from previous) resets it to the end. State is only written in onValueChange.
     var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
     val shown = if (fieldValue.text == value) fieldValue else TextFieldValue(value, TextRange(value.length))
+    // Select-all on focus gain (R-25): typing then replaces the value; a later tap moves the cursor normally.
+    LaunchedEffect(focused) {
+        if (focused && !readOnly) fieldValue = TextFieldValue(value, TextRange(0, value.length))
+    }
     BasicTextField(
         value = shown,
         onValueChange = { raw ->
@@ -182,6 +225,15 @@ fun NumberInput(
         textStyle = textStyle,
         keyboardOptions =
         KeyboardOptions(keyboardType = NumberInputDefaults.keyboardType(maxDecimals), imeAction = imeAction),
+        keyboardActions = onImeAction?.let { action ->
+            KeyboardActions(
+                onDone = { action() },
+                onNext = { action() },
+                onSearch = { action() },
+                onGo = { action() },
+                onSend = { action() },
+            )
+        } ?: KeyboardActions.Default,
         singleLine = true,
         interactionSource = interactionSource,
         cursorBrush = SolidColor(colors.cursor),
@@ -189,7 +241,7 @@ fun NumberInput(
             Column(verticalArrangement = Arrangement.spacedBy(NumberInputDefaults.LabelSpacing)) {
                 if (showLabel) {
                     Text(
-                        text = label.uppercase(),
+                        text = label,
                         style = NumberInputDefaults.labelStyle(AppTheme.typography),
                         color = colors.label,
                     )
@@ -202,7 +254,7 @@ fun NumberInput(
                         .clip(NumberInputDefaults.Shape)
                         .background(colors.container)
                         .border(
-                            NumberInputDefaults.borderWidth(focused, readOnly),
+                            NumberInputDefaults.borderWidth(focused, readOnly, hasError),
                             colors.border,
                             NumberInputDefaults.Shape,
                         )
@@ -211,6 +263,28 @@ fun NumberInput(
                 ) {
                     if (value.isEmpty() && placeholder != null) NumberInputPlaceholder(placeholder, textStyle, colors)
                     innerTextField()
+                    if (unit != null) {
+                        Text(
+                            text = unit,
+                            style = AppTheme.typography.bodySmall,
+                            color = colors.label,
+                            maxLines = 1,
+                            modifier = Modifier.align(Alignment.CenterEnd),
+                        )
+                    }
+                }
+                if (errorText != null) {
+                    Text(
+                        text = errorText,
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.error,
+                        modifier = Modifier
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                error(errorText)
+                            }
+                            .let { if (errorTestTag != null) it.testTag(errorTestTag) else it },
+                    )
                 }
             }
         },

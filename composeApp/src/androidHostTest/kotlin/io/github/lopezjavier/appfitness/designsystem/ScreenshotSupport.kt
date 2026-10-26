@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import java.io.File
 
 /**
@@ -17,6 +18,18 @@ import java.io.File
 internal fun SemanticsNodeInteraction.assertScreenshot(name: String) {
     val dir = checkNotNull(System.getProperty("roborazzi.snapshots.dir")) { "roborazzi.snapshots.dir is not set" }
     captureRoboImage(
+        filePath = File(dir, "$name.png").path,
+        roborazziOptions =
+        RoborazziOptions(
+            compareOptions = RoborazziOptions.CompareOptions(changeThreshold = CHANGE_THRESHOLD),
+        ),
+    )
+}
+
+/** Like [assertScreenshot] for the whole screen, so that dialog windows (bottom sheets) are part of the image. */
+internal fun assertScreenScreenshot(name: String) {
+    val dir = checkNotNull(System.getProperty("roborazzi.snapshots.dir")) { "roborazzi.snapshots.dir is not set" }
+    captureScreenRoboImage(
         filePath = File(dir, "$name.png").path,
         roborazziOptions =
         RoborazziOptions(

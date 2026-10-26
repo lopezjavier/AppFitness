@@ -126,10 +126,18 @@
     <string name="catalog_theme_colors">Colores</string>
     <string name="catalog_theme_typography">Tipografía</string>
     <string name="catalog_topbar_count">Pulsaciones: %1$s</string>
-    <string name="catalog_section_bottom_sheet">Hoja inferior</string>
-    <string name="catalog_sheet_open">Abrir hoja</string>
-    <string name="catalog_sheet_title">Hoja de ejemplo</string>
-    <string name="catalog_sheet_close">Cerrar</string>
+    <string name="catalog_section_bottom_sheet">Hojas inferiores</string>
+    <string name="catalog_edit_sheet_open">Hoja de edición (Guardar)</string>
+    <string name="catalog_edit_apply_sheet_open">Hoja de edición (Listo)</string>
+    <string name="catalog_picker_sheet_open">Hoja de selección</string>
+    <string name="catalog_info_sheet_open">Hoja informativa</string>
+    <string name="catalog_name_sheet_open">Hoja de nombre</string>
+    <string name="catalog_sheet_edit_title">Editar nombre</string>
+    <string name="catalog_sheet_picker_title">Elige una opción</string>
+    <string name="catalog_sheet_picker_option">Opción de ejemplo</string>
+    <string name="catalog_sheet_info_title">Ayuda de ejemplo</string>
+    <string name="catalog_sheet_name_title">Nueva carpeta</string>
+    <string name="catalog_sheet_name_item">una carpeta</string>
     <string name="offline_banner_message">Sin conexión</string>
     <string name="offline_hint_template">Sin conexión: no se puede %1$s</string>
     <string name="offline_state_title">Sin conexión</string>
@@ -146,6 +154,9 @@
     <string name="action_edit">Editar</string>
     <string name="action_done">Listo</string>
     <string name="action_discard">Descartar</string>
+    <string name="action_clear_search">Borrar búsqueda</string>
+    <string name="number_range_error">Entre %1$s y %2$s %3$s</string>
+    <string name="name_sheet_duplicate">Ya existe %1$s con ese nombre</string>
     <string name="action_keep_editing">Seguir editando</string>
     <string name="action_retry">Reintentar</string>
     <string name="catalog_topbar_sample_title">Rutina</string>
@@ -255,6 +266,8 @@
     <string name="profile_name_label">Nombre</string>
     <string name="onboarding_name_label">¿Cómo te llamas?</string>
     <string name="name_error_blank">Escribe tu nombre</string>
+    <string name="catalog_search_label">Buscar alimento</string>
+    <string name="catalog_search_placeholder">Nombre o marca</string>
     <string name="catalog_section_text_field">Campo de texto</string>
     <string name="profile_personal_title">Datos personales</string>
     <string name="profile_age_label">Edad</string>
@@ -388,7 +401,6 @@
     <string name="set_type_warm_up">Calentamiento</string>
     <string name="set_type_failure">Fallo</string>
     <string name="set_type_drop">Drop</string>
-    <string name="set_type_close_cd">Cerrar sin cambiar el tipo</string>
     <string name="set_type_letter_warm_up">C</string>
     <string name="set_type_letter_failure">F</string>
     <string name="set_type_letter_drop">D</string>
@@ -400,7 +412,6 @@
     <string name="rpe_picker_title">RPE de la serie %1$s</string>
     <string name="rpe_picker_hint">Toca un valor para guardarlo y completar la serie</string>
     <string name="rpe_picker_option_cd">RPE %1$s</string>
-    <string name="rpe_picker_close_cd">Cerrar selector de RPE</string>
     <string name="live_target_rpe">Objetivo RPE %1$s</string>
     <string name="routine_builder_target_rpe_label">Objetivo RPE</string>
     <string name="routine_builder_target_rpe_none">Sin objetivo</string>
@@ -422,7 +433,6 @@
     <string name="exercise_unnamed">Ejercicio</string>
     <string name="exercise_search_label">Buscar</string>
     <string name="exercise_search_placeholder">Buscar ejercicio</string>
-    <string name="exercise_search_clear_cd">Borrar búsqueda</string>
     <string name="exercise_filter_all">Todos</string>
     <string name="exercise_row_subtitle">%1$s · %2$s</string>
     <string name="exercise_create_button">Crear ejercicio</string>
@@ -519,7 +529,6 @@
     <string name="workout_continue_cd">Continuar entreno</string>
     <string name="workout_discard_cd">Descartar entreno</string>
     <string name="workout_already_in_progress">Ya hay un entreno en curso</string>
-    <string name="help_close_cd">Cerrar ayuda</string>
     <string name="help_set_type_cd">Ayuda: tipo de serie</string>
     <string name="help_set_type_body">Normal: serie de trabajo; cuenta para volumen, 1RM y récords. Calentamiento (C): serie ligera para prepararte; por defecto no cuenta para volumen ni récords. Fallo (F): serie llevada hasta no poder hacer otra repetición; cuenta. Drop (D): serie justo después de otra, bajando el peso para seguir sin descansar; cuenta.</string>
     <string name="help_rpe_title">¿Qué es el RPE?</string>
@@ -801,7 +810,6 @@
     <string name="food_search_back_cd">Volver</string>
     <string name="food_search_label">Buscar alimentos</string>
     <string name="food_search_placeholder">Nombre o marca</string>
-    <string name="food_search_clear_cd">Borrar búsqueda</string>
     <string name="food_tab_recent">Recientes</string>
     <string name="food_tab_most_eaten">Más comidos</string>
     <string name="food_tab_favourites">Favoritos</string>

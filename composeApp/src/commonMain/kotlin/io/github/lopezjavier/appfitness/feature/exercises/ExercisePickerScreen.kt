@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,15 +47,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_mess
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_filter_all
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_offline_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_row_subtitle
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_clear_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_placeholder
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppSearchField
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -72,7 +69,6 @@ import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -192,36 +188,17 @@ private fun PickerFilters(state: ExercisePickerUiState.Content, onEvent: (Exerci
     }
 }
 
-/** Search field with a clear button; the IME action closes the keyboard (see [AppTextField]). */
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth()) {
-        AppTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            label = stringResource(Res.string.exercise_search_label),
-            placeholder = stringResource(Res.string.exercise_search_placeholder),
-            testTagPrefix = "exercise_picker_search",
-        )
-        if (query.isNotEmpty()) {
-            val clearLabel = stringResource(Res.string.exercise_search_clear_cd)
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(Spacing.minTouchTarget)
-                    .clickable(role = Role.Button, onClickLabel = clearLabel) { onQueryChange("") }
-                    .testTag("exercise_picker_search_clear"),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_close),
-                    contentDescription = clearLabel,
-                    tint = AppTheme.colors.textSecondary,
-                    modifier = Modifier.size(Spacing.xl),
-                )
-            }
-        }
-    }
+    AppSearchField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = stringResource(Res.string.exercise_search_label),
+        placeholder = stringResource(Res.string.exercise_search_placeholder),
+        onSearch = {}, // The list filters live as the query changes; the keyboard action only hides the keyboard.
+        modifier = modifier.fillMaxWidth(),
+        testTagPrefix = "exercise_picker_search",
+    )
 }
 
 @Composable

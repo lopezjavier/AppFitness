@@ -39,7 +39,9 @@ private val ExpectedTags =
         "catalog_error_state_action", "catalog_topbar_full_back",
         "catalog_topbar_actions_2_action_1", "catalog_topbar_actions_3_more", "catalog_editor_offline_chip",
         "catalog_messages_show", "catalog_action_sheet_open", "catalog_offline_state_flip",
-        "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_sheet_open",
+        "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_edit_sheet_open",
+        "catalog_edit_apply_sheet_open", "catalog_picker_sheet_open", "catalog_info_sheet_open",
+        "catalog_name_sheet_open",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
         "weekday_selector_day_1", "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
     )

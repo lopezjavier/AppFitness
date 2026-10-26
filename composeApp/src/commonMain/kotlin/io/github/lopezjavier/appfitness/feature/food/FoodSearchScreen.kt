@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -46,7 +44,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_messag
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_offline_state
 import io.github.lopezjavier.appfitness.composeapp.resources.food_scan_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.food_search_clear_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
@@ -55,14 +52,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppSearchField
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -74,7 +70,6 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_ROWS = 6
@@ -169,36 +164,17 @@ private fun SearchField(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> 
 
 @Composable
 private fun SearchBox(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier) {
-        AppTextField(
-            value = state.query,
-            onValueChange = { onEvent(FoodSearchEvent.QueryChanged(it)) },
-            label = stringResource(Res.string.food_search_label),
-            placeholder = stringResource(Res.string.food_search_placeholder),
-            enabled = !state.isOffline,
-            testTagPrefix = "food_search_input",
-        )
-        if (state.query.isNotEmpty() && !state.isOffline) {
-            val clearLabel = stringResource(Res.string.food_search_clear_cd)
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(Spacing.minTouchTarget)
-                    .clickable(role = Role.Button, onClickLabel = clearLabel) {
-                        onEvent(FoodSearchEvent.QueryChanged(""))
-                    }
-                    .testTag("food_search_clear"),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_close),
-                    contentDescription = clearLabel,
-                    tint = AppTheme.colors.textSecondary,
-                    modifier = Modifier.size(Spacing.xl),
-                )
-            }
-        }
-    }
+    AppSearchField(
+        value = state.query,
+        onValueChange = { onEvent(FoodSearchEvent.QueryChanged(it)) },
+        label = stringResource(Res.string.food_search_label),
+        placeholder = stringResource(Res.string.food_search_placeholder),
+        onSearch = {}, // The search is live as the query changes; the keyboard action only hides the keyboard.
+        modifier = modifier,
+        enabled = !state.isOffline,
+        testTagPrefix = "food_search_input",
+        clearTestTag = "food_search_clear",
+    )
 }
 
 /** The empty-box tabs as a scrollable chip row (four chips do not fit the width of a segmented control). */

@@ -39,4 +39,11 @@ class AppBottomSheetDefaultsTest {
         assertEquals(KineticDarkColors.sheetHandle, colors.handle)
         assertEquals(KineticDarkColors.borderStrong, colors.border)
     }
+
+    @Test
+    fun hairline_isClippedAtTheTopCornerRadius() {
+        val shape = AppBottomSheetDefaults.Shape as RoundedCornerShape
+        assertEquals(shape.topStart, CornerSize(AppBottomSheetDefaults.HairlineClipHeight))
+        assertEquals(AppRadius.xl, AppBottomSheetDefaults.HairlineClipHeight)
+    }
 }
