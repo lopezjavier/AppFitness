@@ -621,3 +621,12 @@ Format: context → decision → consequences. A decision is only changed by add
   - Process: `ux-reviewer` works from a pattern map, the rules, a mandatory sweep and the glossary, and reviews the implemented diff in parallel with pr-reviewer; a convention stated at a checkpoint becomes a rule in `05` (not a table row); a repeated UX finding becomes a guard.
 - **Consequences:** affects `05-design-system.md`, `epics/E9-finalization.md` (US-56 and the refinement table), `CLAUDE.md`, `06-agent-workflow.md` and the agents `ux-reviewer`, `epic-planner`, `planner` and `compose-ui-developer` (separate workflow task, wording approved in chat first), `tasks/plan.md` and the E9 breakdown.
 - **Approval:** 2026-10-26, user (decisions); wording pending the user's OK in the docs PR.
+
+### ADR-70 · "Actualizar automáticamente" is one global setting (E9, US-36 amended; E6-B Q1)
+- **Context:** E6-B Q1 (2026-10-24): the user wants the automatic routine update after a workout as one setting for all routines, not a switch per routine. Audit R-rule: behaviour that applies to everything lives in Preferencias.
+- **Decision** (option A):
+  - `training_preferences` gains `auto_update_routine boolean not null default false`; Preferencias → "Entrenamiento" shows one switch "Actualizar automáticamente", off by default.
+  - The per-routine switch in the routine builder and the column `routines.auto_update_routine` go away; `save_routine` stops accepting it. Existing per-routine values are dropped (the global setting starts off for everyone).
+  - When finishing a workout from a routine, the update is applied without asking only if the global setting is on; otherwise the existing "Actualizar rutina" choice is offered as today.
+- **Consequences:** affects `03-data-model.md` (`training_preferences`, `routines`, `save_routine`), `epics/E6-training-depth.md` (US-36 notes), `09-open-questions.md` (E6-B Q1 resolved) and the E9 tasks T-124 (migration, builder, finish flow, temporary switch) and T-127 (switch in the "Entrenamiento" section). The data-model and epic text are updated in T-124's PR.
+- **Approval:** 2026-10-26, user (option A).

@@ -19,7 +19,7 @@ The PM gives you an epic ID (`E#`).
 - Split a story only when it is clearly too large for one reviewable PR (roughly more than ~15 files, or heavy backend and heavy UI work that can be reviewed apart). Then split it into a backend task followed by a UI task, never into one task per component.
 - A design-system component or shared helper is built inside the first story that needs it. The exception is an epic whose story is itself a set of templates and their migration (E9, US-56): there, foundation tasks are allowed, each ending with a sweep that migrates the ad-hoc copies it replaces.
 - For each UI task, name the templates and patterns it uses (screen, sheet archetype, rows, add/delete placement) and any existing screen it must migrate with it, so pattern problems are caught at breakdown.
-- Merge small related stories when together they still make one coherent PR.
+- **Estimate a size (S / M / L) for every task** and record it in the task header. **Avoid S tasks:** merge an S task into a neighbouring task of the same domain or wave until the result is M. An S task stays on its own only when it cannot merge (for example, a closure task that depends on a checkpoint approval) and the breakdown says why. Split an L task only under the rule above.
 - Each task states its flow (UI / backend), Gherkin scenarios, acceptance criteria, the host tests that cover each scenario, dependencies and files likely touched.
 
 ## Checkpoints: the balance between autonomy and user feedback
