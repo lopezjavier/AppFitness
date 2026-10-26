@@ -1,89 +1,126 @@
-# Implementation Plan: E8 · Training insights → `v0.8.0`
+# Implementation Plan: E9 · Finalization → `v1.0.0`
 
-> **Status:** restructured on 2026-10-25 per the user's decisions (three implementation tasks, one 👤 checkpoint, cheapest pipeline). E8 Q1–Q3 were answered by the user on 2026-10-25 (see Open Questions).
+> **Status:** broken down on 2026-10-26 with the three checkpoints agreed with the user (E9-A, E9-B, E9-C); re-sized the same day at the user's request (16 → 13 tasks, see "Sizing"). E9 Q1–Q3 were answered by the user on 2026-10-26 (ADR-70); no task is blocked. Breakdown approved by the user.
 
 ## Overview
-Show real progress from the training data E3 and E6 already store: per-exercise charts that mark records, add an all-time frame and follow every metric family (US-39); a full "Estadísticas" screen with key values, the set-count chart, sets per muscle group and the main exercises over any frame (US-40); and the muscle distribution as a radar (current vs previous period) and a body map of the last 7 days with a per-muscle detail (US-41). The first task also closes the non-blocking review suggestions still open from E7.
+Close Phase 1. US-56 turns the UX rulebook adopted in Wave 0 (ADR-69, `05-design-system.md` §8–§10) into designsystem templates and CI guards, then migrates every screen to them domain by domain, closing the deferred UI-refinement table on the way. US-45 adds "Acerca de" with the version, the third-party credits and the open-source licences. US-46 sweeps states, accessibility, font scaling, tablet and rotation across the migrated app. The epic ends with the `v1.0.0` tag and the Phase 1 GitHub Release (notes only).
 
-Sources: `planning/epics/E8-training-insights.md` (US-39…US-41), `planning/01-phase1-scope.md` FR-4.9 and FR-5.1, `planning/02-architecture.md` (Vico charts), `planning/03-data-model.md` §5 (`exercises.secondary_muscles`, `workout_sessions`, `workout_sets`) and §6 (`exercise_session_records`, `personal_records`, `weekly_muscle_volume`), `planning/04-business-rules.md` §4.2, §4.6–§4.8, §4.10, §5, `planning/05-design-system.md` §5–§6, ADR-30, ADR-37, ADR-52, ADR-56, ADR-66, ADR-67. Tasks: `tasks/todo.md` (T-113…T-116). Earlier plans are in the git history.
+Sources: `planning/epics/E9-finalization.md` (US-45, US-46, US-56, UI-refinement table), `planning/ux-audit-2026-10.md` (§5–§7 findings, §9 components, §10 guards G1–G10, §13 waves, §14 swipe and haptics), `planning/05-design-system.md` §5–§10, `planning/01-phase1-scope.md` FR-5.4 and FR-6, `planning/03-data-model.md` (`meal_slots`, `meal_templates`, `routines`, `routine_folders`), ADR-13, ADR-24, ADR-40, ADR-41, ADR-45, ADR-65, ADR-67, ADR-69. Tasks: `tasks/todo.md` (T-118…T-130, with the item → task table). Earlier plans are in the git history.
 
-Out of scope (epic file, `01` §4, ADR-66, ADR-67): Monthly Report, Year in Review, streaks and weekly check-ins (Phase 2); the program generator / trainer; social features and cardio plans; any release build, R8 or keystore work; every item of the E9 UI-refinement table and the ux-reviewer rewrite (E9's first task).
+Out of scope (epic, `01` §4, ADR-66, ADR-67, ADR-69): new features; the "Entreno en curso" bar (dropped); typography and colour changes (E9 table item 3); a signed release build, R8 or keystore; Phase 2 items.
+
+## Sizing (user feedback, 2026-10-26)
+Every task pays a fixed cost (planner, ux-reviewer, developers, PR, review), so small tasks were merged. First estimate (16 tasks): 1 S (About), 3 M (screen templates, Peso, meals editor, motion/onboarding close to S), the rest L, plus the S closure. Merged:
+- screen templates (M) into the guards/feedback foundation → **T-118** (L); the per-screen `SnackbarHost`/offline-banner removals moved to the domain tasks, which rebuild those screens on `AppScreen` anyway;
+- motion, tooltips and onboarding (M, close to S) into the wording sweep → **T-128** (L, wave 3, same checkpoint);
+- "Acerca de" (S, US-45) into the US-46 polish sweep → **T-129** (L, both are E9-C).
+
+Not merged: the other tasks are already M or L on their own, and joining two different domains would give an unreviewable PR (for example meals editor M + Preferencias hub L ≈ 45 files). Peso (T-123) and the meals editor (T-126) stay M; only the closure (T-130) stays S.
 
 ## Architecture Decisions
-- **Three implementation tasks, cheapest pipeline (user decision, 2026-10-25).** T-113 = E7 carry-over cleanup + US-39 charts; T-114 = statistics backend for US-40/US-41; T-115 = the whole "Estadísticas" screen with the radar and the body map (US-40 + US-41 UI). Each runs the standard pipeline once, with no extra slices. T-113 (about 28 files, many one-line cleanup changes) and T-115 (about 22 files) exceed the ~15-file guideline; they stay single tasks by the user's decision, since each extra task costs 6–7 hand-offs. If pr-reviewer finds T-115 too large to review, the fallback (moving `RadarChart`/`BodyHeatmap` to a follow-up) is decided then, not up front.
-- **No training-table migration (ADR-30).** Everything reads `workout_sessions`, `workout_sets` and `exercises` (`metric_type`, `secondary_muscles`, `per_hand`) as they are. The only migrations are a function replacement (`save_meal_defaults`, T-113) and the four statistics RPCs (T-114).
-- **US-39 reuses `exercise_session_records`.** It already returns, per completed session and warm-up aware, every family (1RM, session volume, duration, distance, steps, floors). The chart metric follows `metric_type` through one pure domain function; record markers reuse `PersonalRecordCatalogue.beatenBy` over the whole history (the same rule as the session summary, `04` §4.5/§4.8). `exercise_history` is unchanged; `03` §6 records that US-39 adds no RPC (the epic's technical note "extends the `exercise_history` RPC" is an implementation detail superseded here).
-- **Statistics RPC signatures (fixed here, written into `03` §6 by T-114).** All `security invoker`, `stable`, `authenticated` only; the shared filter of `exercise_history` (caller's `completed` sessions, completed sets, warm-up only when `warm_up_included()`, UTC date of `started_at` in `[p_from, p_to]`, nulls = unbounded):
-  - `training_summary(p_from date default null, p_to date default null) returns table(workouts bigint, sets bigint, volume numeric, duration_s bigint)`: one row; volume as `exercise_session_records` (`set_volume × volume_factor`, latest body weight for bodyweight types); duration per `04` §4.10.
-  - `weekly_set_counts(p_from date default null, p_to date default null) returns table(week_start date, sets bigint)`: Monday-based UTC weeks, only weeks with data.
-  - `muscle_group_sets(p_from date default null, p_to date default null) returns table(muscle_group muscle_group, sets numeric)`: primary 1, each distinct secondary 0,5.
-  - `exercise_set_counts(p_from date default null, p_to date default null, p_muscle_group muscle_group default null) returns table(exercise_id uuid, sets numeric, sessions bigint)`: main exercises, or the weighted per-muscle detail when a group is given.
-- **Windows live in the domain.** Frame → `[from, to]`, the previous equal-length window, week→month bucketing and the last-7-days window are pure, tested domain helpers (T-114), so the answers to E8 Q2 can change without touching SQL.
-- **One statistics destination (ADR-37).** "Estadísticas" is a full-screen destination from the Perfil root's statistics section; with E8 Q1's proposed default the muscle distribution sections live on the same screen. Main-exercise rows open the existing exercise progress route.
-- **New design-system components inside the story that needs them.** `RadarChart` and `BodyHeatmap` are built in T-115 with catalog entries and `05` §6 rows; bars and tiles reuse existing components and Vico.
-- **Shared examples.** `04` gains §4.11 "Statistics" with worked examples used by both pgTAP and the domain tests (epic DoD).
-- **Interaction and restoration.** Read-only screens: no "Guardar". The selected frame (charts and statistics), the scroll position and an open muscle sheet survive background and process death (ADR-40, `StateRestorationTester` + recreated-ViewModel tests). Every screen has loading, empty and error states (US-46) and uses tabular numerals with Spanish formatting (`04` §5).
-- **Retrospective actions still in force.** E5 (b): statistics state their data assumption (only `completed` sessions, UTC session dates, same as `exercise_history`), confirmed by the user at the checkpoint. E6: keep host-test time in check (no new slow suites). E7: none pending.
+- **Foundations first, then migration by domain (US-56 notes, audit §13).** Three foundation tasks (T-118…T-120) are the allowed exception to "one task per story". Each foundation task ends with a sweep: cross-cutting, mechanical copies (raw vibrations, the designsystem pickers, search-field workarounds, swipe and reorder callers) are migrated in the task; each screen-specific copy (message hosts, duplicate offline banners, sheets, cards) is listed in the task with its owning wave-2 task (R-39), so the sweep is complete within the epic.
+- **Guards with a shrinking warning list.** `check-ux-conventions.sh` (G1–G10) has a per-guard, per-path warning list: unmigrated paths warn, everything else fails. T-118 makes G10 fail at once; each wave-2 task removes its domain from the list (incl. G3/G4 once its screens are on `AppScreen`); T-128 empties it (epic DoD: every guard a failure).
+- **Screens own their bar, gradually.** `AppScreen`/`AppEditorScreen` (T-118) take over the top bar per route through a shell switch, so unmigrated routes look unchanged until their domain task; T-128 removes the switch.
+- **Object rows and `FoodSheet` are built in their first domain task**, not in the foundations: `FoodEntryRow` and `FoodSheet` (edit context) in T-121, its add and comida contexts in T-122, `MeasurementRow` in T-123, `ExerciseRow` in T-124, `WorkoutRow` in T-125. Generic rows, cards and controls are foundations (T-120).
+- **Server changes only where a rule needs them.** T-122: `save_meal_as_comida` raises on unknown entries (E8 review note). T-124: routine names unique on `lower(btrim(name))` (item 21, R-15), "Archivar" → immediate "Eliminar" (D4), and the global `training_preferences.auto_update_routine` replacing the per-routine column (ADR-70). T-126: meal names unique and one atomic save of the meal structure with removals (R-11, amends ADR-41). New migrations only, same error codes, each with pgTAP and `deploy-supabase`.
+- **Preferencias hub without data changes (D9, amends ADR-24).** Same tables and RPCs; each section editor saves only its own fields (T-127).
+- **Haptics split.** UI feedback goes through `AppHaptics` (one vibration per action, R-29); the end-of-rest alert keeps the `Haptics` port with a longer pattern (T-125, item 15).
+- **Screenshot tests for templates only (D14).** Roborazzi is added in T-118 (stable versions only) and used by T-118…T-120; it is the guard for the stray sheet line (items 27, 38).
+- **Carry-overs.** T-112 cooking-fat caveat (ADR-65): editing the amount of a cooked entry keeps the stored fat; T-121 keeps it and the user reviews it at E9-A. E8 non-blocking review notes go to their owning tasks: `DiaryViewModel` state holder (T-121), `save_meal_as_comida` (T-122), radar partial failure, muscle-sheet lookup and the 1A bucket (T-125). The E7 backlog request to simplify Entreno → Historial (calendar directly, "Añadir entrenamiento" in the day details) goes to T-125.
 
 ## Task List
 
-Checkpoint rule for E8: a single 👤 checkpoint for the whole epic (user decision, 2026-10-25), right after the last implementation task, so it is also the final regression. All 12 user-testable items (charts 3, statistics 4, muscle distribution 3, states 1, closing regression 1) are grouped into 7 by journey; "leave the app and come back" is listed but not counted. Full item list in `tasks/todo.md`.
+Checkpoint rule for E9: the three checkpoints were agreed with the user before the breakdown (2026-10-26). Every user-testable item was collected per checkpoint and grouped by journey into 7; "leave the app and come back" is listed under each but not counted. Full item lists in `tasks/todo.md`.
 
-| Task | Flow | Scope | Expected agent runs |
-|---|---|---|---|
-| T-113: E7 carry-over cleanup and exercise charts (US-39) | backend + core + UI | L | 7: planner, ux-reviewer, backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
-| T-114: Training statistics backend (US-40/US-41 backend) | backend + core | M | 5: planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer |
-| T-115: "Estadísticas" screen with the radar and body map (US-40/US-41 UI) | UI + core | L | 6: planner, ux-reviewer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
-| T-117: Comidas grouped in the Diario (US-55, ADR-68) | backend + core + UI | L | 7: planner, ux-reviewer, backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer |
-| T-116: E8 closure | PM | S | PM only |
+| Task | Wave | Flow | Size | Expected agent runs |
+|---|---|---|---|---|
+| T-118: UX guards, feedback layer and screen templates | 1 | UI + core | L (merged) | 7 |
+| T-119: Sheet archetypes, Name sheet and field upgrades | 1 | UI | L | 6 |
+| T-120: Lists and cards (swipe/reorder v2, rows, `MetricCard`, `TimeRangeSelector`) | 1 | UI + core | L | 7 |
+| T-121: Diario migration (layout, `FoodEntryRow`, `FoodSheet`, day picker) | 2 | UI + core | L | 7 |
+| T-122: Food search, add flow and saved comidas migration | 2 | backend + core + UI | L | 8 |
+| T-123: Peso migration | 2 | UI + core | M | 7 |
+| T-124: Routines, builder and exercises migration | 2 | backend + core + UI | L | 8 |
+| T-125: Live session, history and statistics migration | 2 | UI + core | L | 7 |
+| T-126: Comidas del día editor and meal-structure backend | 2 | backend + core + UI | M | 8 |
+| T-127: Perfil root and Preferencias hub | 2 | UI + core | L | 7 |
+| T-128: Wording, motion and onboarding; every guard a failure | 3 | UI | L (merged) | 7 |
+| T-129: Version 1.0 quality: About and licences, states, accessibility and tablet (US-45 + US-46) | — | UI + core | L (merged) | 8 |
+| T-130: E9 closure → `v1.0.0` | — | PM | S | PM only |
 
-### Phase 1: Implementation
-- [x] T-113: E7 carry-over cleanup and exercise charts — backend + core + UI — L
-- [x] T-114: Training statistics backend — backend + core — M
-- [x] T-115: "Estadísticas" screen with the muscle distribution — UI + core — L
-- [x] T-117: Comidas grouped in the Diario — backend + core + UI — L (added 2026-10-25 at the user's request, ADR-68; runs after T-115 and before E8-A)
-  - **Checkpoint E8-A 👤 Follow your progress and spot imbalances (7 items):** exercise charts (record markers, "Todo"); non-weight charts; key values per frame and warm-up toggle; sets over time and per muscle; main exercises; muscle distribution (radar, body map, tap detail); states and the final E8 regression (incl. the T-113 photo comment check). Why here: the single checkpoint of the epic, after the last implementation task.
+Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr-reviewer ∥ ux-reviewer (diff).
 
-### Phase 2: Closure
-- [x] T-116: E8 closure — PM — S (no checkpoint; E8-A's approval releases it)
+### Phase 1: Foundations (wave 1)
+- [ ] T-118: UX guards, feedback layer and screen templates — UI + core — L
+- [ ] T-119: Sheet archetypes, Name sheet and field upgrades — UI — L
+- [ ] T-120: Lists and cards — UI + core — L
+
+### Phase 2: Food domain (wave 2.1)
+- [ ] T-121: Diario migration — UI + core — L
+- [ ] T-122: Food search, add flow and saved comidas — backend + core + UI — L
+  - **Checkpoint E9-A 👤 Log food the new way (7 items):** Diario layout; a logged food's sheet (incl. the T-112 caveat); swipe and delete; day picker; adding with the new search and sheet; saved comidas details and editor; messages and offline. Why here: the first domain on every template, before the other domains copy the same patterns, so feedback can still change the templates.
+
+### Phase 3: Remaining domains, wording and motion (waves 2.2–3)
+- [ ] T-123: Peso migration — UI + core — M
+- [ ] T-124: Routines, builder and exercises — backend + core + UI — L
+- [ ] T-125: Live session, history and statistics — UI + core — L
+- [ ] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
+- [ ] T-127: Perfil root and Preferencias hub — UI + core — L
+- [ ] T-128: Wording, motion and onboarding; every guard a failure — UI — L
+  - **Checkpoint E9-B 👤 Every screen, one way (7 items):** Peso; routines; live session; history and statistics; Perfil and Preferencias; Comidas del día; wording and motion. Why here: every domain, the wording and the motion are migrated, before US-45/US-46 build their final checks on them.
+
+### Phase 4: Version 1.0 quality (US-45, US-46)
+- [ ] T-129: Version 1.0 quality: About and licences, states, accessibility and tablet — UI + core — L
+  - **Checkpoint E9-C 👤 Version 1.0 on your phone and tablet (7 items):** "Acerca de"; licences; states on every screen; TalkBack; font 130 %; tablet and rotation; final regression of a full day. Why here: after the last implementation task, so it is also the final regression of E9 and Phase 1; its approval releases T-130.
+
+### Phase 5: Closure
+- [ ] T-130: E9 closure → `v1.0.0` — PM — S (no checkpoint; E9-C's approval releases it)
 
 Internal milestones (not 👤 checkpoints):
-- pgTAP + `deno test` + lint + `testLocalDebugUnitTest` green per task;
-- `deploy-supabase` green after each migration (T-113, T-114), and before E8-A is presented.
+- lint (incl. `check-design-tokens.sh` and, from T-118, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green per task; pgTAP green for T-122, T-124, T-126;
+- `deploy-supabase` green after T-122 (before E9-A) and after T-124 and T-126 (before E9-B), data intact;
+- the guard warning list shrinks with each wave-2 task and is empty after T-128;
+- `:androidApp:assembleProdDebug` green with the licences plugin (T-129).
 
 ## Dependencies
 
 ```
-v0.7.0 ─► T-113 ─► T-114 ─► T-115 ─► T-117 ─► [E8-A 👤] ─► T-116 (closure) ─► v0.8.0
+v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [E9-A 👤]
+        ─► T-123 ─► T-124 ─► T-125 ─► T-126 ─► T-127 ─► T-128 ─► [E9-B 👤]
+        ─► T-129 ─► [E9-C 👤] ─► T-130 (closure) ─► v1.0.0
 ```
-- Strictly sequential (one active task at a time).
-- E8 Q1–Q3 are resolved; no task is blocked.
-- T-115 needs T-114 deployed.
+- Strictly sequential (one active task at a time); each foundation needs the previous one (top bar and `AppActionSheet` → sheets → fields in the Name sheet → rows and swipe on the haptics).
+- T-125 needs the user's body-map choice (item B) during the task; E9 Q1–Q3 are resolved.
+- T-128 needs every domain migrated (it removes the shell switch and empties the warning list).
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| T-113 and T-115 exceed the ~15-file guideline, so one dev run may overflow or the review gets harder | Medium | Many T-113 changes are one-liners in separate files; the planner orders the work inside each run; T-115 fallback (components to a follow-up) only if pr-reviewer finds it unreviewable |
-| One checkpoint for the whole epic collects many findings at once (E3 had 15) | Medium | The 7 items are explicit and grouped by journey; fix tasks follow the usual one-task-per-session rule |
-| SQL and Kotlin disagree on set counting, volume or warm-up inclusion | High | One rule in `04` §4.11 with shared examples used by pgTAP and domain tests; volume reuses `set_volume`/`volume_factor`/`latest_body_weight_kg` like `exercise_session_records` |
-| Statistics over the whole history are slow on a phone or the free DB | Medium | Aggregation in SQL (one round trip per section), existing session indexes checked in T-114; 1–5 users, small data |
-| UTC session dates put a late-evening workout on the next day in a window | Low | Same convention as every training RPC since E3 (stated assumption, E5 retro b); user confirms at E8-A |
-| The body map needs a silhouette asset with an unclear licence | Medium | Draw the regions in-house as vector paths, or use a permissively licensed asset with its licence recorded for the E9 credits |
-| Radar and body map are hard to make accessible (small regions, colour only) | Medium | ≥ 48 dp effective targets or an accessible per-muscle list, descriptions with the set count, values in the sheet; ux-reviewer checks the plan |
-| Vico cannot draw record markers or a radar | Medium | Markers as a Vico decoration/point layer; the radar is a custom Canvas component (`RadarChart`), not Vico |
-| Changing the progress screen's data source (T-113) regresses the Fuerza and session-detail entry points | Medium | Existing `ExerciseProgress*` tests kept green; the reps-only fallback preserved; all three entry routes tested |
-| A changed `save_meal_defaults` breaks the installed app | Low | Same signature and error codes; existing pgTAP unchanged |
+| Fewer, larger tasks: most are L and some exceed ~25 files (T-118, T-124, T-125, T-127, T-128, T-129) | Medium | Most changes are mechanical; developers run in two slices where named (T-128, T-129); each size note names a planner-decided fallback split (T-124b, T-125b, two runs for T-127) instead of splitting up front |
+| A foundation template turns out wrong once a domain uses it | High | E9-A comes right after the first domain, before the other five copy the patterns; template fixes then sweep only two domains |
+| Optimistic swipe removal desynchronises the list on server failure | Medium | One shared restore path in T-120, ViewModel tests per caller, the failure message from §9.1 |
+| New uniqueness constraints fail on existing duplicate names in production | Low | Routines verified clean (E9 Q3); the `meal_slots` migration pre-checks and fails loudly naming any duplicate; `deploy-supabase` checked with data intact before E9-B |
+| Dropping `routines.auto_update_routine` (ADR-70) breaks an installed client that still sends it | Low | Column drop and the `save_routine` change ship with their Kotlin caller in T-124; the APK is reinstalled at each checkpoint |
+| Splitting Preferencias into sections changes what one "Guardar" writes | Medium | Same RPCs; each section saves only its fields; tests per section; the user checks at E9-B |
+| `oss-licenses-plugin` incompatible with the current AGP/KMP setup | Medium | Checked first in T-129 part A with stable versions; if it cannot work, the PM asks the user before any alternative library (the epic names this plugin) |
+| Semantic haptics are silent on older Android versions | Low | Per-API fallbacks in `AppHaptics` (§9.2); the user's Pixel 9 supports all types |
+| Roborazzi adds host-test time (E6 retro) | Low | Screenshot tests for templates only (D14), not per screen |
+| The guard script yields false positives and blocks unrelated PRs | Medium | Fixture tests per guard in T-118; the warning list keeps unmigrated domains non-blocking |
+| Two-column and 130 % font fixes found late (T-129) cascade into many screens | Medium | Templates cap widths and set title levels from T-118; small fixes stay in T-129, large ones become a `fix(T-###)` before E9-C |
 
 ## Open Questions
 
-**Resolved (user, 2026-10-25):**
-- **E8 Q1 · Entry and placement.** The Perfil "Estadísticas" section already holds "Fuerza" (1RM card, exercise charts, "Volumen por grupo muscular"), "Peso" and "Calorías". Decision: keep "Fuerza" as it is and add a separate row "Entrenamiento" in that section opens a full-screen "Estadísticas" (back arrow) that holds the US-40 sections and, below them, the radar and the body map (US-41), rather than a separate muscle screen.
-- **E8 Q2 · Frames and periods.** Decision: "Estadísticas" uses the chart frames 1M, 3M, 6M, 1A and "Todo" (default 1M; the existing exercise-chart default is unchanged); "Periodo anterior" is the window of equal length right before the selected one, and with "Todo" the radar shows only "Actual"; the set-count chart has one bar per week up to 6M and per month for 1A and "Todo"; "main exercises" are the top 5 by completed sets in the frame; the body map and its tap detail always cover the last 7 days (today and the 6 previous days), whatever frame is selected.
-- **E8 Q3 · Record markers and "full body".** Decision (accepted as proposed): a chart marks a session when it beat every earlier session for that chart's metric (the 1RM chart marks 1RM records, the volume chart volume records, time/distance charts their own), as in the session summary; exercises whose group is `full_body` count as "Cuerpo completo" in the radar and the per-group list but are not drawn on the body map.
+**Resolved (user, 2026-10-26; `planning/09-open-questions.md`):**
+- **E9 Q1 · End-of-rest sound (item 16).** No preference and no file: the Android system alarm sound (`RingtoneManager.TYPE_ALARM`, falling back to the notification sound), no bundled asset, so nothing to credit; still silent when muted. T-125.
+- **E9 Q2 · E6-B Q1, "Actualizar automáticamente".** Option A, ADR-70: one global setting in `training_preferences`, off by default; the per-routine switch and `routines.auto_update_routine` go away (migration, builder and finish flow in T-124, temporary switch in the current Preferencias; the "Entrenamiento" section of the hub in T-127).
+- **E9 Q3 · Existing duplicate names.** Verified read-only in production: no case-insensitive trimmed duplicates in `routines` or `meal_templates`, so T-124 adds the routine-name unique index directly, with no cleanup or rename. `meal_slots` was not checked, so T-126's migration runs a pre-check that raises naming any duplicate (never renames), with a pgTAP case.
+
+No task is blocked.
 
 **Assumptions (non-blocking; applied unless the user objects at the checkpoint):**
-- Statistics count only `completed` sessions and completed sets, with the UTC date of the session start (like every training chart since E3); warm-up sets only with "Incluir calentamiento" (`04` §4.6).
-- "duración" is the sum of session durations net of pauses (`04` §4.10); "volumen" follows `04` §4.2/§4.7 (per-hand ×2, bodyweight with the latest body weight, duration/distance exercises 0).
-- `weight_duration` exercises chart their best duration; `reps_only` keeps the reps chart; steps and floors exercises chart steps and floors.
-- A secondary muscle equal to the exercise's primary group is not counted twice.
-- Labels, legends, empty-state wording and the marker style are worded by ux-reviewer within `05`, and the user sees them at the checkpoint.
+- Routine card → a light routine details view (exercises, planned sets, last done, "Empezar", ✎ and 🗑 in the top bar), because R-17 (binding since ADR-69) requires a row tap to open details (audit NAV-5).
+- Planned placeholders (item 36) are told apart by a lighter font weight, keeping AA contrast (`05` §7), not by `ghostData`.
+- Item B (body map): ux-reviewer proposes 2–3 options with their complexity in T-125's plan pass and the PM asks the user to pick before any rebuild; with no rebuild, only the label fix (item A) ships.
+- `TimeRangeSelector` uses one string set "1S 1M 3M 6M 1A" plus "Todo", each screen showing the subset it already offers (the E8 Q2 frames stay).
+- US-46 "Progress" means Peso and "Estadísticas" (no Progreso tab, ADR-37).
+- The Spanish copy of new strings (credits, hints, duplicate messages) is worded by ux-reviewer within the glossary, and the user sees it at the checkpoints.

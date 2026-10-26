@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md).
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅
+Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** E9 (UX rulebook + finalization → `v1.0.0`): Wave 0 is merged (ADR-69, `05-design-system.md` §8–§10, US-56, new `ux-reviewer` and workflow, PRs #240 and #241). The only step left is the breakdown by `epic-planner` in a fresh session, with the checkpoints agreed with the user first; foundation tasks are allowed for US-56 (waves in the epic's US-56 technical notes and `planning/ux-audit-2026-10.md` §13). E8 closed (tag `v0.8.0`, retrospective held 2026-10-26; Checkpoint E8-A approved 2026-10-26), mention the T-112 cooking-fat caveat when reviewing E9; T-117 merged (PR #236, `deploy-supabase` green, migration remote; non-blocking review notes: `save_meal_as_comida` silently skips entry ids it cannot find or does not own, consider raising when 0 rows are updated; `DiaryViewModel` combines through a `Pair`); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
+**Next:** T-118 (UX guards, feedback layer and screen templates), the first task of E9 (UX rulebook + finalization → `v1.0.0`), once the breakdown PR is merged. E9 = T-118…T-130 with three agreed 👤 checkpoints: E9-A after T-122, E9-B after T-128, E9-C after T-129 (also the final regression; its approval releases the closure T-130). E9 Q1–Q3 resolved 2026-10-26 (system alarm sound; ADR-70 global "Actualizar automáticamente"; no duplicate names in production): no task is blocked. Mention the T-112 cooking-fat caveat at E9-A. Wave 0 is merged (ADR-69, `05-design-system.md` §8–§10, US-56, new `ux-reviewer` and workflow, PRs #240 and #241). E8 closed (tag `v0.8.0`, retrospective held 2026-10-26; Checkpoint E8-A approved 2026-10-26), mention the T-112 cooking-fat caveat when reviewing E9; T-117 merged (PR #236, `deploy-supabase` green, migration remote; non-blocking review notes: `save_meal_as_comida` silently skips entry ids it cannot find or does not own, consider raising when 0 rows are updated; `DiaryViewModel` combines through a `Pair`); T-115 merged (PR #234; AppBarChart is Canvas-based, not Vico; body-map hit boxes are rectangles with a visible per-muscle list; silhouettes are approximate, check them at E8-A; non-blocking review notes: the radar shows Error when only the previous-window call fails, and the muscle sheet reloads the exercise lookup on each open); T-114 merged (PR #232, `deploy-supabase` green, migration remote; `StatsWindow`/`SetCountBuckets` helpers: for 1A the first monthly bucket can start a month before the window, clamp or document it in T-115); T-113 merged (PR #229, `deploy-supabase` green; empty/all-thought Gemini parts are pinned as the existing 502 `PROVIDER_ERROR`, not 422); E8 = T-113…T-116 with one 👤 checkpoint (E8-A) after T-115. E7 closed (tag `v0.7.0`); US-42…US-44 deferred to Phase 2 (ADR-66); the signed release build was dropped from Phase 1 (ADR-67). Previous merge: T-112 (PR #224; cooking fat as a % of the raw weight, ADR-65; editing the amount of an already cooked entry keeps the stored fat, mention it to the user at the E8 closure). Not checked in CI: the 360x640 "≥ 3 result rows" layout and the real-model dish photo with "plato de lentejas con pollo, sin chorizo". E6 closed (tag `v0.6.0`).
 
 ---
 
@@ -3101,7 +3101,7 @@ Journey: log what you cook with its oil, and let your usual comidas fill a new d
 
 ---
 
-**E7 backlog (user request, 2026-10-25, not yet a task):** simplify Entreno → Historial: show the calendar directly (drop the list, the "+" button and the calendar button); tapping a day opens its details, which gain an "Añadir entrenamiento" button that opens the current "+" flow with the new workout set on the selected day.
+**E7 backlog (user request, 2026-10-25):** simplify Entreno → Historial (calendar directly, "Añadir entrenamiento" in the day details). Moved to T-125 (E9).
 
 ---
 
@@ -3316,11 +3316,440 @@ Journey: see whether you are getting stronger, per exercise, over any period and
 
 ---
 
+# E9 · Finalization → `v1.0.0`
+
+Stories: `planning/epics/E9-finalization.md` (US-45, US-46, US-56 and the deferred UI-refinement table). Plan: [tasks/plan.md](plan.md). Rulebook: `planning/05-design-system.md` §8 (R-01…R-40, "Decided — do not re-propose"), §9 (templates, swipe §9.1, haptics §9.2), §10 (glossary); evidence and specs: `planning/ux-audit-2026-10.md` (§5–§7 findings, §9 components, §10 guards, §13 waves, §14 swipe and haptics). Decisions: ADR-69 (amends ADR-24, ADR-41, ADR-45), ADR-67 (no release build: `prodDebug` APK only), ADR-13 (the app's own licence stays repo-only).
+Structure (US-56 technical notes, audit §13): Wave 0 (rulebook, ux-reviewer, workflow) is merged (PRs #240, #241). **Wave 1, foundations** (T-118…T-120): designsystem templates with catalog entries, host tests and `05` §6 rows, plus `scripts/check-ux-conventions.sh`; foundation tasks are allowed here (E9 exception to "one task per story"). Each ends with a **sweep**: the cross-cutting, mechanical copies are migrated in the task itself; every screen-specific copy is listed in the task with its owning wave-2 task (R-39), so nothing is left unowned. **Wave 2, migration by domain** (T-121…T-127): each task moves its screens to the templates, closes its rows of the E9 table, removes its screens' own `SnackbarHost`s and offline banners (owned per T-118's sweep) and turns the guards for its files from warnings into failures. **Wave 3, wording and motion** (T-128). Then US-45 + US-46 (T-129) and the closure (T-130).
+Sizes (re-estimated 2026-10-26 at the user's request, to cut the fixed per-task cost): 13 tasks instead of 16. Merged: screen templates (M) into the guards/feedback foundation (T-118); motion and onboarding (M, close to S) into the wording sweep (T-128); "Acerca de" (S) into the US-46 polish task (T-129). The other tasks are M or L on their own and merging them would give unreviewable PRs of unrelated domains; only the closure (T-130) stays S.
+Flow: every UI task runs planner → ux-reviewer (plan) → developers → pr-creator → pr-reviewer ∥ ux-reviewer (diff) (`06` §2.1). UI scenarios are covered by host (Robolectric) tests; the templates also get Roborazzi screenshot tests (D14, adopted by ADR-69). The app is verified by hand at the 👤 checkpoints with `python scripts/deliver-apk.py`.
+Schema: new migrations only, and only where a rule needs the server: `save_meal_as_comida` reports unknown entries (T-122, E8 review note), routine names unique ignoring case and "Archivar" → "Eliminar" (T-124), meal names unique ignoring case and the meal structure saved in one call with its removals (T-126). Each is verified by pgTAP and `deploy-supabase`.
+Rules for every task: `05` §8–§10 (ux-reviewer cites them by number), ADR-40 restoration tests, loading/empty/error/offline states from the templates (R-31, R-30), tabular numerals and Spanish formatting (`04` §5, `AppNumberFormat`), one vibration per action (R-29), glossary wording (R-35…R-38). Presentation only (FR-6): no new feature; the only new screens are the routine details view required by R-17 (T-124), the Preferencias section editors of the hub (D9, T-127) and "Acerca de" (US-45).
+Carry-over to mention: **T-112 cooking-fat caveat** (ADR-65): editing the amount of an entry that was already cooked keeps the fat stored when it was logged; the user reviews it at E9-A (T-121 keeps this behaviour, it does not recalculate). E8 non-blocking review notes are folded into their owning tasks (T-121, T-122, T-125).
+Questions: E9 Q1–Q3 resolved by the user on 2026-10-26 (`tasks/plan.md`, `planning/09-open-questions.md`, ADR-70); no task is blocked; everything else is decided by `planning/` or recorded as an assumption.
+Checkpoints (agreed with the user, 2026-10-26): **E9-A** after T-122 (wave 1 + Diario/food/comidas), **E9-B** after T-128 (Peso, Training, Perfil/Preferencias/meals editor + wording and motion), **E9-C** after T-129 (US-45, US-46 with TalkBack and tablet; also the final regression whose approval releases the closure T-130 and the `v1.0.0` tag).
+
+### E9 UI-refinement table → owning task
+
+| # | Owner | # | Owner | # | Owner |
+|---|---|---|---|---|---|
+| 1 | T-128 | 15 | T-125 | 27 | T-119 |
+| 2 | T-128 | 16 | T-125 (system alarm sound, E9 Q1) | 28 | T-122 |
+| 3 | out of scope; title levels fixed by T-118/T-119 | 18 | T-127 (moot with the hub) | 30 | T-123 |
+| 5 | T-127 | 19 | T-126 | 31 | T-123 |
+| 6 | T-127 | 20 | T-126 | 32 | T-123 |
+| 7 | T-127 | 21 | T-126 (meals), T-124 (routines, folders), comidas already unique | 33 | T-121 |
+| 8 | T-121 | 22 | T-126 | 35 | T-125 |
+| 9 | T-121 | 23 | T-118 (template) + T-121/T-124/T-127 (tab roots) | 36 | T-125 |
+| 10 | T-121 | 24 | T-123 | 37 | T-119 (structured `HelpButton`) + T-125 (RPE) |
+| 12 | T-121 | 25 | T-126 | 38 | T-119 |
+| 14 | T-121 | 26 | T-120 (component) + each domain task (wiring) | A, B | T-125 |
+| | | | | C | T-122 |
+
+---
+
+## T-118: UX guards, feedback layer and screen templates · L
+
+**Story:** US-56 (wave 1) · **Flow:** UI + core · **Size:** L (merged on 2026-10-26: guards/feedback M + screen templates M) · **Scenarios:** Same structure on every screen; Editing never applies silently; One vibration per action; Offline; Guards (US-56)
+
+**Description:** The cross-cutting feedback layer, the screen templates every later task builds on, and the CI guard. (1) `scripts/check-ux-conventions.sh` modelled on `check-design-tokens.sh`: guards G1–G10 of audit §10, scanning production Kotlin outside `designsystem/` (and `strings.xml` for G9/G10); a per-guard, per-path **warning list** (files not yet migrated only warn; everything else fails), wired as a step of `android-ci` and documented in `06` §4. G10 fails at once (this task removes its last violations); the rest start as warnings for the unmigrated domains. (2) `AppMessages` + `LocalAppMessages`: one shell-level message host above the bottom bar and any pinned footer; messages survive navigation and carry no action button (R-28). (3) `AppHaptics` (`armed`, `disarmed`, `confirm`, `reject`, `tick`) + `LocalAppHaptics`, Android implementation on `View.performHapticFeedback` with per-API fallbacks (`05` §9.2), a recording fake for tests; the `Haptics` port keeps only `alert()` (end of rest). (4) `OfflineState` (load failed offline; retries by itself on reconnect) and the standard offline hint for disabled write actions ("Sin conexión: no se puede <acción>", R-30, R-37). (5) Shared `action_*` strings (audit §9 list) and `AppDateFormat` (R-38) as components only; their app-wide adoption is T-128. (6) **Screen templates:** `AppTopBar` v2 (title, optional subtitle, back, `actions`: ≤ 2 `AppIconButton` + ⋮ → `AppActionSheet`, 56 dp on full-screen destinations; `AppActionSheet` is built here as the first archetype and reused by T-119); `AppScreen` (screen owns its bar; content width capped by window size; optional pinned footer; wired to `AppMessages`); `AppEditorScreen` (`AppScreen` + pinned "Guardar" with an optional destructive action, the R-14 dialog "¿Descartar los cambios?" [Descartar] [Seguir editando] on back/X only when dirty, closes on success with Confirm haptic (R-13), standard offline hint, keyboard insets). The shell stops drawing a static per-route title bar for routes that adopt `AppScreen` (a per-route switch, removed in T-128 when every route has migrated); tab roots get their own compact header slot (D1, R-01). One title style per level (screen, section, sheet; E9 table item 3).
+
+**Sweep in this task (mechanical, cross-cutting only):** every UI-feedback vibration → `AppHaptics` per R-29 (removes the double vibration on set completion, `LiveSessionViewModel` raw pulse); the component catalog screen moves to `AppScreen` as the reference user. **Owned by the domain tasks**, done when each screen moves to `AppScreen`/`AppEditorScreen` (which host `AppMessages` and `OfflineState`), with G3/G4 turning into failures per domain: the 15 per-screen `SnackbarHost`s, the `ExerciseDeletedNotice` workaround, the 4 duplicate in-screen offline banners and "Reintentar" on offline loads — Diario/food/comidas T-121/T-122, Peso T-123, routines/exercises T-124 (incl. `ExerciseDeletedNotice`), live/history/stats T-125 (incl. `LiveSessionTopBar` and the icon rows under the bar), meals editor T-126, Perfil/Preferencias T-127, onboarding/welcome T-128. `action_*`/`AppDateFormat` adoption and G9 → T-128.
+
+**Acceptance criteria:**
+- [ ] `check-ux-conventions.sh` runs in `android-ci`; a test fixture per guard proves it fails on a violation outside the warning list and only warns inside it; G10 has no warnings left.
+- [ ] One message host in the shell, above the bottom bar and any pinned footer; a message sent just before navigating back is still shown on the destination.
+- [ ] Completing a set fires exactly one Confirm; saving, adding and deleting fire one Confirm; a refused action one Reject (recording fake).
+- [ ] `OfflineState` reloads by itself when the connection returns; the offline hint template is shared.
+- [ ] `AppTopBar` v2 with 0, 1, 2 actions and ⋮ (third action into the action sheet); each action ≥ 48 dp with a description.
+- [ ] `AppEditorScreen`: dirty + back → dialog; "Descartar" leaves, "Seguir editando" stays; clean + back → leaves silently; successful save → closes once, one Confirm; offline → "Guardar" disabled with the standard hint.
+- [ ] A route on `AppScreen` shows no shell title bar; a route not yet migrated looks exactly as before.
+- [ ] Catalog entries, Roborazzi screenshot tests of the bar and both templates, `05` §6 rows.
+
+**Host tests:** guard script tests (fixtures); `AppMessagesTest` (position above footer, survives navigation); `AppHapticsTest` with the recording fake + `LiveSessionViewModelTest` (one confirm per set); `OfflineStateTest` (auto-retry on reconnect); `AppTopBarTest` (actions, overflow, semantics); `AppEditorScreenTest` (discard matrix, save-and-close, offline hint, restoration of the open dialog); `AppScreenTest` (width cap, footer, messages above footer); shell routing test (migrated vs legacy route); screenshot tests.
+
+**Verification:**
+- [ ] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green (incl. the screenshot tests).
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 24 files (the per-screen host and banner removals moved to the domain tasks, which rebuild those screens anyway).
+**Dependencies:** E8 (`v0.8.0`), Wave 0 merged
+**Files likely touched:** `scripts/check-ux-conventions.sh` + fixtures, `.github/workflows/android-ci.yml`, `composeApp/…/designsystem/{AppMessages,AppHaptics,OfflineState,AppDateFormat,AppTopBar,AppScreen,AppEditorScreen,AppActionSheet}.kt`, `composeApp/…/platform/AndroidHaptics.kt`, `composeApp/…/app/{AppScaffold,AppRoutes}.kt`, `feature/workout/LiveSessionViewModel.kt` and the other haptic callers, `composeResources/values/strings.xml`, catalog, Roborazzi setup (`gradle/libs.versions.toml`, `composeApp/build.gradle.kts`), `planning/05-design-system.md` §6, `planning/06-agent-workflow.md` §4, tests
+**Estimated scope:** L
+
+---
+
+## T-119: Sheet archetypes, Name sheet and field upgrades · L
+
+**Story:** US-56 (wave 1) · **Flow:** UI · **Scenarios:** Editing never applies silently; Primary action always visible (US-56)
+
+**Description:** (1) **Sheet fix first:** reproduce the stray horizontal line (E9 items 27, 38; SHT-3) with a Roborazzi test of a sheet with a text field, then replace the full outline/shadow of `AppBottomSheet` with a top-only hairline; the screenshot test stays as the guard. (2) Archetypes on `AppBottomSheet`: `AppEditSheet(commit = Save | Apply)` ("Guardar" writes, "Listo" applies to the screen underneath, R-12), `AppPickerSheet` (applies on tap, no footer), `AppInfoSheet`, plus T-118's `AppActionSheet`; one header (title, optional "?", X "Cerrar"), scrolling body, pinned footer visible with the keyboard open (R-07, R-09); closing never applies (R-10). (3) **Name sheet**: an `AppEditSheet` with one field focused at once, keyboard "Hecho" saves when valid, caller-supplied uniqueness check with the template "Ya existe <…> con ese nombre" (R-15). (4) `AppTextField` v2 (trailing slot for clear/✓/unit, `imeAction` + `onImeAction`, sentence capitalization, autofocus), `NumberInput` v2 (select the whole value on focus, decimal keyboard, inline range "Entre X y Y <unidad>", R-25), `AppSearchField` (search icon, clear, keyboard "Buscar", R-26); one label style and one focus treatment for every input (FRM-5). (5) `HelpButton` content becomes structured (paragraphs and a list) on `AppInfoSheet` (FBK-4; enables item 37).
+
+**Sweep in this task:** the designsystem sheets `SetTypePickerSheet` and `RpePickerSheet` → `AppPickerSheet`; `HelpButton` → `AppInfoSheet`; the clear-"×" `Box` workarounds in `FoodSearchScreen` and `ExercisePickerScreen` → `AppSearchField`. **Owned elsewhere (G1/G2 stay warnings for them):** `EditEntrySheet`, `DiaryDayPickerSheet` (T-121); `AddFoodSheet`, `TemplateFoodSheet`, `SaveTemplateSheet`, `PhotoSheets` (T-122); `CircumferenceSheet`, `GoalSheets`, `CompositionSheet`, `WeightDaySheet` (T-123); `RoutineSheetActions`, `FolderSheet`, `RoutinesSheets`, `CreateExerciseSheet`, `ExerciseFormSheet`, `RoutineBuilderCalculatorSheets` (T-124); `FinishSessionSheet`, `CalculatorSheetParts`, `DiscLoaderSheet`, `WarmUpCalculatorSheet`, `VolumeOptionsSheets`, `UpdateRoutineSheet`, `PastWorkoutChooserSheet`, `SaveAsRoutineSheet`, `MuscleDetailSheet` (T-125); `MealDefaultsSheets` and the meal rename (T-126); the Preferencias pickers (T-127); the "Crear alimento" custom label and Next/Done chaining (T-122).
+
+**Acceptance criteria:**
+- [ ] The screenshot test of a sheet with a field shows no line crossing the sheet; it failed before the fix.
+- [ ] Each archetype: header semantics (heading, X "Cerrar"), pinned footer visible with the IME open at 360×640, X/back/scrim/swipe never call the commit.
+- [ ] Name sheet: the field has focus on open; "Hecho" with a valid name saves once; a duplicate (case and spaces ignored) shows "Ya existe … con ese nombre" and keeps "Guardar" disabled.
+- [ ] `NumberInput` selects its value on focus; typing replaces it; both inputs share label and focus style.
+- [ ] Catalog entries, screenshot tests and `05` §6 rows for every archetype and field.
+
+**Host tests:** `AppSheetsTest` (per archetype), `NameSheetTest`, `AppTextFieldTest`/`NumberInputTest`/`AppSearchFieldTest` (trailing slot, IME action, capitalization, select-on-focus), `HelpButtonTest` (structured content), the swept picker and search tests, screenshot tests.
+
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan), compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 6. About 22 files (size note: sheets and fields stay together because the Name sheet needs the v2 field).
+**Dependencies:** T-118
+**Files likely touched:** `composeApp/…/designsystem/{AppBottomSheet,AppSheets,NameSheet,AppTextField,NumberInput,AppSearchField,HelpButton,SetTypePickerSheet,RpePickerSheet}.kt`, `feature/food/FoodSearchScreen.kt`, `feature/exercises/ExercisePickerScreen.kt`, catalog, strings, `planning/05-design-system.md` §6, tests
+**Estimated scope:** L
+
+---
+
+## T-120: Lists and cards: swipe and reorder v2, rows, `SectionHeader`, `AddItemButton`, `MetricCard`, `TimeRangeSelector` · L
+
+**Story:** US-56 (wave 1) · **Flow:** UI · **Scenarios:** Swipe to delete feels like a modern app; One vibration per action (US-56)
+
+**Description:** (1) `SwipeToDeleteRow` v2 exactly as `05` §9.1 and audit §14.5: right to left only, "Eliminar"/"Quitar" label (own strings, no longer `diary_entry_delete`), arms at 50 % and disarms at 40 % with Armed/Disarmed haptics, a fling deletes only when armed, release while armed slides out and calls `onDelete` (Confirm), springs back otherwise, reduced motion snaps; a failure path brings the row back with "No se pudo eliminar. Inténtalo de nuevo." (Reject); TalkBack action "Eliminar <nombre>". (2) `ReorderableColumn` v2: the handle drags at once, Tick on pick-up and each swap, auto-scroll near the edges, "Subir"/"Bajar" custom actions (R-22). (3) Rows: `AppListRow` (leading, headline, supporting, trailing; ≥ 48 dp) and `NavigationRow` (label, value, chevron, R-03); `SectionHeader` (title + optional count); `AddItemButton` ("Añadir <objeto>", end of list, R-19). (4) `MetricCard` (label, value, supporting slot, trailing action, `onClick`, optional progress slot). (5) `TimeRangeSelector`: one control and one string set "1S 1M 3M 6M 1A" (+ "Todo" where a screen already offers it, E8 Q2), each screen passing its subset (R-34). The object rows `FoodEntryRow`, `MeasurementRow`, `ExerciseRow` and `WorkoutRow` are built on `AppListRow` in their first domain task (T-121, T-123, T-124).
+
+**Sweep in this task:** every `SwipeToDeleteRow` caller gets the v2 behaviour through the component and an optimistic removal with restore on failure in its ViewModel (diary entries, comida foods, live sets, and any other caller the sweep finds); every `ReorderableColumn` caller (routine builder, meals editor) gets the v2 drag. **Owned elsewhere:** `GoalCard`/"Peso actual" → `MetricCard` (T-123); `NavigationRow` on Perfil and Preferencias (T-127) and "Comidas por defecto ›" (T-126); `TimeRangeSelector` on the weight chart (T-123) and on exercise progress/Estadísticas (T-125); `SectionHeader`/`AddItemButton` per domain; `animateItem` on every list (T-128).
+
+**Acceptance criteria:**
+- [ ] Swipe: drag to 45 % and release → springs back, nothing deleted, no haptic; past 50 % → armed state + one Armed; back below 40 % → one Disarmed; release armed → row gone at once, gap closes, one Confirm; failed delete → row returns with the message and one Reject; an unarmed fling never deletes.
+- [ ] Reorder: dragging the handle moves without a long press; one Tick per swap; "Subir"/"Bajar" actions work.
+- [ ] `MetricCard`, rows, `SectionHeader`, `AddItemButton`, `TimeRangeSelector`: catalog entries, 48 dp targets, descriptions, screenshot tests, `05` §6 rows.
+
+**Host tests:** `SwipeToDeleteRowTest` (thresholds, hysteresis, fling, failure restore, haptics via the recording fake, accessibility action, reduced motion), `ReorderableColumnTest`, `MetricCardTest`, `AppListRowTest`/`NavigationRowTest`, `TimeRangeSelectorTest`; the swipe callers' ViewModel tests (optimistic removal, restore on failure); screenshot tests.
+
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan; §9.3 swipe checklist), kotlin-core-developer (optimistic removal in the callers), compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 22 files.
+**Dependencies:** T-119
+**Files likely touched:** `composeApp/…/designsystem/{SwipeToDeleteRow,ReorderableColumn,AppListRow,NavigationRow,SectionHeader,AddItemButton,MetricCard,TimeRangeSelector}.kt`, the swipe callers' ViewModels (`feature/diary`, `feature/templates`, `feature/workout`), catalog, strings, `planning/05-design-system.md` §6, tests
+**Estimated scope:** L
+
+---
+
+## T-121: Diario migration: layout, `FoodEntryRow`, `FoodSheet` and the day picker · L
+
+**Story:** US-56 (wave 2, Diario) + E9 items 8, 9, 10, 12, 14, 33 · **Flow:** UI + core · **Scenarios:** Same structure on every screen; Editing never applies silently; Primary action always visible; Swipe to delete; One wording per concept (US-56)
+
+**Description:** The Diario tab root and its sheets on the templates. **Templates and patterns:** `AppScreen` with the date switcher as the compact tab-root header (D1, R-01; the calendar icon keeps opening the day picker); meals first, a one-line summary strip on top ("1.240 / 2.100 kcal · P 80 · C 150 · G 40") and the full dashboard at the bottom (D11, item 10); the ring shows only what was eaten and "de N kcal", plus "+N kcal en exceso" when over (item 8); `MacroProgressBar` reads "9 g / 233 g" with no %; the fifth full-width "Añadir comida" is removed and each meal keeps its own `AddItemButton` (item 9, R-19); meal sections as a lazy list with stable keys. New **`FoodEntryRow`** (on `AppListRow`): name, portion label plus base amount ("1 vaso (200 ml)", item 33), kcal and whole-gram macros (LST-8, R-38); replaces `DiaryEntryRow` and is used inside `DiaryGroupRow`. New **`FoodSheet`** (the one sheet for a food with a quantity, `05` §9): header (name, brand, ★, ✎ for manual foods), quantity and portion first, live totals, collapsible details (per 100, micronutrients), context footer; here the **edit context** ("Guardar" + "Eliminar") replaces `EditEntrySheet`, so tapping a logged food opens its details (item 12, R-17). Delete: swipe on the row plus "Eliminar" in the sheet (R-20), optimistic (T-120). Day picker on `AppPickerSheet`: days with entries are marked and a "Hoy" chip shows whenever the visible day is not today (item 14). "Calorías" (diary history, `DiaryHistoryScreen`) on `AppScreen`, titled "Calorías" (glossary). Guards G1/G2/G3/G7 become failures for `feature/diary`. **T-112 caveat:** editing the amount of an already cooked entry keeps the fat stored at logging time (ADR-65); no recalculation. **Carry-over (E8 review note):** `DiaryViewModel` combines through a small state holder instead of a `Pair`.
+
+**Acceptance criteria:**
+- [ ] Diario opens with the meals first, the summary strip on top and the dashboard at the bottom; no title bar repeats "Diario"; no fifth "Añadir comida".
+- [ ] Ring: "de 2.100 kcal"; over target: "+150 kcal en exceso"; no "restantes"; bars "9 g / 233 g".
+- [ ] A row for 1 vaso of milk reads "1 vaso (200 ml)"; macros are whole grams in rows, headers and bars.
+- [ ] Tapping a logged food opens `FoodSheet` with its details; changing the quantity updates the totals live; X does not apply; "Guardar" saves and closes with one Confirm; a cooked entry keeps its stored fat.
+- [ ] Swipe-delete and "Eliminar" in the sheet delete at once; a failure restores the row with the standard message.
+- [ ] The day picker marks logged days; "Hoy" appears on another day and returns to today.
+- [ ] Two columns from 600 dp unchanged; the open `FoodSheet` draft and the visible day survive background and process death.
+
+**Host tests:** `DiaryScreen` Robolectric tests (order, strip, ring texts, no fifth add, group rows), `FoodEntryRowTest`, `FoodSheetTest` (edit context, live totals, discard on close, cooked entry), `DiaryViewModelTest` (state holder, optimistic delete and restore), `DiaryDayPickerSheet` tests (marked days, "Hoy"), `DiaryHistoryScreen` title test, restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-ux-conventions.sh` with `feature/diary` out of the warning list) + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 20 files.
+**Dependencies:** T-120
+**Files likely touched:** `composeApp/…/feature/diary/{DiaryScreen,DiaryViewModel,DiaryUiState,MealSection,DiaryDateHeader,DiaryDayPickerSheet,DiaryGroupRow,DiaryEntryRow,EditEntrySheet,DiaryHistoryScreen}.kt`, new `composeApp/…/designsystem/{FoodEntryRow,FoodSheet}.kt`, `designsystem/{ProgressRing,MacroProgressBar}.kt`, `scripts/check-ux-conventions.sh` (warning list), catalog, strings, `planning/05-design-system.md` §6, tests
+**Estimated scope:** L
+
+---
+
+## T-122: Food search, add flow and saved comidas migration · L
+
+**Story:** US-56 (wave 2, food and comidas) + E9 items 28, C · **Flow:** backend + core + UI · **Scenarios:** Same structure on every screen; Editing never applies silently; Primary action always visible; One wording per concept; Offline (US-56)
+
+**Description:** **Templates and patterns:** food search on `AppScreen` titled with the destination ("Añadir al desayuno", the label of the button that opened it; "Añadir alimento" when choosing for a comida; WRD-1, glossary); `AppSearchField`; the views "Recientes / Más comidos / Favoritos / Guardadas" become `AppTabRow` tabs (SEL-3, glossary "Guardadas"); one quick-actions row under the field ("Escanear", "Foto", "Crear alimento", icon + short label; audit §6.2). `FoodSheet` **add context** (quantity first, cooking selector, live totals, details collapsed, pinned "Añadir", meal choice always single-select chips, SEL-2) replaces `AddFoodSheet`; **comida context** ("Listo" + "Quitar de la comida", `AppEditSheet` Apply) replaces `TemplateFoodSheet`. Photo mode/source sheets → `AppActionSheet`. "Crear"/"Editar alimento" on `AppEditorScreen` (discard dialog, "Siguiente" chaining, one label style, FRM-2/FRM-5). **Comidas guardadas (item C, item 28, audit §6.3):** details screen on `AppScreen` titled with the comida's name, ✎ "Editar" and 🗑 in the top bar (R-02), totals card, `SectionHeader` "Alimentos en esta comida", items as `FoodEntryRow`, `AddItemButton` "Añadir alimento" at the end of the list, pinned primary action, no hint "Se añadirá tal como lo ves…"; editor on `AppEditorScreen` (name field, swipe "Quitar" applied on "Guardar", discard dialog). "Guardar como comida" → Name sheet (comida names are already unique per user on `lower(btrim(name))`). Guards G1/G2/G7 become failures for `feature/food` and `feature/templates`. **Carry-over (E8 review note):** a new migration makes `save_meal_as_comida` raise when an entry id is unknown or not owned (0 rows updated) instead of skipping it silently, with pgTAP; same signature.
+
+**Acceptance criteria:**
+- [ ] "Añadir a la cena" opens a search titled "Añadir a la cena"; tabs switch views; the quick-actions row has "Escanear", "Foto" and "Crear alimento".
+- [ ] Picking a food opens `FoodSheet`: quantity first, totals live, details collapsed, "Añadir" visible with the keyboard open; the meal choice is chips with 4 and with 5 meals.
+- [ ] Comida details: the title is the comida's name, ✎ and 🗑 in the top bar, "Alimentos en esta comida" header, "Añadir alimento" at the end, no "Se añadirá tal como lo ves…" hint.
+- [ ] Comida editor: "Quitar" by swipe waits for "Guardar"; back with changes asks "¿Descartar los cambios?".
+- [ ] "Guardar como comida" focuses the name; a duplicate name shows "Ya existe una comida guardada con ese nombre" (exact copy by ux-reviewer per the glossary).
+- [ ] pgTAP: `save_meal_as_comida` with an unknown or foreign entry id raises and saves nothing; existing cases green.
+- [ ] Offline: write actions disabled with the standard hint; drafts and the open sheet survive background and process death.
+
+**Host tests:** `FoodSearchScreen` tests (title per origin, tabs, quick actions), `FoodSheetTest` (add and comida contexts), `TemplateDetailsScreen`/editor tests (title, top-bar actions, section header, add button, staged removal, discard), `SaveTemplateSheet` → Name sheet test, `CreateFoodScreen` tests (discard, IME chaining), pgTAP `save_meal_as_comida` addition, restoration tests.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote.
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 24 files (size note: the add flow and comidas share `FoodSheet`, so they stay one PR; the backend part is one small migration).
+**Dependencies:** T-121
+**Files likely touched:** `supabase/migrations/<ts>_save_meal_as_comida_strict.sql`, `supabase/tests/…`, `composeApp/…/feature/food/{FoodSearchScreen,AddFoodSheet,CreateFoodScreen}.kt`, `feature/food/photo/PhotoSheets.kt`, `feature/templates/{TemplateDetailsScreen,TemplateDetailsViewModel,TemplateFoodSheet,SaveTemplateSheet,SaveTemplateViewModel}.kt`, `designsystem/FoodSheet.kt`, `app/AppRoutes.kt`, `scripts/check-ux-conventions.sh`, strings, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E9-A — Log food the new way 👤 (7 items + leave and come back) *(agreed)*
+Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen through the whole food journey: the Diario, adding foods and saved comidas. Why here: the first domain migrated on every template, before the other domains copy the same patterns, so feedback can still change the templates.
+- [ ] T-118…T-122 merged, CI green, `deploy-supabase` applied the T-122 migration, every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Diario layout (T-121): meals first, the one-line summary strip on top, the full dashboard at the bottom; the ring says "de N kcal" (and "+N kcal en exceso" when over), bars "9 g / 233 g"; no extra "Añadir comida"; the header is the date switcher, with no "Diario" bar.
+  2. A logged food (T-121): tap it → its details sheet with the totals and nutrition; change the quantity (the value is selected, typing replaces it), close with X (nothing changes), then "Guardar" (it closes, one vibration); "1 vaso (200 ml)" style labels; T-112 caveat: change the amount of a fried entry: its oil stays as logged.
+  3. Swipe and delete (T-120/T-121): drag a food less than half and let go (it springs back); past half (it changes and vibrates once), let go (it leaves at once and the rest moves up); delete from the sheet too.
+  4. Day picker (T-121): the calendar marks the days you logged; on another day a "Hoy" chip brings you back.
+  5. Adding (T-122): "Añadir al desayuno" opens a search with that title, tabs and the "Escanear / Foto / Crear alimento" row; the food sheet shows the quantity first and "Añadir" stays visible with the keyboard open; no stray line across any sheet.
+  6. Saved comidas (T-122): open a comida: its name is the title, edit and delete are in the top bar, "Alimentos en esta comida", "Añadir alimento" at the end; edit it, remove a food (only applied on "Guardar"), leave with changes (it asks "¿Descartar los cambios?"); "Guardar como comida" with an existing name is refused.
+  7. Messages and offline (T-118): a confirmation message appears in the same place above the bottom bar on every screen; turn on airplane mode: one "Sin conexión" banner, "Guardar"/"Añadir" disabled with "Sin conexión: no se puede …", and a screen that failed to load reloads by itself when you reconnect.
+  - Leave the app and come back with a food sheet half edited, a comida editor with unsaved changes and another day selected: the same tab, screen, day and draft are restored.
+  - Out of scope: Peso, training, Perfil and Preferencias screens (E9-B; they still use the old look), wording sweep and list animations (T-128), tablet and TalkBack (E9-C).
+
+---
+
+## T-123: Peso migration · M
+
+**Story:** US-56 (wave 2, Peso) + E9 items 24, 30, 31, 32 · **Flow:** UI + core · **Scenarios:** Same structure on every screen; Editing never applies silently; One wording per concept (US-56)
+
+**Description:** **Templates and patterns:** Peso on `AppScreen` with a calendar icon in the top bar that opens the measurement history (R-03, item 31); "Peso actual", "Objetivo" and the IMC/body-fat tiles as `MetricCard`s (item 24; `GoalCard` becomes a `MetricCard` with the progress slot; the pencil for today's weight is the card's trailing action, A11Y-2, ADR-48); the Health Connect status is a supporting line of "Peso actual" with "Sincronizar" as its action (item 30); the repeated body fat inside "Peso actual" is removed (the tile shows it). Weight chart: the metric chosen from the chart title, the range from `TimeRangeSelector` (SEL-1, SEL-3), and the goal overlay (a marker on the first weight, the existing target line and a shaded band between them, item 32). The inline helps (7-day average, measuring instructions) → `HelpButton` with structured content (FBK-4, R-32). New **`MeasurementRow`** for circumferences and Health Connect readings (replaces `CircumferenceRow`); sheets `WeightDaySheet`, `CircumferenceSheet`, `GoalSheets`, `CompositionSheet` → archetypes (pinned footer, R-07/R-09); delete per R-20. Glossary labels "Grasa corporal", "Metabolismo basal", "Masa ósea". Guards become failures for `feature/weight`.
+
+**Acceptance criteria:**
+- [ ] "Peso actual" and "Objetivo" align as the same card type; the pencil edits today's weight; "Sincronizar" sits in "Peso actual" with the status line.
+- [ ] The top-bar calendar opens the measurement history; no on-screen calendar section.
+- [ ] The chart switches metric from its title and range from the segmented selector "1S 1M 3M 6M 1A"; the goal band shows between the first weight and the target.
+- [ ] Help opens as a `HelpButton` sheet; no text expands in place.
+- [ ] Sheets have pinned footers visible with the keyboard; closing never applies; restoration of open sheets and drafts.
+
+**Host tests:** `WeightScreen` Robolectric tests (cards, sync action, top-bar calendar, no duplicate body fat), `WeightChart` tests (metric from title, `TimeRangeSelector`, goal overlay semantics), `MeasurementRowTest`, sheet tests per archetype, `WeightViewModelTest` updates, restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-ux-conventions.sh`, `feature/weight` failing) + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 18 files.
+**Dependencies:** T-122 (and Checkpoint E9-A approved)
+**Files likely touched:** `composeApp/…/feature/weight/{WeightScreen,WeightChart,WeightViewModel,CircumferenceSection,CircumferenceSheet,GoalSheets,CompositionSheet,WeightDaySheet}.kt`, `designsystem/{GoalCard,CircumferenceRow,MeasurementRow}.kt`, `app/AppRoutes.kt`, `scripts/check-ux-conventions.sh`, strings, tests
+**Estimated scope:** M (one domain, ~18 files, no backend; nothing S in the same wave to merge it with)
+
+---
+
+## T-124: Routines, builder and exercises migration · L
+
+**Story:** US-56 (wave 2, Training part 1) + E9 item 21 (routines, folders) · **Flow:** backend + core + UI · **Scenarios:** Same structure on every screen; Editing never applies silently; One wording per concept (US-56)
+
+**Description:** **Templates and patterns:** Entreno tab root with its own compact header "Rutinas" and history/calendar actions (D1, NAV-3; no second "Mis rutinas" heading); "Historial" is a top-bar icon, not a ghost button (NAV-4). Tapping a routine card opens a light **routine details** view on `AppScreen` (exercises, planned sets, last done, "Empezar", ✎ and 🗑 in the top bar), required by R-17 (NAV-5; see the plan's assumptions). Builder on `AppEditorScreen` titled "Nueva rutina"/"Editar rutina" (R-01), "Añadir ejercicio" as `AddItemButton` (LST-3), exercises removed with swipe "Quitar" applied on "Guardar", `ReorderableColumn` v2, discard dialog. "Archivar" becomes an immediate "Eliminar" without confirmation (D4, ADR-69); folders keep their R-08 dialog and use the Name sheet ("Nueva carpeta"). Exercise picker: select mode, the thumbnail or ⓘ opens the detail (R-17, NAV-6); creating an exercise moves to the quick-actions pattern. Exercise detail on `AppScreen` titled with the exercise name, ✎ and 🗑 in the top bar on every tab (NAV-1); a custom exercise is deleted at once (the server already refuses one in use, D4); "Ver progreso" lives here. New **`ExerciseRow`** (thumbnail, name opens the detail, R-18). Sheets → archetypes (`RoutineSheetActions` → `AppActionSheet`, `FolderSheet` → Name sheet, `CreateExerciseSheet`/`ExerciseFormSheet` → `AppEditSheet`). **Backend:** a migration that makes routine names unique per user on `lower(btrim(name))` (item 21, R-15; folders already are, T-101a) with the "Ya existe una rutina con ese nombre" mapping; "Eliminar" on a routine is a real delete (sessions keep their history with `routine_id` set null, as for folder deletion). E9 Q3: production has no duplicate routine names (verified 2026-10-26), so the index is added directly with no cleanup or rename. **ADR-70 (E9 Q2, option A):** the same migration adds `training_preferences.auto_update_routine boolean not null default false` and drops `routines.auto_update_routine` (`save_routine` stops accepting it; existing per-routine values are dropped); the builder loses its switch; the finish flow updates the routine without asking only when the global setting is on (otherwise the "Actualizar rutina" choice as today); until T-127 builds the hub, the switch "Actualizar automáticamente" sits in the current Preferencias training card. `03-data-model.md` and the E6 US-36 notes are updated in this PR. Guards become failures for `feature/routines` and `feature/exercises`.
+
+**Acceptance criteria:**
+- [ ] Entreno shows a compact "Rutinas" header with the history/calendar icons; no double heading.
+- [ ] A routine card opens its details; ✎ opens "Editar rutina"; "Empezar" starts it.
+- [ ] Builder: "Añadir ejercicio" at the end of the list; "Quitar" waits for "Guardar"; back with changes asks; handle drags at once.
+- [ ] "Eliminar" a routine removes it at once (no dialog), its past workouts stay; deleting a custom exercise has no dialog and a used one is refused with the server message.
+- [ ] A new routine or folder with an existing name (any case) is refused inline.
+- [ ] In the picker, tapping a row selects it and the thumbnail opens the detail; edit/delete are in the exercise detail's top bar on every tab.
+- [ ] pgTAP: unique routine names (case and spaces), deletion keeps sessions, cross-user isolation; `training_preferences.auto_update_routine` defaults to false and `routines.auto_update_routine` is gone.
+- [ ] "Actualizar automáticamente" is one switch in Preferencias (off by default) and no longer in the builder; with it on, finishing a routine workout updates the routine without asking; with it off, the choice is offered as today.
+
+**Host tests:** `RoutinesScreen` tests (header, card → details), new routine details tests, `RoutineBuilderScreen` tests (title, add button, staged removal, discard), `ExercisePickerScreen` (select vs details), `ExerciseDetailScreen` (title, top-bar actions on every tab, immediate delete), `ExerciseRowTest`, Name sheet usage for folders, ViewModel tests (delete, duplicate mapping), pgTAP, restoration tests.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote; existing routines intact.
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 26 files (size note: if the planner counts more than ~30, split off the exercise picker/detail as T-124b; decided by the planner, not up front).
+**Dependencies:** T-123
+**Files likely touched:** `supabase/migrations/<ts>_routine_names_unique.sql` (also ADR-70 columns and `save_routine`), `supabase/tests/…`, `shared/…` training preferences and routine DTOs/repositories, `feature/workout/{FinishSessionSheet,UpdateRoutineSheet}.kt` (global flag), `feature/profile/PreferencesScreen.kt` (temporary switch), `planning/03-data-model.md`, `planning/epics/E6-training-depth.md`, `composeApp/…/feature/routines/{RoutinesScreen,RoutineCard,RoutineBuilderScreen,RoutineBuilderViewModel,RoutineSheetActions,RoutinesSheets,FolderSheet}.kt`, new `feature/routines/RoutineDetailsScreen.kt` (+ ViewModel), `feature/exercises/{ExercisePickerScreen,ExerciseDetailScreen,CreateExerciseSheet,ExerciseFormSheet,ExerciseMenu}.kt`, `designsystem/ExerciseRow.kt`, `app/{AppRoutes,AppNavHost}.kt`, `scripts/check-ux-conventions.sh`, strings, tests
+**Estimated scope:** L
+
+---
+
+## T-125: Live session, history and statistics migration · L
+
+**Story:** US-56 (wave 2, Training part 2) + E9 items 15, 16, 35, 36, 37, A, B + E7 backlog (Historial) · **Flow:** UI + core · **Scenarios:** Same structure on every screen; One vibration per action; Editing never applies silently; One wording per concept (US-56)
+
+**Description:** **Templates and patterns:** live session on `AppScreen` with `AppTopBar` v2 actions (replaces `LiveSessionTopBar`); the rest bar pinned at the bottom above the system bar (D10, A11Y-1); "Añadir serie"/"Añadir ejercicio" as `AddItemButton`s; `SetTypeBadge` shows "N" for normal sets in builder, live, history and detail (item 35); planned placeholders made clearly different from typed values without relying on colour (lighter weight, keeping AA; item 36, assumption in the plan); RPE help as a structured `HelpButton` list (item 37). End of rest: a longer alert pattern through `Haptics.alert()` (about three strong pulses over ~1.2 s, item 15) and the Android system alarm sound (item 16, E9 Q1 resolved: `RingtoneManager.TYPE_ALARM`, falling back to the notification sound; no bundled asset, so no licence to credit), still silent when muted. **History:** per the E7 backlog request, Entreno → Historial shows the calendar directly (no list, no "+" and no calendar button); tapping a day opens its details, which gain "Añadir entrenamiento" opening the existing past-workout flow on that day; titles "Historial de entrenos" per glossary. Workout detail on `AppScreen` titled "<rutina> · lun, 24 oct" (R-01, `AppDateFormat`) with its actions in the top bar (NAV-1), exercise names as `ExerciseRow` opening the detail (LST-2, "Ver progreso" moves to the exercise detail); new **`WorkoutRow`**. "Editar entreno" and "Entreno pasado" on `AppEditorScreen` (discard dialog; chooser "¿Desde dónde empiezas?", WRD-2). `FinishSessionSheet`, calculators, `UpdateRoutineSheet`, `PastWorkoutChooserSheet` → archetypes; `SaveAsRoutineSheet` → Name sheet (unique names from T-124). **Statistics:** "Fuerza", "Volumen", exercise progress and "Estadísticas" on `AppScreen` with `TimeRangeSelector` (SEL-1, ranges per E8 Q2 including "Todo"); radar axis label "Isquios" (item A); `MuscleDetailSheet` → archetype. **Item B:** ux-reviewer's plan pass assesses 2–3 body-map options with their complexity; the PM asks the user to pick before any rebuild (if no rebuild is chosen, only the label fixes ship). **Carry-over (E8 review notes):** the radar shows the current series when only the previous-window call fails; the muscle sheet does not reload the exercise lookup on each open; the 1A first monthly bucket is clamped to the window or documented. Guards become failures for `feature/workout` and `feature/analytics`.
+
+**Acceptance criteria:**
+- [ ] The rest bar sits at the bottom; "+30s" and "Omitir" work; the end of rest gives the long pattern and the system alarm sound (notification sound as fallback; silent when muted).
+- [ ] Completing a set vibrates once; normal sets show "N"; planned values read differently from typed ones and keep AA.
+- [ ] Historial opens the calendar; a day opens its details with "Añadir entrenamiento" that starts the past-workout flow on that day.
+- [ ] Workout detail: entity title, actions in the top bar, tapping an exercise name opens its detail.
+- [ ] "Editar entreno"/"Entreno pasado" ask before discarding; the chooser reads "¿Desde dónde empiezas?".
+- [ ] Ranges use one selector everywhere; the radar reads "Isquios"; a failed previous window still shows "Actual".
+- [ ] Open sheets, drafts and the live session survive background and process death.
+
+**Host tests:** `LiveSessionScreen` tests (bottom rest bar, top-bar actions, add buttons, badge, placeholder style), `LiveSessionViewModelTest` (alert pattern via the fake port, one confirm), `HistoryScreen`/calendar/day details tests, `SessionDetailScreen` tests (title, actions, exercise tap), `WorkoutRowTest`, `EditWorkoutScreen`/`PastWorkoutScreen` discard tests, `TrainingStatsViewModelTest` (partial radar failure, cached lookup), `StrengthScreen`/`ExerciseProgressScreen` selector tests, restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan; body-map options), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 30 files (size note: live session and history/stats are separable; if the planner counts more than ~30, the statistics part becomes T-125b, decided by the planner).
+**Dependencies:** T-124; item B choice from the user during the task
+**Files likely touched:** `composeApp/…/feature/workout/{LiveSessionScreen,LiveSessionTopBar,LiveSessionViewModel,LiveExerciseCard,HistoryScreen,WorkoutCalendarScreen,SessionDetailScreen,EditWorkoutScreen,PastWorkoutScreen,PastWorkoutChooserSheet,FinishSessionSheet,SaveAsRoutineSheet,UpdateRoutineSheet,WorkoutEntry}.kt`, `feature/analytics/{StrengthScreen,MuscleVolumeScreen,ExerciseProgressScreen}.kt`, `feature/analytics/stats/{TrainingStatsScreen,TrainingStatsViewModel,MuscleDetailSheet}.kt`, `designsystem/{SetTypeBadge,SetRow,RestTimerBar,WorkoutRow}.kt`, `platform/AndroidHaptics.kt` (alert), sound resource, `scripts/check-ux-conventions.sh`, strings, tests
+**Estimated scope:** L
+
+---
+
+## T-126: Comidas del día editor and meal-structure backend · M
+
+**Story:** US-56 (wave 2, meals editor) + E9 items 19, 20, 21, 22, 25 · **Flow:** backend + core + UI · **Scenarios:** Editing never applies silently (removals wait for "Guardar"); One wording per concept (US-56)
+
+**Description:** **Backend:** a migration that (a) makes meal names unique per user on `lower(btrim(name))` (item 21; `meal_slots` was not part of the 2026-10-26 production check, so the migration first runs a pre-check that raises naming any duplicate (fail loudly, never rename), with a pgTAP case for it) and (b) adds one RPC that saves the whole meal structure atomically (renames, order, new meals and removals), still refusing a meal in use (`food_log_entries`) or the last meal with the existing error codes, so a removal is applied by "Guardar" (R-11, D3, amends ADR-41); `delete_meal_slot` stays for compatibility until the client no longer calls it. `03-data-model.md` updated. **UI, templates and patterns:** the editor on `AppEditorScreen` titled "Comidas del día" (glossary), rows as configuration rows with a trash icon (R-20) whose removal waits for "Guardar" and shows the "in use"/"last meal" hint beforehand; create and rename through the Name sheet "Nueva comida del día" (items 20, 22, 25; R-15), "Añadir comida del día" as `AddItemButton`; `ReorderableColumn` v2; "Comidas por defecto ›" as a `NavigationRow` at the end, blocked with its reason while there are unsaved changes (audit §6.4); the defaults screen on `AppEditorScreen` with `MealDefaultsSheets` → archetypes. Guards become failures for `feature/meals`.
+
+**Acceptance criteria:**
+- [ ] Removing a meal in the editor changes nothing on the server until "Guardar"; back with changes asks; "Guardar" applies renames, order, additions and removals together.
+- [ ] A meal in use or the last meal shows its hint in the row and the server refuses it on save with the same message as today.
+- [ ] "Añadir comida del día" opens the Name sheet with focus; a duplicate name (any case) is refused inline.
+- [ ] "Comidas por defecto ›" opens the defaults screen; with unsaved changes it is disabled and says why.
+- [ ] pgTAP: atomic save (all or nothing), unique names, in-use and last-meal refusals, cross-user isolation.
+
+**Host tests:** `MealSlotsEditorViewModelTest` (staged removal, single save call, error mapping), `MealSlotsScreen` tests (title, Name sheet, add button, row hints, navigation row state, discard), `MealDefaultsScreen` discard and sheet tests, pgTAP for the new RPC and index, restoration tests.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green; migration remote; existing meals intact.
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 18 files.
+**Dependencies:** T-125
+**Files likely touched:** `supabase/migrations/<ts>_meal_structure_save.sql`, `supabase/tests/meal_slots*.test.sql`, `shared/…/domain/repository/MealSlotRepository.kt` + Supabase implementation and DTOs, `composeApp/…/feature/meals/{MealSlotsScreen,MealSlotsEditorViewModel,MealSlotRow}.kt`, `feature/meals/defaults/{MealDefaultsScreen,MealDefaultsSheets}.kt`, `planning/03-data-model.md`, `scripts/check-ux-conventions.sh`, strings, tests
+**Estimated scope:** M (~18 files, one small migration; merging it into T-127 would give an XL PR)
+
+---
+
+## T-127: Perfil root and Preferencias hub · L
+
+**Story:** US-56 (wave 2, Perfil/Preferencias) + E9 items 5, 6, 7, 18 · **Flow:** UI + core · **Scenarios:** Same structure on every screen; Editing never applies silently; One wording per concept (US-56)
+
+**Description:** **Perfil root (D8, audit §6.5):** tab root with the profile header (avatar, name) and a gear icon that opens Preferencias (item 7); the statistics rows become `NavigationRow`s with their current value ("Peso · 79,4 kg", "Fuerza · Récord 1RM 113,5 kg", "Calorías · media 1.950 kcal"; label = destination title, R-04); "Cerrar sesión" and "Borrar cuenta" (with the protected-account note and their R-08 dialogs) move to Preferencias → "Cuenta". **Preferencias hub (D9, amends ADR-24):** `AppScreen` with grouped `NavigationRow`s "Datos personales", "Objetivo calórico", "Macros", "Comidas del día" (opens T-126's editor), "Cocina", "Entrenamiento", "Cuenta"; each opens a focused `AppEditorScreen` with its own "Guardar" that returns to the hub with one Confirm (item 6, R-13) and asks before discarding (R-14); same data and RPCs as today, split per section (the planner checks each section saves only its fields). Item 5: remove `energy_tdee_helper` from both screens. Item 18 is moot with the hub. The Preferencias pickers move to `AppPickerSheet`/`AppEditSheet` (Apply, "Listo"). The "Entrenamiento" section carries the existing training settings ("Incluir calentamiento", plates, …); including the global switch "Actualizar automáticamente" (ADR-70, off by default), moved here from the temporary place T-124 gives it. Guards become failures for `feature/profile`.
+
+**Acceptance criteria:**
+- [ ] Perfil: gear in the header opens Preferencias; statistics rows show their values; no sign-out or delete buttons on the root.
+- [ ] Preferencias lists the seven sections; each opens its editor; "Guardar" saves only that section and returns to the hub with one vibration; back with changes asks.
+- [ ] "Cuenta" holds "Cerrar sesión" and "Borrar cuenta" with their dialogs; the protected-account note stays.
+- [ ] No "Calorías que quemas…" helper anywhere.
+- [ ] Each section draft survives background and process death; tablet layout per `05` §5.
+
+**Host tests:** `ProfileRootScreen` tests (gear, rows with values, labels = titles), Preferencias hub tests, one editor test per section (save scope, close, discard), `PreferencesViewModel` split tests, account section tests (dialogs, protected account), restoration tests.
+
+**Verification:**
+- [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 26 files (size note: if the planner counts more than ~30, the section editors are delivered in two runs of the same task).
+**Dependencies:** T-126
+**Files likely touched:** `composeApp/…/feature/profile/{ProfileRootScreen,ProfileViewModel,ProfileDialogs,PreferencesScreen,PreferencesViewModel}.kt`, new `feature/profile/preferences/*` (hub and section editors), `feature/biometrics/*` pickers, `app/{AppRoutes,AppNavHost}.kt`, `scripts/check-ux-conventions.sh`, strings, `planning/05-design-system.md` §6.2, tests
+**Estimated scope:** L
+
+---
+
+## T-128: Wording, motion and onboarding; every guard a failure · L
+
+**Story:** US-56 (wave 3) + E9 items 1, 2 · **Flow:** UI · **Size:** L (merged on 2026-10-26: wording sweep M, mechanical + motion/tooltips/onboarding M, close to S) · **Scenarios:** One wording per concept; Guards; Swipe to delete (gap closes); Same structure on every screen (US-56)
+
+**Description:** **Wording.** A glossary sweep of `strings.xml` and its callers (R-35…R-38, `05` §10): generic actions → the shared `action_*` strings (removing the 14 "Guardar", 8 "Cancelar"… copies, WRD-3); one label per concept (body fat, basal metabolism, bone, "Historial de …", "Entreno" not "Sesión"); message templates (errors, offline, validation: "Escribe un nombre", "Máximo N caracteres", "Entre X y Y <unidad>"); punctuation ("…", final periods, sentence-case titles such as "Distribución de macros"); leftover strings removed ("No tienes ninguna comida activa"); dates through `AppDateFormat` everywhere (R-38). The shell's per-route title switch from T-118 is removed (every route is on `AppScreen`). `check-ux-conventions.sh`: the warning list is empty and every guard G1–G10 fails (epic DoD). **Motion and onboarding.** (1) Every list is lazy with stable keys and `animateItem` for insertions, removals and moves (R-23, LST-7; the swipe gap close from T-120 relies on it). (2) Every `AppIconButton` shows its label on long press (M3 tooltip, FBK-5). (3) Onboarding and welcome on the templates: one step template (title, helper text, content, "Atrás" and "Continuar" pinned at the bottom), a horizontal slide forward and back between steps (reduced motion: no slide; item 1), "Sexo" as two equal `SelectableCard`s side by side with the birth date in the same view (item 2). Spacing tweaks inside the templates only (typography is out of scope, item 3). Onboarding and welcome also drop their own `SnackbarHost` (T-118 sweep).
+
+**Acceptance criteria:**
+- [ ] No feature string duplicates a generic action value (G9 failing, no warnings).
+- [ ] Every glossary row holds in `strings.xml` (a host test asserts the key labels); no "..." and no "Deshacer".
+- [ ] All dates come from `AppDateFormat`; the three forms are covered by tests.
+- [ ] `check-ux-conventions.sh` has an empty warning list and passes in CI.
+- [ ] Adding, deleting and reordering in the Diario, comidas, builder, live session, meals editor and Peso lists animate; reduced motion snaps.
+- [ ] Long-pressing an icon button shows its label.
+- [ ] Onboarding steps slide; "Atrás"/"Continuar" pinned; "Sexo" shows two equal cards and the birth date on the same step; resume after process death unchanged (ADR-24).
+
+**Host tests:** glossary/string tests (key labels, punctuation), `AppDateFormatTest`, existing screen tests updated to the shared strings, guard script fixtures; list tests asserting stable keys and animation modifiers where testable, `AppIconButton` tooltip test, `OnboardingScreen` tests (step template, Sexo layout, reduced motion, restoration).
+
+**Verification:**
+- [ ] lint (incl. `check-ux-conventions.sh` with no warnings) + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan; exact copy), compose-ui-developer (two runs: wording, then motion and onboarding), pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. Many files, mostly mechanical (strings, references, `animateItem` one-liners).
+**Dependencies:** T-127
+**Files likely touched:** `composeApp/src/commonMain/composeResources/values/strings.xml`, feature files referencing the merged strings, `designsystem/AppDateFormat.kt` callers, `app/AppScaffold.kt`, `scripts/check-ux-conventions.sh`, list screens in `feature/{diary,templates,routines,workout,meals,weight}`, `designsystem/AppIconButton.kt`, `feature/onboarding/*`, `feature/auth/WelcomeScreen.kt`, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E9-B — Every screen, one way 👤 (7 items + leave and come back) *(agreed)*
+Journey: weight, training, profile and settings now behave like the Diario, with one wording and moving lists. Why here: the remaining domains, wording and motion are all migrated, before US-45/US-46 build their final checks on them.
+- [ ] T-123…T-128 merged, CI green, `deploy-supabase` applied the T-124 and T-126 migrations (routines and meals intact), every reported bug fixed; `check-ux-conventions.sh` passes with no warnings.
+- [ ] 👤 Install the APK and try:
+  1. Peso (T-123): "Peso actual" and "Objetivo" are the same card type and aligned; Health Connect status and "Sincronizar" inside "Peso actual"; the calendar icon in the top bar opens the measurement history; the chart picks the metric from its title and the range from the selector, with the goal band; help opens as a sheet.
+  2. Routines (T-124): Entreno shows a compact "Rutinas" header; tap a routine → its details; ✎ → "Editar rutina", add and remove exercises (applied on "Guardar"), drag at once, leave with changes (it asks); "Eliminar" a routine (no dialog, its past workouts stay); a routine or folder with an existing name is refused; an exercise's edit/delete are in its top bar.
+  3. Live session (T-125): rest bar at the bottom; the end of rest gives the long vibration and the phone's alarm sound; one vibration per completed set; normal sets show "N"; planned values look different from typed ones; RPE help is a list.
+  4. History and statistics (T-125): Historial opens the calendar, a day shows its details with "Añadir entrenamiento"; a workout's title is its routine and date, tapping an exercise opens it; "Entreno pasado" asks before discarding; the radar reads "Isquios"; the body map follows the option you chose.
+  5. Perfil and Preferencias (T-127): the gear opens Preferencias; statistics rows show values; each section saves on its own and returns to the list; leave a section with changes (it asks); "Cerrar sesión" and "Borrar cuenta" are in "Cuenta"; no "Calorías que quemas…" text.
+  6. Comidas del día (T-126): add a meal (the name field has focus; a duplicate is refused), rename, reorder, remove one (nothing changes until "Guardar"), a meal in use cannot be removed; "Comidas por defecto ›" is blocked while you have changes.
+  7. Wording and motion (T-128): the same action reads the same everywhere ("Guardar", "Eliminar", "Quitar", "Descartar"); lists animate when you add, delete or reorder; long-press an icon to see its name; onboarding (with a second Google account, optional) slides between steps and shows "Sexo" as two cards.
+  - Leave the app and come back in a Preferencias section with unsaved changes, the routine builder mid-edit and a live session resting: the same tab, screen and draft are restored.
+  - Out of scope: "Acerca de" and licences, TalkBack, font scaling and tablet (E9-C).
+
+---
+
+## T-129: Version 1.0 quality: About and licences, states, accessibility and tablet · L
+
+**Story:** US-45 + US-46 · **Flow:** UI + core · **Size:** L (merged on 2026-10-26: "Acerca de" S + polish sweep L; both are the E9-C journey) · **Scenarios:** Opening the screen; Third-party credits; Open-source licences (US-45) · Empty and error states on every screen; Accessibility; Font scaling; Tablet; Rotation and configuration changes (US-46)
+
+**Description:** **Part A, US-45.** Perfil root → `NavigationRow` "Acerca de" (entry point decided in the epic) opens an `AppScreen` "Acerca de" (settings layout, `05` §6.2): app name and version/build (from `BuildConfig` `versionName`/`versionCode` + flavor); credits read from a single `credits` resource ("Datos de ejercicios por RepDB (repdb.co)", the Open Food Facts credit, the Google Gemini credit for the photo estimates); a `NavigationRow` "Licencias de código abierto" that opens the licences of the bundled libraries through the `oss-licenses-plugin` (`play-services-oss-licenses`, stable versions only). The app's own licence stays repo-only (ADR-13). Exact Spanish copy of the credits by ux-reviewer. Built first, so "Acerca de" is part of the sweep below.
+
+**Part B, US-46.** A cross-screen quality sweep on the migrated templates. (1) **States:** every screen with remote data shows the template skeleton, `EmptyState`, `ErrorState` with "Reintentar" or `OfflineState` (R-30, R-31); never blank, never a crash (an inventory table in the plan, one row per screen). (2) **Accessibility:** every interactive node ≥ 48 dp with an accessible description, rings and bars with `stateDescription`, primary text AA (host tests over every main screen, extending the catalog checks of `05` §7). (3) **Font scale 130 %:** key figures (kcal, weight, kg, reps, timer) fully readable without clipping (host tests at 1.3 font scale). (4) **Tablet landscape:** Diario, the progress screens (Peso and "Estadísticas"; there is no Progreso tab, ADR-37) and the live session use the two-column layout (`05` §5), and no element stretches across the full width without a limit. (5) **Rotation:** a quantity or a set being typed survives rotation (configuration-change tests). (6) **Performance:** no unnecessary recompositions in the live session (stable state, Layout Inspector notes in the PR) and cold start < 2 s, checked manually on the `prodDebug` APK (ADR-67). (7) The security checklist of `02-architecture.md` §7 reviewed and documented in this PR body (epic DoD).
+
+**Acceptance criteria:**
+- [ ] Perfil → "Acerca de" shows the app name and the version/build.
+- [ ] Scrolling shows the RepDB, Open Food Facts and Google Gemini credits, all from the `credits` resource.
+- [ ] "Licencias de código abierto" opens the licence list of the bundled libraries (generated by the plugin for `prodDebug`).
+- [ ] The states inventory has no blank state; each remote screen has a host test for empty, error and offline.
+- [ ] The accessibility host tests pass for every main screen (targets, descriptions, state descriptions); AA contrast of primary text verified on the tokens.
+- [ ] At 130 % font scale the key figures are not clipped (Diario ring and strip, Peso cards, live set row and timer, statistics tiles).
+- [ ] At 840 dp landscape: Diario, Peso, "Estadísticas" and the live session show two columns with capped widths.
+- [ ] Rotating while typing a quantity in `FoodSheet` or a set in the live session keeps the text.
+- [ ] The PR body holds the §7 security checklist and the performance notes.
+
+**Host tests:** `AboutScreen` tests (version text from a fake build info, three credits, licences row action), `ProfileRootScreen` row test, a unit test that the `credits` resource holds the three entries; per-screen state tests, an accessibility sweep test over the main screens, font-scale tests, wide-window layout tests, `StateRestorationTester`/configuration-change tests for the typed quantity and set; manual: TalkBack walk, Accessibility Scanner, tablet and cold start at E9-C.
+
+**Verification:**
+- [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` + `:androidApp:assembleProdDebug` green (the licences plugin task runs).
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer (two runs: part A, then part B), pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 35 files, mostly tests (size note: fixes found by the sweep stay in this PR if small; a large one becomes a `fix(T-###)` task before E9-C).
+**Dependencies:** T-128
+**Files likely touched:** part A: `gradle/libs.versions.toml`, `androidApp/build.gradle.kts` (plugin), new `composeApp/…/feature/about/{AboutScreen,AboutViewModel}.kt`, a platform build-info/licences launcher (`androidMain`), `feature/profile/ProfileRootScreen.kt`, `app/{AppRoutes,AppNavHost}.kt`, `credits` resource, strings; part B: screens in every `feature/*` (state and layout fixes), `designsystem/{AppScreen,MetricCard,ProgressRing}.kt` (font-scale fixes), host tests per screen, `planning/05-design-system.md` §5/§7 if a rule is clarified
+**Estimated scope:** L
+
+---
+
+### Checkpoint E9-C — Version 1.0 on your phone and tablet 👤 (7 items + leave and come back) *(agreed)*
+Journey: the finished app: credits, accessibility, every state, font size and the tablet, plus a final regression of a whole day of use. Why here: right after T-129, the last implementation task, so it is also the final regression of E9 and of Phase 1; its approval releases the closure T-130 and the `v1.0.0` tag.
+- [ ] T-129 merged (and any fix tasks), CI green, every reported bug fixed.
+- [ ] 👤 Install the APK on the phone and the tablet and try:
+  1. "Acerca de" (T-129): Perfil → "Acerca de": app name and version/build; scroll: "Datos de ejercicios por RepDB (repdb.co)", the Open Food Facts and the Google Gemini credits.
+  2. Licences (T-129): "Licencias de código abierto" lists the bundled libraries and opens each licence.
+  3. States (T-129): with airplane mode and with an empty day or frame, walk Diario, search, comidas, Peso, Entreno, Historial, "Estadísticas" and Perfil: each shows its empty, error with "Reintentar" or offline state, never a blank screen; reconnect: it reloads.
+  4. TalkBack (T-129): with TalkBack on (and the Accessibility Scanner if you have it), walk the main screens: every button and icon is announced with its name, rings and bars read their value, swipe-delete and reorder offer their actions.
+  5. Font size (T-129): system font at 130 %: kcal, weight, kg, reps and the timer are fully readable on Diario, Peso, the live session and "Estadísticas".
+  6. Tablet (T-129): in landscape, Diario, Peso, "Estadísticas" and the live session show two columns with nothing stretched across the whole width; rotate while typing a quantity or a set: the text stays.
+  7. Final regression (E9): one full day on the phone: log breakfast with a saved comida and a cooked food, run a workout with a warm-up and a record, log your weight, check "Estadísticas"; cold start feels under 2 s and the live session stays smooth.
+  - Leave the app and come back on the tablet with a food sheet open and on the phone during a live session: the same tab, screen and draft are restored.
+  - Out of scope: Phase 2 items (AI assistant, adaptive calories, reports, check-ins; ADR-66), a signed release build (ADR-67), typography and colour changes.
+
+---
+
+## T-130: E9 closure → `v1.0.0` · S
+
+**Story:** E9 Definition of Done · **Flow:** PM
+
+**Description:** Closes E9 and Phase 1 once Checkpoint E9-C is approved: tag `v1.0.0`, the Phase 1 GitHub Release (notes only, no APK; ADR-67), the retrospective. No 👤 checkpoint here.
+
+**Acceptance criteria:**
+- [ ] T-118…T-129 (and any fix tasks) merged with green CI; `deploy-supabase` green after the last migration.
+- [ ] Every E9 UI-refinement item applied or explicitly out of scope (item 3); `check-ux-conventions.sh` passes in CI with every guard a failure.
+- [ ] ux-reviewer ran in plan and diff mode on every E9 UI task (ADR-69 DoD).
+- [ ] The §7 security checklist documented in T-129's PR; "Acerca de" with version/build, the three credits and the OSS licences.
+- [ ] Checkpoint E9-C approved (phone and tablet, positive feedback); every bug fixed; the T-112 caveat was presented at E9-A.
+- [ ] `tasks/todo.md` (E9 ✅, next-task pointer) updated through a PR.
+
+**Verification:**
+- [ ] `git tag` lists `v1.0.0`; `gh release view v1.0.0` shows the notes without assets.
+
+**Dependencies:** T-129 (and Checkpoint E9-C approved)
+**Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E9.md`
+**Estimated scope:** S
+
+---
+
 ## Notes for later epics
 
 - **E3 (food diary), from E2 (T-037):** consumed by T-056 (the Diary reads gram targets from `CalculateMacroTargets`).
 - **E3 / E4 / E5 FAB question (E1 review):** resolved by ADR-36 (no universal FAB); E3's per-screen actions are in T-043 and T-045.
-- **Tablet (later epic, user feedback 2026-10-13):** the FAB at the top of the NavigationRail feels awkward; move the primary action into each section's content on wide screens. Non-blocking; the rail, rotation and offline banner were approved. Listed in the E7 UI refinement backlog (`planning/07-roadmap.md` §1.1).
-- **E7 (UI refinement), from Checkpoint E2-A (user, 2026-10-14):** general onboarding polish, better use of space on "Sexo", a typography review. Every later checkpoint appends deferred UI details to `planning/07-roadmap.md` §1.1.
+- **Tablet (later epic, user feedback 2026-10-13):** obsolete (no FAB since ADR-36; audit item 4 dropped); tablet layouts are checked in T-129 (E9).
+- **E7 (UI refinement), from Checkpoint E2-A (user, 2026-10-14):** moved to E9: onboarding polish and "Sexo" in T-128; title levels in T-118/T-119 (typography itself out of scope, E9 table item 3).
 - **E2 (food diary), from the PR #24 review:** consumed by T-056 (`Double`/percent inputs for `MacroProgressBar` and `ProgressRing`).
 - **E4 (weight and progress), from the PR #24 review:** moved to T-080 (`MetricTile`/`TrendPill` container-colour parameter).
