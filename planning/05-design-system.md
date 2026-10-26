@@ -310,6 +310,8 @@ Generic rules for every screen, cited by number. ux-reviewer rejects a plan that
   - Loading is a skeleton shaped like the final layout.
   - Empty is an `EmptyState` with at most one action.
   - Error is an `ErrorState` with "Reintentar".
+  - An action that waits for the server or the AI (for example a photo estimate) never ends silently: it shows
+    progress ("Estimando…"), then its result in place or an error message with "Reintentar". Every outcome is visible.
 - **R-32 Help** is always `HelpButton`, never text that expands in place.
 
 ### Selection controls
