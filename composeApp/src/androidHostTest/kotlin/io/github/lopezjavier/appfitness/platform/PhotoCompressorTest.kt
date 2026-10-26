@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.platform
 
+import io.github.lopezjavier.appfitness.domain.port.PhotoQuality
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -25,6 +26,27 @@ class PhotoCompressorTest {
         assertEquals(2, PhotoCompressor.sampleSize(4000, 3000))
         assertEquals(1, PhotoCompressor.sampleSize(1000, 800))
         assertEquals(4, PhotoCompressor.sampleSize(8000, 6000))
+    }
+
+    @Test
+    fun compactQuality_usesASmallerSideAndByteCapThanFull() {
+        assertEquals(PhotoCompressor.MAX_SIDE, PhotoCompressor.maxSideFor(PhotoQuality.Full))
+        assertEquals(1024, PhotoCompressor.maxSideFor(PhotoQuality.Compact))
+        assertTrue(PhotoCompressor.maxBytesFor(PhotoQuality.Compact) < PhotoCompressor.maxBytesFor(PhotoQuality.Full))
+        assertEquals(
+            1024 to 768,
+            PhotoCompressor.targetSize(4000, 3000, PhotoCompressor.maxSideFor(PhotoQuality.Compact)),
+        )
+        assertEquals(1, PhotoCompressor.sampleSize(1500, 1000, PhotoCompressor.maxSideFor(PhotoQuality.Compact)))
+        assertEquals(2, PhotoCompressor.sampleSize(4000, 3000, PhotoCompressor.maxSideFor(PhotoQuality.Compact)))
+    }
+
+    @Test
+    fun encodeWithinLimit_withTheCompactCap_stepsDownFurtherThanTheFullCap() {
+        val compact = PhotoCompressor.maxBytesFor(PhotoQuality.Compact)
+        val result = PhotoCompressor.encodeWithinLimit(compact) { quality -> ByteArray(quality * 10_000) }
+
+        assertTrue(result.size <= compact)
     }
 
     @Test

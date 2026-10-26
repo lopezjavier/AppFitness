@@ -11,6 +11,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.domain.port.PhotoQuality
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -37,7 +38,7 @@ internal suspend fun <T> deletingAfter(raw: File, block: suspend () -> T): T = t
  */
 class AndroidPhotoCapture(private val cacheDir: File, private val activityHolder: CurrentActivityHolder) :
     PhotoCapture {
-    override suspend fun capture(source: PhotoSource): CaptureResult {
+    override suspend fun capture(source: PhotoSource, quality: PhotoQuality): CaptureResult {
         val activity = activityHolder.get() as? ComponentActivity ?: return CaptureResult.Error
         val dir = photoDir(cacheDir)
         val raw = File(dir, "src_${UUID.randomUUID()}.jpg")
@@ -53,7 +54,7 @@ class AndroidPhotoCapture(private val cacheDir: File, private val activityHolder
             when (outcome) {
                 Outcome.Cancelled -> CaptureResult.Cancelled.also { raw.delete() }
                 Outcome.Failed -> CaptureResult.Error.also { raw.delete() }
-                is Outcome.Picked -> withContext(Dispatchers.IO) { finish(activity, outcome.uri, raw, dir) }
+                is Outcome.Picked -> withContext(Dispatchers.IO) { finish(activity, outcome.uri, raw, dir, quality) }
             }
         }
     }
@@ -74,7 +75,13 @@ class AndroidPhotoCapture(private val cacheDir: File, private val activityHolder
 
     private fun isPhotoFile(file: File): Boolean = file.parentFile?.name == PHOTO_DIR && file.isFile
 
-    private fun finish(activity: ComponentActivity, picked: Uri?, raw: File, dir: File): CaptureResult {
+    private fun finish(
+        activity: ComponentActivity,
+        picked: Uri?,
+        raw: File,
+        dir: File,
+        quality: PhotoQuality,
+    ): CaptureResult {
         if (picked != null) {
             val copied = runCatching {
                 activity.contentResolver.openInputStream(picked)?.use { input ->
@@ -87,7 +94,7 @@ class AndroidPhotoCapture(private val cacheDir: File, private val activityHolder
             }
         }
         val target = File(dir, "photo_${UUID.randomUUID()}.jpg")
-        val ok = runCatching { PhotoCompressor.compress(raw, target) }.getOrDefault(false)
+        val ok = runCatching { PhotoCompressor.compress(raw, target, quality) }.getOrDefault(false)
         raw.delete()
         return if (ok) {
             CaptureResult.Photo(target.path)

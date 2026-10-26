@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.domain.port.PhotoQuality
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -15,6 +16,7 @@ internal class FakePhotoCapture : PhotoCapture {
     /** Answers of the next captures; when empty a new photo handle is returned. */
     val results = ArrayDeque<CaptureResult>()
     val captured = mutableListOf<PhotoSource>()
+    val qualities = mutableListOf<PhotoQuality>()
     val discarded = mutableListOf<String>()
     val reads = mutableListOf<String>()
     var sweeps = 0
@@ -24,8 +26,9 @@ internal class FakePhotoCapture : PhotoCapture {
     var gate: CompletableDeferred<Unit>? = null
     private var counter = 0
 
-    override suspend fun capture(source: PhotoSource): CaptureResult {
+    override suspend fun capture(source: PhotoSource, quality: PhotoQuality): CaptureResult {
         captured += source
+        qualities += quality
         gate?.await()
         return results.removeFirstOrNull() ?: CaptureResult.Photo("photo-${++counter}")
     }
