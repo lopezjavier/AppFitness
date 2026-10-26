@@ -489,7 +489,7 @@ Feature: Amount estimate from a photo
 ```
 
 **Technical notes (ADR-64)**
-- Same `food-photo` function, new mode `weight`: the request adds `food {name, brand, base_unit, kcal, protein_g, carbs_g, fat_g}` (per 100 base units, sent as data); the response is `{estimate:{estimated_amount, base_unit, confidence}}`. No comment is allowed. The icon appears only in "Añadir comida" (`AddFoodSheet`), not in the diary entry editor or the comida item sheet.
+- Same `food-photo` function, new mode `weight`: the request adds `food {name, brand?, base_unit}` (sent as data; kcal and macros dropped by ADR-72); the response is `{estimate:{estimated_amount (always a number > 0), base_unit, confidence (integer 1-10)}}` (ADR-72, T-131). No comment is allowed. The icon appears only in "Añadir comida" (`AddFoodSheet`), not in the diary entry editor or the comida item sheet.
 - Dish mode (US-48) now returns `0` for a missing/`null` macro or micronutrient; label and barcode keep `null` ("the rest stays empty").
 
 ---

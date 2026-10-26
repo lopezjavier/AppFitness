@@ -3509,20 +3509,24 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 
 **Story:** US-56 · **Flow:** backend/Edge Function (diagnosis) + core + UI · **Scenarios:** Same structure on every screen; One wording per concept; Amount from a photo
 
-**Description:** From the E9-A feedback (2026-10-26). (1) **Diario:** restore the pre-T-121 layout (dashboard on top, meals below), remove the summary strip; keep the rest of T-121. (2) **Sheets (R-38):** no drag handle and no swipe-down or outside-tap dismissal on any bottom sheet (sweep every sheet and `AppBottomSheet`); closing is the X, back or "Cancelar"; add a guard to `check-ux-conventions.sh`; amend the sheet host tests. (3) **Add-food sheet:** the label above the meal chips is "Añadir a:". (4) **Amount photo bug:** after "Usar foto" the user always sees "No hemos podido estimar la cantidad", with several foods. First find the cause with the real function: fetch today's `food-photo` Edge Function logs (`npx supabase functions logs`, or the dashboard logs through the CLI) and reproduce the request; fix the cause (client request, function, response parsing or provider error) and pin it with a host test and, if the function is at fault, a `deno test` fixture. Also align the photo icon vertically with the "Cantidad" field. (5) **Search quick actions (R-39):** scan, photo and "Crear alimento" return to icons in the "Buscar alimentos" row (no separate row), each with a contentDescription; sweep other text buttons that have a clear icon.
+**Description:** From the E9-A feedback (2026-10-26). (1) **Diario:** restore the pre-T-121 layout (dashboard on top, meals below), remove the summary strip; keep the rest of T-121. (2) **Sheets (R-38):** no drag handle and no swipe-down or outside-tap dismissal on any bottom sheet (sweep every sheet and `AppBottomSheet`); closing is the X, back or "Cancelar"; add a guard to `check-ux-conventions.sh`; amend the sheet host tests. (3) **Add-food sheet:** the label above the meal chips is "Añadir a:". (4) **Amount photo bug (ADR-72):** after "Usar foto" the user always sees "No hemos podido estimar la cantidad". The root cause is still unconfirmed (no logs or API key for the agents; the PR body says so, and the user retries after merge+deploy and reads the logs). Changes: weight mode always returns a best estimate (prompt without null escape, `estimated_amount` non-null in the schema, normalizer still rejects non-number or <= 0 with the 422); the weight food context drops kcal/macros (client DTO and function validation); weight `confidence` becomes an integer 1-10 shown as a red-to-green colour plus "Confianza 7/10" (R-41; dish/label/barcode keep the enum); optional secret `FOOD_PHOTO_DEBUG` turns on non-sensitive diagnostic logs (a `deno test` pins on/off). Also align the photo icon vertically with the "Cantidad" field. (5) **Search quick actions (R-39):** scan, photo and "Crear alimento" return to icons in the "Buscar alimentos" row (no separate row), each with a contentDescription; sweep other text buttons that have a clear icon.
 
 **Acceptance criteria:**
 - [ ] The Diario shows the dashboard on top and the meals below; the summary strip is gone; food details, swipe and the day picker still work.
 - [ ] No bottom sheet shows the drag handle or closes by dragging down or tapping outside; the X, back and "Cancelar" close them; the guard fails if one returns.
 - [ ] The label above the meal chips reads "Añadir a:".
-- [ ] A real food photo in weight mode returns an estimate in the amount field; the cause is recorded in the PR body with the log evidence (no secrets); failures still show "No hemos podido estimar la cantidad" with "Reintentar".
+- [ ] Given a food and a photo, when the user taps "Usar foto", then the amount field shows a best estimate (never empty); only an unusable answer (non-number or <= 0) shows "No hemos podido estimar la cantidad" with "Reintentar".
+- [ ] Given an estimate with confidence 7, then "Confianza 7/10" is shown with a colour from the red-to-green scale and TalkBack reads "Confianza 7 de 10"; colour is never the only cue (R-41).
+- [ ] Given `FOOD_PHOTO_DEBUG` unset, then no diagnostic logs; when set, the function logs mode, model, elapsed ms, provider status, response shape, rejection reason, raw estimate and confidence, never the photo, tokens, note or full bodies (`deno test` pins on/off).
+- [ ] The weight request sends only `food {name, brand?, base_unit}`; dish, label and barcode behave as before.
+- [ ] The PR body states the root cause is unconfirmed; after merge, `deploy-supabase` is green and the user retries with `FOOD_PHOTO_DEBUG` on.
 - [ ] The photo icon is aligned with the "Cantidad" input.
 - [ ] Scan, photo and "Crear alimento" are icons in the search row, with contentDescriptions and the same testTags.
 
 **Verification:**
 - [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green; `deno test` green if the function changes; after the merge `deploy-supabase` green if it changed.
 
-**Agent runs:** planner, ux-reviewer (plan), backend-developer (only if the function is at fault), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer, ux-reviewer (diff)
+**Agent runs:** planner, ux-reviewer (plan), backend-developer (weight prompt/schema/food validation/debug logs + deno tests), kotlin-core-developer (DTOs, domain, ViewModel), compose-ui-developer, pr-creator, pr-reviewer, ux-reviewer (diff)
 **Dependencies:** T-122
 **Estimated scope:** M
 

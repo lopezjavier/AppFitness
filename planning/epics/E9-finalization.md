@@ -140,6 +140,26 @@ Feature: UX consistency
   Scenario: Guards
     Given a change that reinvents a template or brings back a decided item
     Then `check-ux-conventions.sh` fails the CI
+
+  Scenario: Amount from a photo always gives an estimate
+    Given a food chosen in "Añadir" and a photo of the portion
+    When the user taps "Usar foto"
+    Then the amount field shows a best estimate in the food's base unit
+    And the estimate is never empty
+    And only an unusable answer shows "No hemos podido estimar la cantidad" with "Reintentar"
+
+  Scenario: Confidence is shown with colour and text
+    Given an estimate arrived with confidence 7 out of 10
+    Then "Confianza 7/10" is shown with a colour on the scale from red (1) to green (10)
+    And TalkBack reads "Confianza 7 de 10"
+    And the colour is never the only cue
+
+  Scenario: Diagnostics only when enabled
+    Given the secret FOOD_PHOTO_DEBUG is not set
+    Then the function logs no diagnostics beyond errors
+    When it is set
+    Then the function logs mode, model, elapsed time, provider status, response shape, rejection reason, estimate and confidence
+    And never the photo, tokens, user note or full bodies
 ```
 
 **Technical notes**
