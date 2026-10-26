@@ -24,15 +24,9 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-/** Counts the ticks. */
+/** Counts the alerts. */
 internal class FakeHaptics : Haptics {
-    var ticks = 0
-
     var alerts = 0
-
-    override fun tick() {
-        ticks++
-    }
 
     override fun alert() {
         alerts++

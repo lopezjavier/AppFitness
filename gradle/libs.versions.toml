@@ -39,6 +39,9 @@ junit = "4.13.2"
 # SDK level via robolectric.properties when the latest stable does not support compileSdk yet.
 robolectric = "4.17"
 androidx-compose-ui-test = "1.12.1"
+# Screenshot tests (T-118). Library only, no Gradle plugin: the plugin does not support the Android-KMP library
+# host tests (AGP 9), so build.gradle.kts sets the record/verify system properties itself.
+roborazzi = "1.77.0"
 
 # T-034 (all latest stable on 2026-10-14; 3.9.0-beta-1 and credentials 1.7.0-alpha are excluded).
 # supabase-kt 3.8.0 is built against Ktor 3.5.1, so the OkHttp engine and the mock engine use exactly 3.5.1.
@@ -116,6 +119,8 @@ junit = { module = "junit:junit", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 androidx-compose-ui-test = { module = "androidx.compose.ui:ui-test", version.ref = "androidx-compose-ui-test" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-compose-ui-test" }
+roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-compose-ui-test" }
 
 compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref = "compose-rules" }

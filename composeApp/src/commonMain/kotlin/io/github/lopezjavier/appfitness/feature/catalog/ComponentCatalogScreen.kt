@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_tab
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_enabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_pressed
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
@@ -53,6 +54,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.timeframe_3m
 import io.github.lopezjavier.appfitness.composeapp.resources.timeframe_3m_desc
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
@@ -62,6 +64,7 @@ import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import org.jetbrains.compose.resources.stringResource
 
 private const val DEFAULT_TIMEFRAME_INDEX = 1
@@ -69,12 +72,24 @@ private const val DEFAULT_STRATEGY_INDEX = 1
 
 /**
  * Debug component catalog (local flavor only, opened from Profile). Each design-system component
- * gets a section here; later tasks add theirs through [CatalogSection].
+ * gets a section here; later tasks add theirs through [CatalogSection]. It is the reference user of `AppScreen`
+ * (the shell draws no bar for it): [onBack] is the arrow of its own bar, absent when embedded in a test.
  */
 @Composable
-fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
+fun ComponentCatalogScreen(modifier: Modifier = Modifier, onBack: (() -> Unit)? = null) {
+    AppScreen(
+        title = stringResource(Res.string.catalog_title),
+        modifier = modifier,
+        onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.CardColumnMaxWidth,
+        testTagPrefix = "catalog_bar",
+    ) { CatalogItems() }
+}
+
+@Composable
+private fun CatalogItems() {
     LazyColumn(
-        modifier = modifier.testTag("catalog_screen"),
+        modifier = Modifier.testTag("catalog_screen"),
         contentPadding =
         PaddingValues(
             start = Spacing.screenMargin,
@@ -99,6 +114,7 @@ fun ComponentCatalogScreen(modifier: Modifier = Modifier) {
         circumferenceItems()
         goalMetricItems()
         shellItems()
+        templateItems()
         themeItems()
     }
 }

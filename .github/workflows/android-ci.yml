@@ -68,6 +68,10 @@ jobs:
       # Plain bash + grep: runs before the JDK/Gradle setup so token violations fail fast.
       - name: Design tokens guard
         run: bash scripts/check-design-tokens.sh
+      - name: UX conventions guard (fixtures, then the real tree)
+        run: |
+          bash scripts/tests/test-check-ux-conventions.sh
+          bash scripts/check-ux-conventions.sh
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -109,5 +113,6 @@ jobs:
           path: |
             **/build/reports/
             **/build/test-results/
+            **/build/outputs/roborazzi/
           if-no-files-found: ignore
           retention-days: 7

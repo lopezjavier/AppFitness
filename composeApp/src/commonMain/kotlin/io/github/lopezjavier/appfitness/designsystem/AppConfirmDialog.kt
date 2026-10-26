@@ -44,7 +44,8 @@ object AppConfirmDialogDefaults {
 /**
  * Dialog for a destructive confirmation (the only kind of dialog the app allows, planning/05 §1.5).
  * "Cancel" (neutral) comes first and "Confirm" (destructive, `error` colour) second; a scrim tap or back
- * is a cancel. The root is tagged [testTagPrefix] with `<prefix>_confirm` and `<prefix>_cancel` buttons.
+ * is a cancel. The root is tagged [testTagPrefix] with `<prefix>_confirm` and `<prefix>_cancel` buttons unless
+ * [confirmTestTag] or [cancelTestTag] override them.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongParameterList")
@@ -58,6 +59,8 @@ fun AppConfirmDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     testTagPrefix: String = "confirm_dialog",
+    confirmTestTag: String = AppConfirmDialogDefaults.confirmTag(testTagPrefix),
+    cancelTestTag: String = AppConfirmDialogDefaults.cancelTag(testTagPrefix),
 ) {
     val colors = AppTheme.colors
     BasicAlertDialog(
@@ -89,7 +92,7 @@ fun AppConfirmDialog(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(text = message, style = AppTheme.typography.bodyMedium, color = colors.textSecondary)
-                DialogButtons(confirmLabel, cancelLabel, onConfirm, onDismiss, testTagPrefix)
+                DialogButtons(confirmLabel, cancelLabel, onConfirm, onDismiss, confirmTestTag, cancelTestTag)
             }
         }
     }
@@ -99,19 +102,21 @@ fun AppConfirmDialog(
  * Cancel and confirm side by side (right-aligned) when they fit; stacked, confirm on top, when the dialog is too
  * narrow for each label to stay on one line.
  */
+@Suppress("LongParameterList")
 @Composable
 private fun DialogButtons(
     confirmLabel: String,
     cancelLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    testTagPrefix: String,
+    confirmTag: String,
+    cancelTag: String,
 ) {
     val cancel: @Composable (Modifier) -> Unit = { modifier ->
         GhostButton(
             text = cancelLabel,
             onClick = onDismiss,
-            modifier = modifier.testTag(AppConfirmDialogDefaults.cancelTag(testTagPrefix)),
+            modifier = modifier.testTag(cancelTag),
             tone = GhostTone.Neutral,
         )
     }
@@ -119,7 +124,7 @@ private fun DialogButtons(
         GhostButton(
             text = confirmLabel,
             onClick = onConfirm,
-            modifier = modifier.testTag(AppConfirmDialogDefaults.confirmTag(testTagPrefix)),
+            modifier = modifier.testTag(confirmTag),
             tone = GhostTone.Destructive,
         )
     }

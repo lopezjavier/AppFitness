@@ -8,11 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -42,7 +41,7 @@ fun TemplateDetailsRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var actionFailed by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalAppHaptics.current
     val currentOnClose by rememberUpdatedState(onClose)
     val currentOnDelete by rememberUpdatedState(onDelete)
     val currentOnAddFood by rememberUpdatedState(onAddFood)
@@ -59,17 +58,17 @@ fun TemplateDetailsRoot(
         viewModel.effects.collect { effect ->
             when (effect) {
                 TemplateDetailsEffect.Saved -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    haptic.confirm()
                     currentOnClose()
                 }
 
                 TemplateDetailsEffect.Added -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    haptic.confirm()
                     currentOnAdded()
                 }
 
                 TemplateDetailsEffect.Deleted -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    haptic.confirm()
                     currentOnDelete()
                 }
 

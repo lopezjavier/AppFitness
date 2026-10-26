@@ -266,10 +266,27 @@ sealed interface ShellChrome {
 
     /** No bottom bar and no shell top bar: the destination draws its own (the shell keeps the status bar inset). */
     data object Own : ShellChrome
+
+    /**
+     * No bottom bar and no shell title bar: the route draws its bar through `AppScreen` ([usesAppScreen]).
+     * The shell treats it like [Own] (it reserves the status bar so the offline banner sits below it).
+     */
+    data object Screen : ShellChrome
 }
 
-/** Shell chrome of this route. Exhaustive on purpose. */
+/**
+ * Routes whose destination draws its own bar through `AppScreen` (T-118). Every other route keeps the shell's
+ * title bar until its domain task migrates it; T-128 removes this switch.
+ */
+val AppRoute.usesAppScreen: Boolean
+    get() = this is CatalogRoute
+
+/** Shell chrome of this route: [ShellChrome.Screen] when it [usesAppScreen], else the legacy chrome. */
 val AppRoute.chrome: ShellChrome
+    get() = if (usesAppScreen) ShellChrome.Screen else legacyChrome
+
+/** Shell chrome of a route that still relies on the shell title bar. Exhaustive on purpose. */
+private val AppRoute.legacyChrome: ShellChrome
     get() =
         when (this) {
             is TabRoute -> ShellChrome.Tabs(tab)

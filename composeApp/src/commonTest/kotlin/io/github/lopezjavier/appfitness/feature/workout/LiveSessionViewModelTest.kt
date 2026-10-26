@@ -436,7 +436,7 @@ class LiveSessionViewModelTest {
 
         check(vm, 0, 1)
 
-        assertEquals(1, haptics.ticks)
+        assertEquals(0, haptics.alerts)
         val write = repository.upserts.single()
         assertEquals(Triple("e1", 0, 1), Triple(write.exerciseId, write.exercisePosition, write.setIndex))
         assertEquals(SetEntry.WeightReps(60.0, 12), write.entry)
@@ -477,7 +477,7 @@ class LiveSessionViewModelTest {
         type(vm, 0, 1, "62,5", "12")
 
         assertNull(repository.upserts.last().completedAt)
-        assertEquals(1, haptics.ticks)
+        assertEquals(0, haptics.alerts)
         assertFalse(vm.row(0, 1).completed)
         assertEquals("62,5", vm.row(0, 1).weight)
     }
@@ -502,7 +502,7 @@ class LiveSessionViewModelTest {
         check(vm, 0, 1)
 
         assertTrue(repository.upserts.isEmpty())
-        assertEquals(0, haptics.ticks)
+        assertEquals(0, haptics.alerts)
         assertFalse(vm.row(0, 1).completed)
         assertTrue(vm.row(0, 1).invalid)
     }
@@ -590,7 +590,7 @@ class LiveSessionViewModelTest {
         assertTrue(vm.row(0, 1).completed)
         assertTrue(vm.row(0, 1).pendingSave)
         assertEquals(1, vm.active().queuedCount)
-        assertEquals(1, haptics.ticks)
+        assertEquals(0, haptics.alerts)
     }
 
     @Test
@@ -1509,7 +1509,7 @@ class LiveSessionViewModelTest {
         assertFalse(vm.row(0, 1).completed)
         assertTrue(repository.upserts.isEmpty())
         assertNull(vm.active().restTimer)
-        assertEquals(0, haptics.ticks)
+        assertEquals(0, haptics.alerts)
     }
 
     @Test
@@ -1528,7 +1528,7 @@ class LiveSessionViewModelTest {
         assertEquals(SetEntry.WeightReps(60.0, 12), write.entry)
         assertNotNull(write.completedAt)
         assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
-        assertEquals(1, haptics.ticks)
+        assertEquals(0, haptics.alerts)
     }
 
     @Test
@@ -1596,7 +1596,7 @@ class LiveSessionViewModelTest {
         assertEquals(9.0, repository.upserts.last().rpe)
         assertEquals(completedAt, repository.upserts.last().completedAt)
         assertEquals(2, repository.upserts.size)
-        assertEquals(1, haptics.ticks)
+        assertEquals(0, haptics.alerts)
     }
 
     @Test
@@ -1610,7 +1610,7 @@ class LiveSessionViewModelTest {
 
         assertFalse(vm.row(0, 1).completed)
         assertEquals("8", vm.row(0, 1).rpe)
-        assertEquals(0, haptics.ticks)
+        assertEquals(0, haptics.alerts)
     }
 
     @Test

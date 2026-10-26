@@ -52,4 +52,4 @@ style:
 Compose:
   CompositionLocalAllowlist:
     # AppColors (05-design-system.md §2.4) and AppTypography (§3), read through AppTheme (T-020).
-    allowedCompositionLocals: ['LocalAppColors', 'LocalAppTypography', 'LocalAnimationsEnabled', 'LocalExerciseMediaUris', 'LocalBackInterceptor']
+    allowedCompositionLocals: ['LocalAppColors', 'LocalAppTypography', 'LocalAnimationsEnabled', 'LocalExerciseMediaUris', 'LocalBackInterceptor', 'LocalAppHaptics', 'LocalAppMessages', 'LocalPinnedFooter']

@@ -9,11 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEffect
@@ -160,14 +159,14 @@ fun AddFoodRoot(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val amountPhotoState by amountPhotoViewModel.uiState.collectAsStateWithLifecycle()
     var submitFailed by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalAppHaptics.current
     val currentOnAdded by rememberUpdatedState(onAdd)
     val currentOnPicked by rememberUpdatedState(onPick)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 AddFoodEffect.Added -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    haptic.confirm()
                     currentOnAdded()
                 }
 

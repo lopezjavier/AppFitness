@@ -28,8 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -51,6 +49,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -122,7 +121,7 @@ fun PreferencesScreen(
 /** Haptic and snackbar for the result of a save: confirm on success only, a long message-only snackbar on failure. */
 @Composable
 private fun SaveEffects(effects: Flow<PreferencesEffect>, host: SnackbarHostState) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalAppHaptics.current
     val saved = stringResource(Res.string.profile_saved)
     val failed = stringResource(Res.string.onboarding_save_error)
     val offline = stringResource(Res.string.onboarding_save_error_offline)
@@ -130,7 +129,7 @@ private fun SaveEffects(effects: Flow<PreferencesEffect>, host: SnackbarHostStat
         effects.collect { effect ->
             when (effect) {
                 PreferencesEffect.Saved -> {
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    haptic.confirm()
                     host.showSnackbar(saved)
                 }
 

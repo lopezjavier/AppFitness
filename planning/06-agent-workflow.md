@@ -72,7 +72,8 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 
 | Action | Command |
 |---|---|
-| Lint | `bash scripts/check-design-tokens.sh && ./gradlew ktlintCheck detekt` (the tokens guard is the first step of `android-ci`) |
+| Lint | `bash scripts/check-design-tokens.sh && bash scripts/check-ux-conventions.sh && ./gradlew ktlintCheck detekt` (both guards are the first steps of `android-ci`) |
+| UX guard fixtures | `bash scripts/tests/test-check-ux-conventions.sh` (runs in `android-ci` right before the guard) |
 | Text guard | `bash scripts/check-text-encoding.sh` (UTF-8 without BOM/CRLF/mojibake; runs in the always-on `gitleaks` job) |
 | Unit tests (all modules) | `./gradlew testLocalDebugUnitTest` (in `composeApp`/`shared` it runs `testAndroidHostTest`, which includes `commonTest`; ADR-19) |
 | `prod` flavor unit tests | `./gradlew :androidApp:testProdDebugUnitTest` |
@@ -85,6 +86,10 @@ Planner optional (short plan in the PR itself); the rest follows the applicable 
 | PR | `gh pr create --title "<type>(T-###): <title>" --body-file <file>` |
 | CI status | `gh pr checks --watch` |
 | Merge | `gh pr merge --squash --delete-branch` |
+
+**UX guards (`scripts/check-ux-conventions.sh`, ADR-69).** Production Kotlin in `composeApp/src/*Main` must reuse the design-system templates. G1 `ModalBottomSheet(` only in `designsystem/AppBottomSheet.kt`; G2 features do not call `AppBottomSheet(` (use an archetype); G3 `SnackbarHost(` only in `app/` (use `AppMessages`); G4 `OfflineBanner(` only in the shell and the catalog; G5 `AppConfirmDialog(` only for the R-08 allow-list (account deletion, sign out, folder deletion, discarding the live workout, `AppEditorScreen`); G6 `ic_help` only in `HelpButton`; G7 `SwipeToDismissBox` only in `SwipeToDeleteRow`; G8 `detectDragGestures` only in `ReorderableColumn`; G9 no string outside `action_*` has the exact value of a generic action; G10 `strings.xml` has no `...` and no "Deshacer". Unmigrated code is listed per guard and path in `scripts/ux-conventions-warnings.txt` (`G<n> <path-regex>  # owner T-1xx`): a hit in a listed path prints `WARN` and passes, any other hit fails the build. To remove a path, migrate the screen and delete its lines in the same PR (the guard then enforces it); T-128 empties the file. Fixtures: one tree per guard in `scripts/tests/ux-conventions/g<n>/` and the runner `scripts/tests/test-check-ux-conventions.sh` (violation fails, listed path warns, clean tree passes, malformed list errors); both scripts take an optional root and warning-list path.
+
+**Screenshot tests (Roborazzi, T-118).** `composeApp/src/androidHostTest/.../designsystem/*ScreenshotTest.kt` capture a template on a 360x640 dp device (Robolectric native graphics) and compare it with the golden PNGs in `composeApp/src/androidHostTest/snapshots/`. Only the Roborazzi library is used (its Gradle plugin does not support the Android-KMP library host tests); `composeApp/build.gradle.kts` sets the record/verify system properties. A normal `testAndroidHostTest` run VERIFIES (a missing or different golden fails; the diff image lands in `composeApp/build/outputs/roborazzi/` and, on a red CI, in the `reports` artifact). To change a template on purpose, re-record with `./gradlew :composeApp:testAndroidHostTest -PrecordScreenshots --tests '*ScreenshotTest'` and commit the new PNGs. Goldens recorded on Windows are compared on Linux CI with a 1 % changed-pixel tolerance (`assertScreenshot`); if CI shows a larger drift, record the goldens from the CI-rendered images instead (download the `reports` artifact, copy `*_actual.png` over the goldens).
 
 > On Windows 11, run commands from Git Bash (`./gradlew`) or PowerShell (`.\gradlew.bat`). Tools and accounts: `08-environment-setup.md`.
 

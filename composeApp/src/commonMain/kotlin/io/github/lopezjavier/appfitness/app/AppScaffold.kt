@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +35,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
+import io.github.lopezjavier.appfitness.designsystem.AppMessageHost
+import io.github.lopezjavier.appfitness.designsystem.AppMessages
 import io.github.lopezjavier.appfitness.designsystem.AppNavigation
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationItem
@@ -41,7 +45,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBar
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.LocalPinnedFooter
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
+import io.github.lopezjavier.appfitness.designsystem.PinnedFooterState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
 
@@ -61,6 +68,7 @@ internal fun AppScaffold(
     navController: NavHostController = rememberNavController(),
     navigationType: AppNavigationType = AppNavigationType.Bar,
     isOffline: Boolean = false,
+    messages: AppMessages = rememberShellMessages(),
     profile: ProfileSlot = DefaultProfileSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
@@ -96,7 +104,12 @@ internal fun AppScaffold(
     val backButton = rememberBackButton(navController, entry, backInterceptor)
     val isBar = navigationType == AppNavigationType.Bar
     val onTabSelect: (Int) -> Unit = { navController.navigateToTab(TopLevelTab.entries[it]) }
-    CompositionLocalProvider(LocalBackInterceptor provides backInterceptor) {
+    val pinnedFooter = remember { PinnedFooterState() }
+    CompositionLocalProvider(
+        LocalBackInterceptor provides backInterceptor,
+        LocalAppMessages provides messages,
+        LocalPinnedFooter provides pinnedFooter,
+    ) {
         Scaffold(
             modifier = modifier,
             containerColor = AppTheme.colors.surfaceBase,
@@ -112,50 +125,59 @@ internal fun AppScaffold(
                 }
             },
         ) { innerPadding ->
-            BelowTopBar(isOffline, innerPadding) { contentPadding, contentModifier ->
-                ShellContent(
-                    navController = navController,
-                    features = features,
-                    navigationType = navigationType,
-                    innerPadding = contentPadding,
-                    rail = {
-                        if (chrome is ShellChrome.Tabs) {
-                            ShellRail(
-                                items = items,
-                                selectedIndex = chrome.tab.ordinal,
-                                onTabSelect = onTabSelect,
-                                modifier = it,
-                            )
-                        }
-                    },
-                    profile = profile,
-                    preferences = preferences,
-                    exercisePicker = exercisePicker,
-                    exerciseDetail = exerciseDetail,
-                    routines = routines,
-                    routineBuilder = routineBuilder,
-                    liveSession = liveSession,
-                    diary = diary,
-                    diaryHistory = diaryHistory,
-                    weight = weight,
-                    foodSearch = foodSearch,
-                    addFood = addFood,
-                    editEntry = editEntry,
-                    saveTemplate = saveTemplate,
-                    createFood = createFood,
-                    templateDetails = templateDetails,
-                    mealSlots = mealSlots,
-                    mealDefaults = mealDefaults,
-                    history = history,
-                    calendar = calendar,
-                    sessionDetail = sessionDetail,
-                    editWorkout = editWorkout,
-                    pastWorkout = pastWorkout,
-                    strength = strength,
-                    exerciseProgress = exerciseProgress,
-                    muscleVolume = muscleVolume,
-                    trainingStats = trainingStats,
-                    modifier = contentModifier,
+            Box(Modifier.fillMaxSize()) {
+                BelowTopBar(isOffline, innerPadding, consumeInsets = chrome is ShellChrome.Screen) {
+                        contentPadding,
+                        contentModifier,
+                    ->
+                    ShellContent(
+                        navController = navController,
+                        features = features,
+                        navigationType = navigationType,
+                        innerPadding = contentPadding,
+                        rail = {
+                            if (chrome is ShellChrome.Tabs) {
+                                ShellRail(
+                                    items = items,
+                                    selectedIndex = chrome.tab.ordinal,
+                                    onTabSelect = onTabSelect,
+                                    modifier = it,
+                                )
+                            }
+                        },
+                        profile = profile,
+                        preferences = preferences,
+                        exercisePicker = exercisePicker,
+                        exerciseDetail = exerciseDetail,
+                        routines = routines,
+                        routineBuilder = routineBuilder,
+                        liveSession = liveSession,
+                        diary = diary,
+                        diaryHistory = diaryHistory,
+                        weight = weight,
+                        foodSearch = foodSearch,
+                        addFood = addFood,
+                        editEntry = editEntry,
+                        saveTemplate = saveTemplate,
+                        createFood = createFood,
+                        templateDetails = templateDetails,
+                        mealSlots = mealSlots,
+                        mealDefaults = mealDefaults,
+                        history = history,
+                        calendar = calendar,
+                        sessionDetail = sessionDetail,
+                        editWorkout = editWorkout,
+                        pastWorkout = pastWorkout,
+                        strength = strength,
+                        exerciseProgress = exerciseProgress,
+                        muscleVolume = muscleVolume,
+                        trainingStats = trainingStats,
+                        modifier = contentModifier,
+                    )
+                }
+                // Above the bottom bar (or the nav bar / keyboard) and, via LocalPinnedFooter, above a pinned footer.
+                AppMessageHost(
+                    Modifier.align(Alignment.BottomCenter).padding(bottom = innerPadding.calculateBottomPadding()),
                 )
             }
         }
@@ -170,6 +192,7 @@ internal fun AppScaffold(
 private fun BelowTopBar(
     isOffline: Boolean,
     innerPadding: PaddingValues,
+    consumeInsets: Boolean,
     content: @Composable (PaddingValues, Modifier) -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -177,13 +200,23 @@ private fun BelowTopBar(
     val end = innerPadding.calculateEndPadding(layoutDirection)
     val belowTopBar =
         PaddingValues(start = start, top = Spacing.none, end = end, bottom = innerPadding.calculateBottomPadding())
-    Column(Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
+    // An `AppScreen` pads for the system insets itself: the shell reserved them (status bar spacer, bars), so they
+    // count as consumed and nothing is padded twice.
+    val inset = if (consumeInsets) Modifier.consumeWindowInsets(innerPadding) else Modifier
+    Column(Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()).then(inset)) {
         // The live region lives on the banner root, inside the visibility block: announced on appearance only.
         AnimatedVisibility(isOffline, enter = expandVertically(), exit = shrinkVertically()) {
             OfflineBanner(Modifier.fillMaxWidth().padding(start = start, end = end), testTagPrefix = "offline_banner")
         }
         content(belowTopBar, Modifier.weight(1f))
     }
+}
+
+/** The shell's message queue: lives as long as the shell, so a message survives the destination that sent it. */
+@Composable
+private fun rememberShellMessages(): AppMessages {
+    val scope = rememberCoroutineScope()
+    return remember(scope) { AppMessages(scope) }
 }
 
 @Composable
@@ -344,6 +377,7 @@ private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
             )
 
         // The destination draws its own bar; the shell reserves the status bar so the offline banner sits below it.
-        ShellChrome.Own -> Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
+        ShellChrome.Own, ShellChrome.Screen ->
+            Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
     }
 }

@@ -37,6 +37,8 @@ private val ExpectedTags =
         "catalog_set_row_3_check", "catalog_set_row_4_type", "catalog_set_type_picker_open", "catalog_rest_timer_start",
         "catalog_empty_state_action", "catalog_stopwatch_toggle", "catalog_stopwatch_time",
         "catalog_error_state_action", "catalog_topbar_full_back",
+        "catalog_topbar_actions_2_action_1", "catalog_topbar_actions_3_more", "catalog_editor_offline_chip",
+        "catalog_messages_show", "catalog_action_sheet_open", "catalog_offline_state_flip",
         "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_sheet_open",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
         "weekday_selector_day_1", "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
@@ -60,6 +62,7 @@ private val ExpectedSections =
         "muscle_split_bar",
         "circumference_row", "goal_metrics",
         "top_bar",
+        "screen", "editor", "messages", "offline_state", "action_sheet",
         "navigation", "bottom_sheet", "confirm_dialog", "date_picker", "logo", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }
 

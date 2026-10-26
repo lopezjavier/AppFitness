@@ -1,9 +1,9 @@
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SetCompletionCheckboxTest {
@@ -45,12 +45,10 @@ class SetCompletionCheckboxTest {
     }
 
     @Test
-    fun hapticFor_check_isConfirm() =
-        assertEquals(HapticFeedbackType.Confirm, SetCompletionCheckboxDefaults.hapticFor(true))
+    fun hapticFor_check_isConfirm() = assertEquals(HapticEvent.Confirm, SetCompletionCheckboxDefaults.hapticFor(true))
 
     @Test
-    fun hapticFor_uncheck_isToggleOff() =
-        assertEquals(HapticFeedbackType.ToggleOff, SetCompletionCheckboxDefaults.hapticFor(false))
+    fun hapticFor_uncheck_isNothing() = assertNull(SetCompletionCheckboxDefaults.hapticFor(false))
 
     @Test
     fun shape_isFull() = assertEquals(AppShapes.full, SetCompletionCheckboxDefaults.Shape)

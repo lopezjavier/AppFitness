@@ -19,16 +19,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_nav_rail_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_navigation
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_skeleton
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_top_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_wip
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_action_favourite
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_sample_subtitle
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_sample_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
@@ -42,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppNavigationType
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBar
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -81,6 +90,7 @@ private fun TopBarSection() {
                 windowInsets = WindowInsets(0),
                 testTagPrefix = "catalog_topbar_full",
             )
+            ActionBarSamples()
         }
         Text(
             text = stringResource(Res.string.catalog_topbar_count, count.toString()),
@@ -89,6 +99,38 @@ private fun TopBarSection() {
             modifier = Modifier.testTag("catalog_topbar_count"),
         )
     }
+}
+
+/** Top bars with 0, 1, 2 and 3 actions (the third goes to the overflow sheet) and one with a subtitle. */
+@Composable
+private fun ActionBarSamples() {
+    val edit = stringResource(Res.string.action_edit)
+    val favourite = stringResource(Res.string.catalog_topbar_action_favourite)
+    val delete = stringResource(Res.string.action_delete)
+    val title = stringResource(Res.string.catalog_topbar_sample_title)
+    val all =
+        remember(edit, favourite, delete) {
+            listOf(
+                AppTopBarAction(Res.drawable.ic_edit, edit, {}),
+                AppTopBarAction(Res.drawable.ic_star, favourite, {}),
+                AppTopBarAction(Res.drawable.ic_delete, delete, {}),
+            )
+        }
+    for (count in 0..all.size) {
+        AppTopBar(
+            title = title,
+            actions = all.take(count),
+            windowInsets = WindowInsets(0),
+            testTagPrefix = "catalog_topbar_actions_$count",
+        )
+    }
+    AppTopBar(
+        title = title,
+        subtitle = stringResource(Res.string.catalog_topbar_sample_subtitle),
+        actions = all.take(2),
+        windowInsets = WindowInsets(0),
+        testTagPrefix = "catalog_topbar_subtitle",
+    )
 }
 
 @Composable

@@ -1,10 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.onboarding
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -41,6 +38,9 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.WheelPickerDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -84,14 +84,8 @@ class OnboardingScreenTest {
     private val goals = FakeNutritionGoalsRepository()
     private val connectivity = FakeConnectivityObserver(initial = true)
     private val clock = FakeClock()
-    private val haptics = mutableListOf<HapticFeedbackType>()
+    private val haptics = RecordingAppHaptics()
     private var completions = 0
-
-    private val recordingHaptics = object : HapticFeedback {
-        override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
-            haptics += hapticFeedbackType
-        }
-    }
 
     private fun show() {
         val viewModel = OnboardingViewModel(
@@ -104,7 +98,7 @@ class OnboardingScreenTest {
             clock,
         )
         rule.setContent {
-            CompositionLocalProvider(LocalHapticFeedback provides recordingHaptics) {
+            CompositionLocalProvider(LocalAppHaptics provides haptics) {
                 AppTheme { OnboardingRoute(onComplete = { completions++ }, viewModel = viewModel) }
             }
         }
@@ -375,7 +369,7 @@ class OnboardingScreenTest {
 
         rule.onNodeWithTag("onboarding_goals_saved").assertTextEquals("Objetivos guardados")
         rule.onNodeWithTag("onboarding_goals_save").assertDoesNotExist()
-        assertEquals(listOf(HapticFeedbackType.Confirm), haptics)
+        assertEquals(listOf(HapticEvent.Confirm), haptics.calls)
         assertEquals(0, completions)
         assertEquals(1, goals.upserts.size)
         assertEquals(1, profile.completedCalls)
@@ -383,7 +377,7 @@ class OnboardingScreenTest {
         rule.mainClock.advanceTimeBy(OnboardingDefaults.ConfirmationDuration.inWholeMilliseconds)
 
         assertEquals(1, completions)
-        assertEquals(listOf(HapticFeedbackType.Confirm), haptics)
+        assertEquals(listOf(HapticEvent.Confirm), haptics.calls)
     }
 
     @Test
@@ -391,7 +385,7 @@ class OnboardingScreenTest {
         val restoration = StateRestorationTester(rule)
         val today = LocalDate(2026, 10, 14)
         restoration.setContent {
-            CompositionLocalProvider(LocalHapticFeedback provides recordingHaptics) {
+            CompositionLocalProvider(LocalAppHaptics provides haptics) {
                 AppTheme {
                     OnboardingScreen(
                         state = OnboardingUiState(
@@ -407,12 +401,12 @@ class OnboardingScreenTest {
             }
         }
         rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
-        assertEquals(1, haptics.size)
+        assertEquals(1, haptics.calls.size)
 
         restoration.emulateSavedInstanceStateRestore()
         rule.mainClock.advanceTimeBy(CONFIRMATION_START_MS)
 
-        assertEquals(1, haptics.size)
+        assertEquals(1, haptics.calls.size)
     }
 
     @Test

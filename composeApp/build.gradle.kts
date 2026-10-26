@@ -67,6 +67,8 @@ kotlin {
             implementation(libs.androidx.compose.ui.test.junit4)
             implementation(libs.androidx.compose.ui.test.manifest)
             implementation(libs.coil.test)
+            implementation(libs.roborazzi)
+            implementation(libs.roborazzi.compose)
         }
     }
 }
@@ -94,4 +96,17 @@ tasks.withType<Test>().configureEach {
         "--add-opens=java.base/java.nio=ALL-UNNAMED",
         "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
     )
+}
+
+// Roborazzi without its Gradle plugin: goldens live in src/androidHostTest/snapshots. Default = verify against them;
+// `-PrecordScreenshots` rewrites them (see planning/06-agent-workflow.md section 4, "Screenshot tests").
+tasks.withType<Test>().configureEach {
+    val record = providers.gradleProperty("recordScreenshots").isPresent
+    systemProperty("roborazzi.test.record", record.toString())
+    systemProperty("roborazzi.test.verify", (!record).toString())
+    systemProperty("roborazzi.test.compare", "false")
+    val snapshots = layout.projectDirectory.dir("src/androidHostTest/snapshots")
+    systemProperty("roborazzi.snapshots.dir", snapshots.asFile.path)
+    // Goldens are test inputs: editing one must re-run the tests.
+    inputs.dir(snapshots).withPropertyName("screenshotGoldens").optional()
 }
