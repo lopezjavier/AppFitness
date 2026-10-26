@@ -51,7 +51,7 @@ Checkpoint rule for E9: the three checkpoints were agreed with the user before t
 Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr-reviewer ∥ ux-reviewer (diff).
 
 ### Phase 1: Foundations (wave 1)
-- [ ] T-118: UX guards, feedback layer and screen templates — UI + core — L
+- [x] T-118: UX guards, feedback layer and screen templates — UI + core — L
 - [ ] T-119: Sheet archetypes, Name sheet and field upgrades — UI — L
 - [ ] T-120: Lists and cards — UI + core — L
 
