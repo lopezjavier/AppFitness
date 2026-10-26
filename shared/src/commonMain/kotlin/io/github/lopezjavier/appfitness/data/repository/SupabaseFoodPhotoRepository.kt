@@ -29,6 +29,8 @@ import kotlin.time.Duration.Companion.seconds
 /** Client timeout for Gemini-backed calls; above the 25 s Gemini timeout of the `food-photo` function. */
 internal val FOOD_PHOTO_TIMEOUT: Duration = 30.seconds
 
+private const val CONNECT_TIMEOUT_MS = 15_000L
+private const val SOCKET_MARGIN_MS = 5_000L
 private const val BAD_REQUEST = 400
 private const val UNAUTHORIZED = 401
 private const val PAYLOAD_TOO_LARGE = 413
@@ -74,7 +76,14 @@ class SupabaseFoodPhotoRepository internal constructor(
             contentType(ContentType.Application.Json)
             setBody(body)
             // The client default (10 s) is shorter than a Gemini vision answer.
-            timeout { requestTimeoutMillis = requestTimeout.inWholeMilliseconds }
+            // OkHttp also enforces its own 10 s read timeout, so the socket timeout must be raised too. It stays above
+            // the request timeout on purpose: supabase-kt wraps socket timeouts into a cause-less HttpRequestException
+            // (shown as "offline"), while the request timeout stays a HttpRequestTimeoutException (shown as "retry").
+            timeout {
+                requestTimeoutMillis = requestTimeout.inWholeMilliseconds
+                socketTimeoutMillis = requestTimeout.inWholeMilliseconds + SOCKET_MARGIN_MS
+                connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            }
         }.bodyAsText()
     } catch (failure: RestException) {
         throw AppException(failure.statusCode.toPhotoError(), failure)
