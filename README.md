@@ -2,7 +2,7 @@
 
 Android app for everyday life at the gym and in the kitchen: **calorie and macro tracking**, **body weight tracking** with a smoothed trend, and **workout logging** with previous performance and a rest timer. A personal, private-use project without ads (see [License](#license)).
 
-> **Status:** setup in progress (epic E0). There is no app code yet; see the [roadmap](planning/07-roadmap.md).
+> **Status:** phase 1 complete (v1.0, epics E0–E9; see the [phase 1 roadmap](planning/phase1/07-roadmap.md)). Phase 2 is in planning.
 
 ## Features (Phase 1)
 
@@ -27,12 +27,11 @@ Phase 2 adds whole-meal photo estimation (several foods at once), adaptive calor
 ## Repository structure
 
 ```
-planning/        Phase 1 planning: decisions, scope, architecture, data model,
+planning/        Live planning (phase 2; phase 1 frozen in planning/phase1/): decisions, scope, architecture, data model,
                  business rules, design system, workflow and epics with Gherkin stories
 tasks/           Plan and task list of the current epic
 CLAUDE.md        Instructions for Claude Code (Project Manager role and project rules)
 .claude/agents/  Claude Code subagents (planner, ux-reviewer, developers, PR)
-design/stitch/   Visual reference mockups (Google Stitch)
 ```
 
 Code lives in `androidApp/` (Android application: flavors, `MainActivity`), `composeApp/` (Compose UI, KMP library) and `shared/` (domain and data, KMP library), plus `supabase/` and `.github/` (see [planning/02-architecture.md](planning/02-architecture.md)).

@@ -19,11 +19,11 @@ Everything in the repository (docs, code, comments, commits, PRs, tasks) is in E
 |---|---|
 | Current state, next task, 👤 checkpoints | `tasks/todo.md` (plan of the current epic: `tasks/plan.md`) |
 | Open product questions and their resolutions | `planning/09-open-questions.md` |
-| Planning (start with `planning/README.md`); scope: nothing outside `planning/01-phase1-scope.md` without asking | `planning/` |
+| Planning (start with `planning/README.md`); scope: nothing outside `planning/01-scope.md` without asking | `planning/` |
 | Decisions: a new decision = new ADR + update affected docs | `planning/00-decisions.md` |
 | Detailed flow, logging format, commands, epic closure | `planning/06-agent-workflow.md` |
 | Epics and stories (Gherkin) | `planning/epics/` |
-| Visual reference (style only; `planning/05-design-system.md` prevails) | `design/stitch/` |
+| Phase 1 history (frozen) | `planning/phase1/`, `tasks/phase1/`, `planning/epics/E0–E9` |
 
 On conflict: this file > `planning/`.
 

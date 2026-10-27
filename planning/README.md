@@ -1,49 +1,32 @@
-# AppFitness Planning — Phase 1
+# AppFitness Planning
 
-This folder is the **source of truth** for Phase 1 planning. It supersedes the original high-level documents (requirements, frontend features, user stories, orchestrator, workflow and local development notes), which are kept outside the repository. Claude Code operating rules live in `../CLAUDE.md`.
-
-Phase 2 (web client, whole-meal photo estimation, adaptive calorie adjustment and the AI training assistant) is out of scope for this planning; only what is deferred is noted. Phase 1 does include single-food photo estimation, label/barcode photos, default comidas and cooking methods (E7).
+Live planning docs (current state, kept short). Claude Code operating rules live in `../CLAUDE.md`. Phase 1 is finished and frozen under [`phase1/`](phase1/); phase 2 continues here.
 
 ## Index
 
 | Document | Content |
 |---|---|
-| [00-decisions.md](00-decisions.md) | Closed decisions (short ADRs) and findings from the review of the original documents |
-| [01-phase1-scope.md](01-phase1-scope.md) | Consolidated Phase 1 requirements and what is out of scope |
-| [02-architecture.md](02-architecture.md) | KMP modules, libraries, layers, security and CI/CD |
-| [03-data-model.md](03-data-model.md) | Tables, relationships, RLS policies, RPCs and Edge Functions |
-| [04-business-rules.md](04-business-rules.md) | Formulas and calculation rules (TDEE, macros, moving average, 1RM…) |
-| [05-design-system.md](05-design-system.md) | Unified palette, typography, Compose components and mockup references |
-| [ux-audit-2026-10.md](ux-audit-2026-10.md) | UX audit behind the E9 rulebook (evidence and rationale; `05` §8–§10 prevail) |
-| [06-agent-workflow.md](06-agent-workflow.md) | Claude Code workflow, subagents and their specification |
-| [07-roadmap.md](07-roadmap.md) | Epics, order, dependencies, versions and deliverables |
+| [00-decisions.md](00-decisions.md) | Index of all ADRs (01-72, one line each) and the place for new ADRs (73+) |
+| [01-scope.md](01-scope.md) | Phase 2 scope (to be written during phase 2 planning) |
+| [02-architecture.md](02-architecture.md) | KMP modules, layers, libraries, security and CI/CD |
+| [03-data-model.md](03-data-model.md) | Tables, RLS, RPCs and Edge Functions (summary) |
+| [04-business-rules.md](04-business-rules.md) | Formulas and calculation rules (TDEE, macros, MA7, 1RM...) |
+| [05-design-system.md](05-design-system.md) | Palette, typography, components, UX rulebook (§8-§10) |
+| [06-agent-workflow.md](06-agent-workflow.md) | Claude Code workflow, commands and subagents |
 | [08-environment-setup.md](08-environment-setup.md) | Tools, accounts, secrets and local development |
-| [09-open-questions.md](09-open-questions.md) | Open product questions and their resolutions |
-| [epics/](epics/) | One file per epic with its user stories in Gherkin |
+| [09-open-questions.md](09-open-questions.md) | Open product questions for phase 2 (empty) |
+| [epics/](epics/) | One file per epic with Gherkin stories. E0-E9 are phase 1; phase 2 continues at E10 |
+
+## Frozen history: `phase1/`
+
+Full-text copies of every Phase 1 document, never edited: `00-decisions.md` (full ADR text), `01-phase1-scope.md` (requirements and deferred items), `02`-`06`, `07-roadmap.md`, `08`, `09-open-questions.md` (resolved questions), `ux-audit-2026-10.md` (evidence behind the UX rulebook) and its own `README.md`. The live docs link to them for detail.
+
+The Stitch mockups were removed after phase 1; they are recoverable from git history. `05-design-system.md` is the visual source of truth.
 
 ## How to use this folder
+1. The PM breaks each epic in `epics/` into `T-###` tasks (`tasks/todo.md`, plan in `tasks/plan.md`); every task inherits the Gherkin of its `US-##`.
+2. Before implementing a story the planner reads the epic file, `03-data-model.md`, `04-business-rules.md` and `05-design-system.md`.
+3. A new decision = a new ADR in `00-decisions.md` plus updates to the affected docs.
 
-1. For each epic in `epics/`, the PM (Claude Code) breaks its stories into `T-###` tasks with the `planning-and-task-breakdown` skill and records them in `tasks/todo.md`; the current epic's plan goes in `tasks/plan.md` (ADR-15). E0 is already broken down (T-001…T-013).
-2. Every task references the story it comes from (`US-##`) and inherits its Gherkin criteria.
-3. Before implementing any story, the Planner reads: the epic file, `03-data-model.md`, `04-business-rules.md` and `05-design-system.md`.
-4. Any new decision that changes what is written here is added to `00-decisions.md` (new ADR) and the affected documents are updated.
-
-## Language
-
-All repository content (docs, code, comments, commits, PRs) is in **English**. The app UI is in **Spanish** (NFR-10): UI strings quoted in Gherkin scenarios stay in Spanish because they are the literal texts the tests assert.
-
-## Identifier conventions
-
-| Prefix | Meaning | Example |
-|---|---|---|
-| `E#` | Epic | `E3` — Training core |
-| `US-##` | User story (global numbering) | `US-12` |
-| `T-###` | Technical task | `T-031` |
-| `ADR-##` | Architecture/product decision | `ADR-03` |
-
-Branches: `feature/T-###-<slug>`. Tags: `vX.Y.Z` when each epic is closed.
-
-## Design resources
-
-- Original Stitch design system: `../design/stitch/kinetic-dark-performance/DESIGN.md`
-- Mockups (**style** reference only, not features): `../design/stitch/*/screen.png`
+## Language and identifiers
+Repository content is English; the app UI is Spanish (UI literals quoted in Gherkin stay Spanish, ADR-16). Prefixes: `E#` epic, `US-##` story (global numbering, stable), `T-###` task, `ADR-##` decision. Branches `feature/T-###-<slug>`; tags `vX.Y.Z` at epic closure.
