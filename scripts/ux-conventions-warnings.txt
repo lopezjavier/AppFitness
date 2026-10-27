@@ -5,7 +5,7 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/exercises/ExerciseFormSheet\.kt   # owner T-124
+G2 feature/exercises/ExerciseFormSheet\.kt   # owner T-124b
 G2 feature/routines/RoutineSheetActions\.kt   # owner T-125
 G2 feature/analytics/stats/MuscleDetailSheet\.kt   # owner T-125
 G2 feature/workout/CalculatorSheetParts\.kt   # owner T-125
@@ -19,8 +19,8 @@ G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
 G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
-G3 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
-G3 feature/exercises/ExercisePickerScreen\.kt   # owner T-124
+G3 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124b
+G3 feature/exercises/ExercisePickerScreen\.kt   # owner T-124b
 G3 feature/workout/EditWorkoutScreen\.kt   # owner T-125
 G3 feature/workout/LiveSessionScreen\.kt   # owner T-125
 G3 feature/workout/PastWorkoutScreen\.kt   # owner T-125
@@ -35,8 +35,8 @@ G4 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 
 # G5: AppConfirmDialog( outside the R-08 allow-list (account deletion, sign out, folder deletion,
 # discarding the live workout). RoutinesSheets.kt holds the allowed folder deletion and the archive
-# dialog that T-124 replaces by an immediate "Eliminar".
-G5 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
+# dialog that T-124b replaces by an immediate "Eliminar".
+G5 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124b
 G5 feature/meals/MealSlotsScreen\.kt   # owner T-126
 G5 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 
