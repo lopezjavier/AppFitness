@@ -65,7 +65,7 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 - [x] T-124: Routines, builder and routine details — backend + core + UI — L
 - [x] T-124b: Exercise picker, detail and exercise sheets (split off T-124) — core + UI — M
 - [x] T-125: Live session migration — UI + core — M
-- [ ] T-125b: History and workout detail — UI + core — L
+- [x] T-125b: History and workout detail — UI + core — L
 - [ ] T-125c: Statistics and body map (item B) — UI + core — L
 - [ ] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
 - [ ] T-127: Perfil root and Preferencias hub — UI + core — L
