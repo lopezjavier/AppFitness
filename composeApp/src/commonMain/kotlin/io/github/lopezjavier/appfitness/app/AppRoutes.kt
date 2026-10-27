@@ -8,7 +8,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
@@ -46,9 +45,20 @@ data object ProfileHome : TabRoute
 @Serializable
 data object CatalogRoute : AppRoute
 
-/** "Preferencias": the personal data, energy and macro editor, opened from the Perfil root (ADR-37). */
+/** "Preferencias": the hub of the settings sections, opened from the gear of the Perfil root (ADR-37, US-56). */
 @Serializable
 data object PreferencesRoute : AppRoute
+
+/**
+ * One Preferencias editor (US-56): [section] is the `PreferencesSection.key` (`personal`, `energy`, `macros`,
+ * `cooking`, `training`). The argument is stored as `section`, the key under which its view model reads it.
+ */
+@Serializable
+data class PreferencesSectionRoute(val section: String) : AppRoute
+
+/** "Cuenta": sign out and delete the account, opened from the Preferencias hub (US-56). */
+@Serializable
+data object AccountRoute : AppRoute
 
 /** Exercise picker (US-09). In [selectMode] a row returns the exercise to the caller instead of opening the detail. */
 @Serializable
@@ -278,7 +288,8 @@ val AppRoute.usesAppScreen: Boolean
         this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute ||
         this is HistoryRoute || this is SessionDetailRoute || this is EditWorkoutRoute || this is PastWorkoutRoute ||
         this is StrengthRoute || this is MuscleVolumeRoute || this is StatsRoute || this is ExerciseProgressRoute ||
-        this is MealSlotsRoute || this is MealDefaultsRoute
+        this is MealSlotsRoute || this is MealDefaultsRoute || this is ProfileHome || this is PreferencesRoute ||
+        this is PreferencesSectionRoute || this is AccountRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -300,8 +311,6 @@ private val AppRoute.legacyChrome: ShellChrome
 
             CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
 
-            PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
-
             // The statistics flow draws its own bar through AppScreen (T-125c): never reached through [chrome].
             StrengthRoute, MuscleVolumeRoute, StatsRoute, is ExerciseProgressRoute -> ShellChrome.Screen
 
@@ -316,6 +325,9 @@ private val AppRoute.legacyChrome: ShellChrome
 
             // The meals editor and the default comidas draw their own bar through AppEditorScreen (T-126).
             MealSlotsRoute, MealDefaultsRoute -> ShellChrome.Screen
+
+            // The Preferencias hub, its editors and Cuenta draw their own bar through AppScreen (T-127).
+            PreferencesRoute, is PreferencesSectionRoute, AccountRoute -> ShellChrome.Screen
 
             // Draw their own bar through AppScreen (T-121): never reached through [chrome].
             DiaryHistoryRoute, is DiaryDayRoute -> ShellChrome.Screen
@@ -344,6 +356,8 @@ object AppDestinations {
         listOf(
             CatalogRoute,
             PreferencesRoute,
+            PreferencesSectionRoute(""),
+            AccountRoute,
             ExercisePickerRoute(),
             ExerciseDetailRoute("", false),
             RoutineBuilderRoute(),

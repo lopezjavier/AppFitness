@@ -67,6 +67,7 @@ class PreferencesTrainingCardTest {
     private fun loaded(warmUp: Boolean = false, saved: Boolean = false) = PreferencesUiState.Loaded(
         form = form(warmUp),
         saved = form(saved),
+        section = PreferencesSection.Training,
         today = LocalDate(2026, 10, 14),
     )
 
@@ -79,7 +80,7 @@ class PreferencesTrainingCardTest {
         rule.onNodeWithText("Incluir calentamiento").assertExists()
         rule.onNodeWithText("Las series de calentamiento cuentan en volumen, 1RM y récords.").assertExists()
         rule.onNodeWithTag("preferences_warm_up_switch").assertIsOff()
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_training_save").assertIsNotEnabled()
     }
 
     @Test
@@ -103,7 +104,7 @@ class PreferencesTrainingCardTest {
         rule.setContent { AppTheme { PreferencesScreen(loaded(warmUp = true), {}) } }
 
         rule.onNodeWithTag("preferences_warm_up_switch").performScrollTo().assertIsOn()
-        rule.onNodeWithTag("preferences_save").assertIsEnabled()
+        rule.onNodeWithTag("preferences_training_save").assertIsEnabled()
     }
 
     @Test
@@ -146,7 +147,7 @@ class PreferencesTrainingCardTest {
             listOf<PreferencesEvent>(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine)),
             events,
         )
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_training_save").assertIsNotEnabled()
     }
 
     @Test
@@ -159,6 +160,7 @@ class PreferencesTrainingCardTest {
                     state = PreferencesUiState.Loaded(
                         form = form(false, if (routine) PreviousValuesMode.Routine else PreviousValuesMode.Overall),
                         saved = form(false),
+                        section = PreferencesSection.Training,
                         today = LocalDate(2026, 10, 14),
                     ),
                     onEvent = { if (it is PreferencesEvent.SetPreviousValuesMode) routine = true },
@@ -177,6 +179,7 @@ class PreferencesTrainingCardTest {
         PreferencesUiState.Loaded(
             form = form(false, calculators = calculators),
             saved = form(false),
+            section = PreferencesSection.Training,
             today = LocalDate(2026, 10, 14),
             platesError = platesError,
         )
@@ -235,6 +238,7 @@ class PreferencesTrainingCardTest {
                     PreferencesUiState.Loaded(
                         form = form(false, calculators = settings),
                         saved = form(false, calculators = settings),
+                        section = PreferencesSection.Training,
                         today = LocalDate(2026, 10, 14),
                     ),
                     {},
@@ -293,7 +297,7 @@ class PreferencesTrainingCardTest {
 
         rule.onNodeWithTag("preferences_plate_2_5").performScrollTo().assertIsOff()
         rule.onNodeWithTag("preferences_plate_5").performScrollTo().assertIsOn()
-        rule.onNodeWithTag("preferences_save").assertIsEnabled()
+        rule.onNodeWithTag("preferences_training_save").assertIsEnabled()
     }
 
     @Test

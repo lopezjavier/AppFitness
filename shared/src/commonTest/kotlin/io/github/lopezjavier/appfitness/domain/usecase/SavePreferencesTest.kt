@@ -31,8 +31,8 @@ private class Saved(
     val biometrics: Biometrics,
     val goals: NutritionGoals,
     val weight: WeightEntry?,
-    val warmUpIncluded: Boolean,
-    val previousValuesMode: PreviousValuesMode,
+    val warmUpIncluded: Boolean?,
+    val previousValuesMode: PreviousValuesMode?,
     val calculators: CalculatorSettings?,
     val foodPreferences: FoodPreferences? = null,
     val autoUpdateRoutine: Boolean? = null,
@@ -69,8 +69,8 @@ class SavePreferencesTest {
             biometrics: Biometrics,
             goals: NutritionGoals,
             weight: WeightEntry?,
-            warmUpIncluded: Boolean,
-            previousValuesMode: PreviousValuesMode,
+            warmUpIncluded: Boolean?,
+            previousValuesMode: PreviousValuesMode?,
             calculators: CalculatorSettings?,
             foodPreferences: FoodPreferences?,
             autoUpdateRoutine: Boolean?,
@@ -99,8 +99,8 @@ class SavePreferencesTest {
         weightChanged: Boolean = false,
         adjustment: Int = -400,
         split: MacroSplit = MacroSplit.DEFAULT,
-        warmUpIncluded: Boolean = false,
-        previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
+        warmUpIncluded: Boolean? = false,
+        previousValuesMode: PreviousValuesMode? = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
         foodPreferences: FoodPreferences? = null,
         autoUpdateRoutine: Boolean? = null,
@@ -130,6 +130,14 @@ class SavePreferencesTest {
         save()
 
         assertEquals(listOf<Boolean?>(true, null), saved.map { it.autoUpdateRoutine })
+    }
+
+    @Test
+    fun forwardsNullWarmUpAndPreviousValuesModeSoTheyStayUntouched() = runTest {
+        save(warmUpIncluded = null, previousValuesMode = null)
+
+        assertEquals(null, saved.single().warmUpIncluded)
+        assertEquals(null, saved.single().previousValuesMode)
     }
 
     @Test

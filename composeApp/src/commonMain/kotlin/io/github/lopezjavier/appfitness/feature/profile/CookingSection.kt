@@ -21,8 +21,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_griddle_label
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_griddle_support
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_helper
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
-import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -32,22 +30,21 @@ import org.jetbrains.compose.resources.stringResource
 private const val MAX_DECIMALS = 1
 
 /**
- * "Cocina" card (US-50): the added-fat percentage of the raw weight per cooking method (plancha, air fryer, frito).
+ * "Cocina" editor content (US-50): the added-fat percentage of the raw weight per cooking method (plancha,
+ * air fryer, frito).
  * Nothing is saved until the pinned "Guardar" of Preferencias; an invalid field shows its error and disables it.
  */
 @Composable
-internal fun PreferencesCookingCard(
+internal fun CookingSection(
     form: FoodPreferencesForm,
     onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AppCard(modifier.fillMaxWidth().testTag("preferences_cooking_card")) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Text(
-                text = stringResource(Res.string.preferences_cooking_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-            )
+    run {
+        Column(
+            modifier.fillMaxWidth().testTag("preferences_cooking_card"),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
             FatPctField(
                 value = form.griddleText,
                 onChange = { onEvent(PreferencesEvent.SetFatPctGriddle(it)) },

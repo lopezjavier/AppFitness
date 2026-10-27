@@ -64,9 +64,9 @@ class PreferencesAutoUpdateTest {
             FakeConnectivityObserver(),
             FakeClock(),
             TimeZone.UTC,
-            SavedStateHandle(),
+            SavedStateHandle(mapOf("section" to "training")),
         )
-        rule.setContent { AppTheme { PreferencesRoute(onOpenMeals = {}, viewModel = viewModel) } }
+        rule.setContent { AppTheme { PreferencesSectionRoot(onClose = {}, viewModel = viewModel) } }
         rule.waitForIdle()
     }
 
@@ -78,7 +78,7 @@ class PreferencesAutoUpdateTest {
         rule.onNodeWithText("Actualizar automáticamente").assertExists()
         rule.onNodeWithText("Al terminar un entreno de una rutina, la rutina se actualiza sin preguntar.")
             .assertExists()
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_training_save").assertIsNotEnabled()
     }
 
     @Test
@@ -88,7 +88,7 @@ class PreferencesAutoUpdateTest {
         rule.onNodeWithTag("preferences_auto_update_switch").performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_auto_update_switch").assertIsOn()
-        rule.onNodeWithTag("preferences_save").assertIsEnabled().performClick()
+        rule.onNodeWithTag("preferences_training_save").assertIsEnabled().performClick()
         rule.waitForIdle()
 
         assertEquals(1, profile.preferenceSaves.size)

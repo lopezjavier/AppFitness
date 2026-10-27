@@ -17,10 +17,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_up
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_overall
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_routine
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_values_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_label
-import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -32,13 +30,14 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Entrenamiento" card: "Incluir calentamiento" and "Actualizar automáticamente" rows, the previous-values selector
+ * "Entrenamiento" editor content: "Incluir calentamiento" and "Actualizar automáticamente" rows, the
+ * previous-values selector
  * and the "Calculadoras" block. The switch is drawn inside but hidden from semantics, so there is a single focus
  * target (the row). Nothing is applied until "Guardar".
  */
 @Suppress("LongParameterList") // One value and callback per control of the card.
 @Composable
-internal fun TrainingCard(
+internal fun TrainingSection(
     warmUpIncluded: Boolean,
     onChange: (Boolean) -> Unit,
     autoUpdateRoutine: Boolean,
@@ -50,13 +49,11 @@ internal fun TrainingCard(
     onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AppCard(modifier.fillMaxWidth().testTag("preferences_training_card")) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = stringResource(Res.string.preferences_training_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-            )
+    run {
+        Column(
+            modifier.fillMaxWidth().testTag("preferences_training_card"),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             AppSwitchRow(
                 label = stringResource(Res.string.preferences_warm_up_label),
                 helper = stringResource(Res.string.preferences_warm_up_helper),

@@ -19,7 +19,11 @@ import io.github.lopezjavier.appfitness.feature.food.EditFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
-import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
+import io.github.lopezjavier.appfitness.feature.profile.AccountRoot
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
+import io.github.lopezjavier.appfitness.feature.profile.ProfileRootActions
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsRoot
@@ -62,12 +66,14 @@ fun AppRoot(
             ->
             ProfileRootRoute(
                 profileModifier,
-                onOpenPreferences,
-                onOpenCatalog,
-                onOpenStrength,
-                onOpenDiaryHistory,
-                onOpenWeight,
-                onOpenTrainingStats,
+                ProfileRootActions(
+                    onOpenPreferences = onOpenPreferences,
+                    onOpenCatalog = onOpenCatalog,
+                    onOpenStrength = onOpenStrength,
+                    onOpenWeight = onOpenWeight,
+                    onOpenDiaryHistory = onOpenDiaryHistory,
+                    onOpenTrainingStats = onOpenTrainingStats,
+                ),
             )
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
@@ -82,7 +88,15 @@ fun AppRoot(
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
-        preferences = { preferencesModifier, onOpenMeals -> PreferencesRoute(onOpenMeals, preferencesModifier) },
+        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenAccount ->
+            PreferencesHubScreen(
+                onBack = onBack,
+                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenAccount),
+                modifier = hubModifier,
+            )
+        },
+        preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
+        account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)
         },

@@ -104,6 +104,8 @@ sealed interface PreferencesUiState {
     data class Loaded(
         val form: PreferencesForm,
         val saved: PreferencesForm,
+        /** The editor this state belongs to: only its fields count for [isDirty] and [canSave]. */
+        val section: PreferencesSection,
         val today: LocalDate,
         val isSaving: Boolean = false,
         val isOnline: Boolean = true,
@@ -111,13 +113,24 @@ sealed interface PreferencesUiState {
         val weightFromHealthConnect: Boolean = false,
         /** The user tried to switch off the last plate; cleared by the next accepted plate change. */
         val platesError: Boolean = false,
+        /** The section was saved: the editor closes (once). */
+        val isSaved: Boolean = false,
     ) : PreferencesUiState {
-        val isDirty: Boolean get() = form != saved
+        /** Only the fields of [section] count. */
+        val isDirty: Boolean get() = !form.sectionEquals(section, saved)
 
-        /** "Guardar" needs a change, a filled name, the network and no save running. */
+        /**
+         * "Guardar" needs a change in this section, a filled name (the edited one in "Datos personales", the saved
+         * one elsewhere, since every save re-sends it), at least one plate and valid fat percentages where the
+         * section owns them, the network and no save running.
+         */
         val canSave: Boolean
-            get() = isDirty && form.isNameValid && form.calculators.plateKg.isNotEmpty() &&
-                form.foodPreferences.isValid && isOnline && !isSaving
+            get() = isDirty && isOnline && !isSaving && when (section) {
+                PreferencesSection.PersonalData -> form.isNameValid
+                PreferencesSection.Training -> saved.isNameValid && form.calculators.plateKg.isNotEmpty()
+                PreferencesSection.Cooking -> saved.isNameValid && form.foodPreferences.isValid
+                PreferencesSection.EnergyGoal, PreferencesSection.Macros -> saved.isNameValid
+            }
 
         val energy: EnergyStrategyUiState
             get() = energyStrategyUiState(
@@ -191,10 +204,32 @@ sealed interface PreferencesEvent {
     data object Refresh : PreferencesEvent
 }
 
-/** One-off results shown as a snackbar (the screen also fires the haptic on [Saved]). */
-sealed interface PreferencesEffect {
-    data object Saved : PreferencesEffect
+/** The section that owns an event; null for the section-independent ones (save, retry). */
+internal val PreferencesEvent.owner: PreferencesSection?
+    get() = when (this) {
+        is PreferencesEvent.SetName, is PreferencesEvent.SelectSex, is PreferencesEvent.SetBirthDate,
+        is PreferencesEvent.SetHeight, is PreferencesEvent.SetWeight, is PreferencesEvent.SelectActivity,
+        PreferencesEvent.Refresh,
+        -> PreferencesSection.PersonalData
 
+        is PreferencesEvent.Energy -> PreferencesSection.EnergyGoal
+
+        is PreferencesEvent.MoveMacro -> PreferencesSection.Macros
+
+        is PreferencesEvent.SetFatPctGriddle, is PreferencesEvent.SetFatPctAirFryer,
+        is PreferencesEvent.SetFatPctFried,
+        -> PreferencesSection.Cooking
+
+        is PreferencesEvent.SetWarmUpIncluded, is PreferencesEvent.SetAutoUpdateRoutine,
+        is PreferencesEvent.SetPreviousValuesMode, is PreferencesEvent.SetBarWeight,
+        is PreferencesEvent.SetDumbbellHandle, is PreferencesEvent.SetPlateEnabled,
+        -> PreferencesSection.Training
+
+        PreferencesEvent.Save, PreferencesEvent.Retry -> null
+    }
+
+/** One-off results of a save; success is the `isSaved` flag of the state, not an effect. */
+sealed interface PreferencesEffect {
     /** [offline] is true when the failure was the network. */
     data class SaveFailed(val offline: Boolean) : PreferencesEffect
 }

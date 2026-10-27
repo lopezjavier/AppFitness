@@ -34,7 +34,7 @@ class TrainingStatsNavigationTest {
         }
     }
     private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, onBack ->
-        AppScreen("Estadísticas", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
+        AppScreen("Entrenamiento", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
             Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
         }
     }
@@ -64,7 +64,7 @@ class TrainingStatsNavigationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("stats_screen").assertExists()
-        rule.onNodeWithTag("stats_title").assertTextEquals("Estadísticas")
+        rule.onNodeWithTag("stats_title").assertTextEquals("Entrenamiento")
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
 
         rule.onNodeWithTag("stats_back").performClick()

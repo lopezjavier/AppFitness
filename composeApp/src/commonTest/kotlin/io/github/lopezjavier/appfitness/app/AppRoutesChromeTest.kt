@@ -3,17 +3,10 @@ package io.github.lopezjavier.appfitness.app
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** T-118: only routes marked [usesAppScreen] lose the shell title bar; every other route keeps its chrome. */
 class AppRoutesChromeTest {
-    /** Route to the top bar test tag it had before T-118 (all full-screen). */
-    private val legacyFullScreenTags: List<Pair<AppRoute, String>> =
-        listOf(
-            PreferencesRoute to "preferences",
-        )
-
     @Test
     fun catalogRoute_usesAppScreen_andHasScreenChrome() {
         assertTrue(CatalogRoute.usesAppScreen)
@@ -99,20 +92,25 @@ class AppRoutesChromeTest {
     }
 
     @Test
-    fun everyOtherRoute_doesNotUseAppScreen() {
-        val others = legacyFullScreenTags.map { it.first } +
-            listOf(EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
-            listOf(DiaryGraph, WorkoutGraph, ProfileGraph, ProfileHome)
-
-        others.forEach { assertFalse(it.usesAppScreen, it.toString()) }
+    fun thePreferenciasRoutes_useAppScreen_andHaveScreenChrome() {
+        listOf(PreferencesRoute, PreferencesSectionRoute("energy"), AccountRoute).forEach {
+            assertTrue(it.usesAppScreen, it.toString())
+            assertEquals(ShellChrome.Screen, it.chrome, it.toString())
+        }
     }
 
     @Test
-    fun legacyFullScreenRoutes_keepTheirShellTitleBarAndTag() {
-        legacyFullScreenTags.forEach { (route, tag) ->
-            val chrome = assertIs<ShellChrome.FullScreen>(route.chrome, route.toString())
-            assertEquals(tag, chrome.topBarTag, route.toString())
-        }
+    fun thePerfilRoot_usesAppScreen_withTheTabScreenChrome() {
+        assertTrue(ProfileHome.usesAppScreen)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Profile), ProfileHome.chrome)
+    }
+
+    @Test
+    fun everyOtherRoute_doesNotUseAppScreen() {
+        val others = listOf(EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
+            listOf(DiaryGraph, WorkoutGraph, ProfileGraph)
+
+        others.forEach { assertFalse(it.usesAppScreen, it.toString()) }
     }
 
     @Test
@@ -125,6 +123,6 @@ class AppRoutesChromeTest {
     fun tabRoutes_keepTheirTabsChrome() {
         assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), DiaryGraph.chrome)
         assertEquals(ShellChrome.Tabs(TopLevelTab.Workout), WorkoutGraph.chrome)
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Profile), ProfileHome.chrome)
+        assertEquals(ShellChrome.Tabs(TopLevelTab.Profile), ProfileGraph.chrome)
     }
 }

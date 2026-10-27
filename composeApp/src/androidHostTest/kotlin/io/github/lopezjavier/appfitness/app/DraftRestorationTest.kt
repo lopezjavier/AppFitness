@@ -62,7 +62,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
-import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
@@ -393,7 +393,8 @@ class DraftRestorationTest {
 
     // -- "Corregir serie" sheet -------------------------------------------------------------------------------------
 
-    private fun showPreferences(tester: StateRestorationTester, handle: SavedStateHandle) {
+    private fun showPreferences(tester: StateRestorationTester, section: String) {
+        val handle = SavedStateHandle(mapOf("section" to section))
         val profile =
             FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))).apply {
                 biometrics =
@@ -423,7 +424,7 @@ class DraftRestorationTest {
                             handle,
                         )
                     }
-                PreferencesRoute(onOpenMeals = {}, viewModel = vm)
+                PreferencesSectionRoot(onClose = {}, viewModel = vm)
             }
         }
         rule.waitForIdle()
@@ -432,7 +433,7 @@ class DraftRestorationTest {
     @Test
     fun preferencesForm_keepsTheEditedNameAfterRecreation_andGuardarStaysEnabled() {
         val tester = StateRestorationTester(rule)
-        showPreferences(tester, SavedStateHandle())
+        showPreferences(tester, "personal")
         rule.onNodeWithTag("preferences_name_field").performScrollTo().performTextClearance()
         rule.onNodeWithTag("preferences_name_field").performTextInput("Beatriz")
         rule.waitForIdle()
@@ -441,13 +442,13 @@ class DraftRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_name_field").performScrollTo().assertTextContains("Beatriz")
-        rule.onNodeWithTag("preferences_save").assertIsEnabled()
+        rule.onNodeWithTag("preferences_personal_save").assertIsEnabled()
     }
 
     @Test
     fun preferencesCookingPercentages_surviveRecreation_andGuardarStaysEnabled() {
         val tester = StateRestorationTester(rule)
-        showPreferences(tester, SavedStateHandle())
+        showPreferences(tester, "cooking")
         rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().performTextClearance()
         rule.onNodeWithTag("preferences_cooking_fried").performTextInput("12")
         rule.waitForIdle()
@@ -456,13 +457,13 @@ class DraftRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_cooking_fried").performScrollTo().assertTextContains("12")
-        rule.onNodeWithTag("preferences_save").assertIsEnabled()
+        rule.onNodeWithTag("preferences_cooking_save").assertIsEnabled()
     }
 
     @Test
     fun preferencesPickerSheet_keepsTheOpenSheetAndTheChosenLevelAfterRecreation() {
         val tester = StateRestorationTester(rule)
-        showPreferences(tester, SavedStateHandle())
+        showPreferences(tester, "personal")
         rule.onNodeWithTag("preferences_activity_row").performScrollTo().performClick()
         rule.onNodeWithTag("preferences_activity_light").performClick()
         rule.waitForIdle()
@@ -471,7 +472,7 @@ class DraftRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_sheet_activity").assertIsDisplayed()
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_activity_row")
             .performScrollTo()

@@ -1,19 +1,20 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
-import app.cash.turbine.test
-import io.github.lopezjavier.appfitness.app.FakeAccountRepository
-import io.github.lopezjavier.appfitness.app.FakeAuthRepository
-import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.AccountProtection
-import io.github.lopezjavier.appfitness.domain.model.AuthState
-import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
+import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.MealTotals
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
-import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
-import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
-import kotlinx.coroutines.CompletableDeferred
+import io.github.lopezjavier.appfitness.feature.analytics.FakeStrengthRepository
+import io.github.lopezjavier.appfitness.feature.analytics.completedWith
+import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
+import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -22,27 +23,44 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.time.Instant
 
-/** US-05 on the Perfil root: the name and photo, sign out and delete account. */
+/** US-05 / US-56 on the Perfil root: the name and photo and the values on the statistics rows. */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("TooManyFunctions") // One method per Gherkin scenario.
 class ProfileRootViewModelTest {
+    private val today = LocalDate(2026, 10, 14)
+    private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", "https://photo/a.png", true)))
-    private val auth = FakeAuthRepository()
-    private val account = FakeAccountRepository()
-    private val connectivity = FakeConnectivityObserver(initial = true)
+    private val weights = FakeBodyMeasurementRepository(
+        BodyMeasurement("w1", Instant.parse("2026-10-10T08:00:00Z"), 79.4, MeasurementSource.Manual),
+    )
+    private val strength = FakeStrengthRepository()
+    private val workouts = FakeWorkoutSessionRepository()
+    private val diary = FakeFoodDiaryRepository()
 
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(StandardTestDispatcher())
+        strength.sessions = listOf(
+            completedWith("a", "2026-10-01T10:00:00Z", "bench", "squat"),
+            completedWith("b", "2026-10-08T10:00:00Z", "bench"),
+        )
+        workouts.history = mapOf(
+            "bench" to listOf(ExerciseHistoryPoint("s1", LocalDate(2026, 10, 8), 113.5, 0.0)),
+            "squat" to listOf(ExerciseHistoryPoint("s2", LocalDate(2026, 10, 1), 140.0, 0.0)),
+        )
+        diary.summaryDays += listOf(
+            DiaryDaySummary(LocalDate(2026, 10, 13), MealTotals(1900.0, 0.0, 0.0, 0.0)),
+            DiaryDaySummary(LocalDate(2026, 10, 12), MealTotals(2000.0, 0.0, 0.0, 0.0)),
+            DiaryDaySummary(LocalDate(2026, 9, 1), MealTotals(5000.0, 0.0, 0.0, 0.0)),
+        )
     }
 
     @AfterTest
@@ -52,10 +70,11 @@ class ProfileRootViewModelTest {
 
     private fun viewModel() = ProfileRootViewModel(
         profileRepository = profile,
-        authRepository = auth,
-        deleteAccount = DeleteAccount(account, auth),
-        getAccountProtection = GetAccountProtection(account),
-        connectivity = connectivity,
+        bodyMeasurementRepository = weights,
+        strengthRepository = strength,
+        workoutSessionRepository = workouts,
+        foodDiaryRepository = diary,
+        clock = FakeClock(today, now),
     )
 
     private fun TestScope.loaded(): Pair<ProfileRootViewModel, () -> ProfileRootUiState.Loaded> {
@@ -109,196 +128,84 @@ class ProfileRootViewModelTest {
         viewModel.onEvent(ProfileRootEvent.Retry)
         advanceUntilIdle()
 
-        assertIs<ProfileRootUiState.Loaded>(viewModel.uiState.value)
+        assertEquals(79.4, assertIs<ProfileRootUiState.Loaded>(viewModel.uiState.value).weightKg)
     }
 
     @Test
-    fun signOutConfirmed_signsOutOnce() = runTest {
-        val viewModel = viewModel()
-
-        viewModel.onEvent(ProfileRootEvent.SignOutConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(1, auth.signOutCalls)
-    }
-
-    @Test
-    fun deleteConfirmed_deletesAndSignsOut() = runTest {
-        val (viewModel, _) = loaded()
-
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(1, account.calls)
-        assertEquals(1, auth.signOutCalls)
-    }
-
-    @Test
-    fun whileDeleting_isDeletingIsTrue_andASecondRequestIsIgnored() = runTest {
-        account.gate = CompletableDeferred()
-        val (viewModel, state) = loaded()
-
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
-        assertTrue(state().isDeleting)
-        assertFalse(state().canDelete)
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(1, account.calls)
-        account.gate?.complete(Unit)
-        advanceUntilIdle()
-    }
-
-    @Test
-    fun deleteFailure_keepsTheSession_andEmitsTheError() = runTest {
-        account.outcome = DeleteAccountOutcome.Failed
-        val (viewModel, state) = loaded()
-        viewModel.effects.test {
-            viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-            advanceUntilIdle()
-            assertEquals(ProfileRootEffect.DeleteFailed(offline = false), awaitItem())
-        }
-        assertEquals(0, auth.signOutCalls)
-        assertFalse(state().isDeleting)
-        assertTrue(state().canDelete)
-    }
-
-    @Test
-    fun deleteWithoutNetwork_isReportedAsOffline() = runTest {
-        account.outcome = DeleteAccountOutcome.NoNetwork
-        val (viewModel, _) = loaded()
-        viewModel.effects.test {
-            viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-            advanceUntilIdle()
-            assertEquals(ProfileRootEffect.DeleteFailed(offline = true), awaitItem())
-        }
-        assertEquals(0, auth.signOutCalls)
-    }
-
-    @Test
-    fun offline_disablesDelete_andIgnoresTheRequest() = runTest {
-        val (viewModel, state) = loaded()
-        connectivity.state.value = false
-        advanceUntilIdle()
-
-        assertFalse(state().canDelete)
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(0, account.calls)
-    }
-
-    @Test
-    fun protectedAccount_cannotBeDeleted_andTheRequestIsIgnored() = runTest {
-        account.protection = Result.success(true)
-        val (viewModel, state) = loaded()
-
-        assertEquals(AccountProtection.Protected, state().protection)
-        assertFalse(state().canDelete)
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(0, account.calls)
-    }
-
-    @Test
-    fun unprotectedAccount_online_canBeDeleted() = runTest {
+    fun highlights_areTheLatestWeight_theRecordOfTheMostTrainedExercise_andTheWeekAverage() = runTest {
         val (_, state) = loaded()
 
-        assertEquals(AccountProtection.Unprotected, state().protection)
-        assertTrue(state().canDelete)
+        assertEquals(79.4, state().weightKg)
+        assertEquals(113.5, state().strengthRecordKg)
+        assertEquals(1950, state().avgKcal)
     }
 
     @Test
-    fun failedProtectionCheck_isUnknown_andDeleteStaysDisabled() = runTest {
-        account.protection = Result.failure(AppException(AppError.Network))
-        val (viewModel, state) = loaded()
+    fun aFailedStrengthRead_leavesOnlyThatValueNull_andNeverFailsTheScreen() = runTest {
+        strength.sessionsFailure = AppError.Network
 
-        assertEquals(AccountProtection.Unknown, state().protection)
-        assertFalse(state().canDelete)
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
-        assertEquals(0, account.calls)
-    }
-
-    @Test
-    fun unknownProtection_isCheckedAgainWhenConnectivityReturns() = runTest {
-        account.protection = Result.failure(AppException(AppError.Network))
         val (_, state) = loaded()
-        connectivity.state.value = false
-        advanceUntilIdle()
 
-        account.protection = Result.success(false)
-        connectivity.state.value = true
-        advanceUntilIdle()
-
-        assertEquals(AccountProtection.Unprotected, state().protection)
-        assertTrue(state().canDelete)
+        assertNull(state().strengthRecordKg)
+        assertEquals(79.4, state().weightKg)
+        assertEquals(1950, state().avgKcal)
     }
 
     @Test
-    fun knownProtection_isNotCheckedAgainWhenConnectivityReturns() = runTest {
-        val (_, _) = loaded()
-        val checks = account.protectionChecks
-        connectivity.state.value = false
-        advanceUntilIdle()
-        connectivity.state.value = true
-        advanceUntilIdle()
+    fun aFailedExerciseHistory_leavesTheStrengthValueNull() = runTest {
+        workouts.historyFailure = AppError.Network
 
-        assertEquals(checks, account.protectionChecks)
+        val (_, state) = loaded()
+
+        assertNull(state().strengthRecordKg)
+        assertEquals(79.4, state().weightKg)
     }
 
     @Test
-    fun protectedOutcome_marksTheAccountProtected_withoutAnErrorEffect() = runTest {
-        account.outcome = DeleteAccountOutcome.Protected
-        val (viewModel, state) = loaded()
+    fun noTrainedExercises_meansNoStrengthRecord() = runTest {
+        strength.sessions = emptyList()
 
-        viewModel.effects.test {
-            viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-            advanceUntilIdle()
-            expectNoEvents()
-        }
+        val (_, state) = loaded()
 
-        assertEquals(AccountProtection.Protected, state().protection)
-        assertFalse(state().isDeleting)
-        assertFalse(state().canDelete)
-        assertEquals(0, auth.signOutCalls)
+        assertNull(state().strengthRecordKg)
     }
 
     @Test
-    fun recreatedViewModel_recomputesProtection_andReplaysNoEffect() = runTest {
-        account.protection = Result.failure(AppException(AppError.Network))
-        val (_, firstState) = loaded()
-        assertEquals(AccountProtection.Unknown, firstState().protection)
+    fun anExerciseWithoutAOneRepMax_meansNoStrengthRecord() = runTest {
+        workouts.history = mapOf("bench" to listOf(ExerciseHistoryPoint("s1", LocalDate(2026, 10, 8), null, 0.0)))
 
-        account.protection = Result.success(true)
-        val (recreated, state) = loaded()
+        val (_, state) = loaded()
 
-        assertEquals(AccountProtection.Protected, state().protection)
-        recreated.effects.test { expectNoEvents() }
+        assertNull(state().strengthRecordKg)
     }
 
     @Test
-    fun deleted_endsTheSession_soTheRootShowsWelcome() = runTest {
-        auth.state.value = AuthState.SignedIn("user-1")
-        val (viewModel, _) = loaded()
+    fun aFailedDiaryRead_leavesOnlyTheCaloriesNull() = runTest {
+        diary.failSummaries()
 
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
+        val (_, state) = loaded()
 
-        assertEquals(AuthState.SignedOut, auth.state.value)
+        assertNull(state().avgKcal)
+        assertEquals(79.4, state().weightKg)
+        assertEquals(113.5, state().strengthRecordKg)
     }
 
     @Test
-    fun deleteFailed_keepsTheUserSignedIn() = runTest {
-        account.outcome = DeleteAccountOutcome.Failed
-        auth.state.value = AuthState.SignedIn("user-1")
-        val (viewModel, _) = loaded()
+    fun noLoggedDaysInTheLastWeek_meansNoCalories() = runTest {
+        diary.summaryDays.clear()
+        diary.summaryDays += DiaryDaySummary(LocalDate(2026, 9, 1), MealTotals(5000.0, 0.0, 0.0, 0.0))
 
-        viewModel.onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-        advanceUntilIdle()
+        val (_, state) = loaded()
 
-        assertEquals(AuthState.SignedIn("user-1"), auth.state.value)
+        assertNull(state().avgKcal)
+    }
+
+    @Test
+    fun noWeightYet_meansNoWeightValue() = runTest {
+        weights.row = null
+
+        val (_, state) = loaded()
+
+        assertNull(state().weightKg)
     }
 }

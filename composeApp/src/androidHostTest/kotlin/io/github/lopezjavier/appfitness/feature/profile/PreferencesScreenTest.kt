@@ -10,17 +10,12 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -35,7 +30,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -50,11 +44,18 @@ import org.robolectric.annotation.Config
 
 private const val FRAMES_INTO_THE_SNAP = 4
 
-/** US-06 editing data and the weight, US-07 saving the goals and US-08 macro split on Preferencias. */
+/** US-06 editing the personal data and the weight in the "Datos personales" editor. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
 class PreferencesScreenTest {
+    @androidx.compose.runtime.Composable
+    private fun PersonalScreen(
+        state: PreferencesUiState,
+        onEvent: (PreferencesEvent) -> Unit,
+        effects: kotlinx.coroutines.flow.Flow<PreferencesEffect> = kotlinx.coroutines.flow.emptyFlow(),
+    ) = PreferencesScreen(state, onEvent, effects = effects, section = PreferencesSection.PersonalData)
+
     @get:Rule
     val rule = createComposeRule()
 
@@ -83,6 +84,7 @@ class PreferencesScreenTest {
         return PreferencesUiState.Loaded(
             form = base,
             saved = base.copy(split = saved),
+            section = PreferencesSection.PersonalData,
             today = today,
             isSaving = isSaving,
             isOnline = isOnline,
@@ -94,18 +96,16 @@ class PreferencesScreenTest {
         state: PreferencesUiState = loaded(),
         fontScale: Float = 1f,
         effects: Channel<PreferencesEffect> = Channel(Channel.BUFFERED),
-        onOpenMeals: () -> Unit = {},
     ) {
         events.clear()
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 AppTheme {
-                    PreferencesScreen(
+                    PersonalScreen(
                         state = state,
                         onEvent = { events += it },
                         effects = effects.receiveAsFlow(),
-                        onOpenMeals = onOpenMeals,
                     )
                 }
             }
@@ -113,79 +113,7 @@ class PreferencesScreenTest {
         rule.waitForIdle()
     }
 
-    @Test
-    fun mealsRow_opensTheMealsEditor_withoutTouchingTheProfileDraft() {
-        var opened = 0
-        show(onOpenMeals = { opened++ })
-
-        rule.onNodeWithTag("preferences_meals_row").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Nombre y orden de tus comidas del día").assertExists()
-        rule.onNodeWithTag("preferences_meals_row").performClick()
-
-        assertEquals(1, opened)
-        assertTrue(events.isEmpty())
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
-    }
-
-    @Test
-    fun preferences_hasNoPersonalRecordSettingOrNotification() {
-        show()
-
-        rule.onAllNodesWithText("¡Nuevo récord!", substring = true, ignoreCase = true).assertCountEquals(0)
-        rule.onAllNodesWithText("notificación", substring = true, ignoreCase = true).assertCountEquals(0)
-        rule.onAllNodesWithText("Nivel de récord", substring = true, ignoreCase = true).assertCountEquals(0)
-    }
-
-    @Test
-    fun mealsRow_hasTheTouchTarget() {
-        show()
-
-        rule.onNodeWithTag("preferences_meals_row").performScrollTo().assertHeightIsAtLeast(48.dp)
-    }
-
     // -- US-08 initial display ------------------------------------------------------------------------------------
-
-    @Test
-    fun initialDisplay_showsTheTotalBadgeTheBarAndTheMacroTexts() {
-        show()
-        rule.onNodeWithTag("preferences_macro_total").performScrollTo().assertTextEquals("TOTAL: 100 %")
-        rule.onNodeWithTag("preferences_macro_bar").assertExists()
-        rule.onNodeWithText("30 %").assertExists()
-        rule.onNodeWithText("180 g · 720 kcal").assertExists()
-        rule.onNodeWithText("45 %").assertExists()
-        rule.onNodeWithText("270 g · 1.080 kcal").assertExists()
-        rule.onNodeWithText("25 %").assertExists()
-        rule.onNodeWithText("67 g · 600 kcal").assertExists()
-    }
-
-    @Test
-    fun sliders_speakPercentGramsAndKcal() {
-        show()
-        rule.onNodeWithTag("preferences_macro_protein_slider").assert(
-            SemanticsMatcher.expectValue(
-                SemanticsProperties.StateDescription,
-                "30 por ciento, 180 gramos, 720 kilocalorías",
-            ),
-        )
-    }
-
-    @Test
-    fun movingASlider_sendsTheMoveEvent() {
-        show()
-        rule.onNodeWithTag("preferences_macro_protein_slider").performSemanticsAction(SemanticsActions.SetProgress) {
-            it(35f)
-        }
-        assertEquals(listOf<PreferencesEvent>(PreferencesEvent.MoveMacro(Macronutrient.Protein, 35)), events)
-    }
-
-    @Test
-    fun rebalancedSplit_isShown() {
-        show(loaded(split = MacroSplit(35, 42, 23), saved = MacroSplit.DEFAULT))
-        rule.onNodeWithText("35 %").assertExists()
-        rule.onNodeWithText("42 %").assertExists()
-        rule.onNodeWithText("23 %").assertExists()
-        rule.onNodeWithText("210 g · 840 kcal").assertExists()
-    }
 
     // -- US-06 editing data ---------------------------------------------------------------------------------------
 
@@ -226,11 +154,10 @@ class PreferencesScreenTest {
         val tester = StateRestorationTester(rule)
         tester.setContent {
             AppTheme {
-                PreferencesScreen(
+                PersonalScreen(
                     state = loaded(weightFromHealthConnect = true),
                     onEvent = {},
                     effects = Channel<PreferencesEffect>(Channel.BUFFERED).receiveAsFlow(),
-                    onOpenMeals = {},
                 )
             }
         }
@@ -253,7 +180,7 @@ class PreferencesScreenTest {
         rule.onNodeWithTag("preferences_weight_decimal_picker").assertExists()
         assertTrue("nothing is applied while the sheet is open", events.isEmpty())
 
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
         assertEquals(listOf<PreferencesEvent>(PreferencesEvent.SetWeight(1000)), events)
     }
@@ -271,16 +198,7 @@ class PreferencesScreenTest {
         val base = loaded(split = MacroSplit(35, 42, 23), saved = MacroSplit.DEFAULT)
         show(base.copy(form = base.form.copy(name = "")))
         rule.onNodeWithTag("preferences_name_field_error").performScrollTo().assertTextEquals("Escribe tu nombre")
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
-    }
-
-    @Test
-    fun tdee_usesTheNewCopy_withItsHelperLine() {
-        show()
-        rule.onNodeWithTag("preferences_energy_tdee").performScrollTo()
-            .assertTextEquals("Gasto diario estimado: 2.400 kcal")
-        rule.onNodeWithTag("preferences_energy_tdee_helper")
-            .assertTextEquals("Calorías que quemas al día según tu cuerpo y tu actividad.")
+        rule.onNodeWithTag("preferences_personal_save").assertIsNotEnabled()
     }
 
     @Test
@@ -308,7 +226,7 @@ class PreferencesScreenTest {
         rule.onNodeWithTag("preferences_sheet_height").assertExists()
         assertTrue("nothing is applied while the sheet is open", events.isEmpty())
 
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
         assertEquals(listOf<PreferencesEvent>(PreferencesEvent.SetHeight(180)), events)
     }
@@ -319,7 +237,7 @@ class PreferencesScreenTest {
         rule.onNodeWithTag("preferences_activity_row").performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_activity_light").performClick()
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
         assertEquals(listOf<PreferencesEvent>(PreferencesEvent.SelectActivity(ActivityLevel.Light)), events)
     }
@@ -341,7 +259,7 @@ class PreferencesScreenTest {
         events.clear()
         rule.setContent {
             AppTheme {
-                PreferencesScreen(
+                PersonalScreen(
                     state = state,
                     onEvent = { event ->
                         events += event
@@ -379,7 +297,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_height_row")
         setWheel("preferences_height_picker", 172f)
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_height_row").assertContentDescriptionEquals("Altura, 172 centímetros, editar")
@@ -391,7 +309,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_height_row")
         setWheel("preferences_height_picker", 172f)
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         openSheet("preferences_height_row")
@@ -406,7 +324,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_height_row")
         rule.onNodeWithTag("preferences_height_picker_item_181").performClick()
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_height_row").assertContentDescriptionEquals("Altura, 181 centímetros, editar")
@@ -417,7 +335,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_height_row")
         rule.onNodeWithTag("preferences_height_picker").performTouchInput { swipeUp() }
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         val applied = events.filterIsInstance<PreferencesEvent.SetHeight>().single().heightCm
@@ -433,7 +351,7 @@ class PreferencesScreenTest {
         rule.mainClock.autoAdvance = false
         rule.onNodeWithTag("preferences_height_picker").performTouchInput { swipeUp() }
         repeat(FRAMES_INTO_THE_SNAP) { rule.mainClock.advanceTimeByFrame() }
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.mainClock.autoAdvance = true
         rule.waitForIdle()
 
@@ -450,7 +368,7 @@ class PreferencesScreenTest {
         rule.mainClock.autoAdvance = false
         rule.onNodeWithTag("preferences_birth_year_picker").performTouchInput { swipeUp() }
         repeat(FRAMES_INTO_THE_SNAP) { rule.mainClock.advanceTimeByFrame() }
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.mainClock.autoAdvance = true
         rule.waitForIdle()
 
@@ -463,7 +381,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_birth_date_row")
         setWheel("preferences_birth_year_picker", 1990f)
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_birth_date_row").assertContentDescriptionEquals("Edad, 36 años, editar")
@@ -486,7 +404,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_activity_row")
         rule.onNodeWithTag("preferences_activity_light").performClick()
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_activity_row").assertContentDescriptionEquals("Actividad, Ligero, editar")
@@ -506,10 +424,10 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_height_row")
         setWheel("preferences_height_picker", 172f)
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("preferences_save").performClick()
+        rule.onNodeWithTag("preferences_personal_save").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_height_row").assertContentDescriptionEquals("Altura, 172 centímetros, editar")
@@ -520,7 +438,7 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_weight_row")
         setWheel("preferences_weight_kg_picker", 90f)
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_weight_row").assertContentDescriptionEquals("Peso actual, 90,0 kg, editar")
@@ -532,10 +450,10 @@ class PreferencesScreenTest {
         showStateful()
         openSheet("preferences_weight_row")
         setWheel("preferences_weight_kg_picker", 90f)
-        rule.onNodeWithTag("preferences_sheet_done").performClick()
+        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("preferences_save").performClick()
+        rule.onNodeWithTag("preferences_personal_save").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_weight_row").assertContentDescriptionEquals("Peso actual, 90,0 kg, editar")
@@ -551,115 +469,5 @@ class PreferencesScreenTest {
             .performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_sheet_weight").assertExists()
-    }
-
-    // -- US-07 saving the goals on Preferencias -------------------------------------------------------------------
-
-    @Test
-    fun energyCard_showsTheTdee() {
-        show()
-        rule.onNodeWithTag("preferences_energy_tdee").performScrollTo().assertExists()
-        rule.onNodeWithTag("preferences_energy_target").assertExists()
-    }
-
-    @Test
-    fun save_isDisabledWhenNothingChanged() {
-        show()
-        rule.onNodeWithTag("preferences_save").assertIsDisplayed().assertIsNotEnabled()
-    }
-
-    @Test
-    fun save_isEnabledWhenDirty_andSendsSave() {
-        show(loaded(split = MacroSplit(35, 42, 23), saved = MacroSplit.DEFAULT))
-        rule.onNodeWithTag("preferences_save").assertIsEnabled().performClick()
-        assertEquals(listOf<PreferencesEvent>(PreferencesEvent.Save), events)
-    }
-
-    @Test
-    fun save_isDisabledOffline() {
-        show(loaded(split = MacroSplit(35, 42, 23), saved = MacroSplit.DEFAULT, isOnline = false))
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
-    }
-
-    @Test
-    fun save_isDisabledWhileSaving() {
-        rule.mainClock.autoAdvance = false
-        show(loaded(split = MacroSplit(35, 42, 23), saved = MacroSplit.DEFAULT, isSaving = true))
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
-    }
-
-    @Test
-    fun saveFooter_staysVisibleWhileTheCardsScroll() {
-        show()
-        rule.onNodeWithTag("preferences_macro_fat_slider").performScrollTo()
-        rule.onNodeWithTag("preferences_save").assertIsDisplayed()
-    }
-
-    @Test
-    fun savedEffect_showsTheConfirmationSnackbar() {
-        val effects = Channel<PreferencesEffect>(Channel.BUFFERED)
-        show(effects = effects)
-        effects.trySend(PreferencesEffect.Saved)
-        rule.waitForIdle()
-        rule.onNodeWithText("Cambios guardados").assertIsDisplayed()
-    }
-
-    @Test
-    fun failedEffect_showsTheErrorMessages() {
-        val effects = Channel<PreferencesEffect>(Channel.BUFFERED)
-        show(effects = effects)
-        effects.trySend(PreferencesEffect.SaveFailed(offline = false))
-        rule.waitForIdle()
-        rule.onNodeWithText("No se pudo guardar. Inténtalo de nuevo").assertIsDisplayed()
-    }
-
-    // -- states -----------------------------------------------------------------------------------------------------
-
-    @Test
-    fun loading_showsTheSkeleton() {
-        rule.mainClock.autoAdvance = false
-        show(PreferencesUiState.Loading)
-        rule.onNodeWithTag("preferences_loading").assertExists()
-        rule.onNodeWithTag("preferences_content").assertDoesNotExist()
-    }
-
-    @Test
-    fun loadFailed_showsRetry_andRetryIsSent() {
-        show(PreferencesUiState.LoadFailed)
-        rule.onNodeWithTag("preferences_error_action").assertTextEquals("Reintentar").performClick()
-        assertEquals(listOf<PreferencesEvent>(PreferencesEvent.Retry), events)
-    }
-
-    @Test
-    fun stateChange_fromLoadingToLoaded_replacesTheSkeleton() {
-        var state by mutableStateOf<PreferencesUiState>(PreferencesUiState.LoadFailed)
-        rule.setContent { AppTheme { PreferencesScreen(state, {}) } }
-        rule.onNodeWithTag("preferences_error").assertExists()
-        state = loaded()
-        rule.waitForIdle()
-        rule.onNodeWithTag("preferences_content").assertExists()
-        rule.onNodeWithTag("preferences_error").assertDoesNotExist()
-    }
-
-    // -- layouts ----------------------------------------------------------------------------------------------------
-
-    @Test
-    @Config(qualifiers = "w840dp-h1000dp-mdpi")
-    fun tablet_usesTwoColumns_andKeepsGuardarVisible() {
-        show()
-        val personal = rule.onNodeWithTag("preferences_sex_male").getUnclippedBoundsInRoot()
-        val macros = rule.onNodeWithTag("preferences_macro_bar").getUnclippedBoundsInRoot()
-        assertTrue("macro card is to the right of the personal card", macros.left >= personal.right)
-        rule.onNodeWithTag("preferences_save").assertIsDisplayed()
-    }
-
-    @Test
-    fun largeFont_keepsTheSaveButtonTheMacroTextsAndTheSheetButton() {
-        show(fontScale = 1.3f)
-        rule.onNodeWithTag("preferences_save").assertIsDisplayed()
-        rule.onNodeWithText("180 g · 720 kcal").assertExists()
-        rule.onNodeWithTag("preferences_height_row").performScrollTo().performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("preferences_sheet_done").assertHeightIsAtLeast(48.dp)
     }
 }

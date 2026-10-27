@@ -1,166 +1,113 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
-import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_save_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_account_protected
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_calories_value
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_row
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_value
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_training_stats_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import io.github.lopezjavier.appfitness.domain.model.AccountProtection
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import io.github.lopezjavier.appfitness.feature.analytics.formatKilos
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val NAME_MAX_LINES = 2
 private const val NAME_SKELETON_WIDTH_UNITS = 8
+private const val SKELETON_ROWS = 4
 
-/** The account buttons' callbacks, grouped to keep the layout composables' signatures short. */
+/** The callbacks of the Perfil root, grouped to keep the layout composables' signatures short. */
 @Suppress("LongParameterList") // One callback per row or button.
-private class RootActions(
-    val onOpenPreferences: () -> Unit,
-    val onOpenCatalog: (() -> Unit)?,
-    val onOpenStrength: () -> Unit,
-    val onOpenWeight: () -> Unit,
-    val onOpenDiaryHistory: () -> Unit,
-    val onOpenTrainingStats: () -> Unit,
-    val onSignOut: () -> Unit,
-    val onDelete: () -> Unit,
+class ProfileRootActions(
+    val onOpenPreferences: () -> Unit = {},
+    val onOpenCatalog: (() -> Unit)? = null,
+    val onOpenStrength: () -> Unit = {},
+    val onOpenWeight: () -> Unit = {},
+    val onOpenDiaryHistory: () -> Unit = {},
+    val onOpenTrainingStats: () -> Unit = {},
 )
 
 /** Stateful Perfil root: connects [ProfileRootViewModel] to the stateless [ProfileRootScreen]. */
 @Composable
 fun ProfileRootRoute(
     modifier: Modifier = Modifier,
-    onOpenPreferences: () -> Unit = {},
-    onOpenCatalog: (() -> Unit)? = null,
-    onOpenStrength: () -> Unit = {},
-    onOpenDiaryHistory: () -> Unit = {},
-    onOpenWeight: () -> Unit = {},
-    onOpenTrainingStats: () -> Unit = {},
+    actions: ProfileRootActions = ProfileRootActions(),
     viewModel: ProfileRootViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ProfileRootScreen(
-        state = state,
-        onEvent = viewModel::onEvent,
-        modifier = modifier,
-        onOpenPreferences = onOpenPreferences,
-        onOpenCatalog = onOpenCatalog,
-        onOpenStrength = onOpenStrength,
-        onOpenDiaryHistory = onOpenDiaryHistory,
-        onOpenWeight = onOpenWeight,
-        onOpenTrainingStats = onOpenTrainingStats,
-        effects = viewModel.effects,
-    )
+    ProfileRootScreen(state = state, onEvent = viewModel::onEvent, modifier = modifier, actions = actions)
 }
 
 /**
- * The Perfil tab root (ADR-37, US-05): the photo and name above, and the actions pinned to the bottom: "Preferencias"
- * (primary), the debug catalog where [onOpenCatalog] is non-null (local flavor), "Cerrar sesión" and "Borrar cuenta",
- * each behind its own confirmation. [effects] feed the delete-failure snackbar.
+ * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the "Preferencias" gear in the bar, the photo and name,
+ * and "Estadísticas" with the "Peso", "Fuerza", "Calorías" and "Entrenamiento" rows. A row shows its value once it is
+ * known and none when it could not be read. The debug catalog button appears where [ProfileRootActions.onOpenCatalog]
+ * is non-null (local flavor). It holds no editable state, so there is nothing to restore.
  */
 @Composable
 fun ProfileRootScreen(
     state: ProfileRootUiState,
     onEvent: (ProfileRootEvent) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenPreferences: () -> Unit = {},
-    onOpenCatalog: (() -> Unit)? = null,
-    onOpenStrength: () -> Unit = {},
-    onOpenDiaryHistory: () -> Unit = {},
-    onOpenWeight: () -> Unit = {},
-    onOpenTrainingStats: () -> Unit = {},
-    effects: Flow<ProfileRootEffect> = emptyFlow(),
+    actions: ProfileRootActions = ProfileRootActions(),
 ) {
-    val snackbarHost = remember { SnackbarHostState() }
-    DeleteFailureEffects(effects, snackbarHost)
-    var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
-    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
-    val actions =
-        RootActions(
-            onOpenPreferences,
-            onOpenCatalog,
-            onOpenStrength,
-            onOpenWeight,
-            onOpenDiaryHistory,
-            onOpenTrainingStats,
-            { confirmingSignOut = true },
-            { confirmingDelete = true },
-        )
-    Box(modifier.fillMaxSize().testTag("profile_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(
-            Modifier
-                .widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth)
-                .fillMaxSize()
-                .padding(horizontal = Spacing.screenMargin),
-        ) {
+    val gear = stringResource(Res.string.preferences_title)
+    val barActions = remember(gear, actions.onOpenPreferences) {
+        listOf(AppTopBarAction(Res.drawable.ic_settings, gear, actions.onOpenPreferences, "profile_action_0"))
+    }
+    AppScreen(
+        title = stringResource(Res.string.profile_title),
+        modifier = modifier,
+        actions = barActions,
+        testTagPrefix = "profile",
+    ) {
+        Box(Modifier.fillMaxSize().testTag("profile_screen"), contentAlignment = Alignment.TopCenter) {
             when (state) {
-                ProfileRootUiState.Loading -> Header(Modifier.weight(1f)) { HeaderSkeleton() }
+                ProfileRootUiState.Loading -> RootBody(actions.onOpenCatalog) { RootSkeleton() }
 
-                ProfileRootUiState.LoadFailed -> Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
+                ProfileRootUiState.LoadFailed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.root_error_message),
                         action = AppStateAction(stringResource(Res.string.state_retry)) {
@@ -170,119 +117,36 @@ fun ProfileRootScreen(
                     )
                 }
 
-                is ProfileRootUiState.Loaded -> Header(Modifier.weight(1f)) { HeaderContent(state) }
-            }
-            SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
-            ActionBlock(state, actions)
-        }
-    }
-    if (confirmingSignOut) {
-        SignOutDialog(
-            onConfirm = {
-                confirmingSignOut = false
-                onEvent(ProfileRootEvent.SignOutConfirmed)
-            },
-            onDismiss = { confirmingSignOut = false },
-        )
-    }
-    if (confirmingDelete) {
-        DeleteAccountDialog(
-            onConfirm = {
-                confirmingDelete = false
-                onEvent(ProfileRootEvent.DeleteAccountConfirmed)
-            },
-            onDismiss = { confirmingDelete = false },
-        )
-    }
-}
-
-/** "Estadísticas": a heading and the "Fuerza" and "Historial de comidas" rows. */
-@Composable
-private fun StatisticsSection(
-    onOpenStrength: () -> Unit,
-    onOpenWeight: () -> Unit,
-    onOpenDiaryHistory: () -> Unit,
-    onOpenTrainingStats: () -> Unit,
-) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
-            text = stringResource(Res.string.profile_statistics_section).uppercase(),
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.semantics { heading() },
-        )
-        StatisticsRow(stringResource(Res.string.profile_strength_row), "profile_strength_row", onOpenStrength)
-        StatisticsRow(stringResource(Res.string.profile_weight_row), "profile_weight_row", onOpenWeight)
-        StatisticsRow(
-            stringResource(Res.string.profile_diary_history_row),
-            "profile_diary_history_row",
-            onOpenDiaryHistory,
-        )
-        StatisticsRow(
-            stringResource(Res.string.profile_training_stats_row),
-            "profile_training_stats_row",
-            onOpenTrainingStats,
-        )
-    }
-}
-
-/** One 48 dp "Estadísticas" row with a decorative chevron; the label is the accessible name. */
-@Composable
-private fun StatisticsRow(label: String, tag: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = Spacing.minTouchTarget)
-            .clickable(role = Role.Button, onClick = onClick)
-            .testTag(tag),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
-        Image(
-            imageVector = vectorResource(Res.drawable.ic_chevron_right),
-            contentDescription = null,
-            colorFilter = ColorFilter.tint(AppTheme.colors.textSecondary),
-        )
-    }
-}
-
-/** Snackbar for a failed account deletion. */
-@Composable
-private fun DeleteFailureEffects(effects: Flow<ProfileRootEffect>, host: SnackbarHostState) {
-    val failed = stringResource(Res.string.delete_account_error)
-    val offline = stringResource(Res.string.onboarding_save_error_offline)
-    LaunchedEffect(effects) {
-        effects.collect { effect ->
-            when (effect) {
-                is ProfileRootEffect.DeleteFailed ->
-                    host.showSnackbar(if (effect.offline) offline else failed, duration = SnackbarDuration.Long)
+                is ProfileRootUiState.Loaded -> RootBody(actions.onOpenCatalog) { RootLoaded(state, actions) }
             }
         }
     }
 }
 
-/** Scrollable upper block, centred horizontally, starting [Spacing.xl] below the top bar. */
+/** Scrollable body below the bar: [content], then the local-only catalog button. */
 @Composable
-private fun Header(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun RootBody(onOpenCatalog: (() -> Unit)?, content: @Composable () -> Unit) {
     Column(
-        modifier
-            .fillMaxWidth()
+        Modifier
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = Spacing.xl),
+            .padding(horizontal = Spacing.screenMargin, vertical = Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         content()
+        if (onOpenCatalog != null) {
+            SecondaryButton(
+                text = stringResource(Res.string.catalog_title),
+                onClick = onOpenCatalog,
+                modifier = Modifier.fillMaxWidth().testTag("profile_root_catalog_button"),
+            )
+        }
     }
 }
 
 @Composable
-private fun HeaderContent(state: ProfileRootUiState.Loaded) {
+private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         AppAvatar(
             imageUrl = state.avatarUrl,
@@ -301,11 +165,53 @@ private fun HeaderContent(state: ProfileRootUiState.Loaded) {
                 modifier = Modifier.fillMaxWidth().testTag("profile_root_name"),
             )
         }
+        StatisticsSection(state, actions)
+    }
+}
+
+/** "Estadísticas": a heading and one [NavigationRow] per destination, each label equal to its screen title (R-04). */
+@Composable
+private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
+    val weight = state.weightKg?.let { stringResource(Res.string.profile_weight_value, formatKilos(it)) }
+    val strength = state.strengthRecordKg?.let { stringResource(Res.string.profile_strength_value, formatKilos(it)) }
+    val calories = state.avgKcal?.let {
+        stringResource(Res.string.profile_calories_value, AppNumberFormat.integer(it))
+    }
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(Res.string.profile_statistics_section),
+            style = AppTheme.typography.titleLarge,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.semantics { heading() }.testTag("profile_statistics_heading"),
+        )
+        NavigationRow(
+            label = stringResource(Res.string.profile_weight_row),
+            onClick = actions.onOpenWeight,
+            modifier = Modifier.testTag("profile_weight_row"),
+            value = weight,
+        )
+        NavigationRow(
+            label = stringResource(Res.string.profile_strength_row),
+            onClick = actions.onOpenStrength,
+            modifier = Modifier.testTag("profile_strength_row"),
+            value = strength,
+        )
+        NavigationRow(
+            label = stringResource(Res.string.profile_diary_history_row),
+            onClick = actions.onOpenDiaryHistory,
+            modifier = Modifier.testTag("profile_diary_history_row"),
+            value = calories,
+        )
+        NavigationRow(
+            label = stringResource(Res.string.profile_training_stats_row),
+            onClick = actions.onOpenTrainingStats,
+            modifier = Modifier.testTag("profile_training_stats_row"),
+        )
     }
 }
 
 @Composable
-private fun HeaderSkeleton() {
+private fun RootSkeleton() {
     Column(
         Modifier.testTag("profile_root_loading"),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -313,70 +219,9 @@ private fun HeaderSkeleton() {
     ) {
         SkeletonBox(Modifier.size(AppAvatarDefaults.RootSize), AppShapes.full)
         SkeletonBox(Modifier.size(Spacing.xl * NAME_SKELETON_WIDTH_UNITS, Spacing.xl), AppShapes.sm)
-    }
-}
-
-/**
- * "Estadísticas" (the "Fuerza", "Peso" and "Calorías" rows), "Preferencias", catalog (local only), a 24 dp gap,
- * "Cerrar sesión" and "Borrar cuenta" (loaded only).
- */
-@Composable
-private fun ActionBlock(state: ProfileRootUiState, actions: RootActions) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        if (state is ProfileRootUiState.Loaded) {
-            StatisticsSection(
-                actions.onOpenStrength,
-                actions.onOpenWeight,
-                actions.onOpenDiaryHistory,
-                actions.onOpenTrainingStats,
-            )
-            PrimaryButton(
-                text = stringResource(Res.string.preferences_title),
-                onClick = actions.onOpenPreferences,
-                modifier = Modifier.fillMaxWidth().testTag("profile_root_preferences_button"),
-            )
-        }
-        val onOpenCatalog = actions.onOpenCatalog
-        if (onOpenCatalog != null) {
-            SecondaryButton(
-                text = stringResource(Res.string.catalog_title),
-                onClick = onOpenCatalog,
-                modifier = Modifier.fillMaxWidth().testTag("profile_root_catalog_button"),
-            )
-        }
-        GhostButton(
-            text = stringResource(Res.string.profile_sign_out),
-            onClick = actions.onSignOut,
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.md).testTag("profile_root_sign_out"),
-            tone = GhostTone.Neutral,
-        )
-        if (state is ProfileRootUiState.Loaded) {
-            val protectedNote = stringResource(Res.string.profile_account_protected)
-            val isProtected = state.protection == AccountProtection.Protected
-            GhostButton(
-                text = stringResource(
-                    if (state.isDeleting) Res.string.profile_deleting_account else Res.string.profile_delete_account,
-                ),
-                onClick = actions.onDelete,
-                modifier = Modifier.fillMaxWidth()
-                    .semantics { if (isProtected) stateDescription = protectedNote }
-                    .testTag("profile_root_delete_account"),
-                enabled = state.canDelete,
-                tone = GhostTone.Destructive,
-                loading = state.isDeleting,
-            )
-            if (isProtected) {
-                // The button also announces this text as its state, so TalkBack users get it with the button.
-                Text(
-                    text = protectedNote,
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().testTag("profile_root_delete_protected_note"),
-                )
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            repeat(SKELETON_ROWS) {
+                SkeletonBox(Modifier.fillMaxWidth().height(Spacing.minTouchTarget), AppShapes.sm)
             }
         }
     }

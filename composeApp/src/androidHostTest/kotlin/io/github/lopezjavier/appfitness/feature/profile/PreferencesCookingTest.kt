@@ -66,9 +66,9 @@ class PreferencesCookingTest {
             FakeConnectivityObserver(),
             FakeClock(),
             TimeZone.UTC,
-            SavedStateHandle(),
+            SavedStateHandle(mapOf("section" to "cooking")),
         )
-        rule.setContent { AppTheme { PreferencesRoute(onOpenMeals = {}, viewModel = viewModel) } }
+        rule.setContent { AppTheme { PreferencesSectionRoot(onClose = {}, viewModel = viewModel) } }
         rule.waitForIdle()
     }
 
@@ -89,7 +89,7 @@ class PreferencesCookingTest {
         rule.onNodeWithText("Del peso crudo. Por defecto 2 %").assertExists()
         rule.onNodeWithText("Del peso crudo. Por defecto 8 %").assertExists()
         rule.onNodeWithText("Porcentaje del peso crudo que se añade como grasa.").assertExists()
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_cooking_save").assertIsNotEnabled()
     }
 
     @Test
@@ -99,7 +99,7 @@ class PreferencesCookingTest {
         field("preferences_cooking_griddle").performTextClearance()
         field("preferences_cooking_griddle").performTextInput("8,5")
         rule.waitForIdle()
-        rule.onNodeWithTag("preferences_save").assertIsEnabled().performClick()
+        rule.onNodeWithTag("preferences_cooking_save").assertIsEnabled().performClick()
         rule.waitForIdle()
 
         assertEquals(1, profile.preferenceSaves.size)
@@ -115,7 +115,7 @@ class PreferencesCookingTest {
         rule.waitForIdle()
 
         field("preferences_cooking_fried_error").assertTextContains("Introduce un valor entre 0 y 20 %.")
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_cooking_save").assertIsNotEnabled()
     }
 
     @Test
@@ -126,7 +126,7 @@ class PreferencesCookingTest {
         rule.waitForIdle()
 
         field("preferences_cooking_air_fryer_error").assertTextContains("Introduce un valor", substring = true)
-        rule.onNodeWithTag("preferences_save").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_cooking_save").assertIsNotEnabled()
     }
 
     @Test
@@ -140,6 +140,6 @@ class PreferencesCookingTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_cooking_fried_support").assertExists()
-        rule.onNodeWithTag("preferences_save").assertIsEnabled()
+        rule.onNodeWithTag("preferences_cooking_save").assertIsEnabled()
     }
 }

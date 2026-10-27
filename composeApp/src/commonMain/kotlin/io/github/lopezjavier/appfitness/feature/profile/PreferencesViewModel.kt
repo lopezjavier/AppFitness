@@ -48,6 +48,9 @@ import kotlin.math.roundToInt
 private const val TENTHS_PER_KG = 10.0
 private const val KEY_DRAFT = "preferences_draft"
 
+/** Key of the route argument that names the section (see [PreferencesSection.key]). */
+const val KEY_PREFERENCES_SECTION = "section"
+
 /** What [PreferencesViewModel] reads in parallel. */
 @Suppress("LongParameterList") // One result per read.
 private class PreferencesData(
@@ -62,9 +65,11 @@ private class PreferencesData(
 )
 
 /**
- * Edits the name, the profile, the current weight, the energy strategy and the macro split. Nothing is written until
- * [PreferencesEvent.Save], which stores everything atomically (one RPC) with the target recalculated from the edited
- * weight. The weight is sent only when it changed. "Today" for the weight row is the local day in [timeZone].
+ * Edits one [PreferencesSection] (read from the saved-state handle, one instance per editor): only that section's
+ * fields are edited, compared, drafted and saved. Nothing is written until [PreferencesEvent.Save], which stores the
+ * section atomically (one RPC): the other sections' values are re-sent from what was read, and the optional training,
+ * calculator, cooking and auto-update parameters only by the section that owns them. The weight is sent only by
+ * "Datos personales" and only when it changed. "Today" for the weight row is the local day in [timeZone].
  */
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one small handler per event.
 class PreferencesViewModel(
@@ -86,6 +91,8 @@ class PreferencesViewModel(
     private val effectChannel = Channel<PreferencesEffect>(Channel.BUFFERED)
     val effects: Flow<PreferencesEffect> = effectChannel.receiveAsFlow()
 
+    val section = PreferencesSection.fromKey(savedState.get<String>(KEY_PREFERENCES_SECTION))
+
     private var online = true
     private var work: Job? = null
 
@@ -101,6 +108,7 @@ class PreferencesViewModel(
 
     @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: PreferencesEvent) {
+        if (event.owner.let { it != null && it != section }) return
         when (event) {
             is PreferencesEvent.SetName ->
                 edit { it.copy(name = event.name.take(BiometricBounds.NAME_MAX_LENGTH)) }
@@ -273,11 +281,17 @@ class PreferencesViewModel(
             foodPreferences = FoodPreferencesForm.of(food),
             autoUpdateRoutine = training.autoUpdateRoutine,
         )
-        val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
-        return PreferencesUiState.Loaded(
+        // Only the section's fields come from the draft: the other sections are always the fresh saved values.
+        val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }?.let {
             // A Health Connect weight is never edited here, whatever an older draft holds.
-            form = draft?.let { if (fromHealthConnect) it.copy(weightKg = form.weightKg) else it } ?: form,
+            val restored = if (fromHealthConnect) it.copy(weightKg = form.weightKg) else it
+            form.withSectionFrom(section, restored)
+        }
+        if (draft != null && draft.sectionEquals(section, form)) savedState[KEY_DRAFT] = null
+        return PreferencesUiState.Loaded(
+            form = draft ?: form,
             saved = form,
+            section = section,
             today = today,
             isOnline = online,
             weightFromHealthConnect = fromHealthConnect,
@@ -323,7 +337,7 @@ class PreferencesViewModel(
 
     /** An unsaved form is kept in the saved state (process death); equal to the saved one, the draft is cleared. */
     private fun persistDraft(state: PreferencesUiState.Loaded) {
-        savedState[KEY_DRAFT] = if (state.form == state.saved) null else state.form.encodeDraft()
+        savedState[KEY_DRAFT] = if (state.isDirty) state.form.encodeDraft() else null
     }
 
     private fun save() {
@@ -331,27 +345,32 @@ class PreferencesViewModel(
         if (!state.canSave) return
         updateLoaded { it.copy(isSaving = true) }
         work = viewModelScope.launch {
-            val form = state.form.copy(name = state.form.name.trim())
+            val edited = state.form.copy(name = state.form.name.trim())
+            // What the RPC always writes comes from the saved values, except the fields this section owns.
+            val source = state.saved.withSectionFrom(section, edited)
+            val owns = { owner: PreferencesSection -> section == owner }
+            val weightChanged = owns(PreferencesSection.PersonalData) && !state.weightFromHealthConnect &&
+                source.weightKg != state.saved.weightKg
+            val training = owns(PreferencesSection.Training)
             val result = savePreferences(
-                displayName = form.name,
-                biometrics = form.toBiometrics(),
-                weightKg = form.weightKg,
-                weightChanged = !state.weightFromHealthConnect && form.weightKg != state.saved.weightKg,
+                displayName = source.name,
+                biometrics = source.toBiometrics(),
+                weightKg = source.weightKg,
+                weightChanged = weightChanged,
                 now = clock.now(),
                 timeZone = timeZone,
-                strategy = form.strategy,
-                adjustment = form.adjustment,
-                split = form.split,
-                warmUpIncluded = form.warmUpIncluded,
-                previousValuesMode = form.previousValuesMode,
-                calculators = form.calculators,
-                foodPreferences = form.toFoodPreferences(),
-                autoUpdateRoutine = form.autoUpdateRoutine,
+                strategy = source.strategy,
+                adjustment = source.adjustment,
+                split = source.split,
+                warmUpIncluded = source.warmUpIncluded.takeIf { training },
+                previousValuesMode = source.previousValuesMode.takeIf { training },
+                calculators = source.calculators.takeIf { training },
+                foodPreferences = source.toFoodPreferences().takeIf { owns(PreferencesSection.Cooking) },
+                autoUpdateRoutine = source.autoUpdateRoutine.takeIf { training },
             )
             if (result.isSuccess) {
-                if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()
-                updateLoaded { it.copy(form = form, saved = form, isSaving = false) }
-                effectChannel.send(PreferencesEffect.Saved)
+                if (weightChanged) writeWeightBack()
+                updateLoaded { it.copy(form = source, saved = source, isSaving = false, isSaved = true) }
             } else {
                 updateLoaded { it.copy(isSaving = false) }
                 effectChannel.send(PreferencesEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network))

@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -143,7 +142,7 @@ class RootContentTest {
         rule.onNodeWithTag("nav_tab_profile").assertContentDescriptionEquals("Perfil").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("nav_tab_profile").assertIsSelected()
-        rule.onNodeWithTag("topbar_title").assertTextEquals("Perfil")
+        rule.onNodeWithTag("topbar").assertDoesNotExist()
     }
 
     @Test

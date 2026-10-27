@@ -20,7 +20,10 @@ class AppFeaturesTest {
     )
 
     private val nonCatalogRoutes: List<AppRoute> =
-        listOf(DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome, PreferencesRoute)
+        listOf(
+            DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome, PreferencesRoute, AccountRoute,
+            PreferencesSectionRoute("energy"),
+        )
 
     @Test
     fun default_disablesCatalog() {
