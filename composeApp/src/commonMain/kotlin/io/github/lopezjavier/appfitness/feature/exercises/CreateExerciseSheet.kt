@@ -3,39 +3,38 @@ package io.github.lopezjavier.appfitness.feature.exercises
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_error
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_submit
+import io.github.lopezjavier.appfitness.composeapp.resources.action_save
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_edit_error
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_edit_save
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_edit_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_offline_add_action
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Bottom sheet that creates a custom exercise: name (prefilled from the search), muscle group and equipment as chip
- * rows with nothing pre-selected, what it logs, the "pesas por mano" switch (off by default) and "Crear", enabled
- * only when name, muscle group and equipment are set.
+ * Sheet that creates a custom exercise: name (prefilled from the search), muscle group and equipment as chip rows
+ * with nothing pre-selected, what it logs, the "pesas por mano" switch (off by default) and "Añadir", enabled only
+ * when name, muscle group and equipment are set and the device is online ([isOnline]).
  */
 @Composable
 fun CreateExerciseSheet(
     form: CreateExerciseForm,
+    isOnline: Boolean,
     onEvent: (ExercisePickerEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val ui = ExerciseFormUi(
         title = stringResource(Res.string.exercise_create_title),
-        submitLabel = stringResource(Res.string.exercise_create_submit),
-        errorText = stringResource(Res.string.exercise_create_error),
+        commit = SheetCommit.Add,
         tagPrefix = "exercise_create",
-        submitTag = "exercise_create_submit",
         name = form.name,
         muscleGroup = form.muscleGroup,
         equipment = form.equipment,
         perHand = form.perHand,
         metricType = form.metricType,
-        canSubmit = form.canSubmit,
+        canSubmit = form.canSubmit && isOnline,
         isSubmitting = form.isSubmitting,
-        hasError = form.hasError,
+        commitHint = if (isOnline) null else offlineHint(stringResource(Res.string.exercise_offline_add_action)),
         isEdit = false,
     )
     val actions = ExerciseFormActions(
@@ -51,25 +50,28 @@ fun CreateExerciseSheet(
 }
 
 /**
- * Bottom sheet that edits a manual exercise (US-09): the same fields prefilled, without the metric type, and an
- * explicit "Guardar". Closing the sheet discards the changes.
+ * Sheet that edits a manual exercise (US-09): the same fields prefilled, without the metric type, and an explicit
+ * "Guardar" (disabled offline with the hint). Closing the sheet discards the changes.
  */
 @Composable
-internal fun EditExerciseSheet(form: EditExerciseForm, actions: ExerciseFormActions, modifier: Modifier = Modifier) {
+internal fun EditExerciseSheet(
+    form: EditExerciseForm,
+    isOnline: Boolean,
+    actions: ExerciseFormActions,
+    modifier: Modifier = Modifier,
+) {
     val ui = ExerciseFormUi(
         title = stringResource(Res.string.exercise_edit_title),
-        submitLabel = stringResource(Res.string.exercise_edit_save),
-        errorText = stringResource(Res.string.exercise_edit_error),
+        commit = SheetCommit.Save,
         tagPrefix = "exercise_edit",
-        submitTag = "exercise_edit_save",
         name = form.name,
         muscleGroup = form.muscleGroup,
         equipment = form.equipment,
         perHand = form.perHand,
         metricType = null,
-        canSubmit = form.canSubmit,
+        canSubmit = form.canSubmit && isOnline,
         isSubmitting = form.isSubmitting,
-        hasError = form.hasError,
+        commitHint = if (isOnline) null else offlineHint(stringResource(Res.string.action_save).lowercase()),
         isEdit = true,
     )
     ExerciseFormSheet(ui, actions, modifier)

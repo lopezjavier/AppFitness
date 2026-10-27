@@ -12,8 +12,6 @@ class AppRoutesChromeTest {
     private val legacyFullScreenTags: List<Pair<AppRoute, String>> =
         listOf(
             PreferencesRoute to "preferences",
-            ExercisePickerRoute() to "exercise_picker_top_bar",
-            ExerciseDetailRoute("e") to "exercise_detail_top_bar",
             HistoryRoute to "history_top_bar",
             WorkoutCalendarRoute to "calendar_top_bar",
             SessionDetailRoute("s") to "session_detail_top_bar",
@@ -54,6 +52,14 @@ class AppRoutesChromeTest {
     @Test
     fun theRoutineRoutes_useAppScreen_andHaveScreenChrome() {
         listOf(RoutineDetailsRoute("r1"), RoutineBuilderRoute(), RoutineBuilderRoute("r1")).forEach {
+            assertTrue(it.usesAppScreen, it.toString())
+            assertEquals(ShellChrome.Screen, it.chrome, it.toString())
+        }
+    }
+
+    @Test
+    fun theExerciseRoutes_useAppScreen_andHaveScreenChrome() {
+        listOf(ExercisePickerRoute(), ExercisePickerRoute(selectMode = true), ExerciseDetailRoute("e")).forEach {
             assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }

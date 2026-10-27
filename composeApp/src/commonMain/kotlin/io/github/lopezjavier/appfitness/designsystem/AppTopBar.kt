@@ -97,7 +97,8 @@ data class AppTopBarButton(val contentDescription: String, val onClick: () -> Un
 /**
  * A trailing action of [AppTopBar]: decorative [icon], required [contentDescription] (the button has no text) and
  * [onClick]. [testTag] overrides the generated `<prefix>_action_<n>` tag; in the overflow sheet the description is
- * the row title.
+ * the row title. A disabled ([enabled] false) inline action keeps its description and is dimmed (for example a write
+ * action offline); the overflow sheet does not dim it.
  */
 @Immutable
 data class AppTopBarAction(
@@ -105,6 +106,7 @@ data class AppTopBarAction(
     val contentDescription: String,
     val onClick: () -> Unit,
     val testTag: String? = null,
+    val enabled: Boolean = true,
 )
 
 /**
@@ -191,6 +193,7 @@ private fun TopBarActions(actions: List<AppTopBarAction>, prefix: String) {
             icon = action.icon,
             testTag = action.testTag ?: AppTopBarDefaults.actionTag(prefix, index + 1),
             onClick = action.onClick,
+            enabled = action.enabled,
         )
     }
     if (overflow.isNotEmpty()) {

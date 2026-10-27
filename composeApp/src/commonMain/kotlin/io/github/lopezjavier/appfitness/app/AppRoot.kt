@@ -77,8 +77,8 @@ fun AppRoot(
         trainingStats = { statsModifier, onOpenExercise -> TrainingStatsRoot(onOpenExercise, statsModifier) },
         exerciseProgress = { progressModifier, exerciseId -> ExerciseProgressRoot(exerciseId, progressModifier) },
         preferences = { preferencesModifier, onOpenMeals -> PreferencesRoute(onOpenMeals, preferencesModifier) },
-        exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected ->
-            ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier)
+        exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
+            ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)
         },
         exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect, onOpenProgress, onClose ->
             ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier, onOpenProgress, onClose)

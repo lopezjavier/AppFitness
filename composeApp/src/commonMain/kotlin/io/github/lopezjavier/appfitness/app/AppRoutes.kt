@@ -4,8 +4,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
 import io.github.lopezjavier.appfitness.composeapp.resources.history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
@@ -289,7 +287,8 @@ val AppRoute.usesAppScreen: Boolean
     get() = this is CatalogRoute || this is DiaryHome || this is DiaryHistoryRoute || this is DiaryDayRoute ||
         this is FoodSearchRoute || this is AddFoodRoute || this is CreateFoodRoute || this is EditFoodRoute ||
         this is TemplateDetailsRoute || this is WeightRoute || this is WeightHistoryRoute ||
-        this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome
+        this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome ||
+        this is ExercisePickerRoute || this is ExerciseDetailRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -312,12 +311,6 @@ private val AppRoute.legacyChrome: ShellChrome
             CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
 
             PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
-
-            is ExercisePickerRoute ->
-                ShellChrome.FullScreen(Res.string.exercise_picker_title, topBarTag = "exercise_picker_top_bar")
-
-            is ExerciseDetailRoute ->
-                ShellChrome.FullScreen(Res.string.exercise_detail_title, topBarTag = "exercise_detail_top_bar")
 
             LiveSessionRoute -> ShellChrome.Own
 
@@ -356,8 +349,14 @@ private val AppRoute.legacyChrome: ShellChrome
             // Draw their own bar through AppScreen (T-121): never reached through [chrome].
             DiaryHistoryRoute, is DiaryDayRoute -> ShellChrome.Screen
 
-            // Draw their own bar through AppScreen (T-123, T-124): never reached through [chrome].
-            WeightRoute, WeightHistoryRoute, is RoutineDetailsRoute, is RoutineBuilderRoute -> ShellChrome.Screen
+            // Draw their own bar through AppScreen (T-123, T-124, T-124b): never reached through [chrome].
+            WeightRoute,
+            WeightHistoryRoute,
+            is RoutineDetailsRoute,
+            is RoutineBuilderRoute,
+            is ExercisePickerRoute,
+            is ExerciseDetailRoute,
+            -> ShellChrome.Screen
 
             // A sheet over the Diary tab or over a past day: the shell draws the chrome of the entry below it
             // instead (see [chromeOf]); this one is the fallback for the sheet opened over the Diary tab.

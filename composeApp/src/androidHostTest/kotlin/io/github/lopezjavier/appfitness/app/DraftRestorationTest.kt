@@ -306,7 +306,7 @@ class DraftRestorationTest {
 
         rule.onNodeWithTag("exercise_create_sheet").assertIsDisplayed()
         rule.onNodeWithTag("exercise_create_name").assertTextContains("Curl nordico")
-        rule.onNodeWithTag("exercise_create_submit").assertIsNotEnabled()
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertIsNotEnabled()
         assertEquals(0, exercises.createCalls)
     }
 
@@ -352,6 +352,7 @@ class DraftRestorationTest {
                                 LoadExerciseCatalog(exercises, library),
                                 exercises,
                                 FakeWorkoutSessionRepository(),
+                                FakeConnectivityObserver(),
                                 handle,
                             )
                         }
@@ -388,22 +389,6 @@ class DraftRestorationTest {
         rule.onNodeWithTag("exercise_edit_name").assertTextContains("Press unilateral")
         rule.onNodeWithTag("exercise_edit_per_hand_switch").performScrollTo().assertIsOn()
         assertEquals(0, exercises.updateCalls)
-    }
-
-    @Test
-    fun deleteConfirmation_staysOpenAfterRecreation() {
-        exercises.rows = exercises.rows +
-            exerciseRow("mine", null, MuscleGroup.Chest, Equipment.Machine, "Press Hammer", custom = true)
-        val tester = StateRestorationTester(rule)
-        showDetail(tester, SavedStateHandle())
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
-        rule.waitForIdle()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("exercise_detail_delete_confirm").assertIsDisplayed()
-        assertEquals(0, exercises.deleteCalls)
     }
 
     // -- "Corregir serie" sheet -------------------------------------------------------------------------------------

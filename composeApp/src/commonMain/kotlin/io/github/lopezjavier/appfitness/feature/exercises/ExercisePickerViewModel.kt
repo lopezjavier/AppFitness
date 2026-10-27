@@ -77,6 +77,8 @@ class ExercisePickerViewModel(
 
             is ExercisePickerEvent.OpenExercise -> open(event.id)
 
+            is ExercisePickerEvent.OpenDetail -> effectChannel.trySend(ExercisePickerEffect.OpenDetail(event.id))
+
             ExercisePickerEvent.Retry -> if (_uiState.value == ExercisePickerUiState.Error) load()
 
             ExercisePickerEvent.OpenCreate ->
@@ -140,7 +142,10 @@ class ExercisePickerViewModel(
                     reloadAfterCreate()
                     open(created.id)
                 },
-                onFailure = { editForm { it.copy(isSubmitting = false, hasError = true) } },
+                onFailure = {
+                    editForm { it.copy(isSubmitting = false, hasError = true) }
+                    effectChannel.trySend(ExercisePickerEffect.CreateFailed)
+                },
             )
         }
     }

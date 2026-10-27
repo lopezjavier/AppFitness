@@ -6,6 +6,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -30,6 +33,10 @@ import coil3.SingletonImageLoader
 import coil3.test.FakeImageLoaderEngine
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -69,7 +76,6 @@ class ExerciseManagementScreenTest {
 
     @Before
     fun setUp() {
-        ExerciseDeletedNotice.consume()
         val engine = FakeImageLoaderEngine.Builder().default(ColorImage(Color.BLUE)).build()
         SingletonImageLoader.setUnsafe(
             ImageLoader.Builder(RuntimeEnvironment.getApplication()).components { add(engine) }.build(),
@@ -78,18 +84,32 @@ class ExerciseManagementScreenTest {
 
     @After
     fun tearDown() {
-        ExerciseDeletedNotice.consume()
         SingletonImageLoader.reset()
     }
 
-    private fun showDetail(id: String): ExerciseDetailViewModel {
-        val vm = ExerciseDetailViewModel(id, LoadExerciseCatalog(repository, library), repository, sessions)
+    private val connectivity = FakeConnectivityObserver()
+    private val messages = RecordingMessages()
+    private val haptics = RecordingAppHaptics()
+
+    private fun showDetail(id: String, selectMode: Boolean = false): ExerciseDetailViewModel {
+        val vm =
+            ExerciseDetailViewModel(
+                id,
+                LoadExerciseCatalog(repository, library),
+                repository,
+                sessions,
+                connectivity,
+            )
         rule.setContent {
             AppTheme {
-                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                CompositionLocalProvider(
+                    LocalExerciseMediaUris provides FakeExerciseMediaUris,
+                    LocalAppMessages provides messages,
+                    LocalAppHaptics provides haptics,
+                ) {
                     ExerciseDetailRoot(
                         exerciseId = id,
-                        selectMode = false,
+                        selectMode = selectMode,
                         onSelect = {},
                         onClose = { closed++ },
                         viewModel = vm,
@@ -133,7 +153,7 @@ class ExerciseManagementScreenTest {
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
         rule.onNodeWithTag("exercise_create_per_hand_switch").performScrollTo().performClick()
         rule.onNodeWithTag("exercise_create_per_hand_switch").assertIsOn()
-        rule.onNodeWithTag("exercise_create_submit").performScrollTo().assertIsEnabled().performClick()
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertIsEnabled().performClick()
         rule.waitForIdle()
 
         assertEquals(1, repository.createCalls)
@@ -147,7 +167,7 @@ class ExerciseManagementScreenTest {
         rule.onNodeWithTag("exercise_picker_create_button").performClick()
         rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
-        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
+        rule.onNodeWithTag("exercise_create_sheet_commit").performClick()
         rule.waitForIdle()
 
         assertEquals(false, repository.lastCreatedPerHand)
@@ -171,11 +191,15 @@ class ExerciseManagementScreenTest {
     }
 
     @Test
-    fun aManualExercise_showsEditAndDeleteButtons_of48dp() {
+    fun aManualExercise_showsTheNameAsTitle_andEditAndDeleteInTheTopBar_of48dp() {
         showDetail("mine")
 
+        rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Press Hammer")
+        rule.onAllNodesWithText("Press Hammer").assertCountEquals(1)
         rule.onNodeWithTag("exercise_detail_edit").assertHasClickAction()
+            .assertContentDescriptionEquals("Editar Press Hammer")
         rule.onNodeWithTag("exercise_detail_delete").assertHasClickAction()
+            .assertContentDescriptionEquals("Eliminar Press Hammer")
         listOf("exercise_detail_edit", "exercise_detail_delete").forEach {
             val bounds = rule.onNodeWithTag(it).getUnclippedBoundsInRoot()
             assertTrue(bounds.width >= 48.dp && bounds.height >= 48.dp)
@@ -183,19 +207,38 @@ class ExerciseManagementScreenTest {
     }
 
     @Test
-    fun aManualExercise_showsEditAndDeleteInTheSameRowAsTheName_endAligned() {
+    fun aManualExercise_keepsEditAndDeleteInTheTopBar_onEveryTab() {
         showDetail("mine")
 
-        val name = rule.onNodeWithTag("exercise_detail_name").getUnclippedBoundsInRoot()
-        val edit = rule.onNodeWithTag("exercise_detail_edit").getUnclippedBoundsInRoot()
-        val delete = rule.onNodeWithTag("exercise_detail_delete").getUnclippedBoundsInRoot()
-        val rowTop = minOf(name.top, edit.top)
-        val rowBottom = maxOf(name.bottom, edit.bottom)
-        assertTrue(edit.top < name.bottom && name.top < edit.bottom)
-        assertTrue(delete.top < name.bottom && name.top < delete.bottom)
-        assertTrue(rowBottom - rowTop <= 56.dp)
-        assertTrue(name.right <= edit.left)
-        assertTrue(edit.right <= delete.left)
+        listOf("exercise_detail_tab_history", "exercise_detail_tab_how_to", "exercise_detail_tab_summary").forEach {
+            rule.onNodeWithTag(it).performClick()
+            rule.waitForIdle()
+            rule.onNodeWithTag("exercise_detail_edit").assertIsEnabled()
+            rule.onNodeWithTag("exercise_detail_delete").assertIsEnabled()
+        }
+    }
+
+    @Test
+    fun aCatalogueExercise_hasNoEditOrDelete_onAnyTab() {
+        showDetail("cat")
+
+        listOf("exercise_detail_tab_history", "exercise_detail_tab_how_to", "exercise_detail_tab_summary").forEach {
+            rule.onNodeWithTag(it).performClick()
+            rule.waitForIdle()
+            rule.onNodeWithTag("exercise_detail_edit").assertDoesNotExist()
+            rule.onNodeWithTag("exercise_detail_delete").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun inSelectMode_theSeleccionarButtonIsPinnedOnEveryTab() {
+        showDetail("mine", selectMode = true)
+
+        listOf("exercise_detail_tab_history", "exercise_detail_tab_how_to", "exercise_detail_tab_summary").forEach {
+            rule.onNodeWithTag(it).performClick()
+            rule.waitForIdle()
+            rule.onNodeWithTag("exercise_detail_select_button").assertTextEquals("Seleccionar")
+        }
     }
 
     @Test
@@ -215,99 +258,123 @@ class ExerciseManagementScreenTest {
     }
 
     @Test
-    fun editingAManualExercise_prefillsTheForm_andSavesTheNewValues() {
+    fun editingAManualExercise_usesTheEditSheet_prefillsTheForm_andSavesTheNewValues() {
         showDetail("mine")
         rule.onNodeWithTag("exercise_detail_edit").performClick()
 
+        rule.onNodeWithTag("exercise_edit_sheet_title").assertTextEquals("Editar ejercicio")
+        rule.onNodeWithTag("exercise_edit_sheet_commit").assertTextContains("Guardar")
         rule.onNodeWithTag("exercise_edit_name").assertTextContains("Press Hammer")
         rule.onNodeWithTag("exercise_edit_per_hand_switch").performScrollTo().assertIsOff()
         rule.onNodeWithTag("create_exercise_metric_type_weight_reps").assertDoesNotExist()
         rule.onNodeWithTag("exercise_edit_name").performTextClearance()
-        rule.onNodeWithTag("exercise_edit_save").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("exercise_edit_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("exercise_edit_name").performTextInput("Press Hammer unilateral")
         rule.onNodeWithTag("exercise_edit_per_hand_switch").performScrollTo().performClick()
-        rule.onNodeWithTag("exercise_edit_save").performScrollTo().assertIsEnabled().performClick()
+        rule.onNodeWithTag("exercise_edit_sheet_commit").assertIsEnabled().performClick()
         rule.waitForIdle()
 
         val saved = repository.rows.first { it.id == "mine" }
         assertEquals("Press Hammer unilateral", saved.name)
         assertTrue(saved.perHand)
-        rule.onNodeWithTag("exercise_edit_save").assertDoesNotExist()
+        rule.onNodeWithTag("exercise_edit_sheet_commit").assertDoesNotExist()
         rule.onNodeWithTag("exercise_detail_per_hand_value").assertTextEquals("Pesas por mano: Sí")
+        rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Press Hammer unilateral")
+        haptics.assertSingle(HapticEvent.Confirm)
+        assertTrue(messages.shown.isEmpty())
     }
 
     @Test
-    fun editingAManualExercise_keepsTheSheetOpenAndShowsAnError_whenSavingFails() {
+    fun editingAManualExercise_appliesNothingUntilSaved_andClosingDiscardsWithoutADialog() {
+        showDetail("mine")
+        rule.onNodeWithTag("exercise_detail_edit").performClick()
+        rule.onNodeWithTag("exercise_edit_name").performTextInput(" cambiado")
+        rule.onNodeWithTag("exercise_edit_sheet_close").performClick()
+        rule.waitForIdle()
+
+        assertEquals(0, repository.updateCalls)
+        rule.onNodeWithTag("exercise_edit_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Press Hammer")
+    }
+
+    @Test
+    fun editingAManualExercise_keepsTheSheetOpen_showsTheMessage_andRejects_whenSavingFails() {
         repository.updateFailure = AppError.Network
         showDetail("mine")
         rule.onNodeWithTag("exercise_detail_edit").performClick()
-        rule.onNodeWithTag("exercise_edit_save").performScrollTo().performClick()
-        rule.waitForIdle()
+        rule.onNodeWithTag("exercise_edit_sheet_commit").performClick()
+        rule.waitUntil { messages.shown.isNotEmpty() }
 
-        rule.onNodeWithTag("exercise_edit_error").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithTag("exercise_edit_save").assertIsEnabled()
+        rule.onNodeWithTag("exercise_edit_sheet").assertExists()
+        rule.onNodeWithTag("exercise_edit_sheet_commit").assertIsEnabled()
+        assertEquals(listOf("No se pudo guardar. Inténtalo de nuevo."), messages.shown)
+        haptics.assertSingle(HapticEvent.Reject)
     }
 
     @Test
-    fun deletingAnUnusedManualExercise_afterConfirming_removesItAndLeavesTheScreen() {
+    fun deletingAnUnusedManualExercise_happensAtOnce_withNoDialog_andLeavesTheScreen() {
         showDetail("mine")
         rule.onNodeWithTag("exercise_detail_delete").performClick()
-        rule.onNodeWithTag("exercise_detail_delete_confirm").performClick()
-        rule.waitForIdle()
+        rule.waitUntil { closed == 1 }
 
         assertEquals(listOf("cat"), repository.rows.map { it.id })
         assertEquals(1, closed)
-        assertTrue(ExerciseDeletedNotice.pending.value)
-    }
-
-    @Test
-    fun cancellingTheDelete_deletesNothing() {
-        showDetail("mine")
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
-        rule.onNodeWithTag("exercise_detail_delete_cancel").performClick()
-        rule.waitForIdle()
-
-        assertEquals(0, repository.deleteCalls)
-        assertEquals(0, closed)
+        assertEquals(listOf("Ejercicio eliminado"), messages.shown)
+        haptics.assertSingle(HapticEvent.Confirm)
         rule.onNodeWithTag("exercise_detail_delete_confirm").assertDoesNotExist()
     }
 
     @Test
-    fun deletingAnExerciseInUse_showsTheBlockedMessage_andDeletesNothing() {
+    fun deletingAnExerciseInUse_showsTheBlockedMessage_staysOnTheScreen_andRejects() {
         repository.deleteFailure = AppError.InUse(sets = 3, routines = 1)
         showDetail("mine")
         rule.onNodeWithTag("exercise_detail_delete").performClick()
-        rule.onNodeWithTag("exercise_detail_delete_confirm").performClick()
-        rule.waitForIdle()
+        rule.waitUntil { messages.shown.isNotEmpty() }
 
-        rule.onNodeWithTag("exercise_detail_in_use_message")
-            .assertTextEquals("Este ejercicio está en uso (3 series, 1 rutina) y no se puede eliminar")
-        rule.onNodeWithTag("exercise_detail_delete_confirm").assertDoesNotExist()
+        assertEquals(listOf("No se puede eliminar: lo usan 3 series y 1 rutina."), messages.shown)
+        haptics.assertSingle(HapticEvent.Reject)
         assertEquals(0, closed)
         assertEquals(2, repository.rows.size)
+        rule.onNodeWithTag("exercise_detail_delete").assertIsEnabled()
     }
 
     @Test
-    fun aFailedDelete_keepsTheDialogOpenWithARetryableError() {
+    fun aFailedDelete_showsTheErrorMessage_rejects_andCanBeRetried() {
         repository.deleteFailure = AppError.Network
         showDetail("mine")
         rule.onNodeWithTag("exercise_detail_delete").performClick()
-        rule.onNodeWithTag("exercise_detail_delete_confirm").performClick()
-        rule.waitForIdle()
+        rule.waitUntil { messages.shown.isNotEmpty() }
 
-        rule.onNodeWithTag("exercise_detail_delete_confirm").assertIsDisplayed()
+        assertEquals(listOf("No se pudo eliminar. Inténtalo de nuevo."), messages.shown)
+        haptics.assertSingle(HapticEvent.Reject)
+        assertEquals(0, closed)
         repository.deleteFailure = null
-        rule.onNodeWithTag("exercise_detail_delete_confirm").performClick()
-        rule.waitForIdle()
+        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        rule.waitUntil { closed == 1 }
 
         assertEquals(1, closed)
     }
 
     @Test
-    fun aDetailThatFailsToLoad_showsNoManagementButtons() {
+    fun offline_editAndDeleteAreDisabled_keepTheirDescriptions_andTheBodyExplainsWhy() {
+        connectivity.state.value = false
+        showDetail("mine")
+
+        rule.onNodeWithTag("exercise_detail_edit").assertIsNotEnabled()
+            .assertContentDescriptionEquals("Editar Press Hammer")
+        rule.onNodeWithTag("exercise_detail_delete").assertIsNotEnabled()
+            .assertContentDescriptionEquals("Eliminar Press Hammer")
+        rule.onNodeWithTag("exercise_detail_offline_hint").assertTextEquals("Sin conexión: no se puede eliminar")
+        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        assertEquals(0, repository.deleteCalls)
+    }
+
+    @Test
+    fun aDetailThatFailsToLoad_showsTheGenericTitle_noManagementButtons_andRetry() {
         repository.rows = emptyList()
         showDetail("mine")
 
+        rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Ejercicio")
         rule.onNodeWithTag("exercise_detail_edit").assertDoesNotExist()
         rule.onNodeWithTag("exercise_detail_error_action").assertExists()
     }

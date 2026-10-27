@@ -523,6 +523,7 @@ One action, one vibration, from the layer that knows the outcome (the component 
 | Bone | "Masa ósea" (chip: "Hueso" acceptable) | — | |
 | Workout | "Entreno" | "Sesión" in UI text | "Entreno pasado", "Editar entreno" |
 | Chart ranges | "1S 1M 3M 6M 1A" (spoken "1 semana"…) | "Último mes" and similar variants | One string set |
+| An exercise created by the user | "ejercicio propio"; button "Añadir ejercicio propio"; sheet "Nuevo ejercicio" | "Crear ejercicio", "Añadir ejercicio" for it | "Añadir ejercicio" is only the routine/workout button that opens the exercise picker |
 
 Message templates:
 - Required: "Escribe un nombre".

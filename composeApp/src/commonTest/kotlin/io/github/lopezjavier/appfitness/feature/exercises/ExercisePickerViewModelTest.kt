@@ -201,6 +201,26 @@ class ExercisePickerViewModelTest {
     }
 
     @Test
+    fun createFailure_emitsCreateFailed() = runTest {
+        repository.createFailure = AppError.Network
+        val vm = loaded()
+        vm.effects.test {
+            fillAndSubmit(vm)
+
+            assertEquals(ExercisePickerEffect.CreateFailed, awaitItem())
+        }
+    }
+
+    @Test
+    fun thumbnailTap_alwaysOpensTheDetail_evenInSelectMode() = runTest {
+        val select = loaded(selectMode = true)
+        select.effects.test {
+            select.onEvent(ExercisePickerEvent.OpenDetail("1"))
+            assertEquals(ExercisePickerEffect.OpenDetail("1"), awaitItem())
+        }
+    }
+
+    @Test
     fun rowTap_inSelectMode_emitsSelected_andInBrowseMode_opensTheDetail() = runTest {
         val select = loaded(selectMode = true)
         select.effects.test {

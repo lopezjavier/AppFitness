@@ -51,7 +51,11 @@ sealed interface ExercisePickerEvent {
 
     data class SelectEquipment(val equipment: Equipment?) : ExercisePickerEvent
 
+    /** The row body: selects the exercise in select mode, opens its detail otherwise. */
     data class OpenExercise(val id: String) : ExercisePickerEvent
+
+    /** The row thumbnail: always opens the detail, also in select mode. */
+    data class OpenDetail(val id: String) : ExercisePickerEvent
 
     data object Retry : ExercisePickerEvent
 
@@ -79,4 +83,7 @@ sealed interface ExercisePickerEffect {
 
     /** Browse mode: show this exercise's detail. */
     data class OpenDetail(val exerciseId: String) : ExercisePickerEffect
+
+    /** Creating the exercise failed; the sheet stays open with its inline error. */
+    data object CreateFailed : ExercisePickerEffect
 }
