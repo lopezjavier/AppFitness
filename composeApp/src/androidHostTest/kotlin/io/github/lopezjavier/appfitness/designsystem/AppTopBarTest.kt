@@ -5,6 +5,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -60,6 +61,23 @@ class AppTopBarTest {
         rule.onNodeWithTag("topbar_action_1").assertContentDescriptionEquals("Acción 1")
         rule.onNodeWithTag("topbar_action_2").assertContentDescriptionEquals("Acción 2")
         rule.onNodeWithTag("topbar_more").assertDoesNotExist()
+    }
+
+    @Test
+    fun aDisabledInlineAction_keepsItsDescription_andIgnoresClicks() {
+        rule.setContent {
+            AppTheme {
+                AppTopBar(
+                    title = "Título",
+                    actions = listOf(
+                        AppTopBarAction(Res.drawable.ic_edit, "Editar", { clicks += 1 }, enabled = false),
+                    ),
+                )
+            }
+        }
+        rule.onNodeWithTag("topbar_action_1").assertContentDescriptionEquals("Editar").assertIsNotEnabled()
+            .performClick()
+        assertTrue(clicks.isEmpty())
     }
 
     @Test

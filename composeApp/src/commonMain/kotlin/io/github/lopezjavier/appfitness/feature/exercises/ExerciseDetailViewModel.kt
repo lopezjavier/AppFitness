@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -36,7 +37,6 @@ private const val KEY_EDIT_NAME = "detail_edit_name"
 private const val KEY_EDIT_MUSCLE = "detail_edit_muscle"
 private const val KEY_EDIT_EQUIPMENT = "detail_edit_equipment"
 private const val KEY_EDIT_PER_HAND = "detail_edit_per_hand"
-private const val KEY_DELETE_OPEN = "detail_delete_open"
 
 /** Longest exercise name, matching the DB check. */
 private const val NAME_MAX_LENGTH = 100
@@ -51,18 +51,26 @@ data class EditExerciseForm(
     val equipment: Equipment,
     val perHand: Boolean,
     val isSubmitting: Boolean = false,
-    val hasError: Boolean = false,
 ) {
     val canSubmit: Boolean get() = name.isNotBlank() && !isSubmitting
 }
-
-/** The open "Eliminar" confirmation; [hasError] after a failed attempt (network), [isDeleting] while it runs. */
-data class DeleteDialog(val isDeleting: Boolean = false, val hasError: Boolean = false)
 
 /** One-off results of the detail screen. */
 sealed interface ExerciseDetailEffect {
     /** The manual exercise was deleted: leave the screen and show "Ejercicio eliminado". */
     data object Deleted : ExerciseDetailEffect
+
+    /** The delete was refused because the exercise is used by [sets] sets and [routines] routines. */
+    data class InUse(val sets: Int, val routines: Int) : ExerciseDetailEffect
+
+    /** The delete failed for another reason (network, server). */
+    data object DeleteFailed : ExerciseDetailEffect
+
+    /** The edit was applied and the form closed. */
+    data object Saved : ExerciseDetailEffect
+
+    /** The edit failed; the form stays open. */
+    data object SaveFailed : ExerciseDetailEffect
 }
 
 /** The tabs of the exercise detail; the selected one is kept in the saved state by name. */
@@ -121,10 +129,10 @@ sealed interface ExerciseDetailUiState {
         val history: HistoryState = HistoryState.Loading,
         /** The edit sheet (manual exercises only); null when closed. Survives process death (ADR-40). */
         val editForm: EditExerciseForm? = null,
-        /** The delete confirmation (manual exercises only); null when closed. Survives process death (ADR-40). */
-        val deleteDialog: DeleteDialog? = null,
-        /** Set when a delete was refused because the exercise is in use; the UI shows the blocked message. */
-        val inUse: AppError.InUse? = null,
+        /** False while offline: edit and delete are disabled with a hint. */
+        val isOnline: Boolean = true,
+        /** A delete is in flight (double taps are ignored). */
+        val isDeleting: Boolean = false,
     ) : ExerciseDetailUiState {
         /** Only the user's own manual exercises can be edited or deleted. */
         val canManage: Boolean get() = detail.exercise.isCustom
@@ -141,6 +149,7 @@ class ExerciseDetailViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     private val repository: ExerciseRepository,
     private val workoutSessions: WorkoutSessionRepository,
+    connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ExerciseDetailUiState>(ExerciseDetailUiState.Loading)
@@ -157,7 +166,15 @@ class ExerciseDetailViewModel(
     /** Per-session aggregates used for the marks; null when unreadable (rows show no marks). */
     private var sessionRecords: List<ExerciseSessionRecords>? = null
 
+    private var online = true
+
     init {
+        viewModelScope.launch {
+            connectivity.isOnline.collect { isOnline ->
+                online = isOnline
+                updateLoaded { it.copy(isOnline = isOnline) }
+            }
+        }
         load()
     }
 
@@ -202,7 +219,7 @@ class ExerciseDetailViewModel(
 
     fun dismissEdit() = setEditForm(null)
 
-    fun setEditName(name: String) = editForm { it.copy(name = name.take(NAME_MAX_LENGTH), hasError = false) }
+    fun setEditName(name: String) = editForm { it.copy(name = name.take(NAME_MAX_LENGTH)) }
 
     fun selectEditMuscleGroup(group: MuscleGroup) = editForm { it.copy(muscleGroup = group) }
 
@@ -212,53 +229,44 @@ class ExerciseDetailViewModel(
 
     /** "Guardar": applies the edit; on success the form closes and the detail shows the new values. */
     fun submitEdit() {
-        val form = loaded()?.editForm?.takeIf { it.canSubmit } ?: return
-        setEditForm(form.copy(isSubmitting = true, hasError = false))
+        val form = loaded()?.editForm?.takeIf { it.canSubmit && online } ?: return
+        setEditForm(form.copy(isSubmitting = true))
         viewModelScope.launch {
             repository.updateCustom(exerciseId, form.name.trim(), form.muscleGroup, form.equipment, form.perHand).fold(
                 onSuccess = {
                     loadCatalog.detail(exerciseId).onSuccess { detail -> updateLoaded { it.copy(detail = detail) } }
                     setEditForm(null)
+                    effectChannel.trySend(ExerciseDetailEffect.Saved)
                 },
-                onFailure = { setEditForm(form.copy(isSubmitting = false, hasError = true)) },
+                onFailure = {
+                    setEditForm(form.copy(isSubmitting = false))
+                    effectChannel.trySend(ExerciseDetailEffect.SaveFailed)
+                },
             )
         }
     }
 
-    fun openDelete() {
-        if (loaded()?.canManage != true) return
-        setDeleteDialog(DeleteDialog())
-    }
-
-    fun dismissDelete() {
-        if (loaded()?.deleteDialog?.isDeleting == true) return
-        setDeleteDialog(null)
-    }
-
-    /** Confirms "Eliminar": an exercise in use is refused (nothing deleted) and reported through `inUse`. */
-    fun confirmDelete() {
-        val dialog = loaded()?.deleteDialog?.takeIf { !it.isDeleting } ?: return
-        setDeleteDialog(dialog.copy(isDeleting = true, hasError = false))
+    /**
+     * Deletes the manual exercise at once (no dialog). Refused offline and while a delete is running; an exercise in
+     * use is refused by the server and nothing is deleted.
+     */
+    fun delete() {
+        if (loaded()?.let { it.canManage && online && !it.isDeleting } != true) return
+        updateLoaded { it.copy(isDeleting = true) }
         viewModelScope.launch {
             val result = repository.deleteCustom(exerciseId)
             val error = result.appErrorOrNull()
-            when {
-                result.isSuccess -> {
-                    setDeleteDialog(null)
-                    effectChannel.trySend(ExerciseDetailEffect.Deleted)
-                }
-
-                error is AppError.InUse -> {
-                    setDeleteDialog(null)
-                    updateLoaded { it.copy(inUse = error) }
-                }
-
-                else -> setDeleteDialog(DeleteDialog(isDeleting = false, hasError = true))
-            }
+            // On success stay "deleting" until the screen navigates away, so a second tap cannot delete again.
+            if (!result.isSuccess) updateLoaded { it.copy(isDeleting = false) }
+            effectChannel.trySend(
+                when {
+                    result.isSuccess -> ExerciseDetailEffect.Deleted
+                    error is AppError.InUse -> ExerciseDetailEffect.InUse(error.sets, error.routines)
+                    else -> ExerciseDetailEffect.DeleteFailed
+                },
+            )
         }
     }
-
-    fun dismissInUse() = updateLoaded { it.copy(inUse = null) }
 
     private fun editForm(change: (EditExerciseForm) -> EditExerciseForm) {
         loaded()?.editForm?.let { setEditForm(change(it)) }
@@ -271,11 +279,6 @@ class ExerciseDetailViewModel(
         savedState[KEY_EDIT_MUSCLE] = form?.muscleGroup?.name
         savedState[KEY_EDIT_EQUIPMENT] = form?.equipment?.name
         savedState[KEY_EDIT_PER_HAND] = form?.perHand
-    }
-
-    private fun setDeleteDialog(dialog: DeleteDialog?) {
-        updateLoaded { it.copy(deleteDialog = dialog) }
-        savedState[KEY_DELETE_OPEN] = dialog != null
     }
 
     private fun restoredEditForm(detail: ExerciseDetail): EditExerciseForm? {
@@ -309,13 +312,7 @@ class ExerciseDetailViewModel(
                         detail,
                         tab = storedTab(),
                         editForm = restoredEditForm(detail),
-                        deleteDialog = if (detail.exercise.isCustom &&
-                            savedState.get<Boolean>(KEY_DELETE_OPEN) == true
-                        ) {
-                            DeleteDialog()
-                        } else {
-                            null
-                        },
+                        isOnline = online,
                     )
                     loadRecords()
                     if (storedTab() == ExerciseDetailTab.History) loadHistoryIfNeeded()

@@ -1,8 +1,10 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -69,5 +71,52 @@ class ExerciseRowTest {
         }
 
         rule.onNodeWithText("fin").assertIsDisplayed()
+    }
+
+    @Test
+    fun withOnSelect_theRowBodySelects_andTheThumbnailOpensTheDetail() {
+        var opened = 0
+        var selected = 0
+        rule.setContent {
+            AppTheme {
+                ExerciseRow(
+                    name = "Press banca",
+                    supporting = null,
+                    onOpen = { opened++ },
+                    tagPrefix = "row",
+                    onSelect = { selected++ },
+                )
+            }
+        }
+
+        rule.onNodeWithText("Press banca").performClick()
+        assertEquals(0, opened)
+        assertEquals(1, selected)
+
+        rule.onNodeWithTag("row_thumbnail").performClick()
+        assertEquals(1, opened)
+        assertEquals(1, selected)
+    }
+
+    @Test
+    fun withOnSelect_theThumbnailTargetIsAtLeast48dp_andDescribesTheExercise() {
+        rule.setContent {
+            AppTheme {
+                ExerciseRow(name = "Remo", supporting = null, onOpen = {}, tagPrefix = "row", onSelect = {})
+            }
+        }
+
+        rule.onNodeWithTag("row_thumbnail").assertContentDescriptionEquals("Ver detalle de Remo")
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("row_thumbnail_placeholder", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutOnSelect_thereIsNoSeparateThumbnailTarget() {
+        rule.setContent {
+            AppTheme { ExerciseRow(name = "Remo", supporting = null, onOpen = {}, tagPrefix = "row") }
+        }
+
+        rule.onNodeWithTag("row_thumbnail").assertDoesNotExist()
     }
 }

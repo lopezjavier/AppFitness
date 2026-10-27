@@ -65,6 +65,19 @@ done
 run "$here/ux-conventions/g5-allowed" "$empty"
 expect "G5 routines folder-delete dialog is allowed" 0 NOWARN
 
+# T-124b: the exercise screens are migrated, so the real warning list no longer excuses G2/G3/G5 there.
+real_list="$here/../ux-conventions-warnings.txt"
+for pair in "2:ExerciseFormSheet" "3:ExerciseDetailScreen" "3:ExercisePickerScreen" "5:ExerciseDetailScreen"; do
+  n="${pair%%:*}"
+  file="${pair##*:}"
+  tree="$work/exercises-g$n-$file"
+  mkdir -p "$tree/composeApp/src/commonMain/kotlin/demo/feature/exercises"
+  cp "$here/ux-conventions/g$n/composeApp/src/commonMain/kotlin/demo/feature/Bad.kt" \
+    "$tree/composeApp/src/commonMain/kotlin/demo/feature/exercises/$file.kt"
+  run "$tree" "$real_list"
+  expect "G$n in feature/exercises/$file.kt fails with the real warning list" 1
+done
+
 printf 'not a valid line\n' > "$work/bad-line.txt"
 run "$here/ux-conventions/g2" "$work/bad-line.txt"
 expect "malformed warning line is an error" 2

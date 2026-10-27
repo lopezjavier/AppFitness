@@ -5,22 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_equipment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_metric_label
@@ -33,17 +23,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_h
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_off
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_on
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitch
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SelectableCard
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -51,15 +40,14 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * What the create and edit sheets render; the metric type is shown only on create ([metricType] null hides it, as it
- * cannot change once sets are logged). [tagPrefix] is `exercise_create` or `exercise_edit`; [submitTag] is the tag of
- * the main button.
+ * cannot change once sets are logged). [tagPrefix] is `exercise_create` or `exercise_edit`; the sheet template adds
+ * `_sheet` (so the commit button is `<tagPrefix>_sheet_commit`). [canSubmit] already accounts for being online and
+ * [commitHint] is the reason shown under a button disabled offline.
  */
 internal data class ExerciseFormUi(
     val title: String,
-    val submitLabel: String,
-    val errorText: String,
+    val commit: SheetCommit,
     val tagPrefix: String,
-    val submitTag: String,
     val name: String,
     val muscleGroup: MuscleGroup?,
     val equipment: Equipment?,
@@ -67,11 +55,11 @@ internal data class ExerciseFormUi(
     val metricType: ExerciseMetricType?,
     val canSubmit: Boolean,
     val isSubmitting: Boolean,
-    val hasError: Boolean,
+    val commitHint: String?,
     val isEdit: Boolean,
 )
 
-/** Everything the form can ask for; nothing is applied before [onSubmit] (explicit "Crear" / "Guardar"). */
+/** Everything the form can ask for; nothing is applied before [onSubmit] (explicit "Añadir" / "Guardar"). */
 @Suppress("LongParameterList") // One callback per form event.
 internal class ExerciseFormActions(
     val onName: (String) -> Unit,
@@ -84,39 +72,25 @@ internal class ExerciseFormActions(
 )
 
 /**
- * The bottom sheet shared by "Nuevo ejercicio" and "Editar ejercicio": name, muscle group and equipment chips, the
- * "pesas por mano" switch with its "?" help, optionally the metric type, and the explicit submit button. The X, back,
- * swipe-down and scrim discard ([ExerciseFormActions.onDismiss]).
+ * The sheet shared by "Nuevo ejercicio" and "Editar ejercicio" on [AppEditSheet]: name, muscle group and equipment
+ * chips, the "pesas por mano" switch with its "?" help and optionally the metric type. The X, back, swipe-down and
+ * scrim discard ([ExerciseFormActions.onDismiss]) without a dialog; a failed save is reported by the caller through
+ * the app messages.
  */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
-internal fun ExerciseFormSheet(
-    ui: ExerciseFormUi,
-    actions: ExerciseFormActions,
-    modifier: Modifier = Modifier,
-) {
-    AppBottomSheet(
-        onDismissRequest = actions.onDismiss,
+internal fun ExerciseFormSheet(ui: ExerciseFormUi, actions: ExerciseFormActions, modifier: Modifier = Modifier) {
+    AppEditSheet(
+        title = ui.title,
+        commit = ui.commit,
+        onCommit = actions.onSubmit,
+        onDismiss = actions.onDismiss,
         modifier = modifier,
+        commitEnabled = ui.canSubmit,
+        saving = ui.isSubmitting,
+        commitHint = ui.commitHint,
         testTagPrefix = "${ui.tagPrefix}_sheet",
     ) {
-        Column(
-            Modifier
-                .widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth)
-                .fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-        ) {
-            Text(
-                text = ui.title,
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.semantics { heading() },
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
             AppTextField(
                 value = ui.name,
                 onValueChange = actions.onName,
@@ -125,23 +99,6 @@ internal fun ExerciseFormSheet(
             )
             FormChoices(ui, actions)
             PerHandRow(ui, actions.onPerHand)
-            if (ui.hasError) {
-                Text(
-                    text = ui.errorText,
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.error,
-                    modifier = Modifier
-                        .semantics { liveRegion = LiveRegionMode.Polite }
-                        .testTag("${ui.tagPrefix}_error"),
-                )
-            }
-            PrimaryButton(
-                text = ui.submitLabel,
-                onClick = actions.onSubmit,
-                enabled = ui.canSubmit,
-                loading = ui.isSubmitting,
-                modifier = Modifier.fillMaxWidth().testTag(ui.submitTag),
-            )
         }
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -39,17 +40,22 @@ class ExerciseNavigationTest {
 
     private lateinit var nav: NavHostController
 
-    private val pickerSlot: ExercisePickerSlot = { modifier, selectMode, onOpenDetail, onSelected ->
-        Column(modifier.fillMaxSize().testTag("exercise_picker_screen")) {
-            Text(if (selectMode) "select" else "browse", Modifier.testTag("picker_mode"))
-            Box(Modifier.size(48.dp).testTag("picker_open_detail").clickable { onOpenDetail("ex-1") })
-            Box(Modifier.size(48.dp).testTag("picker_select").clickable { onSelected("ex-9") })
+    // The destinations draw their own bar through AppScreen (T-124b), so the stand-ins do the same.
+    private val pickerSlot: ExercisePickerSlot = { modifier, selectMode, onOpenDetail, onSelected, onBack ->
+        AppScreen(title = "Ejercicios", modifier = modifier, onBack = onBack, testTagPrefix = "exercise_picker") {
+            Column(Modifier.fillMaxSize().testTag("exercise_picker_screen")) {
+                Text(if (selectMode) "select" else "browse", Modifier.testTag("picker_mode"))
+                Box(Modifier.size(48.dp).testTag("picker_open_detail").clickable { onOpenDetail("ex-1") })
+                Box(Modifier.size(48.dp).testTag("picker_select").clickable { onSelected("ex-9") })
+            }
         }
     }
-    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect, _, _ ->
-        Column(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
-            Text("$exerciseId $selectMode", Modifier.testTag("detail_args"))
-            Box(Modifier.size(48.dp).testTag("detail_select").clickable(onClick = onSelect))
+    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect, _, onClose ->
+        AppScreen(title = "Ejercicio", modifier = modifier, onBack = onClose, testTagPrefix = "exercise_detail") {
+            Column(Modifier.fillMaxSize().testTag("exercise_detail_screen")) {
+                Text("$exerciseId $selectMode", Modifier.testTag("detail_args"))
+                Box(Modifier.size(48.dp).testTag("detail_select").clickable(onClick = onSelect))
+            }
         }
     }
 
@@ -115,10 +121,10 @@ class ExerciseNavigationTest {
 
         rule.onNodeWithTag("exercise_picker_screen").assertExists()
         rule.onNodeWithTag("picker_mode").assertTextEquals("browse")
-        rule.onNodeWithTag("exercise_picker_top_bar_title").assertTextEquals("Ejercicios")
+        rule.onNodeWithTag("exercise_picker_title").assertTextEquals("Ejercicios")
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
 
-        rule.onNodeWithTag("exercise_picker_top_bar_back").performClick()
+        rule.onNodeWithTag("exercise_picker_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("exercise_picker_screen").assertDoesNotExist()
         rule.onNodeWithTag("routines_screen").assertExists()
@@ -133,7 +139,7 @@ class ExerciseNavigationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("detail_args").assertTextEquals("ex-1 false")
-        rule.onNodeWithTag("exercise_detail_top_bar_title").assertTextEquals("Ejercicio")
+        rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Ejercicio")
     }
 
     @Test

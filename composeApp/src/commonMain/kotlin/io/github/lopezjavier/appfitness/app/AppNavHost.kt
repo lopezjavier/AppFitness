@@ -52,13 +52,17 @@ internal typealias ProfileSlot =
 /** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
 internal typealias PreferencesSlot = @Composable (modifier: Modifier, onOpenMeals: () -> Unit) -> Unit
 
-/** Exercise picker content: modifier, select mode, and the two ways out (open a detail, return a selection). */
+/**
+ * Exercise picker content: modifier, select mode, the two ways forward (open a detail, return a selection) and the
+ * back arrow of its own top bar.
+ */
 internal typealias ExercisePickerSlot =
     @Composable (
         modifier: Modifier,
         selectMode: Boolean,
         onOpenDetail: (String) -> Unit,
         onSelected: (String) -> Unit,
+        onBack: () -> Unit,
     ) -> Unit
 
 /** Exercise detail: modifier, id, select mode, and the select, progress and close actions. */
@@ -342,7 +346,7 @@ internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _,
 }
 
 /** Empty picker for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _ ->
+internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_picker_screen"))
 }
 
@@ -635,6 +639,7 @@ internal fun AppNavHost(
                 selectMode,
                 { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode)) },
                 { navController.returnSelectedExercise(it) },
+                { navController.popFullScreen(entry) },
             )
         }
         composable<ExerciseDetailRoute> { entry ->
@@ -645,7 +650,7 @@ internal fun AppNavHost(
                 route.selectMode,
                 { navController.returnSelectedExercise(route.exerciseId) },
                 { openProgress(route.exerciseId) },
-                { navController.popBackStack() },
+                { navController.popFullScreen(entry) },
             )
         }
         composable<RoutineBuilderRoute> { entry ->

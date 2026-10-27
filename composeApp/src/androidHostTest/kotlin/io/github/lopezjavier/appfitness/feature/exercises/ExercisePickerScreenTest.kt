@@ -5,6 +5,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -14,18 +16,26 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import coil3.ColorImage
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.test.FakeImageLoaderEngine
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -106,7 +116,40 @@ class ExercisePickerScreenTest {
                 val state by vm.uiState.collectAsState()
                 LaunchedEffect(vm) { vm.effects.collect { effects += it } }
                 CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
-                    ExercisePickerScreen(state, vm::onEvent)
+                    ExercisePickerScreen(state, vm::onEvent, selectMode = selectMode)
+                }
+            }
+        }
+        rule.waitForIdle()
+        return vm
+    }
+
+    private val messages = RecordingMessages()
+    private val haptics = RecordingAppHaptics()
+
+    /** The stateful picker, with the shell's messages and haptics replaced by recorders. */
+    private fun showRoot(selectMode: Boolean = false): ExercisePickerViewModel {
+        val vm =
+            ExercisePickerViewModel(
+                LoadExerciseCatalog(repository, library),
+                SearchExercises(),
+                repository,
+                connectivity,
+                selectMode,
+            )
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(
+                    LocalExerciseMediaUris provides FakeExerciseMediaUris,
+                    LocalAppMessages provides messages,
+                    LocalAppHaptics provides haptics,
+                ) {
+                    ExercisePickerRoot(
+                        selectMode = selectMode,
+                        onOpenDetail = { effects += ExercisePickerEffect.OpenDetail(it) },
+                        onSelect = { effects += ExercisePickerEffect.Selected(it) },
+                        viewModel = vm,
+                    )
                 }
             }
         }
@@ -209,10 +252,10 @@ class ExercisePickerScreenTest {
         rule.onNodeWithTag("exercise_picker_create_button").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("exercise_create_sheet").assertExists()
-        rule.onNodeWithTag("exercise_create_submit").assertIsNotEnabled()
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
-        rule.onNodeWithTag("exercise_create_submit").performScrollTo().assertIsEnabled().performClick()
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertIsEnabled().performClick()
         rule.waitForIdle()
 
         assertEquals(listOf<ExercisePickerEffect>(ExercisePickerEffect.Selected("custom-1")), effects)
@@ -230,22 +273,23 @@ class ExercisePickerScreenTest {
         rule.onNodeWithTag("exercise_create_name").assertTextContains("Curl raro")
         rule.onNodeWithTag("exercise_create_muscle_chest").assertIsNotSelected()
         rule.onNodeWithTag("exercise_create_equipment_machine").assertIsNotSelected()
-        rule.onNodeWithTag("exercise_create_submit").assertIsNotEnabled()
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
-    fun createFailure_keepsTheSheetOpenWithAnError() {
+    fun createFailure_keepsTheSheetOpen_showsTheMessage_andRejects() {
         repository.createFailure = AppError.Network
-        show()
+        showRoot()
         rule.onNodeWithTag("exercise_picker_search").performTextInput("Curl raro")
         rule.onNodeWithTag("exercise_picker_create_button").performClick()
         rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
-        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
-        rule.waitForIdle()
+        rule.onNodeWithTag("exercise_create_sheet_commit").performClick()
+        rule.waitUntil { messages.shown.isNotEmpty() }
 
         rule.onNodeWithTag("exercise_create_sheet").assertExists()
-        rule.onNodeWithTag("exercise_create_error").assertExists()
+        assertEquals(listOf("No se pudo guardar. Inténtalo de nuevo."), messages.shown)
+        haptics.assertSingle(HapticEvent.Reject)
     }
 
     @Test
@@ -255,7 +299,9 @@ class ExercisePickerScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("exercise_picker_create_button").assertIsNotEnabled()
-        rule.onNodeWithTag("exercise_picker_offline_hint").assertTextEquals("Sin conexión: no puedes crear ejercicios")
+        rule.onNodeWithTag(
+            "exercise_picker_offline_hint",
+        ).assertTextEquals("Sin conexión: no se puede añadir un ejercicio")
         rule.onNodeWithTag("exercise_picker_row_bench").assertExists()
     }
 
@@ -373,7 +419,7 @@ class ExercisePickerScreenTest {
         rule.onNodeWithTag("create_exercise_metric_type_duration").performScrollTo().performClick()
         rule.onNodeWithTag("create_exercise_metric_type_duration").assertIsSelected()
         rule.onNodeWithTag("create_exercise_metric_type_weight_reps").assertIsNotSelected()
-        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
+        rule.onNodeWithTag("exercise_create_sheet_commit").performClick()
         rule.waitForIdle()
 
         assertEquals(ExerciseMetricType.Duration, repository.lastCreatedMetricType)
@@ -385,9 +431,112 @@ class ExercisePickerScreenTest {
 
         rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
         rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
-        rule.onNodeWithTag("exercise_create_submit").performScrollTo().performClick()
+        rule.onNodeWithTag("exercise_create_sheet_commit").performClick()
         rule.waitForIdle()
 
         assertEquals(ExerciseMetricType.WeightReps, repository.lastCreatedMetricType)
+    }
+
+    @Test
+    fun theTitleIsEjercicios_once_withABackArrow() {
+        show()
+
+        rule.onNodeWithTag("exercise_picker_title").assertTextEquals("Ejercicios")
+        rule.onNodeWithTag("exercise_picker_back").assertExists()
+        rule.onAllNodesWithText("Ejercicios").assertCountEquals(1)
+    }
+
+    @Test
+    fun inSelectMode_tappingARow_selectsIt_andTheThumbnailOpensTheDetail() {
+        show(selectMode = true)
+
+        rule.onNodeWithTag("exercise_picker_row_bench_thumbnail")
+            .assertContentDescriptionEquals("Ver detalle de Press de banca con barra")
+            .performClick()
+        rule.waitForIdle()
+        assertEquals(listOf<ExercisePickerEffect>(ExercisePickerEffect.OpenDetail("bench")), effects)
+
+        effects.clear()
+        rule.onNodeWithText("Press inclinado con mancuernas").performClick()
+        rule.waitForIdle()
+        assertEquals(listOf<ExercisePickerEffect>(ExercisePickerEffect.Selected("incline")), effects)
+    }
+
+    @Test
+    fun inBrowseMode_thereIsNoSeparateThumbnailTarget() {
+        show()
+
+        rule.onNodeWithTag("exercise_picker_row_bench_thumbnail").assertDoesNotExist()
+    }
+
+    @Test
+    fun thumbnailTarget_isAtLeast48dp() {
+        show(selectMode = true)
+
+        val bounds = rule.onNodeWithTag("exercise_picker_row_bench_thumbnail").getUnclippedBoundsInRoot()
+        assertTrue(bounds.width >= 48.dp && bounds.height >= 48.dp)
+    }
+
+    @Test
+    fun addOwnExercise_isTheLastElement_followedOnlyByTheAttribution() {
+        show()
+
+        val lastRow = rule.onNodeWithTag("exercise_picker_row_mine").getUnclippedBoundsInRoot()
+        val button = rule.onNodeWithTag("exercise_picker_create_button").assertTextEquals("Añadir ejercicio propio")
+            .getUnclippedBoundsInRoot()
+        val attribution = rule.onNodeWithTag("exercise_picker_attribution").getUnclippedBoundsInRoot()
+        assertTrue(button.top >= lastRow.bottom)
+        assertTrue(attribution.top >= button.bottom)
+    }
+
+    @Test
+    fun addOwnExercise_staysVisible_whenTheSearchFindsNothing() {
+        show()
+        rule.onNodeWithTag("exercise_picker_search").performTextInput("zzzz")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_picker_empty").assertExists()
+        rule.onNodeWithTag("exercise_picker_create_button").assertExists()
+    }
+
+    @Test
+    fun thereIsNoSnackbarHostOrPinnedFooter() {
+        show()
+
+        rule.onNodeWithTag("exercise_picker_deleted_message").assertDoesNotExist()
+        rule.onNodeWithTag("exercise_picker_footer").assertDoesNotExist()
+    }
+
+    @Test
+    fun theCreateSheet_usesTheEditSheetTemplate_withAnAddCommit() {
+        openCreateForm()
+
+        rule.onNodeWithTag("exercise_create_sheet_title").assertTextEquals("Nuevo ejercicio")
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertTextContains("Añadir")
+        rule.onNodeWithTag("exercise_create_sheet_close").assertExists()
+    }
+
+    @Test
+    fun theCreateSheet_closingItDiscardsTheDraft_withoutADialogOrACreate() {
+        openCreateForm()
+        rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
+        rule.onNodeWithTag("exercise_create_sheet_close").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_create_sheet").assertDoesNotExist()
+        assertEquals(0, repository.createCalls)
+    }
+
+    @Test
+    fun offline_theCreateSheetCannotBeCommitted_andExplainsWhy() {
+        openCreateForm()
+        rule.onNodeWithTag("exercise_create_muscle_chest").performClick()
+        rule.onNodeWithTag("exercise_create_equipment_machine").performClick()
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_create_sheet_commit").assertIsNotEnabled()
+        rule.onNodeWithTag("exercise_create_sheet_commit_hint")
+            .assertTextEquals("Sin conexión: no se puede añadir un ejercicio")
     }
 }

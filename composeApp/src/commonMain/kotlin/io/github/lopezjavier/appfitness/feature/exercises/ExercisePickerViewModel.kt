@@ -77,6 +77,8 @@ class ExercisePickerViewModel(
 
             is ExercisePickerEvent.OpenExercise -> open(event.id)
 
+            is ExercisePickerEvent.OpenDetail -> effectChannel.trySend(ExercisePickerEffect.OpenDetail(event.id))
+
             ExercisePickerEvent.Retry -> if (_uiState.value == ExercisePickerUiState.Error) load()
 
             ExercisePickerEvent.OpenCreate ->
@@ -93,7 +95,7 @@ class ExercisePickerViewModel(
             ExercisePickerEvent.DismissCreate -> updateContent { it.copy(createForm = null) }
 
             is ExercisePickerEvent.SetCreateName ->
-                editForm { it.copy(name = event.name.take(NAME_MAX_LENGTH), hasError = false) }
+                editForm { it.copy(name = event.name.take(NAME_MAX_LENGTH)) }
 
             is ExercisePickerEvent.SelectCreateMuscleGroup -> editForm { it.copy(muscleGroup = event.group) }
 
@@ -132,7 +134,7 @@ class ExercisePickerViewModel(
         val group = form?.muscleGroup
         val equipment = form?.equipment
         if (form == null || group == null || equipment == null) return
-        editForm { it.copy(isSubmitting = true, hasError = false) }
+        editForm { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             repository.createCustom(form.name.trim(), group, equipment, form.metricType, form.perHand).fold(
                 onSuccess = { created ->
@@ -140,7 +142,10 @@ class ExercisePickerViewModel(
                     reloadAfterCreate()
                     open(created.id)
                 },
-                onFailure = { editForm { it.copy(isSubmitting = false, hasError = true) } },
+                onFailure = {
+                    editForm { it.copy(isSubmitting = false) }
+                    effectChannel.trySend(ExercisePickerEffect.CreateFailed)
+                },
             )
         }
     }

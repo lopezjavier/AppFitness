@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.exercises
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -40,6 +41,7 @@ class ExerciseDetailViewModelTest {
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca")))
     private val sessions = FakeWorkoutSessionRepository()
     private var savedState = SavedStateHandle()
+    private val connectivity = FakeConnectivityObserver()
 
     @BeforeTest
     fun setUp() {
@@ -51,8 +53,14 @@ class ExerciseDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(id: String = "1") =
-        ExerciseDetailViewModel(id, LoadExerciseCatalog(repository, library), repository, sessions, savedState)
+    private fun viewModel(id: String = "1") = ExerciseDetailViewModel(
+        id,
+        LoadExerciseCatalog(repository, library),
+        repository,
+        sessions,
+        connectivity,
+        savedState,
+    )
 
     private fun TestScope.loaded(vm: ExerciseDetailViewModel): ExerciseDetailUiState.Loaded {
         advanceUntilIdle()
@@ -467,11 +475,12 @@ class ExerciseDetailViewModelTest {
         advanceUntilIdle()
 
         vm.openEdit()
-        vm.openDelete()
+        vm.delete()
+        advanceUntilIdle()
 
-        val state = loaded(vm)
-        assertNull(state.editForm)
-        assertNull(state.deleteDialog)
+        assertNull(loaded(vm).editForm)
+        assertFalse(loaded(vm).canManage)
+        assertEquals(0, repository.deleteCalls)
     }
 
     @Test
@@ -558,7 +567,6 @@ class ExerciseDetailViewModelTest {
         advanceUntilIdle()
 
         val failed = loaded(vm).editForm!!
-        assertTrue(failed.hasError)
         assertFalse(failed.isSubmitting)
         repository.updateFailure = null
         vm.submitEdit()
@@ -584,15 +592,13 @@ class ExerciseDetailViewModelTest {
     }
 
     @Test
-    fun confirmingTheDelete_removesTheExercise_andEmitsDeleted() = runTest {
+    fun delete_removesTheExerciseAtOnce_andEmitsDeleted() = runTest {
         custom()
         val vm = viewModel("c1")
         advanceUntilIdle()
-        vm.openDelete()
-        assertEquals(DeleteDialog(), loaded(vm).deleteDialog)
 
         vm.effects.test {
-            vm.confirmDelete()
+            vm.delete()
             advanceUntilIdle()
 
             assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
@@ -601,66 +607,130 @@ class ExerciseDetailViewModelTest {
     }
 
     @Test
-    fun cancellingTheDelete_deletesNothing() = runTest {
+    fun aSecondDeleteTapBeforeNavigation_doesNotFireAnotherDelete() = runTest {
         custom()
         val vm = viewModel("c1")
         advanceUntilIdle()
-        vm.openDelete()
 
-        vm.dismissDelete()
+        vm.effects.test {
+            vm.delete()
+            advanceUntilIdle()
+            assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
 
-        assertNull(loaded(vm).deleteDialog)
-        assertEquals(0, repository.deleteCalls)
+            vm.delete()
+            advanceUntilIdle()
+
+            expectNoEvents()
+        }
+        assertTrue(loaded(vm).isDeleting)
     }
 
     @Test
-    fun anExerciseInUse_closesTheDialog_andShowsTheBlockedCounts() = runTest {
+    fun anExerciseInUse_emitsInUseWithTheCounts_andIsNotDeleted() = runTest {
         custom()
         val vm = viewModel("c1")
         advanceUntilIdle()
-        vm.openDelete()
-        repository.deleteFailure = AppError.InUse(sets = 3, routines = 2)
+        repository.deleteFailure = AppError.InUse(sets = 2, routines = 1)
 
-        vm.confirmDelete()
-        advanceUntilIdle()
+        vm.effects.test {
+            vm.delete()
+            advanceUntilIdle()
 
-        val state = loaded(vm)
-        assertNull(state.deleteDialog)
-        assertEquals(AppError.InUse(3, 2), state.inUse)
+            assertEquals(ExerciseDetailEffect.InUse(2, 1), awaitItem())
+        }
         assertEquals(1, repository.rows.size)
-        vm.dismissInUse()
-        assertNull(loaded(vm).inUse)
+        assertFalse(loaded(vm).isDeleting)
     }
 
     @Test
-    fun aFailedDelete_keepsTheDialogWithAnError_andRetrySucceeds() = runTest {
+    fun aGenericDeleteFailure_emitsDeleteFailed_andRetrySucceeds() = runTest {
         custom()
         val vm = viewModel("c1")
         advanceUntilIdle()
-        vm.openDelete()
         repository.deleteFailure = AppError.Network
 
-        vm.confirmDelete()
-        advanceUntilIdle()
-
-        assertEquals(DeleteDialog(isDeleting = false, hasError = true), loaded(vm).deleteDialog)
-        repository.deleteFailure = null
         vm.effects.test {
-            vm.confirmDelete()
+            vm.delete()
+            advanceUntilIdle()
+            assertEquals(ExerciseDetailEffect.DeleteFailed, awaitItem())
+
+            repository.deleteFailure = null
+            vm.delete()
             advanceUntilIdle()
             assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
         }
     }
 
     @Test
-    fun theDeleteDialog_survivesARecreatedViewModel() = runTest {
+    fun deleteOffline_isRefused_andNothingIsSent() = runTest {
         custom()
-        val first = viewModel("c1")
+        connectivity.state.value = false
+        val vm = viewModel("c1")
         advanceUntilIdle()
-        first.openDelete()
 
-        val second = viewModel("c1")
+        vm.delete()
+        advanceUntilIdle()
 
-        assertEquals(DeleteDialog(), loaded(second).deleteDialog)
+        assertFalse(loaded(vm).isOnline)
+        assertEquals(0, repository.deleteCalls)
+    }
+
+    @Test
+    fun aDoubleTapOnDelete_deletesOnce() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+
+        vm.delete()
+        vm.delete()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.deleteCalls)
+    }
+
+    @Test
+    fun savingTheEdit_emitsSaved() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        vm.setEditPerHand(true)
+
+        vm.effects.test {
+            vm.submitEdit()
+            advanceUntilIdle()
+
+            assertEquals(ExerciseDetailEffect.Saved, awaitItem())
+        }
+    }
+
+    @Test
+    fun aFailedSave_emitsSaveFailed() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        repository.updateFailure = AppError.Network
+
+        vm.effects.test {
+            vm.submitEdit()
+            advanceUntilIdle()
+
+            assertEquals(ExerciseDetailEffect.SaveFailed, awaitItem())
+        }
+    }
+
+    @Test
+    fun saveOffline_isRefused() = runTest {
+        custom()
+        connectivity.state.value = false
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        assertEquals(0, repository.updateCalls)
     }
 }

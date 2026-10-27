@@ -75,7 +75,6 @@ internal fun ExerciseSummaryTab(
     onRetryRecords: () -> Unit,
     modifier: Modifier = Modifier,
     scrollState: ScrollState = rememberScrollState(),
-    nameActions: (@Composable () -> Unit)? = null,
 ) {
     val name = detail.name.ifBlank { stringResource(Res.string.exercise_unnamed) }
     Column(
@@ -89,12 +88,12 @@ internal fun ExerciseSummaryTab(
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                 Box(Modifier.weight(1f)) { DetailMedia(detail, name) }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-                    SummaryText(detail, name, records, today, onOpenProgress, onRetryRecords, nameActions)
+                    SummaryText(detail, records, today, onOpenProgress, onRetryRecords)
                 }
             }
         } else {
             DetailMedia(detail, name)
-            SummaryText(detail, name, records, today, onOpenProgress, onRetryRecords, nameActions)
+            SummaryText(detail, records, today, onOpenProgress, onRetryRecords)
         }
     }
 }
@@ -103,15 +102,13 @@ internal fun ExerciseSummaryTab(
 @Composable
 private fun SummaryText(
     detail: ExerciseDetail,
-    name: String,
     records: RecordsState,
     today: LocalDate,
     onOpenProgress: () -> Unit,
     onRetryRecords: () -> Unit,
-    nameActions: (@Composable () -> Unit)?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-        DetailHeader(detail, name, nameActions)
+        DetailHeader(detail)
         SecondaryButton(
             text = stringResource(Res.string.exercise_progress_link),
             onClick = onOpenProgress,
@@ -142,17 +139,9 @@ private fun DetailMedia(detail: ExerciseDetail, name: String) {
 }
 
 @Composable
-private fun DetailHeader(detail: ExerciseDetail, name: String, nameActions: (@Composable () -> Unit)?) {
+private fun DetailHeader(detail: ExerciseDetail) {
+    // The name is the screen title (R-01), so the body starts with the muscle and equipment pills.
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = name,
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.weight(1f).testTag("exercise_detail_name").semantics { heading() },
-            )
-            nameActions?.invoke()
-        }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             TextPill(stringResource(detail.exercise.muscleGroup.label))
             TextPill(stringResource(detail.exercise.equipment.label))

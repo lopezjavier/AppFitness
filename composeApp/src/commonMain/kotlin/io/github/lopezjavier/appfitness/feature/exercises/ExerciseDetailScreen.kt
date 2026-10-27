@@ -6,17 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,47 +22,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_deleting
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_error
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_message
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_delete_title
+import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_deleted
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_sets
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
-import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.Clock
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.getPluralString
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -87,25 +81,8 @@ class ExerciseDetailActions(
     val onEditEquipment: (Equipment) -> Unit = {},
     val onEditPerHand: (Boolean) -> Unit = {},
     val onSubmitEdit: () -> Unit = {},
-    val onOpenDelete: () -> Unit = {},
-    val onConfirmDelete: () -> Unit = {},
-    val onDismissDelete: () -> Unit = {},
-    val onDismissInUse: () -> Unit = {},
+    val onDelete: () -> Unit = {},
 )
-
-/** Carries "Ejercicio eliminado" from the detail that deleted an exercise to the list it returns to. */
-object ExerciseDeletedNotice {
-    private val pendingFlow = MutableStateFlow(false)
-    val pending: StateFlow<Boolean> = pendingFlow.asStateFlow()
-
-    fun post() {
-        pendingFlow.value = true
-    }
-
-    fun consume() {
-        pendingFlow.value = false
-    }
-}
 
 /** Stateful detail: connects [ExerciseDetailViewModel] to the stateless [ExerciseDetailScreen]. */
 @Composable
@@ -121,12 +98,34 @@ fun ExerciseDetailRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentClose by rememberUpdatedState(onClose)
+    val messages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                // The shell owns the message queue, so "Ejercicio eliminado" outlives this destination.
                 ExerciseDetailEffect.Deleted -> {
-                    ExerciseDeletedNotice.post()
+                    haptics.confirm()
+                    messages.show(getString(Res.string.exercise_deleted))
                     currentClose()
+                }
+
+                is ExerciseDetailEffect.InUse -> {
+                    haptics.reject()
+                    messages.show(inUseMessage(effect))
+                }
+
+                ExerciseDetailEffect.DeleteFailed -> {
+                    haptics.reject()
+                    messages.show(getString(Res.string.delete_failed))
+                }
+
+                // The sheet already closed and the new values are visible: no message (R-13).
+                ExerciseDetailEffect.Saved -> haptics.confirm()
+
+                ExerciseDetailEffect.SaveFailed -> {
+                    haptics.reject()
+                    messages.show(getString(Res.string.exercise_save_failed))
                 }
             }
         }
@@ -145,10 +144,7 @@ fun ExerciseDetailRoot(
             onEditEquipment = viewModel::selectEditEquipment,
             onEditPerHand = viewModel::setEditPerHand,
             onSubmitEdit = viewModel::submitEdit,
-            onOpenDelete = viewModel::openDelete,
-            onConfirmDelete = viewModel::confirmDelete,
-            onDismissDelete = viewModel::dismissDelete,
-            onDismissInUse = viewModel::dismissInUse,
+            onDelete = viewModel::delete,
         )
     }
     ExerciseDetailScreen(
@@ -160,15 +156,25 @@ fun ExerciseDetailRoot(
         modifier = modifier,
         onOpenProgress = onOpenProgress,
         actions = actions,
+        onClose = onClose,
     )
 }
 
+private suspend fun inUseMessage(effect: ExerciseDetailEffect.InUse): String = getString(
+    Res.string.exercise_in_use_message,
+    getPluralString(Res.plurals.exercise_in_use_sets, effect.sets, effect.sets),
+    getPluralString(Res.plurals.exercise_in_use_routines, effect.routines, effect.routines),
+)
+
 /**
- * Exercise detail (US-09, US-28): three tabs, "Resumen" (demonstration, header, progress link, records), "Historial"
- * (sessions that contain the exercise) and "Cómo hacerlo" (steps, tips, RepDB attribution). In [selectMode] a
- * "Seleccionar" button is pinned at the bottom of every tab. [today] dates the history rows and the records.
+ * Exercise detail (US-09, US-28) on [AppScreen]: the exercise name as title and, for a manual exercise, edit and
+ * delete in the top bar on every tab (delete is immediate, no dialog). Three tabs, "Resumen" (demonstration, header,
+ * progress link, records), "Historial" (sessions that contain the exercise) and "Cómo hacerlo" (steps, tips, RepDB
+ * attribution). In [selectMode] a "Seleccionar" button is pinned at the bottom of every tab. [today] dates the
+ * history rows and the records.
  */
 @Composable
+@Suppress("LongParameterList") // State, events, navigation hooks and the injectable date.
 fun ExerciseDetailScreen(
     state: ExerciseDetailUiState,
     selectMode: Boolean,
@@ -178,9 +184,34 @@ fun ExerciseDetailScreen(
     modifier: Modifier = Modifier,
     onOpenProgress: () -> Unit = {},
     actions: ExerciseDetailActions = ExerciseDetailActions(),
+    onClose: () -> Unit = {},
 ) {
-    Column(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+    val loaded = state as? ExerciseDetailUiState.Loaded
+    val name = loaded?.detail?.name?.ifBlank { null }
+    val title = when {
+        loaded == null -> stringResource(Res.string.exercise_detail_title)
+        else -> name ?: stringResource(Res.string.exercise_unnamed)
+    }
+    AppScreen(
+        title = title,
+        modifier = modifier,
+        onBack = onClose,
+        actions = manageActions(loaded, title, actions),
+        footer = if (selectMode && loaded != null) {
+            {
+                PrimaryButton(
+                    text = stringResource(Res.string.exercise_detail_select),
+                    onClick = onSelect,
+                    modifier = Modifier.fillMaxWidth().testTag("exercise_detail_select_button"),
+                )
+            }
+        } else {
+            null
+        },
+        maxContentWidth = ExerciseLayoutDefaults.ContentMaxWidth,
+        testTagPrefix = "exercise_detail",
+    ) {
+        Box(Modifier.fillMaxSize().testTag("exercise_detail_screen"), contentAlignment = Alignment.TopCenter) {
             when (state) {
                 ExerciseDetailUiState.Loading -> DetailLoading()
 
@@ -194,26 +225,52 @@ fun ExerciseDetailScreen(
                     }
 
                 is ExerciseDetailUiState.Loaded -> {
-                    Box(Modifier.fillMaxSize()) {
-                        DetailContent(state, today, onOpenProgress, actions)
-                    }
-                    ManageOverlays(state, actions)
+                    DetailContent(state, today, onOpenProgress, actions)
+                    state.editForm?.let { EditExerciseSheet(it, state.isOnline, actions.toFormActions()) }
                 }
             }
         }
-        if (selectMode && state is ExerciseDetailUiState.Loaded) {
-            PrimaryButton(
-                text = stringResource(Res.string.exercise_detail_select),
-                onClick = onSelect,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
-                    .testTag("exercise_detail_select_button"),
-            )
-        }
     }
 }
+
+/** Edit and delete for a manual exercise, disabled (keeping their descriptions) offline or while deleting. */
+@Composable
+private fun manageActions(
+    loaded: ExerciseDetailUiState.Loaded?,
+    title: String,
+    actions: ExerciseDetailActions,
+): List<AppTopBarAction> {
+    val editDescription = stringResource(Res.string.exercise_detail_edit_cd, title)
+    val deleteDescription = stringResource(Res.string.exercise_detail_delete_cd, title)
+    if (loaded == null || !loaded.canManage) return emptyList()
+    val enabled = loaded.isOnline && !loaded.isDeleting
+    return listOf(
+        AppTopBarAction(
+            Res.drawable.ic_edit,
+            editDescription,
+            actions.onOpenEdit,
+            testTag = "exercise_detail_edit",
+            enabled = enabled,
+        ),
+        AppTopBarAction(
+            Res.drawable.ic_delete,
+            deleteDescription,
+            actions.onDelete,
+            testTag = "exercise_detail_delete",
+            enabled = enabled,
+        ),
+    )
+}
+
+private fun ExerciseDetailActions.toFormActions() = ExerciseFormActions(
+    onName = onEditName,
+    onMuscleGroup = onEditMuscleGroup,
+    onEquipment = onEditEquipment,
+    onPerHand = onEditPerHand,
+    onMetricType = {},
+    onSubmit = onSubmitEdit,
+    onDismiss = onDismissEdit,
+)
 
 @Composable
 private fun DetailLoading() {
@@ -227,85 +284,6 @@ private fun DetailLoading() {
 }
 
 private const val NAME_FRACTION = 0.6f
-
-/** "Editar" and "Eliminar" icon buttons (48 dp each) in the exercise name row; manual exercises only. */
-@Composable
-private fun ManageActions(actions: ExerciseDetailActions) {
-    Row {
-        AppIconButton(
-            contentDescription = stringResource(Res.string.exercise_detail_edit_cd),
-            icon = Res.drawable.ic_edit,
-            testTag = "exercise_detail_edit",
-            onClick = actions.onOpenEdit,
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.exercise_detail_delete_cd),
-            icon = Res.drawable.ic_delete,
-            testTag = "exercise_detail_delete",
-            onClick = actions.onOpenDelete,
-            tint = AppTheme.colors.error,
-        )
-    }
-}
-
-/** The edit sheet, the delete confirmation and the "en uso" snackbar of a manual exercise. */
-@Composable
-private fun ManageOverlays(state: ExerciseDetailUiState.Loaded, actions: ExerciseDetailActions) {
-    state.editForm?.let { form ->
-        EditExerciseSheet(
-            form = form,
-            actions = ExerciseFormActions(
-                onName = actions.onEditName,
-                onMuscleGroup = actions.onEditMuscleGroup,
-                onEquipment = actions.onEditEquipment,
-                onPerHand = actions.onEditPerHand,
-                onMetricType = {},
-                onSubmit = actions.onSubmitEdit,
-                onDismiss = actions.onDismissEdit,
-            ),
-        )
-    }
-    state.deleteDialog?.let { dialog ->
-        AppConfirmDialog(
-            title = stringResource(Res.string.exercise_delete_title),
-            message = if (dialog.hasError) {
-                stringResource(Res.string.exercise_delete_error)
-            } else {
-                stringResource(Res.string.exercise_delete_message, state.detail.name)
-            },
-            confirmLabel = stringResource(
-                if (dialog.isDeleting) Res.string.exercise_delete_deleting else Res.string.exercise_delete_confirm,
-            ),
-            cancelLabel = stringResource(Res.string.exercise_delete_cancel),
-            onConfirm = actions.onConfirmDelete,
-            onDismiss = actions.onDismissDelete,
-            testTagPrefix = "exercise_detail_delete",
-        )
-    }
-    state.inUse?.let { inUse -> InUseMessage(inUse, actions.onDismissInUse) }
-}
-
-@Composable
-private fun InUseMessage(inUse: AppError.InUse, onDismiss: () -> Unit) {
-    val message = stringResource(
-        Res.string.exercise_in_use_message,
-        pluralStringResource(Res.plurals.exercise_in_use_sets, inUse.sets, inUse.sets),
-        pluralStringResource(Res.plurals.exercise_in_use_routines, inUse.routines, inUse.routines),
-    )
-    val host = remember { SnackbarHostState() }
-    val currentDismiss by rememberUpdatedState(onDismiss)
-    LaunchedEffect(inUse) {
-        host.showSnackbar(message)
-        currentDismiss()
-    }
-    Box(Modifier.fillMaxSize().padding(Spacing.screenMargin), contentAlignment = Alignment.BottomCenter) {
-        SnackbarHost(host) { data ->
-            Snackbar {
-                Text(data.visuals.message, Modifier.testTag("exercise_detail_in_use_message"))
-            }
-        }
-    }
-}
 
 @Composable
 private fun DetailContent(
@@ -330,6 +308,15 @@ private fun DetailContent(
                     max = ExerciseLayoutDefaults.ContentMaxWidth,
                 ).testTag("exercise_detail_tabs"),
             )
+            if (state.canManage && !state.isOnline) {
+                OfflineHint(
+                    action = stringResource(Res.string.action_delete).lowercase(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
+                        .testTag("exercise_detail_offline_hint"),
+                )
+            }
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 when (state.tab) {
                     ExerciseDetailTab.Summary -> ExerciseSummaryTab(
@@ -341,11 +328,6 @@ private fun DetailContent(
                         onRetryRecords = actions.onRetryRecords,
                         modifier = Modifier.fillMaxSize(),
                         scrollState = summaryScroll,
-                        nameActions = if (state.canManage) {
-                            { ManageActions(actions) }
-                        } else {
-                            null
-                        },
                     )
 
                     ExerciseDetailTab.History -> ExerciseHistoryTab(

@@ -1,7 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,44 +11,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_attribution
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_button
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_deleted
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_catalog
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_results
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_results_filters
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_filter_all
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_offline_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_row_subtitle
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppSearchField
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -58,17 +48,17 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
-import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnailDefaults
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
-import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -82,69 +72,72 @@ fun ExercisePickerRoot(
     onOpenDetail: (String) -> Unit,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
     viewModel: ExercisePickerViewModel = koinViewModel(parameters = { parametersOf(selectMode) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOpenDetail by rememberUpdatedState(onOpenDetail)
     val currentSelect by rememberUpdatedState(onSelect)
+    val messages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is ExercisePickerEffect.OpenDetail -> currentOpenDetail(effect.exerciseId)
+
                 is ExercisePickerEffect.Selected -> currentSelect(effect.exerciseId)
+
+                ExercisePickerEffect.CreateFailed -> {
+                    haptics.reject()
+                    messages.show(getString(Res.string.exercise_save_failed))
+                }
             }
         }
     }
-    val deleted by ExerciseDeletedNotice.pending.collectAsStateWithLifecycle()
+    // Reloads after an edit or a delete made in the detail (the session cache was invalidated).
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
         onPauseOrDispose {}
     }
-    val snackbarHost = remember { SnackbarHostState() }
-    val deletedMessage = stringResource(Res.string.exercise_deleted)
-    LaunchedEffect(deleted) {
-        if (deleted) {
-            ExerciseDeletedNotice.consume()
-            snackbarHost.showSnackbar(deletedMessage)
-        }
-    }
-    Box(modifier.fillMaxSize()) {
-        ExercisePickerScreen(state, viewModel::onEvent, Modifier)
-        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(Spacing.screenMargin)) { data ->
-            Snackbar { Text(data.visuals.message, Modifier.testTag("exercise_picker_deleted_message")) }
-        }
-    }
+    ExercisePickerScreen(state, viewModel::onEvent, modifier, onBack, selectMode)
 }
 
 /**
- * Exercise picker (US-09): search field and two filter chip rows on top, the list in the middle and, pinned at the
- * bottom, "Crear ejercicio" plus the RepDB attribution. From 600 dp the list has two columns in a centred, capped
- * column.
+ * Exercise picker (US-09) on [AppScreen]: search field and two filter chip rows on top, then the list. In
+ * [selectMode] a row selects the exercise and its thumbnail opens the detail (R-17); otherwise the row opens the
+ * detail. "Añadir ejercicio propio" and the RepDB attribution end the list. From 600 dp the list has two columns in a
+ * centred, capped column.
  */
 @Composable
 fun ExercisePickerScreen(
     state: ExercisePickerUiState,
     onEvent: (ExercisePickerEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
+    selectMode: Boolean = false,
 ) {
-    BoxWithConstraints(
-        modifier.fillMaxSize().testTag("exercise_picker_screen"),
-        contentAlignment = Alignment.TopCenter,
+    AppScreen(
+        title = stringResource(Res.string.exercise_picker_title),
+        modifier = modifier,
+        onBack = onBack,
+        maxContentWidth = ExerciseLayoutDefaults.ContentMaxWidth,
+        testTagPrefix = "exercise_picker",
     ) {
-        val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
-        Column(Modifier.widthIn(max = ExerciseLayoutDefaults.ContentMaxWidth).fillMaxSize()) {
-            if (state is ExercisePickerUiState.Content) PickerFilters(state, onEvent)
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (state) {
-                    ExercisePickerUiState.Loading -> PickerLoading()
-                    ExercisePickerUiState.Error -> PickerError { onEvent(ExercisePickerEvent.Retry) }
-                    is ExercisePickerUiState.Content -> PickerList(state, wide, onEvent)
+        BoxWithConstraints(Modifier.fillMaxSize().testTag("exercise_picker_screen")) {
+            val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
+            Column(Modifier.fillMaxSize()) {
+                if (state is ExercisePickerUiState.Content) PickerFilters(state, onEvent)
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    when (state) {
+                        ExercisePickerUiState.Loading -> PickerLoading()
+                        ExercisePickerUiState.Error -> PickerError { onEvent(ExercisePickerEvent.Retry) }
+                        is ExercisePickerUiState.Content -> PickerList(state, wide, selectMode, onEvent)
+                    }
                 }
             }
-            PickerFooter(state, onEvent)
         }
     }
-    (state as? ExercisePickerUiState.Content)?.createForm?.let { CreateExerciseSheet(it, onEvent) }
+    (state as? ExercisePickerUiState.Content)?.createForm?.let { CreateExerciseSheet(it, state.isOnline, onEvent) }
 }
 
 @Composable
@@ -201,79 +194,53 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier
     )
 }
 
+/**
+ * The rows (or the empty state) followed by "Añadir ejercicio propio" and the RepDB attribution, all in one grid so
+ * the button is the last element and stays visible when a search finds nothing.
+ */
 @Composable
-private fun PickerList(state: ExercisePickerUiState.Content, wide: Boolean, onEvent: (ExercisePickerEvent) -> Unit) {
-    if (state.visible.isEmpty()) {
-        PickerEmpty(state)
-        return
-    }
+private fun PickerList(
+    state: ExercisePickerUiState.Content,
+    wide: Boolean,
+    selectMode: Boolean,
+    onEvent: (ExercisePickerEvent) -> Unit,
+) {
     val columns = if (wide) ExerciseLayoutDefaults.WIDE_COLUMNS else 1
+    val mediaUris = LocalExerciseMediaUris.current
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize().testTag("exercise_picker_list"),
-        contentPadding =
-        PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
+        contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
         horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
-        items(state.visible, key = { it.id }) { item ->
-            ExerciseRow(item) { onEvent(ExercisePickerEvent.OpenExercise(item.id)) }
+        if (state.visible.isEmpty()) {
+            fullSpanItem("empty") { PickerEmpty(state) }
+        } else {
+            items(state.visible, key = { it.id }) { item ->
+                PickerRow(item, selectMode, mediaUris, onEvent)
+            }
         }
-        item(span = { GridItemSpan(maxLineSpan) }) { Box(Modifier.size(Spacing.xs)) }
+        fullSpanItem("create") { CreateOwnExercise(state.isOnline, onEvent) }
+        fullSpanItem("attribution") {
+            Text(
+                text = stringResource(Res.string.exercise_attribution),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.fillMaxWidth().testTag("exercise_picker_attribution"),
+            )
+        }
     }
 }
 
-@Composable
-private fun ExerciseRow(item: CatalogExercise, onClick: () -> Unit) {
-    val tag = "exercise_picker_row_${item.id}"
-    val subtitle =
-        stringResource(
-            Res.string.exercise_row_subtitle,
-            stringResource(item.exercise.muscleGroup.label),
-            stringResource(item.exercise.equipment.label),
-        )
-    val key = item.exercise.key
-    Row(
-        modifier =
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = ExerciseLayoutDefaults.RowMinHeight)
-            .clip(AppShapes.md)
-            .background(AppTheme.colors.surfaceRaised)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(Spacing.sm)
-            .testTag(tag),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ExerciseThumbnail(
-            imageUri = if (item.hasMedia && key != null) LocalExerciseMediaUris.current.start(key) else null,
-            size = ExerciseThumbnailDefaults.RowSize,
-            testTagPrefix = tag,
-        )
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = item.name,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = subtitle,
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+private fun LazyGridScope.fullSpanItem(key: String, content: @Composable () -> Unit) {
+    item(key = key, span = { GridItemSpan(maxLineSpan) }) { content() }
 }
 
 @Composable
 private fun PickerEmpty(state: ExercisePickerUiState.Content) {
     val hint = stringResource(Res.string.exercise_empty_hint)
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(vertical = Spacing.xl), contentAlignment = Alignment.Center) {
         when {
             state.totalCount == 0 ->
                 EmptyState(
@@ -332,40 +299,6 @@ private fun PickerError(onRetry: () -> Unit) {
             message = stringResource(Res.string.exercise_error_message),
             action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
             testTagPrefix = "exercise_picker_error",
-        )
-    }
-}
-
-/** Pinned bottom bar: "Crear ejercicio" (with the offline reason when disabled) and the attribution. */
-@Composable
-private fun PickerFooter(state: ExercisePickerUiState, onEvent: (ExercisePickerEvent) -> Unit) {
-    val online = (state as? ExercisePickerUiState.Content)?.isOnline ?: true
-    val showCreate = state is ExercisePickerUiState.Content
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        if (showCreate) {
-            if (!online) {
-                Text(
-                    text = stringResource(Res.string.exercise_offline_hint),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("exercise_picker_offline_hint"),
-                )
-            }
-            PrimaryButton(
-                text = stringResource(Res.string.exercise_create_button),
-                onClick = { onEvent(ExercisePickerEvent.OpenCreate) },
-                enabled = online,
-                modifier = Modifier.fillMaxWidth().testTag("exercise_picker_create_button"),
-            )
-        }
-        Text(
-            text = stringResource(Res.string.exercise_attribution),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.fillMaxWidth().testTag("exercise_picker_attribution"),
         )
     }
 }
