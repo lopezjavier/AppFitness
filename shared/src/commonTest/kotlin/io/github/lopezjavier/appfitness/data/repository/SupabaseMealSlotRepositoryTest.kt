@@ -99,23 +99,24 @@ class SupabaseMealSlotRepositoryTest {
     }
 
     @Test
-    fun save_callsRpcWithSlotsInOrderWithoutViewedDay() = runTest {
+    fun saveStructure_callsRpcWithSlotsInOrderAndRemovedIds() = runTest {
         val repo = signedInRepository { "" }
 
         val result =
-            repo.save(
+            repo.saveStructure(
                 listOf(
                     MealSlotDraft("s1", MealCode.Breakfast, "Desayuno"),
                     MealSlotDraft(null, null, "Segundo desayuno"),
                     MealSlotDraft("s2", MealCode.Snack, "Merienda"),
                 ),
+                removedIds = listOf("s3", "s4"),
             )
 
         assertTrue(result.isSuccess)
         val request = requests.last()
-        assertTrue(request.url.encodedPath.endsWith("/rpc/save_meal_slots"), request.url.toString())
+        assertTrue(request.url.encodedPath.endsWith("/rpc/save_meal_structure"), request.url.toString())
         val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
-        assertTrue("p_viewed_day" !in body)
+        assertEquals(listOf("s3", "s4"), body["p_removed_ids"]!!.jsonArray.map { it.jsonPrimitive.content })
         val slots = body["p_slots"]!!.jsonArray.map { it.jsonObject }
         assertEquals(listOf("s1", null, "s2"), slots.map { it["id"]?.jsonPrimitive?.contentOrNull })
         assertEquals(
@@ -147,36 +148,40 @@ class SupabaseMealSlotRepositoryTest {
     }
 
     private suspend fun failingSave(status: HttpStatusCode, code: String): Result<Unit> =
-        failing(status, code) { it.save(listOf(MealSlotDraft("s1", null, "A"))) }
-
-    private suspend fun failingDelete(status: HttpStatusCode, code: String): Result<Unit> =
-        failing(status, code) { it.delete("s1") }
+        failing(status, code) { it.saveStructure(listOf(MealSlotDraft("s1", null, "A")), listOf("s2")) }
 
     @Test
-    fun delete_callsRpcWithTheSlotId() = runTest {
-        val repo = signedInRepository { "" }
+    fun listInUse_callsRpcAndDecodesTheIds() = runTest {
+        val repo = signedInRepository { """["s1","s3"]""" }
 
-        val result = repo.delete("s1")
+        val ids = repo.listInUse().getOrThrow()
 
-        assertTrue(result.isSuccess)
-        val request = requests.last()
-        assertTrue(request.url.encodedPath.endsWith("/rpc/delete_meal_slot"), request.url.toString())
-        val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
-        assertEquals("s1", body["p_id"]?.jsonPrimitive?.content)
+        assertTrue(requests.last().url.encodedPath.endsWith("/rpc/list_meal_slots_in_use"))
+        assertEquals(setOf("s1", "s3"), ids)
     }
 
     @Test
-    fun delete_lastMealOrWithEntries_isValidationError() = runTest {
-        assertEquals(AppError.Validation, failingDelete(HttpStatusCode.BadRequest, "23514").appErrorOrNull())
+    fun listInUse_emptyArray_isEmptySet() = runTest {
+        val repo = signedInRepository { "[]" }
+
+        assertEquals(emptySet(), repo.listInUse().getOrThrow())
     }
 
     @Test
-    fun delete_unknownSlot_isNotFound() = runTest {
-        assertEquals(AppError.NotFound, failingDelete(HttpStatusCode.BadRequest, "P0002").appErrorOrNull())
+    fun listInUse_offline_isNetworkError() = runTest {
+        var fail = false
+        val repo =
+            signedInRepository {
+                if (fail) throw IOException("offline")
+                "[]"
+            }
+        fail = true
+
+        assertEquals(AppError.Network, repo.listInUse().appErrorOrNull())
     }
 
     @Test
-    fun delete_offline_isNetworkError() = runTest {
+    fun saveStructure_offline_isNetworkError() = runTest {
         var fail = false
         val repo =
             signedInRepository {
@@ -185,26 +190,31 @@ class SupabaseMealSlotRepositoryTest {
             }
         fail = true
 
-        assertEquals(AppError.Network, repo.delete("s1").appErrorOrNull())
+        assertEquals(AppError.Network, repo.saveStructure(emptyList(), emptyList()).appErrorOrNull())
     }
 
     @Test
-    fun save_checkViolation_isValidationError() = runTest {
+    fun saveStructure_checkViolation_isValidationError() = runTest {
         assertEquals(AppError.Validation, failingSave(HttpStatusCode.BadRequest, "23514").appErrorOrNull())
     }
 
     @Test
-    fun save_invalidShape_isValidationError() = runTest {
+    fun saveStructure_invalidShape_isValidationError() = runTest {
         assertEquals(AppError.Validation, failingSave(HttpStatusCode.BadRequest, "22023").appErrorOrNull())
     }
 
     @Test
-    fun save_foreignSlot_isNotFound() = runTest {
+    fun saveStructure_duplicateName_isValidationError() = runTest {
+        assertEquals(AppError.Validation, failingSave(HttpStatusCode.Conflict, "23505").appErrorOrNull())
+    }
+
+    @Test
+    fun saveStructure_foreignSlot_isNotFound() = runTest {
         assertEquals(AppError.NotFound, failingSave(HttpStatusCode.BadRequest, "P0002").appErrorOrNull())
     }
 
     @Test
-    fun save_otherServerError_isUnknown() = runTest {
+    fun saveStructure_otherServerError_isUnknown() = runTest {
         assertEquals(AppError.Unknown, failingSave(HttpStatusCode.InternalServerError, "XX000").appErrorOrNull())
     }
 

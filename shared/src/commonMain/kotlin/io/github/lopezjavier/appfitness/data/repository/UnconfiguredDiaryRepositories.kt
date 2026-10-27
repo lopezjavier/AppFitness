@@ -72,9 +72,10 @@ class UnconfiguredMealSlotRepository : MealSlotRepository {
 
     override suspend fun listAll(): Result<List<MealSlot>> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun save(slots: List<MealSlotDraft>): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+    override suspend fun saveStructure(slots: List<MealSlotDraft>, removedIds: List<String>): Result<Unit> =
+        Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun delete(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+    override suspend fun listInUse(): Result<Set<String>> = Result.failure(AppException(AppError.Unknown))
 }
 
 /** Used when Supabase is not configured: nothing is ever emitted and every refresh fails. */
