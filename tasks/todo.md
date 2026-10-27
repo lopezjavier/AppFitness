@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-125c (Statistics migration and body map), E9 (UX rulebook + finalization → `v1.0.0`). T-125b merged (PR #280, CI green, no backend change so no deploy; Historial is the calendar with "Añadir entreno" per day, workout detail on `AppScreen` titled "<rutina> · <fecha>", editors on `AppEditorScreen`, new `WorkoutRow`). **Body-map decision (user, 2026-10-27): B1, plain polish of the existing map; no rebuild, and the RepDB muscle images are not used.** Carry-over for T-125c strings: `live_discard_message`, `stats_sessions_one`, `exercise_progress_single_value` still say "sesión"; `stats_empty_title/message` say "entrenamientos" (glossary: "entreno").
+**Next:** T-126 (Comidas del día editor and meal-structure backend), E9 (UX rulebook + finalization → `v1.0.0`). T-125c merged (PR #284, CI green, no backend change so no deploy; the four statistics routes are on `AppScreen`, `TimeRangeSelector` with 1M/3M/6M/1A/Todo, radar "Isquios" with previous-window failure hint, `MuscleDetailSheet` on `AppInfoSheet`, body map B1 polish; stats-local `ExerciseRow` logged in the E9 table, owner T-129; `OfflineState` not wired since no feature uses it). Carry-over: KDoc in `TrainingStatsSections.kt` and `TrainingStatsFormat.kt` still says "sesiones" (cosmetic).
 
 ---
 
@@ -3698,13 +3698,13 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 **Description:** "Fuerza", "Volumen", exercise progress and "Estadísticas" on `AppScreen` with `TimeRangeSelector` (SEL-1, ranges per E8 Q2 including "Todo"); radar axis label "Isquios" (item A); `MuscleDetailSheet` → archetype. **Item B:** ux-reviewer's plan pass assesses 2–3 body-map options with their complexity; **decided by the user on 2026-10-27: B1, polish the existing map only (no rebuild, no RepDB muscle images).** **Carry-over (E8 review notes):** the radar shows the current series when only the previous-window call fails; the muscle sheet does not reload the exercise lookup on each open; the 1A first monthly bucket is clamped to the window or documented. Guards become failures for `feature/workout` and `feature/analytics`.
 
 **Acceptance criteria:**
-- [ ] Ranges use one selector everywhere; the radar reads "Isquios"; a failed previous window still shows "Actual".
-- [ ] Sheets and state survive background and process death.
+- [x] Ranges use one selector everywhere; the radar reads "Isquios"; a failed previous window still shows "Actual".
+- [x] Sheets and state survive background and process death.
 
 **Host tests:** `TrainingStatsViewModelTest` (partial radar failure, cached lookup), `StrengthScreen`/`ExerciseProgressScreen` selector tests, restoration tests.
 
 **Verification:**
-- [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan; body-map options), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 18 files.
 **Dependencies:** T-125b; item B choice from the user before the task starts (options in `.workflow/current_task.md` of T-125: B1 polish, B2 licensed SVG replacement, B3 muscle bars/tiles)
