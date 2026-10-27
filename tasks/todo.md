@@ -3326,7 +3326,7 @@ Schema: new migrations only, and only where a rule needs the server: `save_meal_
 Rules for every task: `05` §8–§10 (ux-reviewer cites them by number), ADR-40 restoration tests, loading/empty/error/offline states from the templates (R-31, R-30), tabular numerals and Spanish formatting (`04` §5, `AppNumberFormat`), one vibration per action (R-29), glossary wording (R-35…R-38). Presentation only (FR-6): no new feature; the only new screens are the routine details view required by R-17 (T-124), the Preferencias section editors of the hub (D9, T-127) and "Acerca de" (US-45).
 Carry-over to mention: **T-112 cooking-fat caveat** (ADR-65): editing the amount of an entry that was already cooked keeps the fat stored when it was logged; the user reviews it at E9-A (T-121 keeps this behaviour, it does not recalculate). E8 non-blocking review notes are folded into their owning tasks (T-121, T-122, T-125).
 Questions: E9 Q1–Q3 resolved by the user on 2026-10-26 (`tasks/plan.md`, `planning/09-open-questions.md`, ADR-70); no task is blocked; everything else is decided by `planning/` or recorded as an assumption.
-Checkpoints (agreed with the user, 2026-10-26): **E9-A** after T-122 (wave 1 + Diario/food/comidas), **E9-B** after T-128 (Peso, Training, Perfil/Preferencias/meals editor + wording and motion), **E9-C** after T-129 (US-45, US-46 with TalkBack and tablet; also the final regression whose approval releases the closure T-130 and the `v1.0.0` tag).
+Checkpoints (agreed with the user, 2026-10-26): **E9-A** after T-122 (wave 1 + Diario/food/comidas), **E9-B** after T-129 (unified with the former E9-C on 2026-10-27: every domain, wording and motion, plus US-45, US-46 with TalkBack and tablet; also the final regression whose approval releases the closure T-130 and the `v1.0.0` tag).
 
 ### E9 UI-refinement table → owning task
 
@@ -3791,25 +3791,9 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 
 ---
 
-### Checkpoint E9-B — Every screen, one way 👤 (7 items + leave and come back) *(agreed)*
-Journey: weight, training, profile and settings now behave like the Diario, with one wording and moving lists. Why here: the remaining domains, wording and motion are all migrated, before US-45/US-46 build their final checks on them.
-- [ ] T-123…T-128 merged, CI green, `deploy-supabase` applied the T-124 and T-126 migrations (routines and meals intact), every reported bug fixed; `check-ux-conventions.sh` passes with no warnings.
-- [ ] 👤 Install the APK and try:
-  1. Peso (T-123): "Peso actual" and "Objetivo" are the same card type and aligned; Health Connect status and "Sincronizar" inside "Peso actual"; the calendar icon in the top bar opens the measurement history; the chart picks the metric from its title and the range from the selector, with the goal band; help opens as a sheet.
-  2. Routines (T-124): Entreno shows a compact "Rutinas" header; tap a routine → its details; ✎ → "Editar rutina", add and remove exercises (applied on "Guardar"), drag at once, leave with changes (it asks); "Eliminar" a routine (no dialog, its past workouts stay); a routine or folder with an existing name is refused; an exercise's edit/delete are in its top bar.
-  3. Live session (T-125): rest bar at the bottom; the end of rest gives the long vibration and the phone's alarm sound; one vibration per completed set; normal sets show "N"; planned values look different from typed ones; RPE help is a list.
-  4. History and statistics (T-125): Historial opens the calendar, a day shows its details with "Añadir entrenamiento"; a workout's title is its routine and date, tapping an exercise opens it; "Entreno pasado" asks before discarding; the radar reads "Isquios"; the body map follows the option you chose.
-  5. Perfil and Preferencias (T-127): the gear opens Preferencias; statistics rows show values; each section saves on its own and returns to the list; leave a section with changes (it asks); "Cerrar sesión" and "Borrar cuenta" are in "Cuenta"; no "Calorías que quemas…" text.
-  6. Comidas del día (T-126): add a meal (the name field has focus; a duplicate is refused), rename, reorder, remove one (nothing changes until "Guardar"), a meal in use cannot be removed; "Comidas por defecto ›" is blocked while you have changes.
-  7. Wording and motion (T-128): the same action reads the same everywhere ("Guardar", "Eliminar", "Quitar", "Descartar"); lists animate when you add, delete or reorder; long-press an icon to see its name; onboarding (with a second Google account, optional) slides between steps and shows "Sexo" as two cards.
-  - Leave the app and come back in a Preferencias section with unsaved changes, the routine builder mid-edit and a live session resting: the same tab, screen and draft are restored.
-  - Out of scope: "Acerca de" and licences, TalkBack, font scaling and tablet (E9-C).
-
----
-
 ## T-129: Version 1.0 quality: About and licences, states, accessibility and tablet · L
 
-**Story:** US-45 + US-46 · **Flow:** UI + core · **Size:** L (merged on 2026-10-26: "Acerca de" S + polish sweep L; both are the E9-C journey) · **Scenarios:** Opening the screen; Third-party credits; Open-source licences (US-45) · Empty and error states on every screen; Accessibility; Font scaling; Tablet; Rotation and configuration changes (US-46)
+**Story:** US-45 + US-46 · **Flow:** UI + core · **Size:** L (merged on 2026-10-26: "Acerca de" S + polish sweep L; both are the E9-B journey) · **Scenarios:** Opening the screen; Third-party credits; Open-source licences (US-45) · Empty and error states on every screen; Accessibility; Font scaling; Tablet; Rotation and configuration changes (US-46)
 
 **Description:** **Part A, US-45.** Perfil root → `NavigationRow` "Acerca de" (entry point decided in the epic) opens an `AppScreen` "Acerca de" (settings layout, `05` §6.2): app name and version/build (from `BuildConfig` `versionName`/`versionCode` + flavor); credits read from a single `credits` resource ("Datos de ejercicios por RepDB (repdb.co)", the Open Food Facts credit, the Google Gemini credit for the photo estimates); a `NavigationRow` "Licencias de código abierto" that opens the licences of the bundled libraries through the `oss-licenses-plugin` (`play-services-oss-licenses`, stable versions only). The app's own licence stays repo-only (ADR-13). Exact Spanish copy of the credits by ux-reviewer. Built first, so "Acerca de" is part of the sweep below.
 
@@ -3826,30 +3810,37 @@ Journey: weight, training, profile and settings now behave like the Diario, with
 - [ ] Rotating while typing a quantity in `FoodSheet` or a set in the live session keeps the text.
 - [ ] The PR body holds the §7 security checklist and the performance notes.
 
-**Host tests:** `AboutScreen` tests (version text from a fake build info, three credits, licences row action), `ProfileRootScreen` row test, a unit test that the `credits` resource holds the three entries; per-screen state tests, an accessibility sweep test over the main screens, font-scale tests, wide-window layout tests, `StateRestorationTester`/configuration-change tests for the typed quantity and set; manual: TalkBack walk, Accessibility Scanner, tablet and cold start at E9-C.
+**Host tests:** `AboutScreen` tests (version text from a fake build info, three credits, licences row action), `ProfileRootScreen` row test, a unit test that the `credits` resource holds the three entries; per-screen state tests, an accessibility sweep test over the main screens, font-scale tests, wide-window layout tests, `StateRestorationTester`/configuration-change tests for the typed quantity and set; manual: TalkBack walk, Accessibility Scanner, tablet and cold start at E9-B.
 
 **Verification:**
 - [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` + `:androidApp:assembleProdDebug` green (the licences plugin task runs).
 
-**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer (two runs: part A, then part B), pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 35 files, mostly tests (size note: fixes found by the sweep stay in this PR if small; a large one becomes a `fix(T-###)` task before E9-C).
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer (two runs: part A, then part B), pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 35 files, mostly tests (size note: fixes found by the sweep stay in this PR if small; a large one becomes a `fix(T-###)` task before E9-B).
 **Dependencies:** T-128
 **Files likely touched:** part A: `gradle/libs.versions.toml`, `androidApp/build.gradle.kts` (plugin), new `composeApp/…/feature/about/{AboutScreen,AboutViewModel}.kt`, a platform build-info/licences launcher (`androidMain`), `feature/profile/ProfileRootScreen.kt`, `app/{AppRoutes,AppNavHost}.kt`, `credits` resource, strings; part B: screens in every `feature/*` (state and layout fixes), `designsystem/{AppScreen,MetricCard,ProgressRing}.kt` (font-scale fixes), host tests per screen, `planning/05-design-system.md` §5/§7 if a rule is clarified
 **Estimated scope:** L
 
 ---
 
-### Checkpoint E9-C — Version 1.0 on your phone and tablet 👤 (7 items + leave and come back) *(agreed)*
-Journey: the finished app: credits, accessibility, every state, font size and the tablet, plus a final regression of a whole day of use. Why here: right after T-129, the last implementation task, so it is also the final regression of E9 and of Phase 1; its approval releases the closure T-130 and the `v1.0.0` tag.
-- [ ] T-129 merged (and any fix tasks), CI green, every reported bug fixed.
+### Checkpoint E9-B — Version 1.0 on your phone and tablet 👤 (14 items + leave and come back) *(agreed; E9-B and E9-C unified on 2026-10-27)*
+Journey: the finished app: every screen one way (Peso, training, Perfil and Preferencias, comidas, wording and motion), then credits, accessibility, every state, font size and the tablet, plus a final regression of a whole day of use. Why here: right after T-129, the last implementation task, so it is also the final regression of E9 and of Phase 1; its approval releases the closure T-130 and the `v1.0.0` tag.
+- [ ] T-123…T-129 merged (and any fix tasks), CI green, `deploy-supabase` applied the T-124 and T-126 migrations (routines and meals intact), every reported bug fixed; `check-ux-conventions.sh` passes with no warnings.
 - [ ] 👤 Install the APK on the phone and the tablet and try:
-  1. "Acerca de" (T-129): Perfil → "Acerca de": app name and version/build; scroll: "Datos de ejercicios por RepDB (repdb.co)", the Open Food Facts and the Google Gemini credits.
-  2. Licences (T-129): "Licencias de código abierto" lists the bundled libraries and opens each licence.
-  3. States (T-129): with airplane mode and with an empty day or frame, walk Diario, search, comidas, Peso, Entreno, Historial, "Estadísticas" and Perfil: each shows its empty, error with "Reintentar" or offline state, never a blank screen; reconnect: it reloads.
-  4. TalkBack (T-129): with TalkBack on (and the Accessibility Scanner if you have it), walk the main screens: every button and icon is announced with its name, rings and bars read their value, swipe-delete and reorder offer their actions.
-  5. Font size (T-129): system font at 130 %: kcal, weight, kg, reps and the timer are fully readable on Diario, Peso, the live session and "Estadísticas".
-  6. Tablet (T-129): in landscape, Diario, Peso, "Estadísticas" and the live session show two columns with nothing stretched across the whole width; rotate while typing a quantity or a set: the text stays.
-  7. Final regression (E9): one full day on the phone: log breakfast with a saved comida and a cooked food, run a workout with a warm-up and a record, log your weight, check "Estadísticas"; cold start feels under 2 s and the live session stays smooth.
-  - Leave the app and come back on the tablet with a food sheet open and on the phone during a live session: the same tab, screen and draft are restored.
+  1. Peso (T-123): "Peso actual" and "Objetivo" are the same card type and aligned; Health Connect status and "Sincronizar" inside "Peso actual"; the calendar icon in the top bar opens the measurement history; the chart picks the metric from its title and the range from the selector, with the goal band; help opens as a sheet.
+  2. Routines (T-124): Entreno shows a compact "Rutinas" header; tap a routine → its details; ✎ → "Editar rutina", add and remove exercises (applied on "Guardar"), drag at once, leave with changes (it asks); "Eliminar" a routine (no dialog, its past workouts stay); a routine or folder with an existing name is refused; an exercise's edit/delete are in its top bar.
+  3. Live session (T-125): rest bar at the bottom; the end of rest gives the long vibration and the phone's alarm sound; one vibration per completed set; normal sets show "N"; planned values look different from typed ones; RPE help is a list.
+  4. History and statistics (T-125): Historial opens the calendar, a day shows its details with "Añadir entrenamiento"; a workout's title is its routine and date, tapping an exercise opens it; "Entreno pasado" asks before discarding; the radar reads "Isquios"; the body map follows the option you chose.
+  5. Perfil and Preferencias (T-127): the gear opens Preferencias; statistics rows show values; each section saves on its own and returns to the list; leave a section with changes (it asks); "Cerrar sesión" and "Borrar cuenta" are in "Cuenta"; no "Calorías que quemas…" text.
+  6. Comidas del día (T-126): add a meal (the name field has focus; a duplicate is refused), rename, reorder, remove one (nothing changes until "Guardar"), a meal in use cannot be removed; "Comidas por defecto ›" is blocked while you have changes.
+  7. Wording and motion (T-128): the same action reads the same everywhere ("Guardar", "Eliminar", "Quitar", "Descartar"); lists animate when you add, delete or reorder; long-press an icon to see its name; onboarding (with a second Google account, optional) slides between steps and shows "Sexo" as two cards.
+  8. "Acerca de" (T-129): Perfil → "Acerca de": app name and version/build; scroll: "Datos de ejercicios por RepDB (repdb.co)", the Open Food Facts and the Google Gemini credits.
+  9. Licences (T-129): "Licencias de código abierto" lists the bundled libraries and opens each licence.
+  10. States (T-129): with airplane mode and with an empty day or frame, walk Diario, search, comidas, Peso, Entreno, Historial, "Estadísticas" and Perfil: each shows its empty, error with "Reintentar" or offline state, never a blank screen; reconnect: it reloads.
+  11. TalkBack (T-129): with TalkBack on (and the Accessibility Scanner if you have it), walk the main screens: every button and icon is announced with its name, rings and bars read their value, swipe-delete and reorder offer their actions.
+  12. Font size (T-129): system font at 130 %: kcal, weight, kg, reps and the timer are fully readable on Diario, Peso, the live session and "Estadísticas".
+  13. Tablet (T-129): in landscape, Diario, Peso, "Estadísticas" and the live session show two columns with nothing stretched across the whole width; rotate while typing a quantity or a set: the text stays.
+  14. Final regression (E9): one full day on the phone: log breakfast with a saved comida and a cooked food, run a workout with a warm-up and a record, log your weight, check "Estadísticas"; cold start feels under 2 s and the live session stays smooth.
+  - Leave the app and come back in a Preferencias section with unsaved changes, the routine builder mid-edit and a live session resting (phone), and with a food sheet open (tablet): the same tab, screen and draft are restored.
   - Out of scope: Phase 2 items (AI assistant, adaptive calories, reports, check-ins; ADR-66), a signed release build (ADR-67), typography and colour changes.
 
 ---
@@ -3858,20 +3849,20 @@ Journey: the finished app: credits, accessibility, every state, font size and th
 
 **Story:** E9 Definition of Done · **Flow:** PM
 
-**Description:** Closes E9 and Phase 1 once Checkpoint E9-C is approved: tag `v1.0.0`, the Phase 1 GitHub Release (notes only, no APK; ADR-67), the retrospective. No 👤 checkpoint here.
+**Description:** Closes E9 and Phase 1 once Checkpoint E9-B is approved: tag `v1.0.0`, the Phase 1 GitHub Release (notes only, no APK; ADR-67), the retrospective. No 👤 checkpoint here.
 
 **Acceptance criteria:**
 - [ ] T-118…T-129 (and any fix tasks) merged with green CI; `deploy-supabase` green after the last migration.
 - [ ] Every E9 UI-refinement item applied or explicitly out of scope (item 3); `check-ux-conventions.sh` passes in CI with every guard a failure.
 - [ ] ux-reviewer ran in plan and diff mode on every E9 UI task (ADR-69 DoD).
 - [ ] The §7 security checklist documented in T-129's PR; "Acerca de" with version/build, the three credits and the OSS licences.
-- [ ] Checkpoint E9-C approved (phone and tablet, positive feedback); every bug fixed; the T-112 caveat was presented at E9-A.
+- [ ] Checkpoint E9-B approved (phone and tablet, positive feedback); every bug fixed; the T-112 caveat was presented at E9-A.
 - [ ] `tasks/todo.md` (E9 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
 - [ ] `git tag` lists `v1.0.0`; `gh release view v1.0.0` shows the notes without assets.
 
-**Dependencies:** T-129 (and Checkpoint E9-C approved)
+**Dependencies:** T-129 (and Checkpoint E9-B approved)
 **Files likely touched:** `tasks/todo.md`, `tasks/plan.md`, `retrospectives/E9.md`
 **Estimated scope:** S
 
