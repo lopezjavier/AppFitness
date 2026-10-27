@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_attribution
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_catalog
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_hint
@@ -38,7 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_placeholder
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppSearchField
@@ -55,6 +55,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -218,7 +219,7 @@ private fun PickerList(
             fullSpanItem("empty") { PickerEmpty(state) }
         } else {
             items(state.visible, key = { it.id }) { item ->
-                PickerRow(item, selectMode, mediaUris, onEvent)
+                PickerRow(item, selectMode, mediaUris, onEvent, appAnimateItem())
             }
         }
         fullSpanItem("create") { CreateOwnExercise(state.isOnline, onEvent) }
@@ -297,7 +298,7 @@ private fun PickerError(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.exercise_error_message),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "exercise_picker_error",
         )
     }

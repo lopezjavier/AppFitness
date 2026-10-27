@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_error
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_rpe
@@ -35,7 +36,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_se
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_set_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_load_more_error
 import io.github.lopezjavier.appfitness.composeapp.resources.history_loading_more
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -48,6 +48,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.feature.workout.PersonalRecordPills
 import io.github.lopezjavier.appfitness.feature.workout.sessionDateLabel
@@ -86,7 +87,7 @@ internal fun ExerciseHistoryTab(
                 HistoryState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.exercise_history_error),
-                        action = AppStateAction(stringResource(Res.string.state_retry), actions.onRetryHistory),
+                        action = AppStateAction(stringResource(Res.string.action_retry), actions.onRetryHistory),
                         testTagPrefix = "exercise_history_error",
                     )
                 }
@@ -128,7 +129,7 @@ private fun HistoryList(
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         itemsIndexed(state.rows, key = { _, row -> row.sessionId }) { position, row ->
-            HistoryRowCard(row, position, today)
+            HistoryRowCard(row, position, today, modifier = appAnimateItem())
         }
         if (state.loadingMore) item(key = "loading_more") { LoadingMore() }
         if (state.pageError) item(key = "page_error") { PageError(actions.onRetryHistoryPage) }
@@ -136,10 +137,10 @@ private fun HistoryList(
 }
 
 @Composable
-private fun HistoryRowCard(row: ExerciseHistoryRow, position: Int, today: LocalDate) {
+private fun HistoryRowCard(row: ExerciseHistoryRow, position: Int, today: LocalDate, modifier: Modifier = Modifier) {
     val date = sessionDateLabel(sessionLocalDate(row.startedAt), today).text()
     AppCard(
-        Modifier.fillMaxWidth().testTag("exercise_history_session_${row.sessionId}")
+        modifier.fillMaxWidth().testTag("exercise_history_session_${row.sessionId}")
             .semantics(mergeDescendants = true) {},
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -214,7 +215,7 @@ private fun PageError(onRetry: () -> Unit) {
             color = AppTheme.colors.textSecondary,
         )
         GhostButton(
-            text = stringResource(Res.string.state_retry),
+            text = stringResource(Res.string.action_retry),
             onClick = onRetry,
             modifier = Modifier.testTag("exercise_history_page_retry"),
         )

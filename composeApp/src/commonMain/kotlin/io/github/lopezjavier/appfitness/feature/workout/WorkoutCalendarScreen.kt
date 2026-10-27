@@ -22,12 +22,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_view_month
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_view_year
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_view_years
 import io.github.lopezjavier.appfitness.composeapp.resources.history_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -111,7 +111,7 @@ fun WorkoutCalendarScreen(
                 WorkoutCalendarUiState.Error -> Centered {
                     ErrorState(
                         message = stringResource(Res.string.calendar_error),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
                             onEvent(WorkoutCalendarEvent.Retry)
                         },
                         testTagPrefix = "calendar_error",

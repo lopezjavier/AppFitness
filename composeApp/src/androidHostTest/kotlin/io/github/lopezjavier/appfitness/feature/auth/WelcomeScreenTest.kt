@@ -87,7 +87,7 @@ class WelcomeScreenTest {
     @Test
     fun noNetworkError_showsMessageOnly_andTheGoogleButtonRetries() {
         show(WelcomeUiState(error = WelcomeError.NoNetwork))
-        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede iniciar sesión.").assertExists()
         rule.onAllNodesWithText("Reintentar").assertCountEquals(0)
         rule.onNodeWithTag("welcome_google_button").assertIsEnabled().performClick()
         assertTrue(events == listOf(WelcomeEvent.ContinueWithGoogle))
@@ -96,7 +96,7 @@ class WelcomeScreenTest {
     @Test
     fun genericError_showsItsOwnMessage() {
         show(WelcomeUiState(error = WelcomeError.Generic))
-        rule.onNodeWithText("No se pudo iniciar sesión. Inténtalo de nuevo").assertExists()
+        rule.onNodeWithText("No se pudo iniciar sesión. Inténtalo de nuevo.").assertExists()
     }
 
     @Test

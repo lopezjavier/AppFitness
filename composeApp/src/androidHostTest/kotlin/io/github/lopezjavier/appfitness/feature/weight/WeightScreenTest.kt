@@ -243,7 +243,7 @@ class WeightScreenTest {
 
         assertEquals("73,9", rule.onNodeWithTag("weight_sheet_weight_input").text())
         rule.onNodeWithTag("weight_sheet_delete").assertExists()
-        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 21 oct")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 21 de octubre")
         type("weight_sheet_weight_input", "73,5")
         tap("weight_day_sheet_commit")
         assertEquals(
@@ -262,7 +262,7 @@ class WeightScreenTest {
         showHistory(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("month_calendar_day_$Yesterday")
-        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 20 oct")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 20 de octubre")
         assertNoTimeFields()
         type("weight_sheet_weight_input", "74,0")
         tap("weight_day_sheet_commit")
@@ -276,7 +276,7 @@ class WeightScreenTest {
         showHistory(manual("a", "2026-10-18T07:30:00Z", 74.2))
 
         tap("month_calendar_day_2026-10-18")
-        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 18 oct")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 18 de octubre")
         assertNoTimeFields()
         type("weight_sheet_weight_input", "73,8")
         tap("weight_day_sheet_commit")

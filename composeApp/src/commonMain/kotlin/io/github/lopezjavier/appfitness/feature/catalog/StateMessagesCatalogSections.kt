@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_action_row_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_action_row_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_empty_action
@@ -29,7 +30,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_off
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_state_messages
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_action_count
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.ActionRow
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -84,7 +84,7 @@ private fun StateMessagesSection() {
     var count by rememberSaveable { mutableIntStateOf(0) }
     val onAction: () -> Unit = remember { { count++ } }
     val addLabel = stringResource(Res.string.catalog_empty_action)
-    val retryLabel = stringResource(Res.string.state_retry)
+    val retryLabel = stringResource(Res.string.action_retry)
     val addAction = remember(addLabel, onAction) { AppStateAction(addLabel, onAction) }
     val retryAction = remember(retryLabel, onAction) { AppStateAction(retryLabel, onAction) }
     val secondaryLabel = stringResource(Res.string.catalog_error_secondary)

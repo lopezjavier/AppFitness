@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_group_none
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.RoutineGroup
 import io.github.lopezjavier.appfitness.domain.usecase.moveWithinGroup
 import org.jetbrains.compose.resources.stringResource
@@ -34,7 +35,10 @@ internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent
         val folder = group.folder
         if (folder == null && group.routines.isEmpty()) return@forEach
         item(key = folder?.id?.let { "group_$it" } ?: NO_FOLDER_KEY) {
-            Column(Modifier.padding(bottom = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+            Column(
+                appAnimateItem().padding(bottom = Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+            ) {
                 val expanded = folder == null || folder.id !in state.collapsedFolderIds
                 when {
                     folder != null -> FolderHeader(

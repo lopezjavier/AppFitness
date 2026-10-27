@@ -36,7 +36,7 @@ class AppDatePickerDialogTest {
                     selected = selected,
                     onConfirm = { confirmed = it },
                     onDismiss = { dismissed++ },
-                    confirmLabel = "Aceptar",
+                    confirmLabel = "Listo",
                     dismissLabel = "Cancelar",
                     maxDate = maxDate,
                     testTagPrefix = "picker",

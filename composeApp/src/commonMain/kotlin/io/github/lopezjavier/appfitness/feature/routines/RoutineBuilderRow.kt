@@ -36,7 +36,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_group_next
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_header_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_down
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_up
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_reorder_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
@@ -353,7 +352,7 @@ internal fun BuilderRowMenu(
     val ungroup = stringResource(Res.string.builder_ungroup)
     val warmUp = stringResource(Res.string.live_exercise_menu_warm_up_calc)
     val plates = stringResource(Res.string.live_exercise_menu_plate_calc)
-    val remove = stringResource(Res.string.builder_remove)
+    val remove = stringResource(Res.string.action_remove)
     val actions = buildList {
         if (row.canMoveUp) {
             add(AppSheetAction(Res.drawable.ic_arrow_upward, moveUp) { onEvent(RoutineBuilderEvent.MoveUp(index)) })

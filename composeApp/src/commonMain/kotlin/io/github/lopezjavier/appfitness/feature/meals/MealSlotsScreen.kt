@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_add_object
@@ -29,7 +30,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.meals_save_rejected
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_sheet_title_create
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_sheet_title_rename
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -198,7 +198,7 @@ private fun MealsLoadError(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.meals_load_error),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "meals_error",
         )
     }

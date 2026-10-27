@@ -2,8 +2,11 @@ package io.github.lopezjavier.appfitness.feature.biometrics
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
@@ -49,9 +52,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.wheel_month_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_decimal_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_kg_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_year_cd
-import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SelectableCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WheelPicker
@@ -76,18 +77,41 @@ private const val YEAR_WHEEL_WEIGHT = 1.4f
  * own tag namespace (`onboarding_sex_male`, `profile_sex_male`, ...).
  */
 
+/**
+ * Sex as two equal cards side by side (label only, `selected` semantics, no preselection). Tags:
+ * `<tagPrefix>_sex_male|female`.
+ */
 @Composable
 internal fun SexSelector(sex: Sex?, onSelect: (Sex) -> Unit, tagPrefix: String, modifier: Modifier = Modifier) {
-    val options =
-        listOf(
-            AppOption(stringResource(Res.string.onboarding_sex_male), "${tagPrefix}_sex_male"),
-            AppOption(stringResource(Res.string.onboarding_sex_female), "${tagPrefix}_sex_female"),
-        )
-    SegmentedSelector(
-        options = options,
-        selectedIndex = sex?.ordinal,
-        onSelect = { onSelect(Sex.entries[it]) },
-        modifier = modifier,
+    Row(
+        modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+    ) {
+        Sex.entries.forEach { option ->
+            SexCard(
+                label = if (option == Sex.Male) Res.string.onboarding_sex_male else Res.string.onboarding_sex_female,
+                selected = sex == option,
+                onClick = { onSelect(option) },
+                tag = "${tagPrefix}_sex_${option.name.lowercase()}",
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SexCard(
+    label: StringResource,
+    selected: Boolean,
+    onClick: () -> Unit,
+    tag: String,
+    modifier: Modifier = Modifier,
+) {
+    SelectableCard(
+        title = stringResource(label),
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier.fillMaxHeight().testTag(tag),
     )
 }
 

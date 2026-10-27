@@ -23,9 +23,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.weekly_rate_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_action
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail_close
@@ -94,7 +94,7 @@ fun WeightChart(state: WeightTrendUiState, onEvent: (WeightTrendEvent) -> Unit, 
 
                 WeightTrendUiState.Error -> ErrorState(
                     message = stringResource(Res.string.weight_trend_error_message),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) {
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
                         onEvent(WeightTrendEvent.Retry)
                     },
                     modifier = Modifier.fillMaxWidth(),

@@ -174,7 +174,7 @@ class AccountScreenTest {
         show(effects = effects)
         effects.trySend(AccountEffect.DeleteFailed(offline = false))
         rule.waitForIdle()
-        assertEquals(listOf("No se pudo borrar la cuenta. Inténtalo de nuevo"), messages.shown)
+        assertEquals(listOf("No se pudo borrar la cuenta. Inténtalo de nuevo."), messages.shown)
     }
 
     @Test

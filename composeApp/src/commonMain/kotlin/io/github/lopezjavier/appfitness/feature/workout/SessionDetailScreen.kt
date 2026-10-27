@@ -28,6 +28,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_bookmark_add
@@ -35,8 +38,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.save_as_routine_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_delete_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_edit_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_error
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_fallback_title
@@ -44,7 +45,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_no_s
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_routine_saved
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_save_as_routine_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_volume_label
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -64,6 +64,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -170,14 +171,14 @@ private fun detailActions(
     return listOf(
         AppTopBarAction(
             Res.drawable.ic_edit,
-            stringResource(Res.string.session_detail_edit_cd),
+            stringResource(Res.string.action_edit),
             onEdit,
             testTag = "${TAG}_edit",
             enabled = enabled,
         ),
         AppTopBarAction(
             Res.drawable.ic_delete,
-            stringResource(Res.string.session_detail_delete_cd),
+            stringResource(Res.string.action_delete),
             { onEvent(SessionDetailEvent.Delete) },
             testTag = "${TAG}_delete",
             enabled = enabled,
@@ -211,7 +212,7 @@ private fun DetailContent(state: SessionDetailUiState.Content, onOpenExercise: (
             )
         }
         items(state.exercises, key = { it.position }) { exercise ->
-            ExerciseBlock(exercise) { onOpenExercise(exercise.exerciseId) }
+            ExerciseBlock(exercise, { onOpenExercise(exercise.exerciseId) }, appAnimateItem())
         }
     }
 }
@@ -252,8 +253,8 @@ private fun StatRow(label: String, value: String, tag: String) {
 }
 
 @Composable
-private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit) {
-    AppCard(Modifier.fillMaxWidth()) {
+private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    AppCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             ExerciseRow(
                 name = exercise.name ?: stringResource(Res.string.exercise_unnamed),
@@ -319,7 +320,7 @@ private fun DetailError(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.session_detail_error),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "session_detail_error",
         )
     }

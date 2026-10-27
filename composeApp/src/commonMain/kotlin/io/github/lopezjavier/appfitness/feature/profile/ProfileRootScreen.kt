@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
@@ -36,7 +37,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_training_st
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -110,7 +110,7 @@ fun ProfileRootScreen(
                 ProfileRootUiState.LoadFailed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.root_error_message),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
                             onEvent(ProfileRootEvent.Retry)
                         },
                         testTagPrefix = "profile_root_error",

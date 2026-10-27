@@ -15,11 +15,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_add
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.template_details_add
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_items_header
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
@@ -30,6 +30,7 @@ import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import org.jetbrains.compose.resources.stringResource
 
 private const val TAG = "template_details"
@@ -119,6 +120,7 @@ private fun DetailsList(content: TemplateDetailsUiState.Content, onOpen: (Int) -
                 model = row.toRowModel(),
                 onClick = { onOpen(row.index) },
                 tagPrefix = "${TAG}_item",
+                modifier = appAnimateItem(),
             )
         }
         item(key = "add") {
@@ -137,7 +139,7 @@ private fun DetailsList(content: TemplateDetailsUiState.Content, onOpen: (Int) -
 private fun DetailsFooter(content: TemplateDetailsUiState.Content, onEvent: (TemplateDetailsEvent) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PrimaryButton(
-            text = stringResource(Res.string.template_details_add),
+            text = stringResource(Res.string.action_add),
             onClick = { onEvent(TemplateDetailsEvent.Add) },
             modifier = Modifier.fillMaxWidth().testTag("${TAG}_primary"),
             enabled = content.canAdd,

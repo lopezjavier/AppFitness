@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
@@ -9,7 +8,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
-import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
@@ -255,95 +253,32 @@ val TabRoute.tab: TopLevelTab
             ProfileGraph, ProfileHome -> TopLevelTab.Profile
         }
 
-/** What the shell draws around a destination: top bar plus bottom bar, or a full-screen chrome. */
+/** What the shell draws around a destination: every route draws its own header through `AppScreen` (T-128). */
 sealed interface ShellChrome {
-    /** Top bar with the section title plus the bottom bar. */
-    data class Tabs(val tab: TopLevelTab) : ShellChrome
-
     /**
-     * A tab root that draws its own header through `AppScreen` ([usesAppScreen]) but keeps the bottom bar and the
-     * rail. The shell reserves only the status bar (like [Screen]).
+     * A tab root: the route draws its header through `AppScreen` but keeps the bottom bar and the rail. The shell
+     * reserves only the status bar.
      */
     data class TabScreen(val tab: TopLevelTab) : ShellChrome
 
-    /** Top bar with a back arrow, no bottom bar. Its tags are `<topBarTag>`, `_title` and `_back`. */
-    data class FullScreen(val title: StringResource, val topBarTag: String = AppTopBarDefaults.TestTag) : ShellChrome
-
     /**
-     * No bottom bar and no shell title bar: the route draws its bar through `AppScreen` ([usesAppScreen]).
+     * No bottom bar and no shell title bar: the route draws its bar through `AppScreen`.
      * The shell reserves the status bar so the offline banner sits below it.
      */
     data object Screen : ShellChrome
 }
 
 /**
- * Routes whose destination draws its own bar through `AppScreen` (T-118). Every other route keeps the shell's
- * title bar until its domain task migrates it; T-128 removes this switch.
- */
-val AppRoute.usesAppScreen: Boolean
-    get() = this is CatalogRoute || this is DiaryHome || this is DiaryHistoryRoute || this is DiaryDayRoute ||
-        this is FoodSearchRoute || this is AddFoodRoute || this is CreateFoodRoute || this is EditFoodRoute ||
-        this is TemplateDetailsRoute || this is WeightRoute || this is WeightHistoryRoute ||
-        this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome ||
-        this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute ||
-        this is HistoryRoute || this is SessionDetailRoute || this is EditWorkoutRoute || this is PastWorkoutRoute ||
-        this is StrengthRoute || this is MuscleVolumeRoute || this is StatsRoute || this is ExerciseProgressRoute ||
-        this is MealSlotsRoute || this is MealDefaultsRoute || this is ProfileHome || this is PreferencesRoute ||
-        this is PreferencesSectionRoute || this is AccountRoute
-
-/**
- * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
- * any other route that does, else the legacy chrome.
+ * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root or graph, and for the edit and save-as-comida
+ * sheets (the shell draws the chrome of the entry below them instead, see [chromeOf]); [ShellChrome.Screen] for the
+ * rest.
  */
 val AppRoute.chrome: ShellChrome
     get() =
-        when {
-            !usesAppScreen -> legacyChrome
-            this is TabRoute -> ShellChrome.TabScreen(tab)
-            else -> ShellChrome.Screen
-        }
-
-/** Shell chrome of a route that still relies on the shell title bar. Exhaustive on purpose. */
-private val AppRoute.legacyChrome: ShellChrome
-    get() =
         when (this) {
-            is TabRoute -> ShellChrome.Tabs(tab)
-
-            CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
-
-            // The statistics flow draws its own bar through AppScreen (T-125c): never reached through [chrome].
-            StrengthRoute, MuscleVolumeRoute, StatsRoute, is ExerciseProgressRoute -> ShellChrome.Screen
-
-            // Draw their own bar through AppScreen (T-122): never reached through [chrome]. The add-food sheet shares
-            // the search's chrome, so opening it does not redraw the bars.
-            is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, is TemplateDetailsRoute ->
-                ShellChrome.Screen
-
-            // Historial draws its own bar through AppScreen (T-125b): never reached through [chrome].
-            LiveSessionRoute, HistoryRoute, is SessionDetailRoute, is EditWorkoutRoute, is PastWorkoutRoute ->
-                ShellChrome.Screen
-
-            // The meals editor and the default comidas draw their own bar through AppEditorScreen (T-126).
-            MealSlotsRoute, MealDefaultsRoute -> ShellChrome.Screen
-
-            // The Preferencias hub, its editors and Cuenta draw their own bar through AppScreen (T-127).
-            PreferencesRoute, is PreferencesSectionRoute, AccountRoute -> ShellChrome.Screen
-
-            // Draw their own bar through AppScreen (T-121): never reached through [chrome].
-            DiaryHistoryRoute, is DiaryDayRoute -> ShellChrome.Screen
-
-            // Draw their own bar through AppScreen (T-123, T-124, T-124b): never reached through [chrome].
-            WeightRoute,
-            WeightHistoryRoute,
-            is RoutineDetailsRoute,
-            is RoutineBuilderRoute,
-            is ExercisePickerRoute,
-            is ExerciseDetailRoute,
-            -> ShellChrome.Screen
-
-            // A sheet over the Diary tab or over a past day: the shell draws the chrome of the entry below it
-            // instead (see [chromeOf]); this one is the fallback for the sheet opened over the Diary tab.
-            is EditEntryRoute, is SaveTemplateRoute -> ShellChrome.Tabs(TopLevelTab.Diary)
+            is TabRoute -> ShellChrome.TabScreen(tab)
+            is EditEntryRoute, is SaveTemplateRoute -> ShellChrome.TabScreen(TopLevelTab.Diary)
+            else -> ShellChrome.Screen
         }
 
 /** Navigation entry points shared by the shell. */

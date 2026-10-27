@@ -16,10 +16,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_day_cards_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_day_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.history_add_workout_item
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -80,7 +80,7 @@ private fun DayRows(cards: DayCardsState, onEvent: (WorkoutCalendarEvent) -> Uni
 
         DayCardsState.Error -> ErrorState(
             message = stringResource(Res.string.calendar_day_cards_error),
-            action = AppStateAction(stringResource(Res.string.state_retry)) {
+            action = AppStateAction(stringResource(Res.string.action_retry)) {
                 onEvent(WorkoutCalendarEvent.RetryDayCards)
             },
             testTagPrefix = "calendar_day_cards_error",

@@ -10,9 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.EditorDestructiveAction
@@ -118,7 +118,7 @@ fun EditWorkoutScreen(
         saved = state.saved,
         canSave = state.view.issues.isEmpty(),
         destructiveAction = EditorDestructiveAction(
-            label = stringResource(Res.string.session_detail_delete_cd),
+            label = stringResource(Res.string.action_delete),
             enabled = state.isOnline && !state.busy,
             onClick = { onEvent(EditWorkoutEvent.Delete) },
         ),

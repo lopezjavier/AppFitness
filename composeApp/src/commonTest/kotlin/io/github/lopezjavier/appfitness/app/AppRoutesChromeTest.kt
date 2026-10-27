@@ -2,67 +2,56 @@ package io.github.lopezjavier.appfitness.app
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
-/** T-118: only routes marked [usesAppScreen] lose the shell title bar; every other route keeps its chrome. */
+/** T-128: every route draws its own bar through AppScreen: a tab root is TabScreen, any other route is Screen. */
 class AppRoutesChromeTest {
     @Test
-    fun catalogRoute_usesAppScreen_andHasScreenChrome() {
-        assertTrue(CatalogRoute.usesAppScreen)
+    fun catalogRoute_hasScreenChrome() {
         assertEquals(ShellChrome.Screen, CatalogRoute.chrome)
     }
 
     @Test
-    fun theDiaryRoutes_useAppScreen() {
-        assertTrue(DiaryHome.usesAppScreen)
-        assertTrue(DiaryHistoryRoute.usesAppScreen)
-        assertTrue(DiaryDayRoute("2026-10-26").usesAppScreen)
+    fun theDiaryRoutes_haveScreenChrome() {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
         assertEquals(ShellChrome.Screen, DiaryHistoryRoute.chrome)
         assertEquals(ShellChrome.Screen, DiaryDayRoute("2026-10-26").chrome)
     }
 
     @Test
-    fun theWeightRoutes_useAppScreen_andHaveScreenChrome() {
+    fun theWeightRoutes_haveScreenChrome() {
         listOf(WeightRoute, WeightHistoryRoute).forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun theRoutineRoutes_useAppScreen_andHaveScreenChrome() {
+    fun theRoutineRoutes_haveScreenChrome() {
         listOf(RoutineDetailsRoute("r1"), RoutineBuilderRoute(), RoutineBuilderRoute("r1")).forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun theExerciseRoutes_useAppScreen_andHaveScreenChrome() {
+    fun theExerciseRoutes_haveScreenChrome() {
         listOf(ExercisePickerRoute(), ExercisePickerRoute(selectMode = true), ExerciseDetailRoute("e")).forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun theStatisticsRoutes_useAppScreen_andHaveScreenChrome() {
+    fun theStatisticsRoutes_haveScreenChrome() {
         listOf(StrengthRoute, MuscleVolumeRoute, StatsRoute, ExerciseProgressRoute("e")).forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun theEntrenoRoot_usesAppScreen_withTheTabScreenChrome() {
-        assertTrue(WorkoutHome.usesAppScreen)
+    fun theEntrenoRoot_hasTheTabScreenChrome() {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutHome.chrome)
     }
 
     @Test
-    fun theFoodRoutes_useAppScreen_andHaveScreenChrome() {
+    fun theFoodRoutes_haveScreenChrome() {
         val food = listOf(
             FoodSearchRoute(date = "2026-10-26"),
             AddFoodRoute("f", date = "2026-10-26"),
@@ -72,57 +61,44 @@ class AppRoutesChromeTest {
         )
 
         food.forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun liveSession_drawsItsBarThroughAppScreen_withNoBottomBar() {
-        assertTrue(LiveSessionRoute.usesAppScreen)
+    fun liveSession_hasScreenChrome() {
         assertEquals(ShellChrome.Screen, LiveSessionRoute.chrome)
     }
 
     @Test
-    fun theMealRoutes_useAppScreen_andHaveScreenChrome() {
+    fun theMealRoutes_haveScreenChrome() {
         listOf(MealSlotsRoute, MealDefaultsRoute).forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun thePreferenciasRoutes_useAppScreen_andHaveScreenChrome() {
+    fun thePreferenciasRoutes_haveScreenChrome() {
         listOf(PreferencesRoute, PreferencesSectionRoute("energy"), AccountRoute).forEach {
-            assertTrue(it.usesAppScreen, it.toString())
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }
 
     @Test
-    fun thePerfilRoot_usesAppScreen_withTheTabScreenChrome() {
-        assertTrue(ProfileHome.usesAppScreen)
+    fun thePerfilRoot_hasTheTabScreenChrome() {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Profile), ProfileHome.chrome)
     }
 
     @Test
-    fun everyOtherRoute_doesNotUseAppScreen() {
-        val others = listOf(EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
-            listOf(DiaryGraph, WorkoutGraph, ProfileGraph)
-
-        others.forEach { assertFalse(it.usesAppScreen, it.toString()) }
+    fun theDiarySheets_keepTheDiaryTabChrome() {
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), EditEntryRoute("e", "2026-10-26").chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), SaveTemplateRoute("s", "2026-10-26").chrome)
     }
 
     @Test
-    fun theDiarySheets_keepTheirChrome() {
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), EditEntryRoute("e", "2026-10-26").chrome)
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), SaveTemplateRoute("s", "2026-10-26").chrome)
-    }
-
-    @Test
-    fun tabRoutes_keepTheirTabsChrome() {
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), DiaryGraph.chrome)
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Workout), WorkoutGraph.chrome)
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Profile), ProfileGraph.chrome)
+    fun tabRoutes_haveTheTabScreenChrome() {
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryGraph.chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutGraph.chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Profile), ProfileGraph.chrome)
     }
 }

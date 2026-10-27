@@ -1,7 +1,9 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
 import kotlinx.datetime.minus
 
 private val MONTHS =
@@ -24,8 +26,12 @@ object AppDateFormat {
     fun list(date: LocalDate, today: LocalDate): String = when (date) {
         today -> "Hoy"
         today.minus(1, DateTimeUnit.DAY) -> "Ayer"
-        else -> "${WEEKDAYS_SHORT[date.dayOfWeek.ordinal]}, ${date.day} ${MONTHS_SHORT[date.month.ordinal]}"
+        else -> weekdayDayMonth(date.dayOfWeek, date.day, date.month)
     }
+
+    /** "lun, 24 oct": the list form of a day that is neither today nor yesterday. */
+    fun weekdayDayMonth(dayOfWeek: DayOfWeek, day: Int, month: Month): String =
+        "${WEEKDAYS_SHORT[dayOfWeek.ordinal]}, $day ${MONTHS_SHORT[month.ordinal]}"
 
     /** Screen and sheet titles: "24 de octubre". */
     fun title(date: LocalDate): String = "${date.day} de ${MONTHS[date.month.ordinal]}"

@@ -271,7 +271,7 @@ class FoodPhotoFlowTest {
         toPreview("photo_mode_row_1")
 
         rule.onNodeWithTag("photo_source_capture_error")
-            .assertTextContains("No se pudo abrir la cámara. Inténtalo de nuevo")
+            .assertTextContains("No se pudo abrir la cámara. Inténtalo de nuevo.")
         exists("photo_source_row_1")
     }
 
@@ -411,7 +411,7 @@ class FoodPhotoFlowTest {
         toPreview("photo_mode_row_1")
         tap("food_photo_preview_use")
         rule.onNodeWithText(
-            "El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente",
+            "El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente.",
         ).assertExists()
 
         photoRepo.result = Result.success(FakeFoodPhotoRepository.lentils)

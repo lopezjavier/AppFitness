@@ -7,7 +7,6 @@
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
 
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
-G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128
 
 # G4: duplicate in-screen OfflineBanner( (the shell draws the single banner, R-30).
 
@@ -16,5 +15,4 @@ G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128
 
 # G6: ic_help outside HelpButton.
 
-# G9: generic action texts outside action_* keys; T-128 adopts the shared keys.
-G9 composeResources/values/strings\.xml   # owner T-128
+# G9: generic action texts outside action_* keys (no entries since T-128: the shared keys are adopted).

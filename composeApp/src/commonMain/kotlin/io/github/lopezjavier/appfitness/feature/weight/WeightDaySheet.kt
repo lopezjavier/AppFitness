@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_section
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_sheet_title_day
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_sheet_title_today
+import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -30,7 +31,6 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
-import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
@@ -55,7 +55,7 @@ internal fun WeightDaySheet(
     val title = if (creatingToday) {
         stringResource(Res.string.weight_sheet_title_today)
     } else {
-        stringResource(Res.string.weight_sheet_title_day, sheet.day.day, sheet.day.month.shortLabel())
+        stringResource(Res.string.weight_sheet_title_day, AppDateFormat.title(sheet.day))
     }
     val form = sheet.form
     val body: @Composable ColumnScope.() -> Unit = {

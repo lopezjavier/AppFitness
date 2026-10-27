@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.designsystem.FoodEntryRow
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import org.jetbrains.compose.resources.stringResource
 
 private const val TAG = "template_edit"
@@ -96,6 +97,7 @@ private fun EditorList(content: TemplateDetailsUiState.Content, onEvent: (Templa
                 onDelete = { onEvent(TemplateDetailsEvent.RemoveFood(row.index)) },
                 backgroundTag = "${TAG}_remove_${row.index}",
                 label = stringResource(Res.string.action_remove),
+                modifier = appAnimateItem(),
             ) {
                 FoodEntryRow(
                     model = row.toRowModel(),

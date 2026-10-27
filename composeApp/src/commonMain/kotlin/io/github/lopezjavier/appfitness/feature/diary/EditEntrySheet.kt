@@ -9,9 +9,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_entry_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_entry_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -62,7 +62,7 @@ fun EditEntrySheet(
         ) {
             ErrorState(
                 message = stringResource(Res.string.edit_entry_load_error),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(EditEntryEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(EditEntryEvent.Retry) },
                 testTagPrefix = "${SHEET_PREFIX}_error_state",
             )
         }

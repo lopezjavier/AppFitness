@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.app
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ShellChromeTest {
@@ -23,23 +22,19 @@ class ShellChromeTest {
 
     @Test
     fun editEntryRoute_chrome_keepsTheDiaryTabChrome_soTheBarsDoNotRedraw() {
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), EditEntryRoute("e1", "2026-10-19").chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), EditEntryRoute("e1", "2026-10-19").chrome)
         assertTrue(AppDestinations.fullScreenRoutes.none { it is EditEntryRoute })
     }
 
     @Test
     fun saveTemplateRoute_chrome_keepsTheDiaryTabChrome_likeTheEditSheet() {
-        assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), SaveTemplateRoute("breakfast", "2026-10-19").chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), SaveTemplateRoute("breakfast", "2026-10-19").chrome)
         assertTrue(AppDestinations.fullScreenRoutes.none { it is SaveTemplateRoute })
     }
 
     @Test
-    fun tabRoutes_chrome_isTabsWithTheirTab_exceptTheRootsThatDrawTheirOwnHeader() {
-        tabRoutes.filter { it != DiaryHome && it != WorkoutHome && it != ProfileHome }
-            .forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
-        assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
-        assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutHome.chrome)
-        assertEquals(ShellChrome.TabScreen(TopLevelTab.Profile), ProfileHome.chrome)
+    fun tabRoutes_chrome_isTabScreenWithTheirTab() {
+        tabRoutes.forEach { assertEquals(ShellChrome.TabScreen(it.tab), it.chrome, it.toString()) }
     }
 
     @Test
@@ -101,20 +96,17 @@ class ShellChromeTest {
     }
 
     @Test
-    fun fullScreenRoutes_allHaveFullScreenChrome_exceptTheOnesThatDrawTheirOwnBar() {
-        AppDestinations.fullScreenRoutes.filter { !it.usesAppScreen }
-            .forEach { assertIs<ShellChrome.FullScreen>(it.chrome) }
+    fun fullScreenRoutes_allHaveScreenChrome() {
+        AppDestinations.fullScreenRoutes.forEach { assertEquals(ShellChrome.Screen, it.chrome, it.toString()) }
     }
 
     @Test
     fun liveSessionRoute_drawsItsBarThroughAppScreen_andHasNoBottomBar() {
-        assertTrue(LiveSessionRoute.usesAppScreen)
         assertEquals(ShellChrome.Screen, LiveSessionRoute.chrome)
     }
 
     @Test
     fun historial_drawsItsOwnBarThroughAppScreen() {
-        assertTrue(HistoryRoute.usesAppScreen)
         assertEquals(ShellChrome.Screen, HistoryRoute.chrome)
     }
 

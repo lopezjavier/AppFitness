@@ -55,16 +55,16 @@ object SelectableCardDefaults {
 
 /**
  * Radio-style card with a [title] and a [description]. The selected card has a lime border and a check icon
- * (a non-colour cue). The whole card is the target and is exposed as a radio button; wrap a group of cards in
- * [Modifier.selectableGroup] on the parent.
+ * (a non-colour cue); the [description] is optional. The whole card is the target and is exposed as a radio
+ * button; wrap a group of cards in [Modifier.selectableGroup] on the parent.
  */
 @Composable
 fun SelectableCard(
     title: String,
-    description: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    description: String = "",
 ) {
     val colors = SelectableCardDefaults.colors(selected, AppTheme.colors)
     Row(
@@ -82,11 +82,13 @@ fun SelectableCard(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(text = title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-            Text(
-                text = description,
-                style = SelectableCardDefaults.descriptionStyle(AppTheme.typography),
-                color = SelectableCardDefaults.descriptionColor(AppTheme.colors),
-            )
+            if (description.isNotEmpty()) {
+                Text(
+                    text = description,
+                    style = SelectableCardDefaults.descriptionStyle(AppTheme.typography),
+                    color = SelectableCardDefaults.descriptionColor(AppTheme.colors),
+                )
+            }
         }
         if (selected) {
             // Decorative: the selected state is conveyed by the selectable semantics.
@@ -108,8 +110,9 @@ private fun SelectableCardPreview() {
             Modifier.padding(Spacing.screenMargin).selectableGroup(),
             verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
         ) {
-            SelectableCard("Moderado", "Ejercicio 3–5 días por semana", selected = true, onClick = {})
-            SelectableCard("Alto", "Ejercicio intenso 6–7 días por semana", selected = false, onClick = {})
+            SelectableCard("Moderado", selected = true, onClick = {}, description = "Ejercicio 3–5 días por semana")
+            SelectableCard("Alto", selected = false, onClick = {
+            }, description = "Ejercicio intenso 6–7 días por semana")
         }
     }
 }

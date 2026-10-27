@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_empty_title
@@ -30,7 +31,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_title
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_value_cm
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -82,7 +82,7 @@ internal fun CircumferenceSection(
 
             CircumferencesUiState.Error -> ErrorState(
                 message = stringResource(Res.string.circumference_error_message),
-                action = AppStateAction(stringResource(Res.string.state_retry)) {
+                action = AppStateAction(stringResource(Res.string.action_retry)) {
                     onEvent(CircumferencesEvent.Retry)
                 },
                 modifier = Modifier.fillMaxWidth(),

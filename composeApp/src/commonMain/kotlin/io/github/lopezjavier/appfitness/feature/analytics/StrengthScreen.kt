@@ -22,9 +22,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_flat
@@ -113,7 +113,7 @@ fun StrengthScreen(
                 StrengthUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.strength_error_message),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
                             onEvent(StrengthEvent.Retry)
                         },
                         testTagPrefix = "strength_error",

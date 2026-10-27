@@ -6,10 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_message
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
@@ -101,8 +101,8 @@ internal fun LiveDialogs(
         AppConfirmDialog(
             title = stringResource(Res.string.live_discard_title),
             message = stringResource(Res.string.live_discard_message),
-            confirmLabel = stringResource(Res.string.live_discard_confirm),
-            cancelLabel = stringResource(Res.string.live_discard_cancel),
+            confirmLabel = stringResource(Res.string.action_discard),
+            cancelLabel = stringResource(Res.string.action_cancel),
             onConfirm = { onEvent(LiveSessionEvent.ConfirmDiscard) },
             onDismiss = { onEvent(LiveSessionEvent.DismissDiscard) },
             testTagPrefix = "live_discard",

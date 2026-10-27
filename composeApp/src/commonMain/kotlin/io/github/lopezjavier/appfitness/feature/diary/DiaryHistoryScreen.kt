@@ -14,12 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_view_day
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_view_month
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_view_week
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -67,7 +67,7 @@ fun DiaryHistoryScreen(
 
                     DiaryHistoryUiState.Error -> ErrorState(
                         message = stringResource(Res.string.diary_history_error_message),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
                             onEvent(DiaryHistoryEvent.Retry)
                         },
                         testTagPrefix = "diary_history_error",

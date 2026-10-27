@@ -19,8 +19,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_done
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_title
@@ -77,7 +77,7 @@ internal fun SessionSummaryScreen(summary: LiveSummary, onDone: () -> Unit, modi
                 }
             }
             PrimaryButton(
-                text = stringResource(Res.string.summary_done),
+                text = stringResource(Res.string.action_done),
                 onClick = onDone,
                 modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg).testTag("summary_done"),
             )
