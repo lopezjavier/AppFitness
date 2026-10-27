@@ -166,6 +166,13 @@ Feature: Biometric data onboarding
     When they reach onboarding step 1 "Sobre ti"
     Then it also asks "¿Cómo te llamas?"
     And the name can be edited later in Preferencias
+
+  Scenario: Updated Google photo
+    Given a user who signed in with Google
+    And they changed their Google account photo
+    When they sign out and sign in again
+    Then the Perfil tab shows the new photo
+    And their name, if edited in Preferencias, is unchanged
 ```
 
 **Technical notes**
@@ -175,6 +182,7 @@ Feature: Biometric data onboarding
 - `onboarding_completed = true` only after the goals are also created (US-07).
 - Resume and re-save behaviour per ADR-24: steps prefilled from the saved profile and the onboarding weight entry; redoing the last step updates that entry instead of inserting a new one.
 - Preferencias (the former Profile screen) has a single "Guardar" button for the whole screen (personal data, name, weight, strategy and macros; ADR-24, ADR-37). Weight upsert: one manual `body_measurements` row per day; "Peso actual" = latest row from any source (ADR-37). Name: `profiles.display_name`, from Google `full_name`, asked in step 1 only when missing.
+- Photo: `profiles.avatar_url` is refreshed from the Google metadata on each Google sign-in by `on_auth_user_metadata_updated` (T-134). `display_name` is not refreshed after sign-up because it is editable in Preferencias.
 
 ---
 

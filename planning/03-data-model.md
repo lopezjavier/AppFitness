@@ -38,8 +38,8 @@ create type set_type as enum ('working', 'warm_up', 'failure', 'drop');   -- UI:
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | = `auth.users.id` (on delete cascade) |
-| display_name | text | From Google when the user is created; 1–100 characters, not blank (check) |
-| avatar_url | text null | From Google; `https://` only, at most 2048 characters (check) |
+| display_name | text | From Google when the user is created; later Google sign-ins do not overwrite the app-editable name; 1–100 characters, not blank (check) |
+| avatar_url | text null | From Google and refreshed on each Google sign-in; `https://` only, at most 2048 characters (check) |
 | birth_date | date null | Age is derived |
 | sex | sex null | |
 | height_cm | numeric(5,1) null | 100–250 (check) |
@@ -51,6 +51,7 @@ create type set_type as enum ('working', 'warm_up', 'failure', 'drop');   -- UI:
   - keys are read only from a JSON object and only when the value is a JSON string;
   - `display_name`: `full_name`, then `name`, then the email local part, then `Usuario`; each candidate is trimmed and capped at 100 characters, blank ones are skipped;
   - `avatar_url`: `avatar_url`, then `picture`; kept only if it starts with `https://` and has at most 2048 characters, otherwise null.
+- `on_auth_user_metadata_updated` trigger (security definer) refreshes `profiles.avatar_url` from `auth.users.raw_user_meta_data` when a later Google sign-in changes the photo, with the same sanitization. It never writes `display_name` (app-editable in Preferencias) and keeps the stored avatar when the metadata has no valid URL.
 - Client privileges: `SELECT` and column-level `UPDATE` on the user-editable columns only (`display_name`, `avatar_url`, `birth_date`, `sex`, `height_cm`, `activity_level`, `target_weight_kg`, `onboarding_completed`); `id`, `created_at` and `updated_at` are not client-writable (`updated_at` is set by the `set_updated_at()` trigger).
 - RLS: owner by `id = (select auth.uid())`. No delete from the client.
 - `display_name` is also the name shown on Perfil and editable in Preferencias (ADR-37). Onboarding step 1 asks "¿Cómo te llamas?" only when Google gave no `full_name` (the `Usuario`/email fallbacks above do not count); the T-041 plan decides how to detect it (e.g. from the auth user metadata).
