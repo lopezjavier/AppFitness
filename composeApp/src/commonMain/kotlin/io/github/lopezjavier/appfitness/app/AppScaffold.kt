@@ -29,12 +29,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppMessageHost
 import io.github.lopezjavier.appfitness.designsystem.AppMessages
 import io.github.lopezjavier.appfitness.designsystem.AppNavigation
@@ -42,15 +39,12 @@ import io.github.lopezjavier.appfitness.designsystem.AppNavigationDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationItem
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationType
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.AppTopBar
-import io.github.lopezjavier.appfitness.designsystem.AppTopBarButton
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.LocalPinnedFooter
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.PinnedFooterState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * App shell: top app bar, tab navigation (tabs only) and the NavHost. On [AppNavigationType.Bar]
@@ -104,7 +98,6 @@ internal fun AppScaffold(
     val entry by navController.currentBackStackEntryAsState()
     val chrome = navController.chromeOf(entry)
     val backInterceptor = remember { BackInterceptor() }
-    val backButton = rememberBackButton(navController, entry, backInterceptor)
     val isBar = navigationType == AppNavigationType.Bar
     val onTabSelect: (Int) -> Unit = { navController.navigateToTab(TopLevelTab.entries[it]) }
     val pinnedFooter = remember { PinnedFooterState() }
@@ -116,7 +109,7 @@ internal fun AppScaffold(
         Scaffold(
             modifier = modifier,
             containerColor = AppTheme.colors.surfaceBase,
-            topBar = { ShellTopBar(chrome, backButton) },
+            topBar = { ShellTopBar() },
             bottomBar = {
                 val tab = chrome.tabOrNull()
                 if (isBar && tab != null) {
@@ -130,7 +123,7 @@ internal fun AppScaffold(
             },
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
-                BelowTopBar(isOffline, innerPadding, consumeInsets = chrome.drawsOwnHeader()) {
+                BelowTopBar(isOffline, innerPadding) {
                         contentPadding,
                         contentModifier,
                     ->
@@ -200,7 +193,6 @@ internal fun AppScaffold(
 private fun BelowTopBar(
     isOffline: Boolean,
     innerPadding: PaddingValues,
-    consumeInsets: Boolean,
     content: @Composable (PaddingValues, Modifier) -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -210,8 +202,7 @@ private fun BelowTopBar(
         PaddingValues(start = start, top = Spacing.none, end = end, bottom = innerPadding.calculateBottomPadding())
     // An `AppScreen` pads for the system insets itself: the shell reserved them (status bar spacer, bars), so they
     // count as consumed and nothing is padded twice.
-    val inset = if (consumeInsets) Modifier.consumeWindowInsets(innerPadding) else Modifier
-    Column(Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()).then(inset)) {
+    Column(Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()).consumeWindowInsets(innerPadding)) {
         // The live region lives on the banner root, inside the visibility block: announced on appearance only.
         AnimatedVisibility(isOffline, enter = expandVertically(), exit = shrinkVertically()) {
             OfflineBanner(Modifier.fillMaxWidth().padding(start = start, end = end), testTagPrefix = "offline_banner")
@@ -222,7 +213,7 @@ private fun BelowTopBar(
 
 /** The shell's message queue: lives as long as the shell, so a message survives the destination that sent it. */
 @Composable
-private fun rememberShellMessages(): AppMessages {
+internal fun rememberShellMessages(): AppMessages {
     val scope = rememberCoroutineScope()
     return remember(scope) { AppMessages(scope) }
 }
@@ -230,22 +221,6 @@ private fun rememberShellMessages(): AppMessages {
 @Composable
 private fun rememberNavigationItems(): List<AppNavigationItem> = remember {
     TopLevelTab.entries.map { AppNavigationItem(it.label, it.icon, it.testTag, it.selectedIcon) }
-}
-
-@Composable
-private fun rememberBackButton(
-    navController: NavHostController,
-    entry: NavBackStackEntry?,
-    interceptor: BackInterceptor,
-): AppTopBarButton {
-    // Pops only the full-screen entry the top bar was drawn for: a stale tap cannot pop the tab underneath.
-    // A destination can take the press over first (for example to confirm discarding edits).
-    val goBack =
-        remember(navController, entry, interceptor) {
-            { if (!interceptor.intercept()) navController.popFullScreen(entry) }
-        }
-    val backDescription = stringResource(Res.string.topbar_back_cd)
-    return remember(backDescription, goBack) { AppTopBarButton(backDescription, goBack) }
 }
 
 @Composable
@@ -378,30 +353,14 @@ private fun ShellContent(
     }
 }
 
+/** The shell reserves only the status bar: every destination draws its own header (T-128). */
 @Composable
-private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
-    when (chrome) {
-        is ShellChrome.Tabs -> AppTopBar(title = stringResource(chrome.tab.label))
-
-        is ShellChrome.FullScreen ->
-            AppTopBar(
-                title = stringResource(chrome.title),
-                navigationButton = backButton,
-                testTagPrefix = chrome.topBarTag,
-            )
-
-        // The destination draws its own bar; the shell reserves the status bar so the offline banner sits below it.
-        ShellChrome.Screen, is ShellChrome.TabScreen ->
-            Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
-    }
+private fun ShellTopBar() {
+    Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
 }
 
 /** The tab whose bottom bar or rail this chrome shows, or null for a full-screen chrome. */
 internal fun ShellChrome.tabOrNull(): TopLevelTab? = when (this) {
-    is ShellChrome.Tabs -> tab
     is ShellChrome.TabScreen -> tab
-    is ShellChrome.FullScreen, ShellChrome.Screen -> null
+    ShellChrome.Screen -> null
 }
-
-/** True when the destination draws its own header through `AppScreen` and consumes the insets itself. */
-internal fun ShellChrome.drawsOwnHeader(): Boolean = this is ShellChrome.Screen || this is ShellChrome.TabScreen

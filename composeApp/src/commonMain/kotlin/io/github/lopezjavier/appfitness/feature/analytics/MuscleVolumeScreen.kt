@@ -17,12 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_all
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_empty_cta
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -86,7 +86,7 @@ fun MuscleVolumeScreen(
                 MuscleVolumeUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.muscle_volume_error_message),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
                             onEvent(MuscleVolumeEvent.Retry)
                         },
                         testTagPrefix = "muscle_volume_error",

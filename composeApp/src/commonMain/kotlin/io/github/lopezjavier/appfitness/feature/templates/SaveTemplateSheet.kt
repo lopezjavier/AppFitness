@@ -17,10 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_item_amount
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -71,7 +71,7 @@ fun SaveTemplateSheet(
         ) {
             ErrorState(
                 message = stringResource(Res.string.save_template_load_error),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(SaveTemplateEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(SaveTemplateEvent.Retry) },
                 testTagPrefix = "save_template_error_state",
             )
         }

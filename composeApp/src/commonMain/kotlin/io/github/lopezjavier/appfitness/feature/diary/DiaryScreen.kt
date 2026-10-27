@@ -29,10 +29,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_defaults_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
@@ -71,7 +72,7 @@ fun DiaryScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.diary_error_message),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(DiaryEvent.Retry) },
+                        action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(DiaryEvent.Retry) },
                         testTagPrefix = "diary_error",
                     )
                 }
@@ -175,7 +176,7 @@ private fun LazyListScope.mealItems(content: DiaryContent, actions: EntryActions
             onToggle = { onEvent(DiaryEvent.ToggleSection(section.slot.id)) },
             onAdd = { onEvent(DiaryEvent.AddToMeal(section.slot.id)) },
             onSaveTemplate = { onEvent(DiaryEvent.SaveSection(section.slot.id)) },
-            modifier = Modifier.animateItem(),
+            modifier = appAnimateItem(),
         )
     }
 }
@@ -195,7 +196,7 @@ private fun DefaultsFailedMessage(onEvent: (DiaryEvent) -> Unit) {
             modifier = Modifier.weight(1f).testTag("diary_defaults_message"),
         )
         GhostButton(
-            text = stringResource(Res.string.state_retry),
+            text = stringResource(Res.string.action_retry),
             onClick = { onEvent(DiaryEvent.RetryDefaults) },
             modifier = Modifier.testTag("diary_defaults_retry"),
         )

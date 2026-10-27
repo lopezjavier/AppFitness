@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -37,7 +38,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_already_in_progress
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -55,6 +55,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import kotlinx.datetime.LocalDate
@@ -178,7 +179,7 @@ fun RoutineDetailsScreen(
 
                 RoutineDetailsUiState.Error -> ErrorState(
                     message = stringResource(Res.string.routine_details_error),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) {
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
                         onEvent(RoutineDetailsEvent.Retry)
                     },
                     modifier = Modifier.align(Alignment.Center),
@@ -241,6 +242,7 @@ private fun DetailsList(
                 supporting = setsSummary(exercise.plannedSets),
                 onOpen = { onOpenExercise(exercise.exerciseId) },
                 tagPrefix = "${TAG}_exercise_${exercise.exerciseId}",
+                modifier = appAnimateItem(),
                 imageUri = exercise.imageKey?.let { mediaUris.start(it) },
             )
         }

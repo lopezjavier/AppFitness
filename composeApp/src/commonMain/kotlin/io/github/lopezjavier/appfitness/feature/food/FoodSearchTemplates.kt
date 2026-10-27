@@ -16,11 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.food_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -30,6 +30,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.feature.templates.TemplateRow
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -66,7 +67,7 @@ internal fun TemplatesPane(
                 message = stringResource(
                     if (isOffline) Res.string.food_offline_message else Res.string.food_error_message,
                 ),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(FoodSearchEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(FoodSearchEvent.Retry) },
                 testTagPrefix = "food_search_templates_retry",
             )
         }
@@ -114,7 +115,7 @@ private fun TemplatesList(
                 enabled = !isOffline,
                 onDelete = { onEvent(FoodSearchEvent.DeleteTemplate(row.template.id)) },
                 backgroundTag = "food_search_template_${row.template.id}_delete_background",
-                modifier = Modifier.testTag("food_search_template_${row.template.id}_swipe"),
+                modifier = appAnimateItem().testTag("food_search_template_${row.template.id}_swipe"),
                 containerColor = AppTheme.colors.surfaceBase,
             ) {
                 TemplateRow(

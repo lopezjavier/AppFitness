@@ -21,13 +21,13 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.add_food_photo_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_photo_error
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_photo_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_estimating
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_retake
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_use
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppButtonDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -137,7 +137,7 @@ fun AmountPhotoNotice(state: AmountPhotoUiState, onEvent: (AmountPhotoEvent) -> 
                 )
             }
             SecondaryButton(
-                text = stringResource(Res.string.add_food_photo_cancel),
+                text = stringResource(Res.string.action_cancel),
                 onClick = { onEvent(AmountPhotoEvent.Dismiss) },
                 modifier = Modifier.testTag("${NOTICE_TAG}_cancel"),
             )
@@ -146,7 +146,7 @@ fun AmountPhotoNotice(state: AmountPhotoUiState, onEvent: (AmountPhotoEvent) -> 
         is AmountPhotoPhase.Failed -> if (phase.retryable) {
             ErrorState(
                 message = stringResource(Res.string.add_food_photo_error),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(AmountPhotoEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(AmountPhotoEvent.Retry) },
                 modifier = modifier,
                 testTagPrefix = "${NOTICE_TAG}_error",
                 actionTestTag = "${NOTICE_TAG}_retry",

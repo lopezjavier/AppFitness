@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -12,16 +13,23 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import io.github.lopezjavier.appfitness.designsystem.AppMessageHost
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.LocalPinnedFooter
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
+import io.github.lopezjavier.appfitness.designsystem.PinnedFooterState
 import io.github.lopezjavier.appfitness.designsystem.navigationType
 import io.github.lopezjavier.appfitness.designsystem.typeScale
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
@@ -148,17 +156,28 @@ fun App(
 @Composable
 private fun RootFrame(isOffline: Boolean, content: @Composable () -> Unit) {
     val bannerInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
-    Column(Modifier.fillMaxSize().background(AppTheme.colors.surfaceBase)) {
-        if (isOffline) {
-            OfflineBanner(Modifier.fillMaxWidth().windowInsetsPadding(bannerInsets), testTagPrefix = "offline_banner")
-        }
-        // The banner already took the top inset, so the destination must not pad for it again.
-        Column(
-            Modifier.weight(
-                1f,
-            ).fillMaxWidth().then(if (isOffline) Modifier.consumeWindowInsets(bannerInsets) else Modifier),
-        ) {
-            content()
+    val messages = rememberShellMessages()
+    val pinnedFooter = remember { PinnedFooterState() }
+    CompositionLocalProvider(LocalAppMessages provides messages, LocalPinnedFooter provides pinnedFooter) {
+        Box(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().background(AppTheme.colors.surfaceBase)) {
+                if (isOffline) {
+                    OfflineBanner(
+                        Modifier.fillMaxWidth().windowInsetsPadding(bannerInsets),
+                        testTagPrefix = "offline_banner",
+                    )
+                }
+                // The banner already took the top inset, so the destination must not pad for it again.
+                Column(
+                    Modifier.weight(
+                        1f,
+                    ).fillMaxWidth().then(if (isOffline) Modifier.consumeWindowInsets(bannerInsets) else Modifier),
+                ) {
+                    content()
+                }
+            }
+            // One message host for the destinations outside the shell (R-28), above the pinned footer.
+            AppMessageHost(Modifier.align(Alignment.BottomCenter))
         }
     }
 }

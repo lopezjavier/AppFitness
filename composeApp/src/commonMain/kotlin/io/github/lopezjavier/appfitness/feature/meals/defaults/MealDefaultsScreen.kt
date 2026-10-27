@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_all_taken
@@ -29,7 +30,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_offli
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
@@ -216,7 +216,7 @@ private fun DefaultsLoadError(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.meal_defaults_load_error),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "meal_defaults_error",
             actionTestTag = "meal_defaults_retry",
         )

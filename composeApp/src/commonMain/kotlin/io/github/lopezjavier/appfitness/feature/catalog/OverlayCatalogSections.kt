@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_date_picker_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_dialog_open
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_edit_apply_sheet_open
@@ -32,11 +34,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_name_
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_name_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_picker_option
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_sheet_picker_title
-import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_dismiss
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
-import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_title
@@ -205,7 +204,7 @@ private fun ConfirmDialogSection() {
             title = stringResource(Res.string.sign_out_dialog_title),
             message = stringResource(Res.string.sign_out_dialog_message),
             confirmLabel = stringResource(Res.string.sign_out_dialog_confirm),
-            cancelLabel = stringResource(Res.string.sign_out_dialog_cancel),
+            cancelLabel = stringResource(Res.string.action_cancel),
             onConfirm = { open = false },
             onDismiss = { open = false },
             testTagPrefix = "catalog_dialog",
@@ -235,8 +234,8 @@ private fun DatePickerDialogSection() {
             selected = CatalogPickerDate,
             onConfirm = { open = false },
             onDismiss = { open = false },
-            confirmLabel = stringResource(Res.string.date_picker_confirm),
-            dismissLabel = stringResource(Res.string.date_picker_dismiss),
+            confirmLabel = stringResource(Res.string.action_done),
+            dismissLabel = stringResource(Res.string.action_cancel),
             maxDate = CatalogPickerMaxDate,
             testTagPrefix = "catalog_date_picker",
         )

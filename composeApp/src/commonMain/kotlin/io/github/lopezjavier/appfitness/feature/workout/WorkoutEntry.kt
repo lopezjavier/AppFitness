@@ -23,11 +23,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_message
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
@@ -153,8 +153,8 @@ fun WorkoutEntryHost(
         AppConfirmDialog(
             title = stringResource(Res.string.live_discard_title),
             message = stringResource(Res.string.live_discard_message),
-            confirmLabel = stringResource(Res.string.live_discard_confirm),
-            cancelLabel = stringResource(Res.string.live_discard_cancel),
+            confirmLabel = stringResource(Res.string.action_discard),
+            cancelLabel = stringResource(Res.string.action_cancel),
             onConfirm = { onEvent(WorkoutEntryEvent.ConfirmDiscard) },
             onDismiss = { onEvent(WorkoutEntryEvent.DismissDiscard) },
             testTagPrefix = "workout_discard_confirm",

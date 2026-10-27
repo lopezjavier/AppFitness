@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -48,4 +50,8 @@ class AppDateFormatTest {
 
     @Test
     fun month_december() = assertEquals("diciembre 2026", AppDateFormat.month(LocalDate(2026, 12, 31)))
+
+    @Test
+    fun weekdayDayMonth_isTheListFormWithoutRelativeNames() =
+        assertEquals("sáb, 24 oct", AppDateFormat.weekdayDayMonth(DayOfWeek.SATURDAY, 24, Month.OCTOBER))
 }

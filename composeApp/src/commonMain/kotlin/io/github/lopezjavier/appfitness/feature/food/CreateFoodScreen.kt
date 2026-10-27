@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_brand
@@ -50,7 +51,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_lo
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_refused
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_food_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -106,7 +106,7 @@ fun CreateFoodScreen(
         when {
             state.loadFailed -> ErrorState(
                 message = stringResource(Res.string.create_food_load_failed),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(CreateFoodEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(CreateFoodEvent.Retry) },
                 modifier = Modifier.padding(Spacing.screenMargin),
                 testTagPrefix = "create_food_retry",
             )

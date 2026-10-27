@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.date_picker_dismiss
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.past_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
 import io.github.lopezjavier.appfitness.designsystem.AppDatePickerDialog
@@ -99,7 +99,7 @@ fun PastWorkoutScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The open dialog survives recreation (ADR-40); the picked day is only applied on "Aceptar".
+    // The open dialog survives recreation (ADR-40); the picked day is only applied on "Listo".
     var dateDialogOpen by rememberSaveable { mutableStateOf(false) }
     val title = stringResource(Res.string.past_workout_title)
     if (state !is PastWorkoutUiState.Content) {
@@ -147,8 +147,8 @@ fun PastWorkoutScreen(
                 dateDialogOpen = false
             },
             onDismiss = { dateDialogOpen = false },
-            confirmLabel = stringResource(Res.string.date_picker_confirm),
-            dismissLabel = stringResource(Res.string.date_picker_dismiss),
+            confirmLabel = stringResource(Res.string.action_done),
+            dismissLabel = stringResource(Res.string.action_cancel),
             maxDate = state.today,
             testTagPrefix = "${TAG}_date_dialog",
         )

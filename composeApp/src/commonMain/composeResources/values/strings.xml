@@ -106,7 +106,6 @@
     <string name="set_header_previous">Anterior</string>
     <string name="set_header_weight">Kg</string>
     <string name="set_header_reps">Reps</string>
-    <string name="set_header_done">Listo</string>
     <string name="set_header_weight_cd">Kilos</string>
     <string name="set_header_reps_cd">Repeticiones</string>
     <string name="set_row_weight_cd">Kilos, serie %1$s</string>
@@ -139,7 +138,6 @@
     <string name="catalog_set_previous_1">80 kg × 10</string>
     <string name="catalog_set_previous_2">85 kg × 8</string>
     <string name="catalog_set_type_clickable_cd">Cambiar tipo de la serie 4</string>
-    <string name="state_retry">Reintentar</string>
     <string name="catalog_section_state_messages">Estados vacío y error</string>
     <string name="catalog_empty_title">Sin alimentos hoy</string>
     <string name="catalog_empty_message">Añade tu primer alimento para empezar a contar calorías.</string>
@@ -226,8 +224,8 @@
     <string name="welcome_google_button">Continuar con Google</string>
     <string name="welcome_test_login">Test login</string>
     <string name="welcome_signing_in">Iniciando sesión</string>
-    <string name="auth_error_no_network">Sin conexión. Inténtalo de nuevo</string>
-    <string name="auth_error_generic">No se pudo iniciar sesión. Inténtalo de nuevo</string>
+    <string name="auth_error_no_network">Sin conexión: no se puede iniciar sesión.</string>
+    <string name="auth_error_generic">No se pudo iniciar sesión. Inténtalo de nuevo.</string>
     <string name="root_error_message">No se pudieron cargar tus datos</string>
     <string name="onboarding_label_sex">Sexo</string>
     <string name="onboarding_label_birth_date">Fecha de nacimiento</string>
@@ -243,11 +241,14 @@
     <string name="onboarding_sex_male">Hombre</string>
     <string name="onboarding_sex_female">Mujer</string>
     <string name="onboarding_age">%1$d años</string>
-    <string name="onboarding_save_error">No se pudo guardar. Inténtalo de nuevo</string>
-    <string name="onboarding_save_error_offline">Sin conexión. Inténtalo de nuevo</string>
-    <string name="onboarding_offline_hint">Sin conexión. Conéctate para guardar tus datos</string>
+    <string name="onboarding_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
+    <string name="onboarding_save_error_offline">Sin conexión: no se puede guardar.</string>
+    <string name="onboarding_offline_hint">Sin conexión: conéctate para guardar tus datos.</string>
     <string name="onboarding_goals_title">Objetivos</string>
-    <string name="onboarding_goals_save">Guardar objetivos</string>
+    <string name="onboarding_helper_about_you">Calcularemos tus objetivos con estos datos.</string>
+    <string name="onboarding_helper_measures">Usaremos tu altura y tu peso actual.</string>
+    <string name="onboarding_helper_activity">Elige el que mejor describe tu semana.</string>
+    <string name="onboarding_helper_goals">Ajusta tu estrategia de energía y guarda.</string>
     <string name="onboarding_goals_saved">Objetivos guardados</string>
     <string name="energy_heading">Estrategia energética</string>
     <string name="energy_tdee">Gasto diario estimado: %1$s kcal</string>
@@ -319,7 +320,6 @@
     <string name="profile_row_cd">%1$s, %2$s, editar</string>
     <string name="profile_macros_title">Distribución de Macros</string>
     <string name="profile_macros_total">TOTAL: 100 %</string>
-    <string name="profile_save">Guardar</string>
     <string name="profile_saved">Cambios guardados</string>
     <string name="macro_stacked_bar_state">Proteínas %1$s %, carbohidratos %2$s %, grasas %3$s %</string>
     <string name="catalog_section_macro_stacked_bar">Barra de reparto de macros</string>
@@ -327,15 +327,13 @@
     <string name="sign_out_dialog_title">¿Cerrar sesión?</string>
     <string name="sign_out_dialog_message">Tendrás que volver a entrar con tu cuenta de Google.</string>
     <string name="sign_out_dialog_confirm">Cerrar sesión</string>
-    <string name="sign_out_dialog_cancel">Cancelar</string>
     <string name="profile_account_protected">Esta cuenta está protegida</string>
     <string name="profile_delete_account">Borrar cuenta</string>
     <string name="profile_deleting_account">Borrando…</string>
-    <string name="delete_account_error">No se pudo borrar la cuenta. Inténtalo de nuevo</string>
+    <string name="delete_account_error">No se pudo borrar la cuenta. Inténtalo de nuevo.</string>
     <string name="delete_account_dialog_title">¿Borrar tu cuenta?</string>
     <string name="delete_account_dialog_message">Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer.</string>
-    <string name="delete_account_dialog_confirm">Borrar</string>
-    <string name="delete_account_dialog_cancel">Cancelar</string>
+    <string name="delete_account_dialog_confirm">Borrar cuenta</string>
     <string name="catalog_section_confirm_dialog">Diálogo de confirmación</string>
     <string name="catalog_dialog_open">Abrir diálogo</string>
     <string name="catalog_section_reorderable">Lista reordenable</string>
@@ -354,7 +352,6 @@
     <string name="routines_row_menu_cd">Más acciones de %1$s</string>
     <string name="routine_edit_cd">Editar %1$s</string>
     <string name="routines_delete_cd">Eliminar %1$s</string>
-    <string name="routine_edit">Editar</string>
     <string name="routine_duplicate">Duplicar</string>
     <string name="routines_offline_reason">Sin conexión: no se puede duplicar, mover ni cambiar el siguiente entreno</string>
     <string name="routines_action_failed">No se pudo completar la acción. Inténtalo de nuevo.</string>
@@ -377,8 +374,6 @@
         <item quantity="one">%1$d rutina</item>
         <item quantity="other">%1$d rutinas</item>
     </plurals>
-    <string name="routines_folder_delete_confirm">Eliminar</string>
-    <string name="routines_folder_delete_cancel">Cancelar</string>
     <string name="routines_next_badge">Siguiente</string>
     <string name="routines_next_state">Siguiente entreno</string>
     <string name="routines_next_set">Siguiente entreno</string>
@@ -399,7 +394,6 @@
     <string name="builder_move_down">Bajar</string>
     <string name="builder_group_next">Agrupar con el siguiente</string>
     <string name="builder_ungroup">Desagrupar</string>
-    <string name="builder_remove">Quitar</string>
     <string name="builder_superset_label">Superserie %1$s%2$d</string>
     <string name="builder_row_menu_cd">Más opciones de %1$s</string>
     <string name="builder_reorder_cd">Reordenar %1$s</string>
@@ -629,14 +623,11 @@
     </plurals>
     <string name="live_discard_title">¿Descartar entreno?</string>
     <string name="live_discard_message">Se borrará este entreno con todas sus series.</string>
-    <string name="live_discard_confirm">Descartar</string>
-    <string name="live_discard_cancel">Cancelar</string>
     <string name="live_exercise_menu_cd">Más opciones de %1$s</string>
     <string name="live_exercise_menu_title">Opciones del ejercicio</string>
     <string name="live_exercise_menu_rest">Descanso</string>
     <string name="live_rest_sheet_title">Descanso de este ejercicio</string>
     <string name="live_rest_sheet_hint">Solo en este entreno; la rutina no cambia.</string>
-    <string name="live_rest_save">Guardar</string>
     <string name="live_exercise_menu_body_weight">Actualizar peso corporal</string>
     <string name="live_body_weight_title">Peso corporal</string>
     <string name="live_body_weight_field_label">Peso (kg)</string>
@@ -658,7 +649,6 @@
     <string name="record_most_floors">Más pisos</string>
     <string name="record_total_reps">Repeticiones totales</string>
     <string name="record_cd">Récord: %1$s</string>
-    <string name="summary_done">Listo</string>
 
     <!-- Session history (T-047) -->
     <string name="history_title">Historial de entrenos</string>
@@ -671,7 +661,6 @@
     </plurals>
     <string name="date_today">Hoy</string>
     <string name="date_yesterday">Ayer</string>
-    <string name="date_other">%1$s, %2$d %3$s</string>
     <string name="weekday_short_1">lun</string>
     <string name="weekday_short_2">mar</string>
     <string name="weekday_short_3">mié</string>
@@ -890,9 +879,8 @@
     <string name="add_food_portion_option">%1$s (%2$s %3$s)</string>
     <string name="add_food_quantity_error">Introduce una cantidad entre 0 y 5000</string>
     <string name="add_food_meal_label">Añadir a:</string>
-    <string name="add_food_no_meal_hint">No tienes ninguna comida activa</string>
+    <string name="add_food_no_meal_hint">No tienes comidas del día. Añade una en Preferencias.</string>
     <string name="add_food_preview_kcal">%1$s kcal</string>
-    <string name="add_food_submit">Añadir</string>
     <string name="add_food_load_error">No se pudo cargar el alimento</string>
     <string name="add_food_submit_error">No se pudo añadir el alimento. Inténtalo de nuevo.</string>
     <string name="food_scan_error">No se pudo leer el código. Inténtalo de nuevo.</string>
@@ -1000,7 +988,6 @@
     <string name="template_details_name_label">Nombre</string>
     <string name="template_details_items_header">Alimentos en esta comida</string>
     <string name="template_edit_title">Editar comida</string>
-    <string name="template_details_add">Añadir</string>
     <string name="template_details_add_failed">No se pudo añadir la comida. Inténtalo de nuevo.</string>
     <string name="template_food_remove">Quitar de la comida</string>
     <string name="template_details_load_error">No se pudo leer la comida</string>
@@ -1040,9 +1027,9 @@
     <string name="weight_empty_message">Aún no has registrado tu peso</string>
     <string name="weight_error_message">No se pudieron cargar las mediciones</string>
     <string name="weight_sheet_title_today">Registrar peso</string>
-    <string name="weight_sheet_title_day">Peso del %1$d %2$s</string>
+    <string name="weight_sheet_title_day">Peso del %1$s</string>
     <string name="weight_field_weight">Peso (kg)</string>
-    <string name="weight_field_fat">Grasa (%)</string>
+    <string name="weight_field_fat">Grasa corporal (%)</string>
     <string name="weight_field_fat_placeholder">Opcional</string>
     <string name="weight_range_weight">El peso debe estar entre 20 y 400 kg</string>
     <string name="weight_range_fat">La grasa corporal debe estar entre 2 y 75 %</string>
@@ -1103,7 +1090,6 @@
     <string name="health_action_permit">Permitir</string>
     <string name="health_action_install">Instalar</string>
     <string name="health_action_update">Actualizar</string>
-    <string name="health_action_retry">Reintentar</string>
     <string name="circumference_help_calf">1. De pie, con el peso repartido en ambas piernas. 2. Pasa la cinta por la parte más ancha de la pantorrilla. 3. Mantén la cinta horizontal y sin apretar. Usa siempre la misma pierna.</string>
 
     <!-- T-080 weight trend chart -->
@@ -1329,9 +1315,7 @@
     </plurals>
     <string name="session_detail_split_value">%1$s · %2$d %</string>
     <string name="session_detail_split_cd">%1$s: %2$s, %3$d %</string>
-    <string name="session_detail_edit_cd">Editar</string>
     <string name="session_detail_save_as_routine_cd">Guardar como rutina</string>
-    <string name="session_detail_delete_cd">Eliminar</string>
     <string name="session_detail_routine_saved">Rutina guardada</string>
     <string name="save_as_routine_title">Guardar como rutina</string>
     <string name="save_as_routine_name_label">Nombre de la rutina</string>
@@ -1359,8 +1343,6 @@
     <string name="workout_form_exercise_remove_cd">Quitar %1$s</string>
     <string name="workout_form_exercise_up_cd">Subir %1$s</string>
     <string name="workout_form_exercise_down_cd">Bajar %1$s</string>
-    <string name="date_picker_confirm">Aceptar</string>
-    <string name="date_picker_dismiss">Cancelar</string>
     <string name="catalog_section_date_picker">Selector de fecha</string>
     <string name="catalog_date_picker_open">Abrir selector de fecha</string>
     <string name="past_source_title">¿Desde dónde empiezas?</string>
@@ -1368,7 +1350,7 @@
     <string name="past_source_routine">Desde una rutina</string>
     <string name="past_source_session">Desde un entreno anterior</string>
     <string name="past_source_no_routines_title">Aún no tienes rutinas</string>
-    <string name="past_source_no_routines_message">Crea una rutina en la pestaña Entreno para usarla como plantilla.</string>
+    <string name="past_source_no_routines_message">Crea una rutina en la pestaña Entreno para elegirla aquí.</string>
     <string name="past_source_no_sessions_title">Aún no tienes entrenos</string>
     <string name="past_source_no_sessions_message">Tus entrenos terminados aparecerán aquí.</string>
     <string name="past_source_routines_error">No se pudieron cargar las rutinas</string>
@@ -1386,8 +1368,8 @@
     <string name="food_photo_source_camera_hint">Usa la cámara</string>
     <string name="food_photo_source_gallery_title">Elegir de la galería</string>
     <string name="food_photo_source_gallery_hint">Selecciona una foto existente</string>
-    <string name="food_photo_capture_error_camera">No se pudo abrir la cámara. Inténtalo de nuevo</string>
-    <string name="food_photo_capture_error_gallery">No se pudo cargar la foto. Inténtalo de nuevo</string>
+    <string name="food_photo_capture_error_camera">No se pudo abrir la cámara. Inténtalo de nuevo.</string>
+    <string name="food_photo_capture_error_gallery">No se pudo cargar la foto. Inténtalo de nuevo.</string>
     <string name="food_photo_preview_image_cd">Foto seleccionada</string>
     <string name="food_photo_retake">Repetir</string>
     <string name="food_photo_use">Usar foto</string>
@@ -1399,12 +1381,11 @@
     <string name="amount_photo_confidence">Confianza %1$d/10</string>
     <string name="amount_photo_confidence_cd">Confianza %1$d de 10</string>
     <string name="add_food_photo_error">No hemos podido estimar la cantidad</string>
-    <string name="add_food_photo_cancel">Cancelar</string>
     <string name="add_food_photo_offline">Sin conexión: no puedes estimar la cantidad con foto</string>
     <string name="food_photo_error_dish">No hemos podido estimar este alimento</string>
     <string name="food_photo_error_product">No hemos podido identificar este producto</string>
     <string name="food_photo_error_network">No hay conexión. Comprueba tu red e inténtalo de nuevo</string>
-    <string name="food_photo_error_unavailable">El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente</string>
+    <string name="food_photo_error_unavailable">El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente.</string>
     <string name="food_photo_error_manual">Crear manualmente</string>
     <string name="create_food_ai_note">Estimado por IA · revisa los valores</string>
     <string name="catalog_section_action_row">Fila de acción y nota</string>

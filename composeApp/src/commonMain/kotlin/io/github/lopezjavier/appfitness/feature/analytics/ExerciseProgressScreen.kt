@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_1rm
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_cd
@@ -37,7 +38,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_r
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_session
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
@@ -113,7 +113,7 @@ fun ExerciseProgressScreen(
             ExerciseProgressUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ErrorState(
                     message = stringResource(Res.string.exercise_progress_error_message),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) {
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
                         onEvent(ExerciseProgressEvent.Retry)
                     },
                     testTagPrefix = "exercise_progress_error",

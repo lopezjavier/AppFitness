@@ -18,9 +18,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_absent
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_button_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_current_label
@@ -93,7 +93,7 @@ fun WeightScreen(
 
                 WeightUiState.Error -> ErrorState(
                     message = stringResource(Res.string.weight_error_message),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(WeightEvent.Retry) },
+                    action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(WeightEvent.Retry) },
                     modifier = Modifier.align(Alignment.Center),
                     testTagPrefix = "weight_error",
                 )

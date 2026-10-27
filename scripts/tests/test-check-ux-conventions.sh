@@ -4,6 +4,7 @@
 #   violation  : no warning list              -> exit 1
 #   listed     : path in the warning list     -> exit 0 and a WARN line
 #   clean      : violating file emptied       -> exit 0, no WARN
+# T-128: the real warning list has no G9 entry, so a generic action text in strings.xml always fails.
 # Plus: a malformed warning line and an invalid regex in the list are errors (exit >= 2), and a
 # warning for another guard does not excuse the violation.
 set -euo pipefail
@@ -114,6 +115,10 @@ for pair in "2:feature/workout/PastWorkoutChooserSheet" "2:feature/workout/SaveA
   run "$tree" "$real_list"
   expect "G$n in $path.kt fails with the real warning list" 1
 done
+
+# T-128: the real warning list no longer excuses G9 (generic action texts in strings.xml).
+run "$here/ux-conventions/g9" "$real_list"
+expect "G9 in strings.xml fails with the real warning list" 1
 
 printf 'not a valid line\n' > "$work/bad-line.txt"
 run "$here/ux-conventions/g2" "$work/bad-line.txt"

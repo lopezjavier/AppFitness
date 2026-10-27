@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_card_change_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_card_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_card_empty_value
@@ -23,7 +24,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.goal_since_first
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_target_value
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -60,7 +60,7 @@ internal fun GoalCardSection(state: GoalUiState, onEvent: (GoalEvent) -> Unit, m
 
         GoalUiState.Error -> ErrorState(
             message = stringResource(Res.string.goal_error_message),
-            action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(GoalEvent.Retry) },
+            action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(GoalEvent.Retry) },
             modifier = modifier.fillMaxWidth(),
             testTagPrefix = "weight_goal_error",
         )

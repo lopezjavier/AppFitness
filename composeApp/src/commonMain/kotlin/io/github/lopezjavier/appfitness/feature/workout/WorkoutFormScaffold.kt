@@ -22,7 +22,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_static_cd
@@ -111,7 +111,7 @@ internal fun WorkoutFormError(tagPrefix: String, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.workout_form_load_error),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "${tagPrefix}_error",
         )
     }

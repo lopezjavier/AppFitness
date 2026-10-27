@@ -27,8 +27,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.set_checkbox_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_done
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_previous
@@ -340,7 +340,7 @@ fun SetTableHeader(
             )
         }
         HeaderText(
-            text = stringResource(Res.string.set_header_done),
+            text = stringResource(Res.string.action_done),
             modifier = Modifier.width(SetCompletionCheckboxDefaults.TouchTarget),
             centered = true,
         )

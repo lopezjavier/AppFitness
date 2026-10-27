@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
@@ -47,7 +48,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -61,6 +61,7 @@ import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.feature.diary.addObjectLabel
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
@@ -216,7 +217,7 @@ private fun Results(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit
                 message = stringResource(
                     if (state.isOffline) Res.string.food_offline_message else Res.string.food_error_message,
                 ),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(FoodSearchEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(FoodSearchEvent.Retry) },
                 testTagPrefix = "${TAG}_retry",
             )
         }
@@ -298,6 +299,7 @@ private fun ResultsList(
                 enabled = !isOffline,
                 onClick = { onEvent(FoodSearchEvent.SelectFood(food)) },
                 onToggleFavourite = { onEvent(FoodSearchEvent.ToggleFavourite(food.id)) },
+                modifier = appAnimateItem(),
             )
         }
         if (results.remoteLoading) {
@@ -309,7 +311,7 @@ private fun ResultsList(
             item(key = "remote_error") {
                 ErrorState(
                     message = stringResource(Res.string.food_remote_error),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(FoodSearchEvent.Retry) },
+                    action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(FoodSearchEvent.Retry) },
                     testTagPrefix = "${TAG}_remote_error",
                     actionTestTag = "${TAG}_remote_retry",
                 )
@@ -318,6 +320,7 @@ private fun ResultsList(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun FoodRow(
     food: Food,
@@ -325,6 +328,7 @@ private fun FoodRow(
     enabled: Boolean,
     onClick: () -> Unit,
     onToggleFavourite: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val per100 = stringResource(
         if (food.baseUnit == "ml") Res.string.food_kcal_per_100_ml else Res.string.food_kcal_per_100_g,
@@ -336,7 +340,7 @@ private fun FoodRow(
     val brand = food.brand?.takeIf { it.isNotBlank() }
     AppListRow(
         headline = food.name,
-        modifier = Modifier.testTag("${TAG}_row_${food.id}"),
+        modifier = modifier.testTag("${TAG}_row_${food.id}"),
         supporting = if (brand != null) "$brand · $per100" else per100,
         trailing = {
             FavouriteToggle(

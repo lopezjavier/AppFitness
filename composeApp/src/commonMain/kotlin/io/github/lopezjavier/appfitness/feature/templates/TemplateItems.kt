@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_item_amount
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_load_error
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -79,7 +79,7 @@ internal fun DetailsLoadError(prefix: String, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.template_details_load_error),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "${prefix}_error_state",
         )
     }

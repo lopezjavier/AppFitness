@@ -424,6 +424,9 @@ Audit IDs in the last column refer to [`ux-audit-2026-10.md`](ux-audit-2026-10.m
 | `OfflineState` | Offline load state that retries by itself on reconnect. | FBK-2 |
 | `AppDateFormat` | The three date forms of R-38. | WRD-4 |
 | `action_*` strings | Guardar, Cancelar, Cerrar, Eliminar, Quitar, Añadir, Editar, Listo, Descartar, Seguir editando, Reintentar. | WRD-3 |
+| `StepScaffold` | Template of a step-by-step flow outside `AppScreen` (onboarding, T-128): fixed indicator, then per step the title (no final period), a one-sentence helper and the scrolling content; the footer ("Atrás" hidden on step 1, "Continuar", last step "Guardar") is pinned above the keyboard and publishes its height to the message host. Changing the step slides title, helper and content (forward from the end, back from the start, RTL-aware, 300 ms), never the footer; focus moves to the title. Exempt from R-06 (it owns the footer and the message host like `AppScreen`). | ONB-1 |
+| Motion rule (R-23) and `appAnimateItem()` | Every lazy list item has a stable `key` and uses `appAnimateItem()` (`LazyItemScope` and grid variants): add, remove and reorder animate. The step slide uses the same rule. With `LocalAnimationsEnabled` false (system animator scale 0) lists, the step slide and the tooltip snap; haptics stay. Plain `animateItem()` is not used in feature code. | LST-7 |
+| `AppIconButton` tooltip | Long press on an enabled `AppIconButton` shows its `contentDescription` in a `PlainTooltip` (the tooltip is hidden from TalkBack, which reads the description once); a disabled button shows none; the 48 dp target and the tag are unchanged. | FBK-5 |
 
 ### 9.1 Swipe-to-delete
 

@@ -1112,7 +1112,7 @@ internal fun NavBackStackEntry?.chrome(): ShellChrome {
     return destination.fullScreenRoute()?.chrome
         ?: DiaryHome.chrome.takeIf { destination?.hasRoute(DiaryHome::class) == true }
         ?: ProfileHome.chrome.takeIf { destination?.hasRoute(ProfileHome::class) == true }
-        ?: ShellChrome.Tabs(tab)
+        ?: ShellChrome.TabScreen(tab)
 }
 
 /**

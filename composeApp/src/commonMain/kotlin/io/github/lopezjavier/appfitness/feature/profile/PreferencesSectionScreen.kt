@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
@@ -27,7 +28,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_save_er
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -104,7 +104,7 @@ fun PreferencesSectionScreen(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         ErrorState(
                             message = stringResource(Res.string.root_error_message),
-                            action = AppStateAction(stringResource(Res.string.state_retry)) {
+                            action = AppStateAction(stringResource(Res.string.action_retry)) {
                                 onEvent(PreferencesEvent.Retry)
                             },
                             testTagPrefix = "preferences_error",

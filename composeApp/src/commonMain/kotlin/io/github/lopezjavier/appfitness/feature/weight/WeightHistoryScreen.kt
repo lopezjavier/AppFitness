@@ -3,18 +3,18 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_title
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.MonthCalendarGrid
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 
@@ -57,7 +58,7 @@ fun WeightHistoryScreen(
 
                 WeightUiState.Error -> ErrorState(
                     message = stringResource(Res.string.weight_error_message),
-                    action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(WeightEvent.Retry) },
+                    action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(WeightEvent.Retry) },
                     modifier = Modifier.align(Alignment.Center),
                     testTagPrefix = "weight_history_error",
                 )
@@ -73,23 +74,23 @@ fun WeightHistoryScreen(
 
 @Composable
 private fun HistoryCalendar(content: WeightContent, onEvent: (WeightEvent) -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.screenMargin),
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        MonthCalendarGrid(
-            month = content.month,
-            markedDays = content.markedDays,
-            selected = content.sheet?.day,
-            today = content.today,
-            onSelect = { onEvent(WeightEvent.OpenDay(it)) },
-            onPrevMonth = { onEvent(WeightEvent.PreviousMonth) },
-            onNextMonth = { onEvent(WeightEvent.NextMonth) },
-            canGoNext = content.canGoNext,
-            modifier = Modifier.testTag("weight_history_calendar"),
-        )
+        item(key = "calendar") {
+            MonthCalendarGrid(
+                month = content.month,
+                markedDays = content.markedDays,
+                selected = content.sheet?.day,
+                today = content.today,
+                onSelect = { onEvent(WeightEvent.OpenDay(it)) },
+                onPrevMonth = { onEvent(WeightEvent.PreviousMonth) },
+                onNextMonth = { onEvent(WeightEvent.NextMonth) },
+                canGoNext = content.canGoNext,
+                modifier = appAnimateItem().testTag("weight_history_calendar"),
+            )
+        }
     }
 }

@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppLogoDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -45,7 +45,7 @@ internal fun RootError(onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.Center) {
         ErrorState(
             message = stringResource(Res.string.root_error_message),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             testTagPrefix = "root_error",
         )
     }

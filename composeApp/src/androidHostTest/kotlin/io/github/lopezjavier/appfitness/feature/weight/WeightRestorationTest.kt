@@ -113,7 +113,7 @@ class WeightRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("month_calendar_title").assertTextEquals("septiembre 2026")
-        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 15 sep")
+        rule.onNodeWithTag("weight_day_sheet_title").assertTextEquals("Peso del 15 de septiembre")
         assertEquals("74,6", editableText("weight_sheet_weight_input"))
         assertEquals("16,2", editableText("weight_sheet_fat_input"))
     }

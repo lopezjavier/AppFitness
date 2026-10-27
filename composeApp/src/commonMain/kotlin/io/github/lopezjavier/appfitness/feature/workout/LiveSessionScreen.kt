@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
@@ -38,7 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_object_exercis
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title_fallback
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -53,6 +53,7 @@ import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.platform.KeepScreenOn
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -151,7 +152,7 @@ fun LiveSessionScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.live_error),
-                        action = AppStateAction(stringResource(Res.string.state_retry)) {
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
                             onEvent(LiveSessionEvent.Retry)
                         },
                         testTagPrefix = "live_error",
@@ -241,6 +242,7 @@ private fun LiveActive(
                     onOpenExercise,
                     options = state.volumeOptionsFor(optionSaveFailed),
                     deleteEnabled = !state.busy,
+                    modifier = appAnimateItem(),
                 )
             }
             item(key = "add_exercise") {

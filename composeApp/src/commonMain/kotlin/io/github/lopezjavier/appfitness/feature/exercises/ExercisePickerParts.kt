@@ -22,6 +22,7 @@ internal fun PickerRow(
     selectMode: Boolean,
     mediaUris: ExerciseMediaUris,
     onEvent: (ExercisePickerEvent) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val subtitle = stringResource(
         Res.string.exercise_row_subtitle,
@@ -34,6 +35,7 @@ internal fun PickerRow(
         supporting = subtitle,
         onOpen = { onEvent(ExercisePickerEvent.OpenDetail(item.id)) },
         tagPrefix = "exercise_picker_row_${item.id}",
+        modifier = modifier,
         imageUri = if (item.hasMedia && key != null) mediaUris.start(key) else null,
         onSelect = if (selectMode) {
             { onEvent(ExercisePickerEvent.OpenExercise(item.id)) }

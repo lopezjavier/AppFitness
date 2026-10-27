@@ -13,7 +13,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -50,7 +50,7 @@ internal fun <T> StatsBlock(
 
         SectionState.Error -> ErrorState(
             message = stringResource(Res.string.stats_error_message),
-            action = AppStateAction(stringResource(Res.string.state_retry), onRetry),
+            action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
             modifier = modifier,
             actionTestTag = "stats_retry_${section.tagSuffix()}",
         )

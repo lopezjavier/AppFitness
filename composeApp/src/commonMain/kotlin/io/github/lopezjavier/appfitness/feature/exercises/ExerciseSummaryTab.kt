@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_animation_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_no
@@ -31,7 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_em
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_error
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -193,7 +193,7 @@ private fun RecordsBlock(records: RecordsState, today: LocalDate, onRetry: () ->
                     color = AppTheme.colors.textSecondary,
                 )
                 GhostButton(
-                    text = stringResource(Res.string.state_retry),
+                    text = stringResource(Res.string.action_retry),
                     onClick = onRetry,
                     modifier = Modifier.testTag("exercise_detail_records_retry"),
                 )

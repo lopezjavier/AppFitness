@@ -20,9 +20,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_install
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_permit
-import io.github.lopezjavier.appfitness.composeapp.resources.health_action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_sync
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_update
 import io.github.lopezjavier.appfitness.composeapp.resources.health_failed
@@ -150,6 +150,6 @@ private fun actionLabel(action: HealthAction): String = stringResource(
         HealthAction.Permit -> Res.string.health_action_permit
         HealthAction.Install -> Res.string.health_action_install
         HealthAction.Update -> Res.string.health_action_update
-        HealthAction.Retry -> Res.string.health_action_retry
+        HealthAction.Retry -> Res.string.action_retry
     },
 )

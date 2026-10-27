@@ -14,6 +14,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_no_routines_message
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_no_routines_title
@@ -25,7 +26,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.past_source_session
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_sessions_error
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_count
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -127,7 +127,7 @@ private fun RoutineList(routines: ChooserRoutines, onEvent: (PastWorkoutChooserE
 
         ChooserRoutines.Error -> ErrorState(
             message = stringResource(Res.string.past_source_routines_error),
-            action = AppStateAction(stringResource(Res.string.state_retry)) {
+            action = AppStateAction(stringResource(Res.string.action_retry)) {
                 onEvent(PastWorkoutChooserEvent.RetryRoutines)
             },
             testTagPrefix = "${TAG}_routines_error",

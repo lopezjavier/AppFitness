@@ -2,11 +2,10 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.runtime.Composable
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_dialog_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_dialog_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_dialog_message
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_dialog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_title
@@ -19,7 +18,7 @@ internal fun SignOutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         title = stringResource(Res.string.sign_out_dialog_title),
         message = stringResource(Res.string.sign_out_dialog_message),
         confirmLabel = stringResource(Res.string.sign_out_dialog_confirm),
-        cancelLabel = stringResource(Res.string.sign_out_dialog_cancel),
+        cancelLabel = stringResource(Res.string.action_cancel),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
         testTagPrefix = "account_sign_out_dialog",
@@ -32,7 +31,7 @@ internal fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         title = stringResource(Res.string.delete_account_dialog_title),
         message = stringResource(Res.string.delete_account_dialog_message),
         confirmLabel = stringResource(Res.string.delete_account_dialog_confirm),
-        cancelLabel = stringResource(Res.string.delete_account_dialog_cancel),
+        cancelLabel = stringResource(Res.string.action_cancel),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
         testTagPrefix = "account_delete_dialog",

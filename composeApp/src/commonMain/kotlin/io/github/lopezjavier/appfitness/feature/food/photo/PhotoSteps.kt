@@ -39,6 +39,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_counter
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_placeholder
@@ -52,7 +53,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_preview_
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_retake
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_use
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppButtonDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -246,7 +246,7 @@ fun PhotoError(kind: FoodPhotoErrorKind, onEvent: (FoodPhotoEvent) -> Unit, modi
             ErrorState(
                 message = message,
                 action = AppStateAction(
-                    label = stringResource(Res.string.state_retry),
+                    label = stringResource(Res.string.action_retry),
                     onClick = { onEvent(FoodPhotoEvent.Retry) },
                 ),
                 secondaryAction = AppStateAction(

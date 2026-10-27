@@ -39,7 +39,7 @@ sealed interface PastWorkoutUiState {
 sealed interface PastWorkoutEvent {
     data object Retry : PastWorkoutEvent
 
-    /** The date picked in the date dialog (its "Aceptar" only fills the form). */
+    /** The date picked in the date dialog (its "Listo" only fills the form). */
     data class DateChanged(val date: LocalDate) : PastWorkoutEvent
 
     /** The only write of the screen: creates the completed workout (never a live session). */

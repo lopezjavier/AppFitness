@@ -6,16 +6,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_duplicate
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_message
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_group_none
@@ -47,8 +46,8 @@ internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesE
         AppConfirmDialog(
             title = stringResource(Res.string.routines_folder_delete_title, folder.name),
             message = pluralStringResource(Res.plurals.routines_folder_delete_message, count, count),
-            confirmLabel = stringResource(Res.string.routines_folder_delete_confirm),
-            cancelLabel = stringResource(Res.string.routines_folder_delete_cancel),
+            confirmLabel = stringResource(Res.string.action_delete),
+            cancelLabel = stringResource(Res.string.action_cancel),
             onConfirm = { onEvent(RoutinesEvent.ConfirmDeleteFolder) },
             onDismiss = { onEvent(RoutinesEvent.DismissDeleteFolder) },
             testTagPrefix = "routines_folder_delete_dialog",
@@ -67,7 +66,7 @@ private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent
     val id = routine.id
     val actions = buildList {
         add(
-            AppSheetAction(Res.drawable.ic_edit, stringResource(Res.string.routine_edit)) {
+            AppSheetAction(Res.drawable.ic_edit, stringResource(Res.string.action_edit)) {
                 onEvent(RoutinesEvent.Edit(id))
             },
         )

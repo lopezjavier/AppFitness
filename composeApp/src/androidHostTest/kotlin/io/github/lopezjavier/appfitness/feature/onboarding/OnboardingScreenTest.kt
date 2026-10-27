@@ -20,17 +20,20 @@ import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.width
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
@@ -39,7 +42,9 @@ import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.WheelPickerDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -50,6 +55,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.feature.exercises.RecordingMessages
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -87,7 +93,9 @@ class OnboardingScreenTest {
     private val haptics = RecordingAppHaptics()
     private var completions = 0
 
-    private fun show() {
+    private val messages = RecordingMessages()
+
+    private fun show(animationsEnabled: Boolean = true, fontScale: Float = 1f) {
         val viewModel = OnboardingViewModel(
             SavedStateHandle(),
             profile,
@@ -98,8 +106,15 @@ class OnboardingScreenTest {
             clock,
         )
         rule.setContent {
-            CompositionLocalProvider(LocalAppHaptics provides haptics) {
-                AppTheme { OnboardingRoute(onComplete = { completions++ }, viewModel = viewModel) }
+            CompositionLocalProvider(
+                LocalAppHaptics provides haptics,
+                LocalAppMessages provides messages,
+                LocalAnimationsEnabled provides animationsEnabled,
+            ) {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                    AppTheme { OnboardingRoute(onComplete = { completions++ }, viewModel = viewModel) }
+                }
             }
         }
         rule.waitForIdle()
@@ -323,7 +338,7 @@ class OnboardingScreenTest {
         rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Objetivos")
         rule.onNodeWithTag("onboarding_step_indicator").assertTextEquals("4 / 4")
         rule.onNodeWithTag("onboarding_goals_tdee").assertExists()
-        rule.onNodeWithTag("onboarding_goals_save").assertTextEquals("Guardar objetivos").assertIsEnabled()
+        rule.onNodeWithTag("onboarding_goals_save").assertTextEquals("Guardar").assertIsEnabled()
         rule.onNodeWithTag("onboarding_continue").assertDoesNotExist()
         assertEquals(1, profile.biometricsUpdates.size)
         assertEquals(Sex.Male, profile.biometricsUpdates.single().sex)
@@ -417,7 +432,9 @@ class OnboardingScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("onboarding_goals_save").assertIsNotEnabled()
-        rule.onNodeWithTag("onboarding_offline_hint").assertTextEquals("Sin conexión. Conéctate para guardar tus datos")
+        rule.onNodeWithTag(
+            "onboarding_offline_hint",
+        ).assertTextEquals("Sin conexión: conéctate para guardar tus datos.")
     }
 
     @Test
@@ -427,7 +444,7 @@ class OnboardingScreenTest {
 
         tap("onboarding_goals_save")
 
-        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertExists()
+        assertEquals(listOf("Sin conexión: no se puede guardar."), messages.shown)
         rule.onAllNodesWithText("Reintentar").assertCountEquals(0)
         rule.onNodeWithTag("onboarding_goals_save").assertExists()
         assertEquals(0, completions)
@@ -441,7 +458,117 @@ class OnboardingScreenTest {
     }
 
     @Test
-    fun saveError_showsAMessageOnlySnackbar_andContinueFinishesTheFlow() {
+    fun everyStep_showsTheHelperAndTheFooterButtons() {
+        show()
+        val helpers = listOf(
+            "Calcularemos tus objetivos con estos datos.",
+            "Usaremos tu altura y tu peso actual.",
+            "Elige el que mejor describe tu semana.",
+            "Ajusta tu estrategia de energía y guarda.",
+        )
+        goToStep(1)
+        helpers.forEachIndexed { index, helper ->
+            rule.onNodeWithTag("onboarding_step_helper").assertTextEquals(helper)
+            rule.onNodeWithTag("onboarding_footer").assertIsDisplayed()
+            rule.onNodeWithTag(if (index == 3) "onboarding_goals_save" else "onboarding_continue").assertIsDisplayed()
+            if (index > 0) rule.onNodeWithTag("onboarding_back").assertIsDisplayed()
+            if (index < 3) {
+                if (index == 2) tap("onboarding_activity_moderate")
+                next()
+            }
+        }
+    }
+
+    @Test
+    fun sexCards_areEqualAndTheBirthDateShowsInTheSameView() {
+        show()
+
+        val male = rule.onNodeWithTag("onboarding_sex_male").getUnclippedBoundsInRoot()
+        val female = rule.onNodeWithTag("onboarding_sex_female").getUnclippedBoundsInRoot()
+        assertEquals(male.width, female.width)
+        assertEquals(male.height, female.height)
+        rule.onNodeWithTag("onboarding_label_birth_date").assertIsDisplayed()
+        rule.onNodeWithTag("onboarding_age_label").assertIsDisplayed()
+    }
+
+    @Test
+    fun forwardStep_slidesWithBothStepsInTheTreeMidTransition() {
+        show()
+        tap("onboarding_sex_male")
+        rule.mainClock.autoAdvance = false
+
+        rule.onNodeWithTag("onboarding_continue").performClick()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeBy(100)
+
+        rule.onAllNodesWithTag("onboarding_step_title").assertCountEquals(2)
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("onboarding_step_title").assertCountEquals(1)
+        rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Medidas")
+    }
+
+    @Test
+    fun reducedMotion_swapsTheStepWithoutAnOutgoingStep() {
+        show(animationsEnabled = false)
+        tap("onboarding_sex_male")
+        rule.mainClock.autoAdvance = false
+
+        rule.onNodeWithTag("onboarding_continue").performClick()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        rule.onAllNodesWithTag("onboarding_step_title").assertCountEquals(1)
+        rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Medidas")
+    }
+
+    @Test
+    fun footer_staysPinnedWhenTheStepContentScrolls() {
+        show(fontScale = 2f)
+        goToStep(3)
+        val before = rule.onNodeWithTag("onboarding_footer").getUnclippedBoundsInRoot()
+
+        rule.onNodeWithTag("onboarding_activity_very_high").performScrollTo()
+        rule.waitForIdle()
+
+        val after = rule.onNodeWithTag("onboarding_footer").getUnclippedBoundsInRoot()
+        assertEquals(before.top, after.top)
+        rule.onNodeWithTag("onboarding_continue").assertIsDisplayed()
+        rule.onNodeWithTag("onboarding_back").assertIsDisplayed()
+    }
+
+    @Test
+    fun recreation_keepsTheStepAndTheChosenValues() {
+        val handle = SavedStateHandle()
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent {
+            val viewModel = OnboardingViewModel(
+                handle,
+                profile,
+                weights,
+                goals,
+                CompleteOnboarding(goals, profile),
+                connectivity,
+                clock,
+            )
+            AppTheme { OnboardingRoute(onComplete = {}, viewModel = viewModel) }
+        }
+        rule.waitForIdle()
+        tap("onboarding_sex_female")
+        next()
+        tap("onboarding_back")
+        next()
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("onboarding_step_title").assertTextEquals("Medidas")
+        tap("onboarding_back")
+        rule.onNodeWithTag("onboarding_sex_female").assertIsSelected()
+    }
+
+    @Test
+    fun saveError_goesToTheAppMessageQueue_andContinueFinishesTheFlow() {
         show()
         goToStep(3)
         tap("onboarding_activity_moderate")
@@ -449,7 +576,7 @@ class OnboardingScreenTest {
 
         next()
 
-        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertExists()
+        assertEquals(listOf("Sin conexión: no se puede guardar."), messages.shown)
         rule.onAllNodesWithText("Reintentar").assertCountEquals(0)
         rule.onNodeWithTag("onboarding_activity_moderate").assertIsSelected()
         rule.onNodeWithTag("onboarding_goals_save").assertDoesNotExist()
@@ -473,7 +600,9 @@ class OnboardingScreenTest {
         tap("onboarding_activity_light")
 
         rule.onNodeWithTag("onboarding_continue").assertIsNotEnabled()
-        rule.onNodeWithTag("onboarding_offline_hint").assertTextEquals("Sin conexión. Conéctate para guardar tus datos")
+        rule.onNodeWithTag(
+            "onboarding_offline_hint",
+        ).assertTextEquals("Sin conexión: conéctate para guardar tus datos.")
 
         connectivity.state.value = true
         rule.waitForIdle()

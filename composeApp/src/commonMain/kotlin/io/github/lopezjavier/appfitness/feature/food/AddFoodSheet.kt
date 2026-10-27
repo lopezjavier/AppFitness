@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_load_error
@@ -31,7 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
-import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -102,7 +102,7 @@ fun AddFoodSheet(
         ) {
             ErrorState(
                 message = stringResource(Res.string.add_food_load_error),
-                action = AppStateAction(stringResource(Res.string.state_retry)) { onEvent(AddFoodEvent.Retry) },
+                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(AddFoodEvent.Retry) },
                 testTagPrefix = "${SHEET_PREFIX}_error_state",
             )
         }
