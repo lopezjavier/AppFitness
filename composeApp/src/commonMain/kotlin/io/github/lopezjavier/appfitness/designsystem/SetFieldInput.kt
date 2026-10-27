@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_field_hint_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.set_value_planned
 import org.jetbrains.compose.resources.stringResource
 
 /** One numeric input of a set row. A [SetFieldSpec.hint] is the ghost text of an empty weight field, and is spoken. */
@@ -39,5 +40,6 @@ internal fun SetFieldInput(
         showLabel = false,
         readOnly = values.completed,
         imeAction = imeAction,
+        placeholderDescription = stringResource(Res.string.set_value_planned),
     )
 }

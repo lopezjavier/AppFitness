@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -130,7 +131,8 @@ class RoutineBuilderSetsScreenTest {
             rule.onNodeWithTag("routine_builder_set_row_0_$set").assertExists()
             rule.onNodeWithTag("routine_builder_set_weight_0_$set").assertExists()
             rule.onNodeWithTag("routine_builder_set_reps_0_$set").assertTextEquals("8")
-            badge(0, set).assertTextEquals((set + 1).toString())
+            badge(0, set).assertTextEquals("N")
+            rule.onAllNodesWithTag("set_ordinal")[set].assertTextEquals((set + 1).toString())
         }
     }
 
@@ -231,7 +233,7 @@ class RoutineBuilderSetsScreenTest {
         pickType(0, 0, "set_type_picker_option_warm_up")
 
         badge(0, 0).assertTextEquals("C")
-        badge(0, 1).assertTextEquals("2")
+        badge(0, 1).assertTextEquals("N")
         rule.onNodeWithTag("set_type_picker").assertDoesNotExist()
     }
 
@@ -260,7 +262,7 @@ class RoutineBuilderSetsScreenTest {
         rule.onNodeWithTag("set_type_picker_option_warm_up").assertIsSelected()
         tap("set_type_picker_option_working")
 
-        badge(0, 0).assertTextEquals("1")
+        badge(0, 0).assertTextEquals("N")
     }
 
     @Test
@@ -271,7 +273,7 @@ class RoutineBuilderSetsScreenTest {
         tap("set_type_picker_close")
 
         rule.onNodeWithTag("set_type_picker").assertDoesNotExist()
-        badge(0, 0).assertTextEquals("1")
+        badge(0, 0).assertTextEquals("N")
     }
 
     @Test

@@ -207,7 +207,7 @@ class LiveSessionFirstSetRpeTest {
 
         rule.onNodeWithTag("live_rest_timer_paused").assertTextEquals("En pausa")
         rule.onNodeWithTag("live_rest_countdown").assertTextContains("01:00")
-        rule.onNodeWithTag("live_pause_label").assertExists()
+        rule.onNodeWithTag("live_subtitle").assertTextContains("EN PAUSA", substring = true)
 
         rule.onNodeWithTag("live_set_0_2_weight").performTextInput("60")
         rule.onNodeWithTag("live_set_0_2_reps").performTextInput("8")
@@ -216,7 +216,7 @@ class LiveSessionFirstSetRpeTest {
         rule.onNodeWithTag("rpe_picker_option_8").performClick()
         settle()
 
-        rule.onNodeWithTag("live_pause_label").assertDoesNotExist()
+        rule.onNodeWithTag("live_subtitle").assertTextContains("EN VIVO", substring = true)
         rule.onNodeWithTag("live_rest_timer_paused").assertDoesNotExist()
     }
 

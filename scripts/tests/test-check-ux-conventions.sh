@@ -78,6 +78,21 @@ for pair in "2:ExerciseFormSheet" "3:ExerciseDetailScreen" "3:ExercisePickerScre
   expect "G$n in feature/exercises/$file.kt fails with the real warning list" 1
 done
 
+# T-125: the live session and its sheets are migrated, so the real warning list no longer excuses them.
+for pair in "2:feature/workout/CalculatorSheetParts" "2:feature/workout/ExerciseMenu" \
+  "2:feature/workout/FinishSessionSheet" "2:feature/workout/UpdateRoutineSheet" \
+  "2:feature/workout/VolumeOptionsSheets" "2:feature/routines/RoutineSheetActions" \
+  "3:feature/workout/LiveSessionScreen"; do
+  n="${pair%%:*}"
+  path="${pair##*:}"
+  tree="$work/live-g$n-$(basename "$path")"
+  mkdir -p "$tree/composeApp/src/commonMain/kotlin/demo/$(dirname "$path")"
+  cp "$here/ux-conventions/g$n/composeApp/src/commonMain/kotlin/demo/feature/Bad.kt" \
+    "$tree/composeApp/src/commonMain/kotlin/demo/$path.kt"
+  run "$tree" "$real_list"
+  expect "G$n in $path.kt fails with the real warning list" 1
+done
+
 printf 'not a valid line\n' > "$work/bad-line.txt"
 run "$here/ux-conventions/g2" "$work/bad-line.txt"
 expect "malformed warning line is an error" 2

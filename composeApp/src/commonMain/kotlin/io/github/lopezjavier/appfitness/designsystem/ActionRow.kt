@@ -38,7 +38,8 @@ object ActionRowDefaults {
 /**
  * Tappable row of a choice sheet: decorative [icon], [title] (`titleMedium`) and an optional one-line [hint]
  * (`bodyMedium`, `textSecondary`; null for a title-only row). At least 48 dp tall, `Role.Button`, and read as one
- * node ("title, hint"). [testTag] lands on the row.
+ * node ("title, hint"). [testTag] lands on the row. A disabled ([enabled] false) row is dimmed and inert; its
+ * [hint] should say why.
  */
 @Composable
 fun ActionRow(
@@ -48,12 +49,14 @@ fun ActionRow(
     onClick: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
+    val contentColor = if (enabled) AppTheme.colors.textPrimary else AppTheme.colors.ghostData
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = ActionRowDefaults.MinHeight)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = Spacing.screenMargin, vertical = ActionRowDefaults.VerticalPadding)
             .semantics(mergeDescendants = true) {}
             .testTag(testTag),
@@ -63,11 +66,11 @@ fun ActionRow(
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
-            tint = AppTheme.colors.textPrimary,
+            tint = contentColor,
             modifier = Modifier.size(ActionRowDefaults.IconSize),
         )
         Column(Modifier.weight(1f)) {
-            Text(text = title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
+            Text(text = title, style = AppTheme.typography.titleMedium, color = contentColor)
             if (hint != null) {
                 Text(text = hint, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
             }

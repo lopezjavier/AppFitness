@@ -46,9 +46,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -69,9 +66,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnailDefaults
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
+import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -293,12 +290,7 @@ private fun TargetRpeLine(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilde
         onStep = { onEvent(RoutineBuilderEvent.StepTargetRpe(index, it)) },
         tag = "routine_builder_target_rpe_$index",
         help = {
-            HelpButton(
-                contentDescription = stringResource(Res.string.help_rpe_cd),
-                title = stringResource(Res.string.help_rpe_title),
-                body = stringResource(Res.string.help_rpe_body),
-                testTag = "routine_builder_target_rpe_help",
-            )
+            RpeHelpButton(testTag = "routine_builder_target_rpe_help")
         },
     )
 }

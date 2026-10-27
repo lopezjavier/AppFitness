@@ -96,7 +96,7 @@ private fun SetTypePickerOptions(staged: SetType, onSelect: (SetType) -> Unit) {
                     modifier = Modifier.size(SetRowDefaults.IndexBadgeSize).testTag("set_type_picker_normal_icon"),
                 )
             } else {
-                SetTypeBadge(type = type, number = "")
+                SetTypeBadge(type = type)
             }
             Text(
                 text = stringResource(SetTypeBadgeDefaults.labelResource(type)),

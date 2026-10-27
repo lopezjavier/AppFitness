@@ -177,7 +177,7 @@ class RoutineBuilderCalculatorsTest {
         val tag = "routine_builder_0_warm_up_calc"
         rule.onNodeWithTag("${tag}_weight_field").assertTextContains("100")
         rule.onNodeWithTag("${tag}_row_0").assertTextContains("60 kg × 3")
-        tap("${tag}_confirm")
+        tap("${tag}_sheet_commit")
 
         rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
         rule.onNodeWithTag("routine_builder_set_weight_0_0").assertTextEquals("60")
@@ -195,7 +195,7 @@ class RoutineBuilderCalculatorsTest {
 
         openFromMenu(BARBELL_ROW, "warm_up_calc")
 
-        rule.onNodeWithTag("routine_builder_0_warm_up_calc_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_0_warm_up_calc_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("routine_builder_0_warm_up_calc_cap_hint")
             .assertTextEquals("Con estas series superarías el máximo de 10 series")
     }
@@ -210,7 +210,7 @@ class RoutineBuilderCalculatorsTest {
 
         openFromMenu(BARBELL_ROW, "warm_up_calc")
 
-        rule.onNodeWithTag("routine_builder_0_warm_up_calc_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_0_warm_up_calc_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("routine_builder_0_warm_up_calc_cap_hint")
             .assertTextContains("superserie", substring = true)
     }
@@ -228,7 +228,7 @@ class RoutineBuilderCalculatorsTest {
         tap("${tag}_plate_25_increment")
         tap("${tag}_plate_15_increment")
         rule.onNodeWithTag("${tag}_total").assertTextEquals("Total: 100 kg")
-        tap("${tag}_close")
+        tap("${tag}_sheet_close")
         rule.onNodeWithTag("${tag}_sheet").assertDoesNotExist()
     }
 

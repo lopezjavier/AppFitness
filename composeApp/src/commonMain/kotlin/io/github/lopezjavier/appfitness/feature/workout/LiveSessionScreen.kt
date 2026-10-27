@@ -9,20 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,19 +26,30 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_pause
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
 import io.github.lopezjavier.appfitness.composeapp.resources.live_action_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.live_add_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.live_error
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
+import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_object_exercise
+import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
+import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
+import io.github.lopezjavier.appfitness.composeapp.resources.live_title_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
@@ -58,7 +63,7 @@ private val SkeletonCardHeight = Spacing.xl * 6
 /**
  * Stateful live session: connects [LiveSessionViewModel], hands the exercise the picker returned
  * ([selectedExerciseId], consumed once through [onConsumeSelection]) and routes its one-off results: the picker
- * ([onAddExercise]), leaving the flow ([onClose]) and a snackbar for a failed finish or discard.
+ * ([onAddExercise]), leaving the flow ([onClose]) and a message plus a Reject haptic for a failed finish or discard.
  */
 @Composable
 fun LiveSessionRoot(
@@ -72,12 +77,14 @@ fun LiveSessionRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val elapsed by viewModel.elapsedSeconds.collectAsStateWithLifecycle(initialValue = 0L)
-    val snackbarHost = remember { SnackbarHostState() }
+    val messages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     val currentClose by rememberUpdatedState(onClose)
     val currentAddExercise by rememberUpdatedState(onAddExercise)
     val currentConsume by rememberUpdatedState(onConsumeSelection)
     val failed = stringResource(Res.string.live_action_failed)
-    var optionSaveFailed by remember { mutableStateOf(false) }
+    // The options sheets show their own "No se pudo guardar" line; the flag survives recreation with the open sheet.
+    var optionSaveFailed by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(selectedExerciseId) {
         if (selectedExerciseId != null) {
             viewModel.onEvent(LiveSessionEvent.ExerciseSelected(selectedExerciseId))
@@ -91,10 +98,15 @@ fun LiveSessionRoot(
 
                 LiveSessionEffect.Closed -> currentClose()
 
-                LiveSessionEffect.ActionFailed -> snackbarHost.showSnackbar(failed)
+                LiveSessionEffect.ActionFailed -> {
+                    haptics.reject()
+                    messages.show(failed)
+                }
 
-                // The options sheets show their own "No se pudo guardar" message.
-                LiveSessionEffect.OptionSaveFailed -> optionSaveFailed = true
+                LiveSessionEffect.OptionSaveFailed -> {
+                    haptics.reject()
+                    optionSaveFailed = true
+                }
             }
         }
     }
@@ -109,16 +121,7 @@ fun LiveSessionRoot(
         if (event.isOptionEdit()) optionSaveFailed = false
         viewModel.onEvent(event)
     }
-    LiveSessionScreen(
-        state,
-        elapsed,
-        onEvent,
-        onClose,
-        onOpenExercise,
-        modifier,
-        snackbarHost,
-        optionSaveFailed,
-    )
+    LiveSessionScreen(state, elapsed, onEvent, onClose, onOpenExercise, modifier, optionSaveFailed)
 }
 
 private fun LiveSessionEvent.isOptionEdit() = this is LiveSessionEvent.BodyWeightDraftChanged ||
@@ -126,9 +129,9 @@ private fun LiveSessionEvent.isOptionEdit() = this is LiveSessionEvent.BodyWeigh
     this is LiveSessionEvent.DismissVolumeDrafts
 
 /**
- * The live workout: top bar, one card per exercise and a sticky "Finalizar entreno" bar. Loading shows skeleton
- * cards, a failed load offers "Reintentar" and a finished session shows its summary. [onBack] leaves the screen
- * without finishing the session.
+ * The live workout on [AppScreen]: the routine name with the stopwatch as subtitle, pause and menu actions, one card
+ * per exercise and the rest bar pinned as the footer. Loading shows skeleton cards, a failed load offers "Reintentar"
+ * and a finished session shows its summary. [onBack] leaves the screen without finishing the session.
  */
 @Composable
 fun LiveSessionScreen(
@@ -138,15 +141,13 @@ fun LiveSessionScreen(
     onBack: () -> Unit,
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
-    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     optionSaveFailed: Boolean = false,
 ) {
     Box(modifier.fillMaxSize().background(AppTheme.colors.surfaceBase).testTag("live_screen")) {
         when (state) {
-            LiveSessionUiState.Loading, LiveSessionUiState.NoSession ->
-                LiveMessage(elapsedSeconds, onBack) { LiveLoading() }
+            LiveSessionUiState.Loading, LiveSessionUiState.NoSession -> LiveMessage(onBack) { LiveLoading() }
 
-            LiveSessionUiState.Error -> LiveMessage(elapsedSeconds, onBack) {
+            LiveSessionUiState.Error -> LiveMessage(onBack) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorState(
                         message = stringResource(Res.string.live_error),
@@ -163,7 +164,6 @@ fun LiveSessionScreen(
                 elapsedSeconds,
                 onEvent,
                 onBack,
-                snackbarHost,
                 onOpenExercise,
                 optionSaveFailed,
             )
@@ -183,11 +183,13 @@ fun LiveSessionScreen(
 }
 
 @Composable
-private fun LiveMessage(elapsedSeconds: Long, onBack: () -> Unit, content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        LiveSessionTopBar(elapsedSeconds, onBack, onMenu = null)
-        content()
-    }
+private fun LiveMessage(onBack: () -> Unit, content: @Composable () -> Unit) {
+    AppScreen(
+        title = stringResource(Res.string.live_title_fallback),
+        onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.CardColumnMaxWidth,
+        testTagPrefix = "live",
+    ) { content() }
 }
 
 @Composable
@@ -203,24 +205,6 @@ private fun LiveLoading() {
     }
 }
 
-/** The running rest, pinned above the list (never over its rows) and capped to the list's width. */
-@Composable
-private fun RestBar(timer: RestTimerUi, onEvent: (LiveSessionEvent) -> Unit) {
-    Box(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin), contentAlignment = Alignment.TopCenter) {
-        RestTimerBar(
-            remaining = timer.remaining,
-            total = timer.total,
-            onAddTime = { onEvent(LiveSessionEvent.RestAdd30) },
-            onSkip = { onEvent(LiveSessionEvent.RestSkip) },
-            modifier = Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth)
-                .padding(top = Spacing.sm, bottom = Spacing.md),
-            testTagPrefix = "live_rest",
-            paused = timer.paused,
-            pausedTestTag = "live_rest_timer_paused",
-        )
-    }
-}
-
 @Composable
 @Suppress("LongParameterList") // State plus the screen's event and navigation hooks.
 private fun LiveActive(
@@ -228,59 +212,93 @@ private fun LiveActive(
     elapsedSeconds: Long,
     onEvent: (LiveSessionEvent) -> Unit,
     onBack: () -> Unit,
-    snackbarHost: SnackbarHostState,
     onOpenExercise: (String) -> Unit,
     optionSaveFailed: Boolean,
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
-    Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
-        LiveSessionTopBar(
-            elapsedSeconds,
-            onBack,
-            onMenu = { menuOpen = true },
-            isPaused = state.isPaused,
-            onTogglePause = if (state.actionsBlocked || state.busy) {
-                null
-            } else {
-                { onEvent(if (state.isPaused) LiveSessionEvent.ResumeSession else LiveSessionEvent.PauseSession) }
-            },
-        )
-        state.restTimer?.let { RestBar(it, onEvent) }
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            LazyColumn(
-                Modifier.widthIn(max = WindowWidthClassDefaults.CardColumnMaxWidth).fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
-            ) {
-                items(state.exercises, key = { it.position }) {
-                    LiveExerciseCard(
-                        it,
-                        onEvent,
-                        onOpenExercise,
-                        options = state.volumeOptionsFor(optionSaveFailed),
-                        deleteEnabled = !state.busy,
-                    )
-                }
-                item(key = "add_exercise") {
-                    SecondaryButton(
-                        text = stringResource(Res.string.live_add_exercise),
-                        onClick = { onEvent(LiveSessionEvent.AddExercise) },
-                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.blockGap - Spacing.cardGap)
-                            .testTag("live_add_exercise"),
-                    )
-                }
-                if (state.allExercisesComplete) {
-                    item(key = "finish_session") { FinishButton(state, onEvent) }
-                }
+    val subtitle = liveSubtitle(elapsedSeconds, state.isPaused)
+    val timer = state.restTimer
+    AppScreen(
+        title = state.name.ifBlank { stringResource(Res.string.live_title_fallback) },
+        subtitle = subtitle.text,
+        subtitleSemantics = subtitle.semantics,
+        onBack = onBack,
+        actions = liveActions(state, onEvent, onMenu = { menuOpen = true }),
+        footer = timer?.let { { RestFooter(it, onEvent) } },
+        maxContentWidth = WindowWidthClassDefaults.CardColumnMaxWidth,
+        testTagPrefix = "live",
+    ) {
+        LazyColumn(
+            Modifier.fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+        ) {
+            items(state.exercises, key = { it.position }) {
+                LiveExerciseCard(
+                    it,
+                    onEvent,
+                    onOpenExercise,
+                    options = state.volumeOptionsFor(optionSaveFailed),
+                    deleteEnabled = !state.busy,
+                )
+            }
+            item(key = "add_exercise") {
+                AddItemButton(
+                    objectLabel = stringResource(Res.string.live_object_exercise),
+                    onClick = { onEvent(LiveSessionEvent.AddExercise) },
+                    modifier = Modifier.padding(top = Spacing.blockGap - Spacing.cardGap).testTag("live_add_exercise"),
+                )
+            }
+            if (state.allExercisesComplete) {
+                item(key = "finish_session") { FinishButton(state, onEvent) }
             }
         }
-        SnackbarHost(snackbarHost) { data -> Snackbar { Text(data.visuals.message) } }
     }
     LiveDialogs(state, menuOpen, onCloseMenu = { menuOpen = false }, onEvent)
     LiveTypePicker(state, onEvent)
     LiveRpePicker(state, onEvent)
     LiveCalculator(state, onEvent)
+}
+
+/** Pause or resume (hidden while an action is blocked or running) and the overflow menu of the top bar. */
+@Composable
+private fun liveActions(
+    state: LiveSessionUiState.Active,
+    onEvent: (LiveSessionEvent) -> Unit,
+    onMenu: () -> Unit,
+): List<AppTopBarAction> {
+    val pauseLabel = stringResource(if (state.isPaused) Res.string.live_resume else Res.string.live_pause)
+    val menuLabel = stringResource(Res.string.live_menu_cd)
+    return buildList {
+        if (!state.actionsBlocked && !state.busy) {
+            add(
+                AppTopBarAction(
+                    icon = if (state.isPaused) Res.drawable.ic_play_arrow else Res.drawable.ic_pause,
+                    contentDescription = pauseLabel,
+                    onClick = {
+                        onEvent(if (state.isPaused) LiveSessionEvent.ResumeSession else LiveSessionEvent.PauseSession)
+                    },
+                    testTag = "live_pause_toggle",
+                ),
+            )
+        }
+        add(AppTopBarAction(Res.drawable.ic_more_vert, menuLabel, onMenu, testTag = "live_menu_button"))
+    }
+}
+
+/** The running rest, pinned as the screen footer (above the bottom inset; messages float above it). */
+@Composable
+private fun RestFooter(timer: RestTimerUi, onEvent: (LiveSessionEvent) -> Unit) {
+    RestTimerBar(
+        remaining = timer.remaining,
+        total = timer.total,
+        onAddTime = { onEvent(LiveSessionEvent.RestAdd30) },
+        onSkip = { onEvent(LiveSessionEvent.RestSkip) },
+        testTagPrefix = "live_rest",
+        paused = timer.paused,
+        pausedTestTag = "live_rest_timer_paused",
+    )
 }
 
 /** The open warm-up or plate calculator sheet; its draft lives in the view model (survives process death). */

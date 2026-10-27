@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -53,7 +54,7 @@ object AppScreenDefaults {
  * Insets: the bar and the footer pad for whatever system insets are not consumed yet, so inside the shell (which
  * consumes them for `AppScreen` routes) nothing is padded twice, and standalone (tests, previews) the screen is
  * edge-to-edge safe. Tags: `<prefix>` (the bar), `<prefix>_title`, `<prefix>_subtitle`, `<prefix>_back`,
- * `<prefix>_footer`.
+ * `<prefix>_footer`. [subtitleSemantics] adds semantics to the subtitle node (a spoken description).
  *
  * [header] (tab roots, D1) replaces the bar with a compact row of the caller's own content (min 48 dp, top inset,
  * `borderSubtle` hairline like the bar) tagged `<prefix>_header`; then [subtitle], [onBack] and [actions] are
@@ -65,6 +66,7 @@ fun AppScreen(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleSemantics: (SemanticsPropertyReceiver.() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     actions: List<AppTopBarAction> = emptyList(),
     footer: (@Composable () -> Unit)? = null,
@@ -82,6 +84,7 @@ fun AppScreen(
             AppTopBar(
                 title = title,
                 subtitle = subtitle,
+                subtitleSemantics = subtitleSemantics,
                 navigationButton = backButton,
                 actions = actions,
                 testTagPrefix = testTagPrefix,

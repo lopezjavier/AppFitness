@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.SetFieldKind
+import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadgeDefaults
@@ -138,9 +139,9 @@ internal fun FormSetRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            SetOrdinal(number.toString())
             SetTypeBadge(
                 type = set.type,
-                number = number.toString(),
                 modifier = Modifier.testTag("${tag}_type"),
                 onClick = onOpenTypePicker,
                 clickLabel = stringResource(Res.string.builder_set_type_cd, number, typeLabel),

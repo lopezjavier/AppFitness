@@ -233,7 +233,7 @@ class LiveSessionCalculatorsTest {
         show()
         openWarmUp()
 
-        tap("live_exercise_1_warm_up_calc_confirm")
+        tap("live_exercise_1_warm_up_calc_sheet_commit")
 
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_sheet").assertDoesNotExist()
         rule.onAllNodesWithText("C").assertCountEquals(1)
@@ -246,7 +246,7 @@ class LiveSessionCalculatorsTest {
 
         type("live_exercise_1_warm_up_calc_weight_field", "")
 
-        rule.onNodeWithTag("live_exercise_1_warm_up_calc_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("live_exercise_1_warm_up_calc_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_hint").assertTextEquals("Introduce el peso objetivo")
     }
 
@@ -258,7 +258,7 @@ class LiveSessionCalculatorsTest {
         type("live_exercise_1_warm_up_calc_weight_field", "20")
 
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_row_0").assertDoesNotExist()
-        rule.onNodeWithTag("live_exercise_1_warm_up_calc_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("live_exercise_1_warm_up_calc_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("live_exercise_1_warm_up_calc_hint")
             .assertTextEquals("El peso es igual o inferior a la barra")
     }
@@ -287,7 +287,7 @@ class LiveSessionCalculatorsTest {
         }
         rule.onNodeWithTag("${tag}_plate_25_value").assertTextEquals("0")
         rule.onNodeWithTag("${tag}_plate_25_decrement").assertIsNotEnabled()
-        rule.onNodeWithTag("${tag}_close").assertExists()
+        rule.onNodeWithTag("${tag}_sheet_close").assertExists()
     }
 
     @Test
@@ -430,7 +430,7 @@ class LiveSessionCalculatorsTest {
         show()
         openPlates()
 
-        tap("live_exercise_1_disc_loader_close")
+        tap("live_exercise_1_disc_loader_sheet_close")
 
         rule.onNodeWithTag("live_exercise_1_disc_loader_sheet").assertDoesNotExist()
     }

@@ -44,6 +44,7 @@ import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -170,7 +171,8 @@ private fun SetLine(sessionId: String, set: HistorySetUi) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SetTypeBadge(set.setType, number)
+        SetOrdinal(number)
+        SetTypeBadge(set.setType)
         Text(
             text = set.text,
             style = AppTheme.typography.labelNumeric,

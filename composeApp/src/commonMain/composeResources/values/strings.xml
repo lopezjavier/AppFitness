@@ -191,6 +191,7 @@
     <string name="action_move_up">Subir</string>
     <string name="action_move_down">Bajar</string>
     <string name="action_add">Añadir</string>
+    <string name="action_finish">Finalizar</string>
     <string name="action_edit">Editar</string>
     <string name="action_done">Listo</string>
     <string name="action_discard">Descartar</string>
@@ -432,6 +433,8 @@
     <string name="set_type_warm_up">Calentamiento</string>
     <string name="set_type_failure">Fallo</string>
     <string name="set_type_drop">Drop</string>
+    <string name="set_type_letter_normal">N</string>
+    <string name="set_value_planned">Previsto</string>
     <string name="set_type_letter_warm_up">C</string>
     <string name="set_type_letter_failure">F</string>
     <string name="set_type_letter_drop">D</string>
@@ -550,7 +553,12 @@
     <string name="help_set_type_body">Normal: serie de trabajo; cuenta para volumen, 1RM y récords. Calentamiento (C): serie ligera para prepararte; por defecto no cuenta para volumen ni récords. Fallo (F): serie llevada hasta no poder hacer otra repetición; cuenta. Drop (D): serie justo después de otra, bajando el peso para seguir sin descansar; cuenta.</string>
     <string name="help_rpe_title">¿Qué es el RPE?</string>
     <string name="help_rpe_cd">Ayuda: RPE</string>
-    <string name="help_rpe_body">Esfuerzo percibido, de 6 a 10. 10: no podías hacer ni una repetición más. 9: quedaba 1 repetición en reserva. 8: unas 2 en reserva. 7: unas 3 en reserva, la velocidad era buena. 6: unas 4 en reserva.</string>
+    <string name="help_rpe_intro">Esfuerzo percibido de la serie, de 6 a 10.</string>
+    <string name="help_rpe_bullet_10">10: no podías hacer ni una repetición más.</string>
+    <string name="help_rpe_bullet_9">9: quedaba 1 repetición en reserva.</string>
+    <string name="help_rpe_bullet_8">8: unas 2 repeticiones en reserva.</string>
+    <string name="help_rpe_bullet_7">7: unas 3 repeticiones en reserva, la velocidad era buena.</string>
+    <string name="help_rpe_bullet_6">6: unas 4 repeticiones en reserva.</string>
     <string name="help_warmup_calc_cd">Ayuda: calculadora de calentamiento</string>
     <string name="help_warmup_calc_body">Indica el peso objetivo de tu primera serie de trabajo; se rellena con el mejor peso que has levantado en este ejercicio. La barra (o el mango, en mancuernas) es la de Preferencias. Con el contador eliges de 1 a 4 series de calentamiento con pesos crecientes, que se añaden antes de tus series.</string>
     <string name="help_disc_loader_cd">Ayuda: cargador de discos</string>
@@ -562,6 +570,9 @@
     <string name="help_previous_mode_cd">Ayuda: valores anteriores</string>
     <string name="help_previous_mode_body">Elige de dónde sale la columna Anterior: la última vez que hiciste el ejercicio en esta rutina o la última vez en cualquier entreno.</string>
     <string name="live_title">EN VIVO</string>
+    <string name="live_title_fallback">Entreno en vivo</string>
+    <string name="live_object_exercise">ejercicio</string>
+    <string name="live_object_set">serie</string>
     <string name="live_timer_cd">Tiempo de entreno, %1$d minutos %2$d segundos</string>
     <string name="live_menu_cd">Más opciones del entreno</string>
     <string name="live_menu_discard">Descartar entreno</string>
@@ -573,8 +584,6 @@
     <string name="live_finish_empty_reason">Completa al menos una serie para finalizar</string>
     <string name="live_set_delete_cd">Eliminar serie %1$d</string>
     <string name="live_finish_offline_reason">Sin conexión: no puedes finalizar ni descartar el entreno</string>
-    <string name="live_add_set">Añadir serie</string>
-    <string name="live_add_exercise">Añadir ejercicio</string>
     <string name="live_pending_save">Pendiente de guardar</string>
     <string name="live_invalid_set">Indica el peso y las repeticiones</string>
     <string name="live_error">No se pudo cargar tu entreno</string>
@@ -584,11 +593,11 @@
         <item quantity="one">Hay %1$d serie sin completar; no se guardará</item>
         <item quantity="other">Hay %1$d series sin completar; no se guardarán</item>
     </plurals>
-    <string name="live_finish_confirm">Finalizar</string>
-    <string name="live_finish_cancel">Seguir entrenando</string>
-    <string name="live_updateRoutine_title">Actualizar rutina</string>
+    <string name="live_updateRoutine_title">¿Actualizar la rutina?</string>
     <string name="live_updateRoutine_update">Actualizar rutina</string>
-    <string name="live_updateRoutine_keep">Mantener rutina original</string>
+    <string name="live_updateRoutine_keep">Mantener la rutina</string>
+    <string name="live_updateRoutine_update_desc">La rutina pasa a ser como este entreno.</string>
+    <string name="live_updateRoutine_keep_desc">La rutina queda como estaba.</string>
     <string name="live_updateRoutine_error">No se pudo actualizar la rutina. Inténtalo de nuevo.</string>
     <plurals name="live_updateRoutine_sets_added">
         <item quantity="one">%1$d serie añadida</item>
@@ -634,7 +643,6 @@
     <string name="live_body_weight_field_label">Peso (kg)</string>
     <string name="live_body_weight_hint">Se guarda como tu peso de hoy y se usa para calcular el volumen.</string>
     <string name="live_body_weight_error">Introduce un peso válido.</string>
-    <string name="live_options_save">Guardar</string>
     <string name="live_options_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="summary_title">Entreno completado</string>
     <string name="summary_duration">Duración</string>
@@ -1302,7 +1310,6 @@
     <string name="live_calc_bar_title">Barra</string>
     <string name="live_calc_warm_up_row">%1$s kg × %2$d</string>
     <string name="live_calc_warm_up_row_cd">Calentamiento %1$d: %2$s kilos, %3$d repeticiones</string>
-    <string name="live_calc_add">Añadir series</string>
     <string name="live_calc_hint_missing">Introduce el peso objetivo</string>
     <string name="live_calc_hint_at_or_below_bar">El peso es igual o inferior a la barra</string>
     <string name="live_calc_warm_up_sets_label">Series de calentamiento</string>
@@ -1310,7 +1317,6 @@
     <string name="live_calc_warm_up_sets_increase_cd">Más series de calentamiento</string>
     <string name="live_calc_warm_up_sets_state">%1$d series de calentamiento</string>
     <string name="live_calc_bar_label">Barra %1$s kg</string>
-    <string name="live_calc_close">Cerrar</string>
     <string name="live_calc_handle_label">Mango: %1$s kg</string>
     <string name="builder_warm_up_cap_hint">Con estas series superarías el máximo de %1$d series</string>
     <string name="builder_warm_up_cap_hint_superset">En una superserie todos los ejercicios llevan las mismas series: máximo %1$d</string>

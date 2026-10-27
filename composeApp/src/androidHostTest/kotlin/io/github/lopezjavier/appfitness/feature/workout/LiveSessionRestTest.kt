@@ -2,12 +2,14 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -153,14 +155,24 @@ class LiveSessionRestTest {
     }
 
     @Test
-    fun restBar_neverOverlapsTheListOrTheFirstRows() {
+    fun restBar_isTheFooter_pinnedBelowTheList_andNeverOverlapsIt() {
         show(session(rest = RestTimerUi(72.seconds, 120.seconds)))
 
+        val footer = rule.onNodeWithTag("live_footer").getUnclippedBoundsInRoot()
         val bar = rule.onNodeWithTag("live_rest_countdown").getUnclippedBoundsInRoot()
-        val firstCard = rule.onNodeWithTag("live_exercise_0").getUnclippedBoundsInRoot()
-        val firstRow = rule.onNodeWithTag("live_set_0_1").getUnclippedBoundsInRoot()
-        assertTrue(bar.bottom <= firstCard.top)
-        assertTrue(bar.bottom <= firstRow.top)
+        val list = rule.onNode(hasScrollAction()).getUnclippedBoundsInRoot()
+        assertTrue(bar.top >= footer.top)
+        assertTrue(list.bottom <= footer.top)
+    }
+
+    @Test
+    fun restBar_skipAndAddThirtyFireTheirEvents_with48dpTargets() {
+        show(session(rest = RestTimerUi(72.seconds, 120.seconds)))
+
+        rule.onNodeWithTag("live_rest_add").assertHeightIsAtLeast(48.dp).performClick()
+        rule.onNodeWithTag("live_rest_skip").assertHeightIsAtLeast(48.dp).performClick()
+
+        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.RestAdd30, LiveSessionEvent.RestSkip), events)
     }
 
     @Test
@@ -183,7 +195,7 @@ class LiveSessionRestTest {
         rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("2 min")
         rule.onNodeWithTag("live_exercise_0_rest_increment").performClick()
         rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("2 min 10 s")
-        rule.onNodeWithTag("live_exercise_0_rest_confirm").performClick()
+        rule.onNodeWithTag("live_exercise_0_rest_sheet_commit").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.SetExerciseRest(0, 130)), events)
     }
@@ -197,6 +209,20 @@ class LiveSessionRestTest {
 
         rule.onNodeWithTag("live_exercise_0_rest_decrement").assertIsNotEnabled()
         rule.onNodeWithTag("live_exercise_0_rest_increment").assertIsEnabled()
+    }
+
+    @Test
+    fun restSheet_typedValue_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent { AppTheme { ExerciseRestSheet(0, 60, {}, {}) } }
+        rule.onNodeWithTag("live_exercise_0_rest_increment").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("1 min 10 s")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_exercise_0_rest_value").assertTextContains("1 min 10 s")
     }
 
     @Test

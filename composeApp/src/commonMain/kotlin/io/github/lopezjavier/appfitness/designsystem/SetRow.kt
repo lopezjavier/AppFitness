@@ -82,6 +82,9 @@ object SetRowDefaults {
     const val STEPS_MAX_INTEGER_DIGITS = 6
     const val PREVIOUS_MAX_LINES = 2
     val IndexBadgeSize: Dp = 24.dp
+
+    /** Width of the [SetOrdinal] left of the type badge. */
+    val OrdinalWidth: Dp = 16.dp
     val MinHeight: Dp = 48.dp
 
     /** Compact gap: at 360 dp the three weighted columns need every dp (UX: "102,25" at 130 % font). */
@@ -154,9 +157,9 @@ fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        SetOrdinal(number)
         SetTypeBadge(
             type = values.type,
-            number = number,
             modifier = Modifier.tag(testTagPrefix, "type"),
             onClick = onTypeClick,
             clickLabel = typeClickLabel,
@@ -311,7 +314,7 @@ fun SetTableHeader(
     ) {
         HeaderText(
             text = stringResource(Res.string.set_header_index),
-            modifier = Modifier.width(SetRowDefaults.IndexBadgeSize),
+            modifier = Modifier.width(SetRowDefaults.IndexBadgeSize + SetRowDefaults.OrdinalWidth),
             spoken = stringResource(Res.string.set_header_index_cd),
             centered = true,
         )

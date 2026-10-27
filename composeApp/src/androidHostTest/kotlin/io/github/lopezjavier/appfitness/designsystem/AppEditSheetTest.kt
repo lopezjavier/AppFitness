@@ -86,6 +86,17 @@ class AppEditSheetTest {
     }
 
     @Test
+    fun editFinish_showsFinalizar_andCommitsOnTap() {
+        showEdit(commit = SheetCommit.Finish)
+        rule.onNodeWithText("Finalizar").assertIsDisplayed()
+        rule.onNodeWithText("Guardar").assertDoesNotExist()
+
+        rule.onNodeWithTag("sheet_commit").performClick()
+
+        assertEquals(1, commits)
+    }
+
+    @Test
     fun editApply_showsListo() {
         showEdit(commit = SheetCommit.Apply)
         rule.onNodeWithText("Listo").assertIsDisplayed()

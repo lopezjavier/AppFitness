@@ -1,6 +1,9 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -41,6 +44,30 @@ class AppTopBarTest {
             icon = if (index % 2 == 0) Res.drawable.ic_edit else Res.drawable.ic_close,
             contentDescription = "Acción ${index + 1}",
             onClick = { clicks += index + 1 },
+        )
+    }
+
+    @Test
+    fun subtitleSemantics_describeTheSubtitleNodeForScreenReaders() {
+        rule.setContent {
+            AppTheme {
+                AppTopBar(
+                    title = "Rutina",
+                    subtitle = "EN VIVO · 02:05",
+                    subtitleSemantics = {
+                        contentDescription = "Tiempo de entreno, 2 minutos"
+                        stateDescription = "En pausa"
+                    },
+                )
+            }
+        }
+
+        rule.onNodeWithTag("topbar_subtitle").assertContentDescriptionEquals("Tiempo de entreno, 2 minutos")
+        assertEquals(
+            "En pausa",
+            rule.onNodeWithTag(
+                "topbar_subtitle",
+            ).fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription),
         )
     }
 

@@ -387,7 +387,7 @@ private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
             )
 
         // The destination draws its own bar; the shell reserves the status bar so the offline banner sits below it.
-        ShellChrome.Own, ShellChrome.Screen, is ShellChrome.TabScreen ->
+        ShellChrome.Screen, is ShellChrome.TabScreen ->
             Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(AppTopBarDefaults.windowInsets))
     }
 }
@@ -396,7 +396,7 @@ private fun ShellTopBar(chrome: ShellChrome, backButton: AppTopBarButton) {
 internal fun ShellChrome.tabOrNull(): TopLevelTab? = when (this) {
     is ShellChrome.Tabs -> tab
     is ShellChrome.TabScreen -> tab
-    is ShellChrome.FullScreen, ShellChrome.Own, ShellChrome.Screen -> null
+    is ShellChrome.FullScreen, ShellChrome.Screen -> null
 }
 
 /** True when the destination draws its own header through `AppScreen` and consumes the insets itself. */

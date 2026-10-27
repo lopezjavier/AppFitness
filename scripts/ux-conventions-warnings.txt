@@ -5,23 +5,16 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/routines/RoutineSheetActions\.kt   # owner T-125
-G2 feature/analytics/stats/MuscleDetailSheet\.kt   # owner T-125
-G2 feature/workout/CalculatorSheetParts\.kt   # owner T-125
-G2 feature/workout/ExerciseMenu\.kt   # owner T-125
-G2 feature/workout/FinishSessionSheet\.kt   # owner T-125
-G2 feature/workout/PastWorkoutChooserSheet\.kt   # owner T-125
-G2 feature/workout/SaveAsRoutineSheet\.kt   # owner T-125
-G2 feature/workout/UpdateRoutineSheet\.kt   # owner T-125
-G2 feature/workout/VolumeOptionsSheets\.kt   # owner T-125
+G2 feature/analytics/stats/MuscleDetailSheet\.kt   # owner T-125c
+G2 feature/workout/PastWorkoutChooserSheet\.kt   # owner T-125b
+G2 feature/workout/SaveAsRoutineSheet\.kt   # owner T-125b
 G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
 G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
-G3 feature/workout/EditWorkoutScreen\.kt   # owner T-125
-G3 feature/workout/LiveSessionScreen\.kt   # owner T-125
-G3 feature/workout/PastWorkoutScreen\.kt   # owner T-125
-G3 feature/workout/SessionDetailScreen\.kt   # owner T-125
+G3 feature/workout/EditWorkoutScreen\.kt   # owner T-125b
+G3 feature/workout/PastWorkoutScreen\.kt   # owner T-125b
+G3 feature/workout/SessionDetailScreen\.kt   # owner T-125b
 G3 feature/profile/PreferencesScreen\.kt   # owner T-127
 G3 feature/profile/ProfileRootScreen\.kt   # owner T-127
 G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128

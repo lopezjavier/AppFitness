@@ -269,12 +269,9 @@ sealed interface ShellChrome {
     /** Top bar with a back arrow, no bottom bar. Its tags are `<topBarTag>`, `_title` and `_back`. */
     data class FullScreen(val title: StringResource, val topBarTag: String = AppTopBarDefaults.TestTag) : ShellChrome
 
-    /** No bottom bar and no shell top bar: the destination draws its own (the shell keeps the status bar inset). */
-    data object Own : ShellChrome
-
     /**
      * No bottom bar and no shell title bar: the route draws its bar through `AppScreen` ([usesAppScreen]).
-     * The shell treats it like [Own] (it reserves the status bar so the offline banner sits below it).
+     * The shell reserves the status bar so the offline banner sits below it.
      */
     data object Screen : ShellChrome
 }
@@ -288,7 +285,7 @@ val AppRoute.usesAppScreen: Boolean
         this is FoodSearchRoute || this is AddFoodRoute || this is CreateFoodRoute || this is EditFoodRoute ||
         this is TemplateDetailsRoute || this is WeightRoute || this is WeightHistoryRoute ||
         this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome ||
-        this is ExercisePickerRoute || this is ExerciseDetailRoute
+        this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -311,8 +308,6 @@ private val AppRoute.legacyChrome: ShellChrome
             CatalogRoute -> ShellChrome.FullScreen(Res.string.catalog_title)
 
             PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
-
-            LiveSessionRoute -> ShellChrome.Own
 
             HistoryRoute -> ShellChrome.FullScreen(Res.string.history_title, topBarTag = "history_top_bar")
 
@@ -340,6 +335,8 @@ private val AppRoute.legacyChrome: ShellChrome
             // the search's chrome, so opening it does not redraw the bars.
             is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, is TemplateDetailsRoute ->
                 ShellChrome.Screen
+
+            LiveSessionRoute -> ShellChrome.Screen
 
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 

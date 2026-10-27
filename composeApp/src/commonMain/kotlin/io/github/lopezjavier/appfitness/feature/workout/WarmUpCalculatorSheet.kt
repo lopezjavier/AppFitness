@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_warmup_calc_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_warmup_calc_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_add
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_at_or_below_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_hint_missing
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_row
@@ -29,10 +28,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_s
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_sets_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_warm_up_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_working_weight
+import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
@@ -41,7 +42,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Warm-up calculator: the working weight and bar produce up to four "C" rows; "Añadir series" inserts them before the
- * working sets. The rows are a draft, so closing the sheet inserts nothing. [capHint] (non-null) disables the action.
+ * working sets (edit archetype, commit "Añadir"). The rows are a draft, so closing the sheet inserts nothing.
+ * [capHint] (non-null) disables the commit.
  */
 @Composable
 internal fun WarmUpCalculatorSheet(
@@ -51,57 +53,50 @@ internal fun WarmUpCalculatorSheet(
     capHint: String? = null,
 ) {
     val tag = "${tagPrefix}_warm_up_calc"
-    CalculatorSheetFrame(
-        tag = tag,
-        title = stringResource(Res.string.live_calc_warm_up_title),
-        weightLabel = stringResource(Res.string.live_calc_working_weight),
-        calculator = calculator,
-        actions = actions,
-        help = CalculatorHelp(
-            stringResource(Res.string.help_warmup_calc_cd),
-            stringResource(Res.string.help_warmup_calc_body),
-            "warmup_calc_help",
-        ),
-        results = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                BarLabel(tag, calculator)
-                WarmUpSetsStepper(calculator.draft.warmUpSets, actions.onWarmUpSets)
-                WarmUpResults(tag, calculator)
-            }
-        },
-        action = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                calculator.hint?.let {
-                    Text(
-                        text = stringResource(
-                            if (it == CalculatorHint.MissingWeight) {
-                                Res.string.live_calc_hint_missing
-                            } else {
-                                Res.string.live_calc_hint_at_or_below_bar
-                            },
-                        ),
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textSecondary,
-                        modifier = Modifier.testTag("${tag}_hint"),
-                    )
-                }
-                capHint?.let {
-                    Text(
-                        text = it,
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.colors.energyAmber,
-                        modifier = Modifier.testTag("${tag}_cap_hint"),
-                    )
-                }
-                PrimaryButton(
-                    text = stringResource(Res.string.live_calc_add),
-                    onClick = { actions.onAddWarmUp(calculator.warmUp) },
-                    modifier = Modifier.fillMaxWidth().testTag("${tag}_confirm"),
-                    enabled = calculator.canAddWarmUp && capHint == null,
+    val title = stringResource(Res.string.live_calc_warm_up_title)
+    val help = CalculatorHelp(
+        stringResource(Res.string.help_warmup_calc_cd),
+        stringResource(Res.string.help_warmup_calc_body),
+        "warmup_calc_help",
+    )
+    AppEditSheet(
+        title = title,
+        commit = SheetCommit.Add,
+        onCommit = { actions.onAddWarmUp(calculator.warmUp) },
+        onDismiss = actions.onDismiss,
+        commitEnabled = calculator.canAddWarmUp && capHint == null,
+        help = { CalculatorHelpButton(title, help) },
+        testTagPrefix = "${tag}_sheet",
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            CalculatorWeightField(tag, stringResource(Res.string.live_calc_working_weight), calculator, actions)
+            BarLabel(tag, calculator)
+            WarmUpSetsStepper(calculator.draft.warmUpSets, actions.onWarmUpSets)
+            WarmUpResults(tag, calculator)
+            calculator.hint?.let {
+                Text(
+                    text = stringResource(
+                        if (it == CalculatorHint.MissingWeight) {
+                            Res.string.live_calc_hint_missing
+                        } else {
+                            Res.string.live_calc_hint_at_or_below_bar
+                        },
+                    ),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("${tag}_hint"),
                 )
             }
-        },
-    )
+            capHint?.let {
+                Text(
+                    text = it,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.energyAmber,
+                    modifier = Modifier.testTag("${tag}_cap_hint"),
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -149,7 +144,8 @@ private fun WarmUpResults(tag: String, calculator: CalculatorUiState) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                SetTypeBadge(SetType.WarmUp, (index + 1).toString(), Modifier.clearAndSetSemantics {})
+                SetOrdinal((index + 1).toString())
+                SetTypeBadge(SetType.WarmUp, Modifier.clearAndSetSemantics {})
                 Text(
                     text = stringResource(Res.string.live_calc_warm_up_row, weight, set.reps),
                     style = AppTheme.typography.bodyLarge,

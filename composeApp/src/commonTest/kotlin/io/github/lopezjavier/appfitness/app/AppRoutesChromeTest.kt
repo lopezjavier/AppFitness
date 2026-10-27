@@ -88,9 +88,15 @@ class AppRoutesChromeTest {
     }
 
     @Test
+    fun liveSession_drawsItsBarThroughAppScreen_withNoBottomBar() {
+        assertTrue(LiveSessionRoute.usesAppScreen)
+        assertEquals(ShellChrome.Screen, LiveSessionRoute.chrome)
+    }
+
+    @Test
     fun everyOtherRoute_doesNotUseAppScreen() {
         val others = legacyFullScreenTags.map { it.first } +
-            listOf(LiveSessionRoute, EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
+            listOf(EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
             listOf(DiaryGraph, WorkoutGraph, ProfileGraph, ProfileHome)
 
         others.forEach { assertFalse(it.usesAppScreen, it.toString()) }
@@ -105,8 +111,7 @@ class AppRoutesChromeTest {
     }
 
     @Test
-    fun liveSession_andTheDiarySheets_keepTheirChrome() {
-        assertEquals(ShellChrome.Own, LiveSessionRoute.chrome)
+    fun theDiarySheets_keepTheirChrome() {
         assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), EditEntryRoute("e", "2026-10-26").chrome)
         assertEquals(ShellChrome.Tabs(TopLevelTab.Diary), SaveTemplateRoute("s", "2026-10-26").chrome)
     }

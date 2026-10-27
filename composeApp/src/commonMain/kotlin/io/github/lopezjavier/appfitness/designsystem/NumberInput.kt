@@ -35,8 +35,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -57,6 +59,9 @@ data class NumberInputColors(
 )
 
 object NumberInputDefaults {
+    /** Ghost (planned) text is lighter than typed text; colour alone must not tell them apart. */
+    val PlaceholderWeight = FontWeight.W300
+
     /** The field is its own 48 dp touch target. */
     val MinHeight: Dp = 48.dp
 
@@ -170,7 +175,8 @@ object NumberInputDefaults {
  * Numeric text field with a decimal comma. The caller owns [value]; [onValueChange] only receives text
  * that passed [NumberInputDefaults.sanitize] (an invalid edit is rejected as a whole). [label] is always
  * spoken; it is drawn above the field when [showLabel] is true. The [placeholder] is ghost data shown while
- * the field is empty and is not spoken. The caller's [modifier] lands on the text field node.
+ * the field is empty and is not spoken (the field announces [placeholderDescription], e.g. "Previsto", instead).
+ * The caller's [modifier] lands on the text field node.
  *
  * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`/`TextFieldState`-style
  * state). A `StateFlow` + `collectAsState` round-trip reverts for one frame and moves the cursor to the end on
@@ -193,13 +199,18 @@ fun NumberInput(
     errorText: String? = null,
     errorTestTag: String? = null,
     unit: String? = null,
+    placeholderDescription: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val hasError = errorText != null
     val colors = NumberInputDefaults.colors(focused, readOnly, AppTheme.colors, hasError)
     val textStyle = NumberInputDefaults.textStyle(AppTheme.typography).copy(color = colors.text)
-    val fieldModifier = if (showLabel) modifier else modifier.semantics { contentDescription = label }
+    val plannedState = placeholderDescription.takeIf { value.isEmpty() && placeholder != null }
+    val fieldModifier = modifier.semantics {
+        if (!showLabel) contentDescription = label
+        plannedState?.let { stateDescription = it }
+    }
     // The cursor lives in a TextFieldValue so normalization ("," -> "0,") can move it; an external change of
     // [value] (e.g. fill from previous) resets it to the end. State is only written in onValueChange.
     var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
@@ -291,12 +302,15 @@ fun NumberInput(
     )
 }
 
-/** Ghost text: never spoken as if it were a typed value. */
+/**
+ * Ghost text: never spoken as if it were a typed value, and lighter in weight than typed text so planned values do
+ * not rely on colour alone (the field announces [placeholderDescription] as its state).
+ */
 @Composable
 private fun NumberInputPlaceholder(text: String, style: TextStyle, colors: NumberInputColors) {
     Text(
         text = text,
-        style = style,
+        style = style.copy(fontWeight = NumberInputDefaults.PlaceholderWeight),
         color = colors.placeholder,
         maxLines = 1,
         modifier = Modifier.clearAndSetSemantics {},

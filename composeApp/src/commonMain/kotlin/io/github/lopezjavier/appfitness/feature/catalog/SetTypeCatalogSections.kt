@@ -36,11 +36,10 @@ private fun SetTypeSection() {
     CatalogSection(stringResource(Res.string.catalog_section_set_type), "catalog_section_set_type") {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             SetType.entries.forEachIndexed { index, type ->
-                SetTypeBadge(type, (index + 1).toString(), Modifier.testTag("catalog_set_type_badge_${type.name}"))
+                SetTypeBadge(type, Modifier.testTag("catalog_set_type_badge_${type.name}"))
             }
             SetTypeBadge(
                 type = SetType.entries[chosen],
-                number = "1",
                 modifier = Modifier.testTag("catalog_set_type_badge_button"),
                 onClick = { pickerOpen = true },
             )
