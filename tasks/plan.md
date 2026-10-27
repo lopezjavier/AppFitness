@@ -72,7 +72,7 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 - [x] T-128: Wording, motion and onboarding; every guard a failure — UI — L
 
 ### Phase 4: Version 1.0 quality (US-45, US-46)
-- [ ] T-129: Version 1.0 quality: About and licences, states, accessibility and tablet — UI + core — L
+- [x] T-129: Version 1.0 quality: About and licences, states, accessibility and tablet — UI + core — L
   - **Checkpoint E9-B 👤 Version 1.0 on your phone and tablet (14 items; unified with the former E9-C on 2026-10-27):** Peso; routines; live session; history and statistics; Perfil and Preferencias; Comidas del día; wording and motion; "Acerca de"; licences; states on every screen; TalkBack; font 130 %; tablet and rotation; final regression of a full day. Why here: after the last implementation task, so it is also the final regression of E9 and Phase 1; its approval releases T-130.
 
 ### Phase 5: Closure

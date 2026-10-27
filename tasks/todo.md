@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** 👤 checkpoint E9-B (Version 1.0 on your phone and tablet), then T-130 (E9 closure → `v1.0.0`). T-129 merged (PR #298, CI green; no migration; "Acerca de" with credits and licences, states/accessibility/font-scale/wide-window/rotation host tests, two-column Peso and live session at 840 dp). Open: stats-local `ExerciseRow` (item 39) stays an E9 row owned by T-129; manual TalkBack/Scanner/tablet/cold start at E9-B. Carry-over from T-128: drop legacy `save_meal_slots` and `delete_meal_slot` (backend slice, plan in T-130); Perfil `SexSelector` layout unchecked visually; `OssLicensesMenuActivity` deprecation warnings.
+**Next:** T-130 (E9 closure → `v1.0.0`). Checkpoint E9-B approved by the user on 2026-10-28. Carry-over from T-128: drop legacy `save_meal_slots` and `delete_meal_slot` (backend slice, plan in T-130); Perfil `SexSelector` layout unchecked visually; `OssLicensesMenuActivity` deprecation warnings.
 
 ---
 
@@ -3847,7 +3847,7 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 ### Checkpoint E9-B — Version 1.0 on your phone and tablet 👤 (14 items + leave and come back) *(agreed; E9-B and E9-C unified on 2026-10-27)*
 Journey: the finished app: every screen one way (Peso, training, Perfil and Preferencias, comidas, wording and motion), then credits, accessibility, every state, font size and the tablet, plus a final regression of a whole day of use. Why here: right after T-129, the last implementation task, so it is also the final regression of E9 and of Phase 1; its approval releases the closure T-130 and the `v1.0.0` tag.
 - [x] T-123…T-129 merged (and any fix tasks), CI green, `deploy-supabase` applied the T-124 and T-126 migrations (routines and meals intact), every reported bug fixed; `check-ux-conventions.sh` passes with no warnings.
-- [ ] 👤 Install the APK on the phone and the tablet and try:
+- [x] 👤 Install the APK on the phone and the tablet and try: *(approved by the user 2026-10-28)*
   1. Peso (T-123): "Peso actual" and "Objetivo" are the same card type and aligned; Health Connect status and "Sincronizar" inside "Peso actual"; the calendar icon in the top bar opens the measurement history; the chart picks the metric from its title and the range from the selector, with the goal band; help opens as a sheet.
   2. Routines (T-124): Entreno shows a compact "Rutinas" header; tap a routine → its details; ✎ → "Editar rutina", add and remove exercises (applied on "Guardar"), drag at once, leave with changes (it asks); "Eliminar" a routine (no dialog, its past workouts stay); a routine or folder with an existing name is refused; an exercise's edit/delete are in its top bar.
   3. Live session (T-125): rest bar at the bottom; the end of rest gives the long vibration and the phone's alarm sound; one vibration per completed set; normal sets show "N"; planned values look different from typed ones; RPE help is a list.
@@ -3878,7 +3878,7 @@ Journey: the finished app: every screen one way (Peso, training, Perfil and Pref
 - [ ] Every E9 UI-refinement item applied or explicitly out of scope (item 3); `check-ux-conventions.sh` passes in CI with every guard a failure.
 - [ ] ux-reviewer ran in plan and diff mode on every E9 UI task (ADR-69 DoD).
 - [ ] The §7 security checklist documented in T-129's PR; "Acerca de" with version/build, the three credits and the OSS licences.
-- [ ] Checkpoint E9-B approved (phone and tablet, positive feedback); every bug fixed; the T-112 caveat was presented at E9-A.
+- [x] Checkpoint E9-B approved (phone and tablet, positive feedback); every bug fixed; the T-112 caveat was presented at E9-A.
 - [ ] `tasks/todo.md` (E9 ✅, next-task pointer) updated through a PR.
 
 **Verification:**
