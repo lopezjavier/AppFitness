@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.repository.autoUpdateRoutineOrDefault
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
@@ -1014,8 +1015,9 @@ class LiveSessionViewModel(
 
     /**
      * Compares the finished session with its routine (US-36). Same values, a routine without tracking, a session
-     * without routine or any failed read: nothing to ask. With auto update on the routine is updated here; a failure
-     * is ignored because the session is already saved. Otherwise returns the sheet the user must answer.
+     * without routine or any failed read: nothing to ask. With the global "Actualizar automáticamente" setting on
+     * (ADR-70; a failed read counts as off) the routine is updated here; a failure is ignored because the session is
+     * already saved. Otherwise returns the sheet the user must answer.
      */
     @Suppress("ReturnCount") // Each early return is one reason not to ask.
     private suspend fun routineUpdateSheet(finished: WorkoutSession): UpdateRoutineSheet? {
@@ -1023,7 +1025,7 @@ class LiveSessionViewModel(
         if (!routine.trackAsRoutine) return null
         val diff = routineDiff(finished, changedRests, routine)
         if (diff.isSame) return null
-        if (routine.autoUpdateRoutine) {
+        if (preferences.autoUpdateRoutineOrDefault()) {
             routineRepository.updateFromSession(finished.id)
             return null
         }

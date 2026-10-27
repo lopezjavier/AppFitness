@@ -89,20 +89,19 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun creatingARoutine_savesNameAndExercisesWithDefaultTargets_thenCloses() = runTest {
+    fun creatingARoutine_savesNameAndExercisesWithDefaultTargets_thenReportsSaved() = runTest {
         val vm = builder()
         vm.onEvent(RoutineBuilderEvent.SetName("Torso fuerza"))
         vm.add("a", "b")
         assertEquals(listOf("Press de banca", "Remo con barra"), vm.form().rows.map { it.name })
         assertTrue(vm.form().canSave)
 
-        vm.effects.test {
-            vm.onEvent(RoutineBuilderEvent.Save)
-            advanceUntilIdle()
+        assertFalse(vm.form().saved)
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
 
-            assertEquals(RoutineBuilderEffect.Close, awaitItem())
-        }
-
+        assertTrue(vm.form().saved)
+        assertFalse(vm.form().isDirty)
         val saved = repository.saved.single()
         assertNull(saved.id)
         assertEquals("Torso fuerza", saved.name)
@@ -509,45 +508,141 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun aRestoredDraftOfANewRoutine_staysDirty_soBackStillAsksBeforeDiscarding() = runTest {
+    fun aRestoredDraftOfANewRoutine_staysDirty_soTheTemplateStillAsksBeforeDiscarding() = runTest {
         val first = builder()
         first.add("a")
 
         val second = builder(savedState = handle)
 
         assertTrue(second.form().isDirty)
-        second.onEvent(RoutineBuilderEvent.Back)
-        assertTrue(second.form().showDiscardConfirm)
     }
 
     @Test
-    fun back_withoutEdits_closesAtOnce() = runTest {
+    fun aNewEmptyBuilder_isNotDirty_andEditsMakeItDirty() = runTest {
         val vm = builder()
+        assertFalse(vm.form().isDirty)
 
-        vm.effects.test {
-            vm.onEvent(RoutineBuilderEvent.Back)
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
 
-            assertEquals(RoutineBuilderEffect.Close, awaitItem())
-        }
+        assertTrue(vm.form().isDirty)
     }
 
     @Test
-    fun back_withEdits_asksBeforeDiscarding() = runTest {
+    fun removingAnExercise_onlyEditsTheDraft_andNothingIsSavedUntilGuardar() = runTest {
+        repository.routines += routineOf("r1", "Torso", "a", "b")
+        val vm = builder("r1")
+
+        vm.onEvent(RoutineBuilderEvent.Remove(0))
+
+        assertEquals(listOf("b"), vm.order())
+        assertTrue(vm.form().isDirty)
+        assertTrue(repository.saved.isEmpty())
+        assertEquals(2, repository.routines.single().exercises.size)
+    }
+
+    // ---- Unique names (R-15) ----
+
+    private fun TestScope.withOtherRoutine(name: String = "Torso") {
+        repository.routines += routineOf("other", name, "a")
+    }
+
+    @Test
+    fun aNameUsedByAnotherRoutine_isTaken_inAnyCaseAndWithSpaces() = runTest {
+        withOtherRoutine("Torso")
         val vm = builder()
         vm.add("a")
 
-        vm.onEvent(RoutineBuilderEvent.Back)
-        assertTrue(vm.form().showDiscardConfirm)
+        vm.onEvent(RoutineBuilderEvent.SetName("  tORSO "))
 
-        vm.onEvent(RoutineBuilderEvent.DismissDiscard)
-        assertFalse(vm.form().showDiscardConfirm)
+        assertTrue(vm.form().nameTaken)
+        assertFalse(vm.form().canSave)
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+        assertTrue(repository.saved.isEmpty())
+    }
 
-        vm.onEvent(RoutineBuilderEvent.Back)
+    @Test
+    fun aFreeName_isNotTaken() = runTest {
+        withOtherRoutine("Torso")
+        val vm = builder()
+        vm.add("a")
+
+        vm.onEvent(RoutineBuilderEvent.SetName("Pierna"))
+
+        assertFalse(vm.form().nameTaken)
+        assertTrue(vm.form().canSave)
+    }
+
+    @Test
+    fun theRoutineBeingEdited_mayKeepItsOwnName() = runTest {
+        repository.routines += routineOf("r1", "Torso", "a")
+        val vm = builder("r1")
+
+        vm.onEvent(RoutineBuilderEvent.SetName("TORSO"))
+
+        assertFalse(vm.form().nameTaken)
+        assertTrue(vm.form().canSave)
+    }
+
+    @Test
+    fun editingARoutine_toAnotherRoutinesName_isTaken() = runTest {
+        repository.routines += routineOf("r1", "Torso", "a")
+        repository.routines += routineOf("r2", "Pierna", "a")
+        val vm = builder("r1")
+
+        vm.onEvent(RoutineBuilderEvent.SetName("pierna"))
+
+        assertTrue(vm.form().nameTaken)
+    }
+
+    @Test
+    fun aNameAlreadyExistsFailureOnSave_marksTheNameTaken_keepsTheDraft_andSendsNoMessage() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
+        vm.add("a")
+        repository.saveFailure = AppError.NameAlreadyExists
+
         vm.effects.test {
-            vm.onEvent(RoutineBuilderEvent.ConfirmDiscard)
+            vm.onEvent(RoutineBuilderEvent.Save)
+            advanceUntilIdle()
 
-            assertEquals(RoutineBuilderEffect.Close, awaitItem())
+            expectNoEvents()
         }
+        assertTrue(vm.form().nameTaken)
+        assertFalse(vm.form().saved)
+        assertEquals("Torso", vm.form().name)
+        assertEquals(listOf("a"), vm.order())
+        assertFalse(vm.form().isSaving)
+    }
+
+    @Test
+    fun editingTheName_afterAServerRefusal_clearsTheTakenFlag() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
+        vm.add("a")
+        repository.saveFailure = AppError.NameAlreadyExists
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso 2"))
+
+        assertFalse(vm.form().nameTaken)
+    }
+
+    @Test
+    fun anotherSaveFailure_sendsTheMessage_notTheTakenFlag() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso"))
+        vm.add("a")
+        repository.saveFailure = AppError.Network
+
+        vm.effects.test {
+            vm.onEvent(RoutineBuilderEvent.Save)
+            advanceUntilIdle()
+
+            assertEquals(RoutineBuilderEffect.SaveFailed(offline = true), awaitItem())
+        }
+        assertFalse(vm.form().nameTaken)
     }
 
     @Test
@@ -772,7 +867,7 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun editingPlannedSets_makesTheDraftDirty_andBackAsks() = runTest {
+    fun editingPlannedSets_makesTheDraftDirty() = runTest {
         repository.routines += bench(PlannedSet(60.0, 8), PlannedSet(60.0, 8))
         val vm = builder("r1")
         assertFalse(vm.form().isDirty)
@@ -780,8 +875,6 @@ class RoutineBuilderViewModelTest {
         vm.onEvent(RoutineBuilderEvent.SetWeight(0, 0, "65"))
 
         assertTrue(vm.form().isDirty)
-        vm.onEvent(RoutineBuilderEvent.Back)
-        assertTrue(vm.form().showDiscardConfirm)
     }
 
     @Test
@@ -937,56 +1030,26 @@ class RoutineBuilderViewModelTest {
     }
 
     @Test
-    fun aNewRoutine_startsWithTrackingOnAndAutoUpdateOff() = runTest {
-        val vm = builder()
-        vm.onEvent(RoutineBuilderEvent.SetName("Nueva"))
-        vm.add("a")
-
-        assertFalse(vm.form().autoUpdateRoutine)
-        vm.onEvent(RoutineBuilderEvent.Save)
-        advanceUntilIdle()
-
-        assertEquals(true to false, repository.saved.single().let { it.trackAsRoutine to it.autoUpdateRoutine })
-    }
-
-    @Test
-    fun theAutoUpdateSwitch_togglesMakesTheFormDirtyAndIsSavedWithGuardar() = runTest {
-        val vm = builder()
-        vm.onEvent(RoutineBuilderEvent.SetName("Nueva"))
-        vm.add("a")
-
-        vm.onEvent(RoutineBuilderEvent.SetAutoUpdate(true))
-
-        assertTrue(vm.form().autoUpdateRoutine)
-        assertTrue(vm.form().isDirty)
-        assertTrue(repository.saved.isEmpty())
-        vm.onEvent(RoutineBuilderEvent.Save)
-        advanceUntilIdle()
-        assertTrue(repository.saved.single().autoUpdateRoutine)
-    }
-
-    @Test
-    fun anExistingRoutine_loadsItsFlags_andSavingKeepsTracking() = runTest {
-        repository.routines += routineOf("r1", "Torso", "a").copy(trackAsRoutine = false, autoUpdateRoutine = true)
+    fun anExistingRoutine_keepsItsTrackingFlag_whenSaved() = runTest {
+        repository.routines += routineOf("r1", "Torso", "a").copy(trackAsRoutine = false)
 
         val vm = builder("r1")
-
-        assertTrue(vm.form().autoUpdateRoutine)
+        vm.onEvent(RoutineBuilderEvent.SetName("Torso A"))
         vm.onEvent(RoutineBuilderEvent.Save)
         advanceUntilIdle()
-        assertEquals(false to true, repository.saved.single().let { it.trackAsRoutine to it.autoUpdateRoutine })
+
+        assertEquals(false, repository.saved.single().trackAsRoutine)
     }
 
     @Test
-    fun theSwitchSurvivesRecreationWithoutSaving() = runTest {
-        val state = SavedStateHandle()
-        val vm = builder(savedState = state)
+    fun aNewRoutine_startsWithTrackingOn() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetName("Nueva"))
         vm.add("a")
-        vm.onEvent(RoutineBuilderEvent.SetAutoUpdate(true))
 
-        val recreated = builder(savedState = state)
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
 
-        assertTrue(recreated.form().autoUpdateRoutine)
-        assertTrue(repository.saved.isEmpty())
+        assertEquals(true, repository.saved.single().trackAsRoutine)
     }
 }

@@ -2,6 +2,9 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,8 +30,10 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_group_next
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_header_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_down
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_move_up
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_remove
@@ -44,14 +49,22 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_remove
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_set_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_label
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_none
+import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
@@ -60,6 +73,7 @@ import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
@@ -129,7 +143,7 @@ internal fun ReorderableItemScope.BuilderRow(
             .testTag("routine_builder_row_$index"),
     ) {
         AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) AccentWidth else Spacing.none)) {
-            RowHeader(row, index, superset, onOpenMenu, onOpenExercise)
+            RowHeader(row, index, superset, onEvent, onOpenMenu, onOpenExercise)
             Steppers(row, index, onEvent)
         }
         if (superset != null) {
@@ -146,34 +160,50 @@ internal fun ReorderableItemScope.BuilderRow(
 }
 
 @Composable
+@Suppress("LongParameterList") // Row data, its position, label and the three hooks.
 private fun ReorderableItemScope.RowHeader(
     row: BuilderRowUi,
     index: Int,
     superset: String?,
+    onEvent: (RoutineBuilderEvent) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenExercise: () -> Unit,
 ) {
     val name = row.displayName()
     val menuLabel = stringResource(Res.string.builder_row_menu_cd, name)
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        DragHandle(
-            contentDescription = stringResource(Res.string.builder_reorder_cd, name),
-            modifier = Modifier.dragHandle().testTag("routine_builder_drag_handle_$index"),
-        )
-        RowIdentity(row, index, name, superset, onOpenExercise, Modifier.weight(1f))
-        Box(
-            Modifier
-                .size(Spacing.minTouchTarget)
-                .clickable(role = Role.Button, onClickLabel = menuLabel, onClick = onOpenMenu)
-                .testTag("routine_builder_menu_$index"),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_more_vert),
-                contentDescription = menuLabel,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(Spacing.xl),
+    // Only the header line swipes away (R-21): the planned sets below keep their own swipe, so the two never nest.
+    SwipeToDeleteRow(
+        deleteLabel = stringResource(Res.string.builder_header_remove_cd, name),
+        enabled = true,
+        onDelete = { onEvent(RoutineBuilderEvent.Remove(index)) },
+        backgroundTag = "routine_builder_header_swipe_bg_${row.rowId}",
+        label = stringResource(Res.string.action_remove),
+        containerColor = AppTheme.colors.surfaceRaised,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            DragHandle(
+                contentDescription = stringResource(Res.string.builder_reorder_cd, name),
+                modifier = Modifier
+                    .dragHandle()
+                    // Takes sideways movement too, so dragging the grip never arms the header swipe.
+                    .draggable(rememberDraggableState { }, Orientation.Horizontal)
+                    .testTag("routine_builder_drag_handle_$index"),
             )
+            RowIdentity(row, index, name, superset, onOpenExercise, Modifier.weight(1f))
+            Box(
+                Modifier
+                    .size(Spacing.minTouchTarget)
+                    .clickable(role = Role.Button, onClickLabel = menuLabel, onClick = onOpenMenu)
+                    .testTag("routine_builder_menu_$index"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_more_vert),
+                    contentDescription = menuLabel,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(Spacing.xl),
+                )
+            }
         }
     }
 }
@@ -313,7 +343,11 @@ private fun StepperLine(
     }
 }
 
-/** Menu of one row, as a bottom sheet: Subir, Bajar, Agrupar con el siguiente, Desagrupar and Quitar. */
+/**
+ * Menu of one row, as an action sheet (R-07): Subir, Bajar, Agrupar con el siguiente, Desagrupar, the calculators and
+ * Quitar. Only the actions that apply are listed. Calculator entries that depend on the equipment stay hidden until
+ * the catalog has loaded, so a wrong entry never shows; the sheets they open are state of the view model.
+ */
 @Composable
 internal fun BuilderRowMenu(
     row: BuilderRowUi,
@@ -321,72 +355,48 @@ internal fun BuilderRowMenu(
     onEvent: (RoutineBuilderEvent) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val act: (RoutineBuilderEvent) -> Unit = {
-        onEvent(it)
-        onDismiss()
-    }
-    ActionsSheet(title = row.displayName(), onDismiss = onDismiss, testTagPrefix = "routine_builder_menu_sheet") {
-        SheetActionRow(
-            label = stringResource(Res.string.builder_move_up),
-            onClick = { act(RoutineBuilderEvent.MoveUp(index)) },
-            testTag = "routine_builder_move_up_$index",
-            enabled = row.canMoveUp,
-        )
-        SheetActionRow(
-            label = stringResource(Res.string.builder_move_down),
-            onClick = { act(RoutineBuilderEvent.MoveDown(index)) },
-            testTag = "routine_builder_move_down_$index",
-            enabled = row.canMoveDown,
-        )
-        SheetActionRow(
-            label = stringResource(Res.string.builder_group_next),
-            onClick = { act(RoutineBuilderEvent.GroupWithNext(index)) },
-            testTag = "routine_builder_group_$index",
-            enabled = row.canGroupWithNext,
-        )
-        if (row.supersetLabel != null) {
-            SheetActionRow(
-                label = stringResource(Res.string.builder_ungroup),
-                onClick = { act(RoutineBuilderEvent.Ungroup(index)) },
-                testTag = "routine_builder_ungroup_$index",
+    val moveUp = stringResource(Res.string.builder_move_up)
+    val moveDown = stringResource(Res.string.builder_move_down)
+    val group = stringResource(Res.string.builder_group_next)
+    val ungroup = stringResource(Res.string.builder_ungroup)
+    val warmUp = stringResource(Res.string.live_exercise_menu_warm_up_calc)
+    val plates = stringResource(Res.string.live_exercise_menu_plate_calc)
+    val remove = stringResource(Res.string.builder_remove)
+    val actions = buildList {
+        if (row.canMoveUp) {
+            add(AppSheetAction(Res.drawable.ic_arrow_upward, moveUp) { onEvent(RoutineBuilderEvent.MoveUp(index)) })
+        }
+        if (row.canMoveDown) {
+            add(
+                AppSheetAction(Res.drawable.ic_arrow_downward, moveDown) {
+                    onEvent(RoutineBuilderEvent.MoveDown(index))
+                },
             )
         }
-        CalculatorMenuRows(row, index, onEvent, onDismiss)
-        SheetActionRow(
-            label = stringResource(Res.string.builder_remove),
-            onClick = { act(RoutineBuilderEvent.Remove(index)) },
-            testTag = "routine_builder_remove_$index",
-            destructive = true,
+        if (row.canGroupWithNext) {
+            add(AppSheetAction(Res.drawable.ic_label, group) { onEvent(RoutineBuilderEvent.GroupWithNext(index)) })
+        }
+        if (row.supersetLabel != null) {
+            add(AppSheetAction(Res.drawable.ic_remove, ungroup) { onEvent(RoutineBuilderEvent.Ungroup(index)) })
+        }
+        add(
+            AppSheetAction(Res.drawable.ic_set_normal, warmUp) {
+                onEvent(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.WarmUp))
+            },
         )
+        if (row.equipment == Equipment.Barbell || row.equipment == Equipment.Dumbbell) {
+            add(
+                AppSheetAction(Res.drawable.ic_set_normal, plates) {
+                    onEvent(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Discs))
+                },
+            )
+        }
+        add(AppSheetAction(Res.drawable.ic_delete, remove) { onEvent(RoutineBuilderEvent.Remove(index)) })
     }
-}
-
-/**
- * Calculator and double-dumbbell entries, with the conditions of the live exercise menu. The equipment-dependent ones
- * stay hidden until the catalog has loaded, so a wrong entry never shows. They do not use `act`: the menu closes and
- * the sheet they open is state of the view model.
- */
-@Composable
-private fun CalculatorMenuRows(
-    row: BuilderRowUi,
-    index: Int,
-    onEvent: (RoutineBuilderEvent) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val open: (RoutineBuilderEvent) -> Unit = {
-        onEvent(it)
-        onDismiss()
-    }
-    SheetActionRow(
-        label = stringResource(Res.string.live_exercise_menu_warm_up_calc),
-        onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.WarmUp)) },
-        testTag = "routine_builder_warm_up_calc_$index",
+    AppActionSheet(
+        actions = actions,
+        onDismiss = onDismiss,
+        title = row.displayName(),
+        testTagPrefix = "routine_builder_menu_sheet",
     )
-    if (row.equipment == Equipment.Barbell || row.equipment == Equipment.Dumbbell) {
-        SheetActionRow(
-            label = stringResource(Res.string.live_exercise_menu_plate_calc),
-            onClick = { open(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Discs)) },
-            testTag = "routine_builder_plate_calc_$index",
-        )
-    }
 }

@@ -14,7 +14,6 @@ class AppRoutesChromeTest {
             PreferencesRoute to "preferences",
             ExercisePickerRoute() to "exercise_picker_top_bar",
             ExerciseDetailRoute("e") to "exercise_detail_top_bar",
-            RoutineBuilderRoute() to "routine_builder_top_bar",
             HistoryRoute to "history_top_bar",
             WorkoutCalendarRoute to "calendar_top_bar",
             SessionDetailRoute("s") to "session_detail_top_bar",
@@ -53,6 +52,20 @@ class AppRoutesChromeTest {
     }
 
     @Test
+    fun theRoutineRoutes_useAppScreen_andHaveScreenChrome() {
+        listOf(RoutineDetailsRoute("r1"), RoutineBuilderRoute(), RoutineBuilderRoute("r1")).forEach {
+            assertTrue(it.usesAppScreen, it.toString())
+            assertEquals(ShellChrome.Screen, it.chrome, it.toString())
+        }
+    }
+
+    @Test
+    fun theEntrenoRoot_usesAppScreen_withTheTabScreenChrome() {
+        assertTrue(WorkoutHome.usesAppScreen)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutHome.chrome)
+    }
+
+    @Test
     fun theFoodRoutes_useAppScreen_andHaveScreenChrome() {
         val food = listOf(
             FoodSearchRoute(date = "2026-10-26"),
@@ -72,7 +85,7 @@ class AppRoutesChromeTest {
     fun everyOtherRoute_doesNotUseAppScreen() {
         val others = legacyFullScreenTags.map { it.first } +
             listOf(LiveSessionRoute, EditEntryRoute("e", "2026-10-26"), SaveTemplateRoute("s", "2026-10-26")) +
-            listOf(DiaryGraph, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome)
+            listOf(DiaryGraph, WorkoutGraph, ProfileGraph, ProfileHome)
 
         others.forEach { assertFalse(it.usesAppScreen, it.toString()) }
     }

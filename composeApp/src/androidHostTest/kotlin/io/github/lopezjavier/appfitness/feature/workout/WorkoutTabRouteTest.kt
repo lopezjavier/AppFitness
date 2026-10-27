@@ -37,7 +37,7 @@ class WorkoutTabRouteTest {
     private var openedHistory = 0
     private lateinit var nav: NavHostController
 
-    private val routinesSlot: RoutinesSlot = { modifier, _, onOpenLive, onOpenHistory ->
+    private val routinesSlot: RoutinesSlot = { modifier, _, _, onOpenLive, onOpenHistory ->
         WorkoutEntryHost(entry, onOpenLive, onOpenHistory, modifier) { routinesModifier, openLive ->
             Box(routinesModifier.fillMaxSize().testTag("routines_screen")) {
                 Box(Modifier.size(48.dp).testTag("routines_start_stub").clickable(onClick = openLive))
@@ -51,8 +51,8 @@ class WorkoutTabRouteTest {
                 nav = rememberNavController()
                 AppScaffold(
                     navController = nav,
-                    routines = { modifier, builder, live, history ->
-                        routinesSlot(modifier, builder, {
+                    routines = { modifier, builder, details, live, history ->
+                        routinesSlot(modifier, builder, details, {
                             openedLive++
                             live()
                         }) {
@@ -149,8 +149,8 @@ class WorkoutTabRouteTest {
         entry = WorkoutEntryState.Routines
         showShell()
 
-        rule.onNodeWithTag("workout_history").assertExists()
-        rule.onNodeWithTag("workout_history").performClick()
+        rule.onNodeWithTag("workout_entry_history").assertExists()
+        rule.onNodeWithTag("workout_entry_history").performClick()
         rule.waitForIdle()
 
         assertEquals(1, openedHistory)
@@ -166,6 +166,6 @@ class WorkoutTabRouteTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("workout_continue").assertExists()
-        rule.onNodeWithTag("workout_history").assertExists()
+        rule.onNodeWithTag("workout_entry_history").assertExists()
     }
 }

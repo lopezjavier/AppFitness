@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
+import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
@@ -393,6 +394,15 @@ val uiModule =
                 clock = get(),
                 preferences = get(),
                 savedState = get(),
+            )
+        }
+        viewModel { (routineId: String) ->
+            RoutineDetailsViewModel(
+                routineId = routineId,
+                routines = get(),
+                sessions = get(),
+                loadCatalog = get(),
+                connectivity = get(),
             )
         }
         // A blank routineId means a new routine (Koin parameters cannot be null).

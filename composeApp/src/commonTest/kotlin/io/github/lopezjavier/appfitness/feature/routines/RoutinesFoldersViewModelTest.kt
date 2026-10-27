@@ -61,15 +61,14 @@ class RoutinesFoldersViewModelTest {
         return vm
     }
 
-    // ---- Creating a folder ----
+    // ---- Creating and renaming a folder (the Name sheet owns the typed text) ----
 
     @Test
     fun creatingAFolder_thenMovingTwoRoutinesIn_groupsThem() = runTest {
         val vm = started()
 
         vm.onEvent(RoutinesEvent.NewFolder)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("  Piernas "))
-        vm.onEvent(RoutinesEvent.SaveFolder)
+        vm.onEvent(RoutinesEvent.SaveFolder("  Piernas "))
         advanceUntilIdle()
         val folderId = vm.content().folders.single().id
         vm.onEvent(RoutinesEvent.MoveToFolder("r1", folderId))
@@ -84,14 +83,11 @@ class RoutinesFoldersViewModelTest {
     }
 
     @Test
-    fun aBlankFolderName_isRejected_andTheSheetStaysOpen() = runTest {
+    fun aBlankFolderName_isNotSaved_andTheSheetStaysOpen() = runTest {
         val vm = started()
 
         vm.onEvent(RoutinesEvent.NewFolder)
-        assertTrue(!vm.content().folderSheet!!.canSave)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("   "))
-        assertTrue(vm.content().folderSheet!!.showBlankError)
-        vm.onEvent(RoutinesEvent.SaveFolder)
+        vm.onEvent(RoutinesEvent.SaveFolder("   "))
         advanceUntilIdle()
 
         assertTrue(repository.createdFolders.isEmpty())
@@ -103,7 +99,6 @@ class RoutinesFoldersViewModelTest {
         val vm = started()
 
         vm.onEvent(RoutinesEvent.NewFolder)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("Brazos"))
         vm.onEvent(RoutinesEvent.DismissFolderSheet)
         advanceUntilIdle()
 
@@ -112,78 +107,58 @@ class RoutinesFoldersViewModelTest {
     }
 
     @Test
-    fun renamingAFolder_prefillsTheNameAndSaves() = runTest {
+    fun renamingAFolder_opensTheRenameSheetForThatFolder_andSaves() = runTest {
         withFolder("f1", "Pierna")
         val vm = started()
 
         vm.onEvent(RoutinesEvent.RenameFolder("f1"))
-        assertEquals("Pierna", vm.content().folderSheet?.name)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("Piernas"))
-        vm.onEvent(RoutinesEvent.SaveFolder)
+        assertEquals(FolderSheetState(FolderSheetMode.Rename, "f1"), vm.content().folderSheet)
+        vm.onEvent(RoutinesEvent.SaveFolder("Piernas"))
         advanceUntilIdle()
 
         assertEquals(listOf("Piernas"), vm.content().folders.map { it.name })
         assertNull(vm.content().folderSheet)
+        assertEquals(false, vm.content().folderSaving)
     }
 
     @Test
-    fun aFolderSaveFailure_keepsTheSheetAndItsDraft_andSendsAMessage() = runTest {
+    fun aFolderSaveFailure_keepsTheSheetOpen_andSendsAMessage() = runTest {
         val vm = started()
         vm.onEvent(RoutinesEvent.NewFolder)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("Brazos"))
         repository.saveFailure = AppError.Network
 
         vm.effects.test {
-            vm.onEvent(RoutinesEvent.SaveFolder)
+            vm.onEvent(RoutinesEvent.SaveFolder("Brazos"))
             advanceUntilIdle()
             assertEquals(RoutinesEffect.ActionFailed, awaitItem())
         }
-        assertEquals("Brazos", vm.content().folderSheet?.name)
+        assertEquals(FolderSheetMode.Create, vm.content().folderSheet?.mode)
+        assertEquals(false, vm.content().folderSaving)
     }
 
-    // ---- Unique folder names ----
-
     @Test
-    fun creatingWithAnExistingName_isRejected_andTheSheetStaysOpen() = runTest {
+    fun creatingWithAnExistingNameInOtherCaseAndSpaces_isNotSaved() = runTest {
         withFolder("f1", "Push")
         val vm = started()
 
         vm.onEvent(RoutinesEvent.NewFolder)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("Push"))
-        vm.onEvent(RoutinesEvent.SaveFolder)
+        vm.onEvent(RoutinesEvent.SaveFolder("  PUSH "))
         advanceUntilIdle()
 
-        assertTrue(vm.content().folderSheet!!.showDuplicateError)
-        assertTrue(!vm.content().folderSheet!!.canSave)
         assertTrue(repository.createdFolders.isEmpty())
+        assertEquals(FolderSheetMode.Create, vm.content().folderSheet?.mode)
     }
 
     @Test
-    fun creatingWithAnExistingNameInOtherCaseAndSpaces_isRejected() = runTest {
-        withFolder("f1", "Push")
-        val vm = started()
-
-        vm.onEvent(RoutinesEvent.NewFolder)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("  PUSH "))
-        vm.onEvent(RoutinesEvent.SaveFolder)
-        advanceUntilIdle()
-
-        assertTrue(vm.content().folderSheet!!.showDuplicateError)
-        assertTrue(repository.createdFolders.isEmpty())
-    }
-
-    @Test
-    fun renamingToAnotherFoldersName_isRejected() = runTest {
+    fun renamingToAnotherFoldersName_isNotSaved() = runTest {
         withFolder("f1", "Push")
         withFolder("f2", "Pull")
         val vm = started()
 
         vm.onEvent(RoutinesEvent.RenameFolder("f2"))
-        vm.onEvent(RoutinesEvent.FolderNameChanged("push"))
-        vm.onEvent(RoutinesEvent.SaveFolder)
+        vm.onEvent(RoutinesEvent.SaveFolder("push"))
         advanceUntilIdle()
 
-        assertTrue(vm.content().folderSheet!!.showDuplicateError)
         assertEquals(listOf("Push", "Pull"), vm.content().folders.map { it.name })
     }
 
@@ -194,42 +169,11 @@ class RoutinesFoldersViewModelTest {
         val vm = started()
 
         vm.onEvent(RoutinesEvent.RenameFolder("f1"))
-        assertTrue(vm.content().folderSheet!!.canSave)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("PUSH"))
-        assertTrue(!vm.content().folderSheet!!.showDuplicateError)
-        vm.onEvent(RoutinesEvent.SaveFolder)
+        vm.onEvent(RoutinesEvent.SaveFolder("PUSH"))
         advanceUntilIdle()
 
         assertEquals(listOf("PUSH", "Pull"), vm.content().folders.map { it.name })
         assertNull(vm.content().folderSheet)
-    }
-
-    @Test
-    fun typingADifferentName_clearsTheDuplicateError_andSaves() = runTest {
-        withFolder("f1", "Push")
-        val vm = started()
-
-        vm.onEvent(RoutinesEvent.NewFolder)
-        vm.onEvent(RoutinesEvent.FolderNameChanged("Push"))
-        vm.onEvent(RoutinesEvent.FolderNameChanged("Legs"))
-        assertTrue(!vm.content().folderSheet!!.showDuplicateError)
-        vm.onEvent(RoutinesEvent.SaveFolder)
-        advanceUntilIdle()
-
-        assertEquals(listOf("Legs"), repository.createdFolders)
-    }
-
-    @Test
-    fun aRestoredSheetWithADuplicateName_stillShowsTheError() = runTest {
-        withFolder("f1", "Push")
-        val first = started()
-        first.onEvent(RoutinesEvent.NewFolder)
-        first.onEvent(RoutinesEvent.FolderNameChanged("push"))
-
-        val second = viewModel(savedState)
-        advanceUntilIdle()
-
-        assertTrue(second.content().folderSheet!!.showDuplicateError)
     }
 
     // ---- Deleting a folder ----
@@ -486,21 +430,17 @@ class RoutinesFoldersViewModelTest {
     // ---- Restoration (ADR-40) ----
 
     @Test
-    fun folderSheetDraftAndCollapsedFolders_surviveARecreatedViewModel() = runTest {
+    fun theOpenFolderSheetAndCollapsedFolders_surviveARecreatedViewModel() = runTest {
         withFolder("f1", "Pierna", "r1")
         val first = started()
         first.onEvent(RoutinesEvent.ToggleFolder("f1"))
         first.onEvent(RoutinesEvent.NewFolder)
-        first.onEvent(RoutinesEvent.FolderNameChanged("Brazos"))
 
         val second = viewModel(savedState)
         advanceUntilIdle()
 
         assertEquals(setOf("f1"), second.content().collapsedFolderIds)
-        assertEquals(
-            FolderSheetState(FolderSheetMode.Create, null, "Brazos", edited = true),
-            second.content().folderSheet,
-        )
+        assertEquals(FolderSheetState(FolderSheetMode.Create), second.content().folderSheet)
     }
 
     @Test
@@ -508,21 +448,17 @@ class RoutinesFoldersViewModelTest {
         withFolder("f1", "Pierna")
         val first = started()
         first.onEvent(RoutinesEvent.RenameFolder("f1"))
-        first.onEvent(RoutinesEvent.FolderNameChanged("Piernas"))
 
         val second = viewModel(savedState)
         advanceUntilIdle()
 
-        assertEquals(FolderSheetMode.Rename, second.content().folderSheet?.mode)
-        assertEquals("f1", second.content().folderSheet?.folderId)
-        assertEquals("Piernas", second.content().folderSheet?.name)
+        assertEquals(FolderSheetState(FolderSheetMode.Rename, "f1"), second.content().folderSheet)
     }
 
     @Test
     fun aClosedSheet_isNotRestored() = runTest {
         val first = started()
         first.onEvent(RoutinesEvent.NewFolder)
-        first.onEvent(RoutinesEvent.FolderNameChanged("Brazos"))
         first.onEvent(RoutinesEvent.DismissFolderSheet)
 
         val second = viewModel(savedState)

@@ -6,9 +6,7 @@
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
 G2 feature/exercises/ExerciseFormSheet\.kt   # owner T-124
-G2 feature/routines/FolderSheet\.kt   # owner T-124
-G2 feature/routines/RoutineSheetActions\.kt   # owner T-124
-G2 feature/routines/RoutinesSheets\.kt   # owner T-124
+G2 feature/routines/RoutineSheetActions\.kt   # owner T-125
 G2 feature/analytics/stats/MuscleDetailSheet\.kt   # owner T-125
 G2 feature/workout/CalculatorSheetParts\.kt   # owner T-125
 G2 feature/workout/ExerciseMenu\.kt   # owner T-125
@@ -23,19 +21,15 @@ G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
 G3 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
 G3 feature/exercises/ExercisePickerScreen\.kt   # owner T-124
-G3 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
-G3 feature/routines/RoutinesScreen\.kt   # owner T-124
 G3 feature/workout/EditWorkoutScreen\.kt   # owner T-125
 G3 feature/workout/LiveSessionScreen\.kt   # owner T-125
 G3 feature/workout/PastWorkoutScreen\.kt   # owner T-125
 G3 feature/workout/SessionDetailScreen\.kt   # owner T-125
-G3 feature/workout/WorkoutEntry\.kt   # owner T-125
 G3 feature/profile/PreferencesScreen\.kt   # owner T-127
 G3 feature/profile/ProfileRootScreen\.kt   # owner T-127
 G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128
 
 # G4: duplicate in-screen OfflineBanner( (the shell draws the single banner, R-30).
-G4 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
 G4 feature/meals/MealSlotsScreen\.kt   # owner T-126
 G4 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 
@@ -43,8 +37,6 @@ G4 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 # discarding the live workout). RoutinesSheets.kt holds the allowed folder deletion and the archive
 # dialog that T-124 replaces by an immediate "Eliminar".
 G5 feature/exercises/ExerciseDetailScreen\.kt   # owner T-124
-G5 feature/routines/RoutineBuilderScreen\.kt   # owner T-124
-G5 feature/routines/RoutinesSheets\.kt   # owner T-124
 G5 feature/meals/MealSlotsScreen\.kt   # owner T-126
 G5 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 

@@ -78,6 +78,11 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     var sessionRecords: Map<String, List<ExerciseSessionRecords>> = emptyMap()
     var recordsFailure: AppError? = null
     var startedId = "s-new"
+
+    /** What [lastCompletedAt] answers, and the routine ids it was asked for. */
+    var lastCompleted: Instant? = null
+    var lastCompletedFailure: AppError? = null
+    val lastCompletedCalls = mutableListOf<String>()
     var previous: Map<String, List<PreviousSet>> = emptyMap()
     var lastPerformanceFailure: AppError? = null
     val lastPerformanceCalls = mutableListOf<String>()
@@ -119,6 +124,11 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
     override suspend fun startFromRoutine(routineId: String): Result<String> {
         startedRoutines += routineId
         return failing(startFailure) ?: Result.success(startedId)
+    }
+
+    override suspend fun lastCompletedAt(routineId: String): Result<Instant?> {
+        lastCompletedCalls += routineId
+        return failing(lastCompletedFailure) ?: Result.success(lastCompleted)
     }
 
     override suspend fun getInProgress(): Result<WorkoutSession?> {

@@ -2,20 +2,28 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
@@ -64,6 +72,21 @@ class RoutinesFoldersScreenTest {
                 RoutinesScreen(state, vm::onEvent)
             }
         }
+        rule.waitForIdle()
+    }
+
+    private fun scrollToAddFolder() {
+        rule.onNodeWithTag("routines_list").performScrollToNode(hasTestTag("routines_add_folder"))
+        rule.waitForIdle()
+    }
+
+    private fun addFolder() {
+        scrollToAddFolder()
+        click("routines_add_folder")
+    }
+
+    private fun clickText(text: String) {
+        rule.onNodeWithText(text).performClick()
         rule.waitForIdle()
     }
 
@@ -140,64 +163,64 @@ class RoutinesFoldersScreenTest {
     @Test
     fun creatingAFolder_savesItAndShowsItInTheList() {
         show()
-        click("routines_new_folder_button")
-        rule.onNodeWithTag("routines_folder_save_button").assertIsNotEnabled()
+        addFolder()
+        rule.onNodeWithTag("folder_sheet_commit").assertIsNotEnabled()
 
-        rule.onNodeWithTag("routines_folder_name_field").performTextInput("Piernas")
+        rule.onNodeWithTag("folder_sheet_input").performTextInput("Piernas")
         rule.waitForIdle()
-        click("routines_folder_save_button")
+        click("folder_sheet_commit")
 
         assertEquals(listOf("Piernas"), repository.createdFolders)
-        rule.onNodeWithTag("routines_folder_save_button").assertDoesNotExist()
+        rule.onNodeWithTag("folder_sheet_commit").assertDoesNotExist()
         rule.onNodeWithText("Piernas").assertExists()
     }
 
     @Test
     fun creatingAFolderWithAnExistingName_showsTheErrorAndDisablesGuardar() {
         show()
-        click("routines_new_folder_button")
+        addFolder()
 
-        rule.onNodeWithTag("routines_folder_name_field").performTextInput(" fuerza ")
+        rule.onNodeWithTag("folder_sheet_input").performTextInput(" fuerza ")
         rule.waitForIdle()
 
         rule.onNodeWithText("Ya existe una carpeta con ese nombre").assertExists()
-        rule.onNodeWithTag("routines_folder_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("folder_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun renamingAFolderToAnotherFoldersName_showsTheErrorAndDisablesGuardar() {
         show()
         click("routines_folder_rename_f2")
-        rule.onNodeWithTag("routines_folder_name_field").performTextClearance()
-        rule.onNodeWithTag("routines_folder_name_field").performTextInput("Fuerza")
+        rule.onNodeWithTag("folder_sheet_input").performTextClearance()
+        rule.onNodeWithTag("folder_sheet_input").performTextInput("Fuerza")
         rule.waitForIdle()
 
         rule.onNodeWithText("Ya existe una carpeta con ese nombre").assertExists()
-        rule.onNodeWithTag("routines_folder_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("folder_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
     fun closingTheFolderSheetWithoutGuardar_savesNothing() {
         show()
-        click("routines_new_folder_button")
-        rule.onNodeWithTag("routines_folder_name_field").performTextInput("Piernas")
+        addFolder()
+        rule.onNodeWithTag("folder_sheet_input").performTextInput("Piernas")
         rule.waitForIdle()
 
-        click("routines_folder_sheet_dismiss")
+        click("folder_sheet_close")
 
         assertTrue(repository.createdFolders.isEmpty())
-        rule.onNodeWithTag("routines_folder_save_button").assertDoesNotExist()
+        rule.onNodeWithTag("folder_sheet_commit").assertDoesNotExist()
     }
 
     @Test
     fun renamingAFolder_prefillsTheNameAndSavesTheNewOne() {
         show()
         click("routines_folder_rename_f1")
-        rule.onNodeWithTag("routines_folder_name_field").assertTextContains("Fuerza")
+        rule.onNodeWithTag("folder_sheet_input").assertTextContains("Fuerza")
 
-        rule.onNodeWithTag("routines_folder_name_field").performTextInput(" 2")
+        rule.onNodeWithTag("folder_sheet_input").performTextInput(" 2")
         rule.waitForIdle()
-        click("routines_folder_save_button")
+        click("folder_sheet_commit")
 
         assertEquals(listOf("f1" to "Fuerza 2"), repository.renamedFolders)
     }
@@ -241,7 +264,7 @@ class RoutinesFoldersScreenTest {
         click("routines_folder_delete_cancel")
 
         assertTrue(repository.deletedFolders.isEmpty())
-        rule.onNodeWithTag("routines_folder_delete").assertDoesNotExist()
+        rule.onNodeWithTag("routines_folder_delete_dialog").assertDoesNotExist()
         rule.onNodeWithTag("routines_row_r1").assertExists()
     }
 
@@ -251,7 +274,7 @@ class RoutinesFoldersScreenTest {
 
         click("routines_folder_delete_f2")
 
-        rule.onNodeWithTag("routines_folder_delete").assertDoesNotExist()
+        rule.onNodeWithTag("routines_folder_delete_dialog").assertDoesNotExist()
         assertEquals(listOf("f2"), repository.deletedFolders)
         rule.onNodeWithTag("routines_folder_f2").assertDoesNotExist()
     }
@@ -262,12 +285,12 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithTag("routines_next_badge_r1").assertDoesNotExist()
 
         openMenu("r1")
-        rule.onNodeWithTag("routines_menu_next_r1").assertTextContains("Siguiente entreno")
-        click("routines_menu_next_r1")
+        rule.onNodeWithText("Siguiente entreno").assertExists()
+        clickText("Siguiente entreno")
         rule.onNodeWithTag("routines_next_badge_r1").assertTextEquals("Siguiente")
 
         openMenu("r4")
-        click("routines_menu_next_r4")
+        clickText("Siguiente entreno")
         rule.onNodeWithTag("routines_next_badge_r4").assertExists()
         rule.onNodeWithTag("routines_next_badge_r1").assertDoesNotExist()
     }
@@ -278,8 +301,8 @@ class RoutinesFoldersScreenTest {
         show()
 
         openMenu("r1")
-        rule.onNodeWithTag("routines_menu_next_r1").assertTextContains("Quitar como siguiente entreno")
-        click("routines_menu_next_r1")
+        rule.onNodeWithText("Quitar como siguiente entreno").assertExists()
+        clickText("Quitar como siguiente entreno")
 
         rule.onNodeWithTag("routines_next_badge_r1").assertDoesNotExist()
     }
@@ -288,31 +311,32 @@ class RoutinesFoldersScreenTest {
     fun everyRoutineHasADescribedDragHandle() {
         show()
 
-        rule.onNodeWithTag("routines_drag_r1").assertContentDescriptionEquals("Reordenar Torso A")
+        rule.onNodeWithTag("routines_drag_r1").assertContentDescriptionEquals("Mover Torso A")
         rule.onNodeWithTag("routines_drag_r1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         rule.onNodeWithTag("routines_drag_r4").assertExists()
     }
 
     @Test
-    fun subirAndBajar_reorderTheGroup_andAreDisabledAtTheEnds() {
+    fun talkBackBajar_reordersTheRoutineWithinItsFolder() {
         show()
-        openMenu("r1")
-        rule.onNodeWithTag("routines_menu_up_r1").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_menu_down_r1").assertIsEnabled()
 
-        click("routines_menu_down_r1")
+        val bajar = customActions(rule.onRoot(useUnmergedTree = true).fetchSemanticsNode()).first {
+            it.label == "Bajar"
+        }
+        rule.runOnUiThread { bajar.action.invoke() }
+        rule.waitForIdle()
 
         assertEquals("f1" to listOf("r2", "r1", "r3"), repository.savedOrders.single())
-        openMenu("r3")
-        rule.onNodeWithTag("routines_menu_down_r3").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_menu_up_r3").assertIsEnabled()
     }
+
+    private fun customActions(node: SemanticsNode): List<CustomAccessibilityAction> =
+        node.config.getOrNull(SemanticsActions.CustomActions).orEmpty() + node.children.flatMap { customActions(it) }
 
     @Test
     fun moveToFolder_picksATarget_andMovesTheRoutine() {
         show()
         openMenu("r4")
-        click("routines_menu_move_r4")
+        clickText("Mover a carpeta")
         rule.onNodeWithTag("routines_move_target_none").assertIsNotEnabled()
         rule.onNodeWithTag("routines_move_target_none").assertTextContains("Sin carpeta")
 
@@ -327,9 +351,9 @@ class RoutinesFoldersScreenTest {
     fun closingTheMoveSheet_movesNothing() {
         show()
         openMenu("r4")
-        click("routines_menu_move_r4")
+        clickText("Mover a carpeta")
 
-        click("routines_move_sheet_dismiss")
+        click("routines_move_sheet_close")
 
         assertTrue(repository.movedToFolder.isEmpty())
         rule.onNodeWithTag("routines_move_target_f1").assertDoesNotExist()
@@ -341,14 +365,14 @@ class RoutinesFoldersScreenTest {
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routines_new_folder_button").assertIsNotEnabled()
+        scrollToAddFolder()
+        rule.onNodeWithTag("routines_add_folder").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_rename_f1").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_delete_f1").assertIsNotEnabled()
         click("routines_folder_toggle_f1")
         openMenu("r4")
-        rule.onNodeWithTag("routines_menu_move_r4").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_menu_next_r4").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_menu_up_r4").assertIsNotEnabled()
+        rule.onAllNodesWithText("Mover a carpeta").assertCountEquals(0)
+        rule.onAllNodesWithText("Siguiente entreno").assertCountEquals(0)
     }
 
     private fun stateIs(expected: String) = SemanticsMatcher("state description is $expected") {

@@ -23,6 +23,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_supp
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_metric_value
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_progress_state
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_add_object
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_exercise_name
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_exercise_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_header
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_headline
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_supporting
@@ -41,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRow
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRowModel
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
@@ -146,6 +149,12 @@ private fun RowsSection() {
             value = stringResource(Res.string.catalog_rows_nav_value),
             onClick = {},
             modifier = Modifier.testTag("catalog_nav_row"),
+        )
+        ExerciseRow(
+            name = stringResource(Res.string.catalog_rows_exercise_name),
+            supporting = stringResource(Res.string.catalog_rows_exercise_supporting),
+            onOpen = {},
+            tagPrefix = "catalog_exercise_row",
         )
         AddItemButton(
             objectLabel = stringResource(Res.string.catalog_rows_add_object),

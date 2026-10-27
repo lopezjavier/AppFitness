@@ -39,7 +39,6 @@ internal data class RoutineDraft(
     val nextSetId: Long = 0,
     /** Compare finished sessions with this routine (US-36); no control in the builder, kept from the loaded routine. */
     val trackAsRoutine: Boolean = true,
-    val autoUpdateRoutine: Boolean = false,
 )
 
 internal const val WEIGHT_MAX_CHARS = 8
@@ -183,7 +182,6 @@ internal fun RoutineDraft.toRoutine(id: String?) = Routine(
     notes = notes,
     archived = false,
     trackAsRoutine = trackAsRoutine,
-    autoUpdateRoutine = autoUpdateRoutine,
     exercises =
     rows.mapIndexed { index, row ->
         RoutineExercise(
@@ -218,7 +216,6 @@ internal fun Routine.toDraft(): RoutineDraft {
         nextRowId = rows.size.toLong(),
         nextSetId = setId,
         trackAsRoutine = trackAsRoutine,
-        autoUpdateRoutine = autoUpdateRoutine,
     )
 }
 

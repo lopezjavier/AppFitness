@@ -59,8 +59,10 @@ sealed interface RoutineBuilderUiState {
     data object LoadError : RoutineBuilderUiState
 
     /**
-     * The form. [isDirty] means there are unsaved edits; [showDiscardConfirm] shows the "discard changes?" dialog.
-     * Saving needs a name, at least one exercise, a connection and no save in flight.
+     * The form. [isDirty] means there are unsaved edits (the editor template asks before discarding them).
+     * [nameTaken]: another routine already has this name (trimmed, any case), found locally or reported by the
+     * server on save; it disables saving. [saved] turns true once the save succeeded (the template then confirms
+     * and closes). Saving needs a free name, at least one exercise, a connection and no save in flight.
      */
     data class Editing(
         val isEditMode: Boolean,
@@ -69,26 +71,22 @@ sealed interface RoutineBuilderUiState {
         val isOnline: Boolean = true,
         val isSaving: Boolean = false,
         val isDirty: Boolean = false,
-        val showDiscardConfirm: Boolean = false,
+        val nameTaken: Boolean = false,
+        val saved: Boolean = false,
         val typePicker: TypePickerUi? = null,
         /** The open warm-up calculator or disc loader sheet; its inputs are never part of the routine draft. */
         val calculator: CalculatorUiState? = null,
         /** True when inserting the calculator's warm-ups would exceed the sets cap (the action is disabled). */
         val warmUpBlockedByCap: Boolean = false,
-        /** The "Actualizar automáticamente" switch (a draft until "Guardar"). */
-        val autoUpdateRoutine: Boolean = false,
     ) : RoutineBuilderUiState {
         val canSave: Boolean
-            get() = name.isNotBlank() && rows.isNotEmpty() && isOnline && !isSaving &&
+            get() = name.isNotBlank() && !nameTaken && rows.isNotEmpty() && isOnline && !isSaving &&
                 rows.all { row -> row.plannedSets.all { it.isValid } }
     }
 }
 
 sealed interface RoutineBuilderEvent {
     data class SetName(val name: String) : RoutineBuilderEvent
-
-    /** The "Actualizar automáticamente" switch: update the routine from finished sessions without asking. */
-    data class SetAutoUpdate(val enabled: Boolean) : RoutineBuilderEvent
 
     /** The picker returned this exercise: append it with the default 3 x 8, 120 s. */
     data class AddExercise(val exerciseId: String) : RoutineBuilderEvent
@@ -151,20 +149,10 @@ sealed interface RoutineBuilderEvent {
     data object Save : RoutineBuilderEvent
 
     data object Retry : RoutineBuilderEvent
-
-    /** Back was pressed: leaves at once, or asks to discard when there are unsaved edits. */
-    data object Back : RoutineBuilderEvent
-
-    data object ConfirmDiscard : RoutineBuilderEvent
-
-    data object DismissDiscard : RoutineBuilderEvent
 }
 
 /** One-off results of the builder. */
 sealed interface RoutineBuilderEffect {
-    /** The routine was saved, or the user chose to leave: close the screen. */
-    data object Close : RoutineBuilderEffect
-
     /** Saving failed (the edits are kept); [offline] distinguishes a lost connection from any other failure. */
     data class SaveFailed(val offline: Boolean) : RoutineBuilderEffect
 }

@@ -9,27 +9,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.groupRoutines
 enum class FolderSheetMode { Create, Rename }
 
 /**
- * The create/rename folder sheet. [name] is the draft (restored after process death, ADR-40); [edited] turns true
- * once the user typed, so the "blank name" error only shows after they blanked the field.
+ * The open create/rename folder sheet (restored after process death, ADR-40). The typed name lives in the
+ * `NameSheet` itself; a rename takes its initial name from the folder with [folderId].
  */
-data class FolderSheetState(
-    val mode: FolderSheetMode,
-    val folderId: String? = null,
-    val name: String = "",
-    val edited: Boolean = false,
-    /** Derived by the ViewModel (never persisted): another folder already has this name. */
-    val duplicateName: Boolean = false,
-) {
-    val canSave: Boolean get() = name.isNotBlank() && !duplicateName
-    val showBlankError: Boolean get() = edited && name.isBlank()
-    val showDuplicateError: Boolean get() = duplicateName && name.isNotBlank()
-}
-
-/** True when [name] (trimmed, ignoring case) matches a folder other than [ignoreId]. */
-fun isDuplicateFolderName(name: String, folders: List<RoutineFolder>, ignoreId: String?): Boolean {
-    val wanted = name.trim()
-    return wanted.isNotEmpty() && folders.any { it.id != ignoreId && it.name.trim().equals(wanted, ignoreCase = true) }
-}
+data class FolderSheetState(val mode: FolderSheetMode, val folderId: String? = null)
 
 /** State of "Mis rutinas". */
 sealed interface RoutinesUiState {
@@ -39,8 +22,8 @@ sealed interface RoutinesUiState {
     data object Error : RoutinesUiState
 
     /**
-     * The user's routines (an empty list is the empty state). [menuFor] is the routine whose actions sheet is open and
-     * [archiveFor] the one waiting for the archive confirmation. Duplicate, archive and starting a session need
+     * The user's routines (an empty list is the empty state). [menuFor] is the routine whose actions sheet is open.
+     * Duplicate, delete and starting a session need
      * [isOnline]; [starting] is true while a session is being created (a second start is ignored).
      *
      * [routines] is the FULL list in manual order (position) and [folders] the folders in order. [groups] is the
@@ -53,13 +36,14 @@ sealed interface RoutinesUiState {
         val routines: List<RoutineSummary>,
         val isOnline: Boolean = true,
         val menuFor: RoutineSummary? = null,
-        val archiveFor: RoutineSummary? = null,
         val starting: Boolean = false,
         val folders: List<RoutineFolder> = emptyList(),
         val collapsedFolderIds: Set<String> = emptySet(),
         val folderSheet: FolderSheetState? = null,
         val deleteFolderFor: RoutineFolder? = null,
         val moveFor: RoutineSummary? = null,
+        /** True while the folder sheet's create/rename call runs (the sheet shows its saving state). */
+        val folderSaving: Boolean = false,
     ) : RoutinesUiState {
         /** No routines and no folders: the empty state. */
         val isEmpty: Boolean get() = routines.isEmpty() && folders.isEmpty()
@@ -87,11 +71,11 @@ sealed interface RoutinesEvent {
 
     data class Duplicate(val id: String) : RoutinesEvent
 
-    data class RequestArchive(val id: String) : RoutinesEvent
+    /** Deletes the routine at once (no dialog): it leaves the list immediately and comes back if the server fails. */
+    data class Delete(val id: String) : RoutinesEvent
 
-    data object ConfirmArchive : RoutinesEvent
-
-    data object DismissArchive : RoutinesEvent
+    /** Tap on a routine card: opens its details. */
+    data class OpenDetails(val id: String) : RoutinesEvent
 
     /** "Empezar" on a routine card. */
     data class StartRoutine(val id: String) : RoutinesEvent
@@ -100,10 +84,8 @@ sealed interface RoutinesEvent {
 
     data class RenameFolder(val id: String) : RoutinesEvent
 
-    data class FolderNameChanged(val name: String) : RoutinesEvent
-
-    /** "Guardar" in the folder sheet. */
-    data object SaveFolder : RoutinesEvent
+    /** "Guardar" in the folder sheet with the trimmed [name] the Name sheet produced. */
+    data class SaveFolder(val name: String) : RoutinesEvent
 
     data object DismissFolderSheet : RoutinesEvent
 
@@ -142,8 +124,14 @@ sealed interface RoutinesEffect {
     /** Open the builder: a new routine when [routineId] is null, otherwise edit that one. */
     data class OpenBuilder(val routineId: String?) : RoutinesEffect
 
-    /** A write (duplicate, archive, folders, order, next) failed; the list shows the server state again. */
+    /** Open the details of this routine. */
+    data class OpenDetails(val routineId: String) : RoutinesEffect
+
+    /** A write (duplicate, delete, folders, order, next) failed; the list shows the server state again. */
     data object ActionFailed : RoutinesEffect
+
+    /** A delete was refused because there is no connection (nothing changed). */
+    data object OfflineRefused : RoutinesEffect
 
     /** A session was started; open the live screen. */
     data object OpenLiveSession : RoutinesEffect

@@ -71,6 +71,7 @@ internal data class SavedPreferences(
     val previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
     val calculators: CalculatorSettings? = null,
     val foodPreferences: FoodPreferences? = null,
+    val autoUpdateRoutine: Boolean? = null,
 )
 
 /** Test double of [ProfileRepository]: each read returns the next of [results] (the last one repeats). */
@@ -130,6 +131,7 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         previousValuesMode: PreviousValuesMode,
         calculators: CalculatorSettings?,
         foodPreferences: FoodPreferences?,
+        autoUpdateRoutine: Boolean?,
     ): Result<Unit> {
         preferenceSaves += SavedPreferences(
             displayName,
@@ -140,6 +142,7 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
             previousValuesMode,
             calculators,
             foodPreferences,
+            autoUpdateRoutine,
         )
         return settingsResult
     }
@@ -272,8 +275,10 @@ internal class FakeAccountRepository(var outcome: DeleteAccountOutcome = DeleteA
 }
 
 /** Test double of [TrainingPreferencesRepository]: [result] answers every read and [reads] counts them. */
-internal class FakeTrainingPreferencesRepository(warmUpIncluded: Boolean = false) : TrainingPreferencesRepository {
-    var result: Result<TrainingPreferences> = Result.success(TrainingPreferences(warmUpIncluded))
+internal class FakeTrainingPreferencesRepository(warmUpIncluded: Boolean = false, autoUpdateRoutine: Boolean = false) :
+    TrainingPreferencesRepository {
+    var result: Result<TrainingPreferences> =
+        Result.success(TrainingPreferences(warmUpIncluded, autoUpdateRoutine = autoUpdateRoutine))
     var reads = 0
 
     override suspend fun get(): Result<TrainingPreferences> {

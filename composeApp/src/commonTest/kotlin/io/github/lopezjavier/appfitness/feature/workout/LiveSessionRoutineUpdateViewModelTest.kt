@@ -4,11 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -166,7 +168,7 @@ class LiveSessionRoutineUpdateViewModelTest {
 
     @Test
     fun withAutoUpdateOn_theRoutineIsUpdatedWithoutTheSheet() = runSessionTest {
-        routines.routines[0] = routine().copy(autoUpdateRoutine = true)
+        trainingPreferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
         val vm = loaded()
         logAsPlanned(vm)
         vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
@@ -180,7 +182,7 @@ class LiveSessionRoutineUpdateViewModelTest {
 
     @Test
     fun withAutoUpdateOnAndNoDifference_theRoutineIsNotTouched() = runSessionTest {
-        routines.routines[0] = routine().copy(autoUpdateRoutine = true)
+        trainingPreferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
         val vm = loaded()
         logAsPlanned(vm)
 
@@ -191,7 +193,8 @@ class LiveSessionRoutineUpdateViewModelTest {
 
     @Test
     fun withTrackingOff_nothingIsCompared() = runSessionTest {
-        routines.routines[0] = routine().copy(trackAsRoutine = false, autoUpdateRoutine = true)
+        trainingPreferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
+        routines.routines[0] = routine().copy(trackAsRoutine = false)
         val vm = loaded()
         logAsPlanned(vm)
         vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
@@ -252,8 +255,22 @@ class LiveSessionRoutineUpdateViewModelTest {
     }
 
     @Test
+    fun aFailedPreferencesRead_asksWithTheSheet() = runSessionTest {
+        trainingPreferences.result = Result.failure(AppException(AppError.Network))
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
+        runCurrent()
+
+        finish(vm)
+
+        assertTrue(routines.updatedFromSession.isEmpty())
+        assertTrue(vm.finished().updateRoutineSheet != null)
+    }
+
+    @Test
     fun aFailedAutoUpdate_doesNotBlockFinishing() = runSessionTest {
-        routines.routines[0] = routine().copy(autoUpdateRoutine = true)
+        trainingPreferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
         routines.updateFailure = AppError.Network
         val vm = loaded()
         logAsPlanned(vm)

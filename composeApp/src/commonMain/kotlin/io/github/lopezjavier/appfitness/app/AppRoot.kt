@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
+import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
@@ -82,8 +83,8 @@ fun AppRoot(
         exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect, onOpenProgress, onClose ->
             ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier, onOpenProgress, onClose)
         },
-        routines = { routinesModifier, onOpenBuilder, onOpenLive, onOpenHistory ->
-            WorkoutEntryRoot(onOpenBuilder, onOpenLive, onOpenHistory, routinesModifier)
+        routines = { routinesModifier, onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory ->
+            WorkoutEntryRoot(onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory, routinesModifier)
         },
         diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onBack ->
             DiaryRoot(
@@ -178,6 +179,9 @@ fun AppRoot(
                 onSaved = { host.onClose() },
                 modifier = formModifier,
             )
+        },
+        routineDetails = { detailsModifier, routineId, onEdit, onOpenLive, onOpenExercise, onBack ->
+            RoutineDetailsRoot(routineId, onEdit, onOpenLive, onOpenExercise, onBack, detailsModifier)
         },
         routineBuilder = { builderModifier, host ->
             RoutineBuilderRoot(

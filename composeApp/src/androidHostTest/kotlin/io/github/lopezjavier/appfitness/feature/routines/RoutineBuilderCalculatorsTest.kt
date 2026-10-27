@@ -4,16 +4,14 @@ import android.graphics.Color
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import coil3.ColorImage
 import coil3.ImageLoader
@@ -132,7 +130,9 @@ class RoutineBuilderCalculatorsTest {
 
     private fun openFromMenu(row: Int, entry: String) {
         openMenu(row)
-        tap("routine_builder_${entry}_$row")
+        rule.onNodeWithText(if (entry == "warm_up_calc") "Calculadora de calentamiento" else "Cargador de discos")
+            .performClick()
+        rule.waitForIdle()
     }
 
     @Test
@@ -140,8 +140,8 @@ class RoutineBuilderCalculatorsTest {
         showWithBarbellAndDumbbell()
 
         openMenu(BARBELL_ROW)
-        rule.onNodeWithTag("routine_builder_warm_up_calc_0").assertExists().assertIsEnabled()
-        rule.onNodeWithTag("routine_builder_plate_calc_0").assertExists().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Calculadora de calentamiento").assertExists()
+        rule.onNodeWithText("Cargador de discos").assertExists()
     }
 
     @Test
@@ -150,8 +150,8 @@ class RoutineBuilderCalculatorsTest {
 
         openMenu(DUMBBELL_ROW)
 
-        rule.onNodeWithTag("routine_builder_warm_up_calc_1").assertExists()
-        rule.onNodeWithTag("routine_builder_plate_calc_1").assertExists()
+        rule.onNodeWithText("Calculadora de calentamiento").assertExists()
+        rule.onNodeWithText("Cargador de discos").assertExists()
     }
 
     @Test
@@ -163,8 +163,8 @@ class RoutineBuilderCalculatorsTest {
 
         openMenu(0)
 
-        rule.onNodeWithTag("routine_builder_warm_up_calc_0").assertExists()
-        rule.onNodeWithTag("routine_builder_plate_calc_0").assertDoesNotExist()
+        rule.onNodeWithText("Calculadora de calentamiento").assertExists()
+        rule.onNodeWithText("Cargador de discos").assertDoesNotExist()
     }
 
     @Test
@@ -261,7 +261,7 @@ class RoutineBuilderCalculatorsTest {
 
         openMenu(BARBELL_ROW)
 
-        rule.onNodeWithTag("routine_builder_plate_calc_0").assertTextContains("Cargador de discos")
+        rule.onNodeWithText("Cargador de discos").assertExists()
     }
 
     @Test

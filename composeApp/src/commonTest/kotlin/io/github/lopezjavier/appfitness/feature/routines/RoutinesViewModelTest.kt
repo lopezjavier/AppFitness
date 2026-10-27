@@ -152,49 +152,72 @@ class RoutinesViewModelTest {
     }
 
     @Test
-    fun archive_asksForConfirmation_thenRemovesTheRoutine() = runTest {
+    fun delete_removesTheRoutineAtOnce_beforeTheServerAnswers() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
 
-        vm.onEvent(RoutinesEvent.RequestArchive("r1"))
-        assertEquals("r1", vm.content().archiveFor?.id)
-        assertTrue(repository.archivedIds.isEmpty())
+        vm.onEvent(RoutinesEvent.Delete("r1"))
 
-        vm.onEvent(RoutinesEvent.ConfirmArchive)
-        advanceUntilIdle()
-
-        assertEquals(listOf("r1"), repository.archivedIds)
         assertEquals(listOf("Pierna"), vm.content().routines.map { it.name })
-        assertNull(vm.content().archiveFor)
+        assertTrue(repository.deletedIds.isEmpty())
+        advanceUntilIdle()
+        assertEquals(listOf("r1"), repository.deletedIds)
+        assertEquals(listOf("Pierna"), vm.content().routines.map { it.name })
     }
 
     @Test
-    fun dismissingTheArchiveConfirmation_archivesNothing() = runTest {
-        val vm = viewModel()
-        advanceUntilIdle()
-
-        vm.onEvent(RoutinesEvent.RequestArchive("r1"))
-        vm.onEvent(RoutinesEvent.DismissArchive)
-        advanceUntilIdle()
-
-        assertTrue(repository.archivedIds.isEmpty())
-        assertNull(vm.content().archiveFor)
-    }
-
-    @Test
-    fun archiveFailure_keepsTheRoutine_andSendsAMessage() = runTest {
+    fun delete_failure_restoresTheListAndSendsAMessage() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
         repository.saveFailure = AppError.Network
-        vm.onEvent(RoutinesEvent.RequestArchive("r1"))
 
         vm.effects.test {
-            vm.onEvent(RoutinesEvent.ConfirmArchive)
+            vm.onEvent(RoutinesEvent.Delete("r1"))
             advanceUntilIdle()
 
             assertEquals(RoutinesEffect.ActionFailed, awaitItem())
         }
+        assertEquals(listOf("Torso", "Pierna"), vm.content().routines.map { it.name })
+    }
+
+    @Test
+    fun delete_offline_isRefused_andKeepsTheRoutine() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.Delete("r1"))
+            advanceUntilIdle()
+
+            assertEquals(RoutinesEffect.OfflineRefused, awaitItem())
+        }
+        assertTrue(repository.deletedIds.isEmpty())
         assertEquals(2, vm.content().routines.size)
+    }
+
+    @Test
+    fun delete_closesTheOpenMenu() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEvent(RoutinesEvent.OpenMenu("r1"))
+
+        vm.onEvent(RoutinesEvent.Delete("r1"))
+
+        assertNull(vm.content().menuFor)
+    }
+
+    @Test
+    fun openDetails_sendsTheDetailsEffect() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.OpenDetails("r2"))
+
+            assertEquals(RoutinesEffect.OpenDetails("r2"), awaitItem())
+        }
     }
 
     @Test
@@ -210,7 +233,7 @@ class RoutinesViewModelTest {
     }
 
     @Test
-    fun offline_rejectsDuplicateAndArchive_butStillAllowsEditing() = runTest {
+    fun offline_rejectsDuplicate_butStillAllowsEditing() = runTest {
         val vm = viewModel()
         advanceUntilIdle()
         connectivity.state.value = false
@@ -218,11 +241,9 @@ class RoutinesViewModelTest {
         assertEquals(false, vm.content().isOnline)
 
         vm.onEvent(RoutinesEvent.Duplicate("r1"))
-        vm.onEvent(RoutinesEvent.RequestArchive("r1"))
         advanceUntilIdle()
 
         assertTrue(repository.duplicated.isEmpty())
-        assertNull(vm.content().archiveFor)
         vm.effects.test {
             vm.onEvent(RoutinesEvent.Edit("r1"))
             assertEquals(RoutinesEffect.OpenBuilder("r1"), awaitItem())

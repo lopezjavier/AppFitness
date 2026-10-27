@@ -61,6 +61,10 @@ for n in 1 2 3 4 5 6 7 8 9 10 11; do
   expect "G$n clean tree passes" 0 NOWARN
 done
 
+# The folder-delete dialog of the routines list is on the R-08 allow-list (G5).
+run "$here/ux-conventions/g5-allowed" "$empty"
+expect "G5 routines folder-delete dialog is allowed" 0 NOWARN
+
 printf 'not a valid line\n' > "$work/bad-line.txt"
 run "$here/ux-conventions/g2" "$work/bad-line.txt"
 expect "malformed warning line is an error" 2

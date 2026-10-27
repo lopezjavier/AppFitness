@@ -37,10 +37,11 @@ class ShellChromeTest {
     }
 
     @Test
-    fun tabRoutes_chrome_isTabsWithTheirTab_exceptDiaryHomeWhichDrawsItsOwnHeader() {
-        tabRoutes.filter { it != DiaryHome }
+    fun tabRoutes_chrome_isTabsWithTheirTab_exceptTheRootsThatDrawTheirOwnHeader() {
+        tabRoutes.filter { it != DiaryHome && it != WorkoutHome }
             .forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutHome.chrome)
     }
 
     @Test
@@ -53,6 +54,7 @@ class ShellChromeTest {
                 ExercisePickerRoute::class,
                 ExerciseDetailRoute::class,
                 RoutineBuilderRoute::class,
+                RoutineDetailsRoute::class,
                 LiveSessionRoute,
                 HistoryRoute,
                 WorkoutCalendarRoute,

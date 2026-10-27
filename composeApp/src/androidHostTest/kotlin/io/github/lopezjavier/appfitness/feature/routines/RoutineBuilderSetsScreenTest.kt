@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -14,8 +15,11 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import coil3.ColorImage
 import coil3.ImageLoader
@@ -203,6 +207,24 @@ class RoutineBuilderSetsScreenTest {
     }
 
     @Test
+    fun swipingASetRow_removesOnlyThatSet_andTheExerciseStays() {
+        show(null, "a", "b")
+        val distance = with(rule.density) { 296.dp.toPx() } * 0.7f
+
+        rule.onNodeWithTag("routine_builder_set_row_0_1").performTouchInput {
+            down(center)
+            moveBy(Offset(-distance, 0f))
+            up()
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_set_row_0_2").assertDoesNotExist()
+        rule.onNodeWithTag("routine_builder_set_row_0_1").assertExists()
+        rule.onNodeWithTag("routine_builder_row_0").assertExists()
+        rule.onNodeWithTag("routine_builder_row_1").assertExists()
+    }
+
+    @Test
     fun choosingCalentamiento_showsTheBadgeC() {
         show(null, "a")
 
@@ -256,7 +278,8 @@ class RoutineBuilderSetsScreenTest {
     fun inASuperset_addingASet_appearsOnEveryMember_withAHint() {
         show(null, "a", "b")
         tap("routine_builder_menu_0")
-        tap("routine_builder_group_0")
+        rule.onNodeWithText("Agrupar con el siguiente").performClick()
+        rule.waitForIdle()
 
         tap("routine_builder_add_set_1")
 
@@ -269,12 +292,12 @@ class RoutineBuilderSetsScreenTest {
     fun aSetWithoutReps_disablesGuardar() {
         show(null, "a")
         rule.onNodeWithTag("routine_builder_name_field").performTextReplacement("Torso")
-        rule.onNodeWithTag("routine_builder_save_button").assertIsEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsEnabled()
 
         rule.onNodeWithTag("routine_builder_set_reps_0_0").performTextReplacement("")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routine_builder_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
     }
 
     @Test
