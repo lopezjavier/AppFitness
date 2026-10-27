@@ -1,6 +1,6 @@
 # Implementation Plan: E9 · Finalization → `v1.0.0`
 
-> **Status:** broken down on 2026-10-26 with the three checkpoints agreed with the user (E9-A, E9-B, E9-C); re-sized the same day at the user's request (16 → 13 tasks, see "Sizing"). E9 Q1–Q3 were answered by the user on 2026-10-26 (ADR-70); no task is blocked. Breakdown approved by the user.
+> **Status:** broken down on 2026-10-26 with the three checkpoints agreed with the user (E9-A, E9-B, E9-C; E9-B and E9-C unified on 2026-10-27); re-sized the same day at the user's request (16 → 13 tasks, see "Sizing"). E9 Q1–Q3 were answered by the user on 2026-10-26 (ADR-70); no task is blocked. Breakdown approved by the user.
 
 ## Overview
 Close Phase 1. US-56 turns the UX rulebook adopted in Wave 0 (ADR-69, `05-design-system.md` §8–§10) into designsystem templates and CI guards, then migrates every screen to them domain by domain, closing the deferred UI-refinement table on the way. US-45 adds "Acerca de" with the version, the third-party credits and the open-source licences. US-46 sweeps states, accessibility, font scaling, tablet and rotation across the migrated app. The epic ends with the `v1.0.0` tag and the Phase 1 GitHub Release (notes only).
@@ -13,7 +13,7 @@ Out of scope (epic, `01` §4, ADR-66, ADR-67, ADR-69): new features; the "Entren
 Every task pays a fixed cost (planner, ux-reviewer, developers, PR, review), so small tasks were merged. First estimate (16 tasks): 1 S (About), 3 M (screen templates, Peso, meals editor, motion/onboarding close to S), the rest L, plus the S closure. Merged:
 - screen templates (M) into the guards/feedback foundation → **T-118** (L); the per-screen `SnackbarHost`/offline-banner removals moved to the domain tasks, which rebuild those screens on `AppScreen` anyway;
 - motion, tooltips and onboarding (M, close to S) into the wording sweep → **T-128** (L, wave 3, same checkpoint);
-- "Acerca de" (S, US-45) into the US-46 polish sweep → **T-129** (L, both are E9-C).
+- "Acerca de" (S, US-45) into the US-46 polish sweep → **T-129** (L, both are E9-B).
 
 Not merged: the other tasks are already M or L on their own, and joining two different domains would give an unreviewable PR (for example meals editor M + Preferencias hub L ≈ 45 files). Peso (T-123) and the meals editor (T-126) stay M; only the closure (T-130) stays S.
 
@@ -70,18 +70,17 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 - [ ] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
 - [ ] T-127: Perfil root and Preferencias hub — UI + core — L
 - [ ] T-128: Wording, motion and onboarding; every guard a failure — UI — L
-  - **Checkpoint E9-B 👤 Every screen, one way (7 items):** Peso; routines; live session; history and statistics; Perfil and Preferencias; Comidas del día; wording and motion. Why here: every domain, the wording and the motion are migrated, before US-45/US-46 build their final checks on them.
 
 ### Phase 4: Version 1.0 quality (US-45, US-46)
 - [ ] T-129: Version 1.0 quality: About and licences, states, accessibility and tablet — UI + core — L
-  - **Checkpoint E9-C 👤 Version 1.0 on your phone and tablet (7 items):** "Acerca de"; licences; states on every screen; TalkBack; font 130 %; tablet and rotation; final regression of a full day. Why here: after the last implementation task, so it is also the final regression of E9 and Phase 1; its approval releases T-130.
+  - **Checkpoint E9-B 👤 Version 1.0 on your phone and tablet (14 items; unified with the former E9-C on 2026-10-27):** Peso; routines; live session; history and statistics; Perfil and Preferencias; Comidas del día; wording and motion; "Acerca de"; licences; states on every screen; TalkBack; font 130 %; tablet and rotation; final regression of a full day. Why here: after the last implementation task, so it is also the final regression of E9 and Phase 1; its approval releases T-130.
 
 ### Phase 5: Closure
-- [ ] T-130: E9 closure → `v1.0.0` — PM — S (no checkpoint; E9-C's approval releases it)
+- [ ] T-130: E9 closure → `v1.0.0` — PM — S (no checkpoint; E9-B's approval releases it)
 
 Internal milestones (not 👤 checkpoints):
 - lint (incl. `check-design-tokens.sh` and, from T-118, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green per task; pgTAP green for T-122, T-124, T-126;
-- `deploy-supabase` green after T-122 (before E9-A) and after T-124 and T-126 (before E9-B), data intact;
+- `deploy-supabase` green after T-122 (before E9-A) and after T-124 and T-126 (before E9-B, which is now after T-129), data intact;
 - the guard warning list shrinks with each wave-2 task and is empty after T-128;
 - `:androidApp:assembleProdDebug` green with the licences plugin (T-129).
 
@@ -89,8 +88,7 @@ Internal milestones (not 👤 checkpoints):
 
 ```
 v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [E9-A 👤]
-        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► [E9-B 👤]
-        ─► T-129 ─► [E9-C 👤] ─► T-130 (closure) ─► v1.0.0
+        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► T-129 ─► [E9-B 👤] ─► T-130 (closure) ─► v1.0.0
 ```
 - Strictly sequential (one active task at a time); each foundation needs the previous one (top bar and `AppActionSheet` → sheets → fields in the Name sheet → rows and swipe on the haptics).
 - T-125c needs the user's body-map choice (item B) before it starts; E9 Q1–Q3 are resolved.
@@ -109,7 +107,7 @@ v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [
 | Semantic haptics are silent on older Android versions | Low | Per-API fallbacks in `AppHaptics` (§9.2); the user's Pixel 9 supports all types |
 | Roborazzi adds host-test time (E6 retro) | Low | Screenshot tests for templates only (D14), not per screen |
 | The guard script yields false positives and blocks unrelated PRs | Medium | Fixture tests per guard in T-118; the warning list keeps unmigrated domains non-blocking |
-| Two-column and 130 % font fixes found late (T-129) cascade into many screens | Medium | Templates cap widths and set title levels from T-118; small fixes stay in T-129, large ones become a `fix(T-###)` before E9-C |
+| Two-column and 130 % font fixes found late (T-129) cascade into many screens | Medium | Templates cap widths and set title levels from T-118; small fixes stay in T-129, large ones become a `fix(T-###)` before E9-B |
 
 ## Open Questions
 
