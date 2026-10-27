@@ -1,28 +1,19 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.AccountProtection
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -31,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-05 on the Perfil root: photo and name, "Preferencias", sign out and delete account. */
+/** US-05 and US-56 on the Perfil root: photo, name, the gear to Preferencias and the statistics rows with values. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
@@ -50,16 +41,12 @@ class ProfileRootScreenTest {
     private fun loaded(
         name: String? = "Ana María",
         avatarUrl: String? = null,
-        isOnline: Boolean = true,
-        isDeleting: Boolean = false,
-        protection: AccountProtection = AccountProtection.Unprotected,
-    ) = ProfileRootUiState.Loaded(name, avatarUrl, isOnline, isDeleting, protection)
+        weightKg: Double? = 79.4,
+        strengthRecordKg: Double? = 113.5,
+        avgKcal: Int? = 1950,
+    ) = ProfileRootUiState.Loaded(name, avatarUrl, weightKg, strengthRecordKg, avgKcal)
 
-    private fun show(
-        state: ProfileRootUiState = loaded(),
-        effects: Channel<ProfileRootEffect> = Channel(Channel.BUFFERED),
-        withCatalog: Boolean = false,
-    ) {
+    private fun show(state: ProfileRootUiState = loaded(), withCatalog: Boolean = false) {
         events.clear()
         catalogOpens = 0
         preferencesOpens = 0
@@ -72,13 +59,14 @@ class ProfileRootScreenTest {
                 ProfileRootScreen(
                     state = state,
                     onEvent = { events += it },
-                    onOpenPreferences = { preferencesOpens++ },
-                    onOpenStrength = { strengthOpens++ },
-                    onOpenDiaryHistory = { diaryHistoryOpens++ },
-                    onOpenWeight = { weightOpens++ },
-                    onOpenTrainingStats = { trainingStatsOpens++ },
-                    onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
-                    effects = effects.receiveAsFlow(),
+                    actions = ProfileRootActions(
+                        onOpenPreferences = { preferencesOpens++ },
+                        onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
+                        onOpenStrength = { strengthOpens++ },
+                        onOpenWeight = { weightOpens++ },
+                        onOpenDiaryHistory = { diaryHistoryOpens++ },
+                        onOpenTrainingStats = { trainingStatsOpens++ },
+                    ),
                 )
             }
         }
@@ -109,124 +97,62 @@ class ProfileRootScreenTest {
         rule.onNodeWithTag("profile_root_avatar").assertExists()
     }
 
-    @Test
-    fun photoThatDoesNotLoad_keepsThePlaceholder() {
-        show(loaded(avatarUrl = "https://invalid.example/none.png"))
-        rule.onNodeWithTag("profile_root_avatar_placeholder", useUnmergedTree = true).assertExists()
-    }
-
-    // -- Preferencias ---------------------------------------------------------------------------------------------
+    // -- gear -----------------------------------------------------------------------------------------------------
 
     @Test
-    fun preferencesButton_opensPreferences_andMeetsTheTouchTarget() {
+    fun gear_isNamedPreferencias_meetsTheTouchTarget_andOpensPreferences() {
         show()
-        rule.onNodeWithTag("profile_root_preferences_button")
-            .assertTextEquals("Preferencias").assertHeightIsAtLeast(48.dp).performClick()
+        rule.onNodeWithTag("profile_title").assertTextEquals("Perfil")
+        rule.onNodeWithTag("profile_action_0")
+            .assertContentDescriptionEquals("Preferencias")
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
         assertEquals(1, preferencesOpens)
     }
 
     @Test
-    fun strengthRow_isInTheStatisticsSection_andOpensFuerza() {
+    fun root_hasNoBackArrow_noPreferencesButton_noSignOutAndNoDelete() {
         show()
-        rule.onNodeWithText("ESTADÍSTICAS").assertExists()
-        rule.onNodeWithTag("profile_strength_row").assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithText("Fuerza").assertExists()
-
-        rule.onNodeWithTag("profile_strength_row").performClick()
-
-        assertEquals(1, strengthOpens)
+        rule.onNodeWithTag("profile_back").assertDoesNotExist()
+        listOf("profile_root_preferences_button", "profile_root_sign_out", "profile_root_delete_account").forEach {
+            rule.onNodeWithTag(it).assertDoesNotExist()
+        }
+        rule.onNodeWithTag("profile_root_delete_protected_note").assertDoesNotExist()
     }
 
+    // -- statistics rows ------------------------------------------------------------------------------------------
+
     @Test
-    fun diaryHistoryRow_isBelowFuerza_andOpensTheHistory() {
+    fun statisticsRows_showTheirValues_asOneNodeLabelAndValue() {
         show()
-        rule.onNodeWithText("Calorías").assertExists()
-        rule.onNodeWithText("Historial de comidas").assertDoesNotExist()
-        rule.onNodeWithTag("profile_diary_history_row").assertHeightIsAtLeast(48.dp)
-        val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
-        val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()
-        assertTrue(history.top >= strength.bottom)
-
-        rule.onNodeWithTag("profile_diary_history_row").performClick()
-
-        assertEquals(1, diaryHistoryOpens)
-        assertEquals(0, strengthOpens)
+        rule.onNodeWithTag("profile_statistics_heading").assertTextEquals("Estadísticas")
+        rule.onNodeWithTag("profile_weight_row").assertTextEquals("Peso", "79,4 kg")
+        rule.onNodeWithTag("profile_strength_row").assertTextEquals("Fuerza", "Récord 1RM 113,5 kg")
+        rule.onNodeWithTag("profile_diary_history_row").assertTextEquals("Calorías", "media 1.950 kcal")
+        rule.onNodeWithTag("profile_training_stats_row").assertTextEquals("Entrenamiento")
     }
 
     @Test
-    fun trainingStatsRow_isTheLastStatisticsRow_andOpensEstadisticas() {
+    fun aStatisticWithoutValue_showsOnlyItsLabel() {
+        show(loaded(weightKg = null, strengthRecordKg = null, avgKcal = null))
+        rule.onNodeWithTag("profile_weight_row").assertTextEquals("Peso")
+        rule.onNodeWithTag("profile_strength_row").assertTextEquals("Fuerza")
+        rule.onNodeWithTag("profile_diary_history_row").assertTextEquals("Calorías")
+    }
+
+    @Test
+    fun everyRow_meetsTheTouchTarget_andOpensItsDestination() {
         show()
-        rule.onNodeWithTag("profile_training_stats_row").assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithText("Entrenamiento").assertExists()
-        val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()
-        val training = rule.onNodeWithTag("profile_training_stats_row").getUnclippedBoundsInRoot()
-        assertTrue(training.top >= history.bottom)
-
-        rule.onNodeWithTag("profile_training_stats_row").performClick()
-
-        assertEquals(1, trainingStatsOpens)
-        assertEquals(0, strengthOpens)
+        listOf("weight", "strength", "diary_history", "training_stats").forEach {
+            rule.onNodeWithTag("profile_${it}_row").assertHeightIsAtLeast(48.dp).performClick()
+        }
+        assertEquals(listOf(1, 1, 1, 1), listOf(weightOpens, strengthOpens, diaryHistoryOpens, trainingStatsOpens))
     }
 
-    @Test
-    fun weightRow_isBetweenFuerzaAndTheHistory_andOpensPeso() {
-        show()
-        rule.onNodeWithTag("profile_weight_row").assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithText("Peso").assertExists()
-        val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
-        val weight = rule.onNodeWithTag("profile_weight_row").getUnclippedBoundsInRoot()
-        val history = rule.onNodeWithTag("profile_diary_history_row").getUnclippedBoundsInRoot()
-        assertTrue(weight.top >= strength.bottom)
-        assertTrue(history.top >= weight.bottom)
-
-        rule.onNodeWithTag("profile_weight_row").performClick()
-
-        assertEquals(1, weightOpens)
-        assertEquals(0, strengthOpens)
-        assertEquals(0, diaryHistoryOpens)
-    }
+    // -- catalog (local flavor) -----------------------------------------------------------------------------------
 
     @Test
-    fun weightRow_isHiddenWhileTheProfileLoads() {
-        show(ProfileRootUiState.Loading)
-        rule.onNodeWithTag("profile_weight_row").assertDoesNotExist()
-    }
-
-    @Test
-    fun diaryHistoryRow_isHiddenWhileTheProfileLoads() {
-        show(ProfileRootUiState.Loading)
-        rule.onNodeWithTag("profile_diary_history_row").assertDoesNotExist()
-    }
-
-    @Test
-    fun strengthRow_isAboveTheAccountActions() {
-        show()
-        val strength = rule.onNodeWithTag("profile_strength_row").getUnclippedBoundsInRoot()
-        val signOut = rule.onNodeWithTag("profile_root_sign_out").getUnclippedBoundsInRoot()
-        assertTrue(signOut.top >= strength.bottom)
-    }
-
-    @Test
-    fun strengthRow_isHiddenWhileTheProfileLoads() {
-        show(ProfileRootUiState.Loading)
-        rule.onNodeWithTag("profile_strength_row").assertDoesNotExist()
-        rule.onNodeWithTag("profile_root_sign_out").assertExists()
-    }
-
-    @Test
-    fun actions_areBelowTheHeader() {
-        show()
-        val header = rule.onNodeWithTag("profile_root_name").getUnclippedBoundsInRoot()
-        val preferences = rule.onNodeWithTag("profile_root_preferences_button").getUnclippedBoundsInRoot()
-        val signOut = rule.onNodeWithTag("profile_root_sign_out").getUnclippedBoundsInRoot()
-        val delete = rule.onNodeWithTag("profile_root_delete_account").getUnclippedBoundsInRoot()
-        assertTrue(preferences.top >= header.bottom)
-        assertTrue(signOut.top >= preferences.bottom)
-        assertTrue(delete.top >= signOut.bottom)
-    }
-
-    @Test
-    fun catalogButton_isShownOnlyWhenProvided_andOpensTheCatalog() {
+    fun catalogButton_appearsOnlyWhereItIsAvailable() {
         show(withCatalog = false)
         rule.onNodeWithTag("profile_root_catalog_button").assertDoesNotExist()
     }
@@ -234,177 +160,34 @@ class ProfileRootScreenTest {
     @Test
     fun catalogButton_opensTheCatalog() {
         show(withCatalog = true)
-        rule.onNodeWithTag("profile_root_catalog_button").performClick()
+        rule.onNodeWithTag("profile_root_catalog_button").assertIsDisplayed().performClick()
         assertEquals(1, catalogOpens)
     }
 
     // -- states ---------------------------------------------------------------------------------------------------
 
     @Test
-    fun loading_showsTheSkeleton() {
+    fun loading_showsTheSkeletonWithoutRows() {
         rule.mainClock.autoAdvance = false
         show(ProfileRootUiState.Loading)
         rule.onNodeWithTag("profile_root_loading").assertExists()
-        rule.onNodeWithTag("profile_root_name").assertDoesNotExist()
+        rule.onNodeWithTag("profile_weight_row").assertDoesNotExist()
     }
 
     @Test
-    fun loadFailed_showsRetry_andKeepsSignOut() {
+    fun loadFailure_showsRetry_andRetryIsSent() {
         show(ProfileRootUiState.LoadFailed)
         rule.onNodeWithTag("profile_root_error_action").assertTextEquals("Reintentar").performClick()
         assertEquals(listOf<ProfileRootEvent>(ProfileRootEvent.Retry), events)
-        rule.onNodeWithTag("profile_root_sign_out").assertExists()
-        rule.onNodeWithTag("profile_root_delete_account").assertDoesNotExist()
-        rule.onNodeWithTag("profile_root_preferences_button").assertDoesNotExist()
     }
 
-    // -- US-05 sign out -------------------------------------------------------------------------------------------
+    // -- tablet ---------------------------------------------------------------------------------------------------
 
     @Test
-    fun signOutButton_isShown_andMeetsTheTouchTarget() {
+    @Config(qualifiers = "w840dp-h1000dp-mdpi")
+    fun tablet_capsTheContentWidth() {
         show()
-        rule.onNodeWithTag("profile_root_sign_out").assertTextEquals("Cerrar sesión").assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithTag("profile_root_sign_out_dialog").assertDoesNotExist()
-    }
-
-    @Test
-    fun tappingSignOut_opensTheDialogWithoutSigningOut() {
-        show()
-        rule.onNodeWithTag("profile_root_sign_out").performClick()
-        rule.onNodeWithTag("profile_root_sign_out_dialog").assertExists()
-        assertTrue(events.isEmpty())
-    }
-
-    @Test
-    fun confirming_signsOutOnce_andClosesTheDialog() {
-        show()
-        rule.onNodeWithTag("profile_root_sign_out").performClick()
-        rule.onNodeWithTag("profile_root_sign_out_dialog_confirm").assertTextEquals("Cerrar sesión").performClick()
-        rule.waitForIdle()
-        assertEquals(listOf<ProfileRootEvent>(ProfileRootEvent.SignOutConfirmed), events)
-        rule.onNodeWithTag("profile_root_sign_out_dialog").assertDoesNotExist()
-    }
-
-    @Test
-    fun cancelling_closesTheDialog_andNothingElseHappens() {
-        show()
-        rule.onNodeWithTag("profile_root_sign_out").performClick()
-        rule.onNodeWithTag("profile_root_sign_out_dialog_cancel").assertTextEquals("Cancelar").performClick()
-        rule.waitForIdle()
-        assertTrue(events.isEmpty())
-        rule.onNodeWithTag("profile_root_sign_out_dialog").assertDoesNotExist()
-        rule.onNodeWithTag("profile_screen").assertExists()
-    }
-
-    // -- US-05 delete account -------------------------------------------------------------------------------------
-
-    @Test
-    fun deleteButton_isLastInTheBlock_andMeetsTheTouchTarget() {
-        show()
-        rule.onNodeWithTag("profile_root_delete_account")
-            .assertTextEquals("Borrar cuenta").assertIsEnabled().assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithTag("profile_root_delete_account_dialog").assertDoesNotExist()
-        val signOutBottom = rule.onNodeWithTag("profile_root_sign_out").getUnclippedBoundsInRoot().bottom
-        val deleteTop = rule.onNodeWithTag("profile_root_delete_account").getUnclippedBoundsInRoot().top
-        assertTrue(deleteTop >= signOutBottom)
-    }
-
-    @Test
-    fun tappingDelete_opensTheDialogWithTheApprovedTexts_andDeletesNothing() {
-        show()
-        rule.onNodeWithTag("profile_root_delete_account").performClick()
-        rule.onNodeWithTag("profile_root_delete_account_dialog").assertExists()
-        rule.onNodeWithText("¿Borrar tu cuenta?").assertExists()
-        rule.onNodeWithText("Se borrarán tu perfil, tu peso y tus objetivos. No se puede deshacer.").assertExists()
-        rule.onNodeWithTag("profile_root_delete_account_dialog_cancel").assertTextEquals("Cancelar")
-        rule.onNodeWithTag("profile_root_delete_account_dialog_confirm").assertTextEquals("Borrar")
-        assertTrue(events.isEmpty())
-    }
-
-    @Test
-    fun cancellingDelete_closesTheDialog_andDeletesNothing() {
-        show()
-        rule.onNodeWithTag("profile_root_delete_account").performClick()
-        rule.onNodeWithTag("profile_root_delete_account_dialog_cancel").performClick()
-        rule.waitForIdle()
-        assertTrue(events.isEmpty())
-        rule.onNodeWithTag("profile_root_delete_account_dialog").assertDoesNotExist()
-    }
-
-    @Test
-    fun confirmingDelete_sendsTheEventOnce_andClosesTheDialog() {
-        show()
-        rule.onNodeWithTag("profile_root_delete_account").performClick()
-        rule.onNodeWithTag("profile_root_delete_account_dialog_confirm").performClick()
-        rule.waitForIdle()
-        assertEquals(listOf<ProfileRootEvent>(ProfileRootEvent.DeleteAccountConfirmed), events)
-        rule.onNodeWithTag("profile_root_delete_account_dialog").assertDoesNotExist()
-    }
-
-    @Test
-    fun deleteButton_isDisabledOffline() {
-        show(loaded(isOnline = false))
-        rule.onNodeWithTag("profile_root_delete_account").assertIsNotEnabled()
-    }
-
-    @Test
-    fun deleting_disablesTheButton_andReadsBorrando() {
-        show(loaded(isDeleting = true))
-        rule.onNodeWithTag("profile_root_delete_account").assertIsNotEnabled().assertTextEquals("Borrando…")
-        rule.onNode(
-            SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo) and
-                hasAnyAncestor(hasTestTag("profile_root_delete_account")),
-            useUnmergedTree = true,
-        ).assertExists()
-    }
-
-    @Test
-    fun protectedAccount_disablesDelete_andShowsTheNote_andOpensNoDialog() {
-        show(loaded(protection = AccountProtection.Protected))
-        rule.onNodeWithTag("profile_root_delete_account").assertIsNotEnabled().performClick()
-        rule.onNodeWithTag("profile_root_delete_protected_note").assertTextEquals("Esta cuenta está protegida")
-        rule.onNodeWithTag("profile_root_delete_account_dialog").assertDoesNotExist()
-        assertTrue(events.isEmpty())
-    }
-
-    @Test
-    fun protectedAccount_readsTheButtonAndTheNoteTogether() {
-        show(loaded(protection = AccountProtection.Protected))
-        rule.onNodeWithTag("profile_root_delete_account").assert(
-            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Esta cuenta está protegida"),
-        )
-    }
-
-    @Test
-    fun unprotectedAccount_showsNoNote_andDeleteIsEnabled() {
-        show(loaded(protection = AccountProtection.Unprotected))
-        rule.onNodeWithTag("profile_root_delete_protected_note").assertDoesNotExist()
-        rule.onNodeWithTag("profile_root_delete_account").assertIsEnabled()
-    }
-
-    @Test
-    fun unknownProtection_disablesDelete_withoutNoteOrError() {
-        show(loaded(protection = AccountProtection.Unknown))
-        rule.onNodeWithTag("profile_root_delete_account").assertIsNotEnabled()
-        rule.onNodeWithTag("profile_root_delete_protected_note").assertDoesNotExist()
-        rule.onNodeWithText("No se pudo borrar la cuenta. Inténtalo de nuevo").assertDoesNotExist()
-    }
-
-    @Test
-    fun deleteFailedEffect_showsTheErrorSnackbar() {
-        val effects = Channel<ProfileRootEffect>(Channel.BUFFERED)
-        show(effects = effects)
-        effects.trySend(ProfileRootEffect.DeleteFailed(offline = false))
-        rule.waitForIdle()
-        rule.onNodeWithText("No se pudo borrar la cuenta. Inténtalo de nuevo").assertIsDisplayed()
-    }
-
-    @Test
-    fun deleteFailedOfflineEffect_showsTheOfflineSnackbar() {
-        val effects = Channel<ProfileRootEffect>(Channel.BUFFERED)
-        show(effects = effects)
-        effects.trySend(ProfileRootEffect.DeleteFailed(offline = true))
-        rule.waitForIdle()
-        rule.onNodeWithText("Sin conexión. Inténtalo de nuevo").assertIsDisplayed()
+        val row = rule.onNodeWithTag("profile_weight_row").getUnclippedBoundsInRoot()
+        assertTrue("row width ${row.width}", row.width <= WindowWidthClassDefaults.FormContentMaxWidth)
     }
 }

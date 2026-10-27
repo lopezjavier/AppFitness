@@ -2,106 +2,82 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.domain.model.AccountProtection
-import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
-import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
-import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
+import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
-import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
-import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
+import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.BuildStrengthSummary
+import io.github.lopezjavier.appfitness.domain.usecase.DiaryHistorySummary
+import io.github.lopezjavier.appfitness.domain.usecase.RankTopExercises
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
+import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.days
 
-/** State of the Perfil root: the user's photo and name, plus the account actions' availability. */
+private const val STRENGTH_WINDOW_DAYS = 42
+private const val WEEK_BACK_DAYS = 6
+
+/** State of the Perfil root: the user's photo and name plus the values shown on the statistics rows. */
 sealed interface ProfileRootUiState {
     data object Loading : ProfileRootUiState
 
-    /** The profile could not be read; sign out stays available. */
+    /** The profile could not be read. */
     data object LoadFailed : ProfileRootUiState
 
-    /** [displayName] is null when the profile has no (non-blank) name; [avatarUrl] when there is no photo. */
+    /**
+     * [displayName] is null when the profile has no (non-blank) name; [avatarUrl] when there is no photo. Each
+     * highlight is null while it loads and stays null when it cannot be read or there is nothing to show: [weightKg]
+     * is the latest weight, [strengthRecordKg] the 1RM record of the most trained exercise of the last 6 weeks (the
+     * Fuerza default) and [avgKcal] the average per logged day of the last 7 days (the Historial "week" figure).
+     */
     data class Loaded(
         val displayName: String?,
         val avatarUrl: String?,
-        val isOnline: Boolean = true,
-        val isDeleting: Boolean = false,
-        val protection: AccountProtection = AccountProtection.Unknown,
-    ) : ProfileRootUiState {
-        /**
-         * "Borrar cuenta" is enabled while online, no delete is running and the account is known to be unprotected
-         * (ADR-29, ADR-57): an unknown check never enables it.
-         */
-        val canDelete: Boolean get() = isOnline && !isDeleting && protection == AccountProtection.Unprotected
-    }
+        val weightKg: Double? = null,
+        val strengthRecordKg: Double? = null,
+        val avgKcal: Int? = null,
+    ) : ProfileRootUiState
 }
 
 /** Events of the Perfil root. */
 sealed interface ProfileRootEvent {
     data object Retry : ProfileRootEvent
-
-    /** The user confirmed the sign-out dialog. */
-    data object SignOutConfirmed : ProfileRootEvent
-
-    /** The user confirmed the delete-account dialog. */
-    data object DeleteAccountConfirmed : ProfileRootEvent
-}
-
-/** One-off results shown as a snackbar. */
-sealed interface ProfileRootEffect {
-    /** Deleting the account failed; the session is kept. [offline] is true when the failure was the network. */
-    data class DeleteFailed(val offline: Boolean) : ProfileRootEffect
 }
 
 /**
- * The Perfil root (ADR-37): reads the name and photo, signs out and deletes the account. Signing out needs no
- * navigation: the root reacts to the auth state.
+ * The Perfil root (ADR-37): reads the name and photo, and three highlights for its statistics rows. The highlights
+ * load in separate coroutines after the profile, so none of them can delay it or fail the screen.
  */
+@Suppress("LongParameterList") // One dependency per port.
 class ProfileRootViewModel(
     private val profileRepository: ProfileRepository,
-    private val authRepository: AuthRepository,
-    private val deleteAccount: DeleteAccount,
-    private val getAccountProtection: GetAccountProtection,
-    connectivity: ConnectivityObserver,
+    private val bodyMeasurementRepository: BodyMeasurementRepository,
+    private val strengthRepository: StrengthRepository,
+    private val workoutSessionRepository: WorkoutSessionRepository,
+    private val foodDiaryRepository: FoodDiaryRepository,
+    private val clock: Clock,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ProfileRootUiState>(ProfileRootUiState.Loading)
     val uiState: StateFlow<ProfileRootUiState> = _uiState.asStateFlow()
 
-    private val effectChannel = Channel<ProfileRootEffect>(Channel.BUFFERED)
-    val effects: Flow<ProfileRootEffect> = effectChannel.receiveAsFlow()
-
-    private var online = true
     private var work: Job? = null
-    private var protectionWork: Job? = null
+    private val highlightWork = mutableListOf<Job>()
 
     init {
-        viewModelScope.launch {
-            connectivity.isOnline.collect { isOnline ->
-                val regained = isOnline && !online
-                online = isOnline
-                updateLoaded { it.copy(isOnline = isOnline) }
-                val current = _uiState.value
-                if (regained && current is ProfileRootUiState.Loaded &&
-                    current.protection == AccountProtection.Unknown
-                ) {
-                    checkProtection()
-                }
-            }
-        }
         load()
     }
 
     fun onEvent(event: ProfileRootEvent) {
         when (event) {
             ProfileRootEvent.Retry -> if (_uiState.value == ProfileRootUiState.LoadFailed) load()
-            ProfileRootEvent.SignOutConfirmed -> viewModelScope.launch { authRepository.signOut() }
-            ProfileRootEvent.DeleteAccountConfirmed -> confirmDelete()
         }
     }
 
@@ -111,46 +87,51 @@ class ProfileRootViewModel(
 
     private fun load() {
         work?.cancel()
-        protectionWork?.cancel()
+        highlightWork.forEach { it.cancel() }
+        highlightWork.clear()
         _uiState.value = ProfileRootUiState.Loading
         work = viewModelScope.launch {
             val profile = profileRepository.getOwnProfile().getOrNull()
             if (profile == null) {
                 _uiState.value = ProfileRootUiState.LoadFailed
             } else {
-                _uiState.value =
-                    ProfileRootUiState.Loaded(
-                        displayName = profile.displayName?.trim()?.takeIf { it.isNotEmpty() },
-                        avatarUrl = profile.avatarUrl,
-                        isOnline = online,
-                    )
-                checkProtection()
+                _uiState.value = ProfileRootUiState.Loaded(
+                    displayName = profile.displayName?.trim()?.takeIf { it.isNotEmpty() },
+                    avatarUrl = profile.avatarUrl,
+                )
+                loadHighlights()
             }
         }
     }
 
-    /** Separate coroutine so the profile is never delayed by the check; a failure leaves it Unknown. */
-    private fun checkProtection() {
-        protectionWork?.cancel()
-        protectionWork = viewModelScope.launch {
-            val protection = getAccountProtection()
-            updateLoaded { if (it.protection == AccountProtection.Protected) it else it.copy(protection = protection) }
+    private fun loadHighlights() {
+        highlightWork += viewModelScope.launch {
+            val weight = bodyMeasurementRepository.getLatestWeight().getOrNull()?.weightKg
+            updateLoaded { it.copy(weightKg = weight) }
+        }
+        highlightWork += viewModelScope.launch {
+            val record = strengthRecord()
+            updateLoaded { it.copy(strengthRecordKg = record) }
+        }
+        highlightWork += viewModelScope.launch {
+            val kcal = weekAverageKcal()
+            updateLoaded { it.copy(avgKcal = kcal) }
         }
     }
 
-    private fun confirmDelete() {
-        val state = _uiState.value as? ProfileRootUiState.Loaded ?: return
-        if (!state.canDelete) return
-        updateLoaded { it.copy(isDeleting = true) }
-        work = viewModelScope.launch {
-            val outcome = deleteAccount()
-            if (outcome == DeleteAccountOutcome.Deleted) return@launch
-            if (outcome == DeleteAccountOutcome.Protected) {
-                updateLoaded { it.copy(isDeleting = false, protection = AccountProtection.Protected) }
-                return@launch
-            }
-            updateLoaded { it.copy(isDeleting = false) }
-            effectChannel.send(ProfileRootEffect.DeleteFailed(offline = outcome == DeleteAccountOutcome.NoNetwork))
-        }
+    /** The 1RM record of the most trained exercise of the last 6 weeks, as the Fuerza screen shows by default. */
+    private suspend fun strengthRecord(): Double? {
+        val since = clock.now() - STRENGTH_WINDOW_DAYS.days
+        val sessions = strengthRepository.recentSessions(since).getOrNull()
+        val top = sessions?.let { RankTopExercises(it, since).firstOrNull() }
+        val history = top?.let { workoutSessionRepository.exerciseHistory(it).getOrNull() }
+        return history?.let { BuildStrengthSummary(it, clock.today()).recordOneRepMax }
+    }
+
+    /** The average kcal per logged day of the last 7 days (the Historial "week" figure), null with no records. */
+    private suspend fun weekAverageKcal(): Int? {
+        val today = clock.today()
+        val days = foodDiaryRepository.summaries(today.minus(WEEK_BACK_DAYS, DateTimeUnit.DAY), today).getOrNull()
+        return days?.let { DiaryHistorySummary.week(it, today) }?.kcal?.roundToInt()
     }
 }

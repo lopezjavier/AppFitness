@@ -41,7 +41,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_mai
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_target
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_tdee
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_tdee_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -82,12 +81,6 @@ fun EnergyStrategySection(
             style = AppTheme.typography.bodyMedium,
             color = AppTheme.colors.textSecondary,
             modifier = Modifier.padding(top = Spacing.xs).testTag("${testTagPrefix}_tdee"),
-        )
-        Text(
-            text = stringResource(Res.string.energy_tdee_helper),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("${testTagPrefix}_tdee_helper"),
         )
         Column(
             Modifier.padding(top = Spacing.lg),

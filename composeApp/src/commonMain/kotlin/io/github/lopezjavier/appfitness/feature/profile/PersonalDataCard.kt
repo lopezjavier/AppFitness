@@ -8,15 +8,11 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,17 +40,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_height_valu
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_row_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_sheet_done
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_hc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.rememberAppSheetState
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.feature.biometrics.ActivityCards
@@ -63,7 +57,6 @@ import io.github.lopezjavier.appfitness.feature.biometrics.HeightWheel
 import io.github.lopezjavier.appfitness.feature.biometrics.SexSelector
 import io.github.lopezjavier.appfitness.feature.biometrics.WeightWheels
 import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -303,10 +296,9 @@ private fun PersonalSheets(
 }
 
 /**
- * Bottom sheet with a title, the picker bound to a local draft and a full-width "Listo". Only "Listo" applies the
- * centred value (what the wheels show, even mid-snap); the scrim, back and a drag discard it.
+ * Picker on [AppEditSheet] with [SheetCommit.Apply] ("Listo"): the picker is bound to a local draft and only "Listo"
+ * applies the centred value (what the wheels show, even mid-snap); the X, scrim, back and a drag discard it.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongParameterList")
 @Composable
 private fun <T> PickerSheet(
@@ -323,35 +315,21 @@ private fun <T> PickerSheet(
     // What the wheels show right now. It runs ahead of [draft] while a snap animation is still settling, so "Listo"
     // applies the centred item and not the value from before the swipe.
     var centred by rememberSaveable(stateSaver = saver) { mutableStateOf(initial) }
-    val sheetState = rememberAppSheetState()
-    val scope = rememberCoroutineScope()
-    AppBottomSheet(onDismissRequest = onClose, sheetState = sheetState, testTagPrefix = "preferences_sheet") {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-        ) {
-            Text(
-                text = stringResource(title),
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.semantics { heading() },
-            )
-            Column(
-                Modifier.weight(1f, fill = false).testTag(contentTag).verticalScroll(rememberScrollState()),
-            ) {
-                picker(draft, {
-                    draft = it
-                    centred = it
-                }) { centred = it }
-            }
-            PrimaryButton(
-                text = stringResource(Res.string.profile_sheet_done),
-                onClick = {
-                    onApply(centred)
-                    scope.launch { sheetState.hide() }.invokeOnCompletion { onClose() }
-                },
-                modifier = Modifier.fillMaxWidth().testTag("preferences_sheet_done"),
-            )
+    AppEditSheet(
+        title = stringResource(title),
+        commit = SheetCommit.Apply,
+        onCommit = {
+            onApply(centred)
+            onClose()
+        },
+        onDismiss = onClose,
+        testTagPrefix = "preferences_sheet",
+    ) {
+        Column(Modifier.testTag(contentTag)) {
+            picker(draft, {
+                draft = it
+                centred = it
+            }) { centred = it }
         }
     }
 }

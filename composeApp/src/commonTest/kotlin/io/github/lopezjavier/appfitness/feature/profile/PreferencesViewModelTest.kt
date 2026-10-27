@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.app.SavedPreferences
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
@@ -82,7 +83,10 @@ class PreferencesViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) = PreferencesViewModel(
+    private fun viewModel(
+        savedState: SavedStateHandle = SavedStateHandle(),
+        section: PreferencesSection = PreferencesSection.PersonalData,
+    ) = PreferencesViewModel(
         profileRepository = profile,
         goalsRepository = goals,
         bodyMeasurementRepository = weights,
@@ -92,12 +96,14 @@ class PreferencesViewModelTest {
         connectivity = connectivity,
         clock = FakeClock(today, now),
         timeZone = TimeZone.UTC,
-        savedState = savedState,
+        savedState = savedState.also { it[KEY_PREFERENCES_SECTION] = section.key },
         healthWriteBack = HealthWriteBack(health, weights, FakeClock(today, now)),
     )
 
-    private fun TestScope.loaded(): Pair<PreferencesViewModel, () -> PreferencesUiState.Loaded> {
-        val viewModel = viewModel()
+    private fun TestScope.loaded(
+        section: PreferencesSection = PreferencesSection.PersonalData,
+    ): Pair<PreferencesViewModel, () -> PreferencesUiState.Loaded> {
+        val viewModel = viewModel(section = section)
         advanceUntilIdle()
         return viewModel to { assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value) }
     }
@@ -184,7 +190,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun movingASlider_autoBalancesAndNeverLeavesTheRange() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Macros)
 
         viewModel.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 35))
         advanceUntilIdle()
@@ -262,29 +268,62 @@ class PreferencesViewModelTest {
     }
 
     @Test
-    fun strategyChangeAndSplit_areSavedByTheSingleSave() = runTest {
-        val (viewModel, _) = loaded()
+    fun energyGoal_saveSendsTheStrategyAndTheRecalculatedTarget_butNoOptionalParameters() = runTest {
+        val (viewModel, _) = loaded(PreferencesSection.EnergyGoal)
 
         viewModel.onEvent(PreferencesEvent.Energy(EnergyStrategyEvent.SelectStrategy(GoalStrategy.Surplus)))
-        viewModel.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 35))
         viewModel.onEvent(PreferencesEvent.Save)
         advanceUntilIdle()
 
-        val saved = profile.preferenceSaves.single().goals
-        assertEquals(GoalStrategy.Surplus, saved.strategy)
-        assertEquals(250, saved.calorieAdjustment)
-        assertEquals(MacroSplit(35, 42, 23), saved.split)
+        val saved = profile.preferenceSaves.single()
+        assertEquals(GoalStrategy.Surplus, saved.goals.strategy)
+        assertEquals(250, saved.goals.calorieAdjustment)
+        assertEquals(tdee(178) + 250, saved.goals.targetKcal)
+        assertEquals(MacroSplit.DEFAULT, saved.goals.split)
+        assertNull(saved.weight)
+        assertOptionalParametersUntouched(saved)
     }
 
     @Test
-    fun saveSuccess_emitsSaved() = runTest {
-        val (viewModel, _) = loaded()
+    fun macros_saveSendsTheSplitWithTheSavedStrategy_butNoOptionalParameters() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Macros)
+
+        viewModel.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 35))
+        assertTrue(state().canSave)
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val saved = profile.preferenceSaves.single()
+        assertEquals(MacroSplit(35, 42, 23), saved.goals.split)
+        assertEquals(GoalStrategy.Deficit, saved.goals.strategy)
+        assertEquals(-400, saved.goals.calorieAdjustment)
+        assertEquals(tdee(178) - 400, saved.goals.targetKcal)
+        assertOptionalParametersUntouched(saved)
+    }
+
+    @Test
+    fun saveSuccess_setsTheSavedFlag_andNoEffect() = runTest {
+        val (viewModel, state) = loaded()
+        assertFalse(state().isSaved)
         viewModel.effects.test {
             viewModel.onEvent(PreferencesEvent.SelectActivity(ActivityLevel.High))
             viewModel.onEvent(PreferencesEvent.Save)
             advanceUntilIdle()
-            assertEquals(PreferencesEffect.Saved, awaitItem())
+            assertTrue(state().isSaved)
+            expectNoEvents()
         }
+    }
+
+    @Test
+    fun saveFailure_doesNotSetTheSavedFlag() = runTest {
+        profile.settingsResult = Result.failure(AppException(AppError.Unknown))
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetHeight(185))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertFalse(state().isSaved)
     }
 
     @Test
@@ -754,7 +793,7 @@ class PreferencesViewModelTest {
     fun warmUpSwitch_loadsTheSavedValue() = runTest {
         training.result = Result.success(TrainingPreferences(warmUpIncluded = true))
 
-        val (_, state) = loaded()
+        val (_, state) = loaded(PreferencesSection.Training)
 
         assertTrue(state().form.warmUpIncluded)
         assertFalse(state().canSave)
@@ -762,7 +801,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun warmUpSwitch_editsTheDraftOnly_andSaveSendsIt() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
         advanceUntilIdle()
@@ -773,14 +812,14 @@ class PreferencesViewModelTest {
         viewModel.onEvent(PreferencesEvent.Save)
         advanceUntilIdle()
 
-        assertTrue(profile.preferenceSaves.single().warmUpIncluded)
+        assertEquals(true, profile.preferenceSaves.single().warmUpIncluded)
         assertFalse(state().canSave)
     }
 
     @Test
     fun warmUpSwitch_aFailedSaveKeepsTheDraft() = runTest {
         profile.settingsResult = Result.failure(AppException(AppError.Network))
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
         viewModel.onEvent(PreferencesEvent.Save)
@@ -793,11 +832,11 @@ class PreferencesViewModelTest {
     @Test
     fun warmUpSwitch_survivesARecreatedViewModel() = runTest {
         val handle = SavedStateHandle()
-        val first = viewModel(handle)
+        val first = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
 
-        val second = viewModel(handle)
+        val second = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
 
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
@@ -819,7 +858,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun autoUpdateSwitch_isOffByDefault() = runTest {
-        val (_, state) = loaded()
+        val (_, state) = loaded(PreferencesSection.Training)
 
         assertFalse(state().form.autoUpdateRoutine)
         assertFalse(state().canSave)
@@ -829,7 +868,7 @@ class PreferencesViewModelTest {
     fun autoUpdateSwitch_loadsTheSavedValue() = runTest {
         training.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
 
-        val (_, state) = loaded()
+        val (_, state) = loaded(PreferencesSection.Training)
 
         assertTrue(state().form.autoUpdateRoutine)
         assertFalse(state().canSave)
@@ -837,7 +876,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun autoUpdateSwitch_editsTheDraftOnly_andSaveSendsIt() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetAutoUpdateRoutine(true))
         advanceUntilIdle()
@@ -855,11 +894,11 @@ class PreferencesViewModelTest {
     @Test
     fun autoUpdateSwitch_survivesARecreatedViewModel() = runTest {
         val handle = SavedStateHandle()
-        val first = viewModel(handle)
+        val first = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetAutoUpdateRoutine(true))
 
-        val second = viewModel(handle)
+        val second = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
 
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
@@ -883,7 +922,7 @@ class PreferencesViewModelTest {
     fun previousValuesMode_loadsTheSavedValue() = runTest {
         training.result = Result.success(TrainingPreferences(previousValuesMode = PreviousValuesMode.Routine))
 
-        val (_, state) = loaded()
+        val (_, state) = loaded(PreferencesSection.Training)
 
         assertEquals(PreviousValuesMode.Routine, state().form.previousValuesMode)
         assertFalse(state().canSave)
@@ -891,7 +930,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun previousValuesMode_editsTheDraftOnly_andSaveSendsIt() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
         advanceUntilIdle()
@@ -908,7 +947,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun previousValuesMode_choosingTheSavedValueAgainIsNotDirty() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
         viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Overall))
@@ -919,11 +958,11 @@ class PreferencesViewModelTest {
     @Test
     fun previousValuesMode_survivesARecreatedViewModel() = runTest {
         val handle = SavedStateHandle()
-        val first = viewModel(handle)
+        val first = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
 
-        val second = viewModel(handle)
+        val second = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
 
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
@@ -949,7 +988,7 @@ class PreferencesViewModelTest {
             TrainingPreferences(barWeightKg = 15.0, plateKg = listOf(20.0, 5.0)),
         )
 
-        val (_, state) = loaded()
+        val (_, state) = loaded(PreferencesSection.Training)
 
         assertEquals(CalculatorSettings(15.0, listOf(20.0, 5.0)), state().form.calculators)
         assertEquals(10.0, state().form.calculators.roundingKg)
@@ -958,7 +997,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun calculators_editTheDraftOnly_andSaveSendsThem() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetBarWeight(7.5))
         viewModel.onEvent(PreferencesEvent.SetPlateEnabled(25.0, enabled = false))
@@ -985,7 +1024,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun dumbbellHandle_isClampedAndStepsInHalfKilos() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetDumbbellHandle(0.0))
         assertEquals(0.5, state().form.calculators.dumbbellHandleKg)
@@ -998,7 +1037,7 @@ class PreferencesViewModelTest {
     @Test
     fun dumbbellHandle_loadsMakesTheFormDirty_andSaveSendsIt() = runTest {
         training.result = Result.success(TrainingPreferences(dumbbellHandleKg = 1.5))
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         assertEquals(1.5, state().form.calculators.dumbbellHandleKg)
         assertFalse(state().canSave)
@@ -1013,11 +1052,11 @@ class PreferencesViewModelTest {
     @Test
     fun dumbbellHandle_survivesARecreatedViewModel() = runTest {
         val handle = SavedStateHandle()
-        val first = viewModel(handle)
+        val first = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetDumbbellHandle(3.0))
 
-        val second = viewModel(handle)
+        val second = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
 
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
@@ -1027,7 +1066,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun plates_stayOrderedHeaviestFirst_whenReEnabled() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetPlateEnabled(20.0, enabled = false))
         viewModel.onEvent(PreferencesEvent.SetPlateEnabled(20.0, enabled = true))
@@ -1039,7 +1078,7 @@ class PreferencesViewModelTest {
     @Test
     fun plates_theLastOneCannotBeSwitchedOff_andShowsTheError() = runTest {
         training.result = Result.success(TrainingPreferences(plateKg = listOf(2.5)))
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Training)
 
         viewModel.onEvent(PreferencesEvent.SetPlateEnabled(2.5, enabled = false))
 
@@ -1055,12 +1094,12 @@ class PreferencesViewModelTest {
     @Test
     fun calculators_surviveARecreatedViewModel() = runTest {
         val handle = SavedStateHandle()
-        val first = viewModel(handle)
+        val first = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetBarWeight(10.0))
         first.onEvent(PreferencesEvent.SetPlateEnabled(0.5, enabled = false))
 
-        val second = viewModel(handle)
+        val second = viewModel(handle, PreferencesSection.Training)
         advanceUntilIdle()
 
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
@@ -1082,7 +1121,7 @@ class PreferencesViewModelTest {
     @Test
     fun warmUpSwitch_aFailedReadIsLoadFailed_andRetryReloads() = runTest {
         training.result = Result.failure(AppException(AppError.Network))
-        val viewModel = viewModel()
+        val viewModel = viewModel(section = PreferencesSection.Training)
         advanceUntilIdle()
         assertEquals(PreferencesUiState.LoadFailed, viewModel.uiState.value)
 
@@ -1097,12 +1136,12 @@ class PreferencesViewModelTest {
 
     @Test
     fun cooking_loadsTheSavedAmounts_andAMissingRowGivesTheDefaults() = runTest {
-        val (_, defaults) = loaded()
+        val (_, defaults) = loaded(PreferencesSection.Cooking)
         assertEquals(FoodPreferences(), defaults().form.toFoodPreferences())
         assertFalse(defaults().canSave)
 
         foodPreferences.result = Result.success(FoodPreferences(10.0, 7.5, 20.0))
-        val (_, custom) = loaded()
+        val (_, custom) = loaded(PreferencesSection.Cooking)
 
         assertEquals(FoodPreferences(10.0, 7.5, 20.0), custom().form.toFoodPreferences())
         assertEquals("7.5", custom().form.foodPreferences.airFryerText)
@@ -1111,7 +1150,7 @@ class PreferencesViewModelTest {
     @Test
     fun cooking_aFailedRead_isLoadFailed_andRetryReloads() = runTest {
         foodPreferences.result = Result.failure(AppException(AppError.Network))
-        val viewModel = viewModel()
+        val viewModel = viewModel(section = PreferencesSection.Cooking)
         advanceUntilIdle()
         assertEquals(PreferencesUiState.LoadFailed, viewModel.uiState.value)
 
@@ -1124,7 +1163,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun cooking_editsMakeTheFormDirty_andSaveSendsThemOnce() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Cooking)
 
         viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("8,5"))
         viewModel.onEvent(PreferencesEvent.SetFatPctAirFryer("0"))
@@ -1142,7 +1181,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun cooking_invalidAmounts_showTheFieldErrorAndBlockSaving() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Cooking)
 
         for (bad in listOf("-1", "20.1", "", "abc")) {
             viewModel.onEvent(PreferencesEvent.SetFatPctGriddle(bad))
@@ -1160,7 +1199,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun cooking_theBoundsZeroAndTwenty_areValid() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Cooking)
 
         viewModel.onEvent(PreferencesEvent.SetFatPctFried("0"))
         advanceUntilIdle()
@@ -1174,7 +1213,7 @@ class PreferencesViewModelTest {
 
     @Test
     fun cooking_revertingTheAmount_makesTheFormCleanAgain() = runTest {
-        val (viewModel, state) = loaded()
+        val (viewModel, state) = loaded(PreferencesSection.Cooking)
 
         viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("6"))
         viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("1"))
@@ -1186,12 +1225,12 @@ class PreferencesViewModelTest {
     @Test
     fun cooking_editedAmountsSurviveARecreatedViewModel_andAnEqualFormClearsTheDraft() = runTest {
         val handle = SavedStateHandle()
-        val first = viewModel(handle)
+        val first = viewModel(handle, PreferencesSection.Cooking)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetFatPctAirFryer("12"))
         first.onEvent(PreferencesEvent.SetFatPctFried("abc"))
 
-        val second = viewModel(handle)
+        val second = viewModel(handle, PreferencesSection.Cooking)
         advanceUntilIdle()
 
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
@@ -1212,5 +1251,282 @@ class PreferencesViewModelTest {
             """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
 
         assertEquals(FoodPreferences(), decodeDraft(old)!!.toFoodPreferences())
+    }
+
+    // -- sections (US-56) ---------------------------------------------------------------------------------------
+
+    private fun assertOptionalParametersUntouched(saved: SavedPreferences) {
+        assertNull(saved.warmUpIncluded)
+        assertNull(saved.previousValuesMode)
+        assertNull(saved.calculators)
+        assertNull(saved.foodPreferences)
+        assertNull(saved.autoUpdateRoutine)
+    }
+
+    @Test
+    fun theSectionComesFromTheSavedStateHandle() = runTest {
+        for (section in PreferencesSection.entries) {
+            val (_, state) = loaded(section)
+
+            assertEquals(section, state().section)
+        }
+    }
+
+    @Test
+    fun anEditOfAnotherSection_isIgnored_andNeverMakesTheFormDirty() = runTest {
+        val edits = mapOf(
+            PreferencesSection.PersonalData to PreferencesEvent.SetHeight(190),
+            PreferencesSection.EnergyGoal to PreferencesEvent.Energy(EnergyStrategyEvent.StepDown),
+            PreferencesSection.Macros to PreferencesEvent.MoveMacro(Macronutrient.Protein, 40),
+            PreferencesSection.Cooking to PreferencesEvent.SetFatPctFried("9"),
+            PreferencesSection.Training to PreferencesEvent.SetWarmUpIncluded(true),
+        )
+        for (section in PreferencesSection.entries) {
+            val (viewModel, state) = loaded(section)
+            val before = state().form
+
+            edits.filterKeys { it != section }.values.forEach(viewModel::onEvent)
+            advanceUntilIdle()
+
+            assertEquals(before, state().form, "form of $section")
+            assertFalse(state().isDirty)
+            assertFalse(state().canSave)
+        }
+    }
+
+    @Test
+    fun personalData_saveSendsTheEditedFieldsAndTheWeight_butNoOptionalParameters() = runTest {
+        val (viewModel, _) = loaded(PreferencesSection.PersonalData)
+
+        viewModel.onEvent(PreferencesEvent.SetName("Bea"))
+        viewModel.onEvent(PreferencesEvent.SetWeight(850))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val saved = profile.preferenceSaves.single()
+        assertEquals("Bea", saved.displayName)
+        assertEquals(85.0, saved.weight?.weightKg)
+        assertEquals(tdee(178, 85.0) - 400, saved.goals.targetKcal)
+        assertOptionalParametersUntouched(saved)
+    }
+
+    @Test
+    fun personalData_anUnchangedWeightIsNotSent() = runTest {
+        val (viewModel, _) = loaded(PreferencesSection.PersonalData)
+
+        viewModel.onEvent(PreferencesEvent.SetName("Bea"))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertNull(profile.preferenceSaves.single().weight)
+    }
+
+    @Test
+    fun otherSections_neverSendAWeight_andResendTheSavedPersonalData() = runTest {
+        for (section in listOf(PreferencesSection.EnergyGoal, PreferencesSection.Macros, PreferencesSection.Cooking)) {
+            profile.preferenceSaves.clear()
+            val (viewModel, _) = loaded(section)
+            when (section) {
+                PreferencesSection.EnergyGoal ->
+                    viewModel.onEvent(PreferencesEvent.Energy(EnergyStrategyEvent.SelectStrategy(GoalStrategy.Surplus)))
+
+                PreferencesSection.Macros -> viewModel.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 35))
+
+                else -> viewModel.onEvent(PreferencesEvent.SetFatPctFried("9"))
+            }
+            viewModel.onEvent(PreferencesEvent.Save)
+            advanceUntilIdle()
+
+            val saved = profile.preferenceSaves.single()
+            assertNull(saved.weight, "weight of $section")
+            assertEquals("Ana", saved.displayName)
+            assertEquals(178, saved.biometrics.heightCm)
+            assertEquals(Sex.Male, saved.biometrics.sex)
+        }
+    }
+
+    @Test
+    fun training_saveSendsOnlyTheTrainingParameters() = runTest {
+        val (viewModel, _) = loaded(PreferencesSection.Training)
+
+        viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+        viewModel.onEvent(PreferencesEvent.SetPreviousValuesMode(PreviousValuesMode.Routine))
+        viewModel.onEvent(PreferencesEvent.SetAutoUpdateRoutine(true))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val saved = profile.preferenceSaves.single()
+        assertEquals(true, saved.warmUpIncluded)
+        assertEquals(PreviousValuesMode.Routine, saved.previousValuesMode)
+        assertEquals(true, saved.autoUpdateRoutine)
+        assertEquals(CalculatorSettings(), saved.calculators)
+        assertNull(saved.foodPreferences)
+        assertNull(saved.weight)
+        assertEquals(GoalStrategy.Deficit, saved.goals.strategy)
+    }
+
+    @Test
+    fun cooking_saveSendsOnlyTheFatPercentages() = runTest {
+        val (viewModel, _) = loaded(PreferencesSection.Cooking)
+
+        viewModel.onEvent(PreferencesEvent.SetFatPctGriddle("8,5"))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        val saved = profile.preferenceSaves.single()
+        assertEquals(8.5, saved.foodPreferences?.fatPctGriddle)
+        assertNull(saved.warmUpIncluded)
+        assertNull(saved.previousValuesMode)
+        assertNull(saved.calculators)
+        assertNull(saved.autoUpdateRoutine)
+    }
+
+    @Test
+    fun canSave_blankName_blocksPersonalData() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.PersonalData)
+
+        viewModel.onEvent(PreferencesEvent.SetHeight(172))
+        viewModel.onEvent(PreferencesEvent.SetName("  "))
+
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun canSave_badFatPercentage_blocksCooking() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Cooking)
+
+        viewModel.onEvent(PreferencesEvent.SetFatPctFried("21"))
+
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun canSave_offlineAndSaving_blockTraining() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Training)
+        viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+        assertTrue(state().canSave)
+
+        connectivity.state.value = false
+        advanceUntilIdle()
+        assertFalse(state().canSave, "offline")
+        connectivity.state.value = true
+        advanceUntilIdle()
+
+        viewModel.onEvent(PreferencesEvent.Save)
+        assertTrue(state().isSaving)
+        assertFalse(state().canSave, "saving")
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun canSave_energyGoalNeedsAChange() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.EnergyGoal)
+        assertFalse(state().canSave)
+
+        viewModel.onEvent(PreferencesEvent.Energy(EnergyStrategyEvent.StepDown))
+
+        assertTrue(state().canSave)
+    }
+
+    @Test
+    fun training_theLastPlateCannotBeSwitchedOff_butOtherEditsStillSave() = runTest {
+        training.result = Result.success(TrainingPreferences(plateKg = listOf(2.5)))
+        val (viewModel, state) = loaded(PreferencesSection.Training)
+
+        viewModel.onEvent(PreferencesEvent.SetPlateEnabled(2.5, enabled = false))
+        viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+
+        assertTrue(state().canSave)
+        assertEquals(listOf(2.5), state().form.calculators.plateKg)
+    }
+
+    @Test
+    fun aSectionDraft_survivesARecreatedViewModel_andOtherSectionsStayFresh() = runTest {
+        val freshSplit = MacroSplit(25, 45, 30)
+        for (section in PreferencesSection.entries) {
+            val handle = SavedStateHandle()
+            val first = viewModel(handle, section)
+            advanceUntilIdle()
+            when (section) {
+                PreferencesSection.PersonalData -> first.onEvent(PreferencesEvent.SetName("Bea"))
+                PreferencesSection.EnergyGoal -> first.onEvent(PreferencesEvent.Energy(EnergyStrategyEvent.StepDown))
+                PreferencesSection.Macros -> first.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 40))
+                PreferencesSection.Cooking -> first.onEvent(PreferencesEvent.SetFatPctFried("9"))
+                PreferencesSection.Training -> first.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+            }
+            val edited = assertIs<PreferencesUiState.Loaded>(first.uiState.value).form
+            // The server value of another section changes while the editor is away.
+            goals.row = NutritionGoals(GoalStrategy.Deficit, -400, 2000, freshSplit)
+
+            val second = viewModel(handle, section)
+            advanceUntilIdle()
+
+            val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+            assertTrue(restored.form.sectionEquals(section, edited), "$section keeps its draft")
+            assertTrue(restored.canSave, "$section still dirty")
+            if (section != PreferencesSection.Macros) {
+                assertEquals(freshSplit, restored.form.split, "$section sees the fresh split")
+            }
+            goals.row = NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT)
+        }
+    }
+
+    @Test
+    fun aDraftEqualToTheSavedValues_isDroppedOnRestore() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle, PreferencesSection.Macros)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 40))
+        val editedSplit = assertIs<PreferencesUiState.Loaded>(first.uiState.value).form.split
+        // The same split is saved elsewhere meanwhile.
+        goals.row = NutritionGoals(GoalStrategy.Deficit, -400, 2000, editedSplit)
+
+        val second = viewModel(handle, PreferencesSection.Macros)
+        advanceUntilIdle()
+
+        assertFalse(assertIs<PreferencesUiState.Loaded>(second.uiState.value).isDirty)
+        assertNull(handle.get<String>("preferences_draft"))
+    }
+
+    @Test
+    fun anOldWholeFormDraft_onlyRestoresTheFieldsOfTheSection() = runTest {
+        val handle = SavedStateHandle()
+        val whole = PreferencesForm(
+            name = "Old",
+            sex = Sex.Female,
+            birthDate = birthDate,
+            heightCm = 150,
+            weightKg = 55.0,
+            activity = ActivityLevel.High,
+            strategy = GoalStrategy.Surplus,
+            adjustment = 250,
+            split = MacroSplit(40, 30, 30),
+            warmUpIncluded = true,
+        )
+        handle["preferences_draft"] = whole.encodeDraft()
+
+        val viewModel = viewModel(handle, PreferencesSection.Training)
+        advanceUntilIdle()
+
+        val state = assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
+        assertTrue(state.form.warmUpIncluded)
+        assertEquals("Ana", state.form.name)
+        assertEquals(178, state.form.heightCm)
+        assertEquals(GoalStrategy.Deficit, state.form.strategy)
+        assertEquals(MacroSplit.DEFAULT, state.form.split)
+    }
+
+    @Test
+    fun refresh_inAnotherSection_isIgnored() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Macros)
+        val hc = BodyMeasurement("hc", Instant.parse("2026-10-14T07:00:00Z"), 79.4, MeasurementSource.HealthConnect)
+        weights.row = hc
+        weights.rows = listOf(hc)
+
+        viewModel.onEvent(PreferencesEvent.Refresh)
+        advanceUntilIdle()
+
+        assertFalse(state().weightFromHealthConnect)
+        assertEquals(80.0, state().form.weightKg)
     }
 }

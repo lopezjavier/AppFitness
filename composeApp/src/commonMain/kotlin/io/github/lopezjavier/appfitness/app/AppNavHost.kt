@@ -49,8 +49,24 @@ internal typealias ProfileSlot =
         onOpenTrainingStats: () -> Unit,
     ) -> Unit
 
-/** Content of the full-screen Preferencias destination: its modifier (full-screen insets). */
-internal typealias PreferencesSlot = @Composable (modifier: Modifier, onOpenMeals: () -> Unit) -> Unit
+/**
+ * Content of the Preferencias hub: its modifier (full-screen insets), how to leave, and the openers of a section
+ * editor (by `PreferencesSection.key`), of the meals editor and of Cuenta.
+ */
+internal typealias PreferencesSlot =
+    @Composable (
+        modifier: Modifier,
+        onBack: () -> Unit,
+        onOpenSection: (String) -> Unit,
+        onOpenMeals: () -> Unit,
+        onOpenAccount: () -> Unit,
+    ) -> Unit
+
+/** Content of one Preferencias editor: its modifier (full-screen insets) and how to leave (saved, discarded, back). */
+internal typealias PreferencesSectionSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
+
+/** Content of Cuenta: its modifier (full-screen insets) and how to leave. */
+internal typealias AccountSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
  * Exercise picker content: modifier, select mode, the two ways forward (open a detail, return a selection) and the
@@ -477,8 +493,20 @@ internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _, 
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("preferences_screen"))
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("preferences_screen")) {
+        Box(Modifier.fillMaxSize().clickable(onClick = onBack).testTag("preferences_back"))
+    }
+}
+
+/** Empty Preferencias editor for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultPreferencesSectionSlot: PreferencesSectionSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("preferences_section_screen"))
+}
+
+/** Empty Cuenta for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("account_screen"))
 }
 
 /**
@@ -496,6 +524,8 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
+    preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
+    account: AccountSlot = DefaultAccountSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
@@ -634,7 +664,21 @@ internal fun AppNavHost(
         composable<StatsRoute> { entry ->
             trainingStats(Modifier.padding(fullScreenPadding), openProgress) { navController.popFullScreen(entry) }
         }
-        composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding), openMeals) }
+        composable<PreferencesRoute> { entry ->
+            preferences(
+                Modifier.padding(fullScreenPadding),
+                { navController.popFullScreen(entry) },
+                { key -> navController.navigateToFullScreen(PreferencesSectionRoute(key)) },
+                openMeals,
+                { navController.navigateToFullScreen(AccountRoute) },
+            )
+        }
+        composable<PreferencesSectionRoute> { entry ->
+            preferencesSection(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
+        composable<AccountRoute> { entry ->
+            account(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
         composable<ExercisePickerRoute> { entry ->
             val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode
             exercisePicker(
@@ -1067,6 +1111,7 @@ internal fun NavBackStackEntry?.chrome(): ShellChrome {
         } ?: TopLevelTab.Start
     return destination.fullScreenRoute()?.chrome
         ?: DiaryHome.chrome.takeIf { destination?.hasRoute(DiaryHome::class) == true }
+        ?: ProfileHome.chrome.takeIf { destination?.hasRoute(ProfileHome::class) == true }
         ?: ShellChrome.Tabs(tab)
 }
 

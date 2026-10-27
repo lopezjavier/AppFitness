@@ -75,19 +75,20 @@ class ShellAppScreenRoutingTest {
     }
 
     @Test
-    fun legacyFullScreenRoute_keepsTheShellBar() {
+    fun preferencesHub_drawsNoShellBar_andHasNoBottomBar() {
         show()
         open(PreferencesRoute)
-        rule.onNodeWithTag("preferences_title").assertExists()
-        rule.onNodeWithTag("catalog_bar").assertDoesNotExist()
+        rule.onNodeWithTag("topbar").assertDoesNotExist()
+        rule.onNodeWithTag("nav_bar").assertDoesNotExist()
     }
 
     @Test
-    fun legacyTabRoot_keepsTheShellBar() {
+    fun perfilRoot_drawsItsOwnHeader_butKeepsTheBottomBar() {
         show()
         rule.onNodeWithTag("nav_tab_profile").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("topbar_title").assertExists()
+        rule.onNodeWithTag("topbar").assertDoesNotExist()
+        rule.onNodeWithTag("nav_bar").assertExists()
     }
 
     @Test

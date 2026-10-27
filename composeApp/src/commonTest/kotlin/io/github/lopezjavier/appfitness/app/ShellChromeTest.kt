@@ -1,7 +1,5 @@
 package io.github.lopezjavier.appfitness.app
 
-import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -17,11 +15,10 @@ class ShellChromeTest {
     }
 
     @Test
-    fun preferencesRoute_chrome_isFullScreenWithPreferencesTitle() {
-        assertEquals(
-            ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences"),
-            PreferencesRoute.chrome,
-        )
+    fun preferencesRoutes_chrome_isScreen_becauseTheyDrawTheirOwnBarThroughAppScreen() {
+        assertEquals(ShellChrome.Screen, PreferencesRoute.chrome)
+        assertEquals(ShellChrome.Screen, PreferencesSectionRoute("macros").chrome)
+        assertEquals(ShellChrome.Screen, AccountRoute.chrome)
     }
 
     @Test
@@ -38,10 +35,11 @@ class ShellChromeTest {
 
     @Test
     fun tabRoutes_chrome_isTabsWithTheirTab_exceptTheRootsThatDrawTheirOwnHeader() {
-        tabRoutes.filter { it != DiaryHome && it != WorkoutHome }
+        tabRoutes.filter { it != DiaryHome && it != WorkoutHome && it != ProfileHome }
             .forEach { assertEquals(ShellChrome.Tabs(it.tab), it.chrome, it.toString()) }
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryHome.chrome)
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutHome.chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Profile), ProfileHome.chrome)
     }
 
     @Test
@@ -51,6 +49,8 @@ class ShellChromeTest {
             listOf(
                 CatalogRoute,
                 PreferencesRoute,
+                PreferencesSectionRoute::class,
+                AccountRoute,
                 ExercisePickerRoute::class,
                 ExerciseDetailRoute::class,
                 RoutineBuilderRoute::class,
@@ -79,6 +79,7 @@ class ShellChromeTest {
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute ||
+                    it is AccountRoute ||
                     it is MealSlotsRoute ||
                     it is MealDefaultsRoute ||
                     it is LiveSessionRoute ||

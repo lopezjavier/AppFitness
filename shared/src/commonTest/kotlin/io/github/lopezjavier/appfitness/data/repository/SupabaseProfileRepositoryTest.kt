@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -249,7 +250,7 @@ class SupabaseProfileRepositorySavePreferencesTest {
 
     @Test
     fun withoutWeight_callsTheRpcWithoutTheWeightArguments() = runTest {
-        val result = repository().savePreferences("Ana", biometrics, goals, null, false)
+        val result = repository().savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall)
 
         assertTrue(result.isSuccess)
         val call = requests.last()
@@ -265,11 +266,27 @@ class SupabaseProfileRepositorySavePreferencesTest {
     }
 
     @Test
+    fun withoutTrainingParameters_omitsWarmUpAndPreviousValuesModeSoTheServerKeepsThem() = runTest {
+        repository().savePreferences("Ana", biometrics, goals, null).getOrThrow()
+
+        val body = (requests.last().body as TextContent).text
+        assertTrue(!body.contains("p_warm_up_included") && !body.contains("p_previous_values_mode"), body)
+    }
+
+    @Test
     fun withFoodPreferences_sendsTheThreeFatPercentages() = runTest {
         val prefs = FoodPreferences(10.0, 0.0, 20.0)
 
         assertTrue(
-            repository().savePreferences("Ana", biometrics, goals, null, false, foodPreferences = prefs).isSuccess,
+            repository().savePreferences(
+                "Ana",
+                biometrics,
+                goals,
+                null,
+                false,
+                PreviousValuesMode.Overall,
+                foodPreferences = prefs,
+            ).isSuccess,
         )
 
         val body = (requests.last().body as TextContent).text
@@ -285,7 +302,15 @@ class SupabaseProfileRepositorySavePreferencesTest {
     @Test
     fun withAutoUpdateRoutine_sendsTheArgument() = runTest {
         assertTrue(
-            repository().savePreferences("Ana", biometrics, goals, null, false, autoUpdateRoutine = true).isSuccess,
+            repository().savePreferences(
+                "Ana",
+                biometrics,
+                goals,
+                null,
+                false,
+                PreviousValuesMode.Overall,
+                autoUpdateRoutine = true,
+            ).isSuccess,
         )
 
         val body = (requests.last().body as TextContent).text
@@ -294,14 +319,14 @@ class SupabaseProfileRepositorySavePreferencesTest {
 
     @Test
     fun withoutAutoUpdateRoutine_omitsTheArgumentSoTheServerKeepsIt() = runTest {
-        repository().savePreferences("Ana", biometrics, goals, null, false).getOrThrow()
+        repository().savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).getOrThrow()
 
         assertTrue(!(requests.last().body as TextContent).text.contains("p_auto_update_routine"))
     }
 
     @Test
     fun withoutFoodPreferences_omitsTheFatPercentages() = runTest {
-        repository().savePreferences("Ana", biometrics, goals, null, false).getOrThrow()
+        repository().savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).getOrThrow()
 
         assertTrue(!(requests.last().body as TextContent).text.contains("p_fat_pct_"))
     }
@@ -311,7 +336,15 @@ class SupabaseProfileRepositorySavePreferencesTest {
         val settings = CalculatorSettings(7.5, listOf(20.0, 2.5, 0.5), 1.5)
 
         assertTrue(
-            repository().savePreferences("Ana", biometrics, goals, null, false, calculators = settings).isSuccess,
+            repository().savePreferences(
+                "Ana",
+                biometrics,
+                goals,
+                null,
+                false,
+                PreviousValuesMode.Overall,
+                calculators = settings,
+            ).isSuccess,
         )
 
         val body = (requests.last().body as TextContent).text
@@ -334,7 +367,9 @@ class SupabaseProfileRepositorySavePreferencesTest {
                 dayEnd = Instant.parse("2026-10-19T22:00:00Z"),
             )
 
-        assertTrue(repository().savePreferences("Ana", biometrics, goals, weight, true).isSuccess)
+        assertTrue(
+            repository().savePreferences("Ana", biometrics, goals, weight, true, PreviousValuesMode.Overall).isSuccess,
+        )
 
         val body = (requests.last().body as TextContent).text
         assertEquals(
@@ -351,7 +386,10 @@ class SupabaseProfileRepositorySavePreferencesTest {
         val repo = repository()
         fail = IOException("offline")
 
-        assertEquals(AppError.Network, repo.savePreferences("Ana", biometrics, goals, null, false).appErrorOrNull())
+        assertEquals(
+            AppError.Network,
+            repo.savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).appErrorOrNull(),
+        )
     }
 
     @Test
@@ -359,7 +397,10 @@ class SupabaseProfileRepositorySavePreferencesTest {
         val repo = repository()
         status = HttpStatusCode.BadRequest
 
-        assertEquals(AppError.Unknown, repo.savePreferences("Ana", biometrics, goals, null, false).appErrorOrNull())
+        assertEquals(
+            AppError.Unknown,
+            repo.savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).appErrorOrNull(),
+        )
     }
 
     @Test

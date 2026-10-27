@@ -4,20 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_macros_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_macros_total
-import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
@@ -28,11 +22,11 @@ import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Distribución de Macros": the TOTAL pill, the stacked bar and one slider per macro. Moving a slider rebalances
+ * "Macros" editor content: the TOTAL pill, the stacked bar and one slider per macro. Moving a slider rebalances
  * the others (the ViewModel owns the maths); grams and kcal follow the live daily target.
  */
 @Composable
-internal fun MacroSplitCard(
+internal fun MacroSplitSection(
     state: PreferencesUiState.Loaded,
     onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
@@ -40,14 +34,8 @@ internal fun MacroSplitCard(
     val split = state.form.split
     val targets = state.macroTargets
     val enabled = !state.isSaving
-    AppCard(modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(Res.string.profile_macros_title),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() },
-        )
-        Column(Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    Column(modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             TextPill(stringResource(Res.string.profile_macros_total), Modifier.testTag("preferences_macro_total"))
             MacroStackedBar(
                 proteinPct = split.proteinPct,

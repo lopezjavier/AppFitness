@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
+import io.github.lopezjavier.appfitness.feature.profile.AccountViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
@@ -56,6 +57,7 @@ val uiModule =
         viewModelOf(::AppViewModel)
         viewModelOf(::WelcomeViewModel)
         viewModelOf(::ProfileRootViewModel)
+        viewModelOf(::AccountViewModel)
         // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.
         viewModel {
             PreferencesViewModel(

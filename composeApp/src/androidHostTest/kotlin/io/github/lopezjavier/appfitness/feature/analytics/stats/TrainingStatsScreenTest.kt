@@ -208,7 +208,7 @@ class TrainingStatsScreenTest {
     fun title_isEstadisticasInTheBar_andBackLeaves() {
         show(content())
 
-        rule.onNodeWithTag("stats_title").assertTextEquals("Estadísticas")
+        rule.onNodeWithTag("stats_title").assertTextEquals("Entrenamiento")
         rule.onNodeWithTag("stats_back").performClick()
 
         assertEquals(1, backs)
