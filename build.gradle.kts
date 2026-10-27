@@ -8,6 +8,7 @@ plugins {
     // Applied on the root too, so ktlintKotlinScriptCheck lints build.gradle.kts and settings.gradle.kts.
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.oss.licenses) apply false
 }
 
 // Shared lint setup (T-016): ktlint rules live in .editorconfig, detekt overrides in
