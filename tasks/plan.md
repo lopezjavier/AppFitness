@@ -64,7 +64,9 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 - [x] T-123: Peso migration — UI + core — M
 - [x] T-124: Routines, builder and routine details — backend + core + UI — L
 - [x] T-124b: Exercise picker, detail and exercise sheets (split off T-124) — core + UI — M
-- [ ] T-125: Live session, history and statistics — UI + core — L
+- [x] T-125: Live session migration — UI + core — M
+- [ ] T-125b: History and workout detail — UI + core — L
+- [ ] T-125c: Statistics and body map (item B) — UI + core — L
 - [ ] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
 - [ ] T-127: Perfil root and Preferencias hub — UI + core — L
 - [ ] T-128: Wording, motion and onboarding; every guard a failure — UI — L
@@ -87,11 +89,11 @@ Internal milestones (not 👤 checkpoints):
 
 ```
 v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [E9-A 👤]
-        ─► T-123 ─► T-124 ─► T-125 ─► T-126 ─► T-127 ─► T-128 ─► [E9-B 👤]
+        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► [E9-B 👤]
         ─► T-129 ─► [E9-C 👤] ─► T-130 (closure) ─► v1.0.0
 ```
 - Strictly sequential (one active task at a time); each foundation needs the previous one (top bar and `AppActionSheet` → sheets → fields in the Name sheet → rows and swipe on the haptics).
-- T-125 needs the user's body-map choice (item B) during the task; E9 Q1–Q3 are resolved.
+- T-125c needs the user's body-map choice (item B) before it starts; E9 Q1–Q3 are resolved.
 - T-128 needs every domain migrated (it removes the shell switch and empties the warning list).
 
 ## Risks and Mitigations
