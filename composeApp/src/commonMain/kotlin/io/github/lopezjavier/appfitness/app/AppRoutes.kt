@@ -6,8 +6,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
-import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_title
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
@@ -279,7 +277,8 @@ val AppRoute.usesAppScreen: Boolean
         this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome ||
         this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute ||
         this is HistoryRoute || this is SessionDetailRoute || this is EditWorkoutRoute || this is PastWorkoutRoute ||
-        this is StrengthRoute || this is MuscleVolumeRoute || this is StatsRoute || this is ExerciseProgressRoute
+        this is StrengthRoute || this is MuscleVolumeRoute || this is StatsRoute || this is ExerciseProgressRoute ||
+        this is MealSlotsRoute || this is MealDefaultsRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -315,10 +314,8 @@ private val AppRoute.legacyChrome: ShellChrome
             LiveSessionRoute, HistoryRoute, is SessionDetailRoute, is EditWorkoutRoute, is PastWorkoutRoute ->
                 ShellChrome.Screen
 
-            MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
-
-            MealDefaultsRoute ->
-                ShellChrome.FullScreen(Res.string.meal_defaults_title, topBarTag = "meal_defaults")
+            // The meals editor and the default comidas draw their own bar through AppEditorScreen (T-126).
+            MealSlotsRoute, MealDefaultsRoute -> ShellChrome.Screen
 
             // Draw their own bar through AppScreen (T-121): never reached through [chrome].
             DiaryHistoryRoute, is DiaryDayRoute -> ShellChrome.Screen

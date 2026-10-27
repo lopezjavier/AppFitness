@@ -1,8 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.meals
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,10 +9,9 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
-import io.github.lopezjavier.appfitness.app.BackInterceptor
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
-import io.github.lopezjavier.appfitness.app.LocalBackInterceptor
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -40,7 +37,6 @@ class MealDefaultsNavigationTest {
 
     private val slots = FakeMealSlotRepository()
     private val connectivity = FakeConnectivityObserver()
-    private val backInterceptor = BackInterceptor()
     private val defaultsOpen = mutableStateOf(false)
 
     private val meals = MealSlotsEditorViewModel(SavedStateHandle(), slots, ValidateMealSlots(), connectivity)
@@ -57,16 +53,13 @@ class MealDefaultsNavigationTest {
     @Composable
     private fun Flow() {
         val open by defaultsOpen
-        CompositionLocalProvider(LocalBackInterceptor provides backInterceptor) {
-            AppTheme {
-                if (open) {
-                    val state by defaults.uiState.collectAsState()
-                    LaunchedEffect(Unit) { defaults.effects.collect { defaultsOpen.value = false } }
-                    MealDefaultsScreen(state, defaults::onEvent)
-                } else {
-                    val state by meals.uiState.collectAsState()
-                    MealSlotsScreen(state, meals::onEvent, onOpenDefaults = { defaultsOpen.value = true })
-                }
+        AppTheme {
+            if (open) {
+                val state by defaults.uiState.collectAsState()
+                MealDefaultsScreen(state, defaults::onEvent, onClose = { defaultsOpen.value = false })
+            } else {
+                val state by meals.uiState.collectAsState()
+                MealSlotsScreen(state, meals::onEvent, onOpenDefaults = { defaultsOpen.value = true })
             }
         }
     }
@@ -84,7 +77,7 @@ class MealDefaultsNavigationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("meal_defaults_screen").assertExists()
 
-        rule.runOnUiThread { backInterceptor.intercept() }
+        rule.onNodeWithTag("meal_defaults_back").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("meals_screen").assertExists()
@@ -96,6 +89,8 @@ class MealDefaultsNavigationTest {
         start()
 
         rule.onNodeWithTag("meals_add").performClick()
+        rule.onNodeWithTag("meal_name_sheet_input").performTextInput("Extra")
+        rule.onNodeWithTag("meal_name_sheet_commit").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("meal_slots_defaults_button").assertIsNotEnabled()

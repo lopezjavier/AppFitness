@@ -567,15 +567,14 @@ class AddFoodViewModelTest {
     @Test
     fun mealPicker_listsMealsWithTheirCurrentLabelAndOmitsDeletedOnes() = runTest(dispatcher) {
         withFood(food("rice"))
-        slots.save(
+        slots.saveStructure(
             listOf(
                 MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno"),
-                MealSlotDraft("lunch", MealCode.Lunch, "Comida"),
                 MealSlotDraft("snack", MealCode.Snack, "Post-entreno"),
                 MealSlotDraft("dinner", MealCode.Dinner, "Cena"),
             ),
+            removedIds = listOf("lunch"),
         )
-        slots.delete("lunch")
 
         val model = viewModel("rice")
         advanceUntilIdle()

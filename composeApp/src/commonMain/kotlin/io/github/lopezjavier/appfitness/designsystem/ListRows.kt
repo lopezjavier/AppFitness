@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -23,6 +24,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import org.jetbrains.compose.resources.painterResource
 
 private const val HEADLINE_MAX_LINES = 2
+
+/** Look of a disabled [NavigationRow]: not clickable, reduced emphasis. */
+object NavigationRowDefaults {
+    const val DISABLED_ALPHA = 0.5f
+}
 
 /**
  * Generic list row: optional [leading] and [trailing] slots around a [headline] (`bodyLarge`) and an optional
@@ -39,8 +45,10 @@ fun AppListRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     supportingTestTag: String? = null,
+    enabled: Boolean = true,
 ) {
-    val clickable = if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
+    val clickable =
+        if (onClick != null) Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick) else Modifier
     Row(
         modifier
             .fillMaxWidth()
@@ -77,11 +85,18 @@ fun AppListRow(
  * decorative chevron. At least 48 dp, one `Role.Button` node that reads "label, value".
  */
 @Composable
-fun NavigationRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, value: String? = null) {
+fun NavigationRow(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    value: String? = null,
+    enabled: Boolean = true,
+) {
     AppListRow(
         headline = label,
-        modifier = modifier,
+        modifier = if (enabled) modifier else modifier.alpha(NavigationRowDefaults.DISABLED_ALPHA),
         onClick = onClick,
+        enabled = enabled,
         trailing = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

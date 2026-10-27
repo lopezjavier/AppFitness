@@ -50,7 +50,8 @@ sealed interface MealDefaultsUiState {
 
     /**
      * [meals] are the enabled meals in saved order; [comidas] are the options of the picker, empty when
-     * [hasSavedComidas] is false. [picker] is the meal whose picker is open and [sheet] the open assignment sheet.
+     * [hasSavedComidas] is false. [saved] turns true once the save succeeded (the template closes the screen).
+     * [picker] is the meal whose picker is open and [sheet] the open assignment sheet.
      */
     data class Content(
         val meals: List<MealDefaultsCardUi>,
@@ -60,7 +61,7 @@ sealed interface MealDefaultsUiState {
         val isSaving: Boolean,
         val isDirty: Boolean,
         val canSave: Boolean,
-        val showDiscardConfirm: Boolean,
+        val saved: Boolean,
         val saveError: MealDefaultsSaveError?,
         val picker: String?,
         val sheet: AssignSheetUi?,
@@ -89,14 +90,4 @@ sealed interface MealDefaultsEvent {
     data class Remove(val slotId: String, val templateId: String) : MealDefaultsEvent
 
     data object Save : MealDefaultsEvent
-
-    data object Back : MealDefaultsEvent
-
-    data object ConfirmDiscard : MealDefaultsEvent
-
-    data object DismissDiscard : MealDefaultsEvent
-}
-
-sealed interface MealDefaultsEffect {
-    data object Close : MealDefaultsEffect
 }

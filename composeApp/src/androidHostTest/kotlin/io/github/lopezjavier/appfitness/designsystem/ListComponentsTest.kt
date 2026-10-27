@@ -47,6 +47,24 @@ class ListComponentsTest {
     }
 
     @Test
+    fun navigationRow_disabled_isNotClickable_andReadsAsDisabled() {
+        show { NavigationRow("Comidas por defecto", { clicks++ }, Modifier.testTag("nav"), enabled = false) }
+
+        rule.onNodeWithTag("nav").assertIsNotEnabled().performClick()
+
+        assertEquals(0, clicks)
+    }
+
+    @Test
+    fun navigationRow_enabledByDefault_stillClicks() {
+        show { NavigationRow("Comidas por defecto", { clicks++ }, Modifier.testTag("nav")) }
+
+        rule.onNodeWithTag("nav").assertIsEnabled().performClick()
+
+        assertEquals(1, clicks)
+    }
+
+    @Test
     fun appListRow_showsHeadlineAndSupporting_andIsAtLeast48dp() {
         show { AppListRow("Avena", Modifier.testTag("row"), supporting = "100 g") }
 

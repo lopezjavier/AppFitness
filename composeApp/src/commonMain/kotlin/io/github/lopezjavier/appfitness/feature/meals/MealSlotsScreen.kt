@@ -8,58 +8,55 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
-import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_add
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_message
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_title
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_last_meal_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_add_object
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_item_label
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_label_field
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_offline_message
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_save
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_save_rejected
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_sheet_title_create
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_sheet_title_rename
+import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.NameSheet
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.MealSlotBounds
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_ROWS = 4
+private const val TAG = "meals"
 private val SkeletonRowHeight = Spacing.xl * 5
 
 /**
- * Meals editor (US-23): one compact row per meal (drag handle, name, rename / up / down / delete icons),
- * "Añadir comida" at the end and
- * "Guardar" pinned at the bottom. Back with unsaved edits asks before discarding. The top bar belongs to the shell
- * (`meals_back`, `meals_title`).
+ * Meals editor (US-23, US-56) on [AppEditorScreen]: one configuration row per meal (drag handle, name, "Quitar"),
+ * "Añadir comida del día" and the "Comidas por defecto" entry. Nothing is applied until "Guardar" (removals included).
+ * Create and rename go through the Name sheet, which only stages the change in the draft. The template owns the
+ * discard dialog, the offline hint and the close once [MealSlotsUiState.Editing.saved]; a failed save is a one-shot
+ * message (R-28).
  */
 @Composable
 fun MealSlotsScreen(
@@ -67,36 +64,72 @@ fun MealSlotsScreen(
     onEvent: (MealSlotsEvent) -> Unit,
     modifier: Modifier = Modifier,
     onOpenDefaults: () -> Unit = {},
+    onClose: () -> Unit = {},
 ) {
-    NavigationBackHandler(
-        state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
-        isBackEnabled = true,
-        onBackCompleted = { onEvent(MealSlotsEvent.Back) },
-    )
-    InterceptTopBarBack(enabled = true) { onEvent(MealSlotsEvent.Back) }
-    Box(modifier.fillMaxSize().testTag("meals_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+    val title = stringResource(Res.string.meals_title)
+    if (state !is MealSlotsUiState.Editing) {
+        AppScreen(title = title, modifier = modifier, onBack = onClose, testTagPrefix = TAG) {
+            Box(Modifier.fillMaxSize().testTag("meals_screen")) {
                 when (state) {
-                    MealSlotsUiState.Loading -> MealsLoading()
                     MealSlotsUiState.LoadError -> MealsLoadError { onEvent(MealSlotsEvent.Retry) }
-                    is MealSlotsUiState.Editing -> MealsForm(state, onEvent, onOpenDefaults)
+                    else -> MealsLoading()
                 }
             }
-            if (state is MealSlotsUiState.Editing) MealsFooter(state, onEvent)
         }
+        return
     }
-    if (state is MealSlotsUiState.Editing && state.showDiscardConfirm) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.meals_discard_title),
-            message = stringResource(Res.string.meals_discard_message),
-            confirmLabel = stringResource(Res.string.meals_discard_confirm),
-            cancelLabel = stringResource(Res.string.meals_discard_cancel),
-            onConfirm = { onEvent(MealSlotsEvent.ConfirmDiscard) },
-            onDismiss = { onEvent(MealSlotsEvent.DismissDiscard) },
-            testTagPrefix = "meals_discard",
+    SaveErrorMessage(state.saveError)
+    AppEditorScreen(
+        title = title,
+        isDirty = state.isDirty,
+        isSaving = state.isSaving,
+        isOnline = state.isOnline,
+        onSave = { onEvent(MealSlotsEvent.Save) },
+        onClose = onClose,
+        modifier = modifier,
+        saved = state.saved,
+        canSave = state.canSave,
+        testTagPrefix = TAG,
+    ) {
+        Box(Modifier.fillMaxSize().testTag("meals_screen")) { MealsForm(state, onEvent, onOpenDefaults) }
+    }
+    state.sheet?.let { MealNameSheetHost(it, state.rows, onEvent) }
+}
+
+/** Turns a failed save into one message each time it happens (R-28); the edits stay on screen. */
+@Composable
+private fun SaveErrorMessage(error: MealSlotsSaveError?) {
+    val messages = LocalAppMessages.current
+    val text = error?.let {
+        stringResource(
+            when (it) {
+                MealSlotsSaveError.Offline -> Res.string.meals_offline_message
+                MealSlotsSaveError.Rejected -> Res.string.meals_save_rejected
+                MealSlotsSaveError.Failed -> Res.string.meals_save_failed
+            },
         )
     }
+    LaunchedEffect(error) { if (text != null) messages.show(text) }
+}
+
+/** The Name sheet: it only stages a change in the draft, so it reads "Añadir" / "Listo" and is not gated by network. */
+@Composable
+private fun MealNameSheetHost(sheet: MealNameSheet, rows: List<MealSlotRowUi>, onEvent: (MealSlotsEvent) -> Unit) {
+    val rename = sheet as? MealNameSheet.Rename
+    NameSheet(
+        title = stringResource(
+            if (rename == null) Res.string.meals_sheet_title_create else Res.string.meals_sheet_title_rename,
+        ),
+        label = stringResource(Res.string.meals_label_field),
+        itemLabel = stringResource(Res.string.meals_item_label),
+        existingNames = rows.map { it.label },
+        onSave = { onEvent(MealSlotsEvent.SubmitName(it)) },
+        onDismiss = { onEvent(MealSlotsEvent.DismissSheet) },
+        initialName = rename?.currentName.orEmpty(),
+        maxLength = MealSlotBounds.LABEL_MAX_LENGTH,
+        testTagPrefix = "meal_name_sheet",
+        commit = if (rename == null) SheetCommit.Add else SheetCommit.Apply,
+    )
 }
 
 @Composable
@@ -119,25 +152,25 @@ private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent)
         ) { row, index, _ ->
             MealSlotRow(row, index, context, onEvent)
         }
-        SecondaryButton(
-            text = stringResource(Res.string.meals_add),
+        AddItemButton(
+            objectLabel = stringResource(Res.string.meals_add_object),
             onClick = { onEvent(MealSlotsEvent.Add) },
-            enabled = context.interactive && state.isOnline,
-            modifier = Modifier.fillMaxWidth().testTag("meals_add"),
+            enabled = context.interactive,
+            modifier = Modifier.testTag("meals_add"),
         )
-        DefaultsEntry(enabled = !state.isDirty, onOpenDefaults)
+        DefaultsEntry(enabled = state.canNavigateToDefaults, onOpenDefaults)
     }
 }
 
-/** "Comidas por defecto": disabled while the meals have unsaved changes, and it says why. */
+/** "Comidas por defecto": not clickable while the meals have unsaved changes, and it says why. */
 @Composable
 private fun DefaultsEntry(enabled: Boolean, onOpen: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        SecondaryButton(
-            text = stringResource(Res.string.meal_defaults_open),
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        NavigationRow(
+            label = stringResource(Res.string.meal_defaults_open),
             onClick = onOpen,
+            modifier = Modifier.testTag("meal_slots_defaults_button"),
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth().testTag("meal_slots_defaults_button"),
         )
         if (!enabled) {
             Text(
@@ -149,62 +182,6 @@ private fun DefaultsEntry(enabled: Boolean, onOpen: () -> Unit) {
         }
     }
 }
-
-/** The last-meal hint, the save error, the offline banner and "Guardar", pinned at the bottom. */
-@Composable
-private fun MealsFooter(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit) {
-    Column {
-        if (!state.isOnline) {
-            OfflineBanner(
-                modifier = Modifier.fillMaxWidth(),
-                message = stringResource(Res.string.meals_offline_message),
-                testTagPrefix = "meals_offline_banner",
-            )
-        }
-        if (state.onlyOneMeal) {
-            Text(
-                text = stringResource(Res.string.meals_last_meal_hint),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier
-                    .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
-                    .testTag("meals_last_meal_hint"),
-            )
-        }
-        val message = state.saveError?.let { saveErrorText(it) }
-        if (message != null) {
-            Text(
-                text = message,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.error,
-                modifier = Modifier
-                    .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
-                    .semantics { liveRegion = LiveRegionMode.Polite }
-                    .testTag("meals_save_error"),
-            )
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.meals_save),
-            onClick = { onEvent(MealSlotsEvent.Save) },
-            enabled = state.canSave,
-            loading = state.isSaving,
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)
-                .testTag("meals_save"),
-        )
-    }
-}
-
-@Composable
-private fun saveErrorText(error: MealSlotsSaveError): String = stringResource(
-    when (error) {
-        MealSlotsSaveError.Offline -> Res.string.meals_offline_message
-        MealSlotsSaveError.Rejected -> Res.string.meals_save_rejected
-        MealSlotsSaveError.Failed -> Res.string.meals_save_failed
-    },
-)
 
 @Composable
 private fun MealsLoading() {

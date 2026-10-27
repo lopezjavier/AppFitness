@@ -119,7 +119,7 @@ class PreferencesScreenTest {
         show(onOpenMeals = { opened++ })
 
         rule.onNodeWithTag("preferences_meals_row").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Nombre, orden y comidas del día").assertExists()
+        rule.onNodeWithText("Nombre y orden de tus comidas del día").assertExists()
         rule.onNodeWithTag("preferences_meals_row").performClick()
 
         assertEquals(1, opened)

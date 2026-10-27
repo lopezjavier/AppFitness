@@ -18,13 +18,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.IsoWeekday
 import io.github.lopezjavier.appfitness.domain.usecase.MealDefaultSelection
 import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 private const val KEY_DRAFT = "meal_defaults_draft"
@@ -74,14 +71,11 @@ class MealDefaultsViewModel(
     private var loadFailed = false
     private var online = true
     private var saving = false
-    private var discardAsked = false
+    private var saved = false
     private var saveError: MealDefaultsSaveError? = null
 
     private val _uiState = MutableStateFlow<MealDefaultsUiState>(render())
     val uiState: StateFlow<MealDefaultsUiState> = _uiState.asStateFlow()
-
-    private val effectChannel = Channel<MealDefaultsEffect>(Channel.BUFFERED)
-    val effects: Flow<MealDefaultsEffect> = effectChannel.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -96,30 +90,13 @@ class MealDefaultsViewModel(
     fun onEvent(event: MealDefaultsEvent) {
         when (event) {
             MealDefaultsEvent.Retry -> if (loadFailed) load()
-
             MealDefaultsEvent.Save -> save()
-
-            MealDefaultsEvent.Back -> back()
-
-            MealDefaultsEvent.ConfirmDiscard -> effectChannel.trySend(MealDefaultsEffect.Close)
-
-            MealDefaultsEvent.DismissDiscard -> {
-                discardAsked = false
-                publish()
-            }
-
             is MealDefaultsEvent.OpenPicker -> openPicker(event.slotId)
-
             MealDefaultsEvent.DismissPicker -> setPicker(null)
-
             is MealDefaultsEvent.OpenAssignment -> openSheet(event.slotId, event.templateId)
-
             is MealDefaultsEvent.ToggleDay -> toggleDay(event.day)
-
             MealDefaultsEvent.ConfirmSheet -> confirmSheet()
-
             MealDefaultsEvent.DismissSheet -> setSheet(null)
-
             is MealDefaultsEvent.Remove -> remove(event.slotId, event.templateId)
         }
     }
@@ -214,16 +191,6 @@ class MealDefaultsViewModel(
         publish()
     }
 
-    private fun back() {
-        if (saving) return
-        if (isDirty()) {
-            discardAsked = true
-            publish()
-        } else {
-            effectChannel.trySend(MealDefaultsEffect.Close)
-        }
-    }
-
     private fun save() {
         val state = _uiState.value as? MealDefaultsUiState.Content
         if (state == null || !state.canSave) return
@@ -236,8 +203,8 @@ class MealDefaultsViewModel(
                     saving = false
                     baseline = draft
                     savedState[KEY_BASELINE] = encodeRows(baseline)
+                    this@MealDefaultsViewModel.saved = true
                     publish()
-                    effectChannel.trySend(MealDefaultsEffect.Close)
                 },
                 onFailure = {
                     saving = false
@@ -297,7 +264,7 @@ class MealDefaultsViewModel(
             isSaving = saving,
             isDirty = dirty,
             canSave = dirty && online && !saving,
-            showDiscardConfirm = discardAsked,
+            saved = saved,
             saveError = saveError,
             picker = picker?.takeIf { id -> slots.any { it.id == id } },
             sheet = sheet?.let { sheetUi(it, slots, templatesById) },

@@ -36,7 +36,7 @@ class MealDefaultsFlowTest {
         host.tap("meal_defaults_add_breakfast")
         host.tap("default_picker_row_$a")
         listOf(2, 4, 6, 7).forEach { host.tap("assign_default_day_$it") }
-        host.tap("assign_default_save")
+        host.tap("assign_default_sheet_commit")
         host.tap("meal_defaults_save")
 
         assertEquals(listOf(listOf(MealDefaultAssignment("breakfast", a, setOf(1, 3, 5)))), host.defaults.saved)
@@ -79,7 +79,7 @@ class MealDefaultsFlowTest {
         for (day in 1..7) host.tap("assign_default_day_$day")
 
         rule.onNodeWithTag("assign_default_day_error").assertTextContains("Selecciona al menos un día")
-        rule.onNodeWithTag("assign_default_save").assertIsNotEnabled()
+        rule.onNodeWithTag("assign_default_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
@@ -89,11 +89,11 @@ class MealDefaultsFlowTest {
         start()
         host.tap("meal_defaults_add_breakfast")
         host.tap("default_picker_row_$a")
-        host.tap("assign_default_save")
+        host.tap("assign_default_sheet_commit")
 
         host.tap("meal_defaults_save")
 
-        rule.onNodeWithTag("meal_defaults_save_error").assertExists()
+        assertEquals(listOf("No se pudo guardar. Inténtalo de nuevo."), host.messages.shown)
         rule.onNodeWithTag("meal_defaults_assignment_breakfast_$a").assertExists()
         assertTrue(host.closed == 0)
     }

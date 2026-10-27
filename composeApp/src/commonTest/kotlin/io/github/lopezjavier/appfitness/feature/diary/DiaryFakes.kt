@@ -28,23 +28,27 @@ internal val DefaultMealSlots = listOf(
 
 /**
  * Test double of [MealSlotRepository]: [result] answers [listEnabled] (and [listAll] unless [allResult] is set). A
- * successful [save] stores the new structure, so later reads reflect it; a failing one ([saveResult]) changes nothing.
+ * successful [saveStructure] stores the new structure, so later reads reflect it (each call is recorded in [saved] and
+ * [savedRemoved]); a failing one ([saveResult]) changes nothing. [inUse] answers [listInUse] unless [inUseResult]
+ * is set.
  */
 internal class FakeMealSlotRepository(var result: Result<List<MealSlot>> = Result.success(DefaultMealSlots)) :
     MealSlotRepository {
     var allResult: Result<List<MealSlot>>? = null
     var saveResult: Result<Unit> = Result.success(Unit)
-    var deleteResult: Result<Unit> = Result.success(Unit)
+    var inUse: Set<String> = emptySet()
+    var inUseResult: Result<Set<String>>? = null
     val saved = mutableListOf<List<MealSlotDraft>>()
-    val deleted = mutableListOf<String>()
+    val savedRemoved = mutableListOf<List<String>>()
 
     override suspend fun listEnabled(): Result<List<MealSlot>> = result
 
     override suspend fun listAll(): Result<List<MealSlot>> = allResult ?: result
 
-    override suspend fun save(slots: List<MealSlotDraft>): Result<Unit> {
+    override suspend fun saveStructure(slots: List<MealSlotDraft>, removedIds: List<String>): Result<Unit> {
         if (saveResult.isFailure) return saveResult
-        saved += slots
+        saved.add(slots)
+        savedRemoved.add(removedIds)
         val stored = slots.mapIndexed { index, draft ->
             MealSlot(draft.id ?: "custom-${saved.size}-$index", draft.code, draft.label, index)
         }
@@ -53,21 +57,10 @@ internal class FakeMealSlotRepository(var result: Result<List<MealSlot>> = Resul
         return saveResult
     }
 
-    override suspend fun delete(id: String): Result<Unit> {
-        if (deleteResult.isFailure) return deleteResult
-        deleted += id
-        val remaining = (allResult ?: result).getOrThrow().filter { it.id != id }
-        allResult = Result.success(remaining)
-        result = Result.success(remaining)
-        return deleteResult
-    }
+    override suspend fun listInUse(): Result<Set<String>> = inUseResult ?: Result.success(inUse)
 
     fun failSave(error: AppError) {
         saveResult = Result.failure(AppException(error))
-    }
-
-    fun failDelete(error: AppError) {
-        deleteResult = Result.failure(AppException(error))
     }
 }
 

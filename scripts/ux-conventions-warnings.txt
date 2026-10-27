@@ -5,7 +5,6 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
 G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 
 # G3: per-screen SnackbarHost( (replaced by AppMessages in each domain task).
@@ -14,13 +13,9 @@ G3 feature/profile/ProfileRootScreen\.kt   # owner T-127
 G3 feature/onboarding/OnboardingScreen\.kt   # owner T-128
 
 # G4: duplicate in-screen OfflineBanner( (the shell draws the single banner, R-30).
-G4 feature/meals/MealSlotsScreen\.kt   # owner T-126
-G4 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 
 # G5: AppConfirmDialog( outside the R-08 allow-list (account deletion, sign out, folder deletion,
 # discarding the live workout). RoutinesSheets.kt holds the allowed folder deletion.
-G5 feature/meals/MealSlotsScreen\.kt   # owner T-126
-G5 feature/meals/defaults/MealDefaultsScreen\.kt   # owner T-126
 
 # G6: ic_help outside HelpButton.
 

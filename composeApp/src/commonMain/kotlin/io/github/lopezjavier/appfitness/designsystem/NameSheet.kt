@@ -54,7 +54,8 @@ object NameSheetDefaults {
  * is checked against [existingNames] like any other name.
  *
  * [canSubmit] false (for example offline) keeps "Guardar" disabled whatever the name; [extra] adds content under the
- * field (inside the sheet's scrolling body).
+ * field (inside the sheet's scrolling body). [commit] is the footer label: "Guardar" by default, "Añadir"/"Listo" when
+ * the sheet only stages a change in a draft (R-12).
  *
  * The caller follows the [AppEditSheet] contract: close and fire the Confirm haptic after a successful save.
  */
@@ -75,6 +76,7 @@ fun NameSheet(
     testTagPrefix: String = NameSheetDefaults.TEST_TAG,
     canSubmit: Boolean = true,
     initialNameIsOwn: Boolean = true,
+    commit: SheetCommit = SheetCommit.Save,
     extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
@@ -97,7 +99,7 @@ fun NameSheet(
     }
     AppEditSheet(
         title = title,
-        commit = SheetCommit.Save,
+        commit = commit,
         onCommit = save,
         onDismiss = onDismiss,
         modifier = modifier,

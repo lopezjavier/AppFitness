@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.meals.defaults
 
 import androidx.lifecycle.SavedStateHandle
-import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
@@ -109,11 +108,10 @@ class MealDefaultsViewModelTest {
         assertEquals(setOf(1, 3, 5), model.card("breakfast").assignments.single().days)
         assertTrue(model.content().canSave)
 
-        model.effects.test {
-            model.onEvent(MealDefaultsEvent.Save)
-            advanceUntilIdle()
-            assertEquals(MealDefaultsEffect.Close, awaitItem())
-        }
+        assertFalse(model.content().saved)
+        model.onEvent(MealDefaultsEvent.Save)
+        advanceUntilIdle()
+        assertTrue(model.content().saved)
         assertEquals(listOf(listOf(MealDefaultAssignment("breakfast", a, setOf(1, 3, 5)))), defaults.saved)
     }
 
@@ -273,51 +271,6 @@ class MealDefaultsViewModelTest {
     }
 
     @Test
-    fun backWithAnUnsavedDraft_asksAndConfirmingCloses() = runTest(dispatcher) {
-        val a = eggs("Desayuno A")
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(MealDefaultsEvent.OpenAssignment("breakfast", a))
-        model.onEvent(MealDefaultsEvent.ConfirmSheet)
-
-        model.effects.test {
-            model.onEvent(MealDefaultsEvent.Back)
-            expectNoEvents()
-            assertTrue(model.content().showDiscardConfirm)
-            model.onEvent(MealDefaultsEvent.ConfirmDiscard)
-            assertEquals(MealDefaultsEffect.Close, awaitItem())
-        }
-        assertTrue(defaults.saved.isEmpty())
-    }
-
-    @Test
-    fun dismissingTheDiscardDialog_keepsTheDraft() = runTest(dispatcher) {
-        val a = eggs("Desayuno A")
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(MealDefaultsEvent.OpenAssignment("breakfast", a))
-        model.onEvent(MealDefaultsEvent.ConfirmSheet)
-        model.onEvent(MealDefaultsEvent.Back)
-
-        model.onEvent(MealDefaultsEvent.DismissDiscard)
-
-        assertFalse(model.content().showDiscardConfirm)
-        assertTrue(model.content().isDirty)
-        assertEquals(1, model.card("breakfast").assignments.size)
-    }
-
-    @Test
-    fun backWithoutChanges_closesAtOnce() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(MealDefaultsEvent.Back)
-            assertEquals(MealDefaultsEffect.Close, awaitItem())
-        }
-    }
-
-    @Test
     fun aFailedSave_keepsTheDraftAndReportsIt() = runTest(dispatcher) {
         val a = eggs("Desayuno A")
         val model = viewModel()
@@ -326,12 +279,10 @@ class MealDefaultsViewModelTest {
         model.onEvent(MealDefaultsEvent.ConfirmSheet)
         defaults.saveFailure = AppError.Validation
 
-        model.effects.test {
-            model.onEvent(MealDefaultsEvent.Save)
-            advanceUntilIdle()
-            expectNoEvents()
-        }
+        model.onEvent(MealDefaultsEvent.Save)
+        advanceUntilIdle()
 
+        assertFalse(model.content().saved)
         assertEquals(MealDefaultsSaveError.Failed, model.content().saveError)
         assertTrue(model.content().isDirty)
         assertFalse(model.content().isSaving)
@@ -393,12 +344,10 @@ class MealDefaultsViewModelTest {
         val model = viewModel(state)
         advanceUntilIdle()
 
-        model.effects.test {
-            model.onEvent(MealDefaultsEvent.Save)
-            advanceUntilIdle()
-            assertEquals(MealDefaultsEffect.Close, awaitItem())
-        }
+        model.onEvent(MealDefaultsEvent.Save)
+        advanceUntilIdle()
 
+        assertTrue(model.content().saved)
         assertEquals(listOf(listOf(MealDefaultAssignment("breakfast", a, setOf(2)))), defaults.saved)
     }
 

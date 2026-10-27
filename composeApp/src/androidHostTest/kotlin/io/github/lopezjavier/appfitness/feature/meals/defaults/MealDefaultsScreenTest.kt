@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.meals.defaults
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -15,6 +16,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.feature.meals.RecordingMessages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -45,7 +48,6 @@ private fun content(
     isOnline: Boolean = true,
     isSaving: Boolean = false,
     canSave: Boolean = true,
-    showDiscardConfirm: Boolean = false,
     saveError: MealDefaultsSaveError? = null,
     picker: String? = null,
     sheet: AssignSheetUi? = null,
@@ -57,7 +59,7 @@ private fun content(
     isSaving = isSaving,
     isDirty = canSave,
     canSave = canSave,
-    showDiscardConfirm = showDiscardConfirm,
+    saved = false,
     saveError = saveError,
     picker = picker,
     sheet = sheet,
@@ -76,8 +78,17 @@ class MealDefaultsScreenTest {
 
     private val events = mutableListOf<MealDefaultsEvent>()
 
+    private val messages = RecordingMessages()
+    private var closed = 0
+
     private fun show(state: MealDefaultsUiState) {
-        rule.setContent { AppTheme { MealDefaultsScreen(state, { events += it }) } }
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalAppMessages provides messages) {
+                    MealDefaultsScreen(state, { events += it }, onClose = { closed++ })
+                }
+            }
+        }
         rule.waitForIdle()
     }
 
@@ -189,15 +200,15 @@ class MealDefaultsScreenTest {
         show(content(sheet = sheet(selected = emptySet())))
 
         rule.onNodeWithTag("assign_default_day_error").assertTextEquals("Selecciona al menos un día")
-        rule.onNodeWithTag("assign_default_save").assertIsNotEnabled()
+        rule.onNodeWithTag("assign_default_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
-    fun assignSheet_save_confirmsTheSheet() {
+    fun assignSheet_listo_confirmsTheSheet() {
         show(content(sheet = sheet(selected = setOf(1, 3, 5))))
 
         rule.onNodeWithTag("assign_default_day_error").assertDoesNotExist()
-        rule.onNodeWithTag("assign_default_save").performClick()
+        rule.onNodeWithTag("assign_default_sheet_commit").performClick()
 
         assertEquals(listOf<MealDefaultsEvent>(MealDefaultsEvent.ConfirmSheet), events)
     }
@@ -217,18 +228,19 @@ class MealDefaultsScreenTest {
     }
 
     @Test
-    fun offline_showsTheBannerAndDisablesSave() {
+    fun offline_showsTheTemplateHintAndDisablesSave() {
         show(content(isOnline = false, canSave = false))
 
-        rule.onNodeWithTag("meal_defaults_offline_banner").assertIsDisplayed()
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
         rule.onNodeWithTag("meal_defaults_save").assertIsNotEnabled()
     }
 
     @Test
-    fun saveError_isShownAboveSaveWhileTheDraftStays() {
+    fun saveError_isAOneShotMessageWhileTheDraftStays() {
         show(content(saveError = MealDefaultsSaveError.Failed))
 
-        rule.onNodeWithTag("meal_defaults_save_error").assertIsDisplayed()
+        assertEquals(listOf("No se pudo guardar. Inténtalo de nuevo."), messages.shown)
+        rule.onNodeWithTag("meal_defaults_save_error").assertDoesNotExist()
         rule.onNodeWithTag("meal_defaults_assignment_lunch_rice").assertIsDisplayed()
     }
 
@@ -251,13 +263,40 @@ class MealDefaultsScreenTest {
     }
 
     @Test
-    fun discardDialog_confirmsOrKeepsEditing() {
-        show(content(showDiscardConfirm = true))
+    fun backWhenDirty_asksThroughTheTemplate_keepEditingStays_discardCloses() {
+        show(content())
 
-        rule.onNodeWithTag("meal_defaults_discard_cancel").performClick()
+        rule.onNodeWithTag("meal_defaults_back").performClick()
+        rule.onNodeWithTag("meal_defaults_discard_dialog").assertExists()
+        rule.onNodeWithTag("meal_defaults_keep_editing").performClick()
+        assertEquals(0, closed)
+        rule.onNodeWithTag("meal_defaults_back").performClick()
         rule.onNodeWithTag("meal_defaults_discard_confirm").performClick()
 
-        assertEquals(listOf(MealDefaultsEvent.DismissDiscard, MealDefaultsEvent.ConfirmDiscard), events)
+        assertEquals(1, closed)
+    }
+
+    @Test
+    fun backWhenClean_closesAtOnce() {
+        show(content(canSave = false))
+
+        rule.onNodeWithTag("meal_defaults_back").performClick()
+
+        assertEquals(1, closed)
+    }
+
+    @Test
+    fun addButton_readsAnadirComidaPorDefecto() {
+        show(content())
+
+        rule.onNodeWithTag("meal_defaults_add_breakfast").assertTextContains("Añadir comida por defecto")
+    }
+
+    @Test
+    fun title_isComidasPorDefecto() {
+        show(content())
+
+        rule.onNodeWithTag("meal_defaults_title").assertTextEquals("Comidas por defecto")
     }
 
     @Test
