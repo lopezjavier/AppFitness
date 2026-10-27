@@ -15,10 +15,8 @@ data class WorkoutFormView(
     val form: WorkoutForm,
     /** Exercise name by exercise id; a missing id has no name (the UI shows a generic label). */
     val names: Map<String, String>,
-    /** Every problem of the form right now; the UI flags fields once [submitAttempted] or the user touched them. */
+    /** Every problem of the form right now; the UI flags fields once the user edited the form (R-27). */
     val issues: List<WorkoutDraftIssue>,
-    /** True after Save was refused or failed once: the screen then flags every invalid field. */
-    val submitAttempted: Boolean,
 )
 
 /**
@@ -38,15 +36,20 @@ internal class WorkoutDraftEditor(
     private val onChange: () -> Unit,
 ) {
     private val formKey = "${keyPrefix}_form"
-    private val attemptedKey = "${keyPrefix}_attempted"
+    private val initialKey = "${keyPrefix}_initial"
 
     var form: WorkoutForm? = savedState.get<String>(formKey)?.let {
         runCatching { json.decodeFromString<WorkoutForm>(it) }.getOrNull()
     }
         private set
 
-    var submitAttempted: Boolean = savedState.get<Boolean>(attemptedKey) ?: false
-        private set
+    /** The form as it was when editing started; a restored form restores its own initial too. */
+    private var initial: WorkoutForm? = savedState.get<String>(initialKey)?.let {
+        runCatching { json.decodeFromString<WorkoutForm>(it) }.getOrNull()
+    } ?: form
+
+    /** True when the form differs from the one editing started with. */
+    val isDirty: Boolean get() = form != initial
 
     var names: Map<String, String> = emptyMap()
         private set
@@ -65,7 +68,10 @@ internal class WorkoutDraftEditor(
 
     /** Starts editing [initial], unless a form was restored. */
     fun start(initial: WorkoutForm) {
-        if (form == null) store(initial)
+        if (form != null) return
+        this.initial = initial
+        savedState[initialKey] = json.encodeToString(initial)
+        store(initial)
     }
 
     fun update(change: (WorkoutForm) -> WorkoutForm) {
@@ -78,16 +84,11 @@ internal class WorkoutDraftEditor(
         savedState[formKey] = json.encodeToString(next)
     }
 
-    fun markSubmitAttempted() {
-        submitAttempted = true
-        savedState[attemptedKey] = true
-    }
-
     fun issues(): List<WorkoutDraftIssue> = form?.let { validate(it.toDraft(), checkDate) }.orEmpty()
 
     fun draft(): WorkoutDraft? = form?.toDraft()
 
-    fun view(): WorkoutFormView? = form?.let { WorkoutFormView(it, names, issues(), submitAttempted) }
+    fun view(): WorkoutFormView? = form?.let { WorkoutFormView(it, names, issues()) }
 
     /** Applies the edit; an exercise missing from the lookup (created after the screen opened) reloads it first. */
     fun apply(event: WorkoutFormEvent) {

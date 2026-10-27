@@ -52,9 +52,9 @@ class StrengthNavigationTest {
             Box(tapTarget().testTag("detail_open_progress").clickable(onClick = onOpenProgress))
         }
     }
-    private val sessionDetailSlot: SessionDetailSlot = { modifier, _, _, onOpenProgress, _ ->
+    private val sessionDetailSlot: SessionDetailSlot = { modifier, _, _, onOpenExercise, _ ->
         Box(modifier.fillMaxSize().testTag("session_detail_screen")) {
-            Box(tapTarget().testTag("session_open_progress").clickable { onOpenProgress("squat") })
+            Box(tapTarget().testTag("session_open_progress").clickable { onOpenExercise("squat") })
         }
     }
 
@@ -152,12 +152,14 @@ class StrengthNavigationTest {
     }
 
     @Test
-    fun sessionDetail_linksToTheProgressOfAnExercise() {
+    fun sessionDetail_reachesTheProgressOfAnExerciseThroughItsDetails() {
         showShell()
         rule.runOnUiThread { nav.navigateToFullScreen(SessionDetailRoute("s1")) }
         rule.waitForIdle()
 
         rule.onNodeWithTag("session_open_progress").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("detail_open_progress").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("progress_exercise_id").assertTextEquals("squat")

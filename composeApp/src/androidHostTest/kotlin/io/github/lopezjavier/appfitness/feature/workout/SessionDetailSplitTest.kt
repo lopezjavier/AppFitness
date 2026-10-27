@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.MuscleShare
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
+import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,7 +19,8 @@ import org.robolectric.annotation.Config
 
 private fun detailWith(split: List<MuscleShare>, rpe: Double? = 8.0) = SessionDetailUiState.Content(
     name = "Torso",
-    label = DateLabel.Yesterday,
+    date = LocalDate(2026, 10, 18),
+    today = LocalDate(2026, 10, 19),
     stats = SessionStats(durationSeconds = 3_725, completedSets = 3, volumeKg = 2_120.0),
     exercises = listOf(
         DetailExercise(

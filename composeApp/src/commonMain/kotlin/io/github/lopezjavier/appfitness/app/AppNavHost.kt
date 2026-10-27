@@ -221,30 +221,27 @@ internal typealias TemplateDetailsSlot =
     ) -> Unit
 
 /**
- * History content: modifier (full-screen insets), the opener of a session detail (by session id), the opener of the
- * calendar and the starter of the past-workout form for the source the user chose.
+ * Historial content (the training calendar): modifier (full-screen insets), the opener of a session detail (by
+ * session id), how to leave and the starter of the past-workout form for the source and day the user chose.
  */
 internal typealias HistorySlot =
     @Composable (
         modifier: Modifier,
         onOpenSession: (String) -> Unit,
-        onOpenCalendar: () -> Unit,
-        onStartPastWorkout: (PastWorkoutSource) -> Unit,
+        onBack: () -> Unit,
+        onStartPastWorkout: (PastWorkoutSource, LocalDate?) -> Unit,
     ) -> Unit
-
-/** Training calendar content: modifier (full-screen insets) and the opener of a session detail (by session id). */
-internal typealias CalendarSlot = @Composable (modifier: Modifier, onOpenSession: (String) -> Unit) -> Unit
 
 /**
  * Session detail content: modifier (full-screen insets), the session id, how to leave after a deletion, the opener
- * of the progress of one of its exercises (by exercise id) and the opener of its edit screen.
+ * of the details of one of its exercises (by exercise id) and the opener of its edit screen.
  */
 internal typealias SessionDetailSlot =
     @Composable (
         modifier: Modifier,
         sessionId: String,
         onClose: () -> Unit,
-        onOpenProgress: (String) -> Unit,
+        onOpenExercise: (String) -> Unit,
         onEdit: () -> Unit,
     ) -> Unit
 
@@ -268,7 +265,13 @@ internal typealias EditWorkoutSlot =
 
 /** Past-workout form content: modifier, the routine / session it starts from (both null = empty) and its host. */
 internal typealias PastWorkoutSlot =
-    @Composable (modifier: Modifier, routineId: String?, sessionId: String?, host: WorkoutFormHost) -> Unit
+    @Composable (
+        modifier: Modifier,
+        routineId: String?,
+        sessionId: String?,
+        date: String?,
+        host: WorkoutFormHost,
+    ) -> Unit
 
 /** "Fuerza" content: modifier (full-screen insets), the progress opener (by exercise id) and "start workout". */
 internal typealias StrengthSlot =
@@ -434,11 +437,6 @@ internal val DefaultHistorySlot: HistorySlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("history_screen"))
 }
 
-/** Empty training calendar for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultCalendarSlot: CalendarSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("calendar_screen"))
-}
-
 /** Empty session detail for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultSessionDetailSlot: SessionDetailSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("session_detail_screen"))
@@ -450,7 +448,7 @@ internal val DefaultEditWorkoutSlot: EditWorkoutSlot = { modifier, _, _, _ ->
 }
 
 /** Empty past-workout form for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPastWorkoutSlot: PastWorkoutSlot = { modifier, _, _, _ ->
+internal val DefaultPastWorkoutSlot: PastWorkoutSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("past_workout_screen"))
 }
 
@@ -511,7 +509,6 @@ internal fun AppNavHost(
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
     mealDefaults: MealDefaultsSlot = DefaultMealDefaultsSlot,
     history: HistorySlot = DefaultHistorySlot,
-    calendar: CalendarSlot = DefaultCalendarSlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
     editWorkout: EditWorkoutSlot = DefaultEditWorkoutSlot,
     pastWorkout: PastWorkoutSlot = DefaultPastWorkoutSlot,
@@ -696,7 +693,7 @@ internal fun AppNavHost(
         composable<MealDefaultsRoute> {
             mealDefaults(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
-        historyDestinations(navController, fullScreenPadding, history, calendar, sessionDetail, openProgress)
+        historyDestinations(navController, fullScreenPadding, history, sessionDetail)
         workoutFormDestinations(navController, fullScreenPadding, editWorkout, pastWorkout)
         strengthDestinations(navController, fullScreenPadding, strength, exerciseProgress, muscleVolume, openProgress)
         if (catalogAvailable) {
@@ -864,40 +861,36 @@ private fun NavGraphBuilder.templateDetailsDestination(
     }
 }
 
-/** The history list and the detail of one of its sessions; deleting a session pops back to the list. */
+/** Historial (the training calendar) and the detail of one of its sessions; deleting a session pops back to it. */
 @Suppress("LongParameterList") // One slot per destination.
 private fun NavGraphBuilder.historyDestinations(
     navController: NavHostController,
     fullScreenPadding: PaddingValues,
     history: HistorySlot,
-    calendar: CalendarSlot,
     sessionDetail: SessionDetailSlot,
-    openProgress: (String) -> Unit,
 ) {
     composable<HistoryRoute> {
         history(
             Modifier.padding(fullScreenPadding),
             { navController.navigateToFullScreen(SessionDetailRoute(it)) },
-            { navController.navigateToFullScreen(WorkoutCalendarRoute) },
-        ) { source ->
+            { navController.popBackStack() },
+        ) { source, date ->
+            val day = date?.toString()
             navController.navigateToFullScreen(
                 when (source) {
-                    PastWorkoutSource.Empty -> PastWorkoutRoute()
-                    is PastWorkoutSource.FromRoutine -> PastWorkoutRoute(routineId = source.routineId)
-                    is PastWorkoutSource.FromSession -> PastWorkoutRoute(sessionId = source.sessionId)
+                    PastWorkoutSource.Empty -> PastWorkoutRoute(date = day)
+                    is PastWorkoutSource.FromRoutine -> PastWorkoutRoute(routineId = source.routineId, date = day)
+                    is PastWorkoutSource.FromSession -> PastWorkoutRoute(sessionId = source.sessionId, date = day)
                 },
             )
         }
-    }
-    composable<WorkoutCalendarRoute> {
-        calendar(Modifier.padding(fullScreenPadding)) { navController.navigateToFullScreen(SessionDetailRoute(it)) }
     }
     composable<SessionDetailRoute> { entry ->
         sessionDetail(
             Modifier.padding(fullScreenPadding),
             entry.toRoute<SessionDetailRoute>().sessionId,
             { navController.popBackStack() },
-            openProgress,
+            { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
         ) { navController.navigateToFullScreen(EditWorkoutRoute(entry.toRoute<SessionDetailRoute>().sessionId)) }
     }
 }
@@ -925,6 +918,7 @@ private fun NavGraphBuilder.workoutFormDestinations(
             Modifier.padding(fullScreenPadding),
             route.routineId,
             route.sessionId,
+            route.date,
             entry.workoutFormHost(navController),
         )
     }

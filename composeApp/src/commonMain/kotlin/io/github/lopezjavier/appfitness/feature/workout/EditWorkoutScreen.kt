@@ -1,34 +1,23 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.session_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_delete_cd
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
-import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import org.jetbrains.compose.resources.getString
+import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.EditorDestructiveAction
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -37,8 +26,9 @@ private const val TAG = "edit_workout"
 
 /**
  * Stateful edit screen: connects [EditWorkoutViewModel], hands it the exercise the picker returned
- * ([selectedExerciseId], consumed once through [onConsumeSelection]) and routes its one-off results: [onClose] after a
- * save, [onDeleted] after a deletion (the details below the screen go too) and a snackbar when a call failed.
+ * ([selectedExerciseId], consumed once through [onConsumeSelection]) and routes its one-off results: the template
+ * calls [onClose] after a save (or a confirmed discard), [onDeleted] after a deletion (the details below the screen go
+ * too) and a failed call shows a message with one Reject.
  */
 @Composable
 @Suppress("LongParameterList", "ParameterNaming") // Navigation hooks of the screen (onDeleted reports a result).
@@ -53,10 +43,11 @@ fun EditWorkoutRoot(
     viewModel: EditWorkoutViewModel = koinViewModel(key = "edit_$sessionId", parameters = { parametersOf(sessionId) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHost = remember { SnackbarHostState() }
-    val currentOnClose by rememberUpdatedState(onClose)
+    val messages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     val currentOnDeleted by rememberUpdatedState(onDeleted)
     val currentConsumed by rememberUpdatedState(onConsumeSelection)
+    val failed = stringResource(Res.string.session_action_failed)
     LaunchedEffect(selectedExerciseId) {
         if (selectedExerciseId != null) {
             viewModel.onEvent(WorkoutFormEvent.AddExercise(selectedExerciseId))
@@ -66,9 +57,15 @@ fun EditWorkoutRoot(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                EditWorkoutEffect.Saved -> currentOnClose()
+                // The template closes the screen once `saved` is true.
+                EditWorkoutEffect.Saved -> Unit
+
                 EditWorkoutEffect.Deleted -> currentOnDeleted()
-                EditWorkoutEffect.ActionFailed -> snackbarHost.showSnackbar(getString(Res.string.session_action_failed))
+
+                EditWorkoutEffect.ActionFailed -> {
+                    haptics.reject()
+                    messages.show(failed)
+                }
             }
         }
     }
@@ -77,64 +74,65 @@ fun EditWorkoutRoot(
         onEvent = viewModel::onEvent,
         onFormEvent = viewModel::onEvent,
         onAddExercise = onAddExercise,
+        onClose = onClose,
         modifier = modifier,
-        snackbarHost = snackbarHost,
     )
 }
 
 /**
- * Edit screen of a finished workout (US-37): the shared form with the date as read-only text, "Eliminar" (immediate,
- * ADR-45) above it and "Guardar" pinned at the bottom. Leaving without saving writes nothing.
+ * Edit screen of a finished workout (US-37) on [AppEditorScreen]: the shared form with the date as read-only text,
+ * "Guardar" pinned at the bottom (only while the form changed and is valid) and "Eliminar" (immediate, ADR-45) under
+ * it. Leaving with changes asks to discard them; leaving without saving writes nothing.
  */
 @Composable
+@Suppress("LongParameterList") // Screen state, its two event channels and the navigation hooks.
 fun EditWorkoutScreen(
     state: EditWorkoutUiState,
     onEvent: (EditWorkoutEvent) -> Unit,
     onFormEvent: (WorkoutFormEvent) -> Unit,
     onAddExercise: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    Box(modifier.fillMaxSize().testTag("${TAG}_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
-            if (state is EditWorkoutUiState.Content) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    AppIconButton(
-                        contentDescription = stringResource(Res.string.session_detail_delete_cd),
-                        icon = Res.drawable.ic_delete,
-                        testTag = "${TAG}_delete",
-                        onClick = { onEvent(EditWorkoutEvent.Delete) },
-                        enabled = state.isOnline && !state.busy,
-                    )
+    val title = stringResource(Res.string.edit_workout_title)
+    if (state !is EditWorkoutUiState.Content) {
+        AppScreen(title = title, modifier = modifier, onBack = onClose, testTagPrefix = TAG) {
+            Box(Modifier.fillMaxSize().testTag("${TAG}_screen")) {
+                if (state == EditWorkoutUiState.Error) {
+                    WorkoutFormError(TAG) { onEvent(EditWorkoutEvent.Retry) }
+                } else {
+                    WorkoutFormLoading(TAG)
                 }
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (state) {
-                    EditWorkoutUiState.Loading -> WorkoutFormLoading(TAG)
-
-                    EditWorkoutUiState.Error -> WorkoutFormError(TAG) { onEvent(EditWorkoutEvent.Retry) }
-
-                    is EditWorkoutUiState.Content -> WorkoutFormBody(state.view, TAG, onFormEvent, onAddExercise) {
-                        FormDateField(state.view.form.date, "${TAG}_date")
-                    }
-                }
-            }
-            SnackbarHost(snackbarHost) { data ->
-                Snackbar(Modifier.testTag("${TAG}_snackbar")) { Text(data.visuals.message) }
-            }
-            if (state is EditWorkoutUiState.Content) {
-                WorkoutFormFooter(
-                    // An invalid form stays tappable: Guardar then flags the fields that need a fix.
-                    canSave = state.isOnline && !state.busy,
-                    busy = state.busy,
-                    isOnline = state.isOnline,
-                    tagPrefix = TAG,
-                    onSave = { onEvent(EditWorkoutEvent.Save) },
-                )
-            }
+        }
+        return
+    }
+    AppEditorScreen(
+        title = title,
+        isDirty = state.isDirty,
+        isSaving = state.busy,
+        isOnline = state.isOnline,
+        onSave = { onEvent(EditWorkoutEvent.Save) },
+        onClose = onClose,
+        modifier = modifier,
+        saved = state.saved,
+        canSave = state.view.issues.isEmpty(),
+        destructiveAction = EditorDestructiveAction(
+            label = stringResource(Res.string.session_detail_delete_cd),
+            enabled = state.isOnline && !state.busy,
+            onClick = { onEvent(EditWorkoutEvent.Delete) },
+        ),
+        testTagPrefix = TAG,
+    ) {
+        WorkoutFormBody(
+            state.view,
+            TAG,
+            onFormEvent,
+            onAddExercise,
+            showIssues = state.isDirty,
+            modifier = Modifier.testTag("${TAG}_screen"),
+        ) {
+            FormDateField(state.view.form.date, "${TAG}_date")
         }
     }
 }

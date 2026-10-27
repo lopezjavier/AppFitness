@@ -356,7 +356,8 @@ val uiModule =
             )
         }
         // Blank ids mean "none" (Koin parameters cannot be null): both blank = an empty workout.
-        viewModel { (routineId: String, sessionId: String) ->
+        // `date` is an ISO yyyy-MM-dd day or blank (none).
+        viewModel { (routineId: String, sessionId: String, date: String) ->
             PastWorkoutViewModel(
                 source = when {
                     routineId.isNotBlank() -> PastWorkoutSource.FromRoutine(routineId)
@@ -369,6 +370,7 @@ val uiModule =
                 exerciseLibrary = get(),
                 connectivity = get(),
                 clock = get(),
+                date = date.takeIf { it.isNotBlank() }?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
                 savedState = get(),
             )
         }

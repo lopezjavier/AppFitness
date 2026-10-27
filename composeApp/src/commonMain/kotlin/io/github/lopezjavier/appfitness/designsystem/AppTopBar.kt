@@ -210,7 +210,9 @@ private fun TopBarActions(actions: List<AppTopBarAction>, prefix: String) {
         )
         if (open) {
             AppActionSheet(
-                actions = overflow.map { AppSheetAction(it.icon, it.contentDescription, onClick = it.onClick) },
+                actions = overflow.map {
+                    AppSheetAction(it.icon, it.contentDescription, enabled = it.enabled, onClick = it.onClick)
+                },
                 onDismiss = { open = false },
             )
         }

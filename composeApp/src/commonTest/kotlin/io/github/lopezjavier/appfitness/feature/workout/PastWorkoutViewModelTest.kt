@@ -49,6 +49,7 @@ class PastWorkoutViewModelTest {
     private fun viewModel(
         source: PastWorkoutSource = PastWorkoutSource.Empty,
         savedState: SavedStateHandle = SavedStateHandle(),
+        date: LocalDate? = null,
     ) = PastWorkoutViewModel(
         source = source,
         repository = repository,
@@ -57,6 +58,7 @@ class PastWorkoutViewModelTest {
         exerciseLibrary = library,
         connectivity = connectivity,
         clock = MutableClock(),
+        date = date,
         savedState = savedState,
     )
 
@@ -182,7 +184,7 @@ class PastWorkoutViewModelTest {
     }
 
     @Test
-    fun anInvalidFormIsNotSentAndFlagsTheFields() = runTest(dispatcher) {
+    fun anInvalidFormIsNotSent() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(WorkoutFormEvent.AddExercise("e1"))
@@ -193,7 +195,6 @@ class PastWorkoutViewModelTest {
         val content = model.content()
         assertTrue(WorkoutDraftIssue.Name in content.view.issues)
         assertTrue(WorkoutDraftIssue.SetValue(0, 0) in content.view.issues)
-        assertTrue(content.view.submitAttempted)
         assertTrue(repository.savedDrafts.isEmpty())
     }
 
@@ -266,5 +267,68 @@ class PastWorkoutViewModelTest {
         assertEquals(LocalDate(2026, 9, 1), second.form().date)
         assertEquals("12", second.form().exercises.single().sets[0].reps)
         assertTrue(repository.savedDrafts.isEmpty())
+    }
+
+    @Test
+    fun theDateAskedForIsUsedAndOpeningWithItIsClean() = runTest(dispatcher) {
+        val model = viewModel(date = LocalDate(2026, 10, 12))
+        advanceUntilIdle()
+
+        assertEquals(LocalDate(2026, 10, 12), model.form().date)
+        assertEquals(false, model.content().isDirty)
+    }
+
+    @Test
+    fun aFutureDateFallsBackToYesterday() = runTest(dispatcher) {
+        val model = viewModel(date = LocalDate(2026, 10, 25))
+        advanceUntilIdle()
+
+        assertEquals(yesterday, model.form().date)
+    }
+
+    @Test
+    fun todayIsAcceptedAsTheDate() = runTest(dispatcher) {
+        val model = viewModel(date = LocalDate(2026, 10, 19))
+        advanceUntilIdle()
+
+        assertEquals(LocalDate(2026, 10, 19), model.form().date)
+    }
+
+    @Test
+    fun anEditMakesTheFormDirtyAndARecreatedViewModelKeepsIt() = runTest(dispatcher) {
+        val handle = SavedStateHandle()
+        val first = viewModel(date = LocalDate(2026, 10, 12), savedState = handle)
+        advanceUntilIdle()
+        first.onEvent(WorkoutFormEvent.NameChanged("Piernas"))
+        assertTrue(first.content().isDirty)
+
+        val second = viewModel(date = LocalDate(2026, 10, 12), savedState = handle)
+        advanceUntilIdle()
+
+        assertEquals("Piernas", second.form().name)
+        assertTrue(second.content().isDirty)
+    }
+
+    @Test
+    fun changingTheDateMakesTheFormDirty() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(PastWorkoutEvent.DateChanged(LocalDate(2026, 10, 1)))
+
+        assertTrue(model.content().isDirty)
+    }
+
+    @Test
+    fun savedIsTrueAfterCreatingTheWorkout() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.fillValidEmptyWorkout()
+        assertEquals(false, model.content().saved)
+
+        model.onEvent(PastWorkoutEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(model.content().saved)
     }
 }

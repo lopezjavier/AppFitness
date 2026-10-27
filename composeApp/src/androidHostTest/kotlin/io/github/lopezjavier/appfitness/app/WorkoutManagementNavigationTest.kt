@@ -17,13 +17,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
+import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-37 navigation: History "+" -> form -> back in History; detail -> edit; deleting leaves the details too. */
+/** US-37 navigation: Historial "Añadir entreno" -> form -> back; detail -> edit; deleting leaves the details too. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class WorkoutManagementNavigationTest {
@@ -32,32 +33,40 @@ class WorkoutManagementNavigationTest {
 
     private lateinit var nav: NavHostController
 
-    private val historySlot: HistorySlot = { modifier, _, _, onStartPastWorkout ->
+    private val historySlot: HistorySlot = { modifier, onOpenSession, _, onStartPastWorkout ->
         Column(modifier.fillMaxSize().testTag("history_screen")) {
+            Box(Modifier.size(48.dp).testTag("stub_open_session").clickable { onOpenSession("s1") })
             Box(
                 Modifier.size(48.dp).testTag("stub_start_empty").clickable {
-                    onStartPastWorkout(PastWorkoutSource.Empty)
+                    onStartPastWorkout(PastWorkoutSource.Empty, null)
+                },
+            )
+            Box(
+                Modifier.size(48.dp).testTag("stub_start_dated").clickable {
+                    onStartPastWorkout(PastWorkoutSource.Empty, LocalDate(2026, 10, 20))
                 },
             )
             Box(
                 Modifier.size(48.dp).testTag("stub_start_routine")
-                    .clickable { onStartPastWorkout(PastWorkoutSource.FromRoutine("r1")) },
+                    .clickable { onStartPastWorkout(PastWorkoutSource.FromRoutine("r1"), null) },
             )
             Box(
                 Modifier.size(48.dp).testTag("stub_start_session")
-                    .clickable { onStartPastWorkout(PastWorkoutSource.FromSession("s9")) },
+                    .clickable { onStartPastWorkout(PastWorkoutSource.FromSession("s9"), null) },
             )
         }
     }
-    private val pastSlot: PastWorkoutSlot = { modifier, routineId, sessionId, host ->
+    private val pastSlot: PastWorkoutSlot = { modifier, routineId, sessionId, date, host ->
         Column(modifier.fillMaxSize().testTag("past_workout_screen")) {
             Text("$routineId|$sessionId", Modifier.testTag("past_args"))
+            Text("$date", Modifier.testTag("past_date"))
             Box(Modifier.size(48.dp).testTag("stub_past_saved").clickable(onClick = host.onClose))
         }
     }
-    private val detailSlot: SessionDetailSlot = { modifier, sessionId, _, _, onEdit ->
-        Box(modifier.fillMaxSize().testTag("session_detail_screen")) {
+    private val detailSlot: SessionDetailSlot = { modifier, sessionId, _, onOpenExercise, onEdit ->
+        Column(modifier.fillMaxSize().testTag("session_detail_screen")) {
             Text(sessionId, Modifier.testTag("detail_id"))
+            Box(Modifier.size(48.dp).testTag("stub_open_exercise").clickable { onOpenExercise("squat") })
             Box(Modifier.size(48.dp).testTag("stub_edit").clickable(onClick = onEdit))
         }
     }
@@ -67,6 +76,11 @@ class WorkoutManagementNavigationTest {
             Box(Modifier.size(48.dp).testTag("stub_edit_saved").clickable(onClick = host.onClose))
             Box(Modifier.size(48.dp).testTag("stub_edit_deleted").clickable(onClick = onDeleted))
         }
+    }
+
+    private fun back() {
+        rule.runOnUiThread { nav.popBackStack() }
+        rule.waitForIdle()
     }
 
     private fun show() {
@@ -87,19 +101,55 @@ class WorkoutManagementNavigationTest {
     }
 
     @Test
-    fun theEmptySource_opensTheFormWithItsOwnTopBar_andSavingReturnsToHistory() {
+    fun theEmptySource_opensTheFormWithoutTheBottomBar_andSavingReturnsToHistory() {
         show()
 
         rule.onNodeWithTag("stub_start_empty").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("past_workout_screen").assertExists()
-        rule.onNodeWithTag("past_workout_top_bar_title").assertTextEquals("Registrar entreno pasado")
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
         rule.onNodeWithTag("past_args").assertTextEquals("null|null")
         rule.onNodeWithTag("stub_past_saved").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("history_screen").assertExists()
+    }
+
+    @Test
+    fun aWorkoutOfHistory_opensItsDetail_andBackReturnsToHistory() {
+        show()
+
+        rule.onNodeWithTag("stub_open_session").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("detail_id").assertTextEquals("s1")
+        back()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("history_screen").assertExists()
+    }
+
+    @Test
+    fun anExerciseOfTheDetail_opensTheExerciseDetails_andBackReturnsToTheDetail() {
+        show()
+        rule.runOnUiThread { nav.navigateToFullScreen(SessionDetailRoute("s1")) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("stub_open_exercise").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("exercise_detail_screen").assertExists()
+        back()
+
+        rule.onNodeWithTag("detail_id").assertTextEquals("s1")
+    }
+
+    @Test
+    fun aDayChosenInHistory_reachesTheFormAsItsDate() {
+        show()
+
+        rule.onNodeWithTag("stub_start_dated").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("past_date").assertTextEquals("2026-10-20")
     }
 
     @Test
@@ -109,7 +159,7 @@ class WorkoutManagementNavigationTest {
         rule.onNodeWithTag("stub_start_routine").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("past_args").assertTextEquals("r1|null")
-        rule.onNodeWithTag("past_workout_top_bar_back").performClick()
+        back()
         rule.waitForIdle()
 
         rule.onNodeWithTag("stub_start_session").performClick()
@@ -123,7 +173,7 @@ class WorkoutManagementNavigationTest {
 
         rule.onNodeWithTag("stub_start_empty").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("past_workout_top_bar_back").performClick()
+        back()
         rule.waitForIdle()
 
         rule.onNodeWithTag("history_screen").assertExists()
@@ -137,7 +187,6 @@ class WorkoutManagementNavigationTest {
 
         rule.onNodeWithTag("stub_edit").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("edit_workout_top_bar_title").assertTextEquals("Editar entreno")
         rule.onNodeWithTag("edit_id").assertTextEquals("s1")
         rule.onNodeWithTag("stub_edit_saved").performClick()
         rule.waitForIdle()

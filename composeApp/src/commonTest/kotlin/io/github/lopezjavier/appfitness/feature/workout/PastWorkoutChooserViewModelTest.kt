@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -37,7 +38,7 @@ class PastWorkoutChooserViewModelTest {
         val model = viewModel()
         assertEquals(PastWorkoutChooserStep.Closed, model.uiState.value.step)
 
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
 
         assertEquals(PastWorkoutChooserStep.Options, model.uiState.value.step)
     }
@@ -45,7 +46,7 @@ class PastWorkoutChooserViewModelTest {
     @Test
     fun fromScratchStartsAnEmptyWorkoutAndClosesTheSheet() = runTest(dispatcher) {
         val model = viewModel()
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
 
         model.effects.test {
             model.onEvent(PastWorkoutChooserEvent.ChooseEmpty)
@@ -59,7 +60,7 @@ class PastWorkoutChooserViewModelTest {
     fun theRoutineStepListsRoutinesAndPickingOneStartsFromIt() = runTest(dispatcher) {
         routines.routines += routineOf("r1", "Torso", "e1")
         val model = viewModel()
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
 
         model.onEvent(PastWorkoutChooserEvent.ChooseRoutine)
         advanceUntilIdle()
@@ -79,7 +80,7 @@ class PastWorkoutChooserViewModelTest {
     @Test
     fun theWorkoutStepStartsFromThePickedHistoryRow() = runTest(dispatcher) {
         val model = viewModel()
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
         model.onEvent(PastWorkoutChooserEvent.ChooseWorkout)
         assertEquals(PastWorkoutChooserStep.Sessions, model.uiState.value.step)
 
@@ -93,7 +94,7 @@ class PastWorkoutChooserViewModelTest {
     @Test
     fun noRoutinesIsEmptyAndAFailureIsAnErrorThatRetryRecovers() = runTest(dispatcher) {
         val model = viewModel()
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
         model.onEvent(PastWorkoutChooserEvent.ChooseRoutine)
         advanceUntilIdle()
         assertEquals(ChooserRoutines.Empty, model.uiState.value.routines)
@@ -114,7 +115,7 @@ class PastWorkoutChooserViewModelTest {
     @Test
     fun backReturnsToTheOptionsAndDismissCloses() = runTest(dispatcher) {
         val model = viewModel()
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
         model.onEvent(PastWorkoutChooserEvent.ChooseWorkout)
 
         model.onEvent(PastWorkoutChooserEvent.Back)
@@ -128,7 +129,7 @@ class PastWorkoutChooserViewModelTest {
         routines.routines += routineOf("r1", "Torso", "e1")
         val handle = SavedStateHandle()
         val first = viewModel(handle)
-        first.onEvent(PastWorkoutChooserEvent.Open)
+        first.onEvent(PastWorkoutChooserEvent.Open())
         first.onEvent(PastWorkoutChooserEvent.ChooseRoutine)
 
         val second = viewModel(handle)
@@ -136,5 +137,40 @@ class PastWorkoutChooserViewModelTest {
 
         assertEquals(PastWorkoutChooserStep.Routines, second.uiState.value.step)
         assertIs<ChooserRoutines.Content>(second.uiState.value.routines)
+    }
+
+    @Test
+    fun startCarriesTheDayTheSheetWasOpenedFor() = runTest(dispatcher) {
+        val model = viewModel()
+        model.onEvent(PastWorkoutChooserEvent.Open(LocalDate(2026, 10, 12)))
+
+        model.effects.test {
+            model.onEvent(PastWorkoutChooserEvent.ChooseEmpty)
+
+            assertEquals(
+                PastWorkoutChooserEffect.Start(PastWorkoutSource.Empty, LocalDate(2026, 10, 12)),
+                awaitItem(),
+            )
+        }
+    }
+
+    @Test
+    fun theDayAndStepSurviveARecreatedViewModel() = runTest(dispatcher) {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        first.onEvent(PastWorkoutChooserEvent.Open(LocalDate(2026, 10, 12)))
+        first.onEvent(PastWorkoutChooserEvent.ChooseWorkout)
+
+        val second = viewModel(handle)
+
+        assertEquals(PastWorkoutChooserStep.Sessions, second.uiState.value.step)
+        second.effects.test {
+            second.onEvent(PastWorkoutChooserEvent.PickWorkout("s1"))
+
+            assertEquals(
+                PastWorkoutChooserEffect.Start(PastWorkoutSource.FromSession("s1"), LocalDate(2026, 10, 12)),
+                awaitItem(),
+            )
+        }
     }
 }

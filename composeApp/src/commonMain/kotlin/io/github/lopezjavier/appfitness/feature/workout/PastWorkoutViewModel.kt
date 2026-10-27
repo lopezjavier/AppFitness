@@ -39,10 +39,12 @@ class PastWorkoutViewModel(
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     savedState: SavedStateHandle = SavedStateHandle(),
+    private val date: LocalDate? = null,
 ) : ViewModel() {
     private var terminal: PastWorkoutUiState? = PastWorkoutUiState.Loading
     private var online = true
     private var busy = false
+    private var saved = false
 
     private val editor = WorkoutDraftEditor(
         savedState = savedState,
@@ -89,7 +91,11 @@ class PastWorkoutViewModel(
         publish()
     }
 
-    private fun defaultDate(): LocalDate = clock.today().minus(1, DateTimeUnit.DAY)
+    /** The date asked for when it is not in the future; otherwise yesterday. */
+    private fun defaultDate(): LocalDate {
+        val today = clock.today()
+        return date?.takeIf { it <= today } ?: today.minus(1, DateTimeUnit.DAY)
+    }
 
     private fun load() {
         terminal = PastWorkoutUiState.Loading
@@ -138,17 +144,13 @@ class PastWorkoutViewModel(
             return
         }
         val draft = editor.draft() ?: return
-        if (editor.issues().isNotEmpty()) {
-            editor.markSubmitAttempted()
-            publish()
-            return
-        }
+        if (editor.issues().isNotEmpty()) return
         busy = true
         publish()
         viewModelScope.launch {
             val result = repository.saveCompleted(draft)
             busy = false
-            if (result.isFailure) editor.markSubmitAttempted()
+            if (result.isSuccess) saved = true
             publish()
             effectChannel.trySend(
                 result.fold(onSuccess = {
@@ -159,7 +161,11 @@ class PastWorkoutViewModel(
     }
 
     private fun publish() {
-        _uiState.value = terminal ?: editor.view()?.let { PastWorkoutUiState.Content(it, clock.today(), online, busy) }
-            ?: PastWorkoutUiState.Loading
+        _uiState.value =
+            terminal
+                ?: editor.view()?.let {
+                    PastWorkoutUiState.Content(it, clock.today(), online, busy, editor.isDirty, saved)
+                }
+                ?: PastWorkoutUiState.Loading
     }
 }

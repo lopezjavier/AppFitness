@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 private const val KEY_ROUTINE_OPEN = "detail_save_routine_open"
-private const val KEY_ROUTINE_NAME = "detail_save_routine_name"
 
 /**
  * Detail of a completed session (US-14): sets, aggregates and personal records computed on the client, per-set
@@ -76,9 +75,9 @@ class SessionDetailViewModel(
     private var includeWarmUp = false
     private var busy = false
 
-    /** The "Guardar como rutina" sheet: open flag and typed name survive recreation (ADR-40). */
+    /** The "Guardar como rutina" sheet: the open flag survives recreation (ADR-40); the typed name is the sheet's. */
     private var routineSheetOpen = savedState.get<Boolean>(KEY_ROUTINE_OPEN) ?: false
-    private var routineName = savedState.get<String>(KEY_ROUTINE_NAME).orEmpty()
+    private var existingRoutineNames: List<String> = emptyList()
     private var routineBusy = false
     private var routineFailed = false
 
@@ -96,6 +95,7 @@ class SessionDetailViewModel(
             }
         }
         load()
+        if (routineSheetOpen) loadRoutineNames()
     }
 
     @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
@@ -106,19 +106,15 @@ class SessionDetailViewModel(
             SessionDetailEvent.Refresh -> if (terminal == null && !busy) load(showLoading = false)
 
             SessionDetailEvent.OpenSaveAsRoutine -> if (session != null && !routineSheetOpen) {
-                setRoutineSheet(open = true, name = SaveWorkoutAsRoutine.defaultName(session?.name.orEmpty()))
+                setRoutineSheet(open = true)
+                loadRoutineNames()
             }
 
-            is SessionDetailEvent.SaveAsRoutineNameChanged -> if (routineSheetOpen && !routineBusy) {
-                routineFailed = false
-                setRoutineSheet(open = true, name = event.text.take(SaveWorkoutAsRoutine.NAME_MAX_LENGTH))
-            }
-
-            SessionDetailEvent.ConfirmSaveAsRoutine -> confirmSaveAsRoutine()
+            is SessionDetailEvent.ConfirmSaveAsRoutine -> confirmSaveAsRoutine(event.name)
 
             SessionDetailEvent.DismissSaveAsRoutine -> if (!routineBusy) {
                 routineFailed = false
-                setRoutineSheet(open = false, name = "")
+                setRoutineSheet(open = false)
             }
 
             SessionDetailEvent.Delete -> if (!busy && session != null) {
@@ -172,12 +168,19 @@ class SessionDetailViewModel(
             if (results.any { it == null }) null else ids.zip(results.filterNotNull()).toMap()
         }
 
-    private fun setRoutineSheet(open: Boolean, name: String) {
+    private fun setRoutineSheet(open: Boolean) {
         routineSheetOpen = open
-        routineName = name
         savedState[KEY_ROUTINE_OPEN] = open
-        savedState[KEY_ROUTINE_NAME] = name
+        if (!open) existingRoutineNames = emptyList()
         publish()
+    }
+
+    /** The active routines' names for the sheet's unique-name check; a failure leaves it empty. */
+    private fun loadRoutineNames() {
+        viewModelScope.launch {
+            existingRoutineNames = routineRepository.listActive().getOrNull().orEmpty().map { it.name }
+            publish()
+        }
     }
 
     private fun tooManySets() = SaveWorkoutAsRoutine.exceedsSetLimit(
@@ -185,9 +188,9 @@ class SessionDetailViewModel(
     )
 
     @Suppress("ReturnCount") // Guard clauses.
-    private fun confirmSaveAsRoutine() {
+    private fun confirmSaveAsRoutine(name: String) {
         if (!routineSheetOpen || routineBusy) return
-        if (!SaveWorkoutAsRoutine.isValidName(routineName) || tooManySets()) return
+        if (!SaveWorkoutAsRoutine.isValidName(name) || tooManySets()) return
         if (!online) {
             routineFailed = true
             publish()
@@ -197,10 +200,10 @@ class SessionDetailViewModel(
         routineFailed = false
         publish()
         viewModelScope.launch {
-            val result = routineRepository.createFromSession(sessionId, routineName)
+            val result = routineRepository.createFromSession(sessionId, name)
             routineBusy = false
             if (result.isSuccess) {
-                setRoutineSheet(open = false, name = "")
+                setRoutineSheet(open = false)
                 effectChannel.trySend(SessionDetailEffect.SavedAsRoutine(result.getOrThrow()))
             } else {
                 routineFailed = true
@@ -238,7 +241,8 @@ class SessionDetailViewModel(
         )
         return SessionDetailUiState.Content(
             name = current.name,
-            label = sessionDateLabel(sessionLocalDate(current.startedAt), clock.today()),
+            date = sessionLocalDate(current.startedAt),
+            today = clock.today(),
             stats = ComputeSessionStats(current, includeWarmUp, bodyWeightKg, perHandIds),
             exercises = current.exercises.sortedBy { it.position }.map { exercise ->
                 DetailExercise(
@@ -254,7 +258,7 @@ class SessionDetailViewModel(
             },
             isOnline = online,
             saveAsRoutine = if (routineSheetOpen) {
-                SaveAsRoutineState(routineName, tooManySets(), routineBusy, routineFailed)
+                SaveAsRoutineState(existingRoutineNames, tooManySets(), routineBusy, routineFailed)
             } else {
                 null
             },

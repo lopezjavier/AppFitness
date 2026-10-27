@@ -167,7 +167,7 @@ class EditWorkoutViewModelTest {
     }
 
     @Test
-    fun anInvalidDraftBlocksSaveAndFlagsTheSet() = runTest(dispatcher) {
+    fun anInvalidDraftBlocksSave() = runTest(dispatcher) {
         seed()
         val model = viewModel()
         advanceUntilIdle()
@@ -178,7 +178,6 @@ class EditWorkoutViewModelTest {
 
         val content = model.content()
         assertTrue(WorkoutDraftIssue.SetValue(0, 1) in content.view.issues)
-        assertTrue(content.view.submitAttempted)
         assertEquals(false, content.canSave)
         assertTrue(repository.savedDrafts.isEmpty())
     }
@@ -308,5 +307,64 @@ class EditWorkoutViewModelTest {
         assertEquals("Otro", second.form().name)
         assertEquals("3", second.form().exercises.single().sets[0].reps)
         assertTrue(repository.savedDrafts.isEmpty())
+    }
+
+    @Test
+    fun theFormIsCleanUntilEditedAndCleanAgainWhenTheEditIsUndone() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(false, model.content().isDirty)
+
+        model.onEvent(WorkoutFormEvent.NameChanged("Otro"))
+        assertTrue(model.content().isDirty)
+
+        model.onEvent(WorkoutFormEvent.NameChanged("Torso"))
+        assertEquals(false, model.content().isDirty)
+    }
+
+    @Test
+    fun savedBecomesTrueOnlyAfterASuccessfulSave() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutFormEvent.NameChanged("Otro"))
+        assertEquals(false, model.content().saved)
+
+        model.onEvent(EditWorkoutEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(model.content().saved)
+    }
+
+    @Test
+    fun aSaveFailureKeepsTheFormDirtyAndNotSaved() = runTest(dispatcher) {
+        seed()
+        repository.saveCompletedFailure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutFormEvent.NameChanged("Otro"))
+
+        model.onEvent(EditWorkoutEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(model.content().isDirty)
+        assertEquals(false, model.content().saved)
+    }
+
+    @Test
+    fun aRecreatedViewModelKeepsTheDirtyFlag() = runTest(dispatcher) {
+        seed()
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle)
+        advanceUntilIdle()
+        first.onEvent(WorkoutFormEvent.NameChanged("Otro"))
+
+        val second = viewModel(savedState = handle)
+        advanceUntilIdle()
+
+        assertTrue(second.content().isDirty)
+        second.onEvent(WorkoutFormEvent.NameChanged("Torso"))
+        assertEquals(false, second.content().isDirty)
     }
 }

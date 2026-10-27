@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -13,9 +14,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The source chooser of the history's "+" (US-37): three options, then a routine or a workout list. */
+/** The source chooser of "Añadir entreno" (US-37): three options, then a routine or a workout list. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per scenario.
 class PastWorkoutChooserSheetTest {
     @get:Rule
     val rule = createComposeRule()
@@ -34,7 +36,11 @@ class PastWorkoutChooserSheetTest {
     ) {
         rule.setContent {
             AppTheme {
-                PastWorkoutChooserSheet(PastWorkoutChooserUiState(step, routines), history, { events += it })
+                PastWorkoutChooserSheet(
+                    PastWorkoutChooserUiState(step, routines),
+                    { events += it },
+                    sessions = { history },
+                )
             }
         }
         rule.waitForIdle()
@@ -45,6 +51,20 @@ class PastWorkoutChooserSheetTest {
         show(PastWorkoutChooserStep.Closed)
 
         rule.onNodeWithTag("past_workout_source_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun theTitle_asksWhereToStart_andFollowsTheStep() {
+        show(PastWorkoutChooserStep.Options)
+        rule.onNodeWithTag("past_workout_source_sheet_title").assertTextEquals("¿Desde dónde empiezas?")
+    }
+
+    @Test
+    fun theRoutineStep_isTitledDesdeUnaRutina_withoutABackRow() {
+        show(PastWorkoutChooserStep.Routines)
+
+        rule.onNodeWithTag("past_workout_source_sheet_title").assertTextEquals("Desde una rutina")
+        rule.onNodeWithTag("past_workout_source_back").assertDoesNotExist()
     }
 
     @Test
@@ -69,16 +89,12 @@ class PastWorkoutChooserSheetTest {
     }
 
     @Test
-    fun theRoutinePicker_listsRoutines_pickingOneEmitsIt_andBackReturnsToTheOptions() {
+    fun theRoutinePicker_listsRoutines_andPickingOneEmitsIt() {
         show(PastWorkoutChooserStep.Routines, ChooserRoutines.Content(listOf(RoutineSummary("r1", "Torso", 4))))
 
         rule.onNodeWithTag("past_workout_source_routine_r1").performClick()
-        rule.onNodeWithTag("past_workout_source_back").performClick()
 
-        assertEquals(
-            listOf(PastWorkoutChooserEvent.PickRoutine("r1"), PastWorkoutChooserEvent.Back),
-            events,
-        )
+        assertEquals(listOf<PastWorkoutChooserEvent>(PastWorkoutChooserEvent.PickRoutine("r1")), events)
     }
 
     @Test
@@ -116,7 +132,8 @@ class PastWorkoutChooserSheetTest {
     fun closingTheSheet_emitsDismiss() {
         show(PastWorkoutChooserStep.Options)
 
-        rule.onNodeWithTag("past_workout_source_close").performClick()
+        rule.onNodeWithTag("past_workout_source_sheet_close").performClick()
+        rule.waitUntil(timeoutMillis = 5_000) { events.isNotEmpty() } // The sheet animates out first.
 
         assertEquals(listOf<PastWorkoutChooserEvent>(PastWorkoutChooserEvent.Dismiss), events)
     }

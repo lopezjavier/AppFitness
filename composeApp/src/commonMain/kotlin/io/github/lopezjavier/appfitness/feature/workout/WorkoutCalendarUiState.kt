@@ -11,9 +11,6 @@ sealed interface WorkoutCalendarUiState {
     /** The workouts could not be loaded; [WorkoutCalendarEvent.Retry] tries again. */
     data object Error : WorkoutCalendarUiState
 
-    /** The user has no completed workout yet. */
-    data object Empty : WorkoutCalendarUiState
-
     /**
      * The training calendar. [markedDays] are the days of the shown [month] with a workout ([dayCounts] says how many);
      * [yearCounts] feeds the multi-year list and [monthCounts] (month number 1-12 of [year]) the year view.
@@ -32,6 +29,8 @@ sealed interface WorkoutCalendarUiState {
         /** The current day: later days of the grid are inert. */
         val today: LocalDate,
         val dayCards: DayCardsState = DayCardsState.None,
+        /** "Añadir entreno" is offered: a day is selected and it is not after [today]. */
+        val canAddToSelectedDay: Boolean = false,
     ) : WorkoutCalendarUiState
 }
 
@@ -69,11 +68,14 @@ sealed interface WorkoutCalendarEvent {
     /** From the multi-year list: shows that year's months. */
     data class SelectYear(val year: Int) : WorkoutCalendarEvent
 
-    /** Tap on a day with workouts: selects it and shows its cards (no navigation). */
+    /** Tap on a day up to today (with or without workouts): selects it and shows its cards (no navigation). */
     data class SelectDay(val date: LocalDate) : WorkoutCalendarEvent
 
     /** Tap on a day card: opens that workout's detail. Ignored when it is not one of the selected day's. */
     data class OpenSession(val sessionId: String) : WorkoutCalendarEvent
+
+    /** "Añadir entreno" of the selected day: asks the screen to open the source chooser for that day. */
+    data object AddWorkout : WorkoutCalendarEvent
 
     /** Retries loading the selected day's cards. */
     data object RetryDayCards : WorkoutCalendarEvent
@@ -81,4 +83,7 @@ sealed interface WorkoutCalendarEvent {
 
 sealed interface WorkoutCalendarEffect {
     data class OpenSession(val sessionId: String) : WorkoutCalendarEffect
+
+    /** Open the source chooser to log a past workout on [date]. */
+    data class AddWorkout(val date: LocalDate) : WorkoutCalendarEffect
 }

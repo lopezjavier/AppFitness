@@ -662,11 +662,7 @@
     <string name="summary_done">Listo</string>
 
     <!-- Session history (T-047) -->
-    <string name="workout_history">Historial</string>
-    <string name="history_title">Historial</string>
-    <string name="history_empty_title">Aún no has completado ningún entreno</string>
-    <string name="history_empty_message">Tus entrenos terminados aparecerán aquí.</string>
-    <string name="history_error">No se pudo cargar el historial</string>
+    <string name="history_title">Historial de entrenos</string>
     <string name="history_load_more_error">No se pudieron cargar más entrenos</string>
     <string name="history_loading_more">Cargando más entrenos</string>
     <string name="history_row_cd">%1$s, %2$s, duración %3$s, volumen %4$s</string>
@@ -696,14 +692,13 @@
     <string name="month_short_10">oct</string>
     <string name="month_short_11">nov</string>
     <string name="month_short_12">dic</string>
-    <string name="session_detail_title">Detalle del entreno</string>
+    <string name="session_detail_fallback_title">Entreno</string>
     <string name="session_detail_error">No se pudo cargar el entreno</string>
     <string name="session_detail_volume_label">Volumen</string>
     <string name="session_detail_exercises">Ejercicios</string>
     <string name="session_detail_no_sets">Sin series completadas</string>
     <string name="session_set_value">%1$s kg × %2$d</string>
     <string name="session_action_failed">No se pudo completar la acción. Inténtalo de nuevo.</string>
-    <string name="session_offline_reason">Sin conexión: no puedes editar ni eliminar entrenos</string>
 
     <!-- T-048 strength progress -->
     <string name="profile_statistics_section">Estadísticas</string>
@@ -1324,8 +1319,6 @@
     <string name="preferences_calc_dumbbell_handle_state">Mango de mancuerna: %1$s kg</string>
     <string name="preferences_calc_dumbbell_handle_decrease_cd">Reducir mango de mancuerna</string>
     <string name="preferences_calc_dumbbell_handle_increase_cd">Aumentar mango de mancuerna</string>
-    <string name="history_calendar_cd">Calendario</string>
-    <string name="calendar_title">Calendario</string>
     <string name="calendar_view_month">Mes</string>
     <string name="calendar_view_year">Año</string>
     <string name="calendar_view_years">Años</string>
@@ -1335,9 +1328,15 @@
     </plurals>
     <string name="calendar_count_cd">%1$s, %2$s</string>
     <string name="calendar_year_title">%1$d</string>
-    <string name="calendar_empty_title">Aún no has entrenado</string>
-    <string name="calendar_empty_message">Los días que entrenes aparecerán aquí.</string>
     <string name="calendar_error">No se pudo cargar el calendario.</string>
+    <string name="catalog_rows_workout_name">Push</string>
+    <string name="catalog_rows_workout_date">lun, 24 oct</string>
+    <string name="catalog_rows_workout_duration">52 min</string>
+    <string name="catalog_rows_workout_volume">8.400 kg</string>
+    <string name="catalog_rows_workout_sets">18 series</string>
+    <string name="catalog_rows_workout_cd">Push, lun 24 oct, 52 min, 8.400 kg, 18 series</string>
+    <string name="calendar_day_empty">Sin entrenos</string>
+    <string name="history_add_workout_item">entreno</string>
     <string name="calendar_day_cards_error">No se pudieron cargar los entrenos de ese día.</string>
     <string name="session_detail_split_title">Reparto muscular</string>
     <plurals name="session_detail_split_sets">
@@ -1352,12 +1351,11 @@
     <string name="session_detail_routine_saved">Rutina guardada</string>
     <string name="save_as_routine_title">Guardar como rutina</string>
     <string name="save_as_routine_name_label">Nombre de la rutina</string>
-    <string name="save_as_routine_confirm">Guardar</string>
-    <string name="save_as_routine_close_cd">Cerrar sin guardar</string>
+    <string name="save_as_routine_item_label">una rutina</string>
     <string name="save_as_routine_too_many_sets">Un ejercicio tiene más de 10 series; no se puede guardar como rutina</string>
     <string name="save_as_routine_failed">No se pudo guardar la rutina. Inténtalo de nuevo.</string>
     <string name="edit_workout_title">Editar entreno</string>
-    <string name="past_workout_title">Registrar entreno pasado</string>
+    <string name="past_workout_title">Entreno pasado</string>
     <string name="workout_form_name">Nombre</string>
     <string name="workout_form_name_error">Escribe un nombre de hasta 100 caracteres</string>
     <string name="workout_form_date">Fecha</string>
@@ -1367,9 +1365,7 @@
     <string name="workout_form_duration">Duración (min)</string>
     <string name="workout_form_gym">Gimnasio</string>
     <string name="workout_form_description">Descripción</string>
-    <string name="workout_form_save">Guardar</string>
     <string name="workout_form_load_error">No se pudo cargar el entreno</string>
-    <string name="workout_form_offline_reason">Sin conexión: no puedes guardar ni eliminar entrenos</string>
     <string name="workout_form_no_exercises">Añade al menos un ejercicio</string>
     <string name="workout_form_set_error">Revisa los valores de la serie %1$d</string>
     <string name="workout_form_seconds_cd">Segundos de la serie %1$d</string>
@@ -1383,13 +1379,10 @@
     <string name="date_picker_dismiss">Cancelar</string>
     <string name="catalog_section_date_picker">Selector de fecha</string>
     <string name="catalog_date_picker_open">Abrir selector de fecha</string>
-    <string name="history_add_past_workout_cd">Registrar entreno pasado</string>
-    <string name="past_source_title">Registrar entreno pasado</string>
+    <string name="past_source_title">¿Desde dónde empiezas?</string>
     <string name="past_source_empty">Desde cero</string>
     <string name="past_source_routine">Desde una rutina</string>
     <string name="past_source_session">Desde un entreno anterior</string>
-    <string name="past_source_back_cd">Volver a las opciones</string>
-    <string name="past_source_close_cd">Cerrar</string>
     <string name="past_source_no_routines_title">Aún no tienes rutinas</string>
     <string name="past_source_no_routines_message">Crea una rutina en la pestaña Entreno para usarla como plantilla.</string>
     <string name="past_source_no_sessions_title">Aún no tienes entrenos</string>
