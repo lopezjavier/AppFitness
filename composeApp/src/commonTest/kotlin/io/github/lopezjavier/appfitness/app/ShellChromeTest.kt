@@ -137,14 +137,10 @@ class ShellChromeTest {
     }
 
     @Test
-    fun statsRoute_hasFullScreenChrome_withItsTopBarTag() {
-        assertEquals("stats", (StatsRoute.chrome as ShellChrome.FullScreen).topBarTag)
-    }
-
-    @Test
-    fun strengthRoutes_haveFullScreenChrome_withTheirTopBarTags() {
-        assertEquals("strength", (StrengthRoute.chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("muscle_volume", (MuscleVolumeRoute.chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("exercise_progress", (ExerciseProgressRoute("e1").chrome as ShellChrome.FullScreen).topBarTag)
+    fun statisticsRoutes_drawTheirOwnBarThroughAppScreen() {
+        assertEquals(ShellChrome.Screen, StatsRoute.chrome)
+        assertEquals(ShellChrome.Screen, StrengthRoute.chrome)
+        assertEquals(ShellChrome.Screen, MuscleVolumeRoute.chrome)
+        assertEquals(ShellChrome.Screen, ExerciseProgressRoute("e1").chrome)
     }
 }

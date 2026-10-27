@@ -39,8 +39,12 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
     var deleteCalls = 0
     var deleteFailure: AppError? = null
 
-    override suspend fun getAll(): Result<List<Exercise>> =
-        failure?.let { Result.failure(AppException(it)) } ?: Result.success(rows)
+    var getAllCalls = 0
+
+    override suspend fun getAll(): Result<List<Exercise>> {
+        getAllCalls++
+        return failure?.let { Result.failure(AppException(it)) } ?: Result.success(rows)
+    }
 
     override suspend fun getById(id: String): Result<Exercise> =
         rows.firstOrNull { it.id == id }?.let { Result.success(it) }

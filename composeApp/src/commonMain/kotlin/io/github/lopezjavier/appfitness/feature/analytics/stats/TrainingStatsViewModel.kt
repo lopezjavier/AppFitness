@@ -52,6 +52,7 @@ class TrainingStatsViewModel(
     private var frameJob: Job? = null
     private var bodyJob: Job? = null
     private var detailJob: Job? = null
+    private var lookupLoad: Deferred<ExerciseLookup?>? = null
 
     init {
         loadFrame()
@@ -124,7 +125,7 @@ class TrainingStatsViewModel(
             val current = async { stats.muscleGroupSets(window.from, window.to) }
             val before = previous?.let { async { stats.muscleGroupSets(it.from, it.to) } }
             val exercises = async { stats.exerciseSetCounts(window.from, window.to) }
-            val lookup = async { loadExerciseLookup(exerciseRepository, exerciseLibrary) }
+            val lookup = async { exerciseLookup() }
 
             launch { publishSummary(summary.await()) }
             launch { publishSetCounts(range, weekly.await(), window, today) }
@@ -170,16 +171,31 @@ class TrainingStatsViewModel(
         }
     }
 
+    /** Loaded once per ViewModel and shared by the frame and the muscle sheet; a failed load is retried next time. */
+    private suspend fun exerciseLookup(): ExerciseLookup? {
+        val pending = lookupLoad
+            ?: viewModelScope.async { loadExerciseLookup(exerciseRepository, exerciseLibrary) }.also { lookupLoad = it }
+        val result = pending.await()
+        if (result == null && lookupLoad === pending) lookupLoad = null
+        return result
+    }
+
     private suspend fun publishRadar(
         current: Result<List<MuscleGroupSets>>,
         before: Deferred<Result<List<MuscleGroupSets>>>?,
     ) {
         val now = current.getOrNull()
         val previousResult = before?.await()
-        val state = if (now == null || (previousResult != null && previousResult.isFailure)) {
+        val state = if (now == null) {
             SectionState.Error
         } else {
-            SectionState.Content(MuscleRadar(allGroups(now), previousResult?.getOrNull()?.let(::allGroups)))
+            SectionState.Content(
+                MuscleRadar(
+                    current = allGroups(now),
+                    previous = previousResult?.getOrNull()?.let(::allGroups),
+                    previousFailed = previousResult?.isFailure == true,
+                ),
+            )
         }
         _uiState.update { it.copy(radar = state) }
     }
@@ -220,7 +236,7 @@ class TrainingStatsViewModel(
             val window = StatsWindow.lastSevenDays(todayUtc())
             val sets = async { stats.muscleGroupSets(window.from, window.to) }
             val exercises = async { stats.exerciseSetCounts(window.from, window.to, group) }
-            val lookup = async { loadExerciseLookup(exerciseRepository, exerciseLibrary) }
+            val lookup = async { exerciseLookup() }
             val totals = sets.await().getOrNull()
             val rows = exercises.await().getOrNull()
             val names = lookup.await()

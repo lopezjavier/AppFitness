@@ -280,16 +280,20 @@ internal typealias StrengthSlot =
         onOpenExercise: (String) -> Unit,
         onOpenMuscleVolume: () -> Unit,
         onStartWorkout: () -> Unit,
+        onBack: () -> Unit,
     ) -> Unit
 
 /** Weekly muscle volume content: modifier (full-screen insets) and "start workout" (empty state). */
-internal typealias MuscleVolumeSlot = @Composable (modifier: Modifier, onStartWorkout: () -> Unit) -> Unit
+internal typealias MuscleVolumeSlot =
+    @Composable (modifier: Modifier, onStartWorkout: () -> Unit, onBack: () -> Unit) -> Unit
 
 /** "Estadisticas" content: modifier (full-screen insets) and the progress opener (by exercise id). */
-internal typealias TrainingStatsSlot = @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit) -> Unit
+internal typealias TrainingStatsSlot =
+    @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
 
 /** Exercise progress content: modifier (full-screen insets) and the exercise id. */
-internal typealias ExerciseProgressSlot = @Composable (modifier: Modifier, exerciseId: String) -> Unit
+internal typealias ExerciseProgressSlot =
+    @Composable (modifier: Modifier, exerciseId: String, onBack: () -> Unit) -> Unit
 
 /**
  * What the live workout needs from navigation: the exercise the picker returned (to be consumed with
@@ -453,22 +457,22 @@ internal val DefaultPastWorkoutSlot: PastWorkoutSlot = { modifier, _, _, _, _ ->
 }
 
 /** Empty "Fuerza" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _ ->
+internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("strength_screen"))
 }
 
 /** Empty weekly muscle volume for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _ ->
+internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("muscle_volume_screen"))
 }
 
 /** Empty "Estadisticas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _ ->
+internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("stats_screen"))
 }
 
 /** Empty exercise progress for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _ ->
+internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_progress_screen"))
 }
 
@@ -627,7 +631,9 @@ internal fun AppNavHost(
         composable<WeightHistoryRoute> { entry ->
             weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
-        composable<StatsRoute> { trainingStats(Modifier.padding(fullScreenPadding), openProgress) }
+        composable<StatsRoute> { entry ->
+            trainingStats(Modifier.padding(fullScreenPadding), openProgress) { navController.popFullScreen(entry) }
+        }
         composable<PreferencesRoute> { preferences(Modifier.padding(fullScreenPadding), openMeals) }
         composable<ExercisePickerRoute> { entry ->
             val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode
@@ -946,18 +952,25 @@ private fun NavGraphBuilder.strengthDestinations(
     muscleVolume: MuscleVolumeSlot,
     openProgress: (String) -> Unit,
 ) {
-    composable<StrengthRoute> {
+    composable<StrengthRoute> { entry ->
         strength(
             Modifier.padding(fullScreenPadding),
             openProgress,
             { navController.navigateToFullScreen(MuscleVolumeRoute) },
-        ) { navController.navigateToTab(TopLevelTab.Workout) }
+            { navController.navigateToTab(TopLevelTab.Workout) },
+        ) { navController.popFullScreen(entry) }
     }
-    composable<MuscleVolumeRoute> {
-        muscleVolume(Modifier.padding(fullScreenPadding)) { navController.navigateToTab(TopLevelTab.Workout) }
+    composable<MuscleVolumeRoute> { entry ->
+        muscleVolume(
+            Modifier.padding(fullScreenPadding),
+            { navController.navigateToTab(TopLevelTab.Workout) },
+        ) { navController.popFullScreen(entry) }
     }
     composable<ExerciseProgressRoute> { entry ->
-        exerciseProgress(Modifier.padding(fullScreenPadding), entry.toRoute<ExerciseProgressRoute>().exerciseId)
+        exerciseProgress(
+            Modifier.padding(fullScreenPadding),
+            entry.toRoute<ExerciseProgressRoute>().exerciseId,
+        ) { navController.popFullScreen(entry) }
     }
 }
 

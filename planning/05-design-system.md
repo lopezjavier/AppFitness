@@ -522,7 +522,8 @@ One action, one vibration, from the layer that knows the outcome (the component 
 | Basal metabolism | "Metabolismo basal" (chip: "TMB") | "Tasa metabólica basal" | |
 | Bone | "Masa ósea" (chip: "Hueso" acceptable) | — | |
 | Workout | "Entreno" | "Sesión" in UI text | "Entreno pasado", "Editar entreno" |
-| Chart ranges | "1S 1M 3M 6M 1A" (spoken "1 semana"…) | "Último mes" and similar variants | One string set |
+| Chart ranges | "1S 1M 3M 6M 1A, Todo" (spoken "1 semana"…, "Todo el historial") | "Último mes" and similar variants | One string set |
+| Muscle on the radar axis | "Isquios" (radar only) | - | Everywhere else (list, chips, sheet, body map): "Isquiotibiales" |
 | An exercise created by the user | "ejercicio propio"; button "Añadir ejercicio propio"; sheet "Nuevo ejercicio" | "Crear ejercicio", "Añadir ejercicio" for it | "Añadir ejercicio" is only the routine/workout button that opens the exercise picker |
 
 Message templates:

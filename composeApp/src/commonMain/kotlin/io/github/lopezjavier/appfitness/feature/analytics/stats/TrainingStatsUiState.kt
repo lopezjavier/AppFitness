@@ -22,8 +22,15 @@ sealed interface SectionState<out T> {
 /** An exercise with its set count in a period; [name] is null when it is unknown (hidden or not in the library). */
 data class StatsExercise(val exerciseId: String, val name: String?, val sets: Double, val sessions: Int)
 
-/** Radar series over a fixed list of axes (every [MuscleGroup], catalog order); [previous] is null for "Todo". */
-data class MuscleRadar(val current: List<MuscleGroupSets>, val previous: List<MuscleGroupSets>?)
+/**
+ * Radar series over a fixed list of axes (every [MuscleGroup], catalog order); [previous] is null for "Todo" and
+ * when the previous window could not be loaded ([previousFailed]).
+ */
+data class MuscleRadar(
+    val current: List<MuscleGroupSets>,
+    val previous: List<MuscleGroupSets>?,
+    val previousFailed: Boolean = false,
+)
 
 /** Detail of the open muscle in the last 7 days; [exercises] is empty when the muscle was not trained. */
 data class MuscleDetail(val group: MuscleGroup, val sets: Double, val exercises: List<StatsExercise>)

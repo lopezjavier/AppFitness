@@ -37,6 +37,7 @@ class StrengthScreenTest {
     private val opened = mutableListOf<String>()
     private var startedWorkout = 0
     private var openedVolume = 0
+    private var backs = 0
 
     private fun show(state: StrengthUiState) {
         rule.setContent {
@@ -47,6 +48,7 @@ class StrengthScreenTest {
                     onOpenExercise = { opened += it },
                     onOpenMuscleVolume = { openedVolume++ },
                     onStartWorkout = { startedWorkout++ },
+                    onBack = { backs++ },
                 )
             }
         }
@@ -57,10 +59,20 @@ class StrengthScreenTest {
     fun summaryCard_showsTheThreeTopExercisesWithTheMostFrequentSelected() {
         show(content(StrengthSummary(113.5, 5.0)))
 
-        rule.onNodeWithText("Fuerza y 1RM estimado").assertExists()
+        rule.onNodeWithText("1RM estimado").assertExists()
+        rule.onNodeWithTag("strength_title").assertTextEquals("Fuerza")
         rule.onNodeWithTag("strength_chip_bench").assertIsSelected()
         rule.onNodeWithTag("strength_chip_squat").assertIsNotSelected()
         rule.onNodeWithTag("strength_chip_row").assertExists()
+    }
+
+    @Test
+    fun title_isFuerzaInTheBar_andBackLeaves() {
+        show(content(StrengthSummary(113.5, 5.0)))
+
+        rule.onNodeWithTag("strength_back").performClick()
+
+        assertEquals(1, backs)
     }
 
     @Test
@@ -128,7 +140,7 @@ class StrengthScreenTest {
     fun verProgreso_opensTheSelectedExercise() {
         show(content(StrengthSummary(90.0, null), selectedId = "squat"))
 
-        rule.onNodeWithTag("strength_open_exercise").assertTextEquals("Ver progreso").performClick()
+        rule.onNodeWithTag("strength_open_exercise").assertTextEquals("Progreso del ejercicio").performClick()
 
         assertEquals(listOf("squat"), opened)
     }
@@ -137,7 +149,7 @@ class StrengthScreenTest {
     fun volumenPorGrupoMuscular_opensTheWeeklyVolume() {
         show(content(StrengthSummary(90.0, null)))
 
-        rule.onNodeWithTag("strength_open_muscle_volume").assertTextEquals("Volumen por grupo muscular").performClick()
+        rule.onNodeWithTag("strength_open_muscle_volume").assertTextEquals("Volumen").performClick()
 
         assertEquals(1, openedVolume)
     }

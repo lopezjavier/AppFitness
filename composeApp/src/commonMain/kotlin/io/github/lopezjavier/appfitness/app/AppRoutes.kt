@@ -2,20 +2,16 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_title
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
-import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_title
-import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -282,7 +278,8 @@ val AppRoute.usesAppScreen: Boolean
         this is TemplateDetailsRoute || this is WeightRoute || this is WeightHistoryRoute ||
         this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome ||
         this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute ||
-        this is HistoryRoute || this is SessionDetailRoute || this is EditWorkoutRoute || this is PastWorkoutRoute
+        this is HistoryRoute || this is SessionDetailRoute || this is EditWorkoutRoute || this is PastWorkoutRoute ||
+        this is StrengthRoute || this is MuscleVolumeRoute || this is StatsRoute || this is ExerciseProgressRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -306,14 +303,8 @@ private val AppRoute.legacyChrome: ShellChrome
 
             PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
 
-            StrengthRoute -> ShellChrome.FullScreen(Res.string.strength_title, topBarTag = "strength")
-
-            MuscleVolumeRoute -> ShellChrome.FullScreen(Res.string.muscle_volume_title, topBarTag = "muscle_volume")
-
-            StatsRoute -> ShellChrome.FullScreen(Res.string.stats_title, topBarTag = "stats")
-
-            is ExerciseProgressRoute ->
-                ShellChrome.FullScreen(Res.string.exercise_progress_title, topBarTag = "exercise_progress")
+            // The statistics flow draws its own bar through AppScreen (T-125c): never reached through [chrome].
+            StrengthRoute, MuscleVolumeRoute, StatsRoute, is ExerciseProgressRoute -> ShellChrome.Screen
 
             // Draw their own bar through AppScreen (T-122): never reached through [chrome]. The add-food sheet shares
             // the search's chrome, so opening it does not redraw the bars.

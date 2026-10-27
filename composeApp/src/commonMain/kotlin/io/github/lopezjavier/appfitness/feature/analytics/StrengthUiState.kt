@@ -33,8 +33,8 @@ sealed interface StrengthEvent {
 sealed interface ExerciseProgressUiState {
     data object Loading : ExerciseProgressUiState
 
-    /** The exercise has no completed session yet. */
-    data object Empty : ExerciseProgressUiState
+    /** The exercise has no completed session yet; [name] is the screen title, null when the library has none. */
+    data class Empty(val name: String?) : ExerciseProgressUiState
 
     data object Error : ExerciseProgressUiState
 

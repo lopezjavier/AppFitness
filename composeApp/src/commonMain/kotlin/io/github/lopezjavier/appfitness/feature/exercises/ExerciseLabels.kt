@@ -18,12 +18,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.muscle_forearms
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_full_body
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_glutes
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_hamstrings
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_hamstrings_short
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_quads
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_shoulders
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_triceps
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import org.jetbrains.compose.resources.StringResource
+
+/** Short axis label for the statistics radar only ("Isquios"); everywhere else [label] applies. */
+internal val MuscleGroup.radarLabel: StringResource
+    get() = if (this == MuscleGroup.Hamstrings) Res.string.muscle_hamstrings_short else label
 
 /** Spanish label of this muscle group. */
 internal val MuscleGroup.label: StringResource

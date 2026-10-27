@@ -39,11 +39,12 @@ class MuscleVolumeScreenTest {
 
     private val events = mutableListOf<MuscleVolumeEvent>()
     private var startedWorkout = 0
+    private var backs = 0
 
     private fun show(state: MuscleVolumeUiState) {
         rule.setContent {
             AppTheme {
-                MuscleVolumeScreen(state, { events += it }, { startedWorkout++ })
+                MuscleVolumeScreen(state, { events += it }, { startedWorkout++ }, { backs++ })
             }
         }
         rule.waitForIdle()
@@ -63,6 +64,16 @@ class MuscleVolumeScreenTest {
         rule.onNodeWithTag("muscle_volume_week_chest_6", useUnmergedTree = true).assertTextEquals("4.260")
         rule.onNodeWithTag("muscle_volume_week_chest_0", useUnmergedTree = true).assertTextEquals("0")
         rule.onNodeWithTag("muscle_volume_current_chest", useUnmergedTree = true).assertTextEquals("5.400 kg")
+    }
+
+    @Test
+    fun title_isVolumenInTheBar_andBackLeaves() {
+        show(content())
+
+        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen")
+        rule.onNodeWithTag("muscle_volume_back").performClick()
+
+        assertEquals(1, backs)
     }
 
     @Test

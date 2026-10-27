@@ -6,10 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
@@ -20,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -32,6 +35,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import kotlin.math.ceil
+
+/** Captions under the silhouettes ("Frente", "Espalda"). */
+@Immutable
+data class BodyCaptions(val front: String, val back: String)
 
 /** One muscle of [BodyHeatmap]: its [sets], spoken [description] ("Pecho, 3 series"), [valueText] and [tag]. */
 @Immutable
@@ -50,6 +57,9 @@ object BodyHeatmapDefaults {
     val SilhouetteMaxWidth: Dp = 160.dp
     val MinRegionTarget: Dp = 48.dp
     val OutlineWidth: Dp = 1.dp
+
+    /** Width of the surface-coloured stroke that separates adjacent regions. */
+    val GapWidth: Dp = 2.dp
 
     /** Regions at least this wide (dp) show their value inside. */
     val ValueMinWidth: Dp = 28.dp
@@ -70,7 +80,8 @@ object BodyHeatmapDefaults {
  * Front and back silhouettes side by side; each [regions] entry is tinted by its sets (single hue, 4 steps) and is a
  * button reporting [onMuscleClick]. A region is a hit box of at least 48 dp; only the first polygon of a symmetric
  * group carries the semantics, the other still reacts to touch. Tags: `<tagPrefix>_front`, `<tagPrefix>_back` and
- * each region's [BodyRegion.tag].
+ * each region's [BodyRegion.tag]; with [captions] each view gets a caption tagged `<tagPrefix>_front_caption` or
+ * `<tagPrefix>_back_caption`.
  */
 @Composable
 fun BodyHeatmap(
@@ -78,12 +89,23 @@ fun BodyHeatmap(
     onMuscleClick: (MuscleGroup) -> Unit,
     tagPrefix: String,
     modifier: Modifier = Modifier,
+    captions: BodyCaptions? = null,
 ) {
     val max = regions.maxOfOrNull { it.sets } ?: 0.0
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         BodyView.entries.forEach { view ->
-            Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Silhouette(view, regions, max, onMuscleClick, Modifier.testTag("${tagPrefix}_${view.name.lowercase()}"))
+                captions?.let {
+                    Text(
+                        text = if (view == BodyView.Front) it.front else it.back,
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.textSecondary,
+                        modifier = Modifier.padding(
+                            top = Spacing.xs,
+                        ).testTag("${tagPrefix}_${view.name.lowercase()}_caption"),
+                    )
+                }
             }
         }
     }
@@ -106,12 +128,13 @@ private fun Silhouette(
         val unit = maxWidth / BodyMapPaths.WIDTH
         Canvas(Modifier.fillMaxWidth().aspectRatio(BodyMapPaths.WIDTH / BodyMapPaths.HEIGHT)) {
             val scale = size.width / BodyMapPaths.WIDTH
-            val outline = Stroke(BodyHeatmapDefaults.OutlineWidth.toPx())
+            val outline = Stroke(BodyHeatmapDefaults.OutlineWidth.toPx(), join = StrokeJoin.Round)
+            val gap = Stroke(BodyHeatmapDefaults.GapWidth.toPx(), join = StrokeJoin.Round)
             BodyMapPaths.outline().forEach { drawShape(it, scale, colors.surfaceBase, colors.borderSubtle, outline) }
             shapes.forEach { (group, polygons) ->
                 val step = BodyHeatmapDefaults.step(regions.firstOrNull { it.group == group }?.sets ?: 0.0, max)
                 polygons.forEach {
-                    drawShape(it, scale, BodyHeatmapDefaults.color(colors, step), colors.borderSubtle, outline)
+                    drawShape(it, scale, BodyHeatmapDefaults.color(colors, step), colors.surfaceBase, gap)
                 }
             }
         }

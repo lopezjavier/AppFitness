@@ -5,7 +5,6 @@
 # Tests: scripts/tests/test-check-ux-conventions.sh.
 
 # G2: direct AppBottomSheet( calls (sheet archetypes land in T-119/T-120, callers migrate per domain).
-G2 feature/analytics/stats/MuscleDetailSheet\.kt   # owner T-125c
 G2 feature/meals/defaults/MealDefaultsSheets\.kt   # owner T-126
 G2 feature/profile/PersonalDataCard\.kt   # owner T-127
 

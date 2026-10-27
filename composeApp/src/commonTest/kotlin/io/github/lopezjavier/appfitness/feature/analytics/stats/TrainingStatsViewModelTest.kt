@@ -350,6 +350,71 @@ class TrainingStatsViewModelTest {
     }
 
     @Test
+    fun previousWindowFailureKeepsTheCurrentRadarAndFlagsIt() = runTest(dispatcher) {
+        stats.muscleFor = { listOf(MuscleGroupSets(MuscleGroup.Chest, 3.0)) }
+        stats.muscleFailureFor = { if (it.from == LocalDate(2026, 8, 19)) AppError.Network else null }
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val radar = model.uiState.value.radar.data<MuscleRadar>()
+        assertNull(radar.previous)
+        assertEquals(true, radar.previousFailed)
+        assertEquals(3.0, radar.current.first { it.muscleGroup == MuscleGroup.Chest }.sets)
+    }
+
+    @Test
+    fun currentWindowFailureIsARadarError() = runTest(dispatcher) {
+        stats.muscleFailureFor = { if (it.from == LocalDate(2026, 9, 19)) AppError.Network else null }
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(SectionState.Error, model.uiState.value.radar)
+    }
+
+    @Test
+    fun allTimeRadarHasNoPreviousAndNoFailureFlag() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainingStatsEvent.SelectRange(ProgressRange.AllTime))
+        advanceUntilIdle()
+
+        val radar = model.uiState.value.radar.data<MuscleRadar>()
+        assertNull(radar.previous)
+        assertEquals(false, radar.previousFailed)
+    }
+
+    @Test
+    fun exerciseLookupIsLoadedOnceAcrossRangeChangesAndMuscleOpens() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainingStatsEvent.SelectRange(ProgressRange.SixMonths))
+        advanceUntilIdle()
+        model.onEvent(TrainingStatsEvent.OpenMuscle(MuscleGroup.Chest))
+        advanceUntilIdle()
+        model.onEvent(TrainingStatsEvent.CloseMuscle)
+        model.onEvent(TrainingStatsEvent.OpenMuscle(MuscleGroup.Back))
+        advanceUntilIdle()
+
+        assertEquals(1, exercises.getAllCalls)
+    }
+
+    @Test
+    fun aFailedExerciseLookupIsRetried() = runTest(dispatcher) {
+        exercises.failure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(SectionState.Error, model.uiState.value.topExercises)
+
+        exercises.failure = null
+        stats.exercisesFor = { _, _ -> listOf(ExerciseSetCount("bench", 2.0, 1)) }
+        model.onEvent(TrainingStatsEvent.Retry())
+        advanceUntilIdle()
+
+        assertIs<SectionState.Content<*>>(model.uiState.value.topExercises)
+        assertEquals(2, exercises.getAllCalls)
+    }
+
+    @Test
     fun recreatedFromTheSameSavedStateKeepsTheFrameAndTheOpenMuscle() = runTest(dispatcher) {
         val saved = SavedStateHandle()
         val first = viewModel(saved)

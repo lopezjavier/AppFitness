@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -19,8 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
@@ -35,41 +32,30 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_c
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_chart_volume
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_1m
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_1m_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_1y
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_1y_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_3m
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_3m_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_6m
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_6m_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_all
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_range_all_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_record_legend
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_records_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_session
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartSkeleton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
-import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TimeRangeSelector
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.ChartPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseProgress
 import io.github.lopezjavier.appfitness.domain.model.ProgressMetric
-import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -78,48 +64,46 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.math.roundToInt
 
-private val RangeOptions = listOf(
-    Triple(ProgressRange.OneMonth, Res.string.exercise_progress_range_1m, Res.string.exercise_progress_range_1m_cd),
-    Triple(ProgressRange.ThreeMonths, Res.string.exercise_progress_range_3m, Res.string.exercise_progress_range_3m_cd),
-    Triple(ProgressRange.SixMonths, Res.string.exercise_progress_range_6m, Res.string.exercise_progress_range_6m_cd),
-    Triple(ProgressRange.OneYear, Res.string.exercise_progress_range_1y, Res.string.exercise_progress_range_1y_cd),
-    Triple(ProgressRange.AllTime, Res.string.exercise_progress_range_all, Res.string.exercise_progress_range_all_cd),
-)
-
-private val RangeTags = mapOf(
-    ProgressRange.OneMonth to "exercise_progress_range_1m",
-    ProgressRange.ThreeMonths to "exercise_progress_range_3m",
-    ProgressRange.SixMonths to "exercise_progress_range_6m",
-    ProgressRange.OneYear to "exercise_progress_range_1y",
-    ProgressRange.AllTime to "exercise_progress_range_all",
-)
-
-/** Stateful progress of one exercise: connects [ExerciseProgressViewModel]. */
+/** Stateful progress of one exercise: connects [ExerciseProgressViewModel]; [onBack] leaves the screen. */
 @Composable
 fun ExerciseProgressRoot(
     exerciseId: String,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseProgressViewModel = koinViewModel(key = exerciseId, parameters = { parametersOf(exerciseId) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ExerciseProgressScreen(state, viewModel::onEvent, modifier)
+    ExerciseProgressScreen(state, viewModel::onEvent, onBack, modifier)
 }
 
 /**
- * Progress of one exercise (US-15): the range filter on top, then the 1RM chart and the volume chart (or the max-reps
- * chart for an exercise never logged with load). A single session shows its value and a hint instead of a chart.
+ * Progress of one exercise (US-15): the bar carries the exercise name (the generic title while it is unknown), the
+ * range selector stays pinned on top, then the 1RM chart and the volume chart (or the max-reps chart for an exercise
+ * never logged with load). A single session shows its value and a hint instead of a chart.
  */
 @Composable
 fun ExerciseProgressScreen(
     state: ExerciseProgressUiState,
     onEvent: (ExerciseProgressEvent) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize().testTag("exercise_progress_screen"), contentAlignment = Alignment.TopCenter) {
+    val name = when (state) {
+        is ExerciseProgressUiState.Content -> state.name
+        is ExerciseProgressUiState.Empty -> state.name
+        else -> null
+    }
+    AppScreen(
+        title = name ?: stringResource(Res.string.exercise_progress_title),
+        modifier = modifier.testTag("exercise_progress_screen"),
+        onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.TwoColumnContentMaxWidth,
+        testTagPrefix = "exercise_progress",
+    ) {
         when (state) {
             ExerciseProgressUiState.Loading -> ProgressLoading()
 
-            ExerciseProgressUiState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            is ExerciseProgressUiState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     message = stringResource(Res.string.exercise_progress_empty_message),
                     testTagPrefix = "exercise_progress_empty",
@@ -143,51 +127,24 @@ fun ExerciseProgressScreen(
 
 @Composable
 private fun ProgressContent(state: ExerciseProgressUiState.Content, onEvent: (ExerciseProgressEvent) -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = windowWidthClassFor(maxWidth) != WindowWidthClass.Compact
-        Column(
-            Modifier
-                .widthIn(
-                    max = if (wide) {
-                        WindowWidthClassDefaults.TwoColumnContentMaxWidth
-                    } else {
-                        WindowWidthClassDefaults.FormContentMaxWidth
-                    },
-                )
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(Spacing.screenMargin),
-            verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-        ) {
-            ExerciseTitle(state.name)
-            RangeSelector(state.range) { onEvent(ExerciseProgressEvent.SelectRange(it)) }
-            ProgressCharts(state.progress, wide)
+        Column(Modifier.fillMaxSize()) {
+            TimeRangeSelector(
+                selected = state.range.toTimeRange(),
+                onSelect = { onEvent(ExerciseProgressEvent.SelectRange(it.toProgressRange())) },
+                ranges = ProgressRanges,
+                tagPrefix = "exercise_progress_range",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
+            )
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
+                verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
+            ) {
+                ProgressCharts(state.progress, wide)
+            }
         }
     }
-}
-
-@Composable
-private fun ExerciseTitle(name: String?) {
-    Text(
-        text = name ?: stringResource(Res.string.exercise_unnamed),
-        style = AppTheme.typography.titleLarge,
-        color = AppTheme.colors.textPrimary,
-        modifier = Modifier.semantics { heading() }.testTag("exercise_progress_name"),
-    )
-}
-
-@Composable
-private fun RangeSelector(selected: ProgressRange, onSelect: (ProgressRange) -> Unit) {
-    val options = RangeOptions.map { (range, label, description) ->
-        AppOption(stringResource(label), RangeTags.getValue(range), stringResource(description))
-    }
-    FilterChipRow(
-        options = options,
-        selectedIndex = RangeOptions.indexOfFirst { it.first == selected },
-        onSelect = { onSelect(RangeOptions[it].first) },
-        modifier = Modifier.fillMaxWidth(),
-        scrollToSelected = true,
-    )
 }
 
 @Composable

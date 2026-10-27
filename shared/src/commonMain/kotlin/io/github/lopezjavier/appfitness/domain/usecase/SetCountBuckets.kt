@@ -39,7 +39,13 @@ object SetCountBuckets {
             .toList()
     }
 
-    /** Weekly buckets for 1M, 3M and 6M, monthly ones (up to the current month) for 1A and "Todo". */
+    /**
+     * Weekly buckets for 1M, 3M and 6M, monthly ones (up to the current month) for 1A and "Todo".
+     *
+     * The first monthly bucket of 1A and "Todo" is the month of the Monday of the window start. The server only
+     * counts sets inside the window, so when the window starts mid-month that bucket can hold a partial month.
+     * This is documented, not clamped.
+     */
     fun bucketsFor(range: ProgressRange, points: List<SetCountPoint>, window: StatsWindow, today: LocalDate) =
         when (range) {
             ProgressRange.OneMonth, ProgressRange.ThreeMonths, ProgressRange.SixMonths ->

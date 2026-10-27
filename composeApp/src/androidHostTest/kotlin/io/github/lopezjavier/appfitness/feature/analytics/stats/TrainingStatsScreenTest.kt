@@ -65,10 +65,11 @@ class TrainingStatsScreenTest {
 
     private val events = mutableListOf<TrainingStatsEvent>()
     private val opened = mutableListOf<String>()
+    private var backs = 0
 
     private fun show(state: TrainingStatsUiState) {
         rule.setContent {
-            AppTheme { TrainingStatsScreen(state, { events += it }, { opened += it }) }
+            AppTheme { TrainingStatsScreen(state, { events += it }, { opened += it }, { backs++ }) }
         }
         rule.waitForIdle()
     }
@@ -81,20 +82,20 @@ class TrainingStatsScreenTest {
     private fun scrollTo(tag: String) = rule.onNodeWithTag(tag).performScrollTo()
 
     @Test
-    fun timeFrames_defaultIsOneMonth_andPickingTodoSendsTheEvent() {
+    fun timeRanges_defaultIsOneMonth_andPickingTodoSendsTheEvent() {
         show(content())
 
-        rule.onNodeWithTag("stats_frame_1m").assertIsSelected()
-        rule.onNodeWithTag("stats_frame_all").performClick()
+        rule.onNodeWithTag("stats_range_month").assertIsSelected()
+        rule.onNodeWithTag("stats_range_all").performClick()
 
         assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.SelectRange(ProgressRange.AllTime)), events)
     }
 
     @Test
-    fun timeFrames_tilesShowTheKeyValuesOfTheFrame() {
+    fun timeRanges_tilesShowTheKeyValuesOfTheFrame() {
         show(content(ProgressRange.AllTime))
 
-        rule.onNodeWithTag("stats_frame_all").assertIsSelected()
+        rule.onNodeWithTag("stats_range_all").assertIsSelected()
         rule.onNodeWithTag("stats_tile_workouts").assertTextContains("4", substring = true)
         rule.onNodeWithTag("stats_tile_sets").assertTextContains("1.240", substring = true)
         rule.onNodeWithTag("stats_tile_volume").assertTextContains("12.500", substring = true)
@@ -144,8 +145,8 @@ class TrainingStatsScreenTest {
 
         scrollTo("stats_exercise_row_bench")
         rule.onNodeWithTag("stats_exercise_row_bench").assertHeightIsAtLeast(48.dp)
-            .assertContentDescriptionEquals("Press banca, 9 series · 3 sesiones")
-        rule.onNodeWithTag("stats_exercise_row_squat").assertContentDescriptionEquals("Ejercicio, 6 series · 1 sesión")
+            .assertContentDescriptionEquals("Press banca, 9 series · 3 entrenos")
+        rule.onNodeWithTag("stats_exercise_row_squat").assertContentDescriptionEquals("Ejercicio, 6 series · 1 entreno")
         rule.onNodeWithTag("stats_exercise_row_bench").performClick()
 
         assertEquals(listOf("bench"), opened)
@@ -173,6 +174,58 @@ class TrainingStatsScreenTest {
     }
 
     @Test
+    fun radar_axisUsesTheShortHamstringsLabel() {
+        show(content())
+
+        scrollTo("stats_radar")
+        val description = rule.onNodeWithTag("stats_radar").fetchSemanticsNode()
+            .config[SemanticsProperties.StateDescription]
+        assertEquals(true, description.contains("Isquios 0 series"))
+        assertEquals(false, description.contains("Isquiotibiales"))
+    }
+
+    @Test
+    fun radar_previousWindowFailed_keepsActualAndExplainsTheMissingPeriod() {
+        val radar = MuscleRadar(groups(MuscleGroup.Chest to 3.0), previous = null, previousFailed = true)
+        show(content().copy(radar = SectionState.Content(radar)))
+
+        scrollTo("stats_radar")
+        rule.onNodeWithTag("stats_radar_legend_current").assertTextEquals("Actual")
+        rule.onNodeWithTag("stats_radar_legend_previous").assertDoesNotExist()
+        rule.onNodeWithTag("stats_radar_previous_failed")
+            .assertTextEquals("No se pudo cargar el periodo anterior.")
+    }
+
+    @Test
+    fun radar_withPreviousLoaded_showsNoFailureHint() {
+        show(content())
+
+        scrollTo("stats_radar")
+        rule.onNodeWithTag("stats_radar_previous_failed").assertDoesNotExist()
+    }
+
+    @Test
+    fun title_isEstadisticasInTheBar_andBackLeaves() {
+        show(content())
+
+        rule.onNodeWithTag("stats_title").assertTextEquals("Estadísticas")
+        rule.onNodeWithTag("stats_back").performClick()
+
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun rangeSelector_showsTheFiveRanges_andSelectingEmitsTheEvent() {
+        show(content())
+
+        listOf("1M" to "month", "3M" to "threemonths", "6M" to "sixmonths", "1A" to "year", "Todo" to "all")
+            .forEach { (label, name) -> rule.onNodeWithTag("stats_range_$name").assertTextEquals(label) }
+        rule.onNodeWithTag("stats_range_sixmonths").performClick()
+
+        assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.SelectRange(ProgressRange.SixMonths)), events)
+    }
+
+    @Test
     fun radar_withEveryValueZero_showsTheEmptyText() {
         val zero = MuscleRadar(groups(), groups())
         show(content().copy(radar = SectionState.Content(zero)))
@@ -194,6 +247,15 @@ class TrainingStatsScreenTest {
         rule.onNodeWithTag("stats_body_list_full_body").assertDoesNotExist()
         rule.onNodeWithTag("stats_body_legend").assertExists()
         rule.onNodeWithTag("stats_body_list_chest", useUnmergedTree = true).assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun bodyHeatmap_captionsNameFrontAndBack() {
+        show(content())
+
+        scrollTo("stats_body_front_caption")
+        rule.onNodeWithTag("stats_body_front_caption").assertTextEquals("Frente")
+        rule.onNodeWithTag("stats_body_back_caption").assertTextEquals("Espalda")
     }
 
     @Test
@@ -235,6 +297,7 @@ class TrainingStatsScreenTest {
         rule.onNodeWithTag("stats_muscle_sheet_exercise_bench").assertExists()
         rule.onNodeWithTag("stats_muscle_sheet_close").assertHeightIsAtLeast(48.dp).performClick()
 
+        rule.waitUntil(timeoutMillis = 5_000) { events.isNotEmpty() }
         assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.CloseMuscle), events)
     }
 
@@ -285,10 +348,10 @@ class TrainingStatsScreenTest {
     fun emptyFrame_showsTheEmptyStateAndKeepsTheChipsAndTheBodyMap() {
         show(content().copy(summary = SectionState.Empty))
 
-        rule.onNodeWithTag("stats_empty_title").assertTextEquals("Sin entrenamientos en este periodo")
+        rule.onNodeWithTag("stats_empty_title").assertTextEquals("Sin entrenos en este periodo")
         rule.onNodeWithTag("stats_empty_message")
-            .assertTextEquals("Registra un entrenamiento o prueba con otro periodo.")
-        rule.onNodeWithTag("stats_frame_3m").performClick()
+            .assertTextEquals("Registra un entreno o prueba con otro periodo.")
+        rule.onNodeWithTag("stats_range_threemonths").performClick()
         rule.onNodeWithTag("stats_set_chart").assertDoesNotExist()
         scrollTo("stats_body_front")
         rule.onNodeWithTag("stats_body_front").assertExists()

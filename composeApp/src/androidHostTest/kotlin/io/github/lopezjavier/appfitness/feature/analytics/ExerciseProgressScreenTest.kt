@@ -50,9 +50,10 @@ class ExerciseProgressScreenTest {
     val rule = createComposeRule()
 
     private val events = mutableListOf<ExerciseProgressEvent>()
+    private var backs = 0
 
     private fun show(state: ExerciseProgressUiState) {
-        rule.setContent { AppTheme { ExerciseProgressScreen(state, { events += it }) } }
+        rule.setContent { AppTheme { ExerciseProgressScreen(state, { events += it }, { backs++ }) } }
         rule.waitForIdle()
     }
 
@@ -72,10 +73,10 @@ class ExerciseProgressScreenTest {
         show(content(TwoSessions))
 
         rule.onNodeWithTag("exercise_progress_chart_1rm").assertStateDescription(
-            "1RM estimado (kg). 2 sesiones, de 100,0 a 107,5.",
+            "1RM estimado (kg). 2 entrenos, de 100,0 a 107,5.",
         )
         rule.onNodeWithTag("exercise_progress_chart_volume").assertStateDescription(
-            "Volumen (kg). 2 sesiones, de 3.000 a 3.400.",
+            "Volumen (kg). 2 entrenos, de 3.000 a 3.400.",
         )
         rule.onNodeWithTag("exercise_progress_record_legend").assertDoesNotExist()
     }
@@ -93,10 +94,10 @@ class ExerciseProgressScreenTest {
         rule.onAllNodesWithText("Récord").assertCountEquals(2)
         rule.onNodeWithTag("exercise_progress_record_legend_volume").assertExists()
         rule.onNodeWithTag("exercise_progress_chart_1rm").assertStateDescription(
-            "1RM estimado (kg). 3 sesiones, de 100,0 a 105,0. 2 marcadas como récord personal en su fecha.",
+            "1RM estimado (kg). 3 entrenos, de 100,0 a 105,0. 2 marcadas como récord personal en su fecha.",
         )
         rule.onNodeWithTag("exercise_progress_chart_volume").assertStateDescription(
-            "Volumen (kg). 3 sesiones, de 3.000 a 3.300. 1 marcada como récord personal en su fecha.",
+            "Volumen (kg). 3 entrenos, de 3.000 a 3.300. 1 marcada como récord personal en su fecha.",
         )
     }
 
@@ -105,7 +106,7 @@ class ExerciseProgressScreenTest {
         show(content(TwoSessions, ProgressRange.AllTime))
 
         rule.onNodeWithTag("exercise_progress_range_all").assertIsSelected()
-        rule.onNodeWithTag("exercise_progress_range_1m").performClick()
+        rule.onNodeWithTag("exercise_progress_range_month").performClick()
         assertEquals(listOf<ExerciseProgressEvent>(ExerciseProgressEvent.SelectRange(ProgressRange.OneMonth)), events)
     }
 
@@ -113,7 +114,7 @@ class ExerciseProgressScreenTest {
     fun allTimeChip_survivesRecreation() {
         val restoration = StateRestorationTester(rule)
         restoration.setContent {
-            AppTheme { ExerciseProgressScreen(content(OneSession, ProgressRange.AllTime), { events += it }) }
+            AppTheme { ExerciseProgressScreen(content(OneSession, ProgressRange.AllTime), { events += it }, {}) }
         }
         restoration.emulateSavedInstanceStateRestore()
 
@@ -130,7 +131,7 @@ class ExerciseProgressScreenTest {
         )
 
         rule.onNodeWithTag("exercise_progress_chart_duration").assertStateDescription(
-            "Duración. 2 sesiones, de 0:45 a 1:05. 1 marcada como récord personal en su fecha.",
+            "Duración. 2 entrenos, de 0:45 a 1:05. 1 marcada como récord personal en su fecha.",
         )
         rule.onNodeWithTag("exercise_progress_chart_1rm").assertDoesNotExist()
         rule.onNodeWithTag("exercise_progress_chart_volume").assertDoesNotExist()
@@ -146,7 +147,7 @@ class ExerciseProgressScreenTest {
         )
 
         rule.onNodeWithTag("exercise_progress_chart_distance").assertStateDescription(
-            "Distancia. 2 sesiones, de 800 m a 5,2 km.",
+            "Distancia. 2 entrenos, de 800 m a 5,2 km.",
         )
     }
 
@@ -156,7 +157,7 @@ class ExerciseProgressScreenTest {
         show(content(ExerciseProgress(ProgressMetric.Steps, twoPoints, emptyList())))
         rule.onNodeWithTag(
             "exercise_progress_chart_steps",
-        ).assertStateDescription("Pasos. 2 sesiones, de 1.500 a 2.000.")
+        ).assertStateDescription("Pasos. 2 entrenos, de 1.500 a 2.000.")
     }
 
     @Test
@@ -172,22 +173,22 @@ class ExerciseProgressScreenTest {
         show(content(ExerciseProgress(ProgressMetric.Reps, twoPoints, emptyList())))
         rule.onNodeWithTag(
             "exercise_progress_chart_reps",
-        ).assertStateDescription("Repeticiones. 2 sesiones, de 30 a 35.")
+        ).assertStateDescription("Repeticiones. 2 entrenos, de 30 a 35.")
     }
 
     @Test
     fun rangeFilters_markTheActiveRange() {
         show(content(TwoSessions, ProgressRange.SixMonths))
 
-        rule.onNodeWithTag("exercise_progress_range_6m").assertIsSelected()
+        rule.onNodeWithTag("exercise_progress_range_sixmonths").assertIsSelected()
     }
 
     @Test
     fun rangeFilters_sendTheChosenRange() {
         show(content(TwoSessions, ProgressRange.ThreeMonths))
 
-        rule.onNodeWithTag("exercise_progress_range_1m").performClick()
-        rule.onNodeWithTag("exercise_progress_range_1y").performClick()
+        rule.onNodeWithTag("exercise_progress_range_month").performClick()
+        rule.onNodeWithTag("exercise_progress_range_year").performClick()
 
         assertEquals(
             listOf<ExerciseProgressEvent>(
@@ -202,8 +203,8 @@ class ExerciseProgressScreenTest {
     fun singleSession_showsItsValueAndTheHintInsteadOfCharts() {
         show(content(ExerciseProgress(ProgressMetric.OneRepMax, listOf(point(1, 100.0)), listOf(point(1, 3_000.0)))))
 
-        rule.onNodeWithText("Necesitas al menos 2 sesiones para ver la evolución").assertExists()
-        rule.onNodeWithTag("exercise_progress_single_value").assertTextEquals("Última sesión: 100,0")
+        rule.onNodeWithText("Necesitas al menos 2 entrenos para ver la evolución").assertExists()
+        rule.onNodeWithTag("exercise_progress_single_value").assertTextEquals("Último entreno: 100,0")
         rule.onNodeWithTag("exercise_progress_chart_1rm").assertDoesNotExist()
         rule.onNodeWithTag("exercise_progress_chart_volume").assertDoesNotExist()
     }
@@ -227,30 +228,60 @@ class ExerciseProgressScreenTest {
 
         rule.onNodeWithText("Repeticiones máximas").assertExists()
         rule.onNodeWithTag("exercise_progress_chart_1rm").assertStateDescription(
-            "Repeticiones máximas. 2 sesiones, de 8 a 10.",
+            "Repeticiones máximas. 2 entrenos, de 8 a 10.",
         )
         rule.onNodeWithTag("exercise_progress_chart_volume").assertDoesNotExist()
     }
 
     @Test
-    fun unnamedExercise_usesAGenericTitle() {
-        show(content(TwoSessions, name = null))
+    fun title_isTheExerciseNameInTheBar_andNotRepeatedInTheBody() {
+        show(content(TwoSessions))
 
-        rule.onNodeWithTag("exercise_progress_name").assertTextEquals("Ejercicio")
+        rule.onNodeWithTag("exercise_progress_title").assertTextEquals("Press de banca")
+        rule.onAllNodesWithText("Press de banca").assertCountEquals(1)
+        rule.onNodeWithTag("exercise_progress_name").assertDoesNotExist()
     }
 
     @Test
-    fun loading_showsChartSkeletons() {
+    fun unnamedExercise_usesTheGenericTitle() {
+        show(content(TwoSessions, name = null))
+
+        rule.onNodeWithTag("exercise_progress_title").assertTextEquals("Progreso del ejercicio")
+    }
+
+    @Test
+    fun backArrow_leavesTheScreen() {
+        show(content(TwoSessions))
+
+        rule.onNodeWithTag("exercise_progress_back").performClick()
+
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun rangeSelector_showsTheFiveRanges() {
+        show(content(TwoSessions))
+
+        listOf("1M" to "month", "3M" to "threemonths", "6M" to "sixmonths", "1A" to "year", "Todo" to "all")
+            .forEach { (label, name) ->
+                rule.onNodeWithTag("exercise_progress_range_$name").assertTextEquals(label)
+            }
+    }
+
+    @Test
+    fun loading_showsChartSkeletons_andTheGenericTitle() {
         show(ExerciseProgressUiState.Loading)
 
         rule.onNodeWithTag("exercise_progress_loading").assertExists()
+        rule.onNodeWithTag("exercise_progress_title").assertTextEquals("Progreso del ejercicio")
     }
 
     @Test
-    fun empty_explainsTheExerciseHasNoSessions() {
-        show(ExerciseProgressUiState.Empty)
+    fun empty_explainsTheExerciseHasNoSessions_withTheExerciseNameAsTitle() {
+        show(ExerciseProgressUiState.Empty("Press de banca"))
 
         rule.onNodeWithText("Aún no has registrado este ejercicio en ningún entreno.").assertExists()
+        rule.onNodeWithTag("exercise_progress_title").assertTextEquals("Press de banca")
     }
 
     @Test
