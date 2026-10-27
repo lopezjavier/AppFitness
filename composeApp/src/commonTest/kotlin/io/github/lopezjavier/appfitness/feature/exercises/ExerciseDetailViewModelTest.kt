@@ -567,7 +567,6 @@ class ExerciseDetailViewModelTest {
         advanceUntilIdle()
 
         val failed = loaded(vm).editForm!!
-        assertTrue(failed.hasError)
         assertFalse(failed.isSubmitting)
         repository.updateFailure = null
         vm.submitEdit()
@@ -605,6 +604,25 @@ class ExerciseDetailViewModelTest {
             assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
         }
         assertTrue(repository.rows.isEmpty())
+    }
+
+    @Test
+    fun aSecondDeleteTapBeforeNavigation_doesNotFireAnotherDelete() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.delete()
+            advanceUntilIdle()
+            assertEquals(ExerciseDetailEffect.Deleted, awaitItem())
+
+            vm.delete()
+            advanceUntilIdle()
+
+            expectNoEvents()
+        }
+        assertTrue(loaded(vm).isDeleting)
     }
 
     @Test

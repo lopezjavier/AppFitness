@@ -195,7 +195,6 @@ class ExercisePickerViewModelTest {
         fillAndSubmit(vm)
 
         val form = assertIs<CreateExerciseForm>(vm.content().createForm)
-        assertTrue(form.hasError)
         assertFalse(form.isSubmitting)
         assertEquals("Press Hammer", form.name)
     }

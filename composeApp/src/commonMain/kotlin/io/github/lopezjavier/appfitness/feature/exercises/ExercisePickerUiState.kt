@@ -15,7 +15,6 @@ data class CreateExerciseForm(
     /** The logged weight is per hand/side (volume counts twice); off by default. */
     val perHand: Boolean = false,
     val isSubmitting: Boolean = false,
-    val hasError: Boolean = false,
 ) {
     val canSubmit: Boolean get() = name.isNotBlank() && muscleGroup != null && equipment != null && !isSubmitting
 }

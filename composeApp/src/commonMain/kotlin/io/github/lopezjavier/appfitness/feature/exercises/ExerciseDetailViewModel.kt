@@ -51,7 +51,6 @@ data class EditExerciseForm(
     val equipment: Equipment,
     val perHand: Boolean,
     val isSubmitting: Boolean = false,
-    val hasError: Boolean = false,
 ) {
     val canSubmit: Boolean get() = name.isNotBlank() && !isSubmitting
 }
@@ -220,7 +219,7 @@ class ExerciseDetailViewModel(
 
     fun dismissEdit() = setEditForm(null)
 
-    fun setEditName(name: String) = editForm { it.copy(name = name.take(NAME_MAX_LENGTH), hasError = false) }
+    fun setEditName(name: String) = editForm { it.copy(name = name.take(NAME_MAX_LENGTH)) }
 
     fun selectEditMuscleGroup(group: MuscleGroup) = editForm { it.copy(muscleGroup = group) }
 
@@ -231,7 +230,7 @@ class ExerciseDetailViewModel(
     /** "Guardar": applies the edit; on success the form closes and the detail shows the new values. */
     fun submitEdit() {
         val form = loaded()?.editForm?.takeIf { it.canSubmit && online } ?: return
-        setEditForm(form.copy(isSubmitting = true, hasError = false))
+        setEditForm(form.copy(isSubmitting = true))
         viewModelScope.launch {
             repository.updateCustom(exerciseId, form.name.trim(), form.muscleGroup, form.equipment, form.perHand).fold(
                 onSuccess = {
@@ -240,7 +239,7 @@ class ExerciseDetailViewModel(
                     effectChannel.trySend(ExerciseDetailEffect.Saved)
                 },
                 onFailure = {
-                    setEditForm(form.copy(isSubmitting = false, hasError = true))
+                    setEditForm(form.copy(isSubmitting = false))
                     effectChannel.trySend(ExerciseDetailEffect.SaveFailed)
                 },
             )
@@ -257,7 +256,8 @@ class ExerciseDetailViewModel(
         viewModelScope.launch {
             val result = repository.deleteCustom(exerciseId)
             val error = result.appErrorOrNull()
-            updateLoaded { it.copy(isDeleting = false) }
+            // On success stay "deleting" until the screen navigates away, so a second tap cannot delete again.
+            if (!result.isSuccess) updateLoaded { it.copy(isDeleting = false) }
             effectChannel.trySend(
                 when {
                     result.isSuccess -> ExerciseDetailEffect.Deleted
