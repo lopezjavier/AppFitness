@@ -11,7 +11,7 @@ The PM gives you an epic ID (`E#`).
 
 ## Read
 1. `CLAUDE.md`, and the "Notes for later epics" in `tasks/todo.md` (feedback carried over from earlier epics; apply what targets this epic).
-2. The epic file in `planning/epics/` (stories and Gherkin), `planning/01-phase1-scope.md` and `planning/00-decisions.md`.
+2. The epic file in `planning/epics/` (stories and Gherkin), `planning/01-scope.md` and `planning/00-decisions.md`.
 3. Only what the stories touch: `planning/02-architecture.md`, `03-data-model.md`, `04-business-rules.md`, `05-design-system.md`.
 
 ## Sizing rules (why: every task pays a fixed cost of 6–7 agent hand-offs)
@@ -37,7 +37,7 @@ The PM works autonomously between checkpoints, but a checkpoint that covers a wh
 - Product questions that `planning/` does not answer go under "Open questions" marked **BLOCKING**; never decide product behaviour yourself.
 
 ## Rules
-- Write in English; UI texts quoted from the Gherkin stay in Spanish. Nothing outside `planning/01-phase1-scope.md`.
+- Write in English; UI texts quoted from the Gherkin stay in Spanish. Nothing outside `planning/01-scope.md`.
 - Files are UTF-8 with LF; if you script an edit, pass the encoding explicitly.
 - Never overwrite `tasks/todo.md` or `tasks/plan.md` while they still hold unchecked tasks for other work: stop and ask the PM.
 - Do not write code or tests.

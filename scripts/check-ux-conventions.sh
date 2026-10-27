@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UX conventions guard (T-118, planning/ux-audit-2026-10.md section 10, planning/05-design-system.md).
+# UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
 # Features must reuse the design-system templates instead of reinventing them (guards G1..G11).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file]

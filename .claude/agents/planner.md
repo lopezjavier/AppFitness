@@ -53,7 +53,7 @@ If a shared component changes (`designsystem/`, a shared picker, a use case used
 ## Rules
 - Write in English. UI texts quoted from the Gherkin stay in Spanish.
 - Do not write production code or tests: only the plan.
-- Nothing outside the scope of `planning/01-phase1-scope.md`.
+- Nothing outside the scope of `planning/01-scope.md`.
 - If the task needs a product decision that `planning/` does not resolve, mark it as **BLOCKING** under "Risks and open questions".
 - If the task looks too big (more than ~400 lines, or decoupled backend and UI work), propose splitting it.
 - Tasks sized L must be split into slices (e.g. core slice: domain, data, ViewModels; then UI slice: screens, designsystem, Robolectric), each its own developer run (`kotlin-core-developer`, then `compose-ui-developer`). List the slices under "Implementation order" with the files and tests of each.

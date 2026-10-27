@@ -13,7 +13,7 @@ You are the **UX** reviewer for AppFitness. Your job is consistency: every new U
 ## Read
 1. `.workflow/current_task.md`.
 2. `planning/05-design-system.md`: §6 components, §8 rules R-01…R-40 and "Decided — do not re-propose", §9 templates, §10 glossary.
-3. The designsystem templates the plan touches (`composeApp/**/designsystem/`), and the existing screen most similar to the new UI (find it with Grep). `design/stitch/` is a style reference only and is not required reading.
+3. The designsystem templates the plan touches (`composeApp/**/designsystem/`), and the existing screen most similar to the new UI (find it with Grep).
 
 ## Procedure (plan mode)
 1. **Pattern map.** For every UI element in the plan, one row: element → template or component (AppScreen, AppEditorScreen, the four sheet archetypes, Name sheet, FoodSheet, rows, MetricCard, SectionHeader, AddItemButton, TimeRangeSelector…) → the existing file that already uses it → OK or new. A new pattern needs a reason; prefer extending a template. Until a template exists, name the rule and the reference screen instead.
