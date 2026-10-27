@@ -11,9 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.rpe_picker_title
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
@@ -47,14 +44,7 @@ fun RpePickerSheet(
         title = stringResource(Res.string.rpe_picker_title, AppNumberFormat.integer(setNumber)),
         onDismiss = onDismiss,
         modifier = modifier,
-        help = {
-            HelpButton(
-                contentDescription = stringResource(Res.string.help_rpe_cd),
-                title = stringResource(Res.string.help_rpe_title),
-                body = stringResource(Res.string.help_rpe_body),
-                testTag = "live_rpe_help",
-            )
-        },
+        help = { RpeHelpButton(testTag = "live_rpe_help") },
         testTagPrefix = "rpe_picker",
     ) {
         if (completesSet) {

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,6 +25,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
@@ -68,11 +72,33 @@ class LiveSessionScreenTest {
     private val events = mutableListOf<LiveSessionEvent>()
     private var backs = 0
 
+    private val haptics = RecordingAppHaptics()
+
     private fun show(state: LiveSessionUiState, elapsed: Long = 125) {
         rule.setContent {
-            AppTheme { LiveSessionScreen(state, elapsed, { events += it }, { backs++ }, onOpenExercise = {}) }
+            CompositionLocalProvider(LocalAppHaptics provides haptics) {
+                AppTheme { LiveSessionScreen(state, elapsed, { events += it }, { backs++ }, onOpenExercise = {}) }
+            }
         }
         rule.waitForIdle()
+    }
+
+    @Test
+    fun completingASetWithTheCheckbox_givesExactlyOneConfirmAndNoReject() {
+        show(active())
+
+        rule.onNodeWithTag("live_set_0_2_check").performClick()
+
+        haptics.assertSingle(HapticEvent.Confirm)
+    }
+
+    @Test
+    fun uncheckingASet_givesNoHaptic() {
+        show(active())
+
+        rule.onNodeWithTag("live_set_0_1_check").performClick()
+
+        assertTrue(haptics.calls.isEmpty())
     }
 
     @Test

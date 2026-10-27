@@ -13,6 +13,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,6 +24,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.junit.Assert.assertTrue
@@ -71,6 +77,8 @@ class LiveSessionRpeTest {
     @get:Rule
     val rule = createComposeRule()
 
+    private val haptics = RecordingAppHaptics()
+
     private fun showStateful(
         initial: List<String?> = listOf(null, null, null),
         target: String? = null,
@@ -78,11 +86,67 @@ class LiveSessionRpeTest {
         fontScale: Float = 1f,
     ) {
         rule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(2.75f, fontScale)) {
+            CompositionLocalProvider(
+                LocalDensity provides Density(2.75f, fontScale),
+                LocalAppHaptics provides haptics,
+            ) {
                 AppTheme { StatefulRpeLive(initial, target, previous) }
             }
         }
         rule.waitForIdle()
+    }
+
+    @Test
+    fun completingASetThroughTheRpePicker_givesExactlyOneConfirm() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_2_check").performClick()
+        rule.onNodeWithTag("rpe_picker_option_8").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_set_0_2_check").assertIsOn()
+        haptics.assertSingle(HapticEvent.Confirm)
+    }
+
+    @Test
+    fun choosingARpeWithoutCompletingTheSet_givesNoHaptic() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_2_rpe").performClick()
+        rule.onNodeWithTag("rpe_picker_option_7").performClick()
+        rule.waitForIdle()
+
+        assertTrue(haptics.calls.isEmpty())
+    }
+
+    @Test
+    fun rpeHelp_listsOneBulletPerValue_tenDownToSix() {
+        showStateful()
+
+        rule.onNodeWithTag("live_set_0_2_rpe").performClick()
+        rule.onNodeWithTag("live_rpe_help").performClick()
+
+        listOf("10", "9", "8", "7", "6").forEachIndexed { i, value ->
+            assertBulletStartsWith("live_rpe_help", i + 1, "$value:")
+        }
+        rule.onNodeWithTag("live_rpe_help_sheet_bullet_6", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun targetRpeHelp_sharesTheSameBullets() {
+        showStateful(target = "8")
+
+        rule.onNodeWithTag("live_target_rpe_help").performClick()
+
+        assertBulletStartsWith("live_target_rpe_help", 1, "10:")
+        assertBulletStartsWith("live_target_rpe_help", 5, "6:")
+    }
+
+    private fun assertBulletStartsWith(helpTag: String, n: Int, text: String) {
+        rule.onNode(
+            hasText(text, substring = true) and hasAnyAncestor(hasTestTag("${helpTag}_sheet_bullet_$n")),
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test

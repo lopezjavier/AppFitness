@@ -23,15 +23,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
@@ -68,12 +65,7 @@ internal fun LiveExerciseCard(
                         color = AppTheme.colors.textSecondary,
                         modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
                     )
-                    HelpButton(
-                        contentDescription = stringResource(Res.string.help_rpe_cd),
-                        title = stringResource(Res.string.help_rpe_title),
-                        body = stringResource(Res.string.help_rpe_body),
-                        testTag = "live_target_rpe_help",
-                    )
+                    RpeHelpButton(testTag = "live_target_rpe_help")
                 }
             }
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
