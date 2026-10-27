@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-125b (History and workout detail migration), E9 (UX rulebook + finalization → `v1.0.0`). T-125 merged (PR #278, CI green, no backend change so no deploy; live session on `AppScreen` with the rest bar as footer, "N" badge + `SetOrdinal`, planned values with "Previsto", end-of-rest 1200 ms pulse pattern + system alarm sound, finish/update/rest/volume/warm-up sheets on archetypes, structured RPE help (`RpeHelpButton`), `LiveSessionRestorationTest`). T-125 was split by file count (user-approved): T-125b history, T-125c statistics + item B (user picks the body-map option before T-125c starts), then T-126.
+**Next:** T-125c (Statistics migration and body map), E9 (UX rulebook + finalization → `v1.0.0`). T-125b merged (PR #280, CI green, no backend change so no deploy; Historial is the calendar with "Añadir entreno" per day, workout detail on `AppScreen` titled "<rutina> · <fecha>", editors on `AppEditorScreen`, new `WorkoutRow`). **Before T-125c starts the user must pick the body-map option (B1 polish, B2 licensed SVG replacement, B3 muscle bars/tiles).** Carry-over for T-125c strings: `live_discard_message`, `stats_sessions_one`, `exercise_progress_single_value` still say "sesión"; `stats_empty_title/message` say "entrenamientos" (glossary: "entreno").
 
 ---
 
@@ -3674,15 +3674,15 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 **Description:** per the E7 backlog request, Entreno → Historial shows the calendar directly (no list, no "+" and no calendar button); tapping a day opens its details, which gain "Añadir entrenamiento" opening the existing past-workout flow on that day; titles "Historial de entrenos" per glossary. Workout detail on `AppScreen` titled "<rutina> · lun, 24 oct" (R-01, `AppDateFormat`) with its actions in the top bar (NAV-1), exercise names as `ExerciseRow` opening the detail (LST-2, "Ver progreso" moves to the exercise detail); new **`WorkoutRow`**. "Editar entreno" and "Entreno pasado" on `AppEditorScreen` (discard dialog; chooser "¿Desde dónde empiezas?", WRD-2). `FinishSessionSheet`, calculators, `UpdateRoutineSheet`, `PastWorkoutChooserSheet` → archetypes; `SaveAsRoutineSheet` → Name sheet (unique names from T-124).
 
 **Acceptance criteria:**
-- [ ] Historial opens the calendar; a day opens its details with "Añadir entrenamiento" that starts the past-workout flow on that day.
-- [ ] Workout detail: entity title, actions in the top bar, tapping an exercise name opens its detail.
-- [ ] "Editar entreno"/"Entreno pasado" ask before discarding; the chooser reads "¿Desde dónde empiezas?".
-- [ ] Drafts and open sheets survive background and process death.
+- [x] Historial opens the calendar; a day opens its details with "Añadir entrenamiento" that starts the past-workout flow on that day.
+- [x] Workout detail: entity title, actions in the top bar, tapping an exercise name opens its detail.
+- [x] "Editar entreno"/"Entreno pasado" ask before discarding; the chooser reads "¿Desde dónde empiezas?".
+- [x] Drafts and open sheets survive background and process death.
 
 **Host tests:** `HistoryScreen`/calendar/day details tests, `SessionDetailScreen` tests (title, actions, exercise tap), `WorkoutRowTest`, `EditWorkoutScreen`/`PastWorkoutScreen` discard tests, restoration tests.
 
 **Verification:**
-- [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 24 files.
 **Dependencies:** T-125
