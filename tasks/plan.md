@@ -69,7 +69,7 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 - [x] T-125c: Statistics and body map (item B) — UI + core — L
 - [x] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
 - [x] T-127: Perfil root and Preferencias hub — UI + core — L
-- [ ] T-128: Wording, motion and onboarding; every guard a failure — UI — L
+- [x] T-128: Wording, motion and onboarding; every guard a failure — UI — L
 
 ### Phase 4: Version 1.0 quality (US-45, US-46)
 - [ ] T-129: Version 1.0 quality: About and licences, states, accessibility and tablet — UI + core — L

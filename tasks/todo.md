@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-128 (Wording, motion and onboarding; every guard a failure), E9 (UX rulebook + finalization → `v1.0.0`). T-127 merged (PR #288, CI green; no migration; Perfil root with gear and value rows, Preferencias hub with five section editors on `AppEditorScreen`, Account screen; `stats_title` is now "Entrenamiento"; `feature/profile` guards are failures). `deploy-supabase` on `main` (T-126 migration) must finish green (meals intact) before the final E9 checkpoint. Carry-over for T-128: drop legacy `save_meal_slots` and `delete_meal_slot`; delete the unreachable `ShellChrome.FullScreen`; check whether `WorkoutHome` draws a duplicate top bar (`NavBackStackEntry.chrome()` in `AppNavHost.kt` special-cases only `DiaryHome`/`ProfileHome`; unverified); `delete_account_error` lacks its final period (R-37); `OnboardingScreen.kt` `SnackbarHost` goes with T-128's onboarding work; non-blocking nits: `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
+**Next:** T-129 (Version 1.0 quality: About and licences, states, accessibility and tablet), E9 (UX rulebook + finalization → `v1.0.0`). T-128 merged (PR #290, CI green; no migration; 19+ duplicate generic strings removed, `GlossaryStringsTest`, dates through `AppDateFormat`, shell title switch and `ShellChrome.Tabs`/`FullScreen` removed, `appAnimateItem` on the lazy lists, `AppIconButton` long-press tooltip, `StepScaffold` with slide, `SexSelector` as two `SelectableCard`s, onboarding on `AppMessages`; `ux-conventions-warnings.txt` is empty, every guard fails). `deploy-supabase` on `main` (T-126 migration) must finish green (meals intact) before the final E9 checkpoint. Carry-over: drop legacy `save_meal_slots` and `delete_meal_slot` (still pending; needs a backend slice, plan it before E9-B or in T-130); Perfil's `SexSelector` layout unchecked visually (see at E9-B); the Peso history is a `LazyColumn` holding only the calendar (no list animation applies); non-blocking nits: `StepScaffold` `LaunchedEffect(step) { focusTitle.requestFocus() }` can throw if the node is not attached (guard it), `AppIconButton` KDoc should say a disabled button has no tooltip, onboarding restoration test omits the birth date, `RoutinesScreen.kt` comment that the list animation lives in `RoutineGroups.kt`, `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
 
 ---
 
@@ -3771,18 +3771,18 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 **Description:** **Wording.** A glossary sweep of `strings.xml` and its callers (R-35…R-38, `05` §10): generic actions → the shared `action_*` strings (removing the 14 "Guardar", 8 "Cancelar"… copies, WRD-3); one label per concept (body fat, basal metabolism, bone, "Historial de …", "Entreno" not "Sesión"); message templates (errors, offline, validation: "Escribe un nombre", "Máximo N caracteres", "Entre X y Y <unidad>"); punctuation ("…", final periods, sentence-case titles such as "Distribución de macros"); leftover strings removed ("No tienes ninguna comida activa"); dates through `AppDateFormat` everywhere (R-38). The shell's per-route title switch from T-118 is removed (every route is on `AppScreen`). `check-ux-conventions.sh`: the warning list is empty and every guard G1–G10 fails (epic DoD). **Motion and onboarding.** (1) Every list is lazy with stable keys and `animateItem` for insertions, removals and moves (R-23, LST-7; the swipe gap close from T-120 relies on it). (2) Every `AppIconButton` shows its label on long press (M3 tooltip, FBK-5). (3) Onboarding and welcome on the templates: one step template (title, helper text, content, "Atrás" and "Continuar" pinned at the bottom), a horizontal slide forward and back between steps (reduced motion: no slide; item 1), "Sexo" as two equal `SelectableCard`s side by side with the birth date in the same view (item 2). Spacing tweaks inside the templates only (typography is out of scope, item 3). Onboarding and welcome also drop their own `SnackbarHost` (T-118 sweep).
 
 **Acceptance criteria:**
-- [ ] No feature string duplicates a generic action value (G9 failing, no warnings).
-- [ ] Every glossary row holds in `strings.xml` (a host test asserts the key labels); no "..." and no "Deshacer".
-- [ ] All dates come from `AppDateFormat`; the three forms are covered by tests.
-- [ ] `check-ux-conventions.sh` has an empty warning list and passes in CI.
-- [ ] Adding, deleting and reordering in the Diario, comidas, builder, live session, meals editor and Peso lists animate; reduced motion snaps.
-- [ ] Long-pressing an icon button shows its label.
-- [ ] Onboarding steps slide; "Atrás"/"Continuar" pinned; "Sexo" shows two equal cards and the birth date on the same step; resume after process death unchanged (ADR-24).
+- [x] No feature string duplicates a generic action value (G9 failing, no warnings).
+- [x] Every glossary row holds in `strings.xml` (a host test asserts the key labels); no "..." and no "Deshacer".
+- [x] All dates come from `AppDateFormat`; the three forms are covered by tests.
+- [x] `check-ux-conventions.sh` has an empty warning list and passes in CI.
+- [x] Adding, deleting and reordering in the Diario, comidas, builder, live session, meals editor and Peso lists animate; reduced motion snaps.
+- [x] Long-pressing an icon button shows its label.
+- [x] Onboarding steps slide; "Atrás"/"Continuar" pinned; "Sexo" shows two equal cards and the birth date on the same step; resume after process death unchanged (ADR-24).
 
 **Host tests:** glossary/string tests (key labels, punctuation), `AppDateFormatTest`, existing screen tests updated to the shared strings, guard script fixtures; list tests asserting stable keys and animation modifiers where testable, `AppIconButton` tooltip test, `OnboardingScreen` tests (step template, Sexo layout, reduced motion, restoration).
 
 **Verification:**
-- [ ] lint (incl. `check-ux-conventions.sh` with no warnings) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-ux-conventions.sh` with no warnings) + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan; exact copy), compose-ui-developer (two runs: wording, then motion and onboarding), pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. Many files, mostly mechanical (strings, references, `animateItem` one-liners).
 **Dependencies:** T-127
