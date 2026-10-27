@@ -2,16 +2,16 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_exercises_added
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_exercises_removed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_keep
+import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_keep_desc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_more
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_order_changed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_rests_changed
@@ -27,11 +28,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_sets_removed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_update
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
+import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_update_desc
+import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SelectableCard
+import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -54,33 +55,45 @@ private fun RoutineChangeSummary.lines(): List<SummaryLine> = buildList {
 }
 
 /**
- * "Actualizar rutina" (US-36): shown when the finished session differs from its routine. Scrim, back and swipe equal
- * "Mantener rutina original" ([onKeep]); they are ignored while the update runs. A failed update keeps the sheet.
+ * "Actualizar rutina" (US-36): shown when the finished session differs from its routine (edit archetype, commit
+ * "Guardar"). Two exclusive choices; nothing is written until the commit. Closing (X, scrim, back, swipe) equals
+ * "Mantener la rutina" ([onKeep]) and is ignored while the update runs. A failed update keeps the sheet.
  */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
 internal fun UpdateRoutineBottomSheet(
     sheet: UpdateRoutineSheet,
     onUpdate: () -> Unit,
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AppBottomSheet(
-        onDismissRequest = { if (!sheet.loading) onKeep() },
+    var update by rememberSaveable { mutableStateOf(true) }
+    AppEditSheet(
+        title = stringResource(Res.string.live_updateRoutine_title),
+        commit = SheetCommit.Save,
+        onCommit = { if (update) onUpdate() else onKeep() },
+        onDismiss = { if (!sheet.loading) onKeep() },
         modifier = modifier,
+        saving = sheet.loading,
         testTagPrefix = SHEET_TAG,
     ) {
-        Column(
-            Modifier.padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.lg).navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                text = stringResource(Res.string.live_updateRoutine_title),
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.semantics { heading() },
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             SummaryLines(sheet.summary)
+            Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+                SelectableCard(
+                    title = stringResource(Res.string.live_updateRoutine_update),
+                    description = stringResource(Res.string.live_updateRoutine_update_desc),
+                    selected = update,
+                    onClick = { update = true },
+                    modifier = Modifier.testTag("live_updateRoutine_update"),
+                )
+                SelectableCard(
+                    title = stringResource(Res.string.live_updateRoutine_keep),
+                    description = stringResource(Res.string.live_updateRoutine_keep_desc),
+                    selected = !update,
+                    onClick = { update = false },
+                    modifier = Modifier.testTag("live_updateRoutine_keep"),
+                )
+            }
             if (sheet.failed) {
                 Text(
                     text = stringResource(Res.string.live_updateRoutine_error),
@@ -90,20 +103,6 @@ internal fun UpdateRoutineBottomSheet(
                         .testTag("live_updateRoutine_error"),
                 )
             }
-            PrimaryButton(
-                text = stringResource(Res.string.live_updateRoutine_update),
-                onClick = onUpdate,
-                modifier = Modifier.fillMaxWidth().testTag("live_updateRoutine_update"),
-                enabled = !sheet.loading,
-                loading = sheet.loading,
-            )
-            GhostButton(
-                text = stringResource(Res.string.live_updateRoutine_keep),
-                onClick = onKeep,
-                modifier = Modifier.fillMaxWidth().testTag("live_updateRoutine_keep"),
-                tone = GhostTone.Neutral,
-                enabled = !sheet.loading,
-            )
         }
     }
 }

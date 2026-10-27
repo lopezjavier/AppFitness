@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -50,6 +51,35 @@ class AppActionSheetTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun aDisabledRow_isInert_showsItsReason_andUsesItsOwnTag() {
+        var ran = 0
+        rule.setContent {
+            AppTheme {
+                AppActionSheet(
+                    actions = listOf(
+                        AppSheetAction(
+                            Res.drawable.ic_edit,
+                            "Actualizar peso",
+                            hint = "Sincronizado desde Health Connect",
+                            testTag = "weight_row",
+                            enabled = false,
+                            onClick = { ran++ },
+                        ),
+                    ),
+                    onDismiss = { dismissed++ },
+                )
+            }
+        }
+
+        rule.onNodeWithTag("weight_row").assertIsNotEnabled().performClick()
+        rule.waitForIdle()
+
+        assertEquals(0, ran)
+        assertEquals(0, dismissed)
+        rule.onNodeWithText("Sincronizado desde Health Connect", useUnmergedTree = true).assertExists()
     }
 
     @Test

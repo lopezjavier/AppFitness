@@ -2,8 +2,10 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertTextEquals
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,13 +33,13 @@ class SetTypeBadgeTest {
     val rule = createComposeRule()
 
     @Test
-    fun eachType_showsItsLetter_andNormalShowsTheNumber() {
-        val expected = mapOf(SetType.WarmUp to "C", SetType.Failure to "F", SetType.Drop to "D", SetType.Working to "3")
+    fun eachType_showsItsLetter_andNormalShowsN() {
+        val expected = mapOf(SetType.WarmUp to "C", SetType.Failure to "F", SetType.Drop to "D", SetType.Working to "N")
         rule.setContent {
             AppTheme {
                 Column {
                     expected.keys.forEach { type ->
-                        Box(Modifier.testTag("wrap_${type.name}")) { SetTypeBadge(type, "3") }
+                        Box(Modifier.testTag("wrap_${type.name}")) { SetTypeBadge(type) }
                     }
                 }
             }
@@ -51,8 +54,32 @@ class SetTypeBadgeTest {
     }
 
     @Test
+    fun theNormalBadge_isDescribedByNothing_soTheRowDescriptionOwnsIt() {
+        rule.setContent { AppTheme { SetTypeBadge(SetType.Working, Modifier.testTag("badge")) } }
+
+        assertFalse(
+            rule.onNodeWithTag("badge").fetchSemanticsNode().config.contains(SemanticsProperties.ContentDescription),
+        )
+    }
+
+    @Test
+    fun theOrdinal_showsTheSetOrderOutsideTheBadge() {
+        rule.setContent {
+            AppTheme {
+                Row {
+                    SetOrdinal("3")
+                    SetTypeBadge(SetType.WarmUp)
+                }
+            }
+        }
+
+        rule.onNodeWithTag("set_ordinal").assertTextEquals("3")
+        rule.onNode(hasTestTag("set_type_badge"), useUnmergedTree = true).assertTextEquals("C")
+    }
+
+    @Test
     fun aLetterBadge_isDescribedByItsFullLabel() {
-        rule.setContent { AppTheme { SetTypeBadge(SetType.WarmUp, "1", Modifier.testTag("badge")) } }
+        rule.setContent { AppTheme { SetTypeBadge(SetType.WarmUp, Modifier.testTag("badge")) } }
 
         rule.onNodeWithTag("badge").assertContentDescriptionEquals("Calentamiento")
     }
@@ -64,7 +91,6 @@ class SetTypeBadgeTest {
             AppTheme {
                 SetTypeBadge(
                     SetType.Failure,
-                    "2",
                     Modifier.testTag("badge"),
                     onClick = { taps++ },
                     clickLabel = "Tipo de la serie 2: Fallo",

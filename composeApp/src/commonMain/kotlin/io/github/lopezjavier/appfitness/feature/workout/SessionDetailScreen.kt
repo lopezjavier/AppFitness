@@ -64,6 +64,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -303,7 +304,8 @@ private fun SetLine(position: Int, set: DetailSet) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SetTypeBadge(type = set.setType, number = AppNumberFormat.integer(set.setIndex))
+        SetOrdinal(AppNumberFormat.integer(set.setIndex))
+        SetTypeBadge(type = set.setType)
         Text(
             text = set.text,
             style = AppTheme.typography.labelNumeric,

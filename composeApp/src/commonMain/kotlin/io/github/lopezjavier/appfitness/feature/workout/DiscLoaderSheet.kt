@@ -21,11 +21,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.disc_loader_total
 import io.github.lopezjavier.appfitness.composeapp.resources.help_disc_loader_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_disc_loader_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_bar_label
-import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_close
 import io.github.lopezjavier.appfitness.composeapp.resources.live_calc_handle_label
+import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DiscStepperRow
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.usecase.DiscLoader
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
@@ -34,41 +33,31 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Disc loader (US-33, ADR-56): one stepper per enabled plate (heaviest first) with the discs on ONE side; the same
- * go on the other side. The total (bar or handle plus both sides) and "Cerrar" are pinned below the scrolling list.
- * Read-only: nothing is stored or applied.
+ * go on the other side. The total (bar or handle plus both sides) closes the list.
+ * Read-only (the picker archetype, which
+ * also carries the "?"): nothing is stored or applied.
  */
 @Composable
 internal fun DiscLoaderSheet(tagPrefix: String, calculator: CalculatorUiState, actions: CalculatorActions) {
     val tag = "${tagPrefix}_disc_loader"
-    CalculatorSheetFrame(
-        tag = tag,
-        title = stringResource(Res.string.disc_loader_title),
-        weightLabel = "",
-        showWeightField = false,
-        calculator = calculator,
-        actions = actions,
-        help = CalculatorHelp(
-            stringResource(Res.string.help_disc_loader_cd),
-            stringResource(Res.string.help_disc_loader_body),
-            "${tag}_help",
-        ),
-        results = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                BarLabel(tag, calculator)
-                calculator.availableDiscs.forEach { kg -> DiscRow(tag, kg, calculator, actions) }
-            }
-        },
-        action = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                DiscTotals(tag, calculator)
-                SecondaryButton(
-                    text = stringResource(Res.string.live_calc_close),
-                    onClick = actions.onDismiss,
-                    modifier = Modifier.fillMaxWidth().testTag("${tag}_close"),
-                )
-            }
-        },
+    val title = stringResource(Res.string.disc_loader_title)
+    val help = CalculatorHelp(
+        stringResource(Res.string.help_disc_loader_cd),
+        stringResource(Res.string.help_disc_loader_body),
+        "${tag}_help",
     )
+    AppPickerSheet(
+        title = title,
+        onDismiss = actions.onDismiss,
+        help = { CalculatorHelpButton(title, help) },
+        testTagPrefix = "${tag}_sheet",
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            BarLabel(tag, calculator)
+            calculator.availableDiscs.forEach { kg -> DiscRow(tag, kg, calculator, actions) }
+            DiscTotals(tag, calculator)
+        }
+    }
 }
 
 @Composable

@@ -103,13 +103,14 @@ class ShellChromeTest {
 
     @Test
     fun fullScreenRoutes_allHaveFullScreenChrome_exceptTheOnesThatDrawTheirOwnBar() {
-        AppDestinations.fullScreenRoutes.filter { it != LiveSessionRoute && !it.usesAppScreen }
+        AppDestinations.fullScreenRoutes.filter { !it.usesAppScreen }
             .forEach { assertIs<ShellChrome.FullScreen>(it.chrome) }
     }
 
     @Test
-    fun liveSessionRoute_drawsItsOwnBar_andHasNoBottomBar() {
-        assertEquals(ShellChrome.Own, LiveSessionRoute.chrome)
+    fun liveSessionRoute_drawsItsBarThroughAppScreen_andHasNoBottomBar() {
+        assertTrue(LiveSessionRoute.usesAppScreen)
+        assertEquals(ShellChrome.Screen, LiveSessionRoute.chrome)
     }
 
     @Test

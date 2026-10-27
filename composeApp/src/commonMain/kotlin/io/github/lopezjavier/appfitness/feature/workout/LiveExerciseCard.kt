@@ -26,12 +26,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.help_rpe_title
-import io.github.lopezjavier.appfitness.composeapp.resources.live_add_set
+import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -89,15 +88,21 @@ internal fun LiveExerciseCard(
                     deleteEnabled = deleteEnabled,
                 )
             }
-            GhostButton(
-                text = stringResource(Res.string.live_add_set),
+            AddItemButton(
+                objectLabel = stringResource(Res.string.live_object_set),
                 onClick = { onEvent(LiveSessionEvent.AddSet(position)) },
-                modifier = Modifier.fillMaxWidth().testTag("live_exercise_${position}_add_set"),
-                tone = GhostTone.Action,
+                modifier = Modifier.testTag("live_exercise_${position}_add_set"),
             )
         }
     }
-    ExerciseSheets(sheet, exercise, options, onEvent, onSheetChange = { sheet = it })
+    ExerciseSheets(
+        sheet,
+        exercise,
+        options,
+        onEvent,
+        onSheetChange = { sheet = it },
+        onSheetClose = { from -> if (sheet == from) sheet = ExerciseSheet.None },
+    )
 }
 
 private enum class ExerciseSheet { None, Menu, Rest, BodyWeight }
@@ -134,14 +139,19 @@ private fun ExerciseHeading(
     }
 }
 
-/** The open sheet of the card (menu, rest or body weight); [onSheetChange] moves between them. */
+/**
+ * The open sheet of the card (menu, rest or body weight); [onSheetChange] moves between them, [onSheetClose] closes
+ * the given one only if it is still open.
+ */
 @Composable
+@Suppress("LongParameterList") // Sheet state, its two transitions and the card data.
 private fun ExerciseSheets(
     sheet: ExerciseSheet,
     exercise: LiveExercise,
     options: VolumeOptionsUi,
     onEvent: (LiveSessionEvent) -> Unit,
     onSheetChange: (ExerciseSheet) -> Unit,
+    onSheetClose: (ExerciseSheet) -> Unit,
 ) {
     val position = exercise.position
     when (sheet) {
@@ -164,7 +174,8 @@ private fun ExerciseSheets(
                 onEvent(LiveSessionEvent.BodyWeightDraftChanged(options.bodyWeightKg?.let(::decimalText).orEmpty()))
                 onSheetChange(ExerciseSheet.BodyWeight)
             },
-            onDismiss = { onSheetChange(ExerciseSheet.None) },
+            // The sheet closes after the tapped action ran: only close it if the action did not open another one.
+            onDismiss = { onSheetClose(ExerciseSheet.Menu) },
         )
 
         ExerciseSheet.BodyWeight -> BodyWeightSheet(

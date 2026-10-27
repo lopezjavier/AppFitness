@@ -47,6 +47,13 @@ class ContrastTest {
     }
 
     @Test
+    fun plannedSetValues_textSecondaryOnTheFieldSurfaces_isAa_andLighterThanTyped() {
+        assertAa(c.textSecondary, c.surfaceOverlay, "planned textSecondary/surfaceOverlay")
+        assertAa(c.textSecondary, c.surfaceRaised, "planned textSecondary/surfaceRaised")
+        assertTrue(NumberInputDefaults.PlaceholderWeight.weight < androidx.compose.ui.text.font.FontWeight.W400.weight)
+    }
+
+    @Test
     fun activeChip_cyanOnOverlay_isAa() {
         assertAa(c.athleticCyan, c.surfaceOverlay, "cyan/surfaceOverlay")
     }

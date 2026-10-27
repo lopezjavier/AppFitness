@@ -15,7 +15,9 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -78,8 +80,7 @@ class LiveSessionScreenTest {
         show(active())
 
         rule.onNodeWithTag("live_screen").assertExists()
-        rule.onNodeWithText("EN VIVO").assertExists()
-        rule.onNodeWithTag("live_timer").assertTextContains("02:05")
+        rule.onNodeWithTag("live_subtitle").assertTextContains("EN VIVO · 02:05")
         rule.onNodeWithTag("live_keep_awake").assertDoesNotExist()
         rule.onNodeWithText("Pantalla activa").assertDoesNotExist()
         rule.onNodeWithTag("live_finish_button").assertDoesNotExist()
@@ -89,8 +90,56 @@ class LiveSessionScreenTest {
     fun timer_describesTheElapsedTimeForScreenReaders() {
         show(active(), elapsed = 125)
 
-        rule.onNodeWithTag("live_timer")
+        rule.onNodeWithTag("live_subtitle")
             .assert(hasContentDescription("Tiempo de entreno, 2 minutos 0 segundos"))
+    }
+
+    @Test
+    fun title_isTheRoutineName() {
+        show(active())
+        rule.onNodeWithTag("live_title").assertTextEquals("Torso")
+    }
+
+    @Test
+    fun blankRoutineName_showsTheFallbackTitle() {
+        show(active().copy(name = ""))
+        rule.onNodeWithTag("live_title").assertTextEquals("Entreno en vivo")
+    }
+
+    @Test
+    fun pauseAndMenu_areTopBarActions() {
+        show(active())
+        rule.onNodeWithTag("live_pause_toggle").assertExists()
+        rule.onNodeWithTag("live_menu_button").assertExists()
+    }
+
+    @Test
+    fun offline_hidesThePauseAction_butKeepsTheMenu() {
+        show(active(isOnline = false))
+        rule.onNodeWithTag("live_pause_toggle").assertDoesNotExist()
+        rule.onNodeWithTag("live_menu_button").assertExists()
+    }
+
+    @Test
+    fun addButtons_readAnadirSerieAndAnadirEjercicio() {
+        show(active())
+        rule.onNodeWithTag("live_exercise_0_add_set").assertTextEquals("Añadir serie")
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("live_add_exercise"))
+        rule.onNodeWithTag("live_add_exercise").assertTextEquals("Añadir ejercicio")
+    }
+
+    @Test
+    fun openMenu_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent { AppTheme { LiveSessionScreen(active(), 0, { events += it }, {}, onOpenExercise = {}) } }
+        rule.onNodeWithTag("live_menu_button").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("live_menu_finish").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_menu_finish").assertExists()
     }
 
     @Test
@@ -218,8 +267,9 @@ class LiveSessionScreenTest {
 
         rule.onNodeWithTag("live_finish_sheet_warning")
             .assertTextContains("Hay 3 series sin completar; no se guardarán")
-        rule.onNodeWithTag("live_finish_sheet_confirm").performClick()
-        rule.onNodeWithTag("live_finish_sheet_cancel").performClick()
+        rule.onNodeWithTag("live_finish_sheet_commit").performClick()
+        rule.onNodeWithTag("live_finish_sheet_close").performClick()
+        rule.waitForIdle()
 
         assertEquals(listOf(LiveSessionEvent.ConfirmFinish, LiveSessionEvent.DismissFinish), events)
     }
@@ -229,7 +279,7 @@ class LiveSessionScreenTest {
         show(active(finishSheet = FinishSheet(0)))
 
         rule.onNodeWithTag("live_finish_sheet_warning").assertDoesNotExist()
-        rule.onNodeWithTag("live_finish_sheet_confirm").assertExists()
+        rule.onNodeWithTag("live_finish_sheet_commit").assertExists()
     }
 
     @Test
@@ -352,7 +402,7 @@ class LiveSessionScreenTest {
     fun semantics_timerIsNotAHeading() {
         show(active())
 
-        val config = rule.onNodeWithTag("live_timer").fetchSemanticsNode().config
+        val config = rule.onNodeWithTag("live_subtitle").fetchSemanticsNode().config
         assertTrue(SemanticsProperties.Heading !in config)
     }
 
@@ -388,7 +438,7 @@ class LiveSessionScreenTest {
     )
 
     @Test
-    fun plannedSets_showTheTypeBadgeOnTheWarmUpAndTheNumberOnTheOthers() {
+    fun plannedSets_showTheTypeLetterInTheBadge_andTheOrderAsAnOrdinalOutsideIt() {
         show(plannedState())
 
         fun badge(set: Int) = rule.onNode(
@@ -396,8 +446,11 @@ class LiveSessionScreenTest {
             useUnmergedTree = true,
         )
         badge(1).assertTextEquals("C")
-        badge(2).assertTextEquals("2")
-        badge(4).assertTextEquals("4")
+        badge(2).assertTextEquals("N")
+        badge(4).assertTextEquals("N")
+        val ordinals = rule.onAllNodesWithTag("set_ordinal")
+        ordinals[1].assertTextEquals("2")
+        ordinals[3].assertTextEquals("4")
     }
 
     @Test

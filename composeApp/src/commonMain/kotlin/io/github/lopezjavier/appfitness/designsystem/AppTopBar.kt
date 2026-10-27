@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -117,6 +118,7 @@ data class AppTopBarAction(
  *
  * @param title section title, announced as a heading.
  * @param subtitle secondary line (`bodyMedium`, `textSecondary`), not a heading.
+ * @param subtitleSemantics optional semantics of the subtitle node (e.g. a spoken description for a stopwatch).
  * @param navigationButton leading back arrow (full-screen destinations), or null.
  * @param actions trailing icon actions, in order.
  * @param windowInsets insets the bar pads for; pass `WindowInsets(0)` when it is embedded mid-screen.
@@ -129,6 +131,7 @@ fun AppTopBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleSemantics: (SemanticsPropertyReceiver.() -> Unit)? = null,
     navigationButton: AppTopBarButton? = null,
     actions: List<AppTopBarAction> = emptyList(),
     windowInsets: WindowInsets = AppTopBarDefaults.windowInsets,
@@ -174,7 +177,8 @@ fun AppTopBar(
                     color = colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag(AppTopBarDefaults.subtitleTag(testTagPrefix)),
+                    modifier = Modifier.testTag(AppTopBarDefaults.subtitleTag(testTagPrefix))
+                        .let { if (subtitleSemantics != null) it.semantics(properties = subtitleSemantics) else it },
                 )
             }
         }

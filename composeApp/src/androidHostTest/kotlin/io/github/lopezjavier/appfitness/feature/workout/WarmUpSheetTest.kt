@@ -146,7 +146,7 @@ class WarmUpSheetTest {
         rule.onNodeWithTag("${TAG}_row_1").assertTextContains("40 kg × 5")
         rule.onNodeWithTag("${TAG}_row_2").assertTextContains("60 kg × 3")
         rule.onNodeWithTag("${TAG}_row_3").assertTextContains("80 kg × 2")
-        tap("${TAG}_confirm")
+        tap("${TAG}_sheet_commit")
         rule.onNodeWithTag("${TAG}_sheet").assertDoesNotExist()
         rule.onAllNodesWithText("C").assertCountEquals(4)
     }

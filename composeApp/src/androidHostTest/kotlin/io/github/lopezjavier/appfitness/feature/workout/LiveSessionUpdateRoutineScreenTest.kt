@@ -6,6 +6,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -75,34 +78,47 @@ class LiveSessionUpdateRoutineScreenTest {
         rule.onNodeWithTag("live_updateRoutine_sheet").assertExists()
         rule.onNodeWithText("2 series añadidas").assertExists()
         rule.onNodeWithText("1 descanso modificado").assertExists()
-        rule.onNodeWithTag("live_updateRoutine_update").assertIsEnabled()
-        rule.onNodeWithTag("live_updateRoutine_keep").assertIsEnabled()
-        rule.onNodeWithText("Mantener rutina original").assertExists()
+        rule.onNodeWithTag("live_updateRoutine_update").assertIsSelected()
+        rule.onNodeWithTag("live_updateRoutine_keep").assertIsNotSelected()
+        rule.onNodeWithTag("live_updateRoutine_sheet_commit").assertIsEnabled().assertTextEquals("Guardar")
+        rule.onNodeWithText("Mantener la rutina").assertExists()
         rule.onNodeWithTag("live_updateRoutine_error").assertDoesNotExist()
     }
 
     @Test
-    fun bothButtons_have48dpTargets() {
+    fun choicesAndCommit_have48dpTargets() {
         show(LiveSessionUiState.Finished(SUMMARY, sheet()))
 
         rule.onNodeWithTag("live_updateRoutine_update").assertHeightIsAtLeast(48.dp)
         rule.onNodeWithTag("live_updateRoutine_keep").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_updateRoutine_sheet_commit").assertHeightIsAtLeast(48.dp)
     }
 
     @Test
-    fun actualizar_sendsUpdateRoutine() {
+    fun choosingARow_appliesNothingUntilTheCommit() {
         show(LiveSessionUiState.Finished(SUMMARY, sheet()))
 
-        rule.onNodeWithTag("live_updateRoutine_update").performClick()
+        rule.onNodeWithTag("live_updateRoutine_keep").performClick()
+
+        rule.onNodeWithTag("live_updateRoutine_keep").assertIsSelected()
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun commitWithTheDefaultChoice_sendsUpdateRoutine() {
+        show(LiveSessionUiState.Finished(SUMMARY, sheet()))
+
+        rule.onNodeWithTag("live_updateRoutine_sheet_commit").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.UpdateRoutine), events)
     }
 
     @Test
-    fun mantener_sendsKeepRoutine_andNeverUpdate() {
+    fun commitAfterChoosingMantener_sendsKeepRoutine_andNeverUpdate() {
         show(LiveSessionUiState.Finished(SUMMARY, sheet()))
 
         rule.onNodeWithTag("live_updateRoutine_keep").performClick()
+        rule.onNodeWithTag("live_updateRoutine_sheet_commit").performClick()
 
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.KeepRoutine), events)
     }
@@ -120,8 +136,7 @@ class LiveSessionUpdateRoutineScreenTest {
     fun whileLoading_buttonsAreDisabled_andBackIsIgnored() {
         show(LiveSessionUiState.Finished(SUMMARY, sheet(loading = true)))
 
-        rule.onNodeWithTag("live_updateRoutine_update").assertIsNotEnabled()
-        rule.onNodeWithTag("live_updateRoutine_keep").assertIsNotEnabled()
+        rule.onNodeWithTag("live_updateRoutine_sheet_commit").assertIsNotEnabled()
         pressBack()
 
         assertTrue(events.isEmpty())
@@ -133,8 +148,7 @@ class LiveSessionUpdateRoutineScreenTest {
 
         rule.onNodeWithTag("live_updateRoutine_error").assertExists()
         rule.onNodeWithText("No se pudo actualizar la rutina. Inténtalo de nuevo.").assertExists()
-        rule.onNodeWithTag("live_updateRoutine_update").assertIsEnabled()
-        rule.onNodeWithTag("live_updateRoutine_keep").assertIsEnabled()
+        rule.onNodeWithTag("live_updateRoutine_sheet_commit").assertIsEnabled()
     }
 
     @Test

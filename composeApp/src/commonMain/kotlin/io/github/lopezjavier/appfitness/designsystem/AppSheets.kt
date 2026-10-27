@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_add
 import io.github.lopezjavier.appfitness.composeapp.resources.action_close
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
+import io.github.lopezjavier.appfitness.composeapp.resources.action_finish
 import io.github.lopezjavier.appfitness.composeapp.resources.action_save
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import kotlinx.coroutines.CoroutineScope
@@ -36,9 +37,9 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * What the footer button of an [AppEditSheet] does (R-12): "Guardar" persists, "Listo" only applies to a draft and
- * "Añadir" creates something new (same caller contract as [Save]).
+ * "Añadir" creates something new and "Finalizar" ends a flow (same caller contract as [Save]).
  */
-enum class SheetCommit { Save, Apply, Add }
+enum class SheetCommit { Save, Apply, Add, Finish }
 
 /** Tags of the sheet archetypes: `<prefix>_close`, `<prefix>_commit` and `<prefix>_commit_hint`. */
 object AppSheetsDefaults {
@@ -64,7 +65,8 @@ object AppSheetsDefaults {
  * (R-10, no dialog, R-08). The sheet draws no state of its own; the caller owns the draft.
  *
  * Caller contract (the sheet neither hides itself on commit nor fires a haptic; R-13, R-29):
- * - [SheetCommit.Save]: set [saving] while the write runs. On success remove the sheet, perform
+ * - [SheetCommit.Save] and [SheetCommit.Finish]: set [saving] while the write runs. On success remove the sheet,
+ *   perform
  *   `HapticEvent.Confirm` through `LocalAppHaptics` and show a message only when the change is not visible.
  *   On failure keep the sheet open, perform `HapticEvent.Reject`, show the error message (R-37) and clear [saving].
  * - [SheetCommit.Apply]: remove the sheet at once and fire no haptic; the screen underneath owns the "Guardar".
@@ -93,6 +95,7 @@ fun AppEditSheet(
             SheetCommit.Save -> Res.string.action_save
             SheetCommit.Apply -> Res.string.action_done
             SheetCommit.Add -> Res.string.action_add
+            SheetCommit.Finish -> Res.string.action_finish
         },
     )
     AppBottomSheet(

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -20,6 +22,9 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -149,7 +154,7 @@ class LiveSessionVolumeOptionsScreenTest {
     private fun finishAndShowSummary() {
         tap("live_menu_button")
         tap("live_menu_finish")
-        tap("live_finish_sheet_confirm")
+        tap("live_finish_sheet_commit")
     }
 
     @Test
@@ -187,7 +192,7 @@ class LiveSessionVolumeOptionsScreenTest {
         openMenu(PULL_UPS)
         tap("live_exercise_0_menu_body_weight")
         rule.onNodeWithTag("live_exercise_0_body_weight_field").assertTextContains("74,0")
-        tap("live_exercise_0_body_weight_confirm")
+        tap("live_exercise_0_body_weight_sheet_commit")
         rule.onNodeWithTag("live_exercise_0_body_weight_sheet").assertDoesNotExist()
         finishAndShowSummary()
 
@@ -202,7 +207,7 @@ class LiveSessionVolumeOptionsScreenTest {
         openMenu(PULL_UPS)
         tap("live_exercise_0_menu_body_weight")
         rule.onNodeWithTag("live_exercise_0_body_weight_field").performTextReplacement("75,5")
-        tap("live_exercise_0_body_weight_confirm")
+        tap("live_exercise_0_body_weight_sheet_commit")
         finishAndShowSummary()
 
         assertEquals(75.5, weights.saves.single().weightKg, 0.0)
@@ -216,9 +221,9 @@ class LiveSessionVolumeOptionsScreenTest {
         openMenu(PULL_UPS)
         tap("live_exercise_0_menu_body_weight")
         rule.onNodeWithTag("live_exercise_0_body_weight_field").performTextReplacement("")
-        rule.onNodeWithTag("live_exercise_0_body_weight_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("live_exercise_0_body_weight_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("live_exercise_0_body_weight_field").performTextInput("80")
-        rule.onNodeWithTag("live_exercise_0_body_weight_confirm").assertIsEnabled()
+        rule.onNodeWithTag("live_exercise_0_body_weight_sheet_commit").assertIsEnabled()
     }
 
     @Test
@@ -228,7 +233,7 @@ class LiveSessionVolumeOptionsScreenTest {
         openMenu(PULL_UPS)
         tap("live_exercise_0_menu_body_weight")
         rule.onNodeWithTag("live_exercise_0_body_weight_field").performTextReplacement("5")
-        tap("live_exercise_0_body_weight_confirm")
+        tap("live_exercise_0_body_weight_sheet_commit")
 
         rule.onNodeWithTag("live_exercise_0_body_weight_error").assertTextEquals("Introduce un peso válido.")
         rule.onNodeWithTag("live_exercise_0_body_weight_sheet").assertExists()
@@ -243,7 +248,7 @@ class LiveSessionVolumeOptionsScreenTest {
         openMenu(PULL_UPS)
 
         rule.onNodeWithTag("live_exercise_0_menu_body_weight").assertIsNotEnabled()
-        rule.onNodeWithTag("live_exercise_0_body_weight_hc_note").assertTextEquals("Sincronizado desde Health Connect")
+        rule.onNodeWithText("Sincronizado desde Health Connect").assertExists()
     }
 
     @Test
@@ -267,6 +272,31 @@ class LiveSessionVolumeOptionsScreenTest {
 
         rule.onNodeWithTag("live_exercise_0_body_weight_sheet").assertExists()
         rule.onNodeWithTag("live_exercise_0_body_weight_field").assertTextContains("75,5")
+    }
+
+    @Test
+    fun bodyWeight_aFailedSave_keepsTheSheetWithItsErrorLine_andFiresOneRejectHaptic() {
+        weights.saveFailure = IllegalStateException("offline")
+        val vm = newViewModel()
+        val haptics = RecordingAppHaptics()
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalAppHaptics provides haptics) {
+                    LiveSessionRoot(null, {}, {}, {}, {}, viewModel = vm)
+                }
+            }
+        }
+        settle()
+
+        openMenu(PULL_UPS)
+        tap("live_exercise_0_menu_body_weight")
+        tap("live_exercise_0_body_weight_sheet_commit")
+
+        rule.onNodeWithTag(
+            "live_exercise_0_body_weight_error",
+        ).assertTextEquals("No se pudo guardar. Inténtalo de nuevo.")
+        rule.onNodeWithTag("live_exercise_0_body_weight_sheet").assertExists()
+        haptics.assertSingle(HapticEvent.Reject)
     }
 
     private fun measurement(id: String, at: String, source: MeasurementSource) =

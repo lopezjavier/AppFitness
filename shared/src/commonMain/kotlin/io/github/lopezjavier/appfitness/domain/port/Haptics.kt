@@ -5,6 +5,6 @@ package io.github.lopezjavier.appfitness.domain.port
  * goes through the design system's `AppHaptics`; this port only keeps the end-of-rest alert.
  */
 interface Haptics {
-    /** A long buzz, for example when the rest timer ends. */
+    /** The end-of-rest vibration: a long three-pulse pattern (the sound is the separate `AlertSound` port). */
     fun alert()
 }

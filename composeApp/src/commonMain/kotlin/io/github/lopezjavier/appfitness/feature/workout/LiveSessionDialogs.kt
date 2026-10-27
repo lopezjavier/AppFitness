@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_confirm
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_message
@@ -15,14 +17,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_empty_r
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
+import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.RpePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
-import io.github.lopezjavier.appfitness.feature.routines.ActionsSheet
-import io.github.lopezjavier.appfitness.feature.routines.SheetActionRow
 import org.jetbrains.compose.resources.stringResource
 
 /** The set type picker of the targeted set; a tap applies the choice, dismissing changes nothing. */
@@ -61,33 +63,31 @@ internal fun LiveDialogs(
     onEvent: (LiveSessionEvent) -> Unit,
 ) {
     if (menuOpen) {
-        ActionsSheet(
-            title = stringResource(Res.string.live_title),
+        AppActionSheet(
+            actions = listOf(
+                AppSheetAction(
+                    icon = Res.drawable.ic_check,
+                    title = stringResource(Res.string.live_finish),
+                    onClick = { onEvent(LiveSessionEvent.RequestFinish) },
+                    testTag = "live_menu_finish",
+                    enabled = !state.actionsBlocked && !state.busy && state.canFinish,
+                ),
+                AppSheetAction(
+                    icon = Res.drawable.ic_delete,
+                    title = stringResource(Res.string.live_menu_discard),
+                    onClick = { onEvent(LiveSessionEvent.RequestDiscard) },
+                    testTag = "live_menu_discard",
+                    enabled = !state.actionsBlocked,
+                ),
+            ),
             onDismiss = onCloseMenu,
+            title = stringResource(Res.string.live_title),
             testTagPrefix = "live_menu",
-        ) {
-            SheetActionRow(
-                label = stringResource(Res.string.live_finish),
-                onClick = {
-                    onCloseMenu()
-                    onEvent(LiveSessionEvent.RequestFinish)
-                },
-                testTag = "live_menu_finish",
-                enabled = !state.actionsBlocked && !state.busy && state.canFinish,
-            )
-            SheetActionRow(
-                label = stringResource(Res.string.live_menu_discard),
-                onClick = {
-                    onCloseMenu()
-                    onEvent(LiveSessionEvent.RequestDiscard)
-                },
-                testTag = "live_menu_discard",
-                enabled = !state.actionsBlocked,
-                destructive = true,
-            )
-            if (state.actionsBlocked) OfflineReason("live_menu_offline_reason")
-            if (!state.canFinish) FinishEmptyReason()
-        }
+            notice = {
+                if (state.actionsBlocked) OfflineReason("live_menu_offline_reason")
+                if (!state.canFinish) FinishEmptyReason()
+            },
+        )
     }
     state.finishSheet?.let {
         FinishSessionSheet(
@@ -116,7 +116,7 @@ private fun FinishEmptyReason() {
         text = stringResource(Res.string.live_finish_empty_reason),
         style = AppTheme.typography.bodySmall,
         color = AppTheme.colors.textSecondary,
-        modifier = Modifier.padding(top = Spacing.sm).testTag("live_menu_finish_reason"),
+        modifier = Modifier.padding(horizontal = Spacing.screenMargin).testTag("live_menu_finish_reason"),
     )
 }
 
@@ -126,6 +126,6 @@ private fun OfflineReason(tag: String) {
         text = stringResource(Res.string.live_finish_offline_reason),
         style = AppTheme.typography.bodySmall,
         color = AppTheme.colors.textSecondary,
-        modifier = Modifier.padding(top = Spacing.sm).testTag(tag),
+        modifier = Modifier.padding(horizontal = Spacing.screenMargin).testTag(tag),
     )
 }

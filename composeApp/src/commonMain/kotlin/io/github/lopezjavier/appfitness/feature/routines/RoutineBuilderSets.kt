@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
+import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadgeDefaults
@@ -104,9 +105,9 @@ private fun PlannedSetRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            SetOrdinal(number.toString())
             SetTypeBadge(
                 type = set.type,
-                number = number.toString(),
                 modifier = Modifier.testTag("routine_builder_set_type_$tag"),
                 onClick = { onEvent(RoutineBuilderEvent.OpenTypePicker(index, setIndex)) },
                 clickLabel = stringResource(Res.string.builder_set_type_cd, number, typeLabel),

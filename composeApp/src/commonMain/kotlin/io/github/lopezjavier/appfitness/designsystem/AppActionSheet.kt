@@ -12,12 +12,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.DrawableResource
 
-/** One row of an [AppActionSheet]: decorative [icon], [title] and an optional one-line [hint]. */
+/**
+ * One row of an [AppActionSheet]: decorative [icon], [title] and an optional one-line [hint]. [testTag] overrides
+ * the generated `<prefix>_row_<n>` tag; a disabled row is dimmed and inert (say why in [hint]).
+ */
 @Immutable
 data class AppSheetAction(
     val icon: DrawableResource,
     val title: String,
     val hint: String? = null,
+    val testTag: String? = null,
+    val enabled: Boolean = true,
     val onClick: () -> Unit,
 )
 
@@ -65,7 +70,8 @@ fun AppActionSheet(
                 title = action.title,
                 hint = action.hint,
                 onClick = { closeThen(scope, sheetState, onDismiss, action.onClick) },
-                testTag = AppActionSheetDefaults.rowTag(index + 1, testTagPrefix),
+                testTag = action.testTag ?: AppActionSheetDefaults.rowTag(index + 1, testTagPrefix),
+                enabled = action.enabled,
             )
         }
         Spacer(Modifier.height(Spacing.lg))
