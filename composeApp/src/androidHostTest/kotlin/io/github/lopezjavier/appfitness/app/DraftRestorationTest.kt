@@ -65,7 +65,6 @@ import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesReposito
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesRoute
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
-import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderEvent
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesEvent
@@ -179,10 +178,7 @@ class DraftRestorationTest {
         assert(current !== before) { "a new ViewModel must be created" }
         rule.onNodeWithTag("routine_builder_name_field").assertTextContains("Torso fuerza")
         rule.onNodeWithTag("routine_builder_row_0").assertContentDescriptionEquals("Press de banca")
-        rule.onNodeWithTag("routine_builder_save_button").assertIsEnabled()
-        current?.onEvent(RoutineBuilderEvent.Back)
-        rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_discard").assertExists()
+        rule.onNodeWithTag("routine_builder_save").assertIsEnabled()
     }
 
     private fun showBuilder(
@@ -535,16 +531,17 @@ class DraftRestorationTest {
         }
         rule.waitForIdle()
         rule.onNodeWithTag("routines_folder_toggle_f1").performClick()
-        rule.onNodeWithTag("routines_new_folder_button").performClick()
+        rule.onNodeWithTag("routines_list").performScrollToNode(hasTestTag("routines_add_folder"))
+        rule.onNodeWithTag("routines_add_folder").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("routines_folder_name_field").performTextInput("Piernas")
+        rule.onNodeWithTag("folder_sheet_input").performTextInput("Piernas")
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routines_folder_name_field").assertTextContains("Piernas")
-        rule.onNodeWithTag("routines_folder_save_button").assertIsEnabled()
+        rule.onNodeWithTag("folder_sheet_input").assertTextContains("Piernas")
+        rule.onNodeWithTag("folder_sheet_commit").assertIsEnabled()
         rule.onNodeWithTag("routines_row_r1").assertDoesNotExist()
         assertTrue(repository.createdFolders.isEmpty())
     }

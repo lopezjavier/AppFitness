@@ -48,7 +48,6 @@ internal data class RoutineDto(
     val notes: String? = null,
     val archived: Boolean = false,
     @SerialName("track_as_routine") val trackAsRoutine: Boolean = true,
-    @SerialName("auto_update_routine") val autoUpdateRoutine: Boolean = false,
     @SerialName("routine_exercises") val exercises: List<RoutineExerciseDto> = emptyList(),
 ) {
     fun toDomain() = Routine(
@@ -58,12 +57,11 @@ internal data class RoutineDto(
         archived,
         exercises.sortedBy { it.position }.map { it.toDomain() },
         trackAsRoutine,
-        autoUpdateRoutine,
     )
 
     companion object {
         const val COLUMNS =
-            "id,name,notes,archived,track_as_routine,auto_update_routine," +
+            "id,name,notes,archived,track_as_routine," +
                 "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
                 "target_weight_kg,planned_set_type,target_rpe,rest_seconds," +
                 "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
@@ -120,7 +118,6 @@ internal data class SaveRoutineRequest(
     val name: String,
     val notes: String? = null,
     @SerialName("track_as_routine") val trackAsRoutine: Boolean,
-    @SerialName("auto_update_routine") val autoUpdateRoutine: Boolean,
     val exercises: List<SaveRoutineExerciseRequest>,
 ) {
     companion object {
@@ -129,7 +126,6 @@ internal data class SaveRoutineRequest(
             name = routine.name.trim(),
             notes = routine.notes,
             trackAsRoutine = routine.trackAsRoutine,
-            autoUpdateRoutine = routine.autoUpdateRoutine,
             exercises = routine.exercises.mapIndexed { index, exercise ->
                 SaveRoutineExerciseRequest(
                     exerciseId = exercise.exerciseId,
@@ -165,10 +161,6 @@ internal data class PlannedSetDto(
 /** Arguments of the `save_routine` RPC. */
 @Serializable
 internal data class SaveRoutineParams(@SerialName("p_routine") val routine: SaveRoutineRequest)
-
-/** Body of the `PATCH /routines` that archives a routine. */
-@Serializable
-internal data class ArchiveRoutineUpdateDto(val archived: Boolean)
 
 // Arguments of the folder/order RPCs. Nullable ids have NO default so that null is always sent explicitly
 // (PostgREST resolves the function by its named arguments; an omitted one would not match).

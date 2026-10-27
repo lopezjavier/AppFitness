@@ -39,6 +39,8 @@ internal data class PreferencesDraft(
     val fatPctGriddleText: String = FoodPreferencesForm().griddleText,
     val fatPctAirFryerText: String = FoodPreferencesForm().airFryerText,
     val fatPctFriedText: String = FoodPreferencesForm().friedText,
+    /** Absent in drafts saved by older versions. */
+    val autoUpdateRoutine: Boolean = false,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -63,6 +65,7 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         fatPctGriddleText = foodPreferences.griddleText,
         fatPctAirFryerText = foodPreferences.airFryerText,
         fatPctFriedText = foodPreferences.friedText,
+        autoUpdateRoutine = autoUpdateRoutine,
     ),
 )
 
@@ -87,5 +90,6 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
             dumbbellHandleKg = draft.dumbbellHandleKg,
         ),
         foodPreferences = FoodPreferencesForm(draft.fatPctGriddleText, draft.fatPctAirFryerText, draft.fatPctFriedText),
+        autoUpdateRoutine = draft.autoUpdateRoutine,
     )
 }.getOrNull()

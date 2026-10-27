@@ -40,6 +40,9 @@ interface WorkoutSessionRepository {
     /** Every completed session without its sets, newest first (training calendar). */
     suspend fun listCompletedSummaries(): Result<List<TrainedSession>>
 
+    /** Start of the newest completed session of the routine; null when it was never done. */
+    suspend fun lastCompletedAt(routineId: String): Result<Instant?>
+
     /**
      * Completed sessions containing the exercise, newest first; each holds one exercise entry with only that
      * exercise's completed sets, by set index. A page is [limit] sessions from [offset].

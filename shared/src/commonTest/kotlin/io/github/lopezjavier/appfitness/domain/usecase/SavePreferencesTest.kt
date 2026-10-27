@@ -35,6 +35,7 @@ private class Saved(
     val previousValuesMode: PreviousValuesMode,
     val calculators: CalculatorSettings?,
     val foodPreferences: FoodPreferences? = null,
+    val autoUpdateRoutine: Boolean? = null,
 )
 
 class SavePreferencesTest {
@@ -72,6 +73,7 @@ class SavePreferencesTest {
             previousValuesMode: PreviousValuesMode,
             calculators: CalculatorSettings?,
             foodPreferences: FoodPreferences?,
+            autoUpdateRoutine: Boolean?,
         ): Result<Unit> {
             saved += Saved(
                 displayName,
@@ -82,6 +84,7 @@ class SavePreferencesTest {
                 previousValuesMode,
                 calculators,
                 foodPreferences,
+                autoUpdateRoutine,
             )
             return result
         }
@@ -100,6 +103,7 @@ class SavePreferencesTest {
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
         foodPreferences: FoodPreferences? = null,
+        autoUpdateRoutine: Boolean? = null,
     ) = useCase(
         displayName = name,
         biometrics = Biometrics(sex, birthDate, height, ActivityLevel.Sedentary),
@@ -114,10 +118,19 @@ class SavePreferencesTest {
         previousValuesMode = previousValuesMode,
         calculators = calculators,
         foodPreferences = foodPreferences,
+        autoUpdateRoutine = autoUpdateRoutine,
     )
 
     private fun tdee(sex: Sex, height: Int, weightKg: Double) =
         CalculateTdee(sex, birthDate, height, weightKg, ActivityLevel.Sedentary, LocalDate(2026, 10, 19))
+
+    @Test
+    fun passesTheAutoUpdateRoutineSettingToTheRepository_andNullWhenNotCarried() = runTest {
+        save(autoUpdateRoutine = true)
+        save()
+
+        assertEquals(listOf<Boolean?>(true, null), saved.map { it.autoUpdateRoutine })
+    }
 
     @Test
     fun storesTargetAsTdeeOfTheEditedWeightPlusAdjustment() = runTest {

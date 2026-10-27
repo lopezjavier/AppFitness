@@ -12,6 +12,8 @@ data class TrainingPreferences(
     val barWeightKg: Double = CalculatorSettings.DEFAULT_BAR_KG,
     val plateKg: List<Double> = CalculatorSettings.PLATE_CATALOGUE,
     val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
+    /** A finished routine session updates its routine without asking (ADR-70, one global setting). */
+    val autoUpdateRoutine: Boolean = false,
 ) {
     val calculators: CalculatorSettings
         get() = CalculatorSettings(barWeightKg, plateKg, dumbbellHandleKg)

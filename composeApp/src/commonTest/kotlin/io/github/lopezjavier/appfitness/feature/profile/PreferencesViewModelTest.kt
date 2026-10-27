@@ -815,6 +815,68 @@ class PreferencesViewModelTest {
         assertFalse(decodeDraft(old)!!.warmUpIncluded)
     }
 
+    // -- auto update routine (ADR-70) ---------------------------------------------------------------------------
+
+    @Test
+    fun autoUpdateSwitch_isOffByDefault() = runTest {
+        val (_, state) = loaded()
+
+        assertFalse(state().form.autoUpdateRoutine)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun autoUpdateSwitch_loadsTheSavedValue() = runTest {
+        training.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
+
+        val (_, state) = loaded()
+
+        assertTrue(state().form.autoUpdateRoutine)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun autoUpdateSwitch_editsTheDraftOnly_andSaveSendsIt() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetAutoUpdateRoutine(true))
+        advanceUntilIdle()
+        assertTrue(state().form.autoUpdateRoutine)
+        assertTrue(state().canSave)
+        assertTrue(profile.preferenceSaves.isEmpty(), "nothing is written before Guardar")
+
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(true, profile.preferenceSaves.single().autoUpdateRoutine)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun autoUpdateSwitch_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetAutoUpdateRoutine(true))
+
+        val second = viewModel(handle)
+        advanceUntilIdle()
+
+        val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
+        assertTrue(restored.form.autoUpdateRoutine)
+        assertFalse(restored.saved.autoUpdateRoutine)
+        assertTrue(restored.canSave)
+    }
+
+    @Test
+    fun autoUpdateSwitch_aDraftFromAnOlderVersionDecodesAsOff() {
+        val old = """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","strategy":"Deficit","adjustment":-400,""" +
+            """"proteinPct":30,"carbsPct":40,"fatPct":30}"""
+
+        assertFalse(decodeDraft(old)!!.autoUpdateRoutine)
+    }
+
     // -- previous values mode -----------------------------------------------------------------------------------
 
     @Test

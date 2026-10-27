@@ -121,7 +121,7 @@ scan G4 "OfflineBanner outside the shell (use OfflineState or OfflineHint)" '\bO
   '.*/app/(AppScaffold|App)\.kt|.*/feature/catalog/[^:]*' "${kotlin_feature[@]}"
 # G5: confirmation dialogs only for the allow-listed destructive cases (R-08).
 scan G5 "AppConfirmDialog outside the R-08 allow-list" '\bAppConfirmDialog\(' \
-  '.*/feature/profile/ProfileDialogs\.kt|.*/feature/workout/LiveSessionDialogs\.kt|.*/feature/workout/WorkoutEntry\.kt|.*/feature/catalog/[^:]*' \
+  '.*/feature/profile/ProfileDialogs\.kt|.*/feature/workout/LiveSessionDialogs\.kt|.*/feature/workout/WorkoutEntry\.kt|.*/feature/routines/RoutinesSheets\.kt|.*/feature/catalog/[^:]*' \
   "${kotlin_feature[@]}"
 # G6..G8: single owners of help icon, swipe-to-delete and drag reordering.
 scan G6 "ic_help outside HelpButton" '\bic_help\b' '' "${kotlin_feature[@]}"

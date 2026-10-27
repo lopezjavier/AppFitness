@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.designsystem.NameSheetDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
@@ -63,7 +64,13 @@ class RoutineBuilderViewModel(
     private var catalog: Map<String, CatalogExercise> = emptyMap()
     private var online = true
     private var saving = false
-    private var discardAsked = false
+    private var saved = false
+
+    /** Names of the other routines (best effort; empty when the list could not be read). */
+    private var otherNames: List<String> = emptyList()
+
+    /** The server refused the name on save; cleared by the next edit of the name. */
+    private var serverNameTaken = false
 
     /** The set whose type picker is open as (rowId, setId); restored with the draft, never part of it. */
     private var picker: Pair<Long, Long>? =
@@ -101,28 +108,16 @@ class RoutineBuilderViewModel(
         }
         if (phase == Phase.Loading) loadRoutine() else loadNames()
         loadSheetData()
+        loadOtherNames()
     }
 
     @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: RoutineBuilderEvent) {
         when (event) {
             RoutineBuilderEvent.Save -> save()
-
             RoutineBuilderEvent.Retry -> if (phase == Phase.LoadError) loadRoutine()
-
-            RoutineBuilderEvent.Back -> back()
-
-            RoutineBuilderEvent.ConfirmDiscard -> effectChannel.trySend(RoutineBuilderEffect.Close)
-
-            RoutineBuilderEvent.DismissDiscard -> {
-                discardAsked = false
-                publish()
-            }
-
             is RoutineBuilderEvent.OpenTypePicker -> openPicker(event.index, event.setIndex)
-
             RoutineBuilderEvent.CloseTypePicker -> setPicker(null)
-
             else -> if (!sheetEvent(event)) editEvent(event)
         }
     }
@@ -170,9 +165,10 @@ class RoutineBuilderViewModel(
 
     /** The change an event makes to the list (name, rows, order, supersets), or null for any other event. */
     private fun listEdit(event: RoutineBuilderEvent): ((RoutineDraft) -> RoutineDraft)? = when (event) {
-        is RoutineBuilderEvent.SetName -> { draft -> draft.copy(name = event.name.take(RoutineBounds.NAME_MAX_LENGTH)) }
-
-        is RoutineBuilderEvent.SetAutoUpdate -> { draft -> draft.copy(autoUpdateRoutine = event.enabled) }
+        is RoutineBuilderEvent.SetName -> { draft ->
+            serverNameTaken = false
+            draft.copy(name = event.name.take(RoutineBounds.NAME_MAX_LENGTH))
+        }
 
         is RoutineBuilderEvent.AddExercise -> { draft -> draft.withNewRow(event.exerciseId) }
 
@@ -270,6 +266,19 @@ class RoutineBuilderViewModel(
         }
     }
 
+    /** Best effort: without the list only the server can refuse a duplicate name. */
+    private fun loadOtherNames() {
+        viewModelScope.launch {
+            repository.listActive().onSuccess { list ->
+                otherNames = list.filter { it.id != routineId }.map { it.name }
+                publish()
+            }
+        }
+    }
+
+    private fun isNameTaken() = draft.name.isNotBlank() &&
+        (serverNameTaken || NameSheetDefaults.isDuplicate(draft.name, otherNames))
+
     private fun equipmentOf(index: Int): Equipment? =
         draft.rows.getOrNull(index)?.let { catalog[it.exerciseId]?.exercise?.equipment }
 
@@ -305,16 +314,6 @@ class RoutineBuilderViewModel(
         calculatorUiState(it, trainingPreferences, equipmentOf(it.position))
     }
 
-    private fun back() {
-        if (saving) return
-        if (draft != baseline) {
-            discardAsked = true
-            publish()
-        } else {
-            effectChannel.trySend(RoutineBuilderEffect.Close)
-        }
-    }
-
     private fun save() {
         val state = _uiState.value as? RoutineBuilderUiState.Editing
         if (state == null || !state.canSave) return
@@ -325,19 +324,20 @@ class RoutineBuilderViewModel(
             repository.save(routine).fold(
                 onSuccess = {
                     saving = false
+                    saved = true
                     baseline = draft
                     publish()
-                    effectChannel.trySend(RoutineBuilderEffect.Close)
                 },
                 onFailure = {
                     saving = false
-                    publish()
-                    effectChannel.trySend(
-                        RoutineBuilderEffect.SaveFailed(
-                            offline =
-                            (it as? AppException)?.error == AppError.Network,
-                        ),
-                    )
+                    val error = (it as? AppException)?.error
+                    if (error == AppError.NameAlreadyExists) {
+                        serverNameTaken = true
+                        publish()
+                    } else {
+                        publish()
+                        effectChannel.trySend(RoutineBuilderEffect.SaveFailed(offline = error == AppError.Network))
+                    }
                 },
             )
         }
@@ -393,7 +393,6 @@ class RoutineBuilderViewModel(
             RoutineBuilderUiState.Editing(
                 isEditMode = routineId != null,
                 name = draft.name,
-                autoUpdateRoutine = draft.autoUpdateRoutine,
                 rows =
                 draft.rows.mapIndexed { index, row ->
                     val exercise = catalog[row.exerciseId]
@@ -416,7 +415,8 @@ class RoutineBuilderViewModel(
                 isOnline = online,
                 isSaving = saving,
                 isDirty = draft != baseline,
-                showDiscardConfirm = discardAsked,
+                nameTaken = isNameTaken(),
+                saved = saved,
                 typePicker = renderPicker(),
                 calculator = calculator,
                 warmUpBlockedByCap = calculator != null && calculator.draft.kind == CalculatorKind.WarmUp &&

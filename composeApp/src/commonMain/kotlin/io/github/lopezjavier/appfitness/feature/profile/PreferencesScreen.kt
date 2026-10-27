@@ -184,6 +184,8 @@ private fun PreferencesLoaded(
                     TrainingCard(
                         warmUpIncluded = state.form.warmUpIncluded,
                         onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
+                        autoUpdateRoutine = state.form.autoUpdateRoutine,
+                        onAutoUpdateRoutine = { onEvent(PreferencesEvent.SetAutoUpdateRoutine(it)) },
                         previousValuesMode = state.form.previousValuesMode,
                         onPreviousValuesMode = { onEvent(PreferencesEvent.SetPreviousValuesMode(it)) },
                         calculators = state.form.calculators,
@@ -267,6 +269,8 @@ private fun TwoColumns(
             TrainingCard(
                 warmUpIncluded = state.form.warmUpIncluded,
                 onChange = { onEvent(PreferencesEvent.SetWarmUpIncluded(it)) },
+                autoUpdateRoutine = state.form.autoUpdateRoutine,
+                onAutoUpdateRoutine = { onEvent(PreferencesEvent.SetAutoUpdateRoutine(it)) },
                 previousValuesMode = state.form.previousValuesMode,
                 onPreviousValuesMode = { onEvent(PreferencesEvent.SetPreviousValuesMode(it)) },
                 calculators = state.form.calculators,

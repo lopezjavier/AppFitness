@@ -24,8 +24,8 @@ import org.jetbrains.compose.resources.stringResource
 private const val NO_FOLDER_KEY = "group_none"
 
 /**
- * One list item per group: folders first, then the no-folder group. The "Mis rutinas" header only shows when
- * there is at least one folder (the screen title already says it). Groups are separated by 24 dp.
+ * One list item per group: folders first, then the no-folder group. The "Sin carpeta" header only shows when
+ * there is at least one folder. Groups are separated by 24 dp.
  */
 internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
     val hasFolders = state.folders.isNotEmpty()
@@ -52,14 +52,14 @@ internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent
                         modifier = Modifier.semantics { heading() }.testTag("routines_group_none"),
                     )
                 }
-                if (expanded) GroupBody(group, canStart, onEvent)
+                if (expanded) GroupBody(group, canStart, state.isOnline, onEvent)
             }
         }
     }
 }
 
 @Composable
-private fun GroupBody(group: RoutineGroup, canStart: Boolean, onEvent: (RoutinesEvent) -> Unit) {
+private fun GroupBody(group: RoutineGroup, canStart: Boolean, canDelete: Boolean, onEvent: (RoutinesEvent) -> Unit) {
     val folderId = group.folder?.id
     if (group.routines.isEmpty()) {
         Text(
@@ -79,6 +79,6 @@ private fun GroupBody(group: RoutineGroup, canStart: Boolean, onEvent: (Routines
         },
         modifier = Modifier.fillMaxWidth(),
     ) { routine, _, _ ->
-        RoutineCard(routine, canStart, onEvent)
+        RoutineCard(routine, canStart, canDelete, onEvent)
     }
 }

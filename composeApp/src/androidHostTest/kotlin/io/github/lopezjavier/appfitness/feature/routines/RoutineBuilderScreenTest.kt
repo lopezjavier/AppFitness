@@ -5,10 +5,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -18,10 +20,12 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -33,6 +37,10 @@ import coil3.test.FakeImageLoaderEngine
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -77,6 +85,8 @@ class RoutineBuilderScreenTest {
     private var pickerResult by mutableStateOf<String?>(null)
     private var addExerciseTaps = 0
     private val opened = mutableListOf<String>()
+    private val messages = RecordingMessages()
+    private val haptics = RecordingAppHaptics()
 
     @Before
     fun installFakeImageLoader() {
@@ -103,7 +113,11 @@ class RoutineBuilderScreenTest {
             )
         rule.setContent {
             AppTheme {
-                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                CompositionLocalProvider(
+                    LocalExerciseMediaUris provides FakeExerciseMediaUris,
+                    LocalAppMessages provides messages,
+                    LocalAppHaptics provides haptics,
+                ) {
                     RoutineBuilderRoot(
                         routineId = routineId,
                         selectedExerciseId = pickerResult,
@@ -125,10 +139,19 @@ class RoutineBuilderScreenTest {
         rule.waitForIdle()
     }
 
+    private val menuLabels =
+        mapOf(
+            "move_up" to "Subir",
+            "move_down" to "Bajar",
+            "group" to "Agrupar con el siguiente",
+            "ungroup" to "Desagrupar",
+            "remove" to "Quitar",
+        )
+
     private fun clickMenuAction(row: Int, action: String) {
         rule.onNodeWithTag("routine_builder_menu_$row").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_${action}_$row").performClick()
+        rule.onNodeWithText(menuLabels.getValue(action)).performClick()
         rule.waitForIdle()
     }
 
@@ -137,18 +160,18 @@ class RoutineBuilderScreenTest {
     @Test
     fun save_isDisabledWithABlankName_andWithNoExercises_andEnabledWithBoth() {
         val vm = show()
-        rule.onNodeWithTag("routine_builder_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
 
         vm.add("a")
-        rule.onNodeWithTag("routine_builder_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
 
         rule.onNodeWithTag("routine_builder_name_field").performTextInput("   ")
         rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_save_button").assertIsNotEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
 
         rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
         rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_save_button").assertIsEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsEnabled()
     }
 
     @Test
@@ -156,8 +179,8 @@ class RoutineBuilderScreenTest {
         show()
 
         rule.onNodeWithTag("routine_builder_empty_hint").assertExists()
-        rule.onNodeWithTag("routine_builder_add_exercise_button").assertTextContains("Añadir ejercicio")
-        rule.onNodeWithTag("routine_builder_add_exercise_button").performClick()
+        rule.onNodeWithTag("routine_builder_add_exercise").assertTextContains("Añadir ejercicio")
+        rule.onNodeWithTag("routine_builder_add_exercise").performClick()
         assertEquals(1, addExerciseTaps)
     }
 
@@ -167,7 +190,7 @@ class RoutineBuilderScreenTest {
         rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso fuerza")
         vm.add("a", "b")
 
-        rule.onNodeWithTag("routine_builder_save_button").performClick()
+        rule.onNodeWithTag("routine_builder_save").performClick()
         rule.waitForIdle()
 
         val saved = repository.saved.single()
@@ -220,26 +243,26 @@ class RoutineBuilderScreenTest {
     }
 
     @Test
-    fun subir_isDisabledOnTheFirstRow_andBajarOnTheLast() {
+    fun subir_isNotOfferedOnTheFirstRow() {
         show().add("a", "b")
 
         rule.onNodeWithTag("routine_builder_menu_0").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_move_up_0").assertIsNotEnabled()
-        rule.onNodeWithTag("routine_builder_move_down_0").assertIsEnabled()
-        rule.onNodeWithTag("routine_builder_group_0").assertIsEnabled()
+        rule.onNodeWithText("Subir").assertDoesNotExist()
+        rule.onNodeWithText("Bajar").assertExists()
+        rule.onNodeWithText("Agrupar con el siguiente").assertExists()
     }
 
     @Test
-    fun bajarAndAgrupar_areDisabledOnTheLastRow() {
+    fun bajarAndAgrupar_areNotOfferedOnTheLastRow() {
         show().add("a", "b")
 
         rule.onNodeWithTag("routine_builder_menu_1").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routine_builder_move_down_1").assertIsNotEnabled()
-        rule.onNodeWithTag("routine_builder_group_1").assertIsNotEnabled()
-        rule.onNodeWithTag("routine_builder_move_up_1").assertIsEnabled()
+        rule.onNodeWithText("Bajar").assertDoesNotExist()
+        rule.onNodeWithText("Agrupar con el siguiente").assertDoesNotExist()
+        rule.onNodeWithText("Subir").assertExists()
     }
 
     @Test
@@ -287,6 +310,138 @@ class RoutineBuilderScreenTest {
         rowName(0).assertContentDescriptionEquals("Remo con barra")
     }
 
+    // ---- Editor template (R-10, R-14): title, discard dialog, name error, add button ----
+
+    @Test
+    fun title_isNuevaRutina_whenCreating_andEditarRutina_whenEditing() {
+        show()
+        rule.onNodeWithTag("routine_builder_title").assertTextEquals("Nueva rutina")
+    }
+
+    @Test
+    fun title_isEditarRutina_inEditMode() {
+        repository.routines += routineOf("r1", "Pierna", "c")
+        show("r1")
+        rule.onNodeWithTag("routine_builder_title").assertTextEquals("Editar rutina")
+    }
+
+    @Test
+    fun backWithChanges_asksToDiscard_andSeguirEditandoKeepsTheDraft() {
+        show().add("a")
+
+        rule.onNodeWithTag("routine_builder_back").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("¿Descartar los cambios?").assertExists()
+        rule.onNodeWithTag("routine_builder_keep_editing").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_discard_dialog").assertDoesNotExist()
+        rowName(0).assertContentDescriptionEquals("Press de banca")
+        assertEquals(0, closes)
+    }
+
+    @Test
+    fun descartar_closesWithoutSaving() {
+        show().add("a")
+        rule.onNodeWithTag("routine_builder_back").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_discard_confirm").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, closes)
+        assertTrue(repository.saved.isEmpty())
+    }
+
+    @Test
+    fun backWithoutChanges_leavesSilently() {
+        show()
+
+        rule.onNodeWithTag("routine_builder_back").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, closes)
+        rule.onNodeWithTag("routine_builder_discard_dialog").assertDoesNotExist()
+    }
+
+    @Test
+    fun aSavedRoutine_confirmsWithOneHaptic_andCloses() {
+        val vm = show()
+        rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
+        vm.add("a")
+
+        rule.onNodeWithTag("routine_builder_save").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf(HapticEvent.Confirm), haptics.calls)
+        assertEquals(1, closes)
+    }
+
+    @Test
+    fun aTakenName_showsTheErrorUnderTheField_andDisablesGuardar() {
+        repository.routines += routineOf("r1", "Torso", "a")
+        val vm = show()
+        vm.add("a")
+
+        rule.onNodeWithTag("routine_builder_name_field").performTextInput(" torso ")
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Ya existe una rutina con ese nombre").assertExists()
+        rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun noAutoUpdateSwitch_isOffered() {
+        show()
+
+        rule.onNodeWithText("Actualizar automáticamente").assertDoesNotExist()
+    }
+
+    @Test
+    fun añadirEjercicio_isTheLastElementOfTheList() {
+        show().add("a", "b")
+
+        val add = rule.onNodeWithTag("routine_builder_add_exercise").getUnclippedBoundsInRoot()
+        val lastRow = rule.onNodeWithTag("routine_builder_row_1").getUnclippedBoundsInRoot()
+        assertTrue(add.top >= lastRow.bottom)
+    }
+
+    @Test
+    fun swipingTheExerciseHeader_removesOnlyThatExercise_andSavesNothingUntilGuardar() {
+        val vm = show()
+        rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
+        vm.add("a", "b")
+        val distance = with(rule.density) { 296.dp.toPx() } * HEADER_SWIPE_FRACTION
+
+        rule.onNodeWithTag("routine_builder_exercise_0_open").performTouchInput {
+            down(center)
+            moveBy(Offset(-distance, 0f))
+            up()
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_row_1").assertDoesNotExist()
+        rowName(0).assertContentDescriptionEquals("Remo con barra")
+        assertTrue(repository.saved.isEmpty())
+        rule.onNodeWithTag("routine_builder_save").assertIsEnabled()
+    }
+
+    @Test
+    fun draggingTheHandleSideways_neverArmsTheHeaderSwipe() {
+        show().add("a", "b")
+        val distance = with(rule.density) { 296.dp.toPx() } * HEADER_SWIPE_FRACTION
+
+        rule.onNodeWithTag("routine_builder_drag_handle_0").performTouchInput {
+            down(center)
+            moveBy(Offset(-distance, 0f))
+            up()
+        }
+        rule.waitForIdle()
+
+        rule.onAllNodesWithTag("routine_builder_row_1").assertCountEquals(1)
+        rowName(0).assertContentDescriptionEquals("Press de banca")
+    }
+
     @Test
     fun targetRpeStepper_startsWithoutTarget_thenShows8_andSavePersistsIt() {
         val vm = show()
@@ -300,7 +455,7 @@ class RoutineBuilderScreenTest {
         rule.onNodeWithTag("routine_builder_target_rpe_0_value").assertTextEquals("8")
         assertTrue(repository.saved.isEmpty())
 
-        rule.onNodeWithTag("routine_builder_save_button").performClick()
+        rule.onNodeWithTag("routine_builder_save").performClick()
         rule.waitForIdle()
 
         assertEquals(8.0, repository.saved.single().exercises.single().targetRpe)
@@ -389,7 +544,11 @@ class RoutineBuilderScreenTest {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
                 AppTheme {
-                    CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    CompositionLocalProvider(
+                        LocalExerciseMediaUris provides FakeExerciseMediaUris,
+                        LocalAppMessages provides messages,
+                        LocalAppHaptics provides haptics,
+                    ) {
                         RoutineBuilderScreen(editingWithRest(70), {}, {}, {})
                     }
                 }
@@ -427,25 +586,25 @@ class RoutineBuilderScreenTest {
     )
 
     @Test
-    fun saveFailure_showsTheSnackbar_andKeepsTheEdits() {
+    fun saveFailure_showsTheMessage_rejects_andKeepsTheEdits() {
         val vm = show()
         rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
         vm.add("a", "b")
         repository.saveFailure = AppError.Unknown
 
-        rule.onNodeWithTag("routine_builder_save_button").performClick()
+        rule.onNodeWithTag("routine_builder_save").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routine_builder_snackbar").assertExists()
-        rule.onNodeWithText("No se pudo guardar la rutina. Inténtalo de nuevo.").assertExists()
+        assertEquals(listOf("No se pudo guardar la rutina. Inténtalo de nuevo."), messages.shown)
+        assertEquals(listOf(HapticEvent.Reject), haptics.calls)
         rule.onNodeWithTag("routine_builder_name_field").assertTextContains("Torso")
         rowName(1).assertContentDescriptionEquals("Remo con barra")
-        rule.onNodeWithTag("routine_builder_save_button").assertIsEnabled()
+        rule.onNodeWithTag("routine_builder_save").assertIsEnabled()
         assertEquals(0, closes)
     }
 
     @Test
-    fun offline_showsTheBanner_andDisablesSaving() {
+    fun offline_showsTheHint_andDisablesSaving() {
         val vm = show()
         rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
         vm.add("a")
@@ -453,8 +612,8 @@ class RoutineBuilderScreenTest {
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routine_builder_offline_banner").assertExists()
-        rule.onNodeWithTag("routine_builder_save_button").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede guardar").assertExists()
+        rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
     }
 
     @Test
@@ -489,39 +648,8 @@ class RoutineBuilderScreenTest {
 
         rule.onNodeWithTag("routine_builder_loading").assertExists()
     }
-
-    @Test
-    fun back_withUnsavedEdits_asksBeforeDiscarding() {
-        val vm = show()
-        vm.add("a")
-
-        vm.onEvent(RoutineBuilderEvent.Back)
-        rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_discard").assertExists()
-
-        rule.onNodeWithTag("routine_builder_discard_cancel").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_discard").assertDoesNotExist()
-        assertEquals(0, closes)
-
-        vm.onEvent(RoutineBuilderEvent.Back)
-        rule.waitForIdle()
-        rule.onNodeWithTag("routine_builder_discard_confirm").performClick()
-        rule.waitForIdle()
-        assertEquals(1, closes)
-        assertTrue(repository.saved.isEmpty())
-    }
-
-    @Test
-    fun back_withoutEdits_closesWithoutAsking() {
-        val vm = show()
-
-        vm.onEvent(RoutineBuilderEvent.Back)
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("routine_builder_discard").assertDoesNotExist()
-        assertEquals(1, closes)
-    }
 }
 
 private const val MORE_THAN_MAX_REST_STEPS = 70
+
+private const val HEADER_SWIPE_FRACTION = 0.7f

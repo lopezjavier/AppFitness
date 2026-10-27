@@ -123,6 +123,36 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun lastCompletedAt_noSessions_isNull() = runTest {
+        val repo = signedIn()
+
+        assertEquals(null, repo.lastCompletedAt("r1").getOrThrow())
+    }
+
+    @Test
+    fun lastCompletedAt_returnsTheStartOfTheNewestCompletedSessionOfThatRoutine() = runTest {
+        val repo = signedIn()
+        getBody = """[{"started_at":"2026-10-20T10:00:00+00:00"}]"""
+
+        val at = repo.lastCompletedAt("r1").getOrThrow()
+
+        assertEquals(Instant.parse("2026-10-20T10:00:00Z"), at)
+        val query = rest().single().url.encodedQuery
+        assertTrue("routine_id=eq.r1" in query, query)
+        assertTrue("status=eq.completed" in query, query)
+        assertTrue("order=started_at.desc" in query, query)
+        assertTrue("limit=1" in query, query)
+    }
+
+    @Test
+    fun lastCompletedAt_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.lastCompletedAt("r1").appErrorOrNull())
+    }
+
+    @Test
     fun listCompletedSummaries_mapsTheLightRowsNewestFirst() = runTest {
         val repo = signedIn()
         getBody = """[{"id":"s2","name":"Pierna","started_at":"2026-10-20T10:00:00+00:00"},""" +

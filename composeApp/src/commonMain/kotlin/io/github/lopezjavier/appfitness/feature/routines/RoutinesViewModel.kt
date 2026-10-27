@@ -3,9 +3,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.appErrorOrNull
-import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.designsystem.NameSheetDefaults
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
@@ -23,15 +21,14 @@ import kotlinx.coroutines.launch
 private const val KEY_COLLAPSED = "routines_collapsed_folders"
 private const val KEY_SHEET_MODE = "routines_folder_sheet_mode"
 private const val KEY_SHEET_FOLDER = "routines_folder_sheet_folder"
-private const val KEY_SHEET_NAME = "routines_folder_sheet_name"
-private const val KEY_SHEET_EDITED = "routines_folder_sheet_edited"
 private const val ID_SEPARATOR = ","
 
 /**
- * "Mis rutinas" (US-10, US-35): lists the active routines grouped by folder in their manual order and runs edit,
- * duplicate, archive, folders, move, next workout, reordering and starting a session. Collapsed folders and the
- * folder sheet draft live in [savedState] (ADR-40). Writes need the network; reordering and "next" apply at once and
- * are reverted (with [RoutinesEffect.ActionFailed]) when the server rejects them.
+ * "Rutinas" (US-10, US-35): lists the active routines grouped by folder in their manual order and runs edit,
+ * duplicate, delete, folders, move, next workout, reordering and starting a session. Collapsed folders and the
+ * open folder sheet live in [savedState] (ADR-40); the typed folder name belongs to the Name sheet. Writes need
+ * the network; reordering, "next" and delete apply at once and are reverted (with [RoutinesEffect.ActionFailed])
+ * when the server rejects them.
  */
 @Suppress("TooManyFunctions") // One small handler per event group.
 class RoutinesViewModel(
@@ -72,20 +69,15 @@ class RoutinesViewModel(
                 effectChannel.trySend(RoutinesEffect.OpenBuilder(event.id))
             }
 
+            is RoutinesEvent.OpenDetails -> effectChannel.trySend(RoutinesEffect.OpenDetails(event.id))
+
             is RoutinesEvent.OpenMenu -> updateContent { content -> content.copy(menuFor = content.find(event.id)) }
 
             RoutinesEvent.DismissMenu -> updateContent { it.copy(menuFor = null) }
 
             is RoutinesEvent.Duplicate -> duplicate(event.id)
 
-            is RoutinesEvent.RequestArchive ->
-                updateContent { content ->
-                    if (online) content.copy(menuFor = null, archiveFor = content.find(event.id)) else content
-                }
-
-            RoutinesEvent.ConfirmArchive -> confirmArchive()
-
-            RoutinesEvent.DismissArchive -> updateContent { it.copy(archiveFor = null) }
+            is RoutinesEvent.Delete -> deleteRoutine(event.id)
 
             is RoutinesEvent.StartRoutine -> start { sessions.startFromRoutine(event.id) }
 
@@ -100,20 +92,10 @@ class RoutinesViewModel(
 
             is RoutinesEvent.RenameFolder ->
                 (_uiState.value as? RoutinesUiState.Content)?.folders?.firstOrNull { it.id == event.id }?.let {
-                    if (online) openSheet(FolderSheetState(FolderSheetMode.Rename, it.id, it.name))
+                    if (online) openSheet(FolderSheetState(FolderSheetMode.Rename, it.id))
                 }
 
-            is RoutinesEvent.FolderNameChanged ->
-                updateContent { content ->
-                    content.copy(
-                        folderSheet = content.folderSheet?.copy(
-                            name = event.name.take(RoutineBounds.NAME_MAX_LENGTH),
-                            edited = true,
-                        ),
-                    )
-                }.also { persistSheet() }
-
-            RoutinesEvent.SaveFolder -> saveFolder()
+            is RoutinesEvent.SaveFolder -> saveFolder(event.name)
 
             RoutinesEvent.DismissFolderSheet -> closeSheet()
 
@@ -162,16 +144,14 @@ class RoutinesViewModel(
             val list = routines.getOrThrow()
             val folderList = folders.getOrThrow()
             _uiState.update { current ->
-                (
-                    (current as? RoutinesUiState.Content)?.copy(routines = list, folders = folderList)
-                        ?: RoutinesUiState.Content(
-                            routines = list,
-                            isOnline = online,
-                            folders = folderList,
-                            collapsedFolderIds = restoredCollapsed(),
-                            folderSheet = restoredSheet(),
-                        )
-                    ).withDuplicateCheck()
+                (current as? RoutinesUiState.Content)?.copy(routines = list, folders = folderList)
+                    ?: RoutinesUiState.Content(
+                        routines = list,
+                        isOnline = online,
+                        folders = folderList,
+                        collapsedFolderIds = restoredCollapsed(),
+                        folderSheet = restoredSheet(),
+                    )
             }
         }
     }
@@ -192,40 +172,47 @@ class RoutinesViewModel(
         if (!online || content.starting) return
         updateContent { it.copy(starting = true) }
         viewModelScope.launch {
-            val result = create()
             effectChannel.trySend(
-                when {
-                    result.isSuccess -> RoutinesEffect.OpenLiveSession
-                    result.appErrorOrNull() == AppError.SessionAlreadyInProgress -> RoutinesEffect.SessionInProgress
-                    else -> RoutinesEffect.StartFailed
+                when (create().toStartOutcome()) {
+                    SessionStartOutcome.Started -> RoutinesEffect.OpenLiveSession
+                    SessionStartOutcome.AlreadyInProgress -> RoutinesEffect.SessionInProgress
+                    SessionStartOutcome.Failed -> RoutinesEffect.StartFailed
                 },
             )
             updateContent { it.copy(starting = false) }
         }
     }
 
-    private fun confirmArchive() {
-        val target = (_uiState.value as? RoutinesUiState.Content)?.archiveFor ?: return
-        updateContent { it.copy(archiveFor = null) }
-        if (!online) return
+    /** Optimistic: the routine leaves the list at once; a server failure puts the list back. */
+    private fun deleteRoutine(id: String) {
+        val before = (_uiState.value as? RoutinesUiState.Content)?.routines ?: return
+        updateContent { it.copy(menuFor = null) }
+        if (!online) {
+            effectChannel.trySend(RoutinesEffect.OfflineRefused)
+            return
+        }
+        updateContent { content -> content.copy(routines = content.routines.filterNot { it.id == id }) }
         viewModelScope.launch {
-            repository.archive(target.id).fold(
-                onSuccess = { updateContent { content -> content.copy(routines = content.routines - target) } },
-                onFailure = { effectChannel.trySend(RoutinesEffect.ActionFailed) },
-            )
+            repository.delete(id).onFailure { revert(before) }
         }
     }
 
     // ---- Folders ----
 
-    private fun saveFolder() {
-        val sheet = (_uiState.value as? RoutinesUiState.Content)?.folderSheet ?: return
-        if (!online || !sheet.canSave) return
+    private fun saveFolder(rawName: String) {
+        val content = _uiState.value as? RoutinesUiState.Content
+        val sheet = content?.folderSheet ?: return
+        val name = NameSheetDefaults.normalize(rawName)
+        val ownName = content.folders.firstOrNull { it.id == sheet.folderId }?.name
+        val taken = NameSheetDefaults.isDuplicate(name, content.folders.map { it.name }, ignore = ownName)
+        if (!online || content.folderSaving || !NameSheetDefaults.canSave(name, taken)) return
+        updateContent { it.copy(folderSaving = true) }
         viewModelScope.launch {
             val result = when (sheet.mode) {
-                FolderSheetMode.Create -> repository.createFolder(sheet.name.trim()).map {}
-                FolderSheetMode.Rename -> repository.renameFolder(sheet.folderId.orEmpty(), sheet.name.trim())
+                FolderSheetMode.Create -> repository.createFolder(name).map {}
+                FolderSheetMode.Rename -> repository.renameFolder(sheet.folderId.orEmpty(), name)
             }
+            updateContent { it.copy(folderSaving = false) }
             result.fold(
                 onSuccess = {
                     closeSheet()
@@ -343,18 +330,11 @@ class RoutinesViewModel(
         val sheet = (_uiState.value as? RoutinesUiState.Content)?.folderSheet
         savedState[KEY_SHEET_MODE] = sheet?.mode?.name
         savedState[KEY_SHEET_FOLDER] = sheet?.folderId
-        savedState[KEY_SHEET_NAME] = sheet?.name
-        savedState[KEY_SHEET_EDITED] = sheet?.edited
     }
 
     private fun restoredSheet(): FolderSheetState? {
         val mode = savedState.get<String>(KEY_SHEET_MODE)?.let { FolderSheetMode.valueOf(it) } ?: return null
-        return FolderSheetState(
-            mode = mode,
-            folderId = savedState.get<String>(KEY_SHEET_FOLDER),
-            name = savedState.get<String>(KEY_SHEET_NAME).orEmpty(),
-            edited = savedState.get<Boolean>(KEY_SHEET_EDITED) ?: false,
-        )
+        return FolderSheetState(mode = mode, folderId = savedState.get<String>(KEY_SHEET_FOLDER))
     }
 
     private fun persistCollapsed() {
@@ -368,13 +348,6 @@ class RoutinesViewModel(
     private fun RoutinesUiState.Content.find(id: String): RoutineSummary? = routines.firstOrNull { it.id == id }
 
     private fun updateContent(transform: (RoutinesUiState.Content) -> RoutinesUiState.Content) {
-        _uiState.update { if (it is RoutinesUiState.Content) transform(it).withDuplicateCheck() else it }
+        _uiState.update { if (it is RoutinesUiState.Content) transform(it) else it }
     }
-
-    /** Derives [FolderSheetState.duplicateName] from the typed name and the folders (nothing extra is persisted). */
-    private fun RoutinesUiState.Content.withDuplicateCheck(): RoutinesUiState.Content = copy(
-        folderSheet = folderSheet?.let {
-            it.copy(duplicateName = isDuplicateFolderName(it.name, folders, ignoreId = it.folderId))
-        },
-    )
 }

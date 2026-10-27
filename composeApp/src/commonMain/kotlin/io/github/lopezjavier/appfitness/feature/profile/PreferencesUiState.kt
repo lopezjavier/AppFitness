@@ -40,6 +40,8 @@ data class PreferencesForm(
     val calculators: CalculatorSettings = CalculatorSettings(),
     /** "Cocina": the added-fat percentages per cooking method, as typed. */
     val foodPreferences: FoodPreferencesForm = FoodPreferencesForm(),
+    /** "Actualizar automáticamente" (ADR-70): a finished routine session updates its routine without asking. */
+    val autoUpdateRoutine: Boolean = false,
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
@@ -156,6 +158,9 @@ sealed interface PreferencesEvent {
 
     /** The "Incluir calentamiento" switch; only a draft until [Save]. */
     data class SetWarmUpIncluded(val included: Boolean) : PreferencesEvent
+
+    /** The "Actualizar automáticamente" switch (a draft until "Guardar"). */
+    data class SetAutoUpdateRoutine(val enabled: Boolean) : PreferencesEvent
 
     /** The "Valores anteriores" selector; only a draft until [Save]. */
     data class SetPreviousValuesMode(val mode: PreviousValuesMode) : PreferencesEvent

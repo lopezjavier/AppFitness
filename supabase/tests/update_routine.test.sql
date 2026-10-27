@@ -24,11 +24,11 @@ select function_privs_are('public', 'set_session_rest', array['uuid', 'int', 'in
 -- Fixtures (as postgres)
 -- ---------------------------------------------------------------------------
 -- RA: A's routine with ex1 (rest 90, rpe 8, 3 sets) and ex2 (rest 60, 2 sets). RO: another routine of A.
-insert into public.routines (id, user_id, name, notes, track_as_routine, auto_update_routine) values
-  ('a0000000-0000-4000-8000-0000000000a1', '11111111-1111-4111-8111-111111111111', 'Rutina A', 'nota', true, false),
-  ('a0000000-0000-4000-8000-0000000000a2', '11111111-1111-4111-8111-111111111111', 'Rutina otra', null, true, false),
-  ('a0000000-0000-4000-8000-0000000000a3', '11111111-1111-4111-8111-111111111111', 'Rutina C', null, true, false),
-  ('b0000000-0000-4000-8000-0000000000b1', '22222222-2222-4222-8222-222222222222', 'Rutina B', null, true, false);
+insert into public.routines (id, user_id, name, notes, track_as_routine) values
+  ('a0000000-0000-4000-8000-0000000000a1', '11111111-1111-4111-8111-111111111111', 'Rutina A', 'nota', true),
+  ('a0000000-0000-4000-8000-0000000000a2', '11111111-1111-4111-8111-111111111111', 'Rutina otra', null, true),
+  ('a0000000-0000-4000-8000-0000000000a3', '11111111-1111-4111-8111-111111111111', 'Rutina C', null, true),
+  ('b0000000-0000-4000-8000-0000000000b1', '22222222-2222-4222-8222-222222222222', 'Rutina B', null, true);
 
 insert into public.routine_exercises (id, routine_id, exercise_id, position, target_sets, target_reps, target_rpe, rest_seconds) values
   ('e1000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-0000000000a1', (select id from cat where n = 1), 0, 3, 8, 8, 90),
@@ -138,9 +138,9 @@ select is((select count(*)::int from public.routine_exercise_sets s join public.
            where e.routine_id = 'a0000000-0000-4000-8000-0000000000a1'), 4,
   'only completed sets enter the routine (an exercise with none is dropped)');
 select results_eq(
-  $$select name, notes, track_as_routine, auto_update_routine from public.routines
+  $$select name, notes, track_as_routine from public.routines
     where id = 'a0000000-0000-4000-8000-0000000000a1'$$,
-  $$values ('Rutina A', 'nota', true, false)$$, 'name, notes and flags are not touched');
+  $$values ('Rutina A', 'nota', true)$$, 'name, notes and flags are not touched');
 select is((select count(*)::int from public.workout_sets where session_id = 'c0000000-0000-4000-8000-000000000001'), 6,
   'the session''s sets are not modified');
 select is((select count(*)::int from public.workout_sets where session_id = 'c0000000-0000-4000-8000-000000000000'), 1,
@@ -204,21 +204,21 @@ grant all on ids to authenticated;
 insert into ids values ('f1', public.save_routine('{"name":"Con flags","track_as_routine":false,"auto_update_routine":true,"exercises":[]}'::jsonb));
 insert into ids values ('f2', public.save_routine('{"name":"Sin flags","exercises":[]}'::jsonb));
 select results_eq(
-  $$select track_as_routine, auto_update_routine from public.routines where id = (select v from ids where k = 'f1')$$,
-  $$values (false, true)$$, 'save_routine creates with the given flags');
+  $$select track_as_routine from public.routines where id = (select v from ids where k = 'f1')$$,
+  $$values (false)$$, 'save_routine creates with the given flag (an old auto_update_routine key is ignored)');
 select results_eq(
-  $$select track_as_routine, auto_update_routine from public.routines where id = (select v from ids where k = 'f2')$$,
-  $$values (true, false)$$, 'save_routine creates with the column defaults when the flags are omitted');
+  $$select track_as_routine from public.routines where id = (select v from ids where k = 'f2')$$,
+  $$values (true)$$, 'save_routine creates with the column default when the flag is omitted');
 select public.save_routine(jsonb_build_object('id', (select v from ids where k = 'f1'), 'name', 'Con flags', 'exercises', '[]'::jsonb));
 select results_eq(
-  $$select track_as_routine, auto_update_routine from public.routines where id = (select v from ids where k = 'f1')$$,
-  $$values (false, true)$$, 'an update that omits the flags leaves them unchanged');
+  $$select track_as_routine from public.routines where id = (select v from ids where k = 'f1')$$,
+  $$values (false)$$, 'an update that omits the flags leaves them unchanged');
 select public.save_routine(jsonb_build_object('id', (select v from ids where k = 'f1'), 'name', 'Con flags',
-  'auto_update_routine', false, 'exercises', '[]'::jsonb));
+  'track_as_routine', true, 'exercises', '[]'::jsonb));
 select results_eq(
-  $$select track_as_routine, auto_update_routine from public.routines where id = (select v from ids where k = 'f1')$$,
-  $$values (false, false)$$, 'an update with one flag changes only that flag');
-select throws_ok($$select public.save_routine('{"name":"X","auto_update_routine":"maybe","exercises":[]}'::jsonb)$$,
+  $$select track_as_routine from public.routines where id = (select v from ids where k = 'f1')$$,
+  $$values (true)$$, 'an update with one flag changes only that flag');
+select throws_ok($$select public.save_routine('{"name":"X","track_as_routine":"maybe","exercises":[]}'::jsonb)$$,
   '22023', null, 'an invalid flag value is rejected');
 
 -- ---------------------------------------------------------------------------

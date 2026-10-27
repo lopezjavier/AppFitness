@@ -12,6 +12,8 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_label
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_overall
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_routine
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_values_title
@@ -30,7 +32,7 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Entrenamiento" card: one row whose whole 48 dp area toggles "Incluir calentamiento", the previous-values selector
+ * "Entrenamiento" card: "Incluir calentamiento" and "Actualizar automáticamente" rows, the previous-values selector
  * and the "Calculadoras" block. The switch is drawn inside but hidden from semantics, so there is a single focus
  * target (the row). Nothing is applied until "Guardar".
  */
@@ -39,6 +41,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun TrainingCard(
     warmUpIncluded: Boolean,
     onChange: (Boolean) -> Unit,
+    autoUpdateRoutine: Boolean,
+    onAutoUpdateRoutine: (Boolean) -> Unit,
     previousValuesMode: PreviousValuesMode,
     onPreviousValuesMode: (PreviousValuesMode) -> Unit,
     calculators: CalculatorSettings,
@@ -59,6 +63,13 @@ internal fun TrainingCard(
                 checked = warmUpIncluded,
                 onCheckedChange = onChange,
                 modifier = Modifier.testTag("preferences_warm_up_switch"),
+            )
+            AppSwitchRow(
+                label = stringResource(Res.string.preferences_auto_update_label),
+                helper = stringResource(Res.string.preferences_auto_update_helper),
+                checked = autoUpdateRoutine,
+                onCheckedChange = onAutoUpdateRoutine,
+                modifier = Modifier.testTag("preferences_auto_update_switch"),
             )
             PreviousValuesSelector(previousValuesMode, onPreviousValuesMode)
             CalculatorsBlock(calculators, platesError, onEvent)

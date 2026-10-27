@@ -47,5 +47,6 @@ interface ProfileRepository {
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
         foodPreferences: FoodPreferences? = null,
+        autoUpdateRoutine: Boolean? = null,
     ): Result<Unit>
 }

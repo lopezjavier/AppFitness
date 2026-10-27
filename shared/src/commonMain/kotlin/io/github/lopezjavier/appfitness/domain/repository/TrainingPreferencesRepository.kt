@@ -11,3 +11,7 @@ interface TrainingPreferencesRepository {
 /** Whether warm-up sets count; a failed read falls back to the default (off) and never blocks the caller. */
 suspend fun TrainingPreferencesRepository.warmUpIncludedOrDefault(): Boolean =
     get().getOrNull()?.warmUpIncluded ?: false
+
+/** Whether a finished routine session updates its routine without asking; a failed read falls back to off (ask). */
+suspend fun TrainingPreferencesRepository.autoUpdateRoutineOrDefault(): Boolean =
+    get().getOrNull()?.autoUpdateRoutine ?: false

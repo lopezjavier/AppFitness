@@ -4,11 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,11 +17,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_cancel
@@ -33,25 +33,30 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_continue_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_discard_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.workout_history
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_entry_history_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_entry_title
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_in_progress
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesRoot
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Content of the Entreno tab: a "Historial" entry, "Mis rutinas" (with starting a session) and, while a session is
- * in progress, a "Continuar entreno" card. A session found at launch (cold start included) opens the live screen once.
+ * Content of the Entreno tab: the "Rutinas" header with the history action, the routines (with starting a session)
+ * and, while a session is in progress, a "Continuar entreno" card. A session found at launch (cold start included)
+ * opens the live screen once.
  */
 @Composable
 fun WorkoutEntryRoot(
     onOpenBuilder: (routineId: String?) -> Unit,
+    onOpenDetails: (routineId: String) -> Unit,
     onOpenLiveSession: () -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
@@ -61,37 +66,38 @@ fun WorkoutEntryRoot(
     val discardAsked by viewModel.discardAsked.collectAsStateWithLifecycle()
     val discarding by viewModel.discarding.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
-    val snackbarHost = remember { SnackbarHostState() }
+    val messages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     val failed = stringResource(Res.string.routines_action_failed)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                WorkoutEntryEffect.DiscardFailed -> snackbarHost.showSnackbar(failed)
+                WorkoutEntryEffect.DiscardFailed -> {
+                    haptics.reject()
+                    messages.show(failed)
+                }
             }
         }
     }
     // Coming back from the live screen, a finished or discarded session must stop showing as in progress.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.recheck() }
-    Box(modifier) {
-        WorkoutEntryHost(
-            state = state,
-            onOpenLiveSession = onOpenLiveSession,
-            onOpenHistory = onOpenHistory,
-            discardAsked = discardAsked,
-            discarding = discarding,
-            isOnline = isOnline,
-            onEvent = viewModel::onEvent,
-        ) { routinesModifier, openLive ->
-            RoutinesRoot(onOpenBuilder, openLive, routinesModifier)
-        }
-        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter)) { data ->
-            Snackbar { Text(data.visuals.message) }
-        }
+    WorkoutEntryHost(
+        state = state,
+        onOpenLiveSession = onOpenLiveSession,
+        onOpenHistory = onOpenHistory,
+        modifier = modifier,
+        discardAsked = discardAsked,
+        discarding = discarding,
+        isOnline = isOnline,
+        onEvent = viewModel::onEvent,
+    ) { routinesModifier, openLive ->
+        RoutinesRoot(onOpenBuilder, onOpenDetails, openLive, routinesModifier)
     }
 }
 
 /**
- * Stateless Entreno tab. Opens the live screen once when [state] becomes [WorkoutEntryState.Live]; leaving that
+ * Stateless Entreno tab on an `AppScreen` with the compact header (D1): "Rutinas" and the history (calendar)
+ * action. Opens the live screen once when [state] becomes [WorkoutEntryState.Live]; leaving that
  * screen with back does not reopen it (the "Continuar entreno" card does), and the guard re-arms when no session
  * is in progress. The card's trash button asks for confirmation ([discardAsked]) and is inert offline or while
  * [discarding].
@@ -125,21 +131,23 @@ fun WorkoutEntryHost(
         }
         previous = state
     }
-    Column(modifier) {
-        if (state == WorkoutEntryState.Live) {
-            ContinueCard(
-                onContinue = open,
-                onDiscard = { onEvent(WorkoutEntryEvent.RequestDiscard) },
-                discardEnabled = isOnline && !discarding,
-            )
+    val title = stringResource(Res.string.workout_entry_title)
+    AppScreen(
+        title = title,
+        modifier = modifier,
+        header = { EntryHeader(title, onOpenHistory) },
+        testTagPrefix = "workout_entry",
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            if (state == WorkoutEntryState.Live) {
+                ContinueCard(
+                    onContinue = open,
+                    onDiscard = { onEvent(WorkoutEntryEvent.RequestDiscard) },
+                    discardEnabled = isOnline && !discarding,
+                )
+            }
+            Box(Modifier.weight(1f).fillMaxWidth()) { routines(Modifier, open) }
         }
-        GhostButton(
-            text = stringResource(Res.string.workout_history),
-            onClick = onOpenHistory,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
-                .testTag("workout_history"),
-        )
-        Box(Modifier.weight(1f).fillMaxWidth()) { routines(Modifier, open) }
     }
     if (discardAsked) {
         AppConfirmDialog(
@@ -150,6 +158,28 @@ fun WorkoutEntryHost(
             onConfirm = { onEvent(WorkoutEntryEvent.ConfirmDiscard) },
             onDismiss = { onEvent(WorkoutEntryEvent.DismissDiscard) },
             testTagPrefix = "workout_discard_confirm",
+        )
+    }
+}
+
+/** The tab heading (equal to the bottom-bar label, R-04) and the one history action (R-03). */
+@Composable
+private fun EntryHeader(title: String, onOpenHistory: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = Spacing.screenMargin, end = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = AppTheme.typography.titleLarge,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.workout_entry_history_cd),
+            icon = Res.drawable.ic_calendar,
+            testTag = "workout_entry_history",
+            onClick = onOpenHistory,
         )
     }
 }

@@ -132,6 +132,8 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetWarmUpIncluded -> edit { it.copy(warmUpIncluded = event.included) }
 
+            is PreferencesEvent.SetAutoUpdateRoutine -> edit { it.copy(autoUpdateRoutine = event.enabled) }
+
             is PreferencesEvent.SetPreviousValuesMode -> edit { it.copy(previousValuesMode = event.mode) }
 
             is PreferencesEvent.SetBarWeight -> edit { it.copy(calculators = it.calculators.withBar(event.kg)) }
@@ -269,6 +271,7 @@ class PreferencesViewModel(
             previousValuesMode = training.previousValuesMode,
             calculators = training.calculators,
             foodPreferences = FoodPreferencesForm.of(food),
+            autoUpdateRoutine = training.autoUpdateRoutine,
         )
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }
         return PreferencesUiState.Loaded(
@@ -343,6 +346,7 @@ class PreferencesViewModel(
                 previousValuesMode = form.previousValuesMode,
                 calculators = form.calculators,
                 foodPreferences = form.toFoodPreferences(),
+                autoUpdateRoutine = form.autoUpdateRoutine,
             )
             if (result.isSuccess) {
                 if (!state.weightFromHealthConnect && form.weightKg != state.saved.weightKg) writeWeightBack()

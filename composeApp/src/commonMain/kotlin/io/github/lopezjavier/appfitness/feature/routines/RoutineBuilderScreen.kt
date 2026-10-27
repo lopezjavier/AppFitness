@@ -8,18 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -27,40 +22,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
-import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_add_exercise
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_discard_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_discard_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_discard_message
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_discard_title
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_name_label
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_name_taken
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_no_exercises
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_offline_message
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_save
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_save_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_auto_update_helper
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_auto_update_label
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_title_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_title_new
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -70,8 +54,8 @@ private val SkeletonRowHeight = Spacing.xl * 7
 
 /**
  * Stateful builder: connects [RoutineBuilderViewModel], hands it the exercise the picker returned
- * ([selectedExerciseId], consumed once through [onConsumeSelection]) and routes its one-off results: close the screen
- * or a snackbar when saving failed.
+ * ([selectedExerciseId], consumed once through [onConsumeSelection]) and routes its one-off results: a Reject haptic
+ * and a message when saving failed. Closing after a save is the editor template's job (it reads `saved`).
  */
 @Composable
 @Suppress("LongParameterList") // Navigation hooks of the screen.
@@ -86,11 +70,11 @@ fun RoutineBuilderRoot(
     viewModel: RoutineBuilderViewModel = koinViewModel(parameters = { parametersOf(routineId.orEmpty()) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHost = remember { SnackbarHostState() }
-    val currentOnClose by rememberUpdatedState(onClose)
     val currentConsumed by rememberUpdatedState(onConsumeSelection)
+    val messages = LocalAppMessages.current
+    val haptics = LocalAppHaptics.current
     val failed = stringResource(Res.string.builder_save_failed)
-    val offline = stringResource(Res.string.builder_offline_message)
+    val offline = offlineHint("guardar")
     LaunchedEffect(selectedExerciseId) {
         if (selectedExerciseId != null) {
             viewModel.onEvent(RoutineBuilderEvent.AddExercise(selectedExerciseId))
@@ -100,17 +84,20 @@ fun RoutineBuilderRoot(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                RoutineBuilderEffect.Close -> currentOnClose()
-                is RoutineBuilderEffect.SaveFailed -> snackbarHost.showSnackbar(if (effect.offline) offline else failed)
+                is RoutineBuilderEffect.SaveFailed -> {
+                    haptics.reject()
+                    messages.show(if (effect.offline) offline else failed)
+                }
             }
         }
     }
-    RoutineBuilderScreen(state, viewModel::onEvent, onAddExercise, onOpenExercise, modifier, snackbarHost)
+    RoutineBuilderScreen(state, viewModel::onEvent, onAddExercise, onOpenExercise, modifier, onClose)
 }
 
 /**
- * Routine builder (US-10): the name, the exercise cards (reorderable by dragging the handle, or with Subir / Bajar
- * in the row menu) and "Añadir ejercicio", with "Guardar" pinned at the bottom. Back asks before discarding edits.
+ * Routine builder (US-10) on the editor template: the name, the exercise cards (reorderable by dragging the handle,
+ * swipeable by their header, or with Subir / Bajar / Quitar in the row menu) and "Añadir ejercicio" at the end.
+ * The template owns "Guardar", the offline hint and the discard dialog.
  */
 @Composable
 fun RoutineBuilderScreen(
@@ -119,39 +106,30 @@ fun RoutineBuilderScreen(
     onAddExercise: () -> Unit,
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
-    snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    onClose: () -> Unit = {},
 ) {
-    NavigationBackHandler(
-        state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
-        isBackEnabled = true,
-        onBackCompleted = { onEvent(RoutineBuilderEvent.Back) },
-    )
-    InterceptTopBarBack(enabled = true) { onEvent(RoutineBuilderEvent.Back) }
-    Box(modifier.fillMaxSize().testTag("routine_builder_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (state) {
-                    RoutineBuilderUiState.Loading -> BuilderLoading()
-                    RoutineBuilderUiState.LoadError -> BuilderLoadError { onEvent(RoutineBuilderEvent.Retry) }
-                    is RoutineBuilderUiState.Editing -> BuilderForm(state, onEvent, onAddExercise, onOpenExercise)
-                }
+    val editing = state as? RoutineBuilderUiState.Editing
+    AppEditorScreen(
+        title = stringResource(
+            if (editing?.isEditMode == false) Res.string.builder_title_new else Res.string.builder_title_edit,
+        ),
+        isDirty = editing?.isDirty == true,
+        isSaving = editing?.isSaving == true,
+        isOnline = editing?.isOnline ?: true,
+        onSave = { onEvent(RoutineBuilderEvent.Save) },
+        onClose = onClose,
+        modifier = modifier,
+        saved = editing?.saved == true,
+        canSave = editing?.canSave == true,
+        testTagPrefix = "routine_builder",
+    ) {
+        Box(Modifier.fillMaxSize().testTag("routine_builder_screen")) {
+            when (state) {
+                RoutineBuilderUiState.Loading -> BuilderLoading()
+                RoutineBuilderUiState.LoadError -> BuilderLoadError { onEvent(RoutineBuilderEvent.Retry) }
+                is RoutineBuilderUiState.Editing -> BuilderForm(state, onEvent, onAddExercise, onOpenExercise)
             }
-            SnackbarHost(snackbarHost) { data ->
-                Snackbar(Modifier.testTag("routine_builder_snackbar")) { Text(data.visuals.message) }
-            }
-            if (state is RoutineBuilderUiState.Editing) BuilderFooter(state, onEvent)
         }
-    }
-    if (state is RoutineBuilderUiState.Editing && state.showDiscardConfirm) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.builder_discard_title),
-            message = stringResource(Res.string.builder_discard_message),
-            confirmLabel = stringResource(Res.string.builder_discard_confirm),
-            cancelLabel = stringResource(Res.string.builder_discard_cancel),
-            onConfirm = { onEvent(RoutineBuilderEvent.ConfirmDiscard) },
-            onDismiss = { onEvent(RoutineBuilderEvent.DismissDiscard) },
-            testTagPrefix = "routine_builder_discard",
-        )
     }
 }
 
@@ -176,14 +154,8 @@ private fun BuilderForm(
             value = state.name,
             onValueChange = { onEvent(RoutineBuilderEvent.SetName(it)) },
             label = stringResource(Res.string.builder_name_label),
+            errorText = if (state.nameTaken) stringResource(Res.string.builder_name_taken) else null,
             testTagPrefix = "routine_builder_name_field",
-        )
-        AppSwitchRow(
-            label = stringResource(Res.string.routine_builder_auto_update_label),
-            helper = stringResource(Res.string.routine_builder_auto_update_helper),
-            checked = state.autoUpdateRoutine,
-            onCheckedChange = { onEvent(RoutineBuilderEvent.SetAutoUpdate(it)) },
-            modifier = Modifier.testTag("routine_builder_auto_update_switch"),
         )
         if (state.rows.isEmpty()) {
             Text(
@@ -213,10 +185,10 @@ private fun BuilderForm(
                 )
             }
         }
-        GhostButton(
-            text = stringResource(Res.string.builder_add_exercise),
+        AddItemButton(
+            objectLabel = "ejercicio",
             onClick = onAddExercise,
-            modifier = Modifier.fillMaxWidth().testTag("routine_builder_add_exercise_button"),
+            modifier = Modifier.testTag("routine_builder_add_exercise"),
         )
     }
     BuilderSheets(state, menuRowId, onEvent) { menuRowId = null }
@@ -242,31 +214,6 @@ private fun BuilderSheets(
         BuilderRowMenu(row = state.rows[menuIndex], index = menuIndex, onEvent = onEvent, onDismiss = onCloseMenu)
     }
     BuilderOptionSheets(state, onEvent)
-}
-
-/** "Guardar" pinned at the bottom, with the offline reason above it when there is no connection. */
-@Composable
-private fun BuilderFooter(state: RoutineBuilderUiState.Editing, onEvent: (RoutineBuilderEvent) -> Unit) {
-    Column {
-        if (!state.isOnline) {
-            OfflineBanner(
-                modifier = Modifier.fillMaxWidth(),
-                message = stringResource(Res.string.builder_offline_message),
-                testTagPrefix = "routine_builder_offline_banner",
-            )
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.builder_save),
-            onClick = { onEvent(RoutineBuilderEvent.Save) },
-            enabled = state.canSave,
-            loading = state.isSaving,
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)
-                .testTag("routine_builder_save_button"),
-        )
-    }
 }
 
 @Composable

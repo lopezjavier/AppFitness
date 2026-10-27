@@ -92,6 +92,23 @@ class SupabaseTrainingPreferencesRepositoryTest {
     }
 
     @Test
+    fun get_readsTheGlobalAutoUpdateRoutineSetting() = runTest {
+        body = """[{"warm_up_included":false,"auto_update_routine":true}]"""
+
+        val result = repository().get().getOrThrow()
+
+        assertTrue(result.autoUpdateRoutine)
+        assertTrue(rest().single().url.toString().contains("auto_update_routine"))
+    }
+
+    @Test
+    fun get_rowWithoutTheAutoUpdateColumnIsOff() = runTest {
+        body = """[{"warm_up_included":true}]"""
+
+        assertEquals(false, repository().get().getOrThrow().autoUpdateRoutine)
+    }
+
+    @Test
     fun get_rowWithoutTheModeColumnDefaultsToOverall() = runTest {
         body = """[{"warm_up_included":false}]"""
 

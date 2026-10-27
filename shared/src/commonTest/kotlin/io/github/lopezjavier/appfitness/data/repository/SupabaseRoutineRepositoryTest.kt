@@ -48,6 +48,9 @@ class SupabaseRoutineRepositoryTest {
     private var rpcBody = "\"new-id\""
     private var failing = false
 
+    /** The next [conflicts] writes to a name-checked RPC answer 23505 (name already used). */
+    private var conflicts = 0
+
     private fun client(engine: MockEngine) = SupabaseClientFactory.create(
         AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true),
         engine,
@@ -61,9 +64,22 @@ class SupabaseRoutineRepositoryTest {
                 val headers = headersOf(HttpHeaders.ContentType, "application/json")
                 when {
                     request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
+
                     failing -> throw IOException("offline")
+
+                    request.url.encodedPath.contains("/rpc/") && conflicts > 0 -> {
+                        conflicts--
+                        respond(
+                            """{"code":"23505","message":"duplicate key value violates unique constraint"}""",
+                            HttpStatusCode.Conflict,
+                            headers,
+                        )
+                    }
+
                     request.url.encodedPath.contains("/rpc/") -> respond(rpcBody, HttpStatusCode.OK, headers)
+
                     request.method == HttpMethod.Get -> respond(getBody, HttpStatusCode.OK, headers)
+
                     else -> respond("", HttpStatusCode.NoContent)
                 }
             }
@@ -111,7 +127,7 @@ class SupabaseRoutineRepositoryTest {
         val call = rest().single()
         assertEquals("/rest/v1/rpc/save_routine", call.url.encodedPath)
         assertEquals(
-            """{"p_routine":{"name":"Torso fuerza","track_as_routine":true,"auto_update_routine":false,""" +
+            """{"p_routine":{"name":"Torso fuerza","track_as_routine":true,""" +
                 """"exercises":[""" +
                 """{"exercise_id":"e1","position":0,"superset_group":2,"rest_seconds":120,"target_rpe":8.5,""" +
                 """"sets":[{"weight_kg":40.0,"reps":10,"set_type":"warm_up"},{"reps":8,"set_type":"working"}]},""" +
@@ -124,24 +140,58 @@ class SupabaseRoutineRepositoryTest {
     }
 
     @Test
-    fun save_sendsTheTrackingFlags() = runTest {
+    fun save_sendsTheTrackingFlagButNoAutoUpdate() = runTest {
         val repo = signedIn()
 
-        repo.save(routine().copy(trackAsRoutine = false, autoUpdateRoutine = true)).getOrThrow()
+        repo.save(routine().copy(trackAsRoutine = false)).getOrThrow()
 
         val text = body(rest().single())
-        assertTrue(""""track_as_routine":false,"auto_update_routine":true""" in text, text)
+        assertTrue(""""track_as_routine":false""" in text, text)
+        assertTrue("auto_update_routine" !in text, text)
     }
 
     @Test
-    fun get_mapsTheTrackingFlags() = runTest {
+    fun get_mapsTheTrackingFlag_andIgnoresALegacyAutoUpdateColumn() = runTest {
         val repo = signedIn()
         getBody =
             """[{"id":"r1","name":"A","track_as_routine":false,"auto_update_routine":true,"routine_exercises":[]}]"""
 
         val routine = repo.get("r1").getOrThrow()
 
-        assertEquals(false to true, routine.trackAsRoutine to routine.autoUpdateRoutine)
+        assertEquals(false, routine.trackAsRoutine)
+    }
+
+    @Test
+    fun get_doesNotAskForTheDroppedAutoUpdateColumn() = runTest {
+        val repo = signedIn()
+
+        repo.get("r1")
+
+        assertTrue("auto_update_routine" !in rest().single().url.encodedQuery)
+    }
+
+    @Test
+    fun save_duplicateName_isNameAlreadyExists() = runTest {
+        val repo = signedIn()
+        conflicts = 1
+
+        assertEquals(AppError.NameAlreadyExists, repo.save(routine()).appErrorOrNull())
+    }
+
+    @Test
+    fun createFromSession_duplicateName_isNameAlreadyExists() = runTest {
+        val repo = signedIn()
+        conflicts = 1
+
+        assertEquals(AppError.NameAlreadyExists, repo.createFromSession("s1", "Torso").appErrorOrNull())
+    }
+
+    @Test
+    fun createFromSession_ok_returnsTheId() = runTest {
+        val repo = signedIn()
+
+        assertEquals("new-id", repo.createFromSession("s1", " Torso ").getOrThrow())
+        assertEquals("""{"p_session_id":"s1","p_name":"Torso"}""", body(rest().single()))
     }
 
     @Test
@@ -397,14 +447,60 @@ class SupabaseRoutineRepositoryTest {
     }
 
     @Test
-    fun archive_patchesTheArchivedFlagOfThatRoutine() = runTest {
+    fun duplicate_whenTheCopyNameExists_triesCopia2ThenCopia3() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW
+        conflicts = 2
+
+        repo.duplicate("r1").getOrThrow()
+
+        val names = rest().filter { it.url.encodedPath.endsWith("/save_routine") }.map { savedName(it) }
+        assertEquals(listOf("Torso fuerza (copia)", "Torso fuerza (copia 2)", "Torso fuerza (copia 3)"), names)
+    }
+
+    @Test
+    fun duplicate_retryNamesStayWithinTheNameLimit() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW.replace("Torso fuerza", "x".repeat(100))
+        conflicts = 1
+
+        repo.duplicate("r1").getOrThrow()
+
+        val last = savedName(rest().last())
+        assertEquals(100, last.length)
+        assertTrue(last.endsWith(" (copia 2)"), last)
+    }
+
+    @Test
+    fun duplicate_givesUpAfterTwentyTries_withNameAlreadyExists() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW
+        conflicts = 100
+
+        assertEquals(AppError.NameAlreadyExists, repo.duplicate("r1").appErrorOrNull())
+        assertEquals(20, rest().count { it.url.encodedPath.endsWith("/save_routine") })
+    }
+
+    @Test
+    fun delete_deletesThatRoutine() = runTest {
         val repo = signedIn()
 
-        repo.archive("r1").getOrThrow()
+        repo.delete("r1").getOrThrow()
 
         val call = rest().single()
-        assertEquals(HttpMethod.Patch, call.method)
-        assertEquals("""{"archived":true}""", (call.body as TextContent).text)
+        assertEquals(HttpMethod.Delete, call.method)
+        assertEquals("/rest/v1/routines", call.url.encodedPath)
         assertTrue("id=eq.r1" in call.url.encodedQuery)
     }
+
+    @Test
+    fun delete_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.delete("r1").appErrorOrNull())
+    }
+
+    private fun savedName(call: HttpRequestData): String =
+        Regex(""""name":"([^"]*)"""").find(body(call))!!.groupValues[1]
 }

@@ -72,11 +72,15 @@ internal typealias ExerciseDetailSlot =
         onClose: () -> Unit,
     ) -> Unit
 
-/** "Mis rutinas" content: its modifier (tab insets) and the opener of the builder (null id = new routine). */
+/**
+ * Entreno tab content: its modifier (tab insets), the opener of the builder (null id = new routine), the opener of a
+ * routine's details, the live session and the history.
+ */
 internal typealias RoutinesSlot =
     @Composable (
         modifier: Modifier,
         onOpenBuilder: (String?) -> Unit,
+        onOpenDetails: (String) -> Unit,
         onOpenLiveSession: () -> Unit,
         onOpenHistory: () -> Unit,
     ) -> Unit
@@ -313,6 +317,20 @@ class RoutineBuilderHost(
 /** Routine builder content: modifier (full-screen insets) and its [RoutineBuilderHost]. */
 internal typealias RoutineBuilderSlot = @Composable (modifier: Modifier, host: RoutineBuilderHost) -> Unit
 
+/**
+ * Routine details content: modifier (full-screen insets), the routine id, and the openers of its builder, the live
+ * session and an exercise (by id), plus the back arrow.
+ */
+internal typealias RoutineDetailsSlot =
+    @Composable (
+        modifier: Modifier,
+        routineId: String,
+        onEdit: () -> Unit,
+        onOpenLiveSession: () -> Unit,
+        onOpenExercise: (String) -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit
+
 /** Key under which a picker started in select mode leaves the chosen exercise id for the previous destination. */
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
@@ -334,8 +352,13 @@ internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _
 }
 
 /** Empty "Mis rutinas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _ ->
+internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("routines_screen"))
+}
+
+/** Empty routine details for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultRoutineDetailsSlot: RoutineDetailsSlot = { modifier, _, _, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("routine_details_screen"))
 }
 
 /** Empty builder for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -471,6 +494,7 @@ internal fun AppNavHost(
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
     routineBuilder: RoutineBuilderSlot = DefaultRoutineBuilderSlot,
+    routineDetails: RoutineDetailsSlot = DefaultRoutineDetailsSlot,
     liveSession: LiveSessionSlot = DefaultLiveSessionSlot,
     diary: DiarySlot = DefaultDiarySlot,
     diaryHistory: DiaryHistorySlot = DefaultDiaryHistorySlot,
@@ -514,6 +538,8 @@ internal fun AppNavHost(
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
     val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
+    val openDetails: (String) -> Unit =
+        remember(navController) { { id -> navController.navigateToFullScreen(RoutineDetailsRoute(id)) } }
     val openProgress: (String) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(ExerciseProgressRoute(id)) } }
     NavHost(navController = navController, startDestination = TopLevelTab.Start.graph, modifier = modifier) {
@@ -574,7 +600,7 @@ internal fun AppNavHost(
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> {
-                routines(Modifier.padding(tabPadding), openBuilder, openLiveSession, openHistory)
+                routines(Modifier.padding(tabPadding), openBuilder, openDetails, openLiveSession, openHistory)
             }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
@@ -637,6 +663,17 @@ internal fun AppNavHost(
                     },
                     onClose = { navController.popBackStack() },
                 ),
+            )
+        }
+        composable<RoutineDetailsRoute> { entry ->
+            val routineId = entry.toRoute<RoutineDetailsRoute>().routineId
+            routineDetails(
+                Modifier.padding(fullScreenPadding),
+                routineId,
+                { navController.navigateToFullScreen(RoutineBuilderRoute(routineId)) },
+                openLiveSession,
+                { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
+                { navController.popFullScreen(entry) },
             )
         }
         liveSessionDestination(navController, fullScreenPadding, liveSession)

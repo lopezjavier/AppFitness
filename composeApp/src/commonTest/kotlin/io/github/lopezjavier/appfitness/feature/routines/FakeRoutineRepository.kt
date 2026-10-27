@@ -18,7 +18,7 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
     val routines = initial.toMutableList()
     val saved = mutableListOf<Routine>()
     val duplicated = mutableListOf<String>()
-    val archivedIds = mutableListOf<String>()
+    val deletedIds = mutableListOf<String>()
     val folders = mutableListOf<RoutineFolder>()
     val folderOf = mutableMapOf<String, String?>()
     var nextId: String? = null
@@ -142,11 +142,10 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
         return Result.success("r-from-session")
     }
 
-    override suspend fun archive(id: String): Result<Unit> {
+    override suspend fun delete(id: String): Result<Unit> {
         failing(saveFailure)?.let { return it }
-        archivedIds += id
-        val index = routines.indexOfFirst { it.id == id }
-        routines[index] = routines[index].copy(archived = true)
+        deletedIds += id
+        routines.removeAll { it.id == id }
         return Result.success(Unit)
     }
 }
