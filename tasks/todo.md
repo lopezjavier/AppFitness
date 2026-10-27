@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-126 (Comidas del día editor and meal-structure backend), E9 (UX rulebook + finalization → `v1.0.0`). T-125c merged (PR #284, CI green, no backend change so no deploy; the four statistics routes are on `AppScreen`, `TimeRangeSelector` with 1M/3M/6M/1A/Todo, radar "Isquios" with previous-window failure hint, `MuscleDetailSheet` on `AppInfoSheet`, body map B1 polish; stats-local `ExerciseRow` logged in the E9 table, owner T-129; `OfflineState` not wired since no feature uses it). Carry-over: KDoc in `TrainingStatsSections.kt` and `TrainingStatsFormat.kt` still says "sesiones" (cosmetic).
+**Next:** T-127 (Perfil root and Preferencias hub), E9 (UX rulebook + finalization → `v1.0.0`). T-126 merged (PR #286, CI green; migration `20261115100000_meal_structure_save.sql` with duplicate pre-check, `save_meal_structure` and `list_meal_slots_in_use`; meals editor and defaults screen on `AppEditorScreen`; `NavigationRow` `enabled`, `NameSheet` `commit`). `deploy-supabase` on `main` must finish green (meals intact) before the final E9 checkpoint. Carry-over for T-128: drop legacy `save_meal_slots` and `delete_meal_slot`; non-blocking nits: `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
 
 ---
 
@@ -3720,17 +3720,17 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 **Description:** **Backend:** a migration that (a) makes meal names unique per user on `lower(btrim(name))` (item 21; `meal_slots` was not part of the 2026-10-26 production check, so the migration first runs a pre-check that raises naming any duplicate (fail loudly, never rename), with a pgTAP case for it) and (b) adds one RPC that saves the whole meal structure atomically (renames, order, new meals and removals), still refusing a meal in use (`food_log_entries`) or the last meal with the existing error codes, so a removal is applied by "Guardar" (R-11, D3, amends ADR-41); `delete_meal_slot` stays for compatibility until the client no longer calls it. `03-data-model.md` updated. **UI, templates and patterns:** the editor on `AppEditorScreen` titled "Comidas del día" (glossary), rows as configuration rows with a trash icon (R-20) whose removal waits for "Guardar" and shows the "in use"/"last meal" hint beforehand; create and rename through the Name sheet "Nueva comida del día" (items 20, 22, 25; R-15), "Añadir comida del día" as `AddItemButton`; `ReorderableColumn` v2; "Comidas por defecto ›" as a `NavigationRow` at the end, blocked with its reason while there are unsaved changes (audit §6.4); the defaults screen on `AppEditorScreen` with `MealDefaultsSheets` → archetypes. Guards become failures for `feature/meals`.
 
 **Acceptance criteria:**
-- [ ] Removing a meal in the editor changes nothing on the server until "Guardar"; back with changes asks; "Guardar" applies renames, order, additions and removals together.
-- [ ] A meal in use or the last meal shows its hint in the row and the server refuses it on save with the same message as today.
-- [ ] "Añadir comida del día" opens the Name sheet with focus; a duplicate name (any case) is refused inline.
-- [ ] "Comidas por defecto ›" opens the defaults screen; with unsaved changes it is disabled and says why.
-- [ ] pgTAP: atomic save (all or nothing), unique names, in-use and last-meal refusals, cross-user isolation.
+- [x] Removing a meal in the editor changes nothing on the server until "Guardar"; back with changes asks; "Guardar" applies renames, order, additions and removals together.
+- [x] A meal in use or the last meal shows its hint in the row and the server refuses it on save with the same message as today.
+- [x] "Añadir comida del día" opens the Name sheet with focus; a duplicate name (any case) is refused inline.
+- [x] "Comidas por defecto ›" opens the defaults screen; with unsaved changes it is disabled and says why.
+- [x] pgTAP: atomic save (all or nothing), unique names, in-use and last-meal refusals, cross-user isolation.
 
 **Host tests:** `MealSlotsEditorViewModelTest` (staged removal, single save call, error mapping), `MealSlotsScreen` tests (title, Name sheet, add button, row hints, navigation row state, discard), `MealDefaultsScreen` discard and sheet tests, pgTAP for the new RPC and index, restoration tests.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green; migration remote; existing meals intact.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green; migration remote; existing meals intact.
 
 **Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 18 files.
 **Dependencies:** T-125c
