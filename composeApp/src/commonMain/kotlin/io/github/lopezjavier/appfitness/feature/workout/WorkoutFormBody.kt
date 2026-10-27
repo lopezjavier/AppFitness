@@ -42,15 +42,17 @@ private fun slot(index: Int, setIndex: Int): Int = index * SETS_PER_SLOT + setIn
 /**
  * The fields shared by the edit and the past-workout screens (US-37), in this order: name, [dateRow], duration, gym,
  * description, the exercise cards and "Añadir ejercicio". Edits go out as [WorkoutFormEvent]s; every tag starts with
- * [tagPrefix]. The open set-type and RPE pickers survive recreation (ADR-40).
+ * [tagPrefix]. Invalid fields are flagged once [showIssues] (the user edited the form, R-27). The open set-type
+ * and RPE pickers survive recreation (ADR-40).
  */
 @Composable
-@Suppress("LongMethod") // The fields of the form in order, one block each.
+@Suppress("LongMethod", "LongParameterList") // The fields of the form in order, one block each.
 internal fun WorkoutFormBody(
     view: WorkoutFormView,
     tagPrefix: String,
     onEvent: (WorkoutFormEvent) -> Unit,
     onAddExercise: () -> Unit,
+    showIssues: Boolean,
     modifier: Modifier = Modifier,
     dateRow: @Composable () -> Unit,
 ) {
@@ -69,7 +71,7 @@ internal fun WorkoutFormBody(
             onValueChange = { onEvent(WorkoutFormEvent.NameChanged(it)) },
             label = stringResource(Res.string.workout_form_name),
             maxLength = WorkoutDraftBounds.NAME_MAX_LENGTH,
-            errorText = if (view.submitAttempted && WorkoutDraftIssue.Name in view.issues) {
+            errorText = if (showIssues && WorkoutDraftIssue.Name in view.issues) {
                 stringResource(Res.string.workout_form_name_error)
             } else {
                 null
@@ -102,12 +104,12 @@ internal fun WorkoutFormBody(
             Text(
                 text = stringResource(Res.string.workout_form_no_exercises),
                 style = AppTheme.typography.bodyMedium,
-                color = if (view.submitAttempted) AppTheme.colors.error else AppTheme.colors.textSecondary,
+                color = if (showIssues) AppTheme.colors.error else AppTheme.colors.textSecondary,
                 modifier = Modifier.testTag("${tagPrefix}_empty_hint"),
             )
         }
         form.exercises.forEachIndexed { index, exercise ->
-            val flagged = if (view.submitAttempted) {
+            val flagged = if (showIssues) {
                 view.issues.filterIsInstance<WorkoutDraftIssue.SetValue>()
                     .filter { it.exercise == index }.map { it.set }.toSet()
             } else {

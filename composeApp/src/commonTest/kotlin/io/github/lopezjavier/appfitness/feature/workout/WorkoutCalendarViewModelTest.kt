@@ -71,12 +71,12 @@ class WorkoutCalendarViewModelTest {
     }
 
     @Test
-    fun withNoSessionsTheStateIsEmpty() = runTest(dispatcher) {
+    fun withNoSessionsTheCalendarStillShowsWithoutMarks() = runTest(dispatcher) {
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(WorkoutCalendarUiState.Empty, model.uiState.value)
+        assertEquals(emptySet(), model.content().markedDays)
     }
 
     @Test
@@ -194,18 +194,69 @@ class WorkoutCalendarViewModelTest {
     }
 
     @Test
-    fun tappingADayWithoutWorkoutsOrInTheFutureDoesNothing() = runTest(dispatcher) {
+    fun tappingAFutureDayDoesNothing() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 25)))
+        advanceUntilIdle()
+
+        assertEquals(null, model.content().selectedDay)
+        assertEquals(DayCardsState.None, model.content().dayCards)
+        assertEquals(false, model.content().canAddToSelectedDay)
+    }
+
+    @Test
+    fun aPastDayWithoutWorkoutsCanBeSelectedAndAddedTo() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 5)))
+        advanceUntilIdle()
+
+        assertEquals(LocalDate(2026, 10, 5), model.content().selectedDay)
+        assertEquals(DayCardsState.Loaded(emptyList()), model.content().dayCards)
+        assertTrue(model.content().canAddToSelectedDay)
+    }
+
+    @Test
+    fun todayCanBeAddedTo() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+
+        assertTrue(model.content().canAddToSelectedDay)
+    }
+
+    @Test
+    fun addWorkoutEmitsTheSelectedDay() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0)
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 5)))
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(WorkoutCalendarEvent.AddWorkout)
+
+            assertEquals(WorkoutCalendarEffect.AddWorkout(LocalDate(2026, 10, 5)), awaitItem())
+        }
+    }
+
+    @Test
+    fun addWorkoutWithoutASelectedDayDoesNothing() = runTest(dispatcher) {
         repository.completed += completedSession("a", 0)
         val model = viewModel()
         advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 5)))
-            model.onEvent(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 25)))
+            model.onEvent(WorkoutCalendarEvent.AddWorkout)
             expectNoEvents()
         }
-        assertEquals(null, model.content().selectedDay)
-        assertEquals(DayCardsState.None, model.content().dayCards)
     }
 
     @Test
@@ -242,7 +293,7 @@ class WorkoutCalendarViewModelTest {
     }
 
     @Test
-    fun refreshDropsADeletedWorkoutsCard_andClearsTheSelectionWhenTheDayEmpties() = runTest(dispatcher) {
+    fun refreshDropsADeletedWorkoutsCard_andKeepsTheSelectedDayWhenItEmpties() = runTest(dispatcher) {
         repository.completed += listOf(completedSession("a", 0), completedSession("b", 0, hourOffset = 3))
         val model = viewModel()
         advanceUntilIdle()
@@ -258,8 +309,8 @@ class WorkoutCalendarViewModelTest {
         repository.completed += completedSession("c", 2)
         model.onEvent(WorkoutCalendarEvent.Refresh)
         advanceUntilIdle()
-        assertEquals(null, model.content().selectedDay)
-        assertEquals(DayCardsState.None, model.content().dayCards)
+        assertEquals(today, model.content().selectedDay)
+        assertEquals(DayCardsState.Loaded(emptyList()), model.content().dayCards)
     }
 
     @Test
@@ -397,7 +448,7 @@ class WorkoutCalendarViewModelTest {
     }
 
     @Test
-    fun refreshWhenTheLastWorkoutWasDeletedShowsEmpty() = runTest(dispatcher) {
+    fun refreshWhenTheLastWorkoutWasDeletedKeepsTheCalendarWithoutMarks() = runTest(dispatcher) {
         repository.completed += completedSession("a", 0)
         val model = viewModel()
         advanceUntilIdle()
@@ -406,7 +457,7 @@ class WorkoutCalendarViewModelTest {
         model.onEvent(WorkoutCalendarEvent.Refresh)
         advanceUntilIdle()
 
-        assertEquals(WorkoutCalendarUiState.Empty, model.uiState.value)
+        assertEquals(emptySet(), model.content().markedDays)
     }
 
     @Test

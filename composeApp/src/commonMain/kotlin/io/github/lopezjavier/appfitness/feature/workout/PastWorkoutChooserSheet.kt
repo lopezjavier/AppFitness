@@ -1,32 +1,19 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_back
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
-import io.github.lopezjavier.appfitness.composeapp.resources.past_source_back_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.past_source_close_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_no_routines_message
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_no_routines_title
@@ -39,116 +26,91 @@ import io.github.lopezjavier.appfitness.composeapp.resources.past_source_session
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_count
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
-import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
-import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppListRow
+import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 private const val TAG = "past_workout_source"
 private val SkeletonHeight = Spacing.xl * 3
 
 /**
- * The source chooser opened by the history's "+" (US-37): one sheet with "Desde cero", "Desde una rutina" and "Desde un
- * entreno anterior"; the last two open a list in the same sheet (back arrow returns to the options). Picking only
- * starts the form; the form has its own "Guardar". [history] feeds the workout list with the history's own rows.
+ * The source chooser opened by "Añadir entreno" (US-37), an [AppPickerSheet] ("¿Desde dónde empiezas?") with "Desde
+ * cero", "Desde una rutina" and "Desde un entreno anterior"; the last two swap the body for a list (the title follows).
+ * System back returns from a list to the options, then closes; the X closes the whole sheet. Picking only starts the
+ * form, which has its own "Guardar". [sessions] supplies the workout list and is read only while that step shows.
  */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class) // The shared sheet exposes a Material SheetState default.
 fun PastWorkoutChooserSheet(
     state: PastWorkoutChooserUiState,
-    history: HistoryUiState,
     onEvent: (PastWorkoutChooserEvent) -> Unit,
     modifier: Modifier = Modifier,
+    sessions: @Composable () -> HistoryUiState = { koinHistoryState() },
 ) {
     if (state.step == PastWorkoutChooserStep.Closed) return
-    AppBottomSheet(
-        onDismissRequest = { onEvent(PastWorkoutChooserEvent.Dismiss) },
+    val title = stringResource(
+        when (state.step) {
+            PastWorkoutChooserStep.Routines -> Res.string.past_source_routine
+            PastWorkoutChooserStep.Sessions -> Res.string.past_source_session
+            else -> Res.string.past_source_title
+        },
+    )
+    AppPickerSheet(
+        title = title,
+        onDismiss = { onEvent(PastWorkoutChooserEvent.Dismiss) },
         modifier = modifier,
         testTagPrefix = "${TAG}_sheet",
     ) {
-        Column(
-            Modifier.verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenMargin)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            ChooserHeader(state.step, onEvent)
-            when (state.step) {
-                PastWorkoutChooserStep.Routines -> RoutineList(state.routines, onEvent)
-                PastWorkoutChooserStep.Sessions -> SessionList(history, onEvent)
-                else -> Options(onEvent)
-            }
+        NavigationBackHandler(
+            state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
+            isBackEnabled = state.step == PastWorkoutChooserStep.Routines ||
+                state.step == PastWorkoutChooserStep.Sessions,
+            onBackCompleted = { onEvent(PastWorkoutChooserEvent.Back) },
+        )
+        when (state.step) {
+            PastWorkoutChooserStep.Routines -> RoutineList(state.routines, onEvent)
+            PastWorkoutChooserStep.Sessions -> SessionList(sessions(), onEvent)
+            else -> Options(onEvent)
         }
     }
 }
 
+/** The recent workouts, from a [HistoryViewModel] created only when the step that lists them composes. */
 @Composable
-private fun ChooserHeader(step: PastWorkoutChooserStep, onEvent: (PastWorkoutChooserEvent) -> Unit) {
-    val picker = step == PastWorkoutChooserStep.Routines || step == PastWorkoutChooserStep.Sessions
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (picker) {
-            AppIconButton(
-                contentDescription = stringResource(Res.string.past_source_back_cd),
-                icon = Res.drawable.ic_arrow_back,
-                testTag = "${TAG}_back",
-                onClick = { onEvent(PastWorkoutChooserEvent.Back) },
-            )
-        }
-        Text(
-            text = stringResource(
-                when (step) {
-                    PastWorkoutChooserStep.Routines -> Res.string.past_source_routine
-                    PastWorkoutChooserStep.Sessions -> Res.string.past_source_session
-                    else -> Res.string.past_source_title
-                },
-            ),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f).semantics { heading() },
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.past_source_close_cd),
-            icon = Res.drawable.ic_close,
-            testTag = "${TAG}_close",
-            onClick = { onEvent(PastWorkoutChooserEvent.Dismiss) },
-        )
-    }
+private fun koinHistoryState(): HistoryUiState {
+    val viewModel: HistoryViewModel = koinViewModel()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    return state
 }
 
 @Composable
 private fun Options(onEvent: (PastWorkoutChooserEvent) -> Unit) {
     Column {
-        OptionRow(stringResource(Res.string.past_source_empty), "${TAG}_empty") {
-            onEvent(PastWorkoutChooserEvent.ChooseEmpty)
-        }
-        OptionRow(stringResource(Res.string.past_source_routine), "${TAG}_routine") {
-            onEvent(PastWorkoutChooserEvent.ChooseRoutine)
-        }
-        OptionRow(stringResource(Res.string.past_source_session), "${TAG}_session") {
-            onEvent(PastWorkoutChooserEvent.ChooseWorkout)
-        }
-    }
-}
-
-@Composable
-private fun OptionRow(label: String, tag: String, onClick: () -> Unit) {
-    Box(
-        Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget)
-            .clickable(role = Role.Button, onClick = onClick)
-            .testTag(tag),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text(label, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
+        NavigationRow(
+            label = stringResource(Res.string.past_source_empty),
+            onClick = { onEvent(PastWorkoutChooserEvent.ChooseEmpty) },
+            modifier = Modifier.testTag("${TAG}_empty"),
+        )
+        NavigationRow(
+            label = stringResource(Res.string.past_source_routine),
+            onClick = { onEvent(PastWorkoutChooserEvent.ChooseRoutine) },
+            modifier = Modifier.testTag("${TAG}_routine"),
+        )
+        NavigationRow(
+            label = stringResource(Res.string.past_source_session),
+            onClick = { onEvent(PastWorkoutChooserEvent.ChooseWorkout) },
+            modifier = Modifier.testTag("${TAG}_session"),
+        )
     }
 }
 
@@ -171,7 +133,7 @@ private fun RoutineList(routines: ChooserRoutines, onEvent: (PastWorkoutChooserE
             testTagPrefix = "${TAG}_routines_error",
         )
 
-        is ChooserRoutines.Content -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+        is ChooserRoutines.Content -> Column {
             routines.routines.forEach { routine ->
                 RoutineSourceRow(routine) { onEvent(PastWorkoutChooserEvent.PickRoutine(routine.id)) }
             }
@@ -181,27 +143,12 @@ private fun RoutineList(routines: ChooserRoutines, onEvent: (PastWorkoutChooserE
 
 @Composable
 private fun RoutineSourceRow(routine: RoutineSummary, onClick: () -> Unit) {
-    AppCard(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget)
-                .clickable(role = Role.Button, onClick = onClick)
-                .testTag("${TAG}_routine_${routine.id}"),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                text = routine.name,
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = pluralStringResource(Res.plurals.routines_count, routine.exerciseCount, routine.exerciseCount),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-            )
-        }
-    }
+    AppListRow(
+        headline = routine.name,
+        supporting = pluralStringResource(Res.plurals.routines_count, routine.exerciseCount, routine.exerciseCount),
+        onClick = onClick,
+        modifier = Modifier.testTag("${TAG}_routine_${routine.id}"),
+    )
 }
 
 @Composable
@@ -222,10 +169,10 @@ private fun SessionList(history: HistoryUiState, onEvent: (PastWorkoutChooserEve
             modifier = Modifier.testTag("${TAG}_sessions_error"),
         )
 
-        is HistoryUiState.Content -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+        is HistoryUiState.Content -> Column {
             history.rows.forEach { row ->
-                HistoryRowCard(
-                    row,
+                HistoryWorkoutRow(
+                    row = row,
                     onClick = { onEvent(PastWorkoutChooserEvent.PickWorkout(row.id)) },
                     tag = "${TAG}_session_${row.id}",
                 )

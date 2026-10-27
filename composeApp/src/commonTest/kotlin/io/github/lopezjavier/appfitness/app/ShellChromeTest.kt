@@ -57,7 +57,6 @@ class ShellChromeTest {
                 RoutineDetailsRoute::class,
                 LiveSessionRoute,
                 HistoryRoute,
-                WorkoutCalendarRoute,
                 SessionDetailRoute::class,
                 EditWorkoutRoute::class,
                 PastWorkoutRoute::class,
@@ -84,7 +83,6 @@ class ShellChromeTest {
                     it is MealDefaultsRoute ||
                     it is LiveSessionRoute ||
                     it is HistoryRoute ||
-                    it is WorkoutCalendarRoute ||
                     it is StrengthRoute ||
                     it is MuscleVolumeRoute ||
                     it is StatsRoute ||
@@ -114,12 +112,16 @@ class ShellChromeTest {
     }
 
     @Test
-    fun historyRoutes_haveFullScreenChrome_withTheirTopBarTags() {
-        assertEquals("history_top_bar", (HistoryRoute.chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("calendar_top_bar", (WorkoutCalendarRoute.chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("session_detail_top_bar", (SessionDetailRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("edit_workout_top_bar", (EditWorkoutRoute("s1").chrome as ShellChrome.FullScreen).topBarTag)
-        assertEquals("past_workout_top_bar", (PastWorkoutRoute().chrome as ShellChrome.FullScreen).topBarTag)
+    fun historial_drawsItsOwnBarThroughAppScreen() {
+        assertTrue(HistoryRoute.usesAppScreen)
+        assertEquals(ShellChrome.Screen, HistoryRoute.chrome)
+    }
+
+    @Test
+    fun workoutDetailRoutes_drawTheirOwnBarThroughAppScreen() {
+        assertEquals(ShellChrome.Screen, SessionDetailRoute("s1").chrome)
+        assertEquals(ShellChrome.Screen, EditWorkoutRoute("s1").chrome)
+        assertEquals(ShellChrome.Screen, PastWorkoutRoute().chrome)
     }
 
     @Test

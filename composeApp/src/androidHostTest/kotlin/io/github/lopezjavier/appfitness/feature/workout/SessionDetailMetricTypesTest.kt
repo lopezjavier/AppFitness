@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
+import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,7 +15,8 @@ import org.robolectric.annotation.Config
 
 private fun cardioSession(volumeKg: Double) = SessionDetailUiState.Content(
     name = "Cardio y core",
-    label = DateLabel.Yesterday,
+    date = LocalDate(2026, 10, 18),
+    today = LocalDate(2026, 10, 19),
     stats = SessionStats(durationSeconds = 2_400, completedSets = 4, volumeKg = volumeKg),
     exercises = listOf(
         DetailExercise(0, "e0", "Cinta de correr", listOf(DetailSet(1, SetType.Working, "5,0 km · 30:00")), false),

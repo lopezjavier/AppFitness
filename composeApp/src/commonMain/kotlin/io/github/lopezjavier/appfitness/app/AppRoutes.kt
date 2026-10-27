@@ -1,11 +1,8 @@
 package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.calendar_title
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
-import io.github.lopezjavier.appfitness.composeapp.resources.edit_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
-import io.github.lopezjavier.appfitness.composeapp.resources.history_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
@@ -15,10 +12,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
-import io.github.lopezjavier.appfitness.composeapp.resources.past_workout_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
-import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
@@ -81,13 +76,9 @@ data class RoutineDetailsRoute(val routineId: String) : AppRoute
 @Serializable
 data object LiveSessionRoute : AppRoute
 
-/** The history of completed sessions (US-14), opened from the Entreno tab. */
+/** Historial de entrenos (US-37): the training calendar, opened from the Entreno tab. */
 @Serializable
 data object HistoryRoute : AppRoute
-
-/** The training calendar (US-37): trained days by month, year and years, opened from the history. */
-@Serializable
-data object WorkoutCalendarRoute : AppRoute
 
 /** Detail of one completed session: sets, records, correction and deletion. */
 @Serializable
@@ -102,7 +93,12 @@ data class EditWorkoutRoute(val sessionId: String) : AppRoute
  * [sessionId] used as a template; both null = an empty workout.
  */
 @Serializable
-data class PastWorkoutRoute(val routineId: String? = null, val sessionId: String? = null) : AppRoute
+data class PastWorkoutRoute(
+    val routineId: String? = null,
+    val sessionId: String? = null,
+    /** ISO yyyy-MM-dd day the workout is logged on; null = yesterday. */
+    val date: String? = null,
+) : AppRoute
 
 /** "Fuerza": the strength summary card, opened from the Perfil root (US-15). */
 @Serializable
@@ -285,7 +281,8 @@ val AppRoute.usesAppScreen: Boolean
         this is FoodSearchRoute || this is AddFoodRoute || this is CreateFoodRoute || this is EditFoodRoute ||
         this is TemplateDetailsRoute || this is WeightRoute || this is WeightHistoryRoute ||
         this is RoutineDetailsRoute || this is RoutineBuilderRoute || this is WorkoutHome ||
-        this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute
+        this is ExercisePickerRoute || this is ExerciseDetailRoute || this is LiveSessionRoute ||
+        this is HistoryRoute || this is SessionDetailRoute || this is EditWorkoutRoute || this is PastWorkoutRoute
 
 /**
  * Shell chrome of this route: [ShellChrome.TabScreen] for a tab root that [usesAppScreen], [ShellChrome.Screen] for
@@ -309,19 +306,6 @@ private val AppRoute.legacyChrome: ShellChrome
 
             PreferencesRoute -> ShellChrome.FullScreen(Res.string.preferences_title, topBarTag = "preferences")
 
-            HistoryRoute -> ShellChrome.FullScreen(Res.string.history_title, topBarTag = "history_top_bar")
-
-            WorkoutCalendarRoute -> ShellChrome.FullScreen(Res.string.calendar_title, topBarTag = "calendar_top_bar")
-
-            is SessionDetailRoute ->
-                ShellChrome.FullScreen(Res.string.session_detail_title, topBarTag = "session_detail_top_bar")
-
-            is EditWorkoutRoute ->
-                ShellChrome.FullScreen(Res.string.edit_workout_title, topBarTag = "edit_workout_top_bar")
-
-            is PastWorkoutRoute ->
-                ShellChrome.FullScreen(Res.string.past_workout_title, topBarTag = "past_workout_top_bar")
-
             StrengthRoute -> ShellChrome.FullScreen(Res.string.strength_title, topBarTag = "strength")
 
             MuscleVolumeRoute -> ShellChrome.FullScreen(Res.string.muscle_volume_title, topBarTag = "muscle_volume")
@@ -336,7 +320,9 @@ private val AppRoute.legacyChrome: ShellChrome
             is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, is TemplateDetailsRoute ->
                 ShellChrome.Screen
 
-            LiveSessionRoute -> ShellChrome.Screen
+            // Historial draws its own bar through AppScreen (T-125b): never reached through [chrome].
+            LiveSessionRoute, HistoryRoute, is SessionDetailRoute, is EditWorkoutRoute, is PastWorkoutRoute ->
+                ShellChrome.Screen
 
             MealSlotsRoute -> ShellChrome.FullScreen(Res.string.meals_title, topBarTag = "meals")
 
@@ -376,7 +362,6 @@ object AppDestinations {
             RoutineDetailsRoute(""),
             LiveSessionRoute,
             HistoryRoute,
-            WorkoutCalendarRoute,
             SessionDetailRoute(""),
             EditWorkoutRoute(""),
             PastWorkoutRoute(),

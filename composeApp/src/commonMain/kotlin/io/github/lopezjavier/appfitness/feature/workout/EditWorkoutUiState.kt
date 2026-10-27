@@ -11,8 +11,15 @@ sealed interface EditWorkoutUiState {
      * false; [canSave] is false while the form has issues, the device is offline or a call runs ([busy]).
      * [WorkoutFormView.form] holds the date, read-only here (an edit never moves the workout).
      */
-    data class Content(val view: WorkoutFormView, val isOnline: Boolean = true, val busy: Boolean = false) :
-        EditWorkoutUiState {
+    data class Content(
+        val view: WorkoutFormView,
+        val isOnline: Boolean = true,
+        val busy: Boolean = false,
+        /** True when the form differs from the one loaded (leaving then asks to discard). */
+        val isDirty: Boolean = false,
+        /** True after a successful save: the template closes the screen once. */
+        val saved: Boolean = false,
+    ) : EditWorkoutUiState {
         val canSave: Boolean get() = isOnline && !busy && view.issues.isEmpty()
     }
 }

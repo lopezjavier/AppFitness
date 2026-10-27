@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -35,18 +36,21 @@ private fun card(id: String, name: String) = HistoryRow(
 private fun content(
     view: WorkoutCalendarView = WorkoutCalendarView.Month,
     dayCards: DayCardsState = DayCardsState.None,
+    selectedDay: LocalDate? = null,
+    canAddToSelectedDay: Boolean = false,
 ) = WorkoutCalendarUiState.Content(
     view = view,
     month = YearMonth(2026, 10),
     year = 2026,
     markedDays = setOf(TrainedDay),
     dayCounts = mapOf(TrainedDay to 1),
-    selectedDay = null,
+    selectedDay = selectedDay,
     yearCounts = mapOf(2026 to 7, 2024 to 3),
     monthCounts = mapOf(3 to 5, 10 to 2),
     canGoNext = false,
     today = Today,
     dayCards = dayCards,
+    canAddToSelectedDay = canAddToSelectedDay,
 )
 
 /** US-37 training calendar: trained days in month, year and multi-year views, and opening a workout. */
@@ -133,10 +137,78 @@ class WorkoutCalendarScreenTest {
     }
 
     @Test
-    fun empty_saysThereIsNoTrainingYet() {
-        show(WorkoutCalendarUiState.Empty)
+    fun withoutAnyWorkout_theCalendarStillShows_andAPastDayCanBePicked() {
+        show(content().copy(markedDays = emptySet(), dayCounts = emptyMap(), yearCounts = emptyMap()))
 
-        rule.onNodeWithTag("calendar_empty_title").assertTextContains("Aún no has entrenado")
+        rule.onNodeWithTag("month_calendar_day_2026-10-12").performClick()
+
+        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.SelectDay(LocalDate(2026, 10, 12))), events)
+    }
+
+    @Test
+    fun theScreen_isTitledHistorialDeEntrenos_withABackArrow() {
+        var back = 0
+        rule.setContent { AppTheme { WorkoutCalendarScreen(content(), {}, onBack = { back++ }) } }
+
+        rule.onNodeWithTag("history_screen").assertExists()
+        rule.onNodeWithTag("history_title").assertTextEquals("Historial de entrenos")
+        rule.onNodeWithTag("history_back").performClick()
+
+        assertEquals(1, back)
+    }
+
+    @Test
+    fun theHistorialHasNoListNoPlusAndNoCalendarButton() {
+        show(content())
+
+        rule.onNodeWithTag("history_list").assertDoesNotExist()
+        rule.onNodeWithTag("history_add_past_workout").assertDoesNotExist()
+        rule.onNodeWithTag("history_calendar").assertDoesNotExist()
+    }
+
+    @Test
+    fun aSelectedDay_showsItsDateHeading_itsWorkouts_andAnAddButton() {
+        show(
+            content(
+                dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso"))),
+                selectedDay = TrainedDay,
+                canAddToSelectedDay = true,
+            ),
+        )
+
+        rule.onNodeWithTag("calendar_day_heading").assertTextEquals("17 de octubre")
+        rule.onNodeWithTag("calendar_day_card_s1").assertIsDisplayed()
+        rule.onNodeWithTag("calendar_add_workout").assertTextContains("Añadir entreno")
+        rule.onNodeWithTag("calendar_add_workout").performClick()
+
+        assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.AddWorkout), events)
+    }
+
+    @Test
+    fun aDayWithoutWorkouts_saysSinEntrenos_andStillOffersTheAddButton() {
+        show(
+            content(
+                dayCards = DayCardsState.Loaded(emptyList()),
+                selectedDay = LocalDate(2026, 10, 12),
+                canAddToSelectedDay = true,
+            ),
+        )
+
+        rule.onNodeWithTag("calendar_day_empty").assertTextEquals("Sin entrenos")
+        rule.onNodeWithTag("calendar_add_workout").assertExists()
+    }
+
+    @Test
+    fun aDayThatCannotBeAddedTo_hidesTheAddButton() {
+        show(
+            content(
+                dayCards = DayCardsState.Loaded(emptyList()),
+                selectedDay = Today,
+                canAddToSelectedDay = false,
+            ),
+        )
+
+        rule.onNodeWithTag("calendar_add_workout").assertDoesNotExist()
     }
 
     @Test
@@ -150,7 +222,7 @@ class WorkoutCalendarScreenTest {
 
     @Test
     fun selectedDayWithOneWorkout_showsItsCard_andOnlyTheCardTapOpensIt() {
-        show(content(dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso")))))
+        show(content(dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso"))), selectedDay = TrainedDay))
 
         rule.onNodeWithTag("calendar_day_cards").assertExists()
         rule.onNodeWithTag("calendar_day_card_s1").assertIsDisplayed()
@@ -162,7 +234,12 @@ class WorkoutCalendarScreenTest {
 
     @Test
     fun selectedDayWithTwoWorkouts_showsBothCardsWithNameDurationAndVolume() {
-        show(content(dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso"), card("s2", "Pierna")))))
+        show(
+            content(
+                dayCards = DayCardsState.Loaded(listOf(card("s1", "Torso"), card("s2", "Pierna"))),
+                selectedDay = TrainedDay,
+            ),
+        )
 
         val summary = "duración 1:02:05, volumen 2.120 kg"
         rule.onNodeWithTag("calendar_day_card_s1").assert(hasContentDescription(summary, substring = true))
@@ -182,14 +259,14 @@ class WorkoutCalendarScreenTest {
 
     @Test
     fun loadingCards_showsASkeleton() {
-        show(content(dayCards = DayCardsState.Loading))
+        show(content(dayCards = DayCardsState.Loading, selectedDay = TrainedDay))
 
         rule.onNodeWithTag("calendar_day_cards_loading").assertExists()
     }
 
     @Test
     fun failedCards_offerRetry() {
-        show(content(dayCards = DayCardsState.Error))
+        show(content(dayCards = DayCardsState.Error, selectedDay = TrainedDay))
 
         rule.onNodeWithTag("calendar_day_cards_error_action").performClick()
 

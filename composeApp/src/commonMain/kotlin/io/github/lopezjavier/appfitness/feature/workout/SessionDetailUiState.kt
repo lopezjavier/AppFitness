@@ -3,8 +3,8 @@ package io.github.lopezjavier.appfitness.feature.workout
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.MuscleShare
-import io.github.lopezjavier.appfitness.domain.usecase.SaveWorkoutAsRoutine
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
+import kotlinx.datetime.LocalDate
 
 /** One completed set of a past session; [text] is the shared set text ("85 kg × 8", "8 reps", "01:30"). */
 data class DetailSet(val setIndex: Int, val setType: SetType, val text: String, val rpe: Double? = null)
@@ -21,18 +21,18 @@ data class DetailExercise(
 )
 
 /**
- * The "Guardar como rutina" sheet: [name] is the typed routine name (prefilled with the workout's). [tooManySets] means
- * an exercise has more sets than a routine can hold, so saving is refused up front. [failed] shows the inline
- * failure (offline or server error); [busy] is true while the call runs.
+ * The "Guardar como rutina" sheet. The typed name lives in the sheet itself (it is prefilled with
+ * `SaveWorkoutAsRoutine.defaultName`); [existingNames] are the names of the active routines, for the unique-name check
+ * (empty when they could not be read: the server stays the authority). [tooManySets] means an exercise has more sets
+ * than a routine can hold, so saving is refused up front. [failed] means the last save failed (offline or server
+ * error); [busy] is true while the call runs.
  */
 data class SaveAsRoutineState(
-    val name: String,
-    val tooManySets: Boolean,
+    val existingNames: List<String> = emptyList(),
+    val tooManySets: Boolean = false,
     val busy: Boolean = false,
     val failed: Boolean = false,
-) {
-    val canConfirm: Boolean get() = !busy && !tooManySets && SaveWorkoutAsRoutine.isValidName(name)
-}
+)
 
 sealed interface SessionDetailUiState {
     data object Loading : SessionDetailUiState
@@ -47,7 +47,9 @@ sealed interface SessionDetailUiState {
      */
     data class Content(
         val name: String,
-        val label: DateLabel,
+        /** Day the workout was done; with [today] it gives the title date ("Hoy", "Ayer", "lun, 24 oct"). */
+        val date: LocalDate,
+        val today: LocalDate,
         val stats: SessionStats,
         val exercises: List<DetailExercise>,
         val isOnline: Boolean = true,
@@ -67,10 +69,8 @@ sealed interface SessionDetailEvent {
     /** "Guardar como rutina": opens the sheet with the workout's name prefilled. */
     data object OpenSaveAsRoutine : SessionDetailEvent
 
-    data class SaveAsRoutineNameChanged(val text: String) : SessionDetailEvent
-
-    /** Creates the routine; refused while the name is blank or an exercise has more than 10 sets. */
-    data object ConfirmSaveAsRoutine : SessionDetailEvent
+    /** Creates the routine [name]; refused while it is blank or an exercise has more than 10 sets. */
+    data class ConfirmSaveAsRoutine(val name: String) : SessionDetailEvent
 
     /** Closes the sheet (X, scrim, swipe, back) and discards the name. */
     data object DismissSaveAsRoutine : SessionDetailEvent

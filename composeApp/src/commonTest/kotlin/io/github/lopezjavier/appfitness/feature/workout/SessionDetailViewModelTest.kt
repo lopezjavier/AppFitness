@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
+import io.github.lopezjavier.appfitness.feature.routines.routineOf
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -90,7 +91,8 @@ class SessionDetailViewModelTest {
 
         val content = model.content()
         assertEquals("Torso", content.name)
-        assertEquals(DateLabel.Today, content.label)
+        assertEquals(LocalDate(2026, 10, 19), content.date)
+        assertEquals(LocalDate(2026, 10, 19), content.today)
         assertEquals(1400.0, content.stats.volumeKg)
         assertEquals(2, content.stats.completedSets)
         val exercise = content.exercises.single()
@@ -411,26 +413,40 @@ class SessionDetailViewModelTest {
     }
 
     @Test
-    fun openingSaveAsRoutinePrefillsTheWorkoutName() = runTest(dispatcher) {
+    fun openingSaveAsRoutineLoadsTheNamesOfTheActiveRoutines() = runTest(dispatcher) {
         seed()
+        routines.routines += routineOf("r1", "Torso", "e1")
         val model = viewModel()
         advanceUntilIdle()
 
         model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        advanceUntilIdle()
 
-        assertEquals(SaveAsRoutineState("Torso", tooManySets = false), model.content().saveAsRoutine)
+        assertEquals(SaveAsRoutineState(existingNames = listOf("Torso")), model.content().saveAsRoutine)
     }
 
     @Test
-    fun confirmingCreatesTheRoutineAndEmitsItsIdClosingTheSheet() = runTest(dispatcher) {
+    fun theSheetStillOpensWhenTheRoutineNamesCannotBeLoaded() = runTest(dispatcher) {
+        seed()
+        routines.failure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
+        advanceUntilIdle()
+
+        assertEquals(SaveAsRoutineState(), model.content().saveAsRoutine)
+    }
+
+    @Test
+    fun confirmingCreatesTheRoutineOnceAndEmitsItsIdClosingTheSheet() = runTest(dispatcher) {
         seed()
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
-        model.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
 
         model.effects.test {
-            model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+            model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine("Mi torso"))
             advanceUntilIdle()
 
             assertEquals(SessionDetailEffect.SavedAsRoutine("r-from-session"), awaitItem())
@@ -446,12 +462,10 @@ class SessionDetailViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
-        model.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("   "))
 
-        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine("   "))
         advanceUntilIdle()
 
-        assertEquals(false, model.content().saveAsRoutine?.canConfirm)
         assertTrue(routines.createdFromSession.isEmpty())
     }
 
@@ -463,28 +477,26 @@ class SessionDetailViewModelTest {
         advanceUntilIdle()
         model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
 
-        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine("Mi torso"))
         advanceUntilIdle()
 
-        val sheet = model.content().saveAsRoutine
-        assertEquals(true, sheet?.tooManySets)
-        assertEquals(false, sheet?.canConfirm)
+        assertEquals(true, model.content().saveAsRoutine?.tooManySets)
         assertTrue(routines.createdFromSession.isEmpty())
     }
 
     @Test
-    fun aFailureKeepsTheSheetOpenWithTheNameAndFlagsIt() = runTest(dispatcher) {
+    fun aFailureKeepsTheSheetOpenAndFlagsIt() = runTest(dispatcher) {
         seed()
         routines.createFromSessionFailure = AppError.Network
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
-        model.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
 
-        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine("Mi torso"))
         advanceUntilIdle()
 
-        assertEquals(SaveAsRoutineState("Mi torso", tooManySets = false, failed = true), model.content().saveAsRoutine)
+        assertEquals(true, model.content().saveAsRoutine?.failed)
+        assertEquals(false, model.content().saveAsRoutine?.busy)
     }
 
     @Test
@@ -496,7 +508,7 @@ class SessionDetailViewModelTest {
         connectivity.state.value = false
         advanceUntilIdle()
 
-        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine)
+        model.onEvent(SessionDetailEvent.ConfirmSaveAsRoutine("Mi torso"))
         advanceUntilIdle()
 
         assertEquals(true, model.content().saveAsRoutine?.failed)
@@ -504,13 +516,12 @@ class SessionDetailViewModelTest {
     }
 
     @Test
-    fun dismissingTheSheetDiscardsTheName() = runTest(dispatcher) {
+    fun dismissingTheSheetClosesItAcrossRecreation() = runTest(dispatcher) {
         seed()
         val handle = SavedStateHandle()
         val first = viewModel(savedState = handle)
         advanceUntilIdle()
         first.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
-        first.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
         first.onEvent(SessionDetailEvent.DismissSaveAsRoutine)
 
         val second = viewModel(savedState = handle)
@@ -520,18 +531,18 @@ class SessionDetailViewModelTest {
     }
 
     @Test
-    fun theOpenSheetAndItsTypedNameSurviveARecreatedViewModel() = runTest(dispatcher) {
+    fun theOpenSheetSurvivesARecreatedViewModelAndReloadsTheNames() = runTest(dispatcher) {
         seed()
+        routines.routines += routineOf("r1", "Torso", "e1")
         val handle = SavedStateHandle()
         val first = viewModel(savedState = handle)
         advanceUntilIdle()
         first.onEvent(SessionDetailEvent.OpenSaveAsRoutine)
-        first.onEvent(SessionDetailEvent.SaveAsRoutineNameChanged("Mi torso"))
 
         val second = viewModel(savedState = handle)
         advanceUntilIdle()
 
-        assertEquals("Mi torso", second.content().saveAsRoutine?.name)
+        assertEquals(listOf("Torso"), second.content().saveAsRoutine?.existingNames)
         assertTrue(routines.createdFromSession.isEmpty())
     }
 }

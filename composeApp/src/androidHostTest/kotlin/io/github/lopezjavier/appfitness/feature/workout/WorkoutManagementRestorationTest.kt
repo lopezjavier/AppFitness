@@ -3,11 +3,13 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -74,6 +76,34 @@ class WorkoutManagementRestorationTest {
         assertNotSame(before, current)
         rule.onNodeWithTag("edit_workout_description").assertTextContains("A medias")
         rule.onNodeWithTag("edit_workout_set_0_2_weight").assertExists()
+        assertTrue(repository.savedDrafts.isEmpty())
+    }
+
+    @Test
+    fun editScreen_keepsItsDirtyStateAndTheOpenDiscardDialogAfterRecreation() {
+        val handle = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                val model = remember {
+                    EditWorkoutViewModel("s1", repository, exercises, library, connectivity, MutableClock(), handle)
+                }
+                EditWorkoutRoot("s1", null, {}, {}, {}, {}, viewModel = model)
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("edit_workout_description").performScrollTo().performTextInput("A medias")
+        rule.onNodeWithTag("edit_workout_back").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("edit_workout_discard_dialog").assertExists()
+        rule.onNodeWithTag("edit_workout_keep_editing").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("edit_workout_description").assertTextContains("A medias")
+        rule.onNodeWithTag("edit_workout_save").assertIsEnabled()
         assertTrue(repository.savedDrafts.isEmpty())
     }
 
@@ -155,11 +185,11 @@ class WorkoutManagementRestorationTest {
             AppTheme {
                 val model = remember { PastWorkoutChooserViewModel(routines, handle) }
                 val state by model.uiState.collectAsStateWithLifecycle()
-                PastWorkoutChooserSheet(state, HistoryUiState.Empty, model::onEvent)
+                PastWorkoutChooserSheet(state, model::onEvent, sessions = { HistoryUiState.Empty })
             }
         }
         val model = PastWorkoutChooserViewModel(routines, handle)
-        model.onEvent(PastWorkoutChooserEvent.Open)
+        model.onEvent(PastWorkoutChooserEvent.Open())
         model.onEvent(PastWorkoutChooserEvent.ChooseRoutine)
         rule.waitForIdle()
 
@@ -181,19 +211,20 @@ class WorkoutManagementRestorationTest {
                         FakeTrainingPreferencesRepository(), FakeWeightRepository(), routines, handle,
                     )
                 }
-                SessionDetailRoot(sessionId = "s1", onClose = {}, viewModel = model)
+                SessionDetailRoot(sessionId = "s1", onClose = {}, onOpenExercise = {}, viewModel = model)
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("session_detail_save_as_routine").performClick()
-        rule.onNodeWithTag("save_as_routine_name").performTextInput(" B")
+        rule.onNodeWithTag("session_detail_more").performClick()
+        rule.onNodeWithText("Guardar como rutina").performClick()
+        rule.onNodeWithTag("save_as_routine_sheet_input").performTextInput(" B")
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("save_as_routine_sheet").assertExists()
-        rule.onNodeWithTag("save_as_routine_name").assertTextContains("Torso B")
+        rule.onNodeWithTag("save_as_routine_sheet_input").assertTextContains("Torso B")
         assertTrue(routines.saved.isEmpty())
     }
 }

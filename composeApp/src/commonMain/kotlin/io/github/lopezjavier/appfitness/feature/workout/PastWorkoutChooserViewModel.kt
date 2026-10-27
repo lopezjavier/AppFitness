@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 private const val KEY_STEP = "past_chooser_step"
+private const val KEY_DATE = "past_chooser_date"
 
 /** The screens of the source chooser sheet: the three options, or one of the two pickers. */
 enum class PastWorkoutChooserStep { Closed, Options, Routines, Sessions }
@@ -35,8 +37,10 @@ data class PastWorkoutChooserUiState(
 )
 
 sealed interface PastWorkoutChooserEvent {
-    /** The "+" of the history: opens the sheet on its options. */
-    data object Open : PastWorkoutChooserEvent
+    /**
+     * "Añadir entreno" of a calendar day: opens the sheet on its options; [date] is the day to log (null = yesterday).
+     */
+    data class Open(val date: LocalDate? = null) : PastWorkoutChooserEvent
 
     /** Closes the sheet (X, scrim, swipe, back) without choosing. */
     data object Dismiss : PastWorkoutChooserEvent
@@ -59,8 +63,8 @@ sealed interface PastWorkoutChooserEvent {
 }
 
 sealed interface PastWorkoutChooserEffect {
-    /** A source was chosen: open the past-workout form for it. The sheet is already closed. */
-    data class Start(val source: PastWorkoutSource) : PastWorkoutChooserEffect
+    /** A source was chosen: open the past-workout form for it on [date]. The sheet is already closed. */
+    data class Start(val source: PastWorkoutSource, val date: LocalDate? = null) : PastWorkoutChooserEffect
 }
 
 /**
@@ -76,6 +80,11 @@ class PastWorkoutChooserViewModel(
         ?: PastWorkoutChooserStep.Closed
     private var routines: ChooserRoutines = ChooserRoutines.Loading
 
+    /** The day the workout will be logged on, kept with the step (ADR-40). */
+    private var date: LocalDate? = savedState.get<String>(KEY_DATE)?.let {
+        runCatching { LocalDate.parse(it) }.getOrNull()
+    }
+
     private val _uiState = MutableStateFlow(PastWorkoutChooserUiState(step, routines))
     val uiState: StateFlow<PastWorkoutChooserUiState> = _uiState.asStateFlow()
 
@@ -88,7 +97,11 @@ class PastWorkoutChooserViewModel(
 
     fun onEvent(event: PastWorkoutChooserEvent) {
         when (event) {
-            PastWorkoutChooserEvent.Open -> moveTo(PastWorkoutChooserStep.Options)
+            is PastWorkoutChooserEvent.Open -> {
+                date = event.date
+                savedState[KEY_DATE] = event.date?.toString()
+                moveTo(PastWorkoutChooserStep.Options)
+            }
 
             PastWorkoutChooserEvent.Dismiss -> moveTo(PastWorkoutChooserStep.Closed)
 
@@ -113,7 +126,7 @@ class PastWorkoutChooserViewModel(
 
     private fun choose(source: PastWorkoutSource) {
         moveTo(PastWorkoutChooserStep.Closed)
-        effectChannel.trySend(PastWorkoutChooserEffect.Start(source))
+        effectChannel.trySend(PastWorkoutChooserEffect.Start(source, date))
     }
 
     private fun moveTo(next: PastWorkoutChooserStep) {

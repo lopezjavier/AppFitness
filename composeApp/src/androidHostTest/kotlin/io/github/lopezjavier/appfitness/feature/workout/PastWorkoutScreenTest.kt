@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -42,9 +43,9 @@ class PastWorkoutScreenTest {
     private val connectivity = FakeConnectivityObserver()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("e1", "bench")))
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca")))
-    private var savedIds = mutableListOf<String>()
+    private var closed = 0
 
-    private fun show(source: PastWorkoutSource = PastWorkoutSource.Empty) {
+    private fun show(source: PastWorkoutSource = PastWorkoutSource.Empty, date: LocalDate? = null) {
         val model = PastWorkoutViewModel(
             source,
             repository,
@@ -53,6 +54,7 @@ class PastWorkoutScreenTest {
             library,
             connectivity,
             MutableClock(),
+            date = date,
         )
         rule.setContent {
             AppTheme {
@@ -62,7 +64,7 @@ class PastWorkoutScreenTest {
                     selectedExerciseId = null,
                     onConsumeSelection = {},
                     onAddExercise = {},
-                    onSaved = { savedIds += it },
+                    onClose = { closed++ },
                     viewModel = model,
                 )
             }
@@ -94,7 +96,7 @@ class PastWorkoutScreenTest {
             AppTheme {
                 PastWorkoutRoot(null, null, picked.value, {
                     picked.value = null
-                }, {}, { savedIds += it }, viewModel = model)
+                }, {}, { closed++ }, viewModel = model)
             }
         }
         rule.waitForIdle()
@@ -118,7 +120,7 @@ class PastWorkoutScreenTest {
         assertEquals(LocalDate(2026, 10, 15), draft.date)
         assertEquals("Piernas", draft.name)
         assertEquals(SetEntry.WeightReps(100.0, 5), draft.exercises.single().sets.single().entry)
-        assertEquals(listOf("s-saved"), savedIds)
+        assertEquals(1, closed)
         assertTrue(repository.startedRoutines.isEmpty())
     }
 
@@ -142,18 +144,6 @@ class PastWorkoutScreenTest {
 
         rule.onNodeWithTag("past_workout_date_dialog").assertDoesNotExist()
         rule.onNodeWithTag("past_workout_date").assert(hasContentDescription("18 oct 2026", substring = true))
-    }
-
-    @Test
-    fun guardarWithAnIncompleteForm_flagsTheNameAndSendsNothing() {
-        show()
-
-        rule.onNodeWithTag("past_workout_save").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("past_workout_name_error").assertExists()
-        assertTrue(repository.savedDrafts.isEmpty())
-        assertTrue(savedIds.isEmpty())
     }
 
     @Test
@@ -184,11 +174,66 @@ class PastWorkoutScreenTest {
     }
 
     @Test
-    fun offline_disablesGuardar() {
+    fun anIncompleteForm_keepsGuardarDisabled_andFlagsTheNameAfterTheFirstEdit() {
+        show()
+
+        rule.onNodeWithTag("past_workout_save").assertIsNotEnabled()
+        rule.onNodeWithTag("past_workout_description").performScrollTo().performTextInput("Notas")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("past_workout_name_error").assertExists()
+        rule.onNodeWithTag("past_workout_save").assertIsNotEnabled()
+        assertTrue(repository.savedDrafts.isEmpty())
+        assertEquals(0, closed)
+    }
+
+    @Test
+    fun theTitleIsEntrenoPasado() {
+        show()
+
+        rule.onNodeWithTag("past_workout_title").assertTextContains("Entreno pasado")
+    }
+
+    @Test
+    fun openedFromACalendarDay_showsThatDate_andLeavingWithoutEditsIsSilent() {
+        show(date = LocalDate(2026, 10, 12))
+
+        rule.onNodeWithTag("past_workout_date").assert(hasContentDescription("12 oct 2026", substring = true))
+        rule.onNodeWithTag("past_workout_back").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("past_workout_discard_dialog").assertDoesNotExist()
+        assertEquals(1, closed)
+    }
+
+    @Test
+    fun backWithEdits_asksToDiscard_keepEditingStays_andDescartarLeavesWritingNothing() {
+        show()
+        rule.onNodeWithTag("past_workout_name").performTextInput("Piernas")
+
+        rule.onNodeWithTag("past_workout_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("¿Descartar los cambios?").assertExists()
+        rule.onNodeWithTag("past_workout_keep_editing").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("past_workout_discard_dialog").assertDoesNotExist()
+        assertEquals(0, closed)
+
+        rule.onNodeWithTag("past_workout_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("past_workout_discard_confirm").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, closed)
+        assertTrue(repository.savedDrafts.isEmpty())
+    }
+
+    @Test
+    fun offline_disablesGuardar_andShowsTheHint() {
         connectivity.state.value = false
         show()
 
         rule.onNodeWithTag("past_workout_save").assertIsNotEnabled()
-        rule.onNodeWithTag("past_workout_offline_reason").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar").assertExists()
     }
 }

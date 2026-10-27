@@ -28,15 +28,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_c
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_static_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_value
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_load_error
-import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_offline_reason
-import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_save
 import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextFieldDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import kotlinx.datetime.LocalDate
@@ -96,35 +93,6 @@ internal fun FormDateField(date: LocalDate, tag: String, modifier: Modifier = Mo
                 modifier = Modifier.clearAndSetSemantics {},
             )
         }
-    }
-}
-
-/** "Guardar" pinned at the bottom, with the offline reason above it when there is no connection. */
-@Composable
-internal fun WorkoutFormFooter(
-    canSave: Boolean,
-    busy: Boolean,
-    isOnline: Boolean,
-    tagPrefix: String,
-    onSave: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)) {
-        if (!isOnline) {
-            Text(
-                text = stringResource(Res.string.workout_form_offline_reason),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.padding(bottom = Spacing.sm).testTag("${tagPrefix}_offline_reason"),
-            )
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.workout_form_save),
-            onClick = onSave,
-            modifier = Modifier.fillMaxWidth().testTag("${tagPrefix}_save"),
-            enabled = canSave,
-            loading = busy,
-        )
     }
 }
 

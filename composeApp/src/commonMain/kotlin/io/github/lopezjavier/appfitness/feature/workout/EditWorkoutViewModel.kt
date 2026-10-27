@@ -37,6 +37,7 @@ class EditWorkoutViewModel(
     private var terminal: EditWorkoutUiState? = EditWorkoutUiState.Loading
     private var online = true
     private var busy = false
+    private var saved = false
 
     private val editor = WorkoutDraftEditor(
         savedState = savedState,
@@ -107,17 +108,13 @@ class EditWorkoutViewModel(
             return
         }
         val draft = editor.draft() ?: return
-        if (editor.issues().isNotEmpty()) {
-            editor.markSubmitAttempted()
-            publish()
-            return
-        }
+        if (editor.issues().isNotEmpty()) return
         busy = true
         publish()
         viewModelScope.launch {
             val result = repository.saveCompleted(draft, sessionId)
             busy = false
-            if (result.isFailure) editor.markSubmitAttempted()
+            if (result.isSuccess) saved = true
             publish()
             effectChannel.trySend(if (result.isSuccess) EditWorkoutEffect.Saved else EditWorkoutEffect.ActionFailed)
         }
@@ -140,7 +137,8 @@ class EditWorkoutViewModel(
     }
 
     private fun publish() {
-        _uiState.value = terminal ?: editor.view()?.let { EditWorkoutUiState.Content(it, online, busy) }
-            ?: EditWorkoutUiState.Loading
+        _uiState.value =
+            terminal ?: editor.view()?.let { EditWorkoutUiState.Content(it, online, busy, editor.isDirty, saved) }
+                ?: EditWorkoutUiState.Loading
     }
 }

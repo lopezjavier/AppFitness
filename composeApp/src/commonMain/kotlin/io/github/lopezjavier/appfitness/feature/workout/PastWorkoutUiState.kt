@@ -26,6 +26,10 @@ sealed interface PastWorkoutUiState {
         val today: LocalDate,
         val isOnline: Boolean = true,
         val busy: Boolean = false,
+        /** True when the form differs from the one editing started with (leaving then asks to discard). */
+        val isDirty: Boolean = false,
+        /** True after a successful save: the template closes the screen once. */
+        val saved: Boolean = false,
     ) : PastWorkoutUiState {
         val canSave: Boolean get() = isOnline && !busy && view.issues.isEmpty()
     }

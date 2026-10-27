@@ -28,12 +28,12 @@ import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
-import io.github.lopezjavier.appfitness.feature.workout.HistoryRoot
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionRoot
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutRoot
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryRoot
+import kotlinx.datetime.LocalDate
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful entry point: connects [AppViewModel], the Perfil root and Preferencias to the stateless [App]. */
@@ -151,12 +151,11 @@ fun AppRoot(
             EditEntryRoot(entryId, date, onSaved, onDeleteRequested, onDismiss)
         },
         saveTemplate = { slotId, date, onSave, onDismiss -> SaveTemplateRoot(slotId, date, onSave, onDismiss) },
-        history = { historyModifier, onOpenSession, onOpenCalendar, onStartPastWorkout ->
-            HistoryRoot(onOpenSession, onOpenCalendar, onStartPastWorkout, historyModifier)
+        history = { historyModifier, onOpenSession, onBack, onStartPastWorkout ->
+            WorkoutCalendarRoot(onOpenSession, onBack, onStartPastWorkout, historyModifier)
         },
-        calendar = { calendarModifier, onOpenSession -> WorkoutCalendarRoot(onOpenSession, calendarModifier) },
-        sessionDetail = { detailModifier, sessionId, onClose, onOpenProgress, onEdit ->
-            SessionDetailRoot(sessionId, onClose, detailModifier, onOpenProgress, onEdit)
+        sessionDetail = { detailModifier, sessionId, onClose, onOpenExercise, onEdit ->
+            SessionDetailRoot(sessionId, onClose, onOpenExercise, detailModifier, onEdit)
         },
         editWorkout = { formModifier, sessionId, host, onDeleted ->
             EditWorkoutRoot(
@@ -169,15 +168,16 @@ fun AppRoot(
                 modifier = formModifier,
             )
         },
-        pastWorkout = { formModifier, routineId, sessionId, host ->
+        pastWorkout = { formModifier, routineId, sessionId, date, host ->
             PastWorkoutRoot(
                 routineId = routineId,
                 sessionId = sessionId,
                 selectedExerciseId = host.selectedExerciseId,
                 onConsumeSelection = host.onConsumeSelection,
                 onAddExercise = host.onAddExercise,
-                onSaved = { host.onClose() },
+                onClose = host.onClose,
                 modifier = formModifier,
+                date = date?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
             )
         },
         routineDetails = { detailsModifier, routineId, onEdit, onOpenLive, onOpenExercise, onBack ->

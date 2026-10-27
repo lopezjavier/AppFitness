@@ -103,6 +103,10 @@ class WorkoutCalendarViewModel(
 
             is WorkoutCalendarEvent.SelectDay -> selectDay(event.date)
 
+            WorkoutCalendarEvent.AddWorkout -> selectedDay?.takeIf { it <= clock.today() }?.let {
+                effectChannel.trySend(WorkoutCalendarEffect.AddWorkout(it))
+            }
+
             is WorkoutCalendarEvent.OpenSession ->
                 if (selectedDayIds().contains(event.sessionId)) {
                     effectChannel.trySend(WorkoutCalendarEffect.OpenSession(event.sessionId))
@@ -142,12 +146,12 @@ class WorkoutCalendarViewModel(
 
     private fun applySessions(sessions: List<TrainedSession>) {
         days = TrainingCalendar.daysOf(sessions, zone)
-        terminal = if (days.isEmpty()) WorkoutCalendarUiState.Empty else null
+        terminal = null
         val today = clock.today().yearMonth
         month = month?.takeIf { it <= today } ?: defaultMonth()
         year = year ?: month?.year
-        // A restored or refreshed selection survives only on a past day that still has workouts.
-        if (selectedDay?.let { it > clock.today() || days[it].isNullOrEmpty() } == true) selectedDay = null
+        // A restored or refreshed selection survives on any day up to today, also one without workouts.
+        if (selectedDay?.let { it > clock.today() } == true) selectedDay = null
     }
 
     private fun selectedDayIds(): List<String> = selectedDay?.let { days[it] }.orEmpty().map { it.id }
@@ -219,8 +223,7 @@ class WorkoutCalendarViewModel(
     }
 
     private fun selectDay(date: LocalDate) {
-        val sessions = days[date].orEmpty()
-        if (sessions.isEmpty() || date > clock.today()) return
+        if (date > clock.today()) return
         val alreadyLoaded = selectedDay == date && dayCards is DayCardsState.Loaded
         selectedDay = date
         persist()
@@ -249,6 +252,7 @@ class WorkoutCalendarViewModel(
             markedDays = days.keys.filter { it.yearMonth == shownMonth }.toSet(),
             dayCounts = days.filterKeys { it.yearMonth == shownMonth }.mapValues { it.value.size },
             selectedDay = selectedDay,
+            canAddToSelectedDay = selectedDay?.let { it <= clock.today() } == true,
             yearCounts = TrainingCalendar.yearCounts(days),
             monthCounts = TrainingCalendar.monthCounts(days, shownYear),
             canGoNext = shownMonth < clock.today().yearMonth,

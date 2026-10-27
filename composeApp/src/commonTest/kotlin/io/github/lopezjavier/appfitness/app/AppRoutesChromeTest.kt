@@ -12,11 +12,6 @@ class AppRoutesChromeTest {
     private val legacyFullScreenTags: List<Pair<AppRoute, String>> =
         listOf(
             PreferencesRoute to "preferences",
-            HistoryRoute to "history_top_bar",
-            WorkoutCalendarRoute to "calendar_top_bar",
-            SessionDetailRoute("s") to "session_detail_top_bar",
-            EditWorkoutRoute("s") to "edit_workout_top_bar",
-            PastWorkoutRoute() to "past_workout_top_bar",
             StrengthRoute to "strength",
             MuscleVolumeRoute to "muscle_volume",
             StatsRoute to "stats",

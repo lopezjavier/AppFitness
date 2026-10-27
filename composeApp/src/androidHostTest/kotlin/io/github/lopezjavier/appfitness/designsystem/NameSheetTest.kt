@@ -33,7 +33,11 @@ class NameSheetTest {
     private var dismissed = 0
     private var open by mutableStateOf(true)
 
-    private fun show(initialName: String = "", existing: List<String> = listOf("Torso")) {
+    private fun show(
+        initialName: String = "",
+        existing: List<String> = listOf("Torso"),
+        initialNameIsOwn: Boolean = true,
+    ) {
         rule.setContent {
             AppTheme {
                 if (open) {
@@ -43,6 +47,7 @@ class NameSheetTest {
                         itemLabel = "una carpeta",
                         existingNames = existing,
                         initialName = initialName,
+                        initialNameIsOwn = initialNameIsOwn,
                         onSave = { saved += it },
                         onDismiss = {
                             dismissed++
@@ -53,6 +58,12 @@ class NameSheetTest {
             }
         }
         rule.waitForIdle()
+    }
+
+    @Test
+    fun aSuggestedNameThatIsTaken_blocksGuardar_whenItIsNotTheItemsOwnName() {
+        show(initialName = "Torso", existing = listOf("Torso"), initialNameIsOwn = false)
+        rule.onNodeWithTag("name_sheet_commit").assertIsNotEnabled()
     }
 
     @Test

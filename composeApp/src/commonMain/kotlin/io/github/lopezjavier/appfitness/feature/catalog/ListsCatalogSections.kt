@@ -30,6 +30,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_h
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_list_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_nav_label
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_nav_value
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_workout_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_workout_date
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_workout_duration
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_workout_name
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_workout_sets
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rows_workout_volume
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_food_entry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_metric_card
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_rows
@@ -55,6 +61,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.TimeRange
 import io.github.lopezjavier.appfitness.designsystem.TimeRangeSelector
+import io.github.lopezjavier.appfitness.designsystem.WorkoutRow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -155,6 +162,16 @@ private fun RowsSection() {
             supporting = stringResource(Res.string.catalog_rows_exercise_supporting),
             onOpen = {},
             tagPrefix = "catalog_exercise_row",
+        )
+        WorkoutRow(
+            name = stringResource(Res.string.catalog_rows_workout_name),
+            dateText = stringResource(Res.string.catalog_rows_workout_date),
+            durationText = stringResource(Res.string.catalog_rows_workout_duration),
+            volumeText = stringResource(Res.string.catalog_rows_workout_volume),
+            setsText = stringResource(Res.string.catalog_rows_workout_sets),
+            onClick = {},
+            contentDescription = stringResource(Res.string.catalog_rows_workout_cd),
+            tag = "catalog_workout_row",
         )
         AddItemButton(
             objectLabel = stringResource(Res.string.catalog_rows_add_object),

@@ -50,6 +50,9 @@ object NameSheetDefaults {
  * and "Guardar" stays disabled. The check is client side only. The typed text survives recreation. Tags:
  * `<prefix>`, `<prefix>_input` (+ `_error`), `<prefix>_commit`, `<prefix>_close`.
  *
+ * [initialNameIsOwn] false means [initialName] is only a suggestion for a new item (not the name being renamed), so it
+ * is checked against [existingNames] like any other name.
+ *
  * [canSubmit] false (for example offline) keeps "Guardar" disabled whatever the name; [extra] adds content under the
  * field (inside the sheet's scrolling body).
  *
@@ -71,13 +74,20 @@ fun NameSheet(
     maxLength: Int = AppTextFieldDefaults.DEFAULT_MAX_LENGTH,
     testTagPrefix: String = NameSheetDefaults.TEST_TAG,
     canSubmit: Boolean = true,
+    initialNameIsOwn: Boolean = true,
     extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     var edited by rememberSaveable { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
     LaunchedEffect(saving) { if (!saving) submitted = false }
-    val duplicate = NameSheetDefaults.isDuplicate(name, existingNames, ignore = initialName.ifBlank { null })
+    val duplicate = NameSheetDefaults.isDuplicate(
+        name,
+        existingNames,
+        ignore = initialName.takeIf {
+            initialNameIsOwn
+        }?.ifBlank { null },
+    )
     val canSave = NameSheetDefaults.canSave(name, duplicate) && canSubmit
     val save = {
         if (canSave && !saving && !submitted) {
