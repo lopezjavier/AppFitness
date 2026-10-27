@@ -37,6 +37,7 @@ class ProfileRootScreenTest {
     private var diaryHistoryOpens = 0
     private var weightOpens = 0
     private var trainingStatsOpens = 0
+    private var aboutOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -54,6 +55,7 @@ class ProfileRootScreenTest {
         diaryHistoryOpens = 0
         weightOpens = 0
         trainingStatsOpens = 0
+        aboutOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
@@ -66,6 +68,7 @@ class ProfileRootScreenTest {
                         onOpenWeight = { weightOpens++ },
                         onOpenDiaryHistory = { diaryHistoryOpens++ },
                         onOpenTrainingStats = { trainingStatsOpens++ },
+                        onOpenAbout = { aboutOpens++ },
                     ),
                 )
             }
@@ -147,6 +150,15 @@ class ProfileRootScreenTest {
             rule.onNodeWithTag("profile_${it}_row").assertHeightIsAtLeast(48.dp).performClick()
         }
         assertEquals(listOf(1, 1, 1, 1), listOf(weightOpens, strengthOpens, diaryHistoryOpens, trainingStatsOpens))
+    }
+
+    @Test
+    fun aboutRow_isPresentAndOpensAbout() {
+        show()
+
+        rule.onNodeWithTag("profile_about_row").assertHeightIsAtLeast(48.dp).performClick()
+
+        assertEquals(1, aboutOpens)
     }
 
     // -- catalog (local flavor) -----------------------------------------------------------------------------------

@@ -534,6 +534,8 @@ One action, one vibration, from the layer that knows the outcome (the component 
 | Chart ranges | "1S 1M 3M 6M 1A, Todo" (spoken "1 semana"…, "Todo el historial") | "Último mes" and similar variants | One string set |
 | Muscle on the radar axis | "Isquios" (radar only) | - | Everywhere else (list, chips, sheet, body map): "Isquiotibiales" |
 | An exercise created by the user | "ejercicio propio"; button "Añadir ejercicio propio"; sheet "Nuevo ejercicio" | "Crear ejercicio", "Añadir ejercicio" for it | "Añadir ejercicio" is only the routine/workout button that opens the exercise picker |
+| App information screen | "Acerca de" (the last Perfil row and the screen title) | "Información", "Sobre la app" | Not "Sobre ti" (onboarding step). The row carries no value |
+| System list of third-party licences | "Licencias de código abierto" (the row in "Acerca de" and the title of the system screen) | "Licencias", "Open source" | Credits heading: "Créditos" |
 
 Message templates:
 - Required: "Escribe un nombre".

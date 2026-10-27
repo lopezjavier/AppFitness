@@ -1452,4 +1452,16 @@
     <string name="profile_strength_value">Récord 1RM %1$s kg</string>
     <string name="profile_calories_value">media %1$s kcal</string>
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>
+    <string name="about_title">Acerca de</string>
+    <string name="profile_about_row">Acerca de</string>
+    <string name="about_credits_section">Créditos</string>
+    <string name="about_version_format">Versión %1$s (%2$d)</string>
+    <string name="about_version_flavor_format">%1$s · %2$s</string>
+    <string name="about_licenses_row">Licencias de código abierto</string>
+    <!-- Each entry is "Title|Text" (see Credit.parse); order is fixed. -->
+    <string-array name="credits">
+        <item>RepDB|Datos de ejercicios por RepDB (repdb.co)</item>
+        <item>Open Food Facts|Datos de alimentos de Open Food Facts (openfoodfacts.org), con licencia ODbL</item>
+        <item>Google Gemini|Estimaciones de comidas a partir de fotos con Google Gemini</item>
+    </string-array>
 </resources>

@@ -59,7 +59,7 @@ class PreferencesNavigationTest {
         split = MacroSplit.DEFAULT,
     )
 
-    private val profileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _, _ ->
         ProfileRootScreen(
             state = ProfileRootUiState.Loaded("Ana", null),
             onEvent = {},
