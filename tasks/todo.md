@@ -3828,7 +3828,7 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 - [x] The states inventory has no blank state; each remote screen has a host test for empty, error and offline.
 - [x] The accessibility host tests pass for every main screen (targets, descriptions, state descriptions); AA contrast of primary text verified on the tokens.
 - [x] At 130 % font scale the key figures are not clipped (Diario ring and strip, Peso cards, live set row and timer, statistics tiles).
-- [ ] At 840 dp landscape: Diario, Peso, "Estadísticas" and the live session show two columns with capped widths.
+- [x] At 840 dp landscape: Diario, Peso, "Estadísticas" and the live session show two columns with capped widths.
 - [x] Rotating while typing a quantity in `FoodSheet` or a set in the live session keeps the text.
 - [x] The PR body holds the §7 security checklist and the performance notes.
 
