@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-127 (Perfil root and Preferencias hub), E9 (UX rulebook + finalization → `v1.0.0`). T-126 merged (PR #286, CI green; migration `20261115100000_meal_structure_save.sql` with duplicate pre-check, `save_meal_structure` and `list_meal_slots_in_use`; meals editor and defaults screen on `AppEditorScreen`; `NavigationRow` `enabled`, `NameSheet` `commit`). `deploy-supabase` on `main` must finish green (meals intact) before the final E9 checkpoint. Carry-over for T-128: drop legacy `save_meal_slots` and `delete_meal_slot`; non-blocking nits: `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
+**Next:** T-128 (Wording, motion and onboarding; every guard a failure), E9 (UX rulebook + finalization → `v1.0.0`). T-127 merged (PR #288, CI green; no migration; Perfil root with gear and value rows, Preferencias hub with five section editors on `AppEditorScreen`, Account screen; `stats_title` is now "Entrenamiento"; `feature/profile` guards are failures). `deploy-supabase` on `main` (T-126 migration) must finish green (meals intact) before the final E9 checkpoint. Carry-over for T-128: drop legacy `save_meal_slots` and `delete_meal_slot`; delete the unreachable `ShellChrome.FullScreen`; check whether `WorkoutHome` draws a duplicate top bar (`NavBackStackEntry.chrome()` in `AppNavHost.kt` special-cases only `DiaryHome`/`ProfileHome`; unverified); `delete_account_error` lacks its final period (R-37); `OnboardingScreen.kt` `SnackbarHost` goes with T-128's onboarding work; non-blocking nits: `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
 
 ---
 
@@ -3746,16 +3746,16 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 **Description:** **Perfil root (D8, audit §6.5):** tab root with the profile header (avatar, name) and a gear icon that opens Preferencias (item 7); the statistics rows become `NavigationRow`s with their current value ("Peso · 79,4 kg", "Fuerza · Récord 1RM 113,5 kg", "Calorías · media 1.950 kcal"; label = destination title, R-04); "Cerrar sesión" and "Borrar cuenta" (with the protected-account note and their R-08 dialogs) move to Preferencias → "Cuenta". **Preferencias hub (D9, amends ADR-24):** `AppScreen` with grouped `NavigationRow`s "Datos personales", "Objetivo calórico", "Macros", "Comidas del día" (opens T-126's editor), "Cocina", "Entrenamiento", "Cuenta"; each opens a focused `AppEditorScreen` with its own "Guardar" that returns to the hub with one Confirm (item 6, R-13) and asks before discarding (R-14); same data and RPCs as today, split per section (the planner checks each section saves only its fields). Item 5: remove `energy_tdee_helper` from both screens. Item 18 is moot with the hub. The Preferencias pickers move to `AppPickerSheet`/`AppEditSheet` (Apply, "Listo"). The "Entrenamiento" section carries the existing training settings ("Incluir calentamiento", plates, …); including the global switch "Actualizar automáticamente" (ADR-70, off by default), moved here from the temporary place T-124 gives it. Guards become failures for `feature/profile`.
 
 **Acceptance criteria:**
-- [ ] Perfil: gear in the header opens Preferencias; statistics rows show their values; no sign-out or delete buttons on the root.
-- [ ] Preferencias lists the seven sections; each opens its editor; "Guardar" saves only that section and returns to the hub with one vibration; back with changes asks.
-- [ ] "Cuenta" holds "Cerrar sesión" and "Borrar cuenta" with their dialogs; the protected-account note stays.
-- [ ] No "Calorías que quemas…" helper anywhere.
-- [ ] Each section draft survives background and process death; tablet layout per `05` §5.
+- [x] Perfil: gear in the header opens Preferencias; statistics rows show their values; no sign-out or delete buttons on the root.
+- [x] Preferencias lists the seven sections; each opens its editor; "Guardar" saves only that section and returns to the hub with one vibration; back with changes asks.
+- [x] "Cuenta" holds "Cerrar sesión" and "Borrar cuenta" with their dialogs; the protected-account note stays.
+- [x] No "Calorías que quemas…" helper anywhere.
+- [x] Each section draft survives background and process death; tablet layout per `05` §5.
 
 **Host tests:** `ProfileRootScreen` tests (gear, rows with values, labels = titles), Preferencias hub tests, one editor test per section (save scope, close, discard), `PreferencesViewModel` split tests, account section tests (dialogs, protected account), restoration tests.
 
 **Verification:**
-- [ ] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 26 files (size note: if the planner counts more than ~30, the section editors are delivered in two runs of the same task).
 **Dependencies:** T-126
