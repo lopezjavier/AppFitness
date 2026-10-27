@@ -62,7 +62,8 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 
 ### Phase 3: Remaining domains, wording and motion (waves 2.2–3)
 - [x] T-123: Peso migration — UI + core — M
-- [ ] T-124: Routines, builder and exercises — backend + core + UI — L
+- [x] T-124: Routines, builder and routine details — backend + core + UI — L
+- [ ] T-124b: Exercise picker, detail and exercise sheets (split off T-124) — core + UI — M
 - [ ] T-125: Live session, history and statistics — UI + core — L
 - [ ] T-126: Comidas del día editor and meal-structure backend — backend + core + UI — M
 - [ ] T-127: Perfil root and Preferencias hub — UI + core — L
