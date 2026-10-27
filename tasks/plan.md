@@ -79,8 +79,8 @@ Agent runs for UI tasks: planner, ux-reviewer (plan), developers, pr-creator, pr
 - [ ] T-130: E9 closure → `v1.0.0` — PM — S (no checkpoint; E9-B's approval releases it)
 
 Internal milestones (not 👤 checkpoints):
-- lint (incl. `check-design-tokens.sh` and, from T-118, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green per task; pgTAP green for T-122, T-124, T-126;
-- `deploy-supabase` green after T-122 (before E9-A) and after T-124 and T-126 (before E9-B, which is now after T-129), data intact;
+- lint (incl. `check-design-tokens.sh` and, from T-118, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green per task; pgTAP green for T-122, T-124, T-126 and T-134;
+- `deploy-supabase` green after T-122 (before E9-A) and after T-124, T-126 and T-134 (before E9-B, which is now after T-129), data intact;
 - the guard warning list shrinks with each wave-2 task and is empty after T-128;
 - `:androidApp:assembleProdDebug` green with the licences plugin (T-129).
 
@@ -88,7 +88,7 @@ Internal milestones (not 👤 checkpoints):
 
 ```
 v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [E9-A 👤]
-        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► T-129 ─► [E9-B 👤] ─► T-130 (closure) ─► v1.0.0
+        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► T-134 ─► T-129 ─► [E9-B 👤] ─► T-130 (closure) ─► v1.0.0
 ```
 - Strictly sequential (one active task at a time); each foundation needs the previous one (top bar and `AppActionSheet` → sheets → fields in the Name sheet → rows and swipe on the haptics).
 - T-125c: the user chose B1 (polish the existing body map, no rebuild) on 2026-10-27; E9 Q1–Q3 are resolved.
