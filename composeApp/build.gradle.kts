@@ -53,6 +53,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.health.connect.client)
             implementation(libs.play.services.code.scanner)
+            implementation(libs.play.services.oss.licenses)
             implementation(libs.ktor.client.okhttp)
         }
         commonTest.dependencies {

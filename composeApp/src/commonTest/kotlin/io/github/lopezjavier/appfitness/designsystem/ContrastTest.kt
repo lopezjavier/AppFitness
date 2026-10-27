@@ -188,4 +188,14 @@ class ContrastTest {
             assertAa(c.textSecondary, bg, "textSecondary")
         }
     }
+
+    /** US-46 accessibility: body text roles over every surface token (the app ships a single dark scheme). */
+    @Test
+    fun bodyText_textPrimaryAndSecondaryOverEverySurface_isAa() {
+        mapOf("surfaceBase" to c.surfaceBase, "surfaceRaised" to c.surfaceRaised, "surfaceOverlay" to c.surfaceOverlay)
+            .forEach { (name, surface) ->
+                assertAa(c.textPrimary, surface, "textPrimary/$name")
+                assertAa(c.textSecondary, surface, "textSecondary/$name")
+            }
+    }
 }

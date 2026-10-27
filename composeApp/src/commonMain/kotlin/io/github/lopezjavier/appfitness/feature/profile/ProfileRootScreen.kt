@@ -17,8 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,6 +25,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_calories_value
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
@@ -46,6 +45,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -67,6 +67,7 @@ class ProfileRootActions(
     val onOpenWeight: () -> Unit = {},
     val onOpenDiaryHistory: () -> Unit = {},
     val onOpenTrainingStats: () -> Unit = {},
+    val onOpenAbout: () -> Unit = {},
 )
 
 /** Stateful Perfil root: connects [ProfileRootViewModel] to the stateless [ProfileRootScreen]. */
@@ -166,6 +167,11 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
             )
         }
         StatisticsSection(state, actions)
+        NavigationRow(
+            label = stringResource(Res.string.profile_about_row),
+            onClick = actions.onOpenAbout,
+            modifier = Modifier.fillMaxWidth().testTag("profile_about_row"),
+        )
     }
 }
 
@@ -178,11 +184,9 @@ private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: Profile
         stringResource(Res.string.profile_calories_value, AppNumberFormat.integer(it))
     }
     Column(Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(Res.string.profile_statistics_section),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() }.testTag("profile_statistics_heading"),
+        ListSectionHeader(
+            title = stringResource(Res.string.profile_statistics_section),
+            modifier = Modifier.testTag("profile_statistics_heading"),
         )
         NavigationRow(
             label = stringResource(Res.string.profile_weight_row),

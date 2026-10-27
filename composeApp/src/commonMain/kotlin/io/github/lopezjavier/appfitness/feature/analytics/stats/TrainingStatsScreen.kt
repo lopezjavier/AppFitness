@@ -124,7 +124,10 @@ private fun WideContent(
     onEvent: (TrainingStatsEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+    Row(
+        Modifier.fillMaxWidth().testTag("training_stats_two_column"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
+    ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
             LeftSections(state, onEvent)
         }

@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.di
 
 import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
@@ -58,6 +59,7 @@ val uiModule =
         viewModelOf(::WelcomeViewModel)
         viewModelOf(::ProfileRootViewModel)
         viewModelOf(::AccountViewModel)
+        viewModelOf(::AboutViewModel)
         // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.
         viewModel {
             PreferencesViewModel(

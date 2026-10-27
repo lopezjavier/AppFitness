@@ -5,6 +5,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.oss.licenses)
 }
 
 // Build-time configuration (planning/08-environment-setup.md §3.1).

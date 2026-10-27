@@ -58,6 +58,10 @@ data class PreferencesSectionRoute(val section: String) : AppRoute
 @Serializable
 data object AccountRoute : AppRoute
 
+/** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
+@Serializable
+data object AboutRoute : AppRoute
+
 /** Exercise picker (US-09). In [selectMode] a row returns the exercise to the caller instead of opening the detail. */
 @Serializable
 data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
@@ -317,5 +321,6 @@ object AppDestinations {
             DiaryDayRoute(""),
             WeightRoute,
             WeightHistoryRoute,
+            AboutRoute,
         )
 }

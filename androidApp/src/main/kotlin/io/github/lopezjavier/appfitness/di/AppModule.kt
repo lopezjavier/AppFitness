@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.domain.model.BuildInfo
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
@@ -32,6 +33,14 @@ val appModule =
                 googleWebClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
                 isLocal = BuildConfig.FLAVOR == "local",
                 testLogin = flavorTestLogin(),
+            )
+        }
+        single {
+            BuildInfo(
+                appName = "AppFitness",
+                versionName = BuildConfig.VERSION_NAME,
+                versionCode = BuildConfig.VERSION_CODE.toLong(),
+                flavor = BuildConfig.FLAVOR,
             )
         }
         single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }

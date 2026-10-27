@@ -150,7 +150,7 @@ private fun NarrowDay(content: DiaryContent, actions: EntryActions, onEvent: (Di
 
 @Composable
 private fun WideDay(content: DiaryContent, actions: EntryActions, onEvent: (DiaryEvent) -> Unit) {
-    Row(Modifier.fillMaxSize()) {
+    Row(Modifier.fillMaxSize().testTag("diary_two_column")) {
         Column(
             Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),

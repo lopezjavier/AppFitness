@@ -47,7 +47,11 @@ internal typealias ProfileSlot =
         onOpenDiaryHistory: () -> Unit,
         onOpenWeight: () -> Unit,
         onOpenTrainingStats: () -> Unit,
+        onOpenAbout: () -> Unit,
     ) -> Unit
+
+/** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
+internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
  * Content of the Preferencias hub: its modifier (full-screen insets), how to leave, and the openers of a section
@@ -362,7 +366,7 @@ internal typealias RoutineDetailsSlot =
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
@@ -509,6 +513,11 @@ internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("account_screen"))
 }
 
+/** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("about_screen"))
+}
+
 /**
  * Single type-safe NavHost with one nested graph (own back stack) per tab (ADR-10) and the
  * full-screen destinations at the root, above the tabs (ADR-22). Tabs and full-screen
@@ -526,6 +535,7 @@ internal fun AppNavHost(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     account: AccountSlot = DefaultAccountSlot,
+    about: AboutSlot = DefaultAboutSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
@@ -573,6 +583,7 @@ internal fun AppNavHost(
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
     val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
+    val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
     val openDetails: (String) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineDetailsRoute(id)) } }
     val openProgress: (String) -> Unit =
@@ -648,8 +659,12 @@ internal fun AppNavHost(
                     openDiaryHistory,
                     openWeight,
                     openTrainingStats,
+                    openAbout,
                 )
             }
+        }
+        composable<AboutRoute> { entry ->
+            about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightRoute> { entry ->
             weight(

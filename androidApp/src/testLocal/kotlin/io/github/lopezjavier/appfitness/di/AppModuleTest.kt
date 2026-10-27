@@ -3,7 +3,9 @@ package io.github.lopezjavier.appfitness.di
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.lifecycle.SavedStateHandle
+import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.domain.model.BuildInfo
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
@@ -89,6 +91,21 @@ class AppModuleTest {
 
             assertEquals("http://10.0.2.2:54321", config.supabaseUrl)
             assertTrue(config.isLocal)
+        } finally {
+            app.close()
+        }
+    }
+
+    @Test
+    fun buildInfo_inLocalFlavor_resolvesFromBuildConfig() {
+        val app = koinApplication { modules(appModule) }
+        try {
+            val info = app.koin.get<BuildInfo>()
+
+            assertEquals("AppFitness", info.appName)
+            assertEquals(BuildConfig.VERSION_NAME, info.versionName)
+            assertEquals(BuildConfig.VERSION_CODE.toLong(), info.versionCode)
+            assertEquals("local", info.flavor)
         } finally {
             app.close()
         }
@@ -180,6 +197,7 @@ class AppModuleTest {
                 WeightChartPreferences::class,
                 WeightTrend::class,
                 PastWorkoutSource::class,
+                BuildInfo::class,
             ),
         )
     }
