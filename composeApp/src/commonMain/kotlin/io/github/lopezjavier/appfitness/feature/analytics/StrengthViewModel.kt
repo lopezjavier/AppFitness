@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
@@ -30,9 +31,10 @@ class StrengthViewModel(
     private val exerciseRepository: ExerciseRepository,
     private val exerciseLibrary: ExerciseLibrary,
     private val clock: Clock,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private var chips: List<StrengthChip> = emptyList()
-    private var selectedId: String? = null
+    private var selectedId: String? = savedState.get<String>(KEY_SELECTED)
     private val summaries = mutableMapOf<String, StrengthSummary>()
 
     private val _uiState = MutableStateFlow<StrengthUiState>(StrengthUiState.Loading)
@@ -48,6 +50,7 @@ class StrengthViewModel(
 
             is StrengthEvent.SelectExercise -> if (chips.any { it.exerciseId == event.exerciseId }) {
                 selectedId = event.exerciseId
+                savedState[KEY_SELECTED] = event.exerciseId
                 if (event.exerciseId in summaries) publish() else loadSummary(event.exerciseId)
             }
         }
@@ -70,6 +73,7 @@ class StrengthViewModel(
             chips = top.map { StrengthChip(it, names[it]) }
             val keep = selectedId?.takeIf { id -> top.contains(id) } ?: top.first()
             selectedId = keep
+            savedState[KEY_SELECTED] = keep
             loadSummary(keep)
         }
     }
@@ -90,5 +94,9 @@ class StrengthViewModel(
     private fun publish() {
         val id = selectedId ?: return
         _uiState.value = StrengthUiState.Content(chips, id, summaries[id])
+    }
+
+    private companion object {
+        const val KEY_SELECTED = "selected_exercise"
     }
 }

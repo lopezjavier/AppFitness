@@ -96,6 +96,28 @@ class SetCountBucketsTest {
     }
 
     @Test
+    fun bucketsFor_oneYearFirstBucketIsTheMonthOfTheWindowStartMondayAndKeepsAPartialMonth() {
+        // The window starts 2025-10-25 (Saturday); its Monday is 2025-10-20, so October 2025 is the first bucket
+        // although the server only counted the sets from the 25th on.
+        val window = StatsWindow.forRange(ProgressRange.OneYear, today)
+        val result = SetCountBuckets.bucketsFor(ProgressRange.OneYear, listOf(week(2025, 10, 20, 3)), window, today)
+
+        assertEquals(week(2025, 10, 1, 3), result.first())
+        assertEquals(13, result.size)
+    }
+
+    @Test
+    fun bucketsFor_weeklyRangesStayWeekly() {
+        val points = listOf(week(2026, 10, 12, 5))
+
+        listOf(ProgressRange.OneMonth, ProgressRange.ThreeMonths, ProgressRange.SixMonths).forEach { range ->
+            val result = SetCountBuckets.bucketsFor(range, points, StatsWindow.forRange(range, today), today)
+            assertTrue(result.all { it.weekStart.dayOfWeek.ordinal == 0 }, "$range")
+            assertEquals(week(2026, 10, 12, 5), result.single { it.sets > 0 })
+        }
+    }
+
+    @Test
     fun bucketsFor_allTimeIsMonthlyAndEmptyWithoutData() {
         val window = StatsWindow(null, today)
 

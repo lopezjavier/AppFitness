@@ -15,6 +15,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.body_view_back
+import io.github.lopezjavier.appfitness.composeapp.resources.body_view_front
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_body_description
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_body_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_body_title
@@ -26,7 +28,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_cd_item
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_cd_previous
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_current
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_previous
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_radar_previous_failed
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.BodyCaptions
 import io.github.lopezjavier.appfitness.designsystem.BodyHeatLegend
 import io.github.lopezjavier.appfitness.designsystem.BodyHeatmap
 import io.github.lopezjavier.appfitness.designsystem.BodyRegion
@@ -36,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.feature.exercises.label
+import io.github.lopezjavier.appfitness.feature.exercises.radarLabel
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import org.jetbrains.compose.resources.stringResource
 
@@ -47,7 +52,7 @@ private val BodyHeight = Spacing.xl * 14
 internal fun RadarCard(radar: SectionState<MuscleRadar>, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     StatsCard(stringResource(Res.string.stats_distribution_title), modifier) {
         StatsBlock(radar, StatsSection.Radar, RadarHeight, onRetry) { data ->
-            val axes = data.current.map { stringResource(it.muscleGroup.label) }
+            val axes = data.current.map { stringResource(it.muscleGroup.radarLabel) }
             val description = radarDescription(axes, data)
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 RadarLegend(
@@ -64,6 +69,12 @@ internal fun RadarCard(radar: SectionState<MuscleRadar>, onRetry: () -> Unit, mo
                     description = description,
                     modifier = Modifier.fillMaxWidth().testTag("stats_radar"),
                 )
+                if (data.previousFailed) {
+                    StatsHint(
+                        stringResource(Res.string.stats_radar_previous_failed),
+                        Modifier.testTag("stats_radar_previous_failed"),
+                    )
+                }
                 if (data.current.all { it.sets <= 0.0 }) {
                     StatsHint(stringResource(Res.string.stats_chart_empty), Modifier.testTag("stats_radar_empty"))
                 }
@@ -95,6 +106,10 @@ internal fun BodyMapCard(
 ) {
     StatsCard(stringResource(Res.string.stats_body_title), modifier) {
         StatsBlock(bodyMap, StatsSection.Body, BodyHeight, onRetry) { rows ->
+            val captions = BodyCaptions(
+                stringResource(Res.string.body_view_front),
+                stringResource(Res.string.body_view_back),
+            )
             val regions = rows.map { row ->
                 val name = stringResource(row.muscleGroup.label)
                 BodyRegion(
@@ -106,7 +121,7 @@ internal fun BodyMapCard(
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                BodyHeatmap(regions, onMuscleClick, tagPrefix = "stats_body")
+                BodyHeatmap(regions, onMuscleClick, tagPrefix = "stats_body", captions = captions)
                 BodyHeatLegend(
                     stringResource(Res.string.stats_heat_less),
                     stringResource(Res.string.stats_heat_more),

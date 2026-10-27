@@ -90,7 +90,7 @@ class ExerciseProgressViewModel(
             metricType = type
             maxReps = reps
             name = lookup.names[exerciseId]
-            if (sessions.isEmpty()) _uiState.value = ExerciseProgressUiState.Empty else publish()
+            if (sessions.isEmpty()) _uiState.value = ExerciseProgressUiState.Empty(name) else publish()
         }
     }
 

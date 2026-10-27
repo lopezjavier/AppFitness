@@ -93,6 +93,14 @@ for pair in "2:feature/workout/CalculatorSheetParts" "2:feature/workout/Exercise
   expect "G$n in $path.kt fails with the real warning list" 1
 done
 
+# T-125c: the muscle detail sheet is migrated, so the real warning list no longer excuses it.
+tree="$work/stats-g2-MuscleDetailSheet"
+mkdir -p "$tree/composeApp/src/commonMain/kotlin/demo/feature/analytics/stats"
+cp "$here/ux-conventions/g2/composeApp/src/commonMain/kotlin/demo/feature/Bad.kt" \
+  "$tree/composeApp/src/commonMain/kotlin/demo/feature/analytics/stats/MuscleDetailSheet.kt"
+run "$tree" "$real_list"
+expect "G2 in feature/analytics/stats/MuscleDetailSheet.kt fails with the real warning list" 1
+
 # T-125b: the history and workout detail screens are migrated, so the real warning list no longer excuses them.
 for pair in "2:feature/workout/PastWorkoutChooserSheet" "2:feature/workout/SaveAsRoutineSheet" \
   "3:feature/workout/EditWorkoutScreen" "3:feature/workout/PastWorkoutScreen" \

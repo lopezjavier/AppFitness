@@ -90,7 +90,7 @@
     <string name="catalog_section_radar">Radar</string>
     <string name="catalog_radar_cd">Pecho 12 series, Espalda 8 series, Hombros 6 series, Bíceps 4 series, Tríceps 5 series</string>
     <string name="catalog_section_body_heatmap">Mapa corporal</string>
-    <string name="catalog_line_chart_cd">1RM estimado: de 100 a 113,5 kg, 5 sesiones</string>
+    <string name="catalog_line_chart_cd">1RM estimado: de 100 a 113,5 kg, 5 entrenos</string>
     <string name="catalog_ring_empty">Vacío</string>
     <string name="catalog_ring_normal">Normal</string>
     <string name="catalog_ring_full">Objetivo alcanzado</string>
@@ -372,8 +372,8 @@
     <string name="routines_folder_collapsed">Contraída</string>
     <string name="routines_folder_delete_title">¿Eliminar la carpeta «%1$s»?</string>
     <plurals name="routines_folder_delete_message">
-        <item quantity="one">Se eliminarán la carpeta y su rutina. Las sesiones que ya hiciste no cambian.</item>
-        <item quantity="other">Se eliminarán la carpeta y sus %1$d rutinas. Las sesiones que ya hiciste no cambian.</item>
+        <item quantity="one">Se eliminarán la carpeta y su rutina. Los entrenos que ya hiciste no cambian.</item>
+        <item quantity="other">Se eliminarán la carpeta y sus %1$d rutinas. Los entrenos que ya hiciste no cambian.</item>
     </plurals>
     <plurals name="routines_folder_count">
         <item quantity="one">%1$d rutina</item>
@@ -530,6 +530,7 @@
     <string name="muscle_forearms">Antebrazos</string>
     <string name="muscle_quads">Cuádriceps</string>
     <string name="muscle_hamstrings">Isquiotibiales</string>
+    <string name="muscle_hamstrings_short">Isquios</string>
     <string name="muscle_glutes">Glúteos</string>
     <string name="muscle_calves">Gemelos</string>
     <string name="muscle_core">Core</string>
@@ -629,7 +630,7 @@
         <item quantity="other">y %1$d cambios más</item>
     </plurals>
     <string name="live_discard_title">¿Descartar entreno?</string>
-    <string name="live_discard_message">Se borrará esta sesión con todas sus series.</string>
+    <string name="live_discard_message">Se borrará este entreno con todas sus series.</string>
     <string name="live_discard_confirm">Descartar</string>
     <string name="live_discard_cancel">Cancelar</string>
     <string name="live_exercise_menu_cd">Más opciones de %1$s</string>
@@ -725,8 +726,8 @@
     <string name="stats_exercise_row_detail">%1$s · %2$s</string>
     <string name="stats_sets_one">%1$s serie</string>
     <string name="stats_sets_other">%1$s series</string>
-    <string name="stats_sessions_one">%1$d sesión</string>
-    <string name="stats_sessions_other">%1$d sesiones</string>
+    <string name="stats_sessions_one">%1$d entreno</string>
+    <string name="stats_sessions_other">%1$d entrenos</string>
     <string name="stats_distribution_title">Distribución muscular</string>
     <string name="stats_radar_current">Actual</string>
     <string name="stats_radar_previous">Periodo anterior</string>
@@ -738,49 +739,41 @@
     <string name="stats_heat_less">Menos</string>
     <string name="stats_heat_more">Más series</string>
     <string name="stats_error_message">No se han podido cargar las estadísticas</string>
-    <string name="stats_empty_title">Sin entrenamientos en este periodo</string>
-    <string name="stats_empty_message">Registra un entrenamiento o prueba con otro periodo.</string>
+    <string name="stats_empty_title">Sin entrenos en este periodo</string>
+    <string name="stats_empty_message">Registra un entreno o prueba con otro periodo.</string>
+    <string name="stats_radar_previous_failed">No se pudo cargar el periodo anterior.</string>
+    <string name="body_view_front">Frente</string>
+    <string name="body_view_back">Espalda</string>
     <string name="stats_sheet_subtitle">Últimos 7 días · %1$s</string>
     <string name="stats_sheet_empty">No has entrenado este músculo en los últimos 7 días.</string>
-    <string name="stats_close">Cerrar</string>
-    <string name="muscle_volume_title">Volumen por grupo muscular</string>
-    <string name="strength_card_title">Fuerza y 1RM estimado</string>
+    <string name="muscle_volume_title">Volumen</string>
+    <string name="strength_card_title">1RM estimado</string>
     <string name="strength_record">Récord 1RM estimado: %1$s kg</string>
     <string name="strength_record_none">Sin récord de 1RM todavía</string>
     <string name="strength_delta_up">%1$s kg este mes</string>
     <string name="strength_delta_flat">Sin cambios este mes</string>
     <string name="strength_delta_down">%1$s kg este mes</string>
-    <string name="strength_open_exercise">Ver progreso</string>
+    <string name="strength_open_exercise">Progreso del ejercicio</string>
     <string name="strength_empty_message">Aún no tienes entrenos en las últimas semanas. Entrena para ver tu progreso de fuerza.</string>
     <string name="strength_empty_cta">Empezar entreno</string>
     <string name="strength_error_message">No se pudo cargar tu progreso de fuerza</string>
     <string name="exercise_progress_title">Progreso del ejercicio</string>
-    <string name="exercise_progress_range_1m">1M</string>
-    <string name="exercise_progress_range_3m">3M</string>
-    <string name="exercise_progress_range_6m">6M</string>
-    <string name="exercise_progress_range_1y">1A</string>
-    <string name="exercise_progress_range_1m_cd">Último mes</string>
-    <string name="exercise_progress_range_3m_cd">Últimos 3 meses</string>
-    <string name="exercise_progress_range_6m_cd">Últimos 6 meses</string>
-    <string name="exercise_progress_range_1y_cd">Último año</string>
     <string name="exercise_progress_chart_1rm">1RM estimado (kg)</string>
     <string name="exercise_progress_chart_volume">Volumen (kg)</string>
     <string name="exercise_progress_chart_max_reps">Repeticiones máximas</string>
-    <string name="exercise_progress_range_all">Todo</string>
-    <string name="exercise_progress_range_all_cd">Todo el historial</string>
     <string name="exercise_progress_chart_duration">Duración</string>
     <string name="exercise_progress_chart_distance">Distancia</string>
     <string name="exercise_progress_chart_steps">Pasos</string>
     <string name="exercise_progress_chart_floors">Pisos</string>
     <string name="exercise_progress_chart_reps">Repeticiones</string>
     <string name="exercise_progress_record_legend">Récord</string>
-    <string name="exercise_progress_chart_cd">%1$s. %2$d sesiones, de %3$s a %4$s.</string>
+    <string name="exercise_progress_chart_cd">%1$s. %2$d entrenos, de %3$s a %4$s.</string>
     <plurals name="exercise_progress_records_cd">
         <item quantity="one">%1$d marcada como récord personal en su fecha.</item>
         <item quantity="other">%1$d marcadas como récord personal en su fecha.</item>
     </plurals>
-    <string name="exercise_progress_single_session">Necesitas al menos 2 sesiones para ver la evolución</string>
-    <string name="exercise_progress_single_value">Última sesión: %1$s</string>
+    <string name="exercise_progress_single_session">Necesitas al menos 2 entrenos para ver la evolución</string>
+    <string name="exercise_progress_single_value">Último entreno: %1$s</string>
     <string name="exercise_progress_empty_message">Aún no has registrado este ejercicio en ningún entreno.</string>
     <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio</string>
     <string name="exercise_progress_link">Ver progreso</string>
@@ -788,7 +781,7 @@
     <string name="chart_date_short">%1$d %2$s</string>
 
     <!-- T-048b weekly muscle volume -->
-    <string name="muscle_volume_open">Volumen por grupo muscular</string>
+    <string name="muscle_volume_open">Volumen</string>
     <string name="muscle_volume_all">Todos</string>
     <string name="muscle_volume_caption">Semanas de lunes a domingo · máximo 8</string>
     <string name="muscle_volume_current_value">%1$s kg</string>

@@ -70,12 +70,18 @@ fun AppRoot(
                 onOpenTrainingStats,
             )
         },
-        strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
-            StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, strengthModifier)
+        strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
+            StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
         },
-        muscleVolume = { volumeModifier, onStartWorkout -> MuscleVolumeRoot(onStartWorkout, volumeModifier) },
-        trainingStats = { statsModifier, onOpenExercise -> TrainingStatsRoot(onOpenExercise, statsModifier) },
-        exerciseProgress = { progressModifier, exerciseId -> ExerciseProgressRoot(exerciseId, progressModifier) },
+        muscleVolume = { volumeModifier, onStartWorkout, onBack ->
+            MuscleVolumeRoot(onStartWorkout, onBack, volumeModifier)
+        },
+        trainingStats = { statsModifier, onOpenExercise, onBack ->
+            TrainingStatsRoot(onOpenExercise, onBack, statsModifier)
+        },
+        exerciseProgress = { progressModifier, exerciseId, onBack ->
+            ExerciseProgressRoot(exerciseId, onBack, progressModifier)
+        },
         preferences = { preferencesModifier, onOpenMeals -> PreferencesRoute(onOpenMeals, preferencesModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)

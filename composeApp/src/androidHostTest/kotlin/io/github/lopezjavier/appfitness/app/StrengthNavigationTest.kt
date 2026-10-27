@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import org.junit.Rule
 import org.junit.Test
@@ -34,18 +35,29 @@ class StrengthNavigationTest {
             Box(tapTarget().testTag("profile_open_strength").clickable(onClick = onOpenStrength))
         }
     }
-    private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout ->
-        Column(modifier.fillMaxSize().testTag("strength_screen")) {
-            Box(tapTarget().testTag("strength_open").clickable { onOpenExercise("bench") })
-            Box(tapTarget().testTag("strength_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
-            Box(tapTarget().testTag("strength_start").clickable(onClick = onStartWorkout))
+    private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
+        AppScreen("Fuerza", modifier.testTag("strength_screen"), onBack = onBack, testTagPrefix = "strength") {
+            Column(Modifier.fillMaxSize()) {
+                Box(tapTarget().testTag("strength_open").clickable { onOpenExercise("bench") })
+                Box(tapTarget().testTag("strength_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
+                Box(tapTarget().testTag("strength_start").clickable(onClick = onStartWorkout))
+            }
         }
     }
-    private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _ ->
-        Box(modifier.fillMaxSize().testTag("muscle_volume_screen"))
+    private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _, onBack ->
+        AppScreen(
+            "Volumen",
+            modifier.testTag("muscle_volume_screen"),
+            onBack = onBack,
+            testTagPrefix = "muscle_volume",
+        ) {
+            Box(Modifier.fillMaxSize())
+        }
     }
-    private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId ->
-        Text(exerciseId, modifier.testTag("progress_exercise_id"))
+    private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId, onBack ->
+        AppScreen("Progreso", modifier, onBack = onBack, testTagPrefix = "exercise_progress") {
+            Text(exerciseId, Modifier.testTag("progress_exercise_id"))
+        }
     }
     private val detailSlot: ExerciseDetailSlot = { modifier, _, _, _, onOpenProgress, _ ->
         Box(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
@@ -121,7 +133,7 @@ class StrengthNavigationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("muscle_volume_screen").assertExists()
-        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen por grupo muscular")
+        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen")
         rule.onNodeWithTag("muscle_volume_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("strength_screen").assertExists()

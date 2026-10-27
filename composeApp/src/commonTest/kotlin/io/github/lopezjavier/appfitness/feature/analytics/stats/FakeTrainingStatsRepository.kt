@@ -24,6 +24,7 @@ class FakeTrainingStatsRepository : TrainingStatsRepository {
     var summaryFailure: AppError? = null
     var weeklyFailure: AppError? = null
     var muscleFailure: AppError? = null
+    var muscleFailureFor: (Window) -> AppError? = { null }
     var exercisesFailure: AppError? = null
     var detailFailure: AppError? = null
 
@@ -51,7 +52,8 @@ class FakeTrainingStatsRepository : TrainingStatsRepository {
     override suspend fun muscleGroupSets(from: LocalDate?, to: LocalDate?): Result<List<MuscleGroupSets>> {
         val window = Window(from, to)
         muscleCalls += window
-        return muscleFailure?.let { Result.failure(AppException(it)) } ?: Result.success(muscleFor(window))
+        val failure = muscleFailure ?: muscleFailureFor(window)
+        return failure?.let { Result.failure(AppException(it)) } ?: Result.success(muscleFor(window))
     }
 
     override suspend fun exerciseSetCounts(

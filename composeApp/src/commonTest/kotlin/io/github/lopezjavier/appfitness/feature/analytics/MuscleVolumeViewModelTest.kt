@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
@@ -33,7 +34,8 @@ class MuscleVolumeViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = MuscleVolumeViewModel(strength, MutableClock())
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) =
+        MuscleVolumeViewModel(strength, MutableClock(), savedState)
 
     private fun MuscleVolumeViewModel.content() = assertIs<MuscleVolumeUiState.Content>(uiState.value)
 
@@ -120,6 +122,35 @@ class MuscleVolumeViewModelTest {
         advanceUntilIdle()
 
         assertEquals(MuscleGroup.Back, model.content().selected)
+    }
+
+    @Test
+    fun selectionSurvivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
+        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0), row(MuscleGroup.Back, 100.0))
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(MuscleVolumeEvent.SelectGroup(MuscleGroup.Back))
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(MuscleGroup.Back, second.content().selected)
+    }
+
+    @Test
+    fun clearingTheSelectionIsAlsoRestored() = runTest(dispatcher) {
+        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0), row(MuscleGroup.Back, 100.0))
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(MuscleVolumeEvent.SelectGroup(MuscleGroup.Back))
+        first.onEvent(MuscleVolumeEvent.SelectGroup(null))
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(null, second.content().selected)
     }
 
     @Test

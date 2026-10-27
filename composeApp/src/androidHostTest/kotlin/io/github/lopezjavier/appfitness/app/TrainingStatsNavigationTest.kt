@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import org.junit.Rule
 import org.junit.Test
@@ -32,12 +33,12 @@ class TrainingStatsNavigationTest {
             Box(Modifier.size(48.dp).testTag("profile_open_stats").clickable(onClick = onOpenTrainingStats))
         }
     }
-    private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise ->
-        Box(modifier.fillMaxSize().testTag("stats_screen")) {
+    private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, onBack ->
+        AppScreen("Estadísticas", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
             Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
         }
     }
-    private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId ->
+    private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId, _ ->
         Text(exerciseId, modifier.testTag("progress_exercise_id"))
     }
 

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -36,22 +35,23 @@ import io.github.lopezjavier.appfitness.composeapp.resources.strength_error_mess
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_open_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_record
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_record_none
+import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -69,17 +69,19 @@ fun StrengthRoot(
     onOpenExercise: (String) -> Unit,
     onOpenMuscleVolume: () -> Unit,
     onStartWorkout: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StrengthViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    StrengthScreen(state, viewModel::onEvent, onOpenExercise, onOpenMuscleVolume, onStartWorkout, modifier)
+    StrengthScreen(state, viewModel::onEvent, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, modifier)
 }
 
 /**
- * "Fuerza y 1RM estimado" (US-15): the top exercises as chips, the 1RM record of the selected one, its change over the
- * last month and the way to its full progress.
+ * "Fuerza" (US-15): the top exercises as chips, the 1RM record of the selected one, its change over the last month and
+ * the way to its full progress.
  */
+@Suppress("LongParameterList") // One callback per navigation target of the screen.
 @Composable
 fun StrengthScreen(
     state: StrengthUiState,
@@ -87,10 +89,16 @@ fun StrengthScreen(
     onOpenExercise: (String) -> Unit,
     onOpenMuscleVolume: () -> Unit,
     onStartWorkout: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize().testTag("strength_screen"), contentAlignment = Alignment.TopCenter) {
-        Box(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
+    AppScreen(
+        title = stringResource(Res.string.strength_title),
+        modifier = modifier.testTag("strength_screen"),
+        onBack = onBack,
+        testTagPrefix = "strength",
+    ) {
+        Box(Modifier.fillMaxSize()) {
             when (state) {
                 StrengthUiState.Loading -> StrengthLoading()
 
@@ -146,17 +154,17 @@ private fun StrengthContent(
                     onSelect = { onEvent(StrengthEvent.SelectExercise(state.chips[it].exerciseId)) },
                 )
                 SummaryBlock(state.summary)
-                SecondaryButton(
-                    text = stringResource(Res.string.strength_open_exercise),
+                NavigationRow(
+                    label = stringResource(Res.string.strength_open_exercise),
                     onClick = { onOpenExercise(state.selectedId) },
-                    modifier = Modifier.fillMaxWidth().testTag("strength_open_exercise"),
+                    modifier = Modifier.testTag("strength_open_exercise"),
                 )
             }
         }
-        SecondaryButton(
-            text = stringResource(Res.string.muscle_volume_open),
+        NavigationRow(
+            label = stringResource(Res.string.muscle_volume_open),
             onClick = onOpenMuscleVolume,
-            modifier = Modifier.fillMaxWidth().testTag("strength_open_muscle_volume"),
+            modifier = Modifier.testTag("strength_open_muscle_volume"),
         )
     }
 }

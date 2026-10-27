@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -45,7 +46,8 @@ class StrengthViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = StrengthViewModel(strength, workouts, exercises, library, MutableClock())
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) =
+        StrengthViewModel(strength, workouts, exercises, library, MutableClock(), savedState)
 
     private fun StrengthViewModel.content() = assertIs<StrengthUiState.Content>(uiState.value)
 
@@ -86,6 +88,21 @@ class StrengthViewModelTest {
 
         assertEquals(113.5, model.content().summary?.recordOneRepMax)
         assertEquals(5.0, model.content().summary?.monthlyDelta)
+    }
+
+    @Test
+    fun theSelectedExerciseSurvivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
+        seedThreeExercises()
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(StrengthEvent.SelectExercise("squat"))
+        advanceUntilIdle()
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals("squat", second.content().selectedId)
     }
 
     @Test

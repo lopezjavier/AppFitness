@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -33,6 +34,14 @@ class BodyHeatmapTest {
         BodyRegion(MuscleGroup.Calves, 1.0, "Gemelos, 1 serie", "1", "body_calves"),
     )
 
+    private fun showWithCaptions() {
+        rule.setContent {
+            AppTheme {
+                BodyHeatmap(regions, {}, tagPrefix = "body", captions = BodyCaptions("Frente", "Espalda"))
+            }
+        }
+    }
+
     private fun show(fontScale: Float = 1f) {
         rule.setContent {
             val density = LocalDensity.current
@@ -61,6 +70,22 @@ class BodyHeatmapTest {
         rule.onNodeWithTag("body_back").assertExists()
         rule.onNodeWithTag("body_chest").assertContentDescriptionEquals("Pecho, 3 series")
         rule.onNodeWithTag("body_triceps").assertContentDescriptionEquals("Tríceps, 1,5 series")
+    }
+
+    @Test
+    fun captions_nameEachSilhouette_andKeepTheRegionsTappable() {
+        showWithCaptions()
+
+        rule.onNodeWithTag("body_front_caption").assertTextEquals("Frente")
+        rule.onNodeWithTag("body_back_caption").assertTextEquals("Espalda")
+        rule.onNodeWithTag("body_chest").assertExists()
+    }
+
+    @Test
+    fun withoutCaptions_noCaptionIsDrawn() {
+        show()
+
+        rule.onNodeWithTag("body_front_caption").assertDoesNotExist()
     }
 
     @Test

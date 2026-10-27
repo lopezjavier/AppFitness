@@ -228,7 +228,7 @@ class ExerciseProgressViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(ExerciseProgressUiState.Empty, model.uiState.value)
+        assertEquals(ExerciseProgressUiState.Empty("Press de banca"), model.uiState.value)
     }
 
     @Test

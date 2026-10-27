@@ -18,7 +18,7 @@ object BodyMapPaths {
     private const val HEAD_X = 50f
     private const val HEAD_Y = 12f
     private const val HEAD_RADIUS = 9f
-    private const val HEAD_SIDES = 8
+    private const val HEAD_SIDES = 24
 
     private fun poly(vararg xy: Float): List<Offset> = xy.toList().chunked(2).map { (x, y) -> Offset(x, y) }
 

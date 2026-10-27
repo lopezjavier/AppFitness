@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -22,9 +21,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_all
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_empty_cta
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -33,7 +34,6 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import org.jetbrains.compose.resources.stringResource
@@ -45,26 +45,33 @@ private val SkeletonCardHeight = Spacing.xl * 5
 @Composable
 fun MuscleVolumeRoot(
     onStartWorkout: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MuscleVolumeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    MuscleVolumeScreen(state, viewModel::onEvent, onStartWorkout, modifier)
+    MuscleVolumeScreen(state, viewModel::onEvent, onStartWorkout, onBack, modifier)
 }
 
 /**
- * "Volumen por grupo muscular" (US-15): total volume of each group for the last 8 weeks; a chip selects one group to
- * see its evolution alone.
+ * "Volumen" (US-15): total volume of each muscle group for the last 8 weeks; a chip selects one group to see its
+ * evolution alone.
  */
 @Composable
 fun MuscleVolumeScreen(
     state: MuscleVolumeUiState,
     onEvent: (MuscleVolumeEvent) -> Unit,
     onStartWorkout: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize().testTag("muscle_volume_screen"), contentAlignment = Alignment.TopCenter) {
-        Box(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
+    AppScreen(
+        title = stringResource(Res.string.muscle_volume_title),
+        modifier = modifier.testTag("muscle_volume_screen"),
+        onBack = onBack,
+        testTagPrefix = "muscle_volume",
+    ) {
+        Box(Modifier.fillMaxSize()) {
             when (state) {
                 MuscleVolumeUiState.Loading -> MuscleVolumeLoading()
 

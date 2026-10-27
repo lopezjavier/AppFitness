@@ -234,7 +234,7 @@ class RoutinesFoldersScreenTest {
 
         rule.onNodeWithText("¿Eliminar la carpeta «Fuerza»?").assertExists()
         rule.onNodeWithText(
-            "Se eliminarán la carpeta y sus 3 rutinas. Las sesiones que ya hiciste no cambian.",
+            "Se eliminarán la carpeta y sus 3 rutinas. Los entrenos que ya hiciste no cambian.",
         ).assertExists()
         click("routines_folder_delete_confirm")
 
@@ -252,7 +252,7 @@ class RoutinesFoldersScreenTest {
         click("routines_folder_delete_f1")
 
         rule.onNodeWithText(
-            "Se eliminarán la carpeta y su rutina. Las sesiones que ya hiciste no cambian.",
+            "Se eliminarán la carpeta y su rutina. Los entrenos que ya hiciste no cambian.",
         ).assertExists()
     }
 
