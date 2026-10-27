@@ -47,8 +47,6 @@ data class Routine(
     val exercises: List<RoutineExercise>,
     /** Compare finished sessions of this routine with it (US-36). */
     val trackAsRoutine: Boolean = true,
-    /** Update the routine from a finished session without asking. */
-    val autoUpdateRoutine: Boolean = false,
 )
 
 /** A folder of routines ("Mis rutinas" itself is the no-folder group). */

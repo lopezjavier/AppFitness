@@ -13,10 +13,13 @@ interface RoutineRepository {
     /** The routine with its exercises in position order, or `NotFound`. */
     suspend fun get(id: String): Result<Routine>
 
-    /** Creates the routine (null id) or replaces its name and exercises atomically; returns its id. */
+    /**
+     * Creates the routine (null id) or replaces its name and exercises atomically; returns its id. Fails with
+     * `NameAlreadyExists` when another routine has the same name (trimmed, case-insensitive).
+     */
     suspend fun save(routine: Routine): Result<String>
 
-    /** Saves a copy named "<name> (copia)"; returns the new id. */
+    /** Saves a copy named "<name> (copia)", "(copia 2)"... (first free name); returns the new id. */
     suspend fun duplicate(id: String): Result<String>
 
     /**
@@ -31,7 +34,8 @@ interface RoutineRepository {
      */
     suspend fun createFromSession(sessionId: String, name: String): Result<String>
 
-    suspend fun archive(id: String): Result<Unit>
+    /** Deletes the routine for good; its finished sessions stay (their routine reference becomes null). */
+    suspend fun delete(id: String): Result<Unit>
 
     /** The folders of the user in their order. */
     suspend fun listFolders(): Result<List<RoutineFolder>>

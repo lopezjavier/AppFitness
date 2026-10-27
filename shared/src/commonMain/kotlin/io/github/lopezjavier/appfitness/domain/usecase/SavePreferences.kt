@@ -41,6 +41,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         previousValuesMode: PreviousValuesMode = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
         foodPreferences: FoodPreferences? = null,
+        autoUpdateRoutine: Boolean? = null,
     ): Result<Unit> {
         val name = displayName.trim()
         val tenths = (weightKg * TENTHS_PER_KG).roundToInt()
@@ -79,6 +80,7 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
             previousValuesMode,
             calculators,
             foodPreferences,
+            autoUpdateRoutine,
         )
     }
 

@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.data.remote.SaveCompletedWorkoutRequest
 import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.SetSessionRestParams
 import io.github.lopezjavier.appfitness.data.remote.StartSessionParams
+import io.github.lopezjavier.appfitness.data.remote.StartedAtDto
 import io.github.lopezjavier.appfitness.data.remote.TrainedSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
@@ -92,6 +93,21 @@ class SupabaseWorkoutSessionRepository(
             }
             .decodeList<TrainedSessionDto>()
             .map { it.toDomain() }
+    }
+
+    override suspend fun lastCompletedAt(routineId: String): Result<Instant?> = auth.ownRow {
+        postgrest.from("workout_sessions")
+            .select(Columns.raw(StartedAtDto.COLUMNS)) {
+                filter {
+                    eq("routine_id", routineId)
+                    eq("status", "completed")
+                }
+                order("started_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<StartedAtDto>()
+            .firstOrNull()
+            ?.let { Instant.parse(it.startedAt) }
     }
 
     override suspend fun exerciseSessions(exerciseId: String, offset: Int, limit: Int): Result<List<WorkoutSession>> =

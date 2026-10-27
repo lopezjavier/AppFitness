@@ -369,7 +369,7 @@ Feature: Routine tracking
 ```
 
 **Technical notes**
-- `routines.track_as_routine`/`auto_update_routine`; the `Update Routine` RPC (`03-data-model.md` §6), transactional.
+- `routines.track_as_routine`; "Actualizar automáticamente" is one global setting, `training_preferences.auto_update_routine` (T-124, ADR-70; it was per routine before); the `Update Routine` RPC (`03-data-model.md` §6), transactional.
 
 ---
 

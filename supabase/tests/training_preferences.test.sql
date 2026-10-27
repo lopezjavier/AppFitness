@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(50);
+select plan(56);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -34,7 +34,7 @@ insert into public.workout_sets
 -- Schema and security
 -- ---------------------------------------------------------------------------
 select has_table('public', 'training_preferences', 'public.training_preferences exists');
-select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'dumbbell_handle_kg'],
+select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'dumbbell_handle_kg', 'auto_update_routine'],
   'training_preferences has exactly the planned columns');
 select hasnt_function('public', 'save_preferences',
   array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',
@@ -215,10 +215,33 @@ select results_eq(
     select count(*)::int from u$$,
   $$values (0)$$, 'A cannot update B''s dumbbell handle');
 
+-- Global routine auto-update (T-124, ADR-70).
+select is(
+  (select auto_update_routine from public.training_preferences),
+  false, 'auto_update_routine defaults to false');
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
+      35::smallint, 42::smallint, 23::smallint, null, null, null, null, null, null,
+      null, null, null, null, null, null, true)$$,
+  'A turns the auto-update on');
+select is(
+  (select auto_update_routine from public.training_preferences),
+  true, 'save_preferences wrote auto_update_routine');
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 180, 'moderate', 'deficit', -400, 2292,
+      35::smallint, 42::smallint, 23::smallint)$$,
+  'A saves without the auto-update argument');
+select is(
+  (select auto_update_routine from public.training_preferences),
+  true, 'a null auto_update_routine argument leaves it unchanged');
+
 reset role;
 select is(
   (select warm_up_included from public.training_preferences where user_id = '22222222-2222-4222-8222-222222222222'),
   true, 'B''s row is unchanged after A''s attempts and saves');
+select is(
+  (select auto_update_routine from public.training_preferences where user_id = '22222222-2222-4222-8222-222222222222'),
+  false, 'B''s auto_update_routine is not changed by A turning it on');
 
 -- ---------------------------------------------------------------------------
 -- Anonymous

@@ -85,6 +85,7 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
         previousValuesMode: PreviousValuesMode,
         calculators: CalculatorSettings?,
         foodPreferences: FoodPreferences?,
+        autoUpdateRoutine: Boolean?,
     ): Result<Unit> = runMappingErrors {
         postgrest.rpc(
             "save_preferences",
@@ -97,6 +98,7 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
                 previousValuesMode,
                 calculators,
                 foodPreferences,
+                autoUpdateRoutine,
             ),
         )
     }.map {}

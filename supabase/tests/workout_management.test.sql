@@ -234,9 +234,9 @@ select throws_ok(
 -- ---------------------------------------------------------------------------------------------------------------
 insert into ids select 'r1', public.save_workout_as_routine('c0000000-0000-4000-8000-0000000000aa', '  Mi rutina  ');
 select results_eq(
-  $$select name, folder_id, is_next, track_as_routine, auto_update_routine, notes, position::int
+  $$select name, folder_id, is_next, track_as_routine, notes, position::int
     from public.routines where id = (select id from ids where k = 'r1')$$,
-  $$select 'Mi rutina', null::uuid, false, true, false, null::text, 1$$,
+  $$select 'Mi rutina', null::uuid, false, true, null::text, 1$$,
   'a new routine is created without folder, at the end, with default flags');
 select results_eq(
   $$select position::int, exercise_id::text, superset_group::int, target_sets::int, target_reps::int, rest_seconds::int

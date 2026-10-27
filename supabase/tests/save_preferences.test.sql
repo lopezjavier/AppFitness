@@ -35,7 +35,7 @@ select has_function('public', 'save_preferences',
   array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',
         'smallint', 'smallint', 'smallint', 'numeric', 'timestamp with time zone',
         'timestamp with time zone', 'timestamp with time zone', 'boolean', 'previous_values_mode', 'numeric', 'numeric[]', 'numeric',
-        'numeric', 'numeric', 'numeric'],
+        'numeric', 'numeric', 'numeric', 'boolean'],
   'save_preferences exists');
 select hasnt_function('public', 'save_preferences',
   array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',
@@ -48,10 +48,10 @@ select is(
       and p.pronamespace = 'public'::regnamespace)),
   false, 'save_preferences is security invoker');
 select ok(not has_function_privilege('anon',
-  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric, numeric, numeric, numeric)',
+  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric, numeric, numeric, numeric, boolean)',
   'execute'), 'anon cannot execute save_preferences');
 select ok(has_function_privilege('authenticated',
-  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric, numeric, numeric, numeric)',
+  'public.save_preferences(text, public.sex, date, numeric, public.activity_level, public.goal_strategy, integer, integer, smallint, smallint, smallint, numeric, timestamptz, timestamptz, timestamptz, boolean, public.previous_values_mode, numeric, numeric[], numeric, numeric, numeric, numeric, boolean)',
   'execute'), 'authenticated can execute save_preferences');
 select hasnt_function('public', 'save_profile_settings', 'save_profile_settings was dropped');
 

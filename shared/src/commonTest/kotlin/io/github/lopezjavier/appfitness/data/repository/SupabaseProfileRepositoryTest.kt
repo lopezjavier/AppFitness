@@ -283,6 +283,23 @@ class SupabaseProfileRepositorySavePreferencesTest {
     }
 
     @Test
+    fun withAutoUpdateRoutine_sendsTheArgument() = runTest {
+        assertTrue(
+            repository().savePreferences("Ana", biometrics, goals, null, false, autoUpdateRoutine = true).isSuccess,
+        )
+
+        val body = (requests.last().body as TextContent).text
+        assertTrue(body.endsWith(""""p_auto_update_routine":true}"""), body)
+    }
+
+    @Test
+    fun withoutAutoUpdateRoutine_omitsTheArgumentSoTheServerKeepsIt() = runTest {
+        repository().savePreferences("Ana", biometrics, goals, null, false).getOrThrow()
+
+        assertTrue(!(requests.last().body as TextContent).text.contains("p_auto_update_routine"))
+    }
+
+    @Test
     fun withoutFoodPreferences_omitsTheFatPercentages() = runTest {
         repository().savePreferences("Ana", biometrics, goals, null, false).getOrThrow()
 

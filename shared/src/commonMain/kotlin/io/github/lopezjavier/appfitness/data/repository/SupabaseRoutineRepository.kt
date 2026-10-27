@@ -2,11 +2,11 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
-import io.github.lopezjavier.appfitness.data.remote.ArchiveRoutineUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.CreateRoutineFolderParams
 import io.github.lopezjavier.appfitness.data.remote.DeleteRoutineFolderParams
 import io.github.lopezjavier.appfitness.data.remote.MoveRoutineToFolderParams
@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.data.remote.SessionIdParams
 import io.github.lopezjavier.appfitness.data.remote.SetNextRoutineParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
@@ -29,6 +30,10 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 
 private const val COPY_SUFFIX = " (copia)"
+private const val MAX_COPY_ATTEMPTS = 20
+
+// Raised by the unique index `routines_user_name_key`.
+private const val UNIQUE_VIOLATION = "23505"
 
 /** Routines of the signed-in user (RLS scopes every query). Writes go through the atomic `save_routine` RPC. */
 @Suppress("TooManyFunctions") // One method per port operation.
@@ -54,12 +59,22 @@ class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun save(routine: Routine): Result<String> = auth.ownRow {
         postgrest.rpc("save_routine", SaveRoutineParams(SaveRoutineRequest.from(routine))).decodeAs<String>()
-    }
+    }.mapNameErrors()
 
     override suspend fun duplicate(id: String): Result<String> {
         val original = get(id).getOrElse { return Result.failure(it) }
-        val name = original.name.take(RoutineBounds.NAME_MAX_LENGTH - COPY_SUFFIX.length) + COPY_SUFFIX
-        return save(original.copy(id = null, name = name, archived = false))
+        var result: Result<String> = Result.failure(AppException(AppError.NameAlreadyExists))
+        for (attempt in 1..MAX_COPY_ATTEMPTS) {
+            result = save(original.copy(id = null, name = copyName(original.name, attempt), archived = false))
+            if (result.appErrorOrNull() != AppError.NameAlreadyExists) break
+        }
+        return result
+    }
+
+    /** "<name> (copia)" for the first attempt, then "<name> (copia 2)", "(copia 3)"...; the name part is truncated. */
+    private fun copyName(name: String, attempt: Int): String {
+        val suffix = if (attempt == 1) COPY_SUFFIX else " (copia $attempt)"
+        return name.take(RoutineBounds.NAME_MAX_LENGTH - suffix.length) + suffix
     }
 
     override suspend fun updateFromSession(sessionId: String): Result<String> = auth.ownRow {
@@ -68,10 +83,10 @@ class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun createFromSession(sessionId: String, name: String): Result<String> = auth.ownRow {
         postgrest.rpc("save_workout_as_routine", SaveWorkoutAsRoutineParams(sessionId, name.trim())).decodeAs<String>()
-    }
+    }.mapNameErrors()
 
-    override suspend fun archive(id: String): Result<Unit> = auth.ownRow {
-        postgrest.from("routines").update(ArchiveRoutineUpdateDto(archived = true)) { filter { eq("id", id) } }
+    override suspend fun delete(id: String): Result<Unit> = auth.ownRow {
+        postgrest.from("routines").delete { filter { eq("id", id) } }
     }.map {}
 
     override suspend fun listFolders(): Result<List<RoutineFolder>> = auth.ownRow {
@@ -107,4 +122,9 @@ class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: P
     override suspend fun setNext(routineId: String?): Result<Unit> = auth.ownRow {
         postgrest.rpc("set_next_routine", SetNextRoutineParams(routineId))
     }.map {}
+
+    private fun <T> Result<T>.mapNameErrors(): Result<T> = recoverCatching { failure ->
+        val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
+        if (cause.code == UNIQUE_VIOLATION) throw AppException(AppError.NameAlreadyExists, cause) else throw failure
+    }
 }

@@ -73,6 +73,14 @@ internal data class TrainedSessionDto(
     }
 }
 
+/** Only the start of a `workout_sessions` row (last time a routine was done). */
+@Serializable
+internal data class StartedAtDto(@SerialName("started_at") val startedAt: String) {
+    companion object {
+        const val COLUMNS = "started_at"
+    }
+}
+
 /** `workout_sessions` row with its embedded `workout_sets`. */
 @Serializable
 internal data class WorkoutSessionDto(

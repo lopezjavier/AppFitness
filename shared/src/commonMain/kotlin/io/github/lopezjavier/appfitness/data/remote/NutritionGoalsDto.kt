@@ -96,6 +96,7 @@ internal data class SavePreferencesParams(
     @SerialName("p_fat_pct_griddle") val fatPctGriddle: Double? = null,
     @SerialName("p_fat_pct_air_fryer") val fatPctAirFryer: Double? = null,
     @SerialName("p_fat_pct_fried") val fatPctFried: Double? = null,
+    @SerialName("p_auto_update_routine") val autoUpdateRoutine: Boolean? = null,
 ) {
     companion object {
         @Suppress("LongParameterList") // The edited form fields.
@@ -108,6 +109,7 @@ internal data class SavePreferencesParams(
             previousValuesMode: PreviousValuesMode,
             calculators: CalculatorSettings? = null,
             foodPreferences: FoodPreferences? = null,
+            autoUpdateRoutine: Boolean? = null,
         ): SavePreferencesParams {
             val profile = BiometricsUpdateDto.from(biometrics)
             return SavePreferencesParams(
@@ -134,6 +136,7 @@ internal data class SavePreferencesParams(
                 fatPctGriddle = foodPreferences?.fatPctGriddle,
                 fatPctAirFryer = foodPreferences?.fatPctAirFryer,
                 fatPctFried = foodPreferences?.fatPctFried,
+                autoUpdateRoutine = autoUpdateRoutine,
             )
         }
     }

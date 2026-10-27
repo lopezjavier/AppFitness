@@ -62,6 +62,7 @@ class CompleteOnboardingTest {
             previousValuesMode: PreviousValuesMode,
             calculators: CalculatorSettings?,
             foodPreferences: FoodPreferences?,
+            autoUpdateRoutine: Boolean?,
         ): Result<Unit> = error("unused")
     }
     private val completeOnboarding = CompleteOnboarding(goalsRepository, profileRepository)
