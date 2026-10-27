@@ -38,7 +38,7 @@ internal data class MealSlotDto(
     }
 }
 
-/** One element of the `p_slots` array of `save_meal_slots`; a null [id] is a new custom meal. */
+/** One element of the `p_slots` array of `save_meal_structure`; a null [id] is a new custom meal. */
 @Serializable
 internal data class MealSlotDraftDto(val id: String?, val label: String) {
     companion object {
@@ -46,10 +46,9 @@ internal data class MealSlotDraftDto(val id: String?, val label: String) {
     }
 }
 
-/** Arguments of the `save_meal_slots` RPC. */
+/** Arguments of the `save_meal_structure` RPC: the kept meals in final order and the removed ids. */
 @Serializable
-internal data class SaveMealSlotsParams(@SerialName("p_slots") val slots: List<MealSlotDraftDto>)
-
-/** Arguments of the `delete_meal_slot` RPC. */
-@Serializable
-internal data class DeleteMealSlotParams(@SerialName("p_id") val id: String)
+internal data class SaveMealStructureParams(
+    @SerialName("p_slots") val slots: List<MealSlotDraftDto>,
+    @SerialName("p_removed_ids") val removedIds: List<String>,
+)

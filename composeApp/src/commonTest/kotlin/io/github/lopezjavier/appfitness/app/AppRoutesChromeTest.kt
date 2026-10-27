@@ -12,8 +12,6 @@ class AppRoutesChromeTest {
     private val legacyFullScreenTags: List<Pair<AppRoute, String>> =
         listOf(
             PreferencesRoute to "preferences",
-            MealSlotsRoute to "meals",
-            MealDefaultsRoute to "meal_defaults",
         )
 
     @Test
@@ -90,6 +88,14 @@ class AppRoutesChromeTest {
     fun liveSession_drawsItsBarThroughAppScreen_withNoBottomBar() {
         assertTrue(LiveSessionRoute.usesAppScreen)
         assertEquals(ShellChrome.Screen, LiveSessionRoute.chrome)
+    }
+
+    @Test
+    fun theMealRoutes_useAppScreen_andHaveScreenChrome() {
+        listOf(MealSlotsRoute, MealDefaultsRoute).forEach {
+            assertTrue(it.usesAppScreen, it.toString())
+            assertEquals(ShellChrome.Screen, it.chrome, it.toString())
+        }
     }
 
     @Test

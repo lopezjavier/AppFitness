@@ -13,14 +13,12 @@ interface MealSlotRepository {
     suspend fun listAll(): Result<List<MealSlot>>
 
     /**
-     * Saves the whole structure atomically; [slots] must contain every existing meal in final order. An invalid
-     * shape fails with `AppError.Validation`.
+     * Saves the whole structure atomically: [slots] is every kept meal in final order (a null id is a new meal) and
+     * [removedIds] the meals to remove. A refused structure (duplicate name, bad shape, last meal, meal with logged
+     * entries) fails with `AppError.Validation`, and a foreign id with `AppError.NotFound`.
      */
-    suspend fun save(slots: List<MealSlotDraft>): Result<Unit>
+    suspend fun saveStructure(slots: List<MealSlotDraft>, removedIds: List<String>): Result<Unit>
 
-    /**
-     * Deletes the meal [id] and re-packs the positions. Fails with `AppError.Validation` when it is the last meal or
-     * has logged entries, and with `AppError.NotFound` for an unknown id.
-     */
-    suspend fun delete(id: String): Result<Unit>
+    /** Ids of the meals that have logged entries on any day; those cannot be removed. */
+    suspend fun listInUse(): Result<Set<String>>
 }

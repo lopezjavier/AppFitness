@@ -620,15 +620,14 @@ class DiaryViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        slots.save(
+        slots.saveStructure(
             listOf(
                 MealSlotDraft("breakfast", MealCode.Breakfast, "Desayuno"),
-                MealSlotDraft("lunch", MealCode.Lunch, "Comida"),
                 MealSlotDraft("dinner", MealCode.Dinner, "Cena"),
                 MealSlotDraft("snack", MealCode.Snack, "Post-entreno"),
             ),
+            removedIds = listOf("lunch"),
         )
-        slots.delete("lunch")
         model.onEvent(DiaryEvent.Refresh)
         advanceUntilIdle()
 

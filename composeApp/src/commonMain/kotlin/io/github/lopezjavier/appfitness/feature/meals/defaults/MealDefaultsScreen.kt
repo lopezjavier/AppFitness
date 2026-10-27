@@ -10,103 +10,109 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
-import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
-import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_add
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_all_taken
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_note
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_remove_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_save
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_save_failed
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_confirm
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_message
-import io.github.lopezjavier.appfitness.composeapp.resources.meals_discard_title
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_title
 import io.github.lopezjavier.appfitness.composeapp.resources.state_retry
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.weekdayLetter
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_CARDS = 3
+private const val TAG = "meal_defaults"
 private val SkeletonCardHeight = Spacing.xl * 5
 
 /**
- * Default comidas editor (US-51): one card per meal with its assigned saved comidas, "Añadir comida" per card, the
- * explanatory note and "Guardar" pinned at the bottom. Back with unsaved changes asks before discarding. The top bar
- * belongs to the shell (`meal_defaults_back`).
+ * Default comidas editor (US-51) on [AppEditorScreen]: one card per meal with its assigned saved comidas,
+ * "Añadir comida por defecto" per card, the explanatory note and "Guardar" pinned at the bottom. The template owns
+ * the discard dialog, the offline hint and the close once [MealDefaultsUiState.Content.saved]. A failed save is a
+ * one-shot message (R-28).
  */
 @Composable
 fun MealDefaultsScreen(
     state: MealDefaultsUiState,
     onEvent: (MealDefaultsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onClose: () -> Unit = {},
 ) {
-    NavigationBackHandler(
-        state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
-        isBackEnabled = true,
-        onBackCompleted = { onEvent(MealDefaultsEvent.Back) },
-    )
-    InterceptTopBarBack(enabled = true) { onEvent(MealDefaultsEvent.Back) }
-    Box(modifier.fillMaxSize().testTag("meal_defaults_screen"), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxSize()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+    val title = stringResource(Res.string.meal_defaults_title)
+    if (state !is MealDefaultsUiState.Content) {
+        AppScreen(title = title, modifier = modifier, onBack = onClose, testTagPrefix = TAG) {
+            Box(Modifier.fillMaxSize().testTag("meal_defaults_screen")) {
                 when (state) {
                     MealDefaultsUiState.Loading -> DefaultsLoading()
-                    MealDefaultsUiState.LoadError -> DefaultsLoadError { onEvent(MealDefaultsEvent.Retry) }
-                    is MealDefaultsUiState.Content -> DefaultsList(state, onEvent)
+                    else -> DefaultsLoadError { onEvent(MealDefaultsEvent.Retry) }
                 }
             }
-            if (state is MealDefaultsUiState.Content) DefaultsFooter(state, onEvent)
         }
+        return
     }
-    if (state is MealDefaultsUiState.Content) DefaultsOverlays(state, onEvent)
+    SaveErrorMessage(state.saveError)
+    AppEditorScreen(
+        title = title,
+        isDirty = state.isDirty,
+        isSaving = state.isSaving,
+        isOnline = state.isOnline,
+        onSave = { onEvent(MealDefaultsEvent.Save) },
+        onClose = onClose,
+        modifier = modifier,
+        saved = state.saved,
+        testTagPrefix = TAG,
+    ) {
+        Box(Modifier.fillMaxSize().testTag("meal_defaults_screen")) { DefaultsList(state, onEvent) }
+    }
+    DefaultsOverlays(state, onEvent)
+}
+
+/** Turns a failed save into one message each time it happens (R-28); the draft stays on screen. */
+@Composable
+private fun SaveErrorMessage(error: MealDefaultsSaveError?) {
+    val messages = LocalAppMessages.current
+    val text = error?.let {
+        stringResource(
+            if (it ==
+                MealDefaultsSaveError.Offline
+            ) {
+                Res.string.meal_defaults_offline
+            } else {
+                Res.string.meal_defaults_save_failed
+            },
+        )
+    }
+    LaunchedEffect(error) { if (text != null) messages.show(text) }
 }
 
 @Composable
 private fun DefaultsOverlays(state: MealDefaultsUiState.Content, onEvent: (MealDefaultsEvent) -> Unit) {
     state.picker?.let { DefaultComidaPickerSheet(it, state.comidas, state.hasSavedComidas, onEvent) }
     state.sheet?.let { AssignDefaultSheet(it, onEvent) }
-    if (state.showDiscardConfirm) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.meals_discard_title),
-            message = stringResource(Res.string.meals_discard_message),
-            confirmLabel = stringResource(Res.string.meals_discard_confirm),
-            cancelLabel = stringResource(Res.string.meals_discard_cancel),
-            onConfirm = { onEvent(MealDefaultsEvent.ConfirmDiscard) },
-            onDismiss = { onEvent(MealDefaultsEvent.DismissDiscard) },
-            testTagPrefix = "meal_defaults_discard",
-        )
-    }
 }
 
 @Composable
@@ -137,8 +143,8 @@ private fun MealCard(card: MealDefaultsCardUi, interactive: Boolean, onEvent: (M
             color = AppTheme.colors.textPrimary,
         )
         card.assignments.forEach { AssignmentRow(card, it, interactive, onEvent) }
-        GhostButton(
-            text = stringResource(Res.string.meal_defaults_add),
+        AddItemButton(
+            objectLabel = stringResource(Res.string.meal_defaults_add_object),
             onClick = { onEvent(MealDefaultsEvent.OpenPicker(card.slotId)) },
             enabled = card.canAdd && interactive,
             modifier = Modifier.padding(top = Spacing.sm).testTag("meal_defaults_add_${card.slotId}"),
@@ -191,47 +197,6 @@ private fun AssignmentRow(
             testTag = "meal_defaults_remove_$id",
             onClick = { onEvent(MealDefaultsEvent.Remove(card.slotId, assignment.templateId)) },
             enabled = interactive,
-        )
-    }
-}
-
-/** The offline banner, the save error and "Guardar", pinned at the bottom. */
-@Composable
-private fun DefaultsFooter(state: MealDefaultsUiState.Content, onEvent: (MealDefaultsEvent) -> Unit) {
-    Column {
-        if (!state.isOnline) {
-            OfflineBanner(
-                modifier = Modifier.fillMaxWidth(),
-                message = stringResource(Res.string.meal_defaults_offline),
-                testTagPrefix = "meal_defaults_offline_banner",
-            )
-        }
-        state.saveError?.let { error ->
-            Text(
-                text = stringResource(
-                    if (error == MealDefaultsSaveError.Offline) {
-                        Res.string.meal_defaults_offline
-                    } else {
-                        Res.string.meal_defaults_save_failed
-                    },
-                ),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.error,
-                modifier = Modifier
-                    .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)
-                    .semantics { liveRegion = LiveRegionMode.Polite }
-                    .testTag("meal_defaults_save_error"),
-            )
-        }
-        PrimaryButton(
-            text = stringResource(Res.string.meal_defaults_save),
-            onClick = { onEvent(MealDefaultsEvent.Save) },
-            enabled = state.canSave,
-            loading = state.isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)
-                .testTag("meal_defaults_save"),
         )
     }
 }

@@ -32,6 +32,7 @@ class NameSheetTest {
     private val saved = mutableListOf<String>()
     private var dismissed = 0
     private var open by mutableStateOf(true)
+    private var commit by mutableStateOf(SheetCommit.Save)
 
     private fun show(
         initialName: String = "",
@@ -48,6 +49,7 @@ class NameSheetTest {
                         existingNames = existing,
                         initialName = initialName,
                         initialNameIsOwn = initialNameIsOwn,
+                        commit = commit,
                         onSave = { saved += it },
                         onDismiss = {
                             dismissed++
@@ -131,6 +133,16 @@ class NameSheetTest {
         rule.onNodeWithTag("name_sheet_commit").assertIsEnabled().performClick()
         rule.waitForIdle()
         assertEquals(listOf("torso"), saved)
+    }
+
+    @Test
+    fun commitLabel_defaultsToGuardar_andFollowsTheCommitParameter() {
+        show()
+        rule.onNodeWithTag("name_sheet_commit").assertTextEquals("Guardar")
+        commit = SheetCommit.Add
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("name_sheet_commit").assertTextEquals("Añadir")
     }
 
     @Test
