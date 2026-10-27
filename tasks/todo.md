@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-125c (Statistics migration and body map), E9 (UX rulebook + finalization → `v1.0.0`). T-125b merged (PR #280, CI green, no backend change so no deploy; Historial is the calendar with "Añadir entreno" per day, workout detail on `AppScreen` titled "<rutina> · <fecha>", editors on `AppEditorScreen`, new `WorkoutRow`). **Before T-125c starts the user must pick the body-map option (B1 polish, B2 licensed SVG replacement, B3 muscle bars/tiles).** Carry-over for T-125c strings: `live_discard_message`, `stats_sessions_one`, `exercise_progress_single_value` still say "sesión"; `stats_empty_title/message` say "entrenamientos" (glossary: "entreno").
+**Next:** T-125c (Statistics migration and body map), E9 (UX rulebook + finalization → `v1.0.0`). T-125b merged (PR #280, CI green, no backend change so no deploy; Historial is the calendar with "Añadir entreno" per day, workout detail on `AppScreen` titled "<rutina> · <fecha>", editors on `AppEditorScreen`, new `WorkoutRow`). **Body-map decision (user, 2026-10-27): B1, plain polish of the existing map; no rebuild, and the RepDB muscle images are not used.** Carry-over for T-125c strings: `live_discard_message`, `stats_sessions_one`, `exercise_progress_single_value` still say "sesión"; `stats_empty_title/message` say "entrenamientos" (glossary: "entreno").
 
 ---
 
@@ -3695,7 +3695,7 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 
 **Story:** US-56 (wave 2, Training part 2) + E9 items A, B · **Flow:** UI + core · **Scenarios:** Same structure on every screen; One wording per concept (US-56)
 
-**Description:** "Fuerza", "Volumen", exercise progress and "Estadísticas" on `AppScreen` with `TimeRangeSelector` (SEL-1, ranges per E8 Q2 including "Todo"); radar axis label "Isquios" (item A); `MuscleDetailSheet` → archetype. **Item B:** ux-reviewer's plan pass assesses 2–3 body-map options with their complexity; the PM asks the user to pick before any rebuild (if no rebuild is chosen, only the label fixes ship). **Carry-over (E8 review notes):** the radar shows the current series when only the previous-window call fails; the muscle sheet does not reload the exercise lookup on each open; the 1A first monthly bucket is clamped to the window or documented. Guards become failures for `feature/workout` and `feature/analytics`.
+**Description:** "Fuerza", "Volumen", exercise progress and "Estadísticas" on `AppScreen` with `TimeRangeSelector` (SEL-1, ranges per E8 Q2 including "Todo"); radar axis label "Isquios" (item A); `MuscleDetailSheet` → archetype. **Item B:** ux-reviewer's plan pass assesses 2–3 body-map options with their complexity; **decided by the user on 2026-10-27: B1, polish the existing map only (no rebuild, no RepDB muscle images).** **Carry-over (E8 review notes):** the radar shows the current series when only the previous-window call fails; the muscle sheet does not reload the exercise lookup on each open; the 1A first monthly bucket is clamped to the window or documented. Guards become failures for `feature/workout` and `feature/analytics`.
 
 **Acceptance criteria:**
 - [ ] Ranges use one selector everywhere; the radar reads "Isquios"; a failed previous window still shows "Actual".

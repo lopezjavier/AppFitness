@@ -91,7 +91,7 @@ v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [
         ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► T-129 ─► [E9-B 👤] ─► T-130 (closure) ─► v1.0.0
 ```
 - Strictly sequential (one active task at a time); each foundation needs the previous one (top bar and `AppActionSheet` → sheets → fields in the Name sheet → rows and swipe on the haptics).
-- T-125c needs the user's body-map choice (item B) before it starts; E9 Q1–Q3 are resolved.
+- T-125c: the user chose B1 (polish the existing body map, no rebuild) on 2026-10-27; E9 Q1–Q3 are resolved.
 - T-128 needs every domain migrated (it removes the shell switch and empties the warning list).
 
 ## Risks and Mitigations
