@@ -569,6 +569,7 @@
     <string name="live_timer_cd">Tiempo de entreno, %1$d minutos %2$d segundos</string>
     <string name="live_menu_cd">Más opciones del entreno</string>
     <string name="live_menu_discard">Descartar entreno</string>
+    <string name="live_progress_summary">Series completadas: %1$d de %2$d</string>
     <string name="live_finish">Finalizar entreno</string>
     <string name="live_pause">Pausar entreno</string>
     <string name="live_resume">Reanudar entreno</string>

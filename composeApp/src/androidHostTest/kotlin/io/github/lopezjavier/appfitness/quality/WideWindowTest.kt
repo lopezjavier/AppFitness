@@ -41,6 +41,12 @@ class WideWindowTest {
         assertTrue("$tag is $width wide, the cap is $max", width <= max)
     }
 
+    private fun assertLeftOfRight(leftTag: String, rightTag: String) {
+        val left = rule.onNodeWithTag(leftTag).getUnclippedBoundsInRoot()
+        val right = rule.onNodeWithTag(rightTag).getUnclippedBoundsInRoot()
+        assertTrue("$leftTag ends at ${left.right}, $rightTag starts at ${right.left}", left.right <= right.left)
+    }
+
     @Test
     fun diary_usesTwoColumnsWithinTheCap() {
         rule.setContent { AppTheme { DiaryScreen(qualityDiaryState(), {}) } }
@@ -48,6 +54,7 @@ class WideWindowTest {
 
         rule.onNodeWithTag("diary_two_column").assertIsDisplayed()
         assertNoWiderThan("diary_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
+        assertLeftOfRight("diary_ring", "diary_section_breakfast")
     }
 
     @Test
@@ -57,10 +64,12 @@ class WideWindowTest {
 
         rule.onNodeWithTag("training_stats_two_column").performScrollTo().assertIsDisplayed()
         assertNoWiderThan("training_stats_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
+        rule.onNodeWithTag("stats_radar").performScrollTo()
+        assertLeftOfRight("stats_tile_workouts", "stats_radar")
     }
 
     @Test
-    fun weight_staysACappedSingleColumn() {
+    fun weight_usesTwoColumnsWithinTheCap() {
         val model = qualityWeightModel()
         rule.setContent {
             AppTheme {
@@ -70,19 +79,23 @@ class WideWindowTest {
         }
         rule.waitForIdle()
 
-        assertNoWiderThan("weight_current_card", WindowWidthClassDefaults.CardColumnMaxWidth)
+        rule.onNodeWithTag("weight_two_column").assertIsDisplayed()
+        assertNoWiderThan("weight_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
+        assertLeftOfRight("weight_current_card", "circumference_section")
     }
 
     @Test
-    fun liveSession_staysACappedSingleColumn() {
+    fun liveSession_usesTwoColumnsWithinTheCap() {
         rule.setContent { AppTheme { LiveSessionScreen(qualityLiveState(), 0, {}, {}, onOpenExercise = {}) } }
         rule.waitForIdle()
 
-        assertNoWiderThan("live_exercise_0_add_set", WindowWidthClassDefaults.CardColumnMaxWidth)
+        rule.onNodeWithTag("live_session_two_column").assertIsDisplayed()
+        assertNoWiderThan("live_session_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
+        assertLeftOfRight("live_progress_summary", "live_exercise_0")
     }
 
     @Test
-    fun about_staysACappedSingleColumn() {
+    fun about_staysACenteredCappedSettingsColumn() {
         rule.setContent {
             AppTheme {
                 AboutScreen(AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")), onBack = {}, onOpenLicenses = {})

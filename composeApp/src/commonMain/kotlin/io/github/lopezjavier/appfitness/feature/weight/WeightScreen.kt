@@ -2,7 +2,10 @@ package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +46,9 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
@@ -59,6 +65,7 @@ private val SkeletonPanelHeight = Spacing.xl * 5
  * opens the measurement history ([onOpenHistory]). The day sheet, target sheet and metric detail open over it.
  */
 @Composable
+@Suppress("LongMethod") // One screen: state switch, sheets and the wide/narrow choice.
 fun WeightScreen(
     state: WeightUiState,
     onEvent: (WeightEvent) -> Unit,
@@ -75,47 +82,67 @@ fun WeightScreen(
     onBack: (() -> Unit)? = null,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
-    val goalContent = (goal as? GoalUiState.Content)?.content
     val historyTitle = stringResource(Res.string.weight_history_title)
     val actions = remember(historyTitle, onOpenHistory) {
         listOf(AppTopBarAction(Res.drawable.ic_calendar, historyTitle, onOpenHistory))
     }
-    AppScreen(
-        title = stringResource(Res.string.weight_title),
-        modifier = modifier,
-        onBack = onBack,
-        actions = actions,
-        testTagPrefix = "weight",
-    ) {
-        Box(Modifier.fillMaxSize().testTag("weight_screen")) {
-            when (state) {
-                WeightUiState.Loading -> WeightLoading()
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
+        AppScreen(
+            title = stringResource(Res.string.weight_title),
+            onBack = onBack,
+            actions = actions,
+            maxContentWidth = if (wide) {
+                WindowWidthClassDefaults.TwoColumnContentMaxWidth
+            } else {
+                WindowWidthClassDefaults.FormContentMaxWidth
+            },
+            testTagPrefix = "weight",
+        ) {
+            Box(Modifier.fillMaxSize().testTag("weight_screen")) {
+                when (state) {
+                    WeightUiState.Loading -> WeightLoading()
 
-                WeightUiState.Error -> ErrorState(
-                    message = stringResource(Res.string.weight_error_message),
-                    action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(WeightEvent.Retry) },
-                    modifier = Modifier.align(Alignment.Center),
-                    testTagPrefix = "weight_error",
-                )
-
-                is WeightUiState.Content -> {
-                    WeightContentView(
-                        state.content,
-                        onEvent,
-                        circumferences,
-                        onCircumferenceEvent,
-                        healthSync,
-                        onHealthEvent,
-                        trend,
-                        onTrendEvent,
-                        timeZone,
-                        goal,
-                        onGoalEvent,
+                    WeightUiState.Error -> ErrorState(
+                        message = stringResource(Res.string.weight_error_message),
+                        action = AppStateAction(stringResource(Res.string.action_retry)) {
+                            onEvent(WeightEvent.Retry)
+                        },
+                        modifier = Modifier.align(Alignment.Center),
+                        testTagPrefix = "weight_error",
                     )
-                    WeightSheets(state.content, goalContent, timeZone, onEvent, onGoalEvent)
-                    val circumferenceSheet = (circumferences as? CircumferencesUiState.Content)?.content
-                    circumferenceSheet?.sheet?.let {
-                        CircumferenceSheet(it, circumferenceSheet.isOnline, state.content.today, onCircumferenceEvent)
+
+                    is WeightUiState.Content -> {
+                        WeightContentView(
+                            state.content,
+                            onEvent,
+                            circumferences,
+                            onCircumferenceEvent,
+                            healthSync,
+                            onHealthEvent,
+                            trend,
+                            onTrendEvent,
+                            timeZone,
+                            goal,
+                            onGoalEvent,
+                            wide,
+                        )
+                        WeightSheets(
+                            state.content,
+                            (goal as? GoalUiState.Content)?.content,
+                            timeZone,
+                            onEvent,
+                            onGoalEvent,
+                        )
+                        val circumferenceSheet = (circumferences as? CircumferencesUiState.Content)?.content
+                        circumferenceSheet?.sheet?.let {
+                            CircumferenceSheet(
+                                it,
+                                circumferenceSheet.isOnline,
+                                state.content.today,
+                                onCircumferenceEvent,
+                            )
+                        }
                     }
                 }
             }
@@ -138,17 +165,12 @@ private fun WeightContentView(
     timeZone: TimeZone,
     goal: GoalUiState?,
     onGoalEvent: (GoalEvent) -> Unit,
+    wide: Boolean,
 ) {
     val whrClick: (() -> Unit)? = (goal as? GoalUiState.Content)?.content?.waistToHip?.let {
         { onGoalEvent(GoalEvent.OpenMetric(MetricKind.WaistToHip)) }
     }
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-    ) {
+    val summary: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             CurrentWeightCard(content, onEvent, timeZone, trend, healthSync, onHealthEvent)
             goal?.let {
@@ -157,6 +179,8 @@ private fun WeightContentView(
             }
             trend?.let { WeightChart(it, onTrendEvent) }
         }
+    }
+    val measurements: @Composable () -> Unit = {
         CircumferenceSection(
             circumferences,
             content.today,
@@ -164,6 +188,27 @@ private fun WeightContentView(
             onCircumferenceEvent,
             onRatioClick = whrClick,
         )
+    }
+    if (wide) {
+        Row(Modifier.fillMaxSize().testTag("weight_two_column")) {
+            Column(
+                Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
+            ) { summary() }
+            Column(
+                Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
+            ) { measurements() }
+        }
+    } else {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(Spacing.screenMargin),
+            verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
+        ) {
+            summary()
+            measurements()
+        }
     }
 }
 

@@ -3,15 +3,12 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,11 +32,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_error
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.live_object_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title_fallback
-import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -52,8 +47,9 @@ import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
+import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.platform.KeepScreenOn
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -220,40 +216,26 @@ private fun LiveActive(
     KeepScreenOn()
     val subtitle = liveSubtitle(elapsedSeconds, state.isPaused)
     val timer = state.restTimer
-    AppScreen(
-        title = state.name.ifBlank { stringResource(Res.string.live_title_fallback) },
-        subtitle = subtitle.text,
-        subtitleSemantics = subtitle.semantics,
-        onBack = onBack,
-        actions = liveActions(state, onEvent, onMenu = { menuOpen = true }),
-        footer = timer?.let { { RestFooter(it, onEvent) } },
-        maxContentWidth = WindowWidthClassDefaults.CardColumnMaxWidth,
-        testTagPrefix = "live",
-    ) {
-        LazyColumn(
-            Modifier.fillMaxSize().imePadding(),
-            contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
+        AppScreen(
+            title = state.name.ifBlank { stringResource(Res.string.live_title_fallback) },
+            subtitle = subtitle.text,
+            subtitleSemantics = subtitle.semantics,
+            onBack = onBack,
+            actions = liveActions(state, onEvent, onMenu = { menuOpen = true }),
+            footer = timer?.let { { RestFooter(it, onEvent) } },
+            maxContentWidth = if (wide) {
+                WindowWidthClassDefaults.TwoColumnContentMaxWidth
+            } else {
+                WindowWidthClassDefaults.CardColumnMaxWidth
+            },
+            testTagPrefix = "live",
         ) {
-            items(state.exercises, key = { it.position }) {
-                LiveExerciseCard(
-                    it,
-                    onEvent,
-                    onOpenExercise,
-                    options = state.volumeOptionsFor(optionSaveFailed),
-                    deleteEnabled = !state.busy,
-                    modifier = appAnimateItem(),
-                )
-            }
-            item(key = "add_exercise") {
-                AddItemButton(
-                    objectLabel = stringResource(Res.string.live_object_exercise),
-                    onClick = { onEvent(LiveSessionEvent.AddExercise) },
-                    modifier = Modifier.padding(top = Spacing.blockGap - Spacing.cardGap).testTag("live_add_exercise"),
-                )
-            }
-            if (state.allExercisesComplete) {
-                item(key = "finish_session") { FinishButton(state, onEvent) }
+            if (wide) {
+                WideLive(state, onEvent, onOpenExercise, optionSaveFailed)
+            } else {
+                NarrowLive(state, onEvent, onOpenExercise, optionSaveFailed)
             }
         }
     }
@@ -324,7 +306,7 @@ private fun LiveCalculator(state: LiveSessionUiState.Active, onEvent: (LiveSessi
 
 /** "Finalizar entreno" below "Añadir ejercicio" once every set is done; offline it stays visible but disabled. */
 @Composable
-private fun FinishButton(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+internal fun FinishButton(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PrimaryButton(
             text = stringResource(Res.string.live_finish),
