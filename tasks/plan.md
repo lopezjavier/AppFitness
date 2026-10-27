@@ -88,7 +88,7 @@ Internal milestones (not 👤 checkpoints):
 
 ```
 v0.8.0 ─► T-118 ─► T-119 ─► T-120 ─► T-121 ─► T-122 ─► [E9-A 👤]
-        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► T-134 ─► T-135 ─► T-129 ─► [E9-B 👤] ─► T-130 (closure) ─► v1.0.0
+        ─► T-123 ─► T-124 ─► T-125 ─► T-125b ─► T-125c ─► T-126 ─► T-127 ─► T-128 ─► T-134 ─► T-129 ─► [E9-B 👤] ─► T-130 (closure) ─► v1.0.0
 ```
 - Strictly sequential (one active task at a time); each foundation needs the previous one (top bar and `AppActionSheet` → sheets → fields in the Name sheet → rows and swipe on the haptics).
 - T-125c: the user chose B1 (polish the existing body map, no rebuild) on 2026-10-27; E9 Q1–Q3 are resolved.

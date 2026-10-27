@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Epic status: E0 ✅ · E1 ✅ · E2 ✅ · E3 ✅ · E4 ✅ · E5 ✅ · E6 ✅ · E7 ✅ · E8 ✅ · E9 🔄
 
-**Next:** T-135 (Google avatar still stale after sign-in; fix, before T-129). After it: T-129 (Version 1.0 quality: About and licences, states, accessibility and tablet), E9 (UX rulebook + finalization → `v1.0.0`). T-134 merged (PR #292, CI green; migration + pgTAP; `deploy-supabase` green on `main`); its manual check failed on 2026-10-27 (still the old photo after sign-out/in), so T-129 waits for T-135. T-128 merged (PR #290, CI green; no migration; 19+ duplicate generic strings removed, `GlossaryStringsTest`, dates through `AppDateFormat`, shell title switch and `ShellChrome.Tabs`/`FullScreen` removed, `appAnimateItem` on the lazy lists, `AppIconButton` long-press tooltip, `StepScaffold` with slide, `SexSelector` as two `SelectableCard`s, onboarding on `AppMessages`; `ux-conventions-warnings.txt` is empty, every guard fails). `deploy-supabase` on `main` (T-126 migration) must finish green (meals intact) before the final E9 checkpoint. Carry-over: drop legacy `save_meal_slots` and `delete_meal_slot` (still pending; needs a backend slice, plan it before E9-B or in T-130); Perfil's `SexSelector` layout unchecked visually (see at E9-B); the Peso history is a `LazyColumn` holding only the calendar (no list animation applies); non-blocking nits: `StepScaffold` `LaunchedEffect(step) { focusTitle.requestFocus() }` can throw if the node is not attached (guard it), `AppIconButton` KDoc should say a disabled button has no tooltip, onboarding restoration test omits the birth date, `RoutinesScreen.kt` comment that the list animation lives in `RoutineGroups.kt`, `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
+**Next:** T-129 (Version 1.0 quality: About and licences, states, accessibility and tablet), E9 (UX rulebook + finalization → `v1.0.0`). T-134 merged (PR #292, CI green; migration + pgTAP; `deploy-supabase` green on `main`; Google avatar syncs on sign-in, `display_name` untouched). T-128 merged (PR #290, CI green; no migration; 19+ duplicate generic strings removed, `GlossaryStringsTest`, dates through `AppDateFormat`, shell title switch and `ShellChrome.Tabs`/`FullScreen` removed, `appAnimateItem` on the lazy lists, `AppIconButton` long-press tooltip, `StepScaffold` with slide, `SexSelector` as two `SelectableCard`s, onboarding on `AppMessages`; `ux-conventions-warnings.txt` is empty, every guard fails). `deploy-supabase` on `main` (T-126 migration) must finish green (meals intact) before the final E9 checkpoint. Carry-over: drop legacy `save_meal_slots` and `delete_meal_slot` (still pending; needs a backend slice, plan it before E9-B or in T-130); Perfil's `SexSelector` layout unchecked visually (see at E9-B); the Peso history is a `LazyColumn` holding only the calendar (no list animation applies); non-blocking nits: `StepScaffold` `LaunchedEffect(step) { focusTitle.requestFocus() }` can throw if the node is not attached (guard it), `AppIconButton` KDoc should say a disabled button has no tooltip, onboarding restoration test omits the birth date, `RoutinesScreen.kt` comment that the list animation lives in `RoutineGroups.kt`, `Role.Button` on the meal-name clickable in `MealSlotRow.kt`, stale "Guardar" in the `AssignDefaultSheet` KDoc, one-shot `assert_unique_meal_labels()` stays in the schema.
 
 ---
 
@@ -3579,30 +3579,11 @@ Journey: the new foundations (messages, haptics, offline, sheets, swipe) seen th
 - [x] `npx supabase db reset`, `npx supabase db lint` and `npx supabase test db` green; after the merge `deploy-supabase` is green.
 
 **Verification:**
-- [ ] Change the Google photo, sign out/in on the existing APK and Perfil shows it; sign in again without a photo change and the name/photo stay stable. **Failed 2026-10-27: still the old photo; see T-135.**
+- [ ] Change the Google photo, sign out/in on the existing APK and Perfil shows it; sign in again without a photo change and the name/photo stay stable.
 
 **Merged:** PR #292 (2026-10-27); `deploy-supabase` green on `main`.
 
 **Dependencies:** none (E2 bug; run before T-129)
-**Estimated scope:** S
-
----
-
-## T-135: Google avatar still stale after T-134 (fix) · S
-
-**Story:** US-06 (E2) · **Flow:** backend or app · **Scenarios:** Updated Google photo
-
-**Description:** T-134 checkpoint feedback (2026-10-27): after the migration was deployed, the user changed the Google account photo, signed out and in, and Perfil still shows the old photo. T-134 only updates `profiles.avatar_url` when `auth.users.raw_user_meta_data` actually changes. Diagnose with the production data before changing code: compare `profiles.avatar_url` with the `picture`/`avatar_url` values in `auth.users.raw_user_meta_data`. If the profile URL is already the new one, the old image is local (Coil cache or the profile not reloaded after sign-in); if it is still the old one, GoTrue did not write a new URL on that sign-in (cached Google ID token, an unchanged `picture` URL, or metadata absent), and the fix must cover that path. Do not tick the T-134 verification or start T-129 until this is resolved.
-
-**Acceptance criteria:**
-- [ ] Root cause identified with evidence (profile URL vs auth metadata after a real sign-in).
-- [ ] After a Google photo change, sign out/in shows the new photo on the existing APK, or the fix states which rebuild is needed.
-- [ ] A repeat sign-in without a photo change keeps the name and photo stable.
-
-**Verification:**
-- [ ] The user repeats the Google photo change and sign-out/in flow after the fix.
-
-**Dependencies:** T-134 (deployed)
 **Estimated scope:** S
 
 ---
