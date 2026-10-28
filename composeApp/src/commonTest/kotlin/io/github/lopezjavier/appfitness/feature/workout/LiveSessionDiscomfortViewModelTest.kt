@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeDiscomfortRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -88,8 +89,8 @@ class LiveSessionDiscomfortViewModelTest {
         runCurrent()
     }
 
-    private fun row(exerciseId: String, ageDays: Int, severe: Boolean = false) =
-        Discomfort("old-$exerciseId-$ageDays", exerciseId, clock.current - ageDays.days, null, severe)
+    private fun row(exerciseId: String, ageDays: Int, level: DiscomfortLevel = DiscomfortLevel.Mild) =
+        Discomfort("old-$exerciseId-$ageDays", exerciseId, clock.current - ageDays.days, level, null)
 
     @Test
     fun noDiscomfortByDefault() = runTest {
@@ -103,31 +104,33 @@ class LiveSessionDiscomfortViewModelTest {
         val vm = loaded()
 
         vm.effects.test {
-            send(vm, LiveSessionEvent.LogDiscomfort(0, "rodilla"))
+            send(vm, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Mild, "rodilla"))
 
             assertEquals(LiveSessionEffect.DiscomfortLogged, awaitItem())
         }
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild), vm.discomfort(0))
         assertNull(vm.discomfort(1))
     }
 
     @Test
-    fun logging_aStrongPainNoteStoresAndShowsSevere() = runTest {
+    fun logging_aHighLevelIsStoredAndShown() = runTest {
         val vm = loaded()
 
-        send(vm, LiveSessionEvent.LogDiscomfort(0, "dolor fuerte"))
+        send(vm, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.SharpOrInjury, null))
 
-        assertEquals(LiveDiscomfort(severe = true), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.SharpOrInjury), vm.discomfort(0))
+        assertEquals(DiscomfortLevel.SharpOrInjury, discomforts.rows.single().level)
         assertTrue(discomforts.rows.single().severe)
     }
 
     @Test
-    fun logging_plainDolorIsNotSevere() = runTest {
+    fun logging_aStrongPainNoteDoesNotChangeTheChosenLevel() = runTest {
         val vm = loaded()
 
-        send(vm, LiveSessionEvent.LogDiscomfort(0, "dolor"))
+        send(vm, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Tension, "dolor fuerte"))
 
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Tension), vm.discomfort(0))
+        assertFalse(discomforts.rows.single().severe)
     }
 
     @Test
@@ -146,11 +149,11 @@ class LiveSessionDiscomfortViewModelTest {
 
     @Test
     fun anOpenDiscomfortFromAnEarlierSessionIsShownAtStart() = runTest {
-        discomforts.rows = listOf(row("e1", ageDays = 3, severe = true))
+        discomforts.rows = listOf(row("e1", ageDays = 3, level = DiscomfortLevel.SharpOrInjury))
 
         val vm = loaded()
 
-        assertEquals(LiveDiscomfort(severe = true), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.SharpOrInjury), vm.discomfort(0))
     }
 
     @Test
@@ -159,24 +162,27 @@ class LiveSessionDiscomfortViewModelTest {
 
         val vm = loaded()
 
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild), vm.discomfort(0))
         assertNull(vm.discomfort(1))
     }
 
     @Test
-    fun theSevereMessageStaysWhileAnyOpenRowIsSevere() = runTest {
-        discomforts.rows = listOf(row("e1", ageDays = 5, severe = true), row("e1", ageDays = 1, severe = false))
+    fun theHighestLevelAmongOpenRowsIsShown() = runTest {
+        discomforts.rows = listOf(
+            row("e1", ageDays = 5, level = DiscomfortLevel.SwellingOrNumbness),
+            row("e1", ageDays = 1, level = DiscomfortLevel.Tension),
+        )
 
         val vm = loaded()
 
-        assertEquals(LiveDiscomfort(severe = true), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.SwellingOrNumbness), vm.discomfort(0))
     }
 
     @Test
     fun savingIsFlaggedWhileLoggingAndTheLogCountGrowsOnSuccess() = runTest {
         val vm = loaded()
 
-        vm.onEvent(LiveSessionEvent.LogDiscomfort(0, "x"))
+        vm.onEvent(LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Mild, "x"))
         val during = assertIs<LiveSessionUiState.Active>(vm.uiState.value)
         runCurrent()
         val after = assertIs<LiveSessionUiState.Active>(vm.uiState.value)
@@ -191,7 +197,7 @@ class LiveSessionDiscomfortViewModelTest {
         val vm = loaded()
         discomforts.failing = true
 
-        send(vm, LiveSessionEvent.LogDiscomfort(0, "x"))
+        send(vm, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Mild, "x"))
 
         val state = assertIs<LiveSessionUiState.Active>(vm.uiState.value)
         assertFalse(state.discomfortSaving)
@@ -205,10 +211,10 @@ class LiveSessionDiscomfortViewModelTest {
         discomforts.failing = true
 
         vm.onEvent(LiveSessionEvent.ResolveDiscomfort(0))
-        assertEquals(LiveDiscomfort(severe = false, resolving = true), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild, resolving = true), vm.discomfort(0))
         runCurrent()
 
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild), vm.discomfort(0))
     }
 
     @Test
@@ -224,7 +230,7 @@ class LiveSessionDiscomfortViewModelTest {
         connectivity.state.value = true
         runCurrent()
 
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild), vm.discomfort(0))
     }
 
     @Test
@@ -234,13 +240,13 @@ class LiveSessionDiscomfortViewModelTest {
         connectivity.state.value = false
         runCurrent()
 
-        send(vm, LiveSessionEvent.LogDiscomfort(1, "x"))
+        send(vm, LiveSessionEvent.LogDiscomfort(1, DiscomfortLevel.Mild, "x"))
         send(vm, LiveSessionEvent.ResolveDiscomfort(0))
 
         assertEquals(0, discomforts.logCalls)
         assertEquals(0, discomforts.resolveCalls)
         assertNull(vm.discomfort(1))
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild), vm.discomfort(0))
     }
 
     @Test
@@ -249,7 +255,7 @@ class LiveSessionDiscomfortViewModelTest {
         discomforts.failing = true
 
         vm.effects.test {
-            send(vm, LiveSessionEvent.LogDiscomfort(0, "x"))
+            send(vm, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Mild, "x"))
 
             assertEquals(LiveSessionEffect.DiscomfortLogFailed, awaitItem())
         }
@@ -267,7 +273,7 @@ class LiveSessionDiscomfortViewModelTest {
 
             assertEquals(LiveSessionEffect.DiscomfortResolveFailed, awaitItem())
         }
-        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.Mild), vm.discomfort(0))
     }
 
     @Test
@@ -275,7 +281,7 @@ class LiveSessionDiscomfortViewModelTest {
         val vm = loaded()
 
         vm.effects.test {
-            send(vm, LiveSessionEvent.LogDiscomfort(0, "a".repeat(201)))
+            send(vm, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Mild, "a".repeat(201)))
 
             assertEquals(LiveSessionEffect.DiscomfortLogFailed, awaitItem())
         }
@@ -297,11 +303,11 @@ class LiveSessionDiscomfortViewModelTest {
     fun aRecreatedViewModelReloadsTheOpenDiscomfort() = runTest {
         val savedState = SavedStateHandle()
         val first = loaded(savedState)
-        send(first, LiveSessionEvent.LogDiscomfort(0, "dolor fuerte"))
+        send(first, LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.SharpOrInjury, "dolor fuerte"))
 
         val second = loaded(savedState)
 
-        assertEquals(LiveDiscomfort(severe = true), second.discomfort(0))
+        assertEquals(LiveDiscomfort(DiscomfortLevel.SharpOrInjury), second.discomfort(0))
         assertFalse(second.discomfort(1) != null)
     }
 }

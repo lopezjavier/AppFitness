@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -9,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -99,15 +102,36 @@ class LiveSessionRestorationTest {
     }
 
     @Test
+    fun discomfortSheet_keepsThePickedLevelAndTheDraftNote() {
+        showAndRestore()
+        rule.onNodeWithTag("live_exercise_0_menu").performClick()
+        rule.onNodeWithTag("live_exercise_0_menu_discomfort").performClick()
+        rule.onNodeWithTag("live_exercise_0_discomfort_level_4").performClick()
+        rule.onNodeWithTag("live_exercise_0_discomfort_note").performTextInput("hormigueo en el codo")
+
+        recreate()
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_level_4").assertIsSelected()
+        rule.onNodeWithTag("live_exercise_0_discomfort_level_2").assertIsNotSelected()
+        rule.onNodeWithTag("live_exercise_0_discomfort_note").assertTextContains("hormigueo en el codo")
+    }
+
+    @Test
     fun openDiscomfort_isStillShownAfterRecreation() {
         state =
-            active().let { it.copy(exercises = it.exercises.map { e -> e.copy(discomfort = LiveDiscomfort(true)) }) }
+            active().let {
+                it.copy(
+                    exercises = it.exercises.map { e ->
+                        e.copy(discomfort = LiveDiscomfort(DiscomfortLevel.SharpOrInjury))
+                    },
+                )
+            }
         showAndRestore()
 
         recreate()
 
         rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
-        rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_level").assertTextContains("Dolor agudo o lesión")
     }
 
     @Test

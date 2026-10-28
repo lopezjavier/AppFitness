@@ -9,19 +9,21 @@ import io.github.lopezjavier.appfitness.data.remote.DiscomfortDto
 import io.github.lopezjavier.appfitness.data.remote.DiscomfortInsertDto
 import io.github.lopezjavier.appfitness.data.remote.DiscomfortResolveDto
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import kotlin.time.Instant
 
 /** `exercise_discomforts` of the signed-in user (RLS owner policies; update limited to `resolved_at`). */
 class SupabaseDiscomfortRepository(private val auth: Auth, private val postgrest: Postgrest) : DiscomfortRepository {
-    override suspend fun log(exerciseId: String, note: String?, severe: Boolean): Result<Discomfort> = auth.ownRow {
-        postgrest.from("exercise_discomforts")
-            .insert(DiscomfortInsertDto(exerciseId, note, severe)) {
-                select(Columns.raw(DiscomfortDto.COLUMNS))
-            }
-            .decodeSingle<DiscomfortDto>()
-            .toDomain()
-    }
+    override suspend fun log(exerciseId: String, level: DiscomfortLevel, note: String?): Result<Discomfort> =
+        auth.ownRow {
+            postgrest.from("exercise_discomforts")
+                .insert(DiscomfortInsertDto(exerciseId, level.value, note)) {
+                    select(Columns.raw(DiscomfortDto.COLUMNS))
+                }
+                .decodeSingle<DiscomfortDto>()
+                .toDomain()
+        }
 
     override suspend fun resolveOpen(exerciseId: String, at: Instant): Result<Unit> = auth.ownRow {
         postgrest.from("exercise_discomforts").update(DiscomfortResolveDto(at)) {

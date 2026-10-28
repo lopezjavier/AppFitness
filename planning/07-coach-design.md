@@ -77,8 +77,8 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 ## 7. Discomfort and safety
 
 - Logging discomfort on an exercise (E12) blocks load increases for that exercise for 7 days, or until the user confirms "Ya no me molesta".
-- Strong-pain wording from a fixed term list (in the discomfort log or an exercise note) shows a fixed message: consult a health professional; no suggestion is made for that exercise. No diagnosis and no medical advice.
-- Free text is matched only against the fixed list; it is never interpreted by the model to diagnose.
+- The user picks a **level** (1 to 5, ADR-81) when logging a discomfort; the two highest levels (swelling, tingling or numbness; sharp pain or injury) are severe. The level, not the text, drives the coach. No message is shown and no suggestion is made for that exercise beyond the load block. No diagnosis and no medical advice.
+- Free text (discomfort or exercise notes) is context for the user only: it is never matched against terms and never interpreted to diagnose.
 - Muscle soreness is not collected: it is a poor indicator of recovery or of adaptation [Schoenfeld, Contreras 2013; Nosaka et al. 2002, *verify*].
 
 ## 8. Data, privacy and cost

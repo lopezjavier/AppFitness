@@ -53,8 +53,8 @@ insert into public.meal_defaults (user_id, meal_slot_id, template_id, weekday)
   where s.code = 'breakfast' and s.user_id in
     ('d1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002');
 
-insert into public.exercise_discomforts (user_id, exercise_id, note)
-  select u.id, (select id from public.exercises where not is_custom order by key limit 1), 'molestia'
+insert into public.exercise_discomforts (user_id, exercise_id, level, note)
+  select u.id, (select id from public.exercises where not is_custom order by key limit 1), 2, 'molestia'
   from auth.users u where u.id in
     ('d1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002');
 

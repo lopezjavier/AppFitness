@@ -11,6 +11,9 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -215,6 +218,32 @@ class AmountPhotoFlowTest {
             line.fetchSemanticsNode().config[SemanticsProperties.ContentDescription],
         )
         rule.onNodeWithTag("amount_photo_confidence_dot", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun confidenceHelp_opensASheetWithTheFourBands() {
+        photoRepo.amountResult = Result.success(AmountEstimate(180.0, "g", 7))
+        start()
+        estimate()
+
+        rule.onNodeWithTag("amount_photo_confidence_help").performClick()
+        rule.waitForIdle()
+
+        val bullet = { n: Int ->
+            rule.onNodeWithTag("amount_photo_confidence_help_sheet_bullet_$n", useUnmergedTree = true)
+        }
+        for (n in 1..4) bullet(n).assertExists()
+        rule.onNode(
+            hasText("1 a 3: poco fiable", substring = true) and
+                hasAnyAncestor(hasTestTag("amount_photo_confidence_help_sheet_bullet_1")),
+            useUnmergedTree = true,
+        ).assertExists()
+        // The line itself stays one spoken node, the button is its sibling.
+        assertEquals(
+            listOf("Confianza 7 de 10"),
+            rule.onNodeWithTag("amount_photo_confidence").fetchSemanticsNode()
+                .config[SemanticsProperties.ContentDescription],
+        )
     }
 
     @Test

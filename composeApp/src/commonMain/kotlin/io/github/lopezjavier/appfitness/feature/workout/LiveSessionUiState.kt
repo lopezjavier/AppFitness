@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -57,8 +58,8 @@ data class LiveExercise(
     val discomfort: LiveDiscomfort? = null,
 )
 
-/** An open discomfort on an exercise; [severe] (stored when logged) adds the fixed health-professional message. */
-data class LiveDiscomfort(val severe: Boolean, val resolving: Boolean = false)
+/** An open discomfort on an exercise, shown at the highest [level] among its open rows. */
+data class LiveDiscomfort(val level: DiscomfortLevel, val resolving: Boolean = false)
 
 /**
  * The rest countdown: [remaining] of [total] (the total grows when time is added past it); [paused] while the session
@@ -246,7 +247,7 @@ sealed interface LiveSessionEvent {
     data class SetExerciseRest(val position: Int, val seconds: Int) : LiveSessionEvent
 
     /** "Guardar" in the discomfort sheet: logs a discomfort on the exercise (online only); [note] is optional. */
-    data class LogDiscomfort(val position: Int, val note: String?) : LiveSessionEvent
+    data class LogDiscomfort(val position: Int, val level: DiscomfortLevel, val note: String?) : LiveSessionEvent
 
     /** "Ya no me molesta": closes every open discomfort of the exercise (online only). */
     data class ResolveDiscomfort(val position: Int) : LiveSessionEvent

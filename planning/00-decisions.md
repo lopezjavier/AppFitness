@@ -132,7 +132,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
   - Plans are 4-week blocks; derived values are shown with their source and confirmed before use; adjustments are proposals accepted one by one.
   - The coach sets outcomes; the user never enters target numbers. An accepted plan writes the nutrition goal; the calorie floor (ADR-25) always applies; a manual edit in Preferencias still works.
   - RIR is derived from RPE (10 − RPE); there is no RIR field. Soreness is not a signal.
-  - Discomfort on an exercise blocks load increases for 7 days or until resolved; strong-pain terms from a fixed list show a fixed message to consult a health professional; no diagnosis.
+  - Discomfort on an exercise blocks load increases for 7 days or until resolved; ~~strong-pain terms from a fixed list show a fixed message to consult a health professional~~ (void, ADR-81: the user picks a level); no diagnosis.
   - Coach suggestions are shown in the live session and never rewrite planned values; ADR-70 is unchanged.
   - Personal use: no consent screen; before distributing the app, every user must accept the data use (written condition).
 - **Consequences:** `07-coach-design.md`, `epics/E12-training-data-and-preferences.md`, `epics/E13-performance-assistant.md`, `04-business-rules.md` when implemented.
@@ -177,3 +177,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
   - `severe` is derived from the chosen level (the two highest), not from text. `StrongPainTerms`, term matching and the fixed message "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario." are **removed**; notes (T-148, E13) are never scanned for terms.
   - The coach (E13) uses the level to block load increases (ADR-76); nothing else is shown to the user.
 - **Consequences:** T-152 reworks T-147 (migration `level`, core, UI, tests, `03`, `04` §4.12, `05` §8/§10, `07` §7, US-67 and the T-148 note scenarios); ADR-76's "fixed message" clause is void.
+  - [x] Migration `level` (`severe` dropped, derived as level >= 4) and pgTAP.
+  - [x] Core: `DiscomfortLevel`, `LogDiscomfort(exerciseId, level, note)`, `StrongPainTerms` deleted.
+  - [x] UI: required coloured level picker with help, open row with the level, `AppTextField` v4, help on every scale (R-45).
+  - [x] Docs: `03`, `04` §4.12, `05` §2.6/§8 (R-45)/§10, `07` §7, `09` Q1.

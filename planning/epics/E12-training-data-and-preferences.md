@@ -17,7 +17,7 @@ E2 (Preferencias), E3 and E6 (live session, routines, RPE).
 - `training_preferences` (existing, E6): add `intention` enum (`strength` | `muscle` | `fat_loss` | `recomposition` | `maintenance`, nullable until chosen), `place` enum (`home` | `gym` | `other`), `equipment` `equipment[]`, `days_per_week` nullable 1-7, `session_minutes` nullable.
 - `workout_sets.notes` (nullable text, 1-200 chars).
 - `routine_exercises.notes` (nullable text, 1-200 chars).
-- `exercise_discomforts` (`user_id`, `exercise_id`, `logged_at`, `note` nullable, `severe` boolean, `resolved_at` nullable).
+- `exercise_discomforts` (`user_id`, `exercise_id`, `logged_at`, `level` smallint 1..5 (ADR-81; replaces `severe`, which is derived), `note` nullable, `resolved_at` nullable).
 - `exercises.movement_pattern` enum (`squat` | `hinge` | `lunge` | `horizontal_push` | `vertical_push` | `horizontal_pull` | `vertical_pull` | `carry` | `core` | `isolation` | `cardio` | `other`); nullable for custom exercises.
 
 ---
@@ -123,22 +123,46 @@ Feature: Notes
 
 ## US-67 · Discomfort log per exercise
 **As** a user
-**I want** to record that an exercise bothered me
-**So that** the coach does not push its load and I am told when to get help.
+**I want** to record that an exercise bothered me and how much
+**So that** the coach does not push its load.
+
+Amended by ADR-81 (Checkpoint E12-A feedback, 2026-10-28): the user picks a level from an ordered scale; the app no longer infers severity from the note and shows no health message. T-147's term matching is removed by T-152.
 
 ```gherkin
 Feature: Discomfort log
 
-  Scenario: Logging discomfort
+  Scenario: Logging discomfort with a level
     When the user taps "Registrar molestia" on "Press banca" in the live session
+    And picks the level "Molestia leve"
     And saves it
-    Then the discomfort is stored for "Press banca" with today's date
-    And "Press banca" shows "Molestia registrada"
+    Then the discomfort is stored for "Press banca" with today's date and the level "Molestia leve"
+    And "Press banca" shows "Molestia registrada" with the level "Molestia leve"
 
-  Scenario: Strong pain wording shows the fixed message
-    When the user logs discomfort on "Press banca" with the note "dolor fuerte"
-    Then the fixed message asks the user to consult a health professional
-    And the discomfort is stored as severe
+  Scenario: A level is required
+    When the user opens "Registrar molestia" on "Press banca"
+    Then no level is selected and "Guardar" is disabled
+    When the user picks any level
+    Then "Guardar" is enabled
+
+  Scenario: The note is optional and never interpreted
+    When the user logs discomfort on "Press banca" with the level "Molestia leve" and the note "dolor fuerte"
+    Then the discomfort is stored with that level and that note
+    And no health-professional message is shown
+    And the discomfort is not marked severe
+
+  Scenario: Levels are ordered and colour-coded
+    When the user opens "Registrar molestia"
+    Then the levels are listed from least to most severe:
+      | Tensión o fatiga | Molestia leve | Pinchazo o chasquido | Hinchazón, hormigueo o entumecimiento | Dolor agudo o lesión |
+    And each level shows its text label and a colour from greenish yellow to red
+    And the lime of "Guardar" is not used by any level
+    And a help button next to the title opens a sheet that explains each level
+
+  Scenario: The two highest levels are severe
+    When the user logs a discomfort with the level "Hinchazón, hormigueo o entumecimiento" or "Dolor agudo o lesión"
+    Then the stored discomfort is severe
+    When the user logs one with any lower level
+    Then it is not severe
 
   Scenario: Resolving
     Given "Press banca" has an open discomfort
@@ -148,13 +172,17 @@ Feature: Discomfort log
   Scenario: Open discomforts expire
     Given a discomfort on "Press banca" was logged 8 days ago
     Then "Press banca" no longer shows "Molestia registrada"
+
+  Scenario: Existing discomforts keep a level
+    Given discomforts stored before the level existed
+    Then those stored as severe now have the highest level and the others "Molestia leve"
 ```
 
 **Technical notes**
-- The strong-pain term list is fixed and versioned in the repo; matching is case- and accent-insensitive. No model interprets the text (`07-coach-design.md` §7).
-- Term list (user, 2026-10-28): "dolor fuerte", "dolor agudo", "dolor intenso", "pinchazo", "chasquido", "hormigueo", "entumecimiento", "hinchazón", "lesión", "me he lesionado", "desgarro", "no puedo mover". Plain "dolor" and "molestia" are deliberately not terms. Fixed message: "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario."
-- A discomfort is open for 7 days or until resolved. E13 (US-70) blocks load increases while it is open.
-- The same term list applies to exercise and set notes (US-66): a match shows the fixed message.
+- Level = `smallint` 1..5 in `exercise_discomforts.level` (1 "Tensión o fatiga", 2 "Molestia leve", 3 "Pinchazo o chasquido", 4 "Hinchazón, hormigueo o entumecimiento", 5 "Dolor agudo o lesión"). Labels, colours and help copy are finalised by ux-reviewer in T-152 (ADR-81). `severe` is derived (level >= 4), not stored. No term list, no matching and no fixed health message exist (the 12-term list of 2026-10-28 and E12 Q1 are void).
+- A discomfort is open for 7 days or until resolved. E13 (US-70) blocks load increases while it is open, using the level.
+- Notes (exercise, set, discomfort) are plain text for the user and the coach; nothing scans them.
+- The open row shows the level next to "Molestia registrada" (text, plus the scale colour as reinforcement only).
 
 ## Data task · Movement pattern in the catalogue
 Not a user story. `exercises.movement_pattern` is filled for every catalogue row by the generated catalogue migration (ADR-39), from the RepDB data where it has an equivalent field and otherwise from a reviewed mapping by catalogue key. Custom exercises get it as an optional field in the custom exercise form. Used by the coach to substitute exercises (E13).

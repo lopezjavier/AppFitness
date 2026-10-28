@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.app
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import kotlin.time.Instant
 
@@ -15,10 +16,10 @@ internal class FakeDiscomfortRepository(
     var logCalls = 0
     var resolveCalls = 0
 
-    override suspend fun log(exerciseId: String, note: String?, severe: Boolean): Result<Discomfort> {
+    override suspend fun log(exerciseId: String, level: DiscomfortLevel, note: String?): Result<Discomfort> {
         logCalls++
         if (failing) return Result.failure(AppException(AppError.Network))
-        val row = Discomfort("d${rows.size + 1}", exerciseId, now(), note, severe)
+        val row = Discomfort("d${rows.size + 1}", exerciseId, now(), level, note)
         rows = listOf(row) + rows
         return Result.success(row)
     }

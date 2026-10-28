@@ -10,6 +10,9 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -170,6 +173,38 @@ class CheckInScreenTest {
         show()
 
         rule.onNodeWithTag("checkin_coach_slot").assertExists()
+    }
+
+    @Test
+    fun energyHelp_opensASheetWithOneBulletPerValue() {
+        show()
+
+        rule.onNodeWithTag("checkin_energy_help").performClick()
+        rule.waitForIdle()
+
+        val bullet = { n: Int -> rule.onNodeWithTag("checkin_energy_help_sheet_bullet_$n", useUnmergedTree = true) }
+        for (n in 1..5) bullet(n).assertExists()
+        rule.onNode(
+            hasText(
+                "1: agotado",
+                substring = true,
+            ) and hasAnyAncestor(hasTestTag("checkin_energy_help_sheet_bullet_1")),
+            useUnmergedTree = true,
+        ).assertExists()
+        rule.onNode(
+            hasText("5: excelente", substring = true) and
+                hasAnyAncestor(hasTestTag("checkin_energy_help_sheet_bullet_5")),
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
+    @Test
+    fun energyHelp_doesNotSelectAnyEnergyValue() {
+        show()
+
+        rule.onNodeWithTag("checkin_energy_help").performClick()
+
+        assertEquals(emptyList<CheckInEvent>(), events)
     }
 
     // -- Summary states, independent of the form ------------------------------

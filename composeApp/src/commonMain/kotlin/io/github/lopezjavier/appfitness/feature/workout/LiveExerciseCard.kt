@@ -213,7 +213,7 @@ private fun ExerciseSheets(
             position = position,
             online = online,
             saving = discomfortSaving,
-            onSave = { onEvent(LiveSessionEvent.LogDiscomfort(position, it)) },
+            onSave = { level, note -> onEvent(LiveSessionEvent.LogDiscomfort(position, level, note)) },
             onDismiss = { onSheetChange(ExerciseSheet.None) },
         )
 
