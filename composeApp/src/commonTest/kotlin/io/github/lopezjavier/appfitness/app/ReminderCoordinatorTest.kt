@@ -7,11 +7,17 @@ import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
+import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
+import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -130,6 +136,36 @@ class ReminderCoordinatorTest {
 
         coordinator.requestRefresh()
         advanceUntilIdle()
+
+        assertEquals(1, coordinator.reminders.value.size)
+    }
+
+    @Test
+    fun staleSlowRefresh_doesNotOverwriteNewerResult() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        var calls = 0
+        val settings = object : NotificationSettingsRepository {
+            override suspend fun getAll(): Result<Map<NotificationKind, Boolean>> {
+                if (++calls == 1) {
+                    gate.await()
+                    // The first (slow) read sees the weight reminder silenced: an outdated answer.
+                    return Result.success(mapOf(NotificationKind.Weight to false))
+                }
+                return Result.success(emptyMap())
+            }
+
+            override suspend fun setEnabled(kind: NotificationKind, enabled: Boolean): Result<Unit> =
+                Result.success(Unit)
+        }
+        val env = ReminderEnv(TODAY).apply { weight.rows += weightAt(4) }
+        val load = LoadReminders(env.weight, env.circumferences, settings, env.clock, env.timeZone, ComputeReminders())
+        val coordinator = ReminderCoordinator(load, backgroundScope)
+        val slow = launch { coordinator.refresh() }
+        runCurrent()
+
+        coordinator.refresh()
+        gate.complete(Unit)
+        slow.join()
 
         assertEquals(1, coordinator.reminders.value.size)
     }

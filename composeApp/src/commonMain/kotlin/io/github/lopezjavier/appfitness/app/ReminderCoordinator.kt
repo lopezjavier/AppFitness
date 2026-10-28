@@ -16,12 +16,19 @@ import kotlinx.coroutines.launch
 class ReminderCoordinator(private val load: LoadReminders, private val scope: CoroutineScope) {
     private val state = MutableStateFlow<List<Reminder>>(emptyList())
     private var pending: Job? = null
+    private var version = 0
 
     /** The pending reminders; empty until the first successful refresh. */
     val reminders: StateFlow<List<Reminder>> = state.asStateFlow()
 
     /** Recomputes and returns the outcome; a failure leaves [reminders] untouched. */
-    suspend fun refresh(): Result<Unit> = load().map { state.value = it }
+    suspend fun refresh(): Result<Unit> {
+        val ticket = ++version
+        // A result is applied only if no newer refresh or clear started meanwhile, so a slow stale read cannot win.
+        val result = load()
+        result.onSuccess { if (ticket == version) state.value = it }
+        return result.map { }
+    }
 
     /** Fire-and-forget [refresh] for callers without a coroutine (write effects, lifecycle); the latest call wins. */
     fun requestRefresh() {
@@ -32,6 +39,7 @@ class ReminderCoordinator(private val load: LoadReminders, private val scope: Co
     /** Forgets the reminders (sign-out): the next user must not see them. */
     fun clear() {
         pending?.cancel()
+        version++
         state.value = emptyList()
     }
 }
