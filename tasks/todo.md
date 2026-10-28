@@ -140,7 +140,7 @@ Journey: the reminders find you when you open the app, take you to log the missi
 
 **Story:** E10 Definition of Done · **Flow:** PM · **Size:** S (cannot merge: it waits for Checkpoint E10's approval)
 
-**Description:** Closes E10 once Checkpoint E10 is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR) to the version agreed with the user (`09-open-questions.md`, "Release version of each Phase 2 epic"; proposed `v1.1.0`), tag, retrospective, archive of the E10 log lines (`06` §6). No 👤 checkpoint of its own.
+**Description:** Closes E10 once Checkpoint E10 is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR) to `1.1.0` (versioning rule, `06` §6), tag, retrospective, archive of the E10 log lines (`06` §6). No 👤 checkpoint of its own.
 
 **Acceptance criteria:**
 - [ ] T-135, T-136 (and any fix tasks) merged with green CI; `deploy-supabase` green after the last migration.
