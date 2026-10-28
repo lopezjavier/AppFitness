@@ -81,7 +81,7 @@ v1.1.0 ─► T-139 ─► [👤 spike report → E11 Q1] ─┐
 
 ## Open Questions
 
-- **E11 Q1 · First-sync window (BLOCKING T-141; answered by the T-139 spike report).** Branch A: history readable → 90 days, `READ_HEALTH_DATA_HISTORY` asked with the read permissions, US-63 as written. Branch B: not readable → about 30 days, no history declaration; US-63's "History older than 30 days" scenario and the `01-scope.md`/epic wording are rewritten with the user's OK. *Result:* pending.
+- **E11 Q1 · First-sync window (BLOCKING T-141; answered by the T-139 spike report).** Branch A: history readable → 90 days, `READ_HEALTH_DATA_HISTORY` asked with the read permissions, US-63 as written. Branch B: not readable → about 30 days, no history declaration; US-63's "History older than 30 days" scenario and the `01-scope.md`/epic wording are rewritten with the user's OK. *Result (user device report, 2026-10-28): Branch A.* Feature `READ_HEALTH_DATA_HISTORY` available, permission granted; 60–90 days ago: 1884 step records and 0 weights; last 30 days: 4115 step records and 4 weights; oldest step record 07/08/2026 (82 days ago, inside the 60–90 window), oldest weight 14/10/2026. Data older than 30 days is readable, so T-141 uses a 90-day first sync and asks the history permission with the read permissions.
 
 **Resolved (user, 2026-10-28):**
 - **E11 Q2 · What counts as "the first open of the day" → yes, a return from the background counts.** A cold start and the first return to the foreground (`ON_START`) of a new local day both trigger the automatic sync, the same moment the reminders are recomputed (T-135).
