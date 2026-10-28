@@ -119,6 +119,9 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 - **Context:** E3 US-13 alerts only in the foreground ("no foreground service or notifications in Phase 1"); a locked phone misses the end of rest.
 - **Decision:** The end of rest vibrates, plays the alert sound and posts "Descanso terminado" when the app is in the background or the screen is off; in the foreground only the in-app alert shows. Skipping or finishing cancels it. This is the only system notification of Phase 2. The technique is chosen in the plan after verifying on Android 17. The alert sound is replaced, chosen by the user among the E9 point 16 candidates.
 - **Consequences:** `epics/E12-training-data-and-preferences.md` US-64; notification permission handling; `01-scope.md` §6.
+  - [x] Technique (T-146): exact alarm (`USE_EXACT_ALARM`, no user action) -> receiver -> notification. `02-architecture.md` §10.
+  - [x] Android 17 verified (T-146): background audio is blocked without a visible activity or foreground service, also for exact alarms. So the sound and the vibration come from the notification channel (one channel per sound candidate, PM decision 2026-10-28); the in-app alert keeps playing in the foreground. T-148 creates the final channel under a new ID and deletes the others.
+  - [x] `04-business-rules.md` §4.4 updated; permission handled at the first rest of a session, explained once.
 - **Approval:** 2026-10-28, user (chat).
 
 ### ADR-76 · Evidence-based coach (E13; supersedes the assistant part of ADR-09)

@@ -311,4 +311,10 @@ sealed interface LiveSessionEffect {
 
     /** Saving the double-dumbbell option or the body weight failed; the sheet stays open with its draft. */
     data object OptionSaveFailed : LiveSessionEffect
+
+    /**
+     * Notifications were denied at the first rest and the user was never told why they matter: show the one-time
+     * message (never emitted again once shown; ux: an `AppMessages` message, no action).
+     */
+    data object RestAlertPermissionNote : LiveSessionEffect
 }

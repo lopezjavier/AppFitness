@@ -29,6 +29,9 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
+import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
+import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
+import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
@@ -96,6 +99,7 @@ private const val KEY_PAUSE_KNOWN = "live_pause_known"
 private const val KEY_PAUSED_AT = "live_paused_at"
 private const val KEY_PAUSED_TOTAL = "live_paused_total"
 private const val KEY_REST_PAUSED_REMAINING = "live_rest_paused_remaining"
+private const val KEY_REST_PERMISSION_ASKED = "live_rest_permission_asked"
 private const val KEY_REST_PAUSED_TOTAL = "live_rest_paused_total"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
 private const val KEY_UPDATE_SHEET = "live_update_routine_sheet"
@@ -187,6 +191,9 @@ class LiveSessionViewModel(
     private val saveBodyMeasurement: SaveBodyMeasurement,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val restAlertScheduler: RestAlertScheduler = NoRestAlertScheduler,
+    private val notificationPermission: NotificationPermission = NotificationsGranted,
+    private val restAlertPreferences: RestAlertPreferences = ExplanationAlreadyShown,
 ) : ViewModel() {
     private var session: SessionState? = null
 
@@ -597,8 +604,27 @@ class LiveSessionViewModel(
 
     private fun startRest(position: Int) {
         val duration = resolveRest(position, rests) ?: return
-        restTimer = RestTimer.start(duration, clock.now())
+        val timer = RestTimer.start(duration, clock.now())
+        restTimer = timer
+        restAlertScheduler.schedule(timer.endsAt)
         startRestTicker()
+        askNotificationPermissionOnce()
+    }
+
+    /**
+     * At the first rest of the session asks for the notification permission (the alert outside the app needs it).
+     * A denial never blocks the rest; the first time ever it also emits the one-time explanation.
+     */
+    private fun askNotificationPermissionOnce() {
+        if (savedState.get<Boolean>(KEY_REST_PERMISSION_ASKED) == true) return
+        savedState[KEY_REST_PERMISSION_ASKED] = true
+        if (notificationPermission.isGranted()) return
+        viewModelScope.launch {
+            if (notificationPermission.request()) return@launch
+            if (restAlertPreferences.explanationShown()) return@launch
+            restAlertPreferences.markExplanationShown()
+            effectChannel.trySend(LiveSessionEffect.RestAlertPermissionNote)
+        }
     }
 
     private fun startRestTicker() {
@@ -618,6 +644,8 @@ class LiveSessionViewModel(
             restTimer = null
             tickerJob?.cancel()
             if (visible) {
+                // In the foreground only the in-app alert fires; the scheduled one must not repeat it.
+                restAlertScheduler.cancel()
                 haptics.alert()
                 alertSound.play()
             }
@@ -626,12 +654,15 @@ class LiveSessionViewModel(
     }
 
     private fun restAdd30() {
-        restTimer = restTimer?.extend(clock.now())
+        val extended = restTimer?.extend(clock.now())
+        restTimer = extended
+        if (extended != null && !extended.isPaused) restAlertScheduler.schedule(extended.endsAt)
         publish()
     }
 
     private fun stopRest() {
         restTimer = null
+        restAlertScheduler.cancel()
         tickerJob?.cancel()
         publish()
     }
@@ -844,7 +875,10 @@ class LiveSessionViewModel(
         session = resumed
         val resumedTimer = frozen?.resume(at)
         restTimer = resumedTimer
-        if (restTimer != null) startRestTicker()
+        if (resumedTimer != null) {
+            restAlertScheduler.schedule(resumedTimer.endsAt)
+            startRestTicker()
+        }
         publish()
         viewModelScope.launch {
             if (repository.resume(current.id, at).isFailure) {
@@ -995,6 +1029,7 @@ class LiveSessionViewModel(
             busy = false
             finishSheet = null
             restTimer = null
+            restAlertScheduler.cancel()
             tickerJob?.cancel()
             terminal = LiveSessionUiState.Finished(summary, sheet)
             publish()
@@ -1080,6 +1115,7 @@ class LiveSessionViewModel(
             busy = false
             discardAsked = false
             restTimer = null
+            restAlertScheduler.cancel()
             tickerJob?.cancel()
             publish()
             clearSavedState()

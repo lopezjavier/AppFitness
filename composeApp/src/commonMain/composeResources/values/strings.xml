@@ -1572,4 +1572,13 @@
     <string name="checkin_notes_too_long">Máximo 1000 caracteres</string>
     <string name="checkin_save_error">No se pudo guardar el check-in. Inténtalo de nuevo.</string>
     <string name="checkin_save_error_offline">Sin conexión: no se puede guardar el check-in</string>
+
+    <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
+    <string name="rest_sound_title">Sonido de fin de descanso</string>
+    <string name="rest_sound_about_supporting">Temporal: elige entre 3 opciones</string>
+    <string name="rest_sound_system">Sonido del sistema</string>
+    <string name="rest_sound_chime">Campana suave</string>
+    <string name="rest_sound_double_beep">Doble pitido</string>
+    <string name="rest_sound_selected">Seleccionado</string>
+    <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>
 </resources>

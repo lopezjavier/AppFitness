@@ -62,6 +62,10 @@ data object AccountRoute : AppRoute
 @Serializable
 data object AboutRoute : AppRoute
 
+/** TEMPORARY - removed by T-148. The end-of-rest sound chooser, opened from "Acerca de" (US-64). */
+@Serializable
+data object RestSoundRoute : AppRoute
+
 /** Exercise picker (US-09). In [selectMode] a row returns the exercise to the caller instead of opening the detail. */
 @Serializable
 data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
@@ -348,6 +352,7 @@ object AppDestinations {
             WeightRoute(),
             WeightHistoryRoute,
             AboutRoute,
+            RestSoundRoute,
             NotificationCenterRoute,
             CheckInRoute,
         )

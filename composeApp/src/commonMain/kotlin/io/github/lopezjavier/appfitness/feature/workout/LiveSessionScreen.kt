@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title_fallback
+import io.github.lopezjavier.appfitness.composeapp.resources.rest_sound_permission_note
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -80,6 +81,7 @@ fun LiveSessionRoot(
     val currentAddExercise by rememberUpdatedState(onAddExercise)
     val currentConsume by rememberUpdatedState(onConsumeSelection)
     val failed = stringResource(Res.string.live_action_failed)
+    val permissionNote = stringResource(Res.string.rest_sound_permission_note)
     // The options sheets show their own "No se pudo guardar" line; the flag survives recreation with the open sheet.
     var optionSaveFailed by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(selectedExerciseId) {
@@ -104,6 +106,8 @@ fun LiveSessionRoot(
                     haptics.reject()
                     optionSaveFailed = true
                 }
+
+                LiveSessionEffect.RestAlertPermissionNote -> messages.show(permissionNote)
             }
         }
     }

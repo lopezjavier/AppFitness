@@ -6,6 +6,7 @@ import android.media.RingtoneManager
 import android.os.Looper
 import android.os.Vibrator
 import androidx.test.core.app.ApplicationProvider
+import io.github.lopezjavier.appfitness.domain.model.RestSound
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,6 +17,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
+@Suppress("TooManyFunctions") // One short test per behaviour.
 class AndroidRestAlertTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val audio = context.getSystemService(AudioManager::class.java)
@@ -77,6 +79,42 @@ class AndroidRestAlertTest {
         audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
 
         sound(alarm = false, notification = false).play()
+
+        assertTrue(played.isEmpty())
+    }
+
+    private fun chosenCandidate(current: RestSound) = AndroidAlertSound(
+        context,
+        currentSound = { current },
+        assetOf = { sound -> AlertTone(play = { played += sound.id }, stop = { stopped += sound.id }) },
+        toneOf = { realRingtone("system") },
+    )
+
+    @Test
+    fun sound_withAChosenCandidate_playsItsAssetNotTheSystemTone() {
+        audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
+
+        chosenCandidate(RestSound.CHIME).play()
+
+        assertEquals(listOf("chime"), played)
+    }
+
+    @Test
+    fun preview_playsTheGivenCandidateWhateverIsChosen() {
+        audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        val chosen = chosenCandidate(RestSound.CHIME)
+
+        chosen.preview(RestSound.DOUBLE_BEEP)
+        chosen.preview(RestSound.SYSTEM)
+
+        assertEquals(listOf("double_beep", "system"), played)
+    }
+
+    @Test
+    fun preview_onVibrateRinger_isSilent() {
+        audio.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+
+        chosenCandidate(RestSound.CHIME).preview(RestSound.CHIME)
 
         assertTrue(played.isEmpty())
     }

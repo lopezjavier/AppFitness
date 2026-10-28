@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.di.appModule
 import io.github.lopezjavier.appfitness.di.sharedModule
 import io.github.lopezjavier.appfitness.di.uiModule
 import io.github.lopezjavier.appfitness.platform.CurrentActivityHolder
+import io.github.lopezjavier.appfitness.platform.RestAlertNotifier
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -21,5 +22,7 @@ class AppFitnessApplication : Application() {
             }.koin
         // Credential Manager needs an Activity context; the holder hands the foreground one to the adapter.
         koin.get<CurrentActivityHolder>().register(this)
+        // One channel per rest-alert sound; created once, early, so a rest ending in the background can post.
+        koin.get<RestAlertNotifier>().ensureChannels()
     }
 }

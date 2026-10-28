@@ -6,6 +6,12 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- T-146: end-of-rest alert with the screen off. USE_EXACT_ALARM is granted at install (API 33+), no user action;
+         SCHEDULE_EXACT_ALARM covers API 31-32 (granted by default); POST_NOTIFICATIONS is the Android 13+ runtime prompt. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+
     <!-- Health Connect: read the six body metrics, write back weight and body fat only (US-63). -->
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.WRITE_WEIGHT" />
@@ -43,6 +49,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- T-146: the exact alarm of a finished rest posts the notification (sound and vibration come from its channel). -->
+        <receiver
+            android:name="io.github.lopezjavier.appfitness.platform.RestAlertReceiver"
+            android:exported="false" />
 
         <!-- Camera output for the food-photo flow (T-106): TakePicture writes here; no CAMERA permission is declared. -->
         <provider
