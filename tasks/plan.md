@@ -45,7 +45,7 @@ Full checkpoint item lists in `tasks/todo.md`.
 
 ### Phase 2: Watch data through "Sincronizar" (US-61, US-62, US-63)
 - [x] T-140: Watch-data backend — M (no checkpoint; internal milestone `deploy-supabase` green before T-141)
-- [ ] T-141: Read the watch data with "Sincronizar" — L (no checkpoint after it; its items are tested at Checkpoint E11)
+- [x] T-141: Read the watch data with "Sincronizar" — L (no checkpoint after it; its items are tested at Checkpoint E11)
 
 ### Phase 3: Daily automatic sync (US-60)
 - [ ] T-142: Daily automatic sync on the first open — M
