@@ -41,6 +41,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -124,7 +125,8 @@ class HealthSyncRestorationTest {
             syncHealthData(),
             FakeConnectivityObserver(),
             idleReminderCoordinator(),
-            CoroutineScope(SupervisorJob()),
+            // On Main, not Default: the compose rule's waitForIdle then also waits for the sync (no CI race).
+            CoroutineScope(SupervisorJob() + Dispatchers.Main),
         ),
         repository = syncRepository,
         connectivity = FakeConnectivityObserver(),
