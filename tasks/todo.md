@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** T-138 (fix from Checkpoint E10 feedback), then re-present Checkpoint E10 (T-135 merged in #308, T-136 in #310). T-137 (closure) waits for its approval. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
+**Next:** re-present Checkpoint E10 (T-135 merged in #308, T-136 in #310, T-138 in #313). T-137 (closure) waits for its approval. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
 
 ---
 
@@ -107,12 +107,12 @@ Checkpoints (agreed with the user, 2026-10-28): **one Checkpoint E10** after T-1
 **Origin:** Checkpoint E10 feedback (user, 2026-10-28): "move avisos preferences from avisos center to users preferences". Convention written to `05` §8 "Decided".
 **Description:** The three switches ("Recordatorio de peso", "Recordatorio de medidas", "Check-in semanal") leave the center's settings card; the center only lists reminders and the answered check-in. Preferencias gets one hub section "Avisos" (replaces T-136's "Check-in semanal" section) holding the three switches and "Día del check-in", with one "Guardar" (explicit-save rule, offline hint R-30). Sweep every screen with a setting inside a feature screen (R-39). Same data (`notification_settings`, `profiles.check_in_weekday`), no migration; update US-57 Gherkin wording, `05` §6.2 and the host tests (center, Preferencias, restoration).
 **Decision taken (PM, recorded):** one "Avisos" section instead of switches spread over sections; the center keeps no settings link.
-**Verification:** [ ] lint + `testLocalDebugUnitTest` green; [ ] re-test at Checkpoint E10: silence/restore each type from Preferencias, center has no switches.
+**Verification:** [x] lint + `testLocalDebugUnitTest` green (CI, #313); [ ] re-test at Checkpoint E10: silence/restore each type from Preferencias, center has no switches.
 **Dependencies:** Checkpoint E10 open · **Estimated scope:** S
 
 ---
 
-### Checkpoint E10 — Reminders and your weekly check-in 👤 (14 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
+### Checkpoint E10 — Reminders and your weekly check-in 👤 (15 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
 Journey: the reminders find you when you open the app, take you to log the missing data and go away once it is logged; on your chosen day the check-in appears, you review your week in figures, rate your energy and write a note. Why here: right after T-136, the last implementation task, so it is also the final regression of E10; its approval releases the closure T-137. The user chose one checkpoint over two of 7 items.
 - [x] T-135 and T-136 merged, CI green, `deploy-supabase` applied both migrations (data intact), every reported bug fixed.
 - [ ] 👤 Install the APK and try:
@@ -121,15 +121,16 @@ Journey: the reminders find you when you open the app, take you to log the missi
   3. Circumference reminder (US-58): with no circumference in the last 14 days, "No te has medido en 2 semanas" is listed; after logging one, it is not.
   4. Tap to log (US-57): tap the weight reminder → the weight entry opens; save a weight → back in the center the reminder is gone and the count dropped; do the same with the circumference reminder.
   5. Health Connect (US-58): with the weight reminder listed, weigh yourself on a Health Connect scale (or add today's weight in Health Connect), then Peso → "Sincronizar": the reminder disappears.
-  6. Silence a type (US-57): turn off "Recordatorio de peso" in "Centro de avisos": the weight reminder and its count disappear; close and reopen the app: still off; turn it back on: the reminder returns.
-  7. Next open and states (T-135): leave the app in the background overnight without weighing in and open it in the morning: the reminder is listed without doing anything; turn on airplane mode: the switches are disabled with "Sin conexión: no se puede …"; with nothing pending the center shows its empty state.
-  8. Check-in day (T-136): Preferencias → "Día del check-in" shows "domingo"; set it to today's weekday → "Centro de avisos" lists the check-in and the count goes up; leave it unanswered and open the app the next day: it is still listed (Q1 B).
+  6. Silence a type (US-57): turn off "Recordatorio de peso" in Preferencias → "Avisos" (Guardar): the weight reminder and its count disappear; close and reopen the app: still off; turn it back on: the reminder returns.
+  7. Next open and states (T-135): leave the app in the background overnight without weighing in and open it in the morning: the reminder is listed without doing anything; turn on airplane mode: in Preferencias → Avisos "Guardar" is disabled with "Sin conexión: no se puede …"; with nothing pending the center shows its empty state.
+  8. Check-in day (T-136): Preferencias → Avisos → "Día del check-in" shows "domingo"; set it to today's weekday → "Centro de avisos" lists the check-in and the count goes up; leave it unanswered and open the app the next day: it is still listed (Q1 B).
   9. Weekly summary: open the check-in: volume in kg, workouts and sets this week vs last week, the records you set this week and the weight trend (this week's average − last week's, or "Sin datos suficientes"); compare them with "Entrenamiento" and Peso.
   10. Answer: energy 4 out of 5, notes "semana dura en el trabajo", "Guardar": it closes with one vibration, the reminder and its count are gone and stay gone after reopening the app.
   11. Reopen and edit (Q3 B): in "Centro de avisos" this week's answered check-in is still there, not counted; open it: energy and notes as saved; change the note and "Guardar": the change is kept.
-  12. Editing safety and silencing: change the energy and go back: "¿Descartar los cambios?" ("Seguir editando" keeps the draft, "Descartar" leaves); turn off the check-in switch in "Centro de avisos": it disappears; turn it on: it returns.
+  12. Editing safety and silencing: change the energy and go back: "¿Descartar los cambios?" ("Seguir editando" keeps the draft, "Descartar" leaves); turn off the check-in switch in Preferencias → "Avisos" (Guardar): it disappears; turn it on: it returns.
   13. Check-in states: in airplane mode "Guardar" is disabled with "Sin conexión: no se puede …"; if the summary fails to load, its "Reintentar" works and you can still answer; a week with no workouts shows zeros.
   14. Final regression of E10: with a missing weigh-in, an old circumference and the check-in due, the entry shows 3 and each row opens its entry; log a workout with a record and a weight, reopen the check-in: the summary includes them; Diario, Peso and Entreno work as before.
+  15. Licencias (bug fix bundled in T-138): Perfil → Acerca de → "Licencias de código abierto" opens the licences list without crashing; open one entry and go back.
   - Leave the app and come back on "Centro de avisos" scrolled down and with the check-in half answered (energy chosen, a note typed): the same tab, screen, scroll and draft are restored.
   - Out of scope: the missed-check-in rollover over a real week (covered by host tests); the coach's commentary on the check-in (E13, US-71); the training streak (deferred); system notifications (never, ADR-73); the automatic daily Health Connect sync (E11).
 
