@@ -4,7 +4,7 @@ Live index of every closed decision, with the numbers frozen in Phase 1. The ful
 
 ## New ADRs go here
 
-Phase 2 ADRs continue the numbering (next: **ADR-73**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 2 ADRs continue the numbering (next: **ADR-79**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -17,8 +17,8 @@ Phase 2 ADRs continue the numbering (next: **ADR-73**) and are written **in full
 | 05 | Kotlin Multiplatform from day one, Android-only target; Android APIs behind interfaces in `androidMain` | |
 | 06 | Open Food Facts only through cached Edge Functions (`food-search`, `food-barcode`) | |
 | 07 | Barcode scanner = Google Code Scanner (no camera permission); unknown product offers a manual food | |
-| 08 | Health Connect with a manual "Sincronizar" button (weight, body fat), dedup by record id, no background sync | |
-| 09 | 1RM estimated with Epley; AI assistant deferred | |
+| 08 | Health Connect with a manual "Sincronizar" button (weight, body fat), dedup by record id, no background sync | Amended by 74 |
+| 09 | 1RM estimated with Epley; AI assistant deferred | Assistant part superseded by 76 |
 | 10 | Bottom navigation + adaptive rail; contextual FAB | Amended by 22, 26, 37; FAB removed by 36 |
 | 11 | Single palette from the tokens in prose (`surfaceBase #0B0F14`, `neonLime #A3E635`...); macros lime/cyan/amber | |
 | 12 | Keepalive workflow every 3 days calling the `health` function | |
@@ -75,7 +75,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-73**) and are written **in full
 | 63 | The comida details are the editor; "Añadir" adds what is shown | |
 | 64 | Amount estimate from a photo for a chosen food; dish estimates zero-fill | Amended by 72 |
 | 65 | Cooking adds fat as a percentage of raw weight (1 / 2 / 8 %) | Supersedes 60 |
-| 66 | Periodic reports and streak check-ins move to Phase 2 | |
+| 66 | Periodic reports and streak check-ins move to Phase 2 | Check-in part taken up by 73 |
 | 67 | No signed release build in Phase 1: `prodDebug` APK, v1.0.0 = tag + GitHub Release without APK | |
 | 68 | Diary groups the entries added from a saved comida (`group_id`, `group_name` snapshot) | |
 | 69 | UX rulebook (`05` §8-§10), designsystem templates and `check-ux-conventions.sh` guards | Amends 45 |
@@ -84,3 +84,72 @@ Phase 2 ADRs continue the numbering (next: **ADR-73**) and are written **in full
 | 72 | Photo amount always gives a best estimate; confidence is a 1-10 scale (R-41) | Amends 64 |
 
 (Numbers below 10 are zero-padded as in the frozen text and in code comments.)
+
+## Index (Phase 2, ADR-73..)
+
+| ADR | Decision (one line) | Status |
+|---|---|---|
+| 73 | In-app reminders computed on open (weight 2 days, circumferences 14 days), no time window; weekly check-in returns; soreness not collected | Amends 66 |
+| 74 | Health Connect: automatic sync on the first open of the day plus the manual button; reads sleep, steps, calories, resting heart rate | Amends 08 |
+| 75 | Rest-end alert with the screen off (the only notification the app posts); alert sound reopened | Amends E3 US-13 |
+| 76 | Evidence-based coach: deterministic calculations, the model explains, proposals need acceptance, derived values confirmed, coach sets outcomes, RIR derived from RPE | Supersedes the assistant part of 09 |
+| 77 | Claude through a `coach` Edge Function (Opus 5.5 plan, Sonnet 5.5 report and chat); paid AI capped at 2 € per user and 5 € in total per month; NFR-02 changed | |
+| 78 | `activity_level` kept as the starting factor; `target_weight_kg` retired as a user input; intention, place, equipment, days and session length in `training_preferences`; `exercises.movement_pattern` | |
+
+## Phase 2 ADRs (full text)
+
+### ADR-73 · In-app reminders, weekly check-in, no soreness prompt (E10; amends ADR-66)
+- **Context:** The coach needs regular weigh-ins and measurements. Phase 1 has no reminders and deferred the weekly check-in (ADR-66). The drafts proposed allowed hours and a per-muscle soreness pop-up.
+- **Decision:**
+  - Reminders live only inside the app: computed from the stored data on each open or return to the foreground and listed in "Centro de avisos". No system notifications and no time window: a reminder whose condition was met while the app was closed is listed on the next open.
+  - Weight reminder after 2 days in a row without a weigh-in; circumference reminder after 14 days (design decision). Each type can be silenced.
+  - The weekly check-in returns (energy 1-5 and notes, on a chosen weekday, default Sunday) with the deterministic weekly summary; the coach adds its commentary in E13. Sleep is not asked (it comes from the watch). The streak stays deferred.
+  - Muscle soreness is not collected: it is a poor indicator of recovery and adaptation, and no coach rule would use it.
+- **Consequences:** `epics/E10-reminders-and-check-in.md`, `01-scope.md`, `07-coach-design.md` §5 and §7.
+- **Approval:** 2026-10-28, user (chat).
+
+### ADR-74 · Daily automatic Health Connect sync (E11; amends ADR-08)
+- **Context:** ADR-08 syncs weight and body fat with a manual button. Phase 2 reads watch data (sleep, steps, calories, resting heart rate) whose granularity is daily; the user knows when a fresh weigh-in exists.
+- **Decision:** On the first app open of each local day the app reads every granted type automatically; the "Sincronizar" button stays and reads every type on demand. A failed automatic sync is retried on the next open. Still no background sync. Writes remain weight and body fat only. Dedup by record id as in ADR-08; one row per user and day for daily totals.
+- **Consequences:** `epics/E11-health-connect-daily-sync.md`; new tables `daily_activity`, `sleep_sessions`, `resting_heart_rate`; `health_sync_state.last_auto_sync_date`; `03-data-model.md` when implemented.
+- **Approval:** 2026-10-28, user (chat; the trigger was delegated to the PM).
+
+### ADR-75 · Rest-end alert with the screen off (E12; amends E3 US-13)
+- **Context:** E3 US-13 alerts only in the foreground ("no foreground service or notifications in Phase 1"); a locked phone misses the end of rest.
+- **Decision:** The end of rest vibrates, plays the alert sound and posts "Descanso terminado" when the app is in the background or the screen is off; in the foreground only the in-app alert shows. Skipping or finishing cancels it. This is the only system notification of Phase 2. The technique is chosen in the plan after verifying on Android 17. The alert sound is replaced, chosen by the user among the E9 point 16 candidates.
+- **Consequences:** `epics/E12-training-data-and-preferences.md` US-64; notification permission handling; `01-scope.md` §6.
+- **Approval:** 2026-10-28, user (chat).
+
+### ADR-76 · Evidence-based coach (E13; supersedes the assistant part of ADR-09)
+- **Context:** ADR-09 deferred the AI assistant. The coach must be trustworthy: no invented figures, no change without consent, rules backed by evidence.
+- **Decision:**
+  - Rules, figures and sources live in `07-coach-design.md`; every number is sourced, common practice or labelled a design decision.
+  - Calculations (BMR, activity, adaptive expenditure, trend, progression, e1RM, adherence, deload) are deterministic; the model selects within validated options and explains; its output is structured and validated; the model never writes to the database.
+  - Plans are 4-week blocks; derived values are shown with their source and confirmed before use; adjustments are proposals accepted one by one.
+  - The coach sets outcomes; the user never enters target numbers. An accepted plan writes the nutrition goal; the calorie floor (ADR-25) always applies; a manual edit in Preferencias still works.
+  - RIR is derived from RPE (10 − RPE); there is no RIR field. Soreness is not a signal.
+  - Discomfort on an exercise blocks load increases for 7 days or until resolved; strong-pain terms from a fixed list show a fixed message to consult a health professional; no diagnosis.
+  - Coach suggestions are shown in the live session and never rewrite planned values; ADR-70 is unchanged.
+  - Personal use: no consent screen; before distributing the app, every user must accept the data use (written condition).
+- **Consequences:** `07-coach-design.md`, `epics/E12-training-data-and-preferences.md`, `epics/E13-performance-assistant.md`, `04-business-rules.md` when implemented.
+- **Approval:** 2026-10-28, user (chat).
+
+### ADR-77 · AI provider and cost cap (E13; changes NFR-02)
+- **Context:** NFR-02 required 100 % free. Gemini's free tier serves food photos (ADR-59). The coach needs stronger reasoning; the user accepts paying under 5 € a month.
+- **Decision:**
+  - Claude through one `coach` Edge Function; the API key only as a Supabase secret (`ANTHROPIC_API_KEY`). Opus 5.5 for the block plan; Sonnet 5.5 for the weekly report and the chat; no model for deterministic features. Gemini stays only in `food-photo`.
+  - Cost is capped by money, not calls: each call records its usage in `coach_usage`; the function refuses calls beyond 2 € per user or 5 € in total per calendar month (dollars counted as euros). The Anthropic account spending limit is the backstop. Over the cap, deterministic features keep working.
+  - Estimate: ≈ $3 per month for a heavy user, ≈ $1 for a light one (`07-coach-design.md` §11).
+  - Before E13: verify the API data policy and current prices.
+- **Consequences:** NFR-02 changed (`01-scope.md` §3); `epics/E13-performance-assistant.md` US-76; `08-environment-setup.md` (new secret) when implemented.
+- **Approval:** 2026-10-28, user (chat; budget figures proposed by the PM and approved with the planning PR).
+
+### ADR-78 · Profile and catalogue for the coach (E12, E13)
+- **Context:** The drafts made `activity_level` and `target_weight_kg` obsolete. `activity_level` feeds the Diario calorie target (`04` §1.3) and is the coach's starting factor before there is history. The coach needs the intention, place and equipment, and a movement pattern to substitute exercises.
+- **Decision:**
+  - `profiles.activity_level` stays; the coach proposes changes as a derived value (ADR-76).
+  - `profiles.target_weight_kg` stops being a user input; it and its UI are removed in E13 when the coach's outcomes replace the E5 goal card.
+  - `training_preferences` gains `intention`, `place`, `equipment[]`, `days_per_week`, `session_minutes`.
+  - `exercises.movement_pattern` is filled by the generated catalogue migration (ADR-39) and is optional on custom exercises.
+- **Consequences:** `epics/E12-training-data-and-preferences.md`, `epics/E13-performance-assistant.md`, `03-data-model.md` when implemented.
+- **Approval:** 2026-10-28, user (chat).

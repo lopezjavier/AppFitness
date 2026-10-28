@@ -4,3 +4,6 @@ Product questions raised by the user that are not (yet) ADRs. A durable resoluti
 
 | Question | Raised | Status | Resolution |
 |---|---|---|---|
+| Where does the coach live in the 3-tab navigation (ADR-37)? A new tab needs an ADR | 2026-10-28 | Open, resolve before the E13 breakdown | |
+| Training streak and rewards (rest of E8 US-44) | 2026-10-28 | Deferred, not in Phase 2 | `01-scope.md` §5 |
+| Release version of each Phase 2 epic | 2026-10-28 | Open, resolve at each epic closure | `v1.x` for now |
