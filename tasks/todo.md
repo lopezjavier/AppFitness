@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** E10 is closed (`v1.1.0`, T-137 merged in #317). Break down E11 with the `epic-planner` in a fresh session (verify `READ_HEALTH_DATA_HISTORY` first, see Notes for later epics); the user agrees the task list and checkpoints before the breakdown PR merges. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
+**Next:** T-139 merged (#320); spike recorded, E11 Q1 = branch A (90 days, history permission). Start **T-140** (watch-data backend) in a fresh session; T-141 needs `deploy-supabase` green after T-140.
 
 ---
 
@@ -43,16 +43,16 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 **Description:** Find out on the user's phone (Zepp → Health Connect, at least 5 months of steps) whether the app can read data older than 30 days. (1) Declare `android.permission.health.READ_HEALTH_DATA_HISTORY` and `android.permission.health.READ_STEPS` in `androidApp/src/main/AndroidManifest.xml` (steps is the type the user knows has 5 months of history; T-141 keeps or removes the history declaration according to the result). (2) Check `HealthConnectFeatures.getFeatureStatus(FEATURE_READ_HEALTH_DATA_HISTORY)` (available / unavailable) through the existing `HealthConnectDataSource` (new port method or a diagnostic helper; the planner chooses, keeping the port pure). (3) Request the steps read permission plus the history permission with the existing permission launcher. (4) Read steps (and weights, for comparison) in two windows, 60–90 days ago and 0–30 days ago, and count the records and the oldest record's date in each. (5) Show the result in a **temporary diagnostic** screen reachable from Perfil → "Acerca de" (one `AppListRow` "Diagnóstico de Health Connect" opening an `AppScreen` with plain `AppListRow`s: feature status, history permission granted yes/no, records 60–90 days ago, records 0–30 days ago, oldest record date; a "Comprobar" button that requests the permissions and runs the read). The screen and its row are removed by T-141 (sweep item there); its copy is not reviewed beyond R-36/R-37. Nothing is stored server-side.
 
 **Acceptance criteria:**
-- [ ] The manifest declares `READ_HEALTH_DATA_HISTORY` and `READ_STEPS`; no new write permission.
-- [ ] "Comprobar" shows the feature status, whether the history permission was granted, and the record counts and oldest date for 60–90 and 0–30 days ago.
-- [ ] Denying the permissions shows them as not granted and reads nothing; Health Connect missing shows the existing unavailable state; no crash.
-- [ ] 👤 Spike report: the user runs "Comprobar" on the phone and reports the five values; the PM records them and the resulting branch of E11 Q1 in `tasks/plan.md` (docs PR) before T-141 starts.
+- [x] The manifest declares `READ_HEALTH_DATA_HISTORY` and `READ_STEPS`; no new write permission.
+- [x] "Comprobar" shows the feature status, whether the history permission was granted, and the record counts and oldest date for 60–90 and 0–30 days ago.
+- [x] Denying the permissions shows them as not granted and reads nothing; Health Connect missing shows the existing unavailable state; no crash.
+- [x] 👤 Spike report: the user runs "Comprobar" on the phone and reports the five values; the PM records them and the resulting branch of E11 Q1 in `tasks/plan.md` (docs PR) before T-141 starts.
 
 **Host tests:** a diagnostic ViewModel test (granted, denied, feature unavailable, read failure) with a fake data source; a Robolectric test of the diagnostic screen (rows and "Comprobar"). The real Health Connect behaviour is verified only on the device (the existing data source is "verified by hand on a phone only").
 
 **Verification:**
-- [ ] lint + `testLocalDebugUnitTest` green.
-- [ ] 👤 Spike report received and recorded (gates T-141).
+- [x] lint + `testLocalDebugUnitTest` green.
+- [x] 👤 Spike report received and recorded (gates T-141).
 
 **Agent runs:** planner, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer = 5 (no ux-reviewer passes: temporary screen removed in T-141).
 **Dependencies:** E10 closed (`v1.1.0`); breakdown agreed by the user
