@@ -2,9 +2,16 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -15,8 +22,8 @@ import io.github.lopezjavier.appfitness.app.FakeDiscomfortRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
-import io.github.lopezjavier.appfitness.domain.rules.StrongPainTerms
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -32,6 +39,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.TimeZone
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -111,13 +119,14 @@ class LiveSessionDiscomfortTest {
         tap("live_exercise_0_menu_discomfort")
     }
 
-    private fun log(note: String) {
+    private fun log(note: String, level: Int = 2) {
         openSheet()
+        tap("live_exercise_0_discomfort_level_$level")
         if (note.isNotEmpty()) rule.onNodeWithTag("live_exercise_0_discomfort_note").performTextInput(note)
         tap("live_exercise_0_discomfort_sheet_commit")
     }
 
-    private fun stored(ageDays: Int) = Discomfort("old", "e1", clock.current - ageDays.days, null, severe = false)
+    private fun stored(ageDays: Int) = Discomfort("old", "e1", clock.current - ageDays.days, DiscomfortLevel.Mild, null)
 
     @Test
     fun logging_showsMolestiaRegistradaOnTheExercise() {
@@ -127,7 +136,122 @@ class LiveSessionDiscomfortTest {
         log("rodilla")
 
         rule.onNodeWithTag("live_exercise_0_discomfort").assertTextContains("Molestia registrada")
+        rule.onNodeWithTag("live_exercise_0_discomfort_level").assertTextContains("Molestia leve")
         rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertDoesNotExist()
+        assertEquals(DiscomfortLevel.Mild, discomforts.rows.single().level)
+    }
+
+    @Test
+    fun theOpenRow_speaksTheLevelInItsDescription() {
+        discomforts.rows = listOf(stored(ageDays = 1))
+        show()
+
+        assertEquals(
+            listOf("Molestia registrada, nivel Molestia leve"),
+            rule.onNodeWithTag("live_exercise_0_discomfort_level").fetchSemanticsNode()
+                .config[SemanticsProperties.ContentDescription],
+        )
+    }
+
+    @Test
+    fun theSheet_listsTheFiveLevelsInOrderWithTheirLabels() {
+        show()
+        openSheet()
+
+        val labels = listOf(
+            "Tensión o fatiga",
+            "Molestia leve",
+            "Pinchazo o chasquido",
+            "Hinchazón, hormigueo o entumecimiento",
+            "Dolor agudo o lesión",
+        )
+        var previousTop = -1f
+        labels.forEachIndexed { index, label ->
+            val row = rule.onNodeWithTag("live_exercise_0_discomfort_level_${index + 1}")
+            row.assertTextContains(label)
+            val top = row.getUnclippedBoundsInRoot().top.value
+            assertTrue("level ${index + 1} must sit below the previous one", top > previousTop)
+            previousTop = top
+        }
+    }
+
+    @Test
+    fun theSheet_hasNoLevelPreselected() {
+        show()
+        openSheet()
+
+        for (n in 1..5) rule.onNodeWithTag("live_exercise_0_discomfort_level_$n").assertIsNotSelected()
+    }
+
+    @Test
+    fun pickingALevel_selectsOnlyThatRow() {
+        show()
+        openSheet()
+
+        tap("live_exercise_0_discomfort_level_3")
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_level_3").assertIsSelected()
+        listOf(1, 2, 4, 5).forEach {
+            rule.onNodeWithTag("live_exercise_0_discomfort_level_$it").assertIsNotSelected()
+        }
+    }
+
+    @Test
+    fun levelFour_isStoredAsSevere() {
+        show()
+
+        log("", level = 4)
+
+        assertTrue(discomforts.rows.single().severe)
+    }
+
+    @Test
+    fun levelThree_isNotStoredAsSevere() {
+        show()
+
+        log("", level = 3)
+
+        assertFalse(discomforts.rows.single().severe)
+    }
+
+    @Test
+    fun theOpenRow_showsTheLevelOfAHighLevelDiscomfort() {
+        show()
+
+        log("", level = 5)
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_level").assertTextContains("Dolor agudo o lesión")
+        assertTrue(discomforts.rows.single().severe)
+    }
+
+    @Test
+    fun levelHelp_opensASheetWithOneBulletPerLevelInOrder() {
+        show()
+        openSheet()
+
+        tap("live_exercise_0_discomfort_level_help")
+
+        val bullet = { n: Int ->
+            rule.onNodeWithTag("live_exercise_0_discomfort_level_help_sheet_bullet_$n", useUnmergedTree = true)
+        }
+        for (n in 1..5) bullet(n).assertExists()
+        listOf(1 to "Tensión o fatiga", 5 to "Dolor agudo o lesión").forEach { (n, text) ->
+            rule.onNode(
+                hasText(text, substring = true) and
+                    hasAnyAncestor(hasTestTag("live_exercise_0_discomfort_level_help_sheet_bullet_$n")),
+                useUnmergedTree = true,
+            ).assertExists()
+        }
+    }
+
+    @Test
+    fun levelHelp_doesNotPickALevel() {
+        show()
+        openSheet()
+
+        tap("live_exercise_0_discomfort_level_help")
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
@@ -154,6 +278,7 @@ class LiveSessionDiscomfortTest {
     fun loggingWithoutANote_isAllowed() {
         show()
         openSheet()
+        tap("live_exercise_0_discomfort_level_2")
 
         rule.onNodeWithTag("live_exercise_0_discomfort_sheet_commit").assertIsEnabled()
         tap("live_exercise_0_discomfort_sheet_commit")
@@ -162,23 +287,22 @@ class LiveSessionDiscomfortTest {
     }
 
     @Test
-    fun strongPainNote_showsTheFixedMessageAndStoresSevere() {
+    fun strongPainNote_showsNoMessageAndKeepsTheChosenLevel() {
         show()
 
         log("dolor fuerte")
 
-        rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertTextContains(StrongPainTerms.MESSAGE)
-        assertTrue(discomforts.rows.single().severe)
+        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertDoesNotExist()
+        assertFalse(discomforts.rows.single().severe)
     }
 
     @Test
-    fun plainDolor_showsNoMessage() {
+    fun guardar_isDisabledUntilALevelIsPicked() {
         show()
+        openSheet()
 
-        log("dolor")
-
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
-        rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_0_discomfort_sheet_commit").assertIsNotEnabled()
     }
 
     @Test
@@ -225,6 +349,7 @@ class LiveSessionDiscomfortTest {
     fun noteOf200Characters_canBeSaved() {
         show()
         openSheet()
+        tap("live_exercise_0_discomfort_level_2")
 
         rule.onNodeWithTag("live_exercise_0_discomfort_note").performTextInput("a".repeat(200))
         settle()

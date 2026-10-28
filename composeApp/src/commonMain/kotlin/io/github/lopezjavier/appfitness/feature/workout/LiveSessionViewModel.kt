@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -379,7 +380,7 @@ class LiveSessionViewModel(
 
             is LiveSessionEvent.SetExerciseRest -> setExerciseRest(event.position, event.seconds)
 
-            is LiveSessionEvent.LogDiscomfort -> logExerciseDiscomfort(event.position, event.note)
+            is LiveSessionEvent.LogDiscomfort -> logExerciseDiscomfort(event.position, event.level, event.note)
 
             is LiveSessionEvent.ResolveDiscomfort -> resolveExerciseDiscomfort(event.position)
 
@@ -474,13 +475,13 @@ class LiveSessionViewModel(
     }
 
     /** Online only: stores the discomfort and shows it at once; the newest open one is the one displayed. */
-    private fun logExerciseDiscomfort(position: Int, note: String?) {
+    private fun logExerciseDiscomfort(position: Int, level: DiscomfortLevel, note: String?) {
         val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId ?: return
         if (!online || terminal != null || discomfortSaving) return
         discomfortSaving = true
         publish()
         viewModelScope.launch {
-            logDiscomfort(exerciseId, note).fold(
+            logDiscomfort(exerciseId, level, note).fold(
                 onSuccess = {
                     discomforts = discomforts + (exerciseId to (listOf(it) + discomforts[exerciseId].orEmpty()))
                     discomfortSaving = false
@@ -1546,12 +1547,9 @@ class LiveSessionViewModel(
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
-                    discomfort = discomforts[exercise.exerciseId].orEmpty()
-                        .filter { DiscomfortStatus.isOpen(it, clock.now()) }
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { open ->
-                            LiveDiscomfort(open.any { it.severe }, exercise.exerciseId in discomfortResolving)
-                        },
+                    discomfort = DiscomfortStatus
+                        .highestOpenLevel(discomforts[exercise.exerciseId].orEmpty(), clock.now())
+                        ?.let { LiveDiscomfort(it, exercise.exerciseId in discomfortResolving) },
                 )
             },
             restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total, it.isPaused) },

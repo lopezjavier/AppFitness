@@ -18,7 +18,16 @@ import androidx.compose.ui.semantics.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.amount_photo_confidence
 import io.github.lopezjavier.appfitness.composeapp.resources.amount_photo_confidence_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_bullet_1
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_bullet_2
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_bullet_3
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_bullet_4
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_intro
+import io.github.lopezjavier.appfitness.composeapp.resources.help_photo_confidence_title
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
 
@@ -32,22 +41,39 @@ private const val CONFIDENCE_TAG = "amount_photo_confidence"
 @Composable
 fun EstimateConfidenceLine(confidence: Int, modifier: Modifier = Modifier) {
     val description = stringResource(Res.string.amount_photo_confidence_cd, confidence)
-    Row(
-        modifier.fillMaxWidth().clearAndSetSemantics {
-            contentDescription = description
-            testTag = CONFIDENCE_TAG
-        },
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier.size(Spacing.md).background(AppTheme.colors.confidenceScale(confidence), CircleShape)
-                .testTag("${CONFIDENCE_TAG}_dot"),
-        )
-        Text(
-            text = stringResource(Res.string.amount_photo_confidence, confidence),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textPrimary,
+    // The help button is a sibling of the line, outside its cleared semantics (R-45).
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.weight(1f).clearAndSetSemantics {
+                contentDescription = description
+                testTag = CONFIDENCE_TAG
+            },
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(Spacing.md).background(AppTheme.colors.confidenceScale(confidence), CircleShape)
+                    .testTag("${CONFIDENCE_TAG}_dot"),
+            )
+            Text(
+                text = stringResource(Res.string.amount_photo_confidence, confidence),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textPrimary,
+            )
+        }
+        HelpButton(
+            contentDescription = stringResource(Res.string.help_photo_confidence_cd),
+            title = stringResource(Res.string.help_photo_confidence_title),
+            content = HelpContent(
+                paragraphs = listOf(stringResource(Res.string.help_photo_confidence_intro)),
+                bullets = listOf(
+                    stringResource(Res.string.help_photo_confidence_bullet_1),
+                    stringResource(Res.string.help_photo_confidence_bullet_2),
+                    stringResource(Res.string.help_photo_confidence_bullet_3),
+                    stringResource(Res.string.help_photo_confidence_bullet_4),
+                ),
+            ),
+            testTag = "${CONFIDENCE_TAG}_help",
         )
     }
 }

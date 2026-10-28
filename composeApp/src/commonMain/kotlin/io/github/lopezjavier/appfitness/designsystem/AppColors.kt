@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 
 /**
  * Kinetic Dark color tokens (planning/05-design-system.md §2.1-2.3, §4).
@@ -65,7 +66,16 @@ class AppColors(
         val lower = position.toInt().coerceAtMost(RpeRamp.lastIndex - 1)
         return lerp(RpeRamp[RpeRamp.lastIndex - lower], RpeRamp[RpeRamp.lastIndex - lower - 1], position - lower)
     }
+
+    /**
+     * §2.6 Discomfort scale: five ordered stops from greenish yellow to red, taken from the RPE ramp without its lime
+     * (the primary colour). Marker bar / dot only; the label is always text in `textPrimary`.
+     */
+    fun discomfortScale(level: DiscomfortLevel): Color = RpeRamp[DiscomfortRampIndexes[level.value - 1]]
 }
+
+/** Indexes of [RpeRamp] used by the five discomfort levels. */
+private val DiscomfortRampIndexes = listOf(3, 4, 5, 6, 8)
 
 private const val CONFIDENCE_MIN = 1
 private const val CONFIDENCE_MAX = 10

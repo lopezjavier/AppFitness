@@ -84,7 +84,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - **One `RestAlertScheduler` port.** The live-session ViewModel schedules the alert, reschedules it ("+30s", new set) and cancels it ("Omitir", finish, discard, rest ending in the foreground). Foreground = a resumed activity (`CurrentActivityHolder`), so a locked screen counts as background. In the foreground only the in-app alert fires.
 - **Notification permission.** `POST_NOTIFICATIONS` is requested at the first rest of a session (Android 13+). If denied, nothing is posted and the app explains it once (persisted flag).
 - **Sound.** Three candidates and a temporary chooser in T-146, one notification channel per candidate (`rest_alert_system`, `rest_alert_chime`, `rest_alert_double_beep`; a channel sound is frozen after creation), each high importance with the `RestAlertPattern` vibration. The notification goes to the channel of the sound chosen in `RestAlertPreferences`; in the foreground `AndroidAlertSound` plays it. T-148 keeps only the chosen sound in a new channel ID and deletes the other channels, the chooser and the unused assets.
-- **Strong-pain matcher in the domain.** A fixed, versioned term list lives in `shared/…/domain/rules/` (E12 Q1). Matching is case- and accent-insensitive on normalised text; no model reads the text (`07` §7). Discomfort notes use it to set `severe`. Set and routine-exercise notes use it only to show the message.
+- ~~**Strong-pain matcher in the domain.** (void, ADR-81 / T-152: the user picks a level, nothing is matched) A fixed, versioned term list lives in `shared/…/domain/rules/` (E12 Q1). Matching is case- and accent-insensitive on normalised text; no model reads the text (`07` §7). Discomfort notes use it to set `severe`. Set and routine-exercise notes use it only to show the message.~~
 - **Discomfort open window on the client.** A discomfort is open while unresolved and `now < logged_at + 7 days`. The user never deletes stored rows: they are the history E13 US-70 needs.
 - **Four migrations, one per story** (`02` §6): `exercise_discomforts` (T-147), the notes columns (T-148), the `training_preferences` fields + enums (T-149; `session_minutes` check 15-180, multiple of 5), and `movement_pattern` (T-150). Each has pgTAP, owner RLS where a table is new, and needs `deploy-supabase` green before the next task or checkpoint.
 - **"Mi entrenamiento" is a new Preferencias hub section** (Gherkin literal) beside the existing "Entrenamiento" app-settings section, and it saves only its own fields. Default equipment per place is a pure domain rule.
@@ -114,7 +114,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
   - **Checkpoint E12-A 👤 (7 items):** screen off and background; foreground; skip, +30s, finish/discard; notifications denied; choose the sound; log discomfort; strong pain and resolve.
 
 ### Phase 2: Notes and static inputs for the coach (US-66, US-65, data task)
-- [ ] T-152: Discomfort level scale (ADR-81) and help on every rating scale (R-43); before re-presenting Checkpoint E12-A — L
+- [ ] T-152: Discomfort level scale (ADR-81) and help on every rating scale (R-45); before re-presenting Checkpoint E12-A — L
 - [ ] T-148: Notes per set and per routine exercise, and the chosen rest sound — L (no checkpoint after it; `deploy-supabase` green before T-149)
 - [ ] T-149: "Mi entrenamiento" — M (no checkpoint after it; `deploy-supabase` green before T-150)
 - [ ] T-150: Movement pattern — M
@@ -153,17 +153,24 @@ v1.2.0 ─► T-146 ─► T-147 ─► (deploy) ─► [Checkpoint E12-A 👤: 
 | A notification channel's sound cannot change after creation | Medium | The temporary chooser plays the sound itself or uses one channel per candidate; T-148 creates the final channel with a new ID |
 | The sound is tested at Checkpoint E12-A from a chooser that T-148 later removes | Low | The pick is recorded with the approval; Checkpoint E12-B item 1 re-tests the wired sound |
 | Sound candidates carry a licence problem in a public repo | Low | Synthesised or licence-free assets only; the system sound is referenced, not bundled |
-| The strong-pain list misses or over-matches terms | Medium | Fixed list agreed by the user (Q1; plain "dolor"/"molestia" excluded on purpose); whole-word normalised matching; host tests for every term and its variants; the message never diagnoses |
+| ~~The strong-pain list misses or over-matches terms~~ (void, ADR-81) | Medium | Fixed list agreed by the user (Q1; plain "dolor"/"molestia" excluded on purpose); whole-word normalised matching; host tests for every term and its variants; the message never diagnoses |
 | Moving `durationText` changes statistics or Actividad output | Low | Moved with no change to its output; existing tests keep passing, plus new cases |
 | The movement-pattern mapping is wrong for some rows | Medium | Reviewed mapping by key, pgTAP spot checks, coverage check; E13 uses it only for substitutions |
 | Regenerating the catalogue migration needs the RepDB bundle | Low | Only if the generator must re-run (the user's local bundle, as in E4); otherwise an update migration from the mapping |
 | T-148 exceeds ~25 files (notes + sound wiring) | Low | Developer slices (backend + core, then UI) within the same PR; no extra task |
 | "Mi entrenamiento" next to "Entrenamiento" in the hub is confusing | Low | Gherkin literal kept; ux-reviewer checks the hub wording against R-04/§10; the user sees it at Checkpoint E12-B |
 
+## T-152 plan (ADR-81; planner, 2026-10-29)
+Full detail: `.workflow/current_task.md`. Supersedes the "Strong-pain matcher" decision, assumptions A3 and A5, and the matcher risk row above (E12 Q1 void). T-148 notes show no health message and are never scanned.
+- **Backend:** migration `20261129100000_exercise_discomforts_level.sql`: add `level smallint`, map `severe` true -> 5 and false -> 2, `not null`, check 1..5, drop `severe` (derived: level >= 4). Level immutable after insert (column grants). Slice 1.
+- **Core:** `DiscomfortLevel` enum, `Discomfort.level`, `LogDiscomfort(exerciseId, level, note)`, `StrongPainTerms` and its test deleted, `LiveDiscomfort(level)`. Slice 2.
+- **UI:** `AppTextField` v4 (multi-line vertical padding: the box only had horizontal padding, so a taller multi-line `BasicTextField` sat flush against the border; same defect in Check-in semanal), required level picker with `ScaleOptionRow` (generalised from `RpeOptionRow`) and `discomfortScale` colours (not the lime), level help, open row shows the level, help buttons on check-in Energía and food-photo Confianza (activity cards, categorical selectors and sliders exempt). Slice 3.
+- **Docs:** `03`, `04` §4.12, `05` §2.5/§8/§10 (new rule is R-45 "Scales explain themselves"; R-43 stays "Watch data"), `07` §7, `09` Q1, ADR-81 ticks.
+
 ## Open Questions
 
 **Resolved (user, 2026-10-28):**
-- **E12 Q1 · Strong-pain term list and fixed message → option B, approved as drafted.**
+- **E12 Q1 · Strong-pain term list and fixed message → option B, approved as drafted.** *Superseded by ADR-81 (T-152): no term list, no message.*
   - Terms: "dolor fuerte", "dolor agudo", "dolor intenso", "pinchazo", "chasquido", "hormigueo", "entumecimiento", "hinchazón", "lesión", "me he lesionado", "desgarro", "no puedo mover". Plain "dolor" and "molestia" are deliberately excluded.
   - Message: "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario."
   - Used by T-147 (discomfort, severe) and T-148 (notes, message only). Recorded in `planning/09-open-questions.md` and the epic's US-67 technical notes.
@@ -175,9 +182,9 @@ v1.2.0 ─► T-146 ─► T-147 ─► (deploy) ─► [Checkpoint E12-A 👤: 
 **Assumptions (non-blocking; applied unless the user objects at the checkpoints):**
 - A1. Tapping "Descanso terminado" opens the app on the live session.
 - A2. The notification permission is requested at the first rest of a session (Android 13+). The sound follows the phone's mute/ringer mode (E9 point 16: silent when muted).
-- A3. `severe` is set only by the term match; the user does not mark severity by hand.
+- A3. ~~`severe` is set only by the term match; the user does not mark severity by hand.~~ Void (ADR-81): `severe` is derived from the chosen level (>= 4).
 - A4. "Molestia registrada" and "Ya no me molesta" live in the live session, where the discomfort is logged. The exercise detail does not show it in E12.
-- A5. A strong-pain term in a set or routine note shows the fixed message but does not create a discomfort.
+- A5. ~~A strong-pain term in a set or routine note shows the fixed message but does not create a discomfort.~~ Void (ADR-81): notes show no message and are never scanned.
 - A6. Set notes are editable in "Editar entreno" and read-only in the workout detail.
 - A7. "Mi entrenamiento" is a new hub section. The existing "Entrenamiento" section keeps warm-up, previous values, calculators and auto-update.
 - A8. Choosing a place replaces the draft's equipment with that place's defaults; the user then edits it.

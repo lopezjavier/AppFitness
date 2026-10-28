@@ -60,6 +60,9 @@ object AppTextFieldDefaults {
 
     val HorizontalPadding: Dp = Spacing.md
     val LabelSpacing: Dp = Spacing.xs
+
+    /** Top and bottom inset of a multi-line box (v4); single-line boxes are centred by [MinHeight] instead. */
+    val MultiLineVerticalPadding: Dp = Spacing.md
     const val DEFAULT_MAX_LENGTH = 100
 
     /** [text] cut to [maxLength] characters. */
@@ -89,6 +92,8 @@ object AppTextFieldDefaults {
  * [capitalization] and [autofocus] (focus and keyboard on first composition) configure the input.
  * v3: [singleLine] false makes it a multi-line box of at least [minLines] lines (notes); use a non-Done [imeAction]
  * there so Enter inserts a line break.
+ * v4: a multi-line box insets its text by [AppTextFieldDefaults.MultiLineVerticalPadding] at the top and bottom
+ * (it used to sit flush against the border); single-line rendering is unchanged.
  */
 @Suppress("LongMethod") // One BasicTextField wiring; splitting would only move the parameters around.
 @Composable
@@ -199,6 +204,7 @@ fun AppTextField(
                     hasError,
                     placeholder.takeIf { value.isEmpty() },
                     textStyle,
+                    singleLine,
                     leading,
                     trailing,
                     innerTextField,
@@ -232,11 +238,13 @@ private fun TextFieldBox(
     hasError: Boolean,
     placeholder: String?,
     textStyle: TextStyle,
+    singleLine: Boolean,
     leading: (@Composable () -> Unit)?,
     trailing: (@Composable () -> Unit)?,
     innerTextField: @Composable () -> Unit,
 ) {
     val colors = AppTheme.colors
+    val verticalPadding = if (singleLine) 0.dp else AppTextFieldDefaults.MultiLineVerticalPadding
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -251,11 +259,16 @@ private fun TextFieldBox(
             .padding(
                 start = if (leading != null) 0.dp else AppTextFieldDefaults.HorizontalPadding,
                 end = if (trailing != null) 0.dp else AppTextFieldDefaults.HorizontalPadding,
+                top = verticalPadding,
+                bottom = verticalPadding,
             ),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
     ) {
         if (leading != null) FieldSlot(leading)
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+        Box(
+            Modifier.weight(1f),
+            contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart,
+        ) {
             if (placeholder != null) {
                 Text(
                     text = placeholder,

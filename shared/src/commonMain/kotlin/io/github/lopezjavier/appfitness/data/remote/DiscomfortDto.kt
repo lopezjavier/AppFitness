@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -11,14 +12,22 @@ internal data class DiscomfortDto(
     val id: String,
     @SerialName("exercise_id") val exerciseId: String,
     @SerialName("logged_at") val loggedAt: Instant,
+    val level: Int,
     val note: String? = null,
-    val severe: Boolean = false,
     @SerialName("resolved_at") val resolvedAt: Instant? = null,
 ) {
-    fun toDomain() = Discomfort(id, exerciseId, loggedAt, note, severe, resolvedAt)
+    /** Throws [IllegalArgumentException] for a level outside 1..5: the repository maps it to a failed result. */
+    fun toDomain() = Discomfort(
+        id = id,
+        exerciseId = exerciseId,
+        loggedAt = loggedAt,
+        level = requireNotNull(DiscomfortLevel.fromValue(level)) { "Unknown discomfort level $level" },
+        note = note,
+        resolvedAt = resolvedAt,
+    )
 
     companion object {
-        const val COLUMNS = "id,exercise_id,logged_at,note,severe,resolved_at"
+        const val COLUMNS = "id,exercise_id,logged_at,level,note,resolved_at"
     }
 }
 
@@ -26,8 +35,8 @@ internal data class DiscomfortDto(
 @Serializable
 internal data class DiscomfortInsertDto(
     @SerialName("exercise_id") val exerciseId: String,
+    val level: Int,
     val note: String? = null,
-    val severe: Boolean = false,
 )
 
 /** Body of the `PATCH` that resolves. */

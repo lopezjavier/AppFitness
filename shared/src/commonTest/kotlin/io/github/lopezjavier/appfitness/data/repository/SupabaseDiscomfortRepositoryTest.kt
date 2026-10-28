@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -29,7 +30,7 @@ private const val SESSION =
 
 private const val ROW =
     """{"id":"d1","exercise_id":"e1","logged_at":"2026-11-01T10:00:00+00:00","note":"dolor fuerte",""" +
-        """"severe":true,"resolved_at":null}"""
+        """"level":4,"resolved_at":null}"""
 
 class SupabaseDiscomfortRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
@@ -53,21 +54,30 @@ class SupabaseDiscomfortRepositoryTest {
     }
 
     @Test
-    fun log_sendsExerciseNoteAndSevereAndMapsTheStoredRow() = runTest {
+    fun log_sendsExerciseLevelAndNoteAndMapsTheStoredRow() = runTest {
         val repo = signedIn()
 
-        val stored = repo.log("e1", "dolor fuerte", true).getOrThrow()
+        val stored = repo.log("e1", DiscomfortLevel.SwellingOrNumbness, "dolor fuerte").getOrThrow()
 
         assertEquals("d1", stored.id)
         assertEquals(Instant.parse("2026-11-01T10:00:00Z"), stored.loggedAt)
-        assertTrue(stored.severe)
+        assertEquals(DiscomfortLevel.SwellingOrNumbness, stored.level)
         assertNull(stored.resolvedAt)
         val write = requests.last { it.method == HttpMethod.Post }
         val body = (write.body as TextContent).text
         assertTrue(""""exercise_id":"e1"""" in body, body)
         assertTrue(""""note":"dolor fuerte"""" in body, body)
-        assertTrue(""""severe":true""" in body, body)
+        assertTrue(""""level":4""" in body, body)
+        assertTrue("severe" !in body, body)
         assertTrue("user_id" !in body, body)
+    }
+
+    @Test
+    fun unresolved_aRowWithAnUnknownLevelIsAFailureNotACrash() = runTest {
+        val repo = signedIn()
+        readBody = "[${ROW.replace(""""level":4""", """"level":9""")}]"
+
+        assertTrue(repo.unresolved(setOf("e1")).isFailure)
     }
 
     @Test
@@ -115,6 +125,6 @@ class SupabaseDiscomfortRepositoryTest {
         writeStatus = HttpStatusCode.InternalServerError
         writeBody = """{"code":"XX000","message":"boom","details":null,"hint":null}"""
 
-        assertEquals(AppError.Unknown, repo.log("e1", null, false).appErrorOrNull())
+        assertEquals(AppError.Unknown, repo.log("e1", DiscomfortLevel.Mild, null).appErrorOrNull())
     }
 }

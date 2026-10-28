@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.checkin
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -49,6 +51,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_valu
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_workouts_label
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_workouts_value
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_1
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_2
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_3
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_4
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_5
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_intro
+import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
@@ -58,6 +68,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
@@ -278,6 +290,26 @@ private fun RecordsCard(records: List<WeekRecord>, names: Map<String, String>) {
     }
 }
 
+/** "?" beside the Energía label: what each value 1 to 5 means (R-45). */
+@Composable
+private fun CheckInEnergyHelpButton() {
+    HelpButton(
+        contentDescription = stringResource(Res.string.help_checkin_energy_cd),
+        title = stringResource(Res.string.help_checkin_energy_title),
+        content = HelpContent(
+            paragraphs = listOf(stringResource(Res.string.help_checkin_energy_intro)),
+            bullets = listOf(
+                stringResource(Res.string.help_checkin_energy_bullet_1),
+                stringResource(Res.string.help_checkin_energy_bullet_2),
+                stringResource(Res.string.help_checkin_energy_bullet_3),
+                stringResource(Res.string.help_checkin_energy_bullet_4),
+                stringResource(Res.string.help_checkin_energy_bullet_5),
+            ),
+        ),
+        testTag = "checkin_energy_help",
+    )
+}
+
 @Composable
 private fun FormBlock(state: CheckInUiState.Ready, onEvent: (CheckInEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
@@ -287,11 +319,15 @@ private fun FormBlock(state: CheckInUiState.Ready, onEvent: (CheckInEvent) -> Un
             Modifier.testTag("checkin_energy").semantics { contentDescription = groupCd },
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Text(
-                text = stringResource(Res.string.checkin_energy_label),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.checkin_energy_label),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                CheckInEnergyHelpButton()
+            }
             val options = CHECK_IN_ENERGY_RANGE.map { level ->
                 AppOption(
                     label = level.toString(),
