@@ -100,6 +100,7 @@ Feature: Training intention and preferences
 - Intention and preferences are static: they change only when the user edits them.
 - Default equipment per place (design decision): home = dumbbell, band, bodyweight; gym = every value; other = bodyweight.
 - The intention does not change the nutrition goal by itself; an accepted coach plan does (E13, ADR-76).
+- Session length (user, 2026-10-28): 15-180 min in 5-min steps, shown with the app's existing duration format ("45 min", "1 h 0 min", "1 h 30 min").
 
 ## US-66 · Notes per set and per routine exercise
 **As** a user
@@ -151,6 +152,7 @@ Feature: Discomfort log
 
 **Technical notes**
 - The strong-pain term list is fixed and versioned in the repo; matching is case- and accent-insensitive. No model interprets the text (`07-coach-design.md` §7).
+- Term list (user, 2026-10-28): "dolor fuerte", "dolor agudo", "dolor intenso", "pinchazo", "chasquido", "hormigueo", "entumecimiento", "hinchazón", "lesión", "me he lesionado", "desgarro", "no puedo mover". Plain "dolor" and "molestia" are deliberately not terms. Fixed message: "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario."
 - A discomfort is open for 7 days or until resolved. E13 (US-70) blocks load increases while it is open.
 - The same term list applies to exercise and set notes (US-66): a match shows the fixed message.
 
