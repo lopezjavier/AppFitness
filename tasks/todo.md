@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-151 (E12 breakdown). Numbering continues from here.
+Last task ID used: T-152 (E12-A feedback fix). Numbering continues from here.
 
-**Next:** 👤 Checkpoint E12-A (T-146 #340 and T-147 #342 merged, `deploy-supabase` green); after its approval, T-148. **Checkpoint E12-A feedback (user, 2026-10-28):** items 1-5 sound works; **chosen sound: "campana suave"** (soft chime; T-148 wires it). Bug for T-148 (trivial, user asked to include it there): the discomfort sheet note field has no top padding and the text is almost cut off (`design/reported/E12-A-discomfort-note-top-padding.png`, delete once confirmed); sweep other `AppTextField` multi-line fields in sheets. Open product question from the user: why show the strong-pain message ("Dolor fuerte")? Awaiting the user's decision (keep, soften or remove; ADR-76, `07` §7). T-147 review carry-overs (non-blocking): `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; plural strong-pain terms ("pinchazos", "lesiones") do not match the literal list; no retry of unread discomforts on resume. Carry-overs from the T-146 review (non-blocking, for Checkpoint E12-A or T-148): rest ending while the user is on another tab of the app posts no notification and no in-app alert (pre-existing in-app behaviour); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
+**Next:** T-152 (ADR-81: discomfort level scale replaces strong-pain matching; user decision 2026-10-28), then re-present 👤 Checkpoint E12-A, then T-148. T-146 #340 and T-147 #342 are merged. **Checkpoint E12-A feedback (user, 2026-10-28):** items 1-5 sound works; **chosen sound: "campana suave"** (soft chime; T-148 wires it). Bug for T-148 (trivial, user asked to include it there): the discomfort sheet note field has no top padding and the text is almost cut off (`design/reported/E12-A-discomfort-note-top-padding.png`, delete once confirmed); sweep other `AppTextField` multi-line fields in sheets. Strong-pain message and term matching dropped by the user; replaced by a colour-coded level picker (ADR-81, T-152); the T-148 note scan is removed too. T-147 review carry-overs (non-blocking): `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; plural strong-pain terms ("pinchazos", "lesiones") do not match the literal list; no retry of unread discomforts on resume. Carry-overs from the T-146 review (non-blocking, for Checkpoint E12-A or T-148): rest ending while the user is on another tab of the app posts no notification and no in-app alert (pre-existing in-app behaviour); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
 ---
 
@@ -112,6 +112,24 @@ Journey: during a workout, lock the phone or switch apps while resting and still
   7. Strong pain and resolve (US-67): log discomfort with the note "dolor fuerte": the fixed message asks you to consult a health professional; then tap "Ya no me molesta": "Molestia registrada" disappears.
   - Leave the app and come back during a rest in the live session, with the discomfort sheet half typed: the same tab, screen, countdown and draft are restored.
   - Out of scope: the wiring of the chosen sound (T-148, re-tested at Checkpoint E12-B); the 7-day expiry over real days (host tests); the coach blocking load increases (E13, US-70); reminders as system notifications (never, ADR-73).
+
+---
+
+## T-152: Discomfort level scale replaces strong-pain matching (ADR-81, amends US-67) · M
+
+**Story:** US-67 (amended by ADR-81, Checkpoint E12-A feedback 2026-10-28) · **Flow:** backend + core + UI · **Size:** M · **Scenarios:** to be rewritten in the epic file by the planner: Logging discomfort with a level; Levels are ordered and colour-coded; Resolving; Open discomforts expire.
+
+**Description:** Replace T-147's free-text term matching with a level picker. (1) **Backend:** a migration adds `level` (smallint, check by the number of levels; existing rows mapped: `severe` true → highest, false → mild) and drops or derives `severe`; pgTAP updated. (2) **Core:** remove `StrongPainTerms`, its message and tests; `LogDiscomfort` takes a level; `severe` is derived from the level; the term-based wording leaves `04` §4.12, `07` §7, and the T-148 description (notes are not scanned). (3) **UI:** the discomfort sheet gets a required ordered level picker (least to most severe, colour chips from greenish yellow to red with a "Leve"–"Fuerte" guide) above the optional note; the fixed message and its `InlineNote` are removed; the open-discomfort row shows the level. ux-reviewer defines the levels, labels, colour tokens (distinct from the lime of "Guardar"), accessibility and copy; glossary and §8 updated. **Bug fixed here (reported at E12-A):** the note field has no top padding in the sheet (`design/reported/E12-A-discomfort-note-top-padding.png`); sweep every multi-line `AppTextField` in sheets.
+
+**Acceptance criteria:** (the planner writes the final Gherkin)
+- [ ] Logging requires choosing a level; the note stays optional; the stored row keeps the level.
+- [ ] The list runs from least to most severe with colours from greenish yellow to red and a text label per level.
+- [ ] No strong-pain message appears for any note or level; no term matching remains in the code.
+- [ ] The note field shows its text fully (top padding).
+- [ ] pgTAP, host tests, lint green; `deploy-supabase` green after the merge; docs updated (`03`, `04` §4.12, `05`, `07` §7, ADR-81 ticked).
+
+**Dependencies:** T-147 merged; ADR-81 agreed with the user (2026-10-28). Checkpoint E12-A is re-presented after this task (re-test items 6-7 and the sheet padding); T-148 follows its approval.
+**Estimated scope:** M
 
 ---
 

@@ -169,3 +169,11 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 - **Decision:** Pickers (calendar, day, metric and range pickers), read-only sheets and action menus (`AppActionSheet`, user decision 2026-10-28) close on an outside tap, besides X and system back. Sheets with editable input or unsaved changes (R-11) keep ADR-71: only X, system back or "Cancelar". Drag-down stays disabled and no sheet shows a drag handle.
 - **Consequences:** `05-design-system.md` R-38, the sheet templates in `designsystem/` and the guard G11 in `scripts/check-ux-conventions.sh` (with its fixtures); the fix task sweeps every sheet.
 - **Approval:** 2026-10-28, user (chat).
+
+### ADR-81 · Discomfort level chosen from a scale; no strong-pain term matching or message (E12, E13; amends ADR-76, supersedes assumption A3 and E12 Q1)
+- **Context:** At Checkpoint E12-A (2026-10-28) the user found the hidden 12-term list and the fixed "consult a health professional" message unclear: the app inferred severity from free text the user could not see.
+- **Decision:**
+  - Logging a discomfort asks the user to pick a **level** from an ordered scale, from least to most severe, each with a colour from greenish yellow to red (colour is never the only signal). The optional note stays as free-text context for the coach. The levels, their order, labels and colour tokens are defined by ux-reviewer in T-152; the proposal is five levels: tension or fatigue, mild discomfort, pinch or snap, swelling/tingling/numbness, sharp pain or injury. Related symptoms stay grouped.
+  - `severe` is derived from the chosen level (the two highest), not from text. `StrongPainTerms`, term matching and the fixed message "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario." are **removed**; notes (T-148, E13) are never scanned for terms.
+  - The coach (E13) uses the level to block load increases (ADR-76); nothing else is shown to the user.
+- **Consequences:** T-152 reworks T-147 (migration `level`, core, UI, tests, `03`, `04` §4.12, `05` §8/§10, `07` §7, US-67 and the T-148 note scenarios); ADR-76's "fixed message" clause is void.
