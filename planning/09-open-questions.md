@@ -6,4 +6,4 @@ Product questions raised by the user that are not (yet) ADRs. A durable resoluti
 |---|---|---|---|
 | Where does the coach live in the 3-tab navigation (ADR-37)? | 2026-10-28 | Resolved | ADR-79: new tab "Trainer" between Entreno and Perfil |
 | Training streak and rewards (rest of E8 US-44) | 2026-10-28 | Deferred, not in Phase 2 | `01-scope.md` §5 |
-| Release version of each Phase 2 epic | 2026-10-28 | Open, resolve at each epic closure | `v1.x` for now |
+| Release version of each Phase 2 epic | 2026-10-28 | Open, resolve at each epic closure | E10 = `v1.1.0` (PM took the proposed minor bump, 2026-10-28) |

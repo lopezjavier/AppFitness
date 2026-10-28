@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** re-present Checkpoint E10 (T-135 merged in #308, T-136 in #310, T-138 in #313). T-137 (closure) waits for its approval. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
+**Next:** T-137 (E10 closure, release `v1.1.0`). Checkpoint E10 approved 2026-10-28. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
 
 ---
 
@@ -115,7 +115,7 @@ Checkpoints (agreed with the user, 2026-10-28): **one Checkpoint E10** after T-1
 ### Checkpoint E10 — Reminders and your weekly check-in 👤 (15 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
 Journey: the reminders find you when you open the app, take you to log the missing data and go away once it is logged; on your chosen day the check-in appears, you review your week in figures, rate your energy and write a note. Why here: right after T-136, the last implementation task, so it is also the final regression of E10; its approval releases the closure T-137. The user chose one checkpoint over two of 7 items.
 - [x] T-135 and T-136 merged, CI green, `deploy-supabase` applied both migrations (data intact), every reported bug fixed.
-- [ ] 👤 Install the APK and try:
+- [x] 👤 Install the APK and try *(approved by the user, 2026-10-28)*:
   1. Entry point (T-135): on the tab the app opens on, the "Centro de avisos" entry shows how many reminders are pending; with none, it shows no number.
   2. Weight reminder (US-58): if your last weigh-in is 2 or more days old (or delete your last weights in "Historial de peso" so it is), open the app: "No te has pesado en N días" is listed with its date; with a weight from yesterday there is no weight reminder.
   3. Circumference reminder (US-58): with no circumference in the last 14 days, "No te has medido en 2 semanas" is listed; after logging one, it is not.
