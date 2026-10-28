@@ -48,7 +48,7 @@ private const val DAYS_PER_ISO_WEEK = 7
 internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val weekday = form.checkInWeekday
-    val title = stringResource(Res.string.preferences_checkin_day_row)
+    val dayLabel = stringResource(Res.string.preferences_checkin_day_row)
     AppCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             AppSwitchRow(
@@ -73,7 +73,7 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
                 modifier = Modifier.testTag("preferences_reminders_switch_checkin"),
             )
             NavigationRow(
-                label = title,
+                label = dayLabel,
                 onClick = { picking = true },
                 modifier = Modifier.testTag("preferences_checkin_weekday_row"),
                 value = weekdayName(weekday).lowercase(),
@@ -86,7 +86,7 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
         }
     }
     if (picking) {
-        WeekdayPicker(title, weekday, onEvent) { picking = false }
+        WeekdayPicker(dayLabel, weekday, onEvent) { picking = false }
     }
 }
 

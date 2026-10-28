@@ -49,7 +49,7 @@ data class PreferencesForm(
     val weightReminder: Boolean = true,
     /** "Recordatorio de circunferencias". */
     val circumferenceReminder: Boolean = true,
-    /** "Check-in semanal". */
+    /** "Avisos". */
     val checkInReminder: Boolean = true,
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)

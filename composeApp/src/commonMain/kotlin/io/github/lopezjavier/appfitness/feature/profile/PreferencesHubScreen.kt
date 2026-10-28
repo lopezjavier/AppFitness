@@ -39,7 +39,7 @@ class PreferencesHubActions(
 /**
  * Preferencias hub (US-56): stateless groups of [NavigationRow]s, one per editor, on a full-screen [AppScreen]:
  * [Datos personales] · [Objetivo calórico, Macros, Comidas del día, Cocina] · [Entrenamiento] ·
- * [Check-in semanal] · [Cuenta]. Each row
+ * [Avisos] · [Cuenta]. Each row
  * label is the title of the screen it opens (R-04). It holds no state, so there is nothing to restore.
  */
 @Composable
