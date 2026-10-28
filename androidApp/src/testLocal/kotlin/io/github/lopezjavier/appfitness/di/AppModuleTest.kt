@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepositor
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
@@ -200,6 +201,7 @@ class AppModuleTest {
                 HealthWriteBack::class,
                 HealthDataSource::class,
                 SyncHealthData::class,
+                AutoSyncHealth::class,
                 HealthActivityRepository::class,
                 SyncHealthMeasurements::class,
                 HealthSyncRepository::class,

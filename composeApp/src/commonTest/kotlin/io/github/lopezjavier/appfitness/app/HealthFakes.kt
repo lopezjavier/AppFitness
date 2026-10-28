@@ -11,10 +11,16 @@ import io.github.lopezjavier.appfitness.domain.model.HealthReading
 import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
 import io.github.lopezjavier.appfitness.domain.model.WatchMetric
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
@@ -44,14 +50,18 @@ internal class FakeHealthDataSource : HealthDataSource {
     override suspend fun newChangesToken(): Result<String> = Result.success("token")
 
     override suspend fun readRange(from: Instant, to: Instant): Result<RawHealthRecords> {
+        rangeReads++
         readFailure?.let { return Result.failure(it) }
         return Result.success(records)
     }
 
     var watchBatch = HealthActivityBatch(emptyList(), emptyList(), emptyList())
     var watchFailure: Throwable? = null
+    var rangeReads = 0
+    var watchReads = 0
 
     override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> {
+        watchReads++
         watchFailure?.let { return Result.failure(it) }
         return Result.success(watchBatch)
     }
@@ -99,7 +109,7 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
         importGate?.await()
         importFailure?.let { return Result.failure(it) }
         imports += rows
-        state = HealthSyncState(syncedAt, changesToken)
+        state = HealthSyncState(syncedAt, changesToken, state?.lastAutoSyncDate)
         return Result.success(rows.count { known.add(it.externalId) })
     }
 
@@ -131,4 +141,23 @@ internal class FakeHealthActivityRepository(
 
     override suspend fun latestSummary(): Result<HealthActivitySummary> =
         failure?.let { Result.failure(it) } ?: Result.success(summary)
+}
+
+/** A coordinator over fake Health Connect data, for tests that only need the constructor argument. */
+internal fun idleHealthSyncCoordinator(): HealthSyncCoordinator =
+    healthSyncCoordinator(scope = CoroutineScope(SupervisorJob()))
+
+/** Wires the real use cases over the fakes; [scope] runs the (single-flight) syncs. */
+internal fun healthSyncCoordinator(
+    scope: CoroutineScope,
+    source: FakeHealthDataSource = FakeHealthDataSource(),
+    repository: FakeHealthSyncRepository = FakeHealthSyncRepository(),
+    connectivity: FakeConnectivityObserver = FakeConnectivityObserver(),
+    clock: Clock = ReminderClock(LocalDate(2026, 10, 28)),
+    reminders: ReminderCoordinator = idleReminderCoordinator(),
+): HealthSyncCoordinator {
+    val sync =
+        SyncHealthData(source, repository, SyncHealthMeasurements(source, repository, clock), clock, TimeZone.UTC)
+    val auto = AutoSyncHealth(source, repository, sync, connectivity, clock, TimeZone.UTC)
+    return HealthSyncCoordinator(auto, sync, connectivity, reminders, scope)
 }

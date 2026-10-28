@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.di
 
 import io.github.lopezjavier.appfitness.app.AppViewModel
+import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
@@ -65,6 +66,9 @@ val uiModule =
     module {
         // App-wide singleton: the shell badge and the notification center read the same reminders.
         single { ReminderCoordinator(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+        single {
+            HealthSyncCoordinator(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        }
         viewModelOf(::AppViewModel)
         viewModelOf(::WelcomeViewModel)
         viewModelOf(::ProfileRootViewModel)
@@ -166,7 +170,7 @@ val uiModule =
         viewModel {
             HealthSyncViewModel(
                 source = get(),
-                syncHealthData = get(),
+                coordinator = get(),
                 repository = get(),
                 connectivity = get(),
                 clock = get(),

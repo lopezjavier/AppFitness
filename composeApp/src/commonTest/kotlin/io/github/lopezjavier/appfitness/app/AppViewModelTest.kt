@@ -43,7 +43,8 @@ class AppViewModelTest {
         auth: FakeAuthRepository = FakeAuthRepository(),
         profile: FakeProfileRepository = FakeProfileRepository(onboarded),
         reminders: ReminderCoordinator = idleReminderCoordinator(),
-    ) = AppViewModel(connectivity, auth, profile, reminders)
+        healthSync: HealthSyncCoordinator = idleHealthSyncCoordinator(),
+    ) = AppViewModel(connectivity, auth, profile, reminders, healthSync)
 
     private fun reminderEnv() = ReminderEnv(LocalDate(2026, 10, 28)).apply {
         weight.rows += BodyMeasurement(
@@ -87,6 +88,41 @@ class AppViewModelTest {
             assertEquals(0, awaitItem().pendingReminders)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun enteringMain_andRefreshEvent_triggerTheDailyHealthSync() = runTest {
+        val source = FakeHealthDataSource()
+        // A failing first run is not stored as done, so the refresh event can be seen retrying.
+        val repository = FakeHealthSyncRepository().apply {
+            importFailure = AppException(AppError.Network)
+            activityFailure = AppException(AppError.Network)
+        }
+        val sync = healthSyncCoordinator(backgroundScope, source = source, repository = repository)
+        val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), healthSync = sync)
+
+        viewModel.uiState.test {
+            var last = awaitItem()
+            while (last.rootRoute != RootRoute.Main) last = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+        runCurrent()
+        assertEquals(1, source.watchReads)
+
+        viewModel.onEvent(AppEvent.RefreshReminders)
+        runCurrent()
+        assertEquals(2, source.watchReads)
+    }
+
+    @Test
+    fun beforeMain_refreshEventDoesNotTriggerTheHealthSync() = runTest {
+        val source = FakeHealthDataSource()
+        val viewModel = viewModel(healthSync = healthSyncCoordinator(backgroundScope, source = source))
+
+        viewModel.onEvent(AppEvent.RefreshReminders)
+        runCurrent()
+
+        assertEquals(0, source.watchReads)
     }
 
     @Test

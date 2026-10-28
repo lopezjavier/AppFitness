@@ -71,13 +71,18 @@ sealed interface ChangesResult {
     data object TokenExpired : ChangesResult
 }
 
-/** Result of one manual sync. */
+/** The two parts of a sync: the weight import and the watch-data import. */
+enum class SyncPart { Weight, Watch }
+
+/** Result of one sync. */
 sealed interface SyncOutcome {
     data class Synced(
         val imported: Int,
         val syncedAt: Instant,
         /** Rows written by the watch-data import; null when no watch type was synced. */
         val watch: HealthActivityImportResult? = null,
+        /** The part that failed when exactly one of the two parts ran and failed; null otherwise. */
+        val failedPart: SyncPart? = null,
     ) : SyncOutcome
 
     /** No read access at all: the UI must ask for it. */

@@ -716,7 +716,7 @@
     <string name="activity_bpm_value">%1$d lpm</string>
     <string name="activity_card_description">%1$s, %2$s, %3$s</string>
     <string name="activity_empty_title">Sin datos de actividad</string>
-    <string name="activity_empty_message">Pulsa «Sincronizar» en Peso para traer tu sueño, pasos y calorías desde Health Connect.</string>
+    <string name="activity_empty_message">Se sincroniza al abrir la app o pulsando «Sincronizar» en Peso para traer tu sueño, pasos y calorías desde Health Connect.</string>
     <string name="activity_empty_action">Ir a Peso</string>
     <string name="activity_error">No se pudo cargar la actividad. Inténtalo de nuevo.</string>
     <string name="stats_chart_title_week">Series por semana</string>
@@ -1102,6 +1102,9 @@
     <string name="health_synced_days">Sincronizado hace %1$d d</string>
     <string name="health_permission_needed">Permiso necesario</string>
     <string name="health_failed">No se pudo sincronizar</string>
+    <string name="health_auto_failed">No se pudo sincronizar hoy</string>
+    <string name="health_partial_watch">Peso sincronizado; sueño y pasos no disponibles</string>
+    <string name="health_partial_weight">Reloj sincronizado; peso no disponible</string>
     <string name="health_install_needed">Instala Health Connect</string>
     <string name="health_update_needed">Actualiza Health Connect</string>
     <string name="health_action_sync">Sincronizar</string>

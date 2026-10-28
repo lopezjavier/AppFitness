@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -62,4 +63,18 @@ class HealthBannerSpecTest {
     @Test
     fun offline_disablesTheButton() =
         assertEquals(false, spec(HealthSyncStatus.NeverSynced, online = false).actionEnabled)
+
+    @Test
+    fun autoSyncFailed_isFailedWithRetry() {
+        val spec = spec(HealthSyncStatus.AutoSyncFailed)
+        assertEquals(HealthTone.Failed, spec.tone)
+        assertEquals(HealthAction.Retry, spec.action)
+    }
+
+    @Test
+    fun partialSync_isAttentionWithRetry() {
+        val spec = spec(HealthSyncStatus.Synced(Instant.parse("2026-10-22T10:00:00Z"), SyncAge.Now, SyncPart.Watch))
+        assertEquals(HealthTone.Attention, spec.tone)
+        assertEquals(HealthAction.Retry, spec.action)
+    }
 }

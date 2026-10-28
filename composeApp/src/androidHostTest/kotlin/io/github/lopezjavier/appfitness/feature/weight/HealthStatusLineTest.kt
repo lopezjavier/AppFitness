@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -139,6 +140,75 @@ class HealthStatusLineTest {
 
         statusText().assertTextEquals("No se pudo sincronizar")
         rule.onNodeWithTag("weight_hc_retry_button").assertTextEqualsLabel("Reintentar")
+    }
+
+    // -- Daily automatic sync (US-60) -------------------------------------------------------------------------------
+
+    @Test
+    fun autoSyncDone_showsSyncedTimeWithSyncButton() {
+        show(HealthSyncStatus.Synced(SyncedAt, SyncAge.Now))
+
+        statusText().assertTextEquals("Sincronizado ahora")
+        rule.onNodeWithTag("weight_hc_sync_button").assertIsEnabled()
+    }
+
+    @Test
+    fun tapAfterAutoSync_sendsTapSoTheButtonSyncsOnDemand() {
+        show(HealthSyncStatus.Synced(SyncedAt, SyncAge.Minutes(5)))
+
+        rule.onNodeWithTag("weight_hc_sync_button").performClick()
+
+        assertEquals(listOf<HealthSyncEvent>(HealthSyncEvent.Tap), events)
+    }
+
+    @Test
+    fun autoSyncFailed_showsNoSePudoSincronizarHoyWithRetry() {
+        show(HealthSyncStatus.AutoSyncFailed)
+
+        statusText().assertTextEquals("No se pudo sincronizar hoy")
+        rule.onNodeWithTag("weight_hc_retry_button").assertTextEqualsLabel("Reintentar")
+        assertNotNull(statusText().fetchSemanticsNode().config.getOrNull(SemanticsProperties.LiveRegion))
+    }
+
+    @Test
+    fun noConnectionOnDueDay_keepsLastDataWithDisabledButton() {
+        show(HealthSyncStatus.Synced(SyncedAt, SyncAge.Hours(3)), online = false)
+
+        statusText().assertTextEquals("Sincronizado hace 3 h")
+        rule.onNodeWithTag("weight_hc_sync_button").assertIsNotEnabled()
+    }
+
+    @Test
+    fun permissionMissingOnAutoSync_showsPermitWithoutRequestingIt() {
+        show(HealthSyncStatus.PermissionNeeded)
+
+        statusText().assertTextEquals("Permiso necesario")
+        rule.onNodeWithTag("weight_hc_permission_button").assertIsDisplayed()
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun partialFailureOfTheWatch_namesWhatIsMissingAndOffersRetry() {
+        show(HealthSyncStatus.Synced(SyncedAt, SyncAge.Now, SyncPart.Watch))
+
+        statusText().assertTextEquals("Peso sincronizado; sueño y pasos no disponibles")
+        rule.onNodeWithTag("weight_hc_retry_button").assertTextEqualsLabel("Reintentar")
+        assertNotNull(statusText().fetchSemanticsNode().config.getOrNull(SemanticsProperties.LiveRegion))
+    }
+
+    @Test
+    fun partialFailureOfTheWeight_namesWhatIsMissingAndOffersRetry() {
+        show(HealthSyncStatus.Synced(SyncedAt, SyncAge.Now, SyncPart.Weight))
+
+        statusText().assertTextEquals("Reloj sincronizado; peso no disponible")
+        rule.onNodeWithTag("weight_hc_retry_button").assertIsDisplayed()
+    }
+
+    @Test
+    fun partialFailureWithTickedAge_isNotALiveRegion() {
+        show(HealthSyncStatus.Synced(SyncedAt, SyncAge.Minutes(2), SyncPart.Watch))
+
+        assertNull(statusText().fetchSemanticsNode().config.getOrNull(SemanticsProperties.LiveRegion))
     }
 
     @Test

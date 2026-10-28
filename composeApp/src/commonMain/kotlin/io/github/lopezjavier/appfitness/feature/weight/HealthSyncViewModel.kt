@@ -3,13 +3,15 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.app.AutoState
+import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.SyncOutcome
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
-import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -35,13 +37,18 @@ sealed interface HealthSyncStatus {
 
     data object Syncing : HealthSyncStatus
 
-    data class Synced(val lastSyncedAt: Instant, val age: SyncAge) : HealthSyncStatus
+    /** [failedPart] is set when only one of the two parts (weight, watch data) could be read. */
+    data class Synced(val lastSyncedAt: Instant, val age: SyncAge, val failedPart: SyncPart? = null) :
+        HealthSyncStatus
 
     data object PermissionNeeded : HealthSyncStatus
 
     data class Unavailable(val availability: HealthAvailability) : HealthSyncStatus
 
     data object Failed : HealthSyncStatus
+
+    /** The due automatic sync failed while online; the previous data stays. */
+    data object AutoSyncFailed : HealthSyncStatus
 }
 
 data class HealthSyncUiState(val status: HealthSyncStatus = HealthSyncStatus.Loading, val isOnline: Boolean = true)
@@ -74,19 +81,31 @@ sealed interface HealthSyncEffect {
 @Suppress("LongParameterList") // One dependency per port; the ticker is injectable for tests.
 class HealthSyncViewModel(
     private val source: HealthDataSource,
-    private val syncHealthData: SyncHealthData,
+    private val coordinator: HealthSyncCoordinator,
     private val repository: HealthSyncRepository,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val tick: suspend () -> Unit = { delay(1.minutes) },
 ) : ViewModel() {
-    private val status = MutableStateFlow<HealthSyncStatus>(HealthSyncStatus.Loading)
+    private val base = MutableStateFlow<HealthSyncStatus>(HealthSyncStatus.Loading)
     private val now = MutableStateFlow(clock.now())
     private val online = MutableStateFlow(true)
 
     private val effectChannel = Channel<HealthSyncEffect>(Channel.BUFFERED)
     val effects: Flow<HealthSyncEffect> = effectChannel.receiveAsFlow()
+
+    // What is shown: the sync in flight, then what the last automatic sync left, then the loaded/manual status.
+    private val status: Flow<HealthSyncStatus> =
+        combine(base, coordinator.running, coordinator.lastAuto) { b, running, auto ->
+            val passive = b is HealthSyncStatus.Synced || b == HealthSyncStatus.NeverSynced
+            when {
+                running -> HealthSyncStatus.Syncing
+                passive && auto == AutoState.Failed -> HealthSyncStatus.AutoSyncFailed
+                passive && auto == AutoState.PermissionNeeded -> HealthSyncStatus.PermissionNeeded
+                else -> b
+            }
+        }
 
     val uiState: StateFlow<HealthSyncUiState> = combine(status, now, online) { status, now, online ->
         val shown = if (status is HealthSyncStatus.Synced) {
@@ -105,13 +124,14 @@ class HealthSyncViewModel(
                 now.value = clock.now()
             }
         }
+        viewModelScope.launch { coordinator.results.collect { onSynced(it) } }
         viewModelScope.launch { load() }
     }
 
     fun onEvent(event: HealthSyncEvent) {
         when (event) {
             HealthSyncEvent.Tap -> viewModelScope.launch { tap() }
-            HealthSyncEvent.Refresh -> if (status.value != HealthSyncStatus.Syncing) viewModelScope.launch { load() }
+            HealthSyncEvent.Refresh -> if (!coordinator.running.value) viewModelScope.launch { load() }
             is HealthSyncEvent.PermissionResult -> viewModelScope.launch { onPermissionResult(event.granted) }
         }
     }
@@ -119,16 +139,16 @@ class HealthSyncViewModel(
     private suspend fun load() {
         val availability = source.availability()
         if (availability != HealthAvailability.Available) {
-            status.value = HealthSyncStatus.Unavailable(availability)
+            base.value = HealthSyncStatus.Unavailable(availability)
             return
         }
         val canRead = source.access().hasAnyRead()
         if (canRead) savedState[KEY_DENIED] = false
         val stored = repository.getState().getOrElse {
-            status.value = HealthSyncStatus.Failed
+            base.value = HealthSyncStatus.Failed
             return
         }
-        status.value = when {
+        base.value = when {
             savedState.get<Boolean>(KEY_DENIED) == true -> HealthSyncStatus.PermissionNeeded
             stored == null -> HealthSyncStatus.NeverSynced
             !canRead -> HealthSyncStatus.PermissionNeeded
@@ -137,7 +157,7 @@ class HealthSyncViewModel(
     }
 
     private suspend fun tap() {
-        if (!online.value || status.value == HealthSyncStatus.Syncing) return
+        if (!online.value) return
         if (source.availability() != HealthAvailability.Available) {
             effectChannel.send(HealthSyncEffect.OpenInstall)
             return
@@ -160,20 +180,14 @@ class HealthSyncViewModel(
             sync()
         } else {
             savedState[KEY_DENIED] = true
-            status.value = HealthSyncStatus.PermissionNeeded
+            base.value = HealthSyncStatus.PermissionNeeded
         }
     }
 
     private suspend fun sync() {
-        status.value = HealthSyncStatus.Syncing
-        val result = syncHealthData()
-        status.value = when (val outcome = result.getOrNull()) {
-            is SyncOutcome.Synced -> {
-                savedState[KEY_DENIED] = false
-                now.value = clock.now()
-                effectChannel.send(HealthSyncEffect.Synced(outcome.imported))
-                HealthSyncStatus.Synced(outcome.syncedAt, SyncAge.Now)
-            }
+        base.value = when (val outcome = coordinator.run().getOrNull()) {
+            // The shared results flow delivers it (also for a run this call only joined), so it is handled once.
+            is SyncOutcome.Synced -> return
 
             SyncOutcome.PermissionNeeded -> {
                 savedState[KEY_DENIED] = true
@@ -184,5 +198,13 @@ class HealthSyncViewModel(
 
             null -> HealthSyncStatus.Failed
         }
+    }
+
+    // Also reached by an automatic sync that finishes while the weight screen is open.
+    private suspend fun onSynced(outcome: SyncOutcome.Synced) {
+        savedState[KEY_DENIED] = false
+        now.value = clock.now()
+        base.value = HealthSyncStatus.Synced(outcome.syncedAt, SyncAge.Now, outcome.failedPart)
+        effectChannel.send(HealthSyncEffect.Synced(outcome.imported))
     }
 }
