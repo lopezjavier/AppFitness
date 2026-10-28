@@ -14,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_account_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_meals_title
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
@@ -81,8 +81,8 @@ fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, mod
                 }
             }
             HubGroup {
-                HubRow(Res.string.preferences_checkin_title, "checkin") {
-                    actions.onOpenSection(PreferencesSection.CheckIn)
+                HubRow(Res.string.preferences_reminders_title, "avisos") {
+                    actions.onOpenSection(PreferencesSection.Reminders)
                 }
             }
             HubGroup { HubRow(Res.string.preferences_account_title, "account", actions.onOpenAccount) }

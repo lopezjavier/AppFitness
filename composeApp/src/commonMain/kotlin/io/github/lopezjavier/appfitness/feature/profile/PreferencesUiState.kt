@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MacroTargets
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
+import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateMacroTargets
@@ -44,6 +45,12 @@ data class PreferencesForm(
     val autoUpdateRoutine: Boolean = false,
     /** "Día del check-in": ISO weekday, 1 (Monday) to 7 (Sunday). */
     val checkInWeekday: Int = DEFAULT_CHECK_IN_WEEKDAY,
+    /** "Recordatorio de peso": a missing stored row means enabled. */
+    val weightReminder: Boolean = true,
+    /** "Recordatorio de circunferencias". */
+    val circumferenceReminder: Boolean = true,
+    /** "Check-in semanal". */
+    val checkInReminder: Boolean = true,
 ) {
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
@@ -143,8 +150,8 @@ sealed interface PreferencesUiState {
 
                 PreferencesSection.EnergyGoal, PreferencesSection.Macros -> saved.isNameValid
 
-                // The weekday is written alone, so no other field has to be valid.
-                PreferencesSection.CheckIn -> form.checkInWeekday in 1..DAYS_PER_WEEK
+                // The reminders are written alone, so no other field has to be valid.
+                PreferencesSection.Reminders -> form.checkInWeekday in 1..DAYS_PER_WEEK
             }
 
         val energy: EnergyStrategyUiState
@@ -214,6 +221,9 @@ sealed interface PreferencesEvent {
     /** "Día del check-in" picked (ISO weekday 1..7); only a draft until [Save]. */
     data class SetCheckInWeekday(val weekday: Int) : PreferencesEvent
 
+    /** A reminder switch of "Avisos"; only a draft until [Save]. */
+    data class SetReminderEnabled(val kind: NotificationKind, val enabled: Boolean) : PreferencesEvent
+
     data object Save : PreferencesEvent
 
     data object Retry : PreferencesEvent
@@ -243,7 +253,7 @@ internal val PreferencesEvent.owner: PreferencesSection?
         is PreferencesEvent.SetDumbbellHandle, is PreferencesEvent.SetPlateEnabled,
         -> PreferencesSection.Training
 
-        is PreferencesEvent.SetCheckInWeekday -> PreferencesSection.CheckIn
+        is PreferencesEvent.SetCheckInWeekday, is PreferencesEvent.SetReminderEnabled -> PreferencesSection.Reminders
 
         PreferencesEvent.Save, PreferencesEvent.Retry -> null
     }

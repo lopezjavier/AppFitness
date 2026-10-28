@@ -44,7 +44,7 @@ class PreferencesSectionTest {
             calculators = CalculatorSettings(barWeightKg = 15.0),
             autoUpdateRoutine = true,
         ),
-        PreferencesSection.CheckIn to base.copy(checkInWeekday = 3),
+        PreferencesSection.Reminders to base.copy(checkInWeekday = 3),
     )
 
     @Test
@@ -62,6 +62,22 @@ class PreferencesSectionTest {
             assertEquals(changed, base.withSectionFrom(owner, changed), "$owner takes its own fields")
             for (other in PreferencesSection.entries.filter { it != owner }) {
                 assertEquals(base, base.withSectionFrom(other, changed), "$other ignores the edit of $owner")
+            }
+        }
+    }
+
+    @Test
+    fun reminders_ownEachSwitch_andNoOtherSectionSeesThem() {
+        val switches = listOf(
+            base.copy(weightReminder = false),
+            base.copy(circumferenceReminder = false),
+            base.copy(checkInReminder = false),
+        )
+        for (changed in switches) {
+            assertFalse(base.sectionEquals(PreferencesSection.Reminders, changed))
+            assertEquals(changed, base.withSectionFrom(PreferencesSection.Reminders, changed))
+            for (other in PreferencesSection.entries.filter { it != PreferencesSection.Reminders }) {
+                assertTrue(base.sectionEquals(other, changed), "$other ignores the switches")
             }
         }
     }

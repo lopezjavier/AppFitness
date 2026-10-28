@@ -19,29 +19,59 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_row
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_circumference
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_circumference_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight_helper
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.weekdayName
+import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val DAYS_PER_ISO_WEEK = 7
 
 /**
- * "Check-in semanal" section of Preferencias (US-59): one "Día del check-in" row (value = the weekday, lowercase)
- * opening a picker of the seven weekdays. A tap applies to the draft and closes the picker (R-12); the section then
- * saves through the editor's "Guardar" like every other section.
+ * "Avisos" section of Preferencias (US-57, US-59): the three reminder switches and the "Día del check-in" row (value =
+ * the weekday, lowercase) opening a picker of the seven weekdays. Switches and day are drafts (R-10): a tap applies to
+ * the draft (the picker closes, R-12) and the editor's "Guardar" saves them.
  */
 @Composable
-internal fun CheckInDaySection(weekday: Int, onSelect: (Int) -> Unit) {
+internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
+    val weekday = form.checkInWeekday
     val title = stringResource(Res.string.preferences_checkin_day_row)
     AppCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            AppSwitchRow(
+                label = stringResource(Res.string.preferences_reminders_weight),
+                helper = stringResource(Res.string.preferences_reminders_weight_helper),
+                checked = form.weightReminder,
+                onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, it)) },
+                modifier = Modifier.testTag("preferences_reminders_switch_weight"),
+            )
+            AppSwitchRow(
+                label = stringResource(Res.string.preferences_reminders_circumference),
+                helper = stringResource(Res.string.preferences_reminders_circumference_helper),
+                checked = form.circumferenceReminder,
+                onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, it)) },
+                modifier = Modifier.testTag("preferences_reminders_switch_circumference"),
+            )
+            AppSwitchRow(
+                label = stringResource(Res.string.preferences_reminders_checkin),
+                helper = stringResource(Res.string.preferences_reminders_checkin_helper),
+                checked = form.checkInReminder,
+                onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeeklyCheckIn, it)) },
+                modifier = Modifier.testTag("preferences_reminders_switch_checkin"),
+            )
             NavigationRow(
                 label = title,
                 onClick = { picking = true },
@@ -56,35 +86,40 @@ internal fun CheckInDaySection(weekday: Int, onSelect: (Int) -> Unit) {
         }
     }
     if (picking) {
-        AppPickerSheet(
-            title = title,
-            onDismiss = { picking = false },
-            testTagPrefix = "preferences_checkin_weekday_sheet",
-        ) {
-            for (day in 1..DAYS_PER_ISO_WEEK) {
-                AppListRow(
-                    headline = weekdayName(day),
-                    modifier = Modifier
-                        .testTag("preferences_checkin_weekday_option_$day")
-                        .semantics { selected = day == weekday },
-                    onClick = {
-                        onSelect(day)
-                        picking = false
-                    },
-                    trailing = if (day == weekday) {
-                        {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_check),
-                                contentDescription = null,
-                                tint = AppTheme.colors.athleticCyan,
-                                modifier = Modifier.size(Spacing.xl),
-                            )
-                        }
-                    } else {
-                        null
-                    },
-                )
-            }
+        WeekdayPicker(title, weekday, onEvent) { picking = false }
+    }
+}
+
+@Composable
+private fun WeekdayPicker(title: String, weekday: Int, onEvent: (PreferencesEvent) -> Unit, onClose: () -> Unit) {
+    AppPickerSheet(
+        title = title,
+        onDismiss = onClose,
+        testTagPrefix = "preferences_checkin_weekday_sheet",
+    ) {
+        for (day in 1..DAYS_PER_ISO_WEEK) {
+            AppListRow(
+                headline = weekdayName(day),
+                modifier = Modifier
+                    .testTag("preferences_checkin_weekday_option_$day")
+                    .semantics { selected = day == weekday },
+                onClick = {
+                    onEvent(PreferencesEvent.SetCheckInWeekday(day))
+                    onClose()
+                },
+                trailing = if (day == weekday) {
+                    {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_check),
+                            contentDescription = null,
+                            tint = AppTheme.colors.athleticCyan,
+                            modifier = Modifier.size(Spacing.xl),
+                        )
+                    }
+                } else {
+                    null
+                },
+            )
         }
     }
 }

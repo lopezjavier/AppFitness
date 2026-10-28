@@ -417,6 +417,7 @@ class DraftRestorationTest {
                             weights,
                             FakeTrainingPreferencesRepository(),
                             FakeFoodPreferencesRepository(),
+                            FakeNotificationSettingsRepository(),
                             SavePreferences(profile),
                             connectivity,
                             FakeClock(),

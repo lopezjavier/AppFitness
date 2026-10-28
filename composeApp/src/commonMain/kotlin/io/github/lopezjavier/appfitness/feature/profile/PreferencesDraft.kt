@@ -43,6 +43,10 @@ internal data class PreferencesDraft(
     val autoUpdateRoutine: Boolean = false,
     /** ISO weekday of the check-in; absent in drafts saved by older versions (Sunday then). */
     val checkInWeekday: Int = PreferencesForm.DEFAULT_CHECK_IN_WEEKDAY,
+    /** Reminder switches; null in drafts saved by older versions (the saved values then). */
+    val weightReminder: Boolean? = null,
+    val circumferenceReminder: Boolean? = null,
+    val checkInReminder: Boolean? = null,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -69,10 +73,14 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         fatPctFriedText = foodPreferences.friedText,
         autoUpdateRoutine = autoUpdateRoutine,
         checkInWeekday = checkInWeekday,
+        weightReminder = weightReminder,
+        circumferenceReminder = circumferenceReminder,
+        checkInReminder = checkInReminder,
     ),
 )
 
-internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
+/** [saved] supplies the values a draft from an older version does not carry (the reminder switches). */
+internal fun decodeDraft(json: String, saved: PreferencesForm? = null): PreferencesForm? = runCatching {
     // Drafts saved before ADR-56 still carry the two rounding fields.
     val draft = Json { ignoreUnknownKeys = true }.decodeFromString(PreferencesDraft.serializer(), json)
     PreferencesForm(
@@ -95,5 +103,8 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
         foodPreferences = FoodPreferencesForm(draft.fatPctGriddleText, draft.fatPctAirFryerText, draft.fatPctFriedText),
         autoUpdateRoutine = draft.autoUpdateRoutine,
         checkInWeekday = draft.checkInWeekday,
+        weightReminder = draft.weightReminder ?: saved?.weightReminder ?: true,
+        circumferenceReminder = draft.circumferenceReminder ?: saved?.circumferenceReminder ?: true,
+        checkInReminder = draft.checkInReminder ?: saved?.checkInReminder ?: true,
     )
 }.getOrNull()

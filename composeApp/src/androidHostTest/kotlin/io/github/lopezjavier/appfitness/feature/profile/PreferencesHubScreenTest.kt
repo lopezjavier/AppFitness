@@ -30,7 +30,7 @@ class PreferencesHubScreenTest {
     private var account = 0
     private var backs = 0
 
-    private val keys = listOf("personal", "energy", "macros", "meals", "cooking", "training", "checkin", "account")
+    private val keys = listOf("personal", "energy", "macros", "meals", "cooking", "training", "avisos", "account")
 
     private fun show() {
         rule.setContent {
@@ -62,7 +62,7 @@ class PreferencesHubScreenTest {
             "Comidas del día",
             "Cocina",
             "Entrenamiento",
-            "Check-in semanal",
+            "Avisos",
             "Cuenta",
         )
         keys.zip(labels).forEach { (key, label) ->
@@ -83,7 +83,7 @@ class PreferencesHubScreenTest {
                 PreferencesSection.Macros,
                 PreferencesSection.Cooking,
                 PreferencesSection.Training,
-                PreferencesSection.CheckIn,
+                PreferencesSection.Reminders,
             ),
             sections,
         )

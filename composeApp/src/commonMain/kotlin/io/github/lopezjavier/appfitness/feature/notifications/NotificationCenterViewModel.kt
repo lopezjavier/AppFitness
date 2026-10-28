@@ -6,48 +6,37 @@ import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.port.Clock
-import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
- * The notification center (US-57): the pending reminders of the [ReminderCoordinator] and the three switches (weight,
- * circumference, weekly check-in; an answered check-in is listed apart and not counted). A switch
- * applies on toggle (R-42): the row leaves or joins the list at once, the change is saved, and a failure puts the
- * switch back and emits [NotificationCenterEffect.ToggleFailed]. After a save the coordinator recomputes, so the
- * count in the bars follows. Nothing here is editable text, so there is nothing to restore (ADR-40).
+ * The notification center (US-57): the pending reminders of the [ReminderCoordinator] (an answered check-in is listed
+ * apart and not counted). The switches live in Preferencias, "Avisos"; here they only filter: a silenced kind is not
+ * listed. The center reloads on [NotificationCenterEvent.Refresh] since it is re-entered after saving there. Nothing
+ * here is editable, so there is nothing to restore (ADR-40).
  */
 class NotificationCenterViewModel(
     private val coordinator: ReminderCoordinator,
     private val settings: NotificationSettingsRepository,
-    connectivity: ConnectivityObserver,
     private val clock: Clock,
 ) : ViewModel() {
     /** The stored switches; null while loading and [failed] after a failed first read. Missing = enabled. */
     private val switches = MutableStateFlow<Map<NotificationKind, Boolean>?>(null)
     private val failed = MutableStateFlow(false)
 
-    private val effectChannel = Channel<NotificationCenterEffect>(Channel.BUFFERED)
-    val effects: Flow<NotificationCenterEffect> = effectChannel.receiveAsFlow()
-
     val uiState: StateFlow<NotificationCenterUiState> =
-        combine(switches, failed, coordinator.reminders, coordinator.checkIn, connectivity.isOnline) {
+        combine(switches, failed, coordinator.reminders, coordinator.checkIn) {
                 stored,
                 loadFailed,
                 reminders,
                 checkIn,
-                online,
             ->
             when {
                 stored != null -> {
@@ -62,11 +51,7 @@ class NotificationCenterViewModel(
                                 ReminderKind.CheckIn -> checkInEnabled
                             }
                         },
-                        weightEnabled = weight,
-                        circumferenceEnabled = circumference,
                         today = clock.today(),
-                        isOffline = !online,
-                        checkInEnabled = checkInEnabled,
                         checkIn = checkIn?.takeIf { checkInEnabled },
                     )
                 }
@@ -83,8 +68,6 @@ class NotificationCenterViewModel(
 
     fun onEvent(event: NotificationCenterEvent) {
         when (event) {
-            is NotificationCenterEvent.SetEnabled -> setEnabled(event.kind, event.enabled)
-
             NotificationCenterEvent.Retry -> {
                 failed.value = false
                 load()
@@ -106,20 +89,6 @@ class NotificationCenterViewModel(
                 map != null && refreshed.isSuccess -> switches.value = map
 
                 else -> failed.value = true
-            }
-        }
-    }
-
-    private fun setEnabled(kind: NotificationKind, enabled: Boolean) {
-        val previous = switches.value ?: return
-        if (previous.isEnabled(kind) == enabled) return
-        switches.value = previous + (kind to enabled)
-        viewModelScope.launch {
-            if (settings.setEnabled(kind, enabled).isSuccess) {
-                coordinator.refresh()
-            } else {
-                switches.update { current -> current?.plus(kind to previous.isEnabled(kind)) }
-                effectChannel.send(NotificationCenterEffect.ToggleFailed)
             }
         }
     }

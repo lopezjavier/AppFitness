@@ -2,22 +2,17 @@ package io.github.lopezjavier.appfitness.feature.notifications
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToIndex
-import androidx.compose.ui.test.performScrollToNode
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CheckInDay
-import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import kotlinx.datetime.LocalDate
@@ -41,28 +36,16 @@ class NotificationCenterScreenTest {
     private val weight = Reminder(ReminderKind.Weight, LocalDate(2026, 10, 24), days = 4)
     private val circumference = Reminder(ReminderKind.Circumference, LocalDate(2026, 10, 14), days = 14)
 
-    private fun content(
-        reminders: List<Reminder> = listOf(weight, circumference),
-        weightEnabled: Boolean = true,
-        circumferenceEnabled: Boolean = true,
-        isOffline: Boolean = false,
-        checkIn: CheckInDay? = null,
-    ) = NotificationCenterUiState.Content(
-        reminders,
-        weightEnabled,
-        circumferenceEnabled,
-        TODAY,
-        isOffline,
-        checkIn = checkIn,
-    )
+    private fun content(reminders: List<Reminder> = listOf(weight, circumference), checkIn: CheckInDay? = null) =
+        NotificationCenterUiState.Content(
+            reminders,
+            TODAY,
+            checkIn = checkIn,
+        )
 
     private val checkInReminder = Reminder(ReminderKind.CheckIn, LocalDate(2026, 11, 15), days = 0)
     private val openWindow = CheckInDay(LocalDate(2026, 11, 15), LocalDate(2026, 11, 9), answer = null)
     private val answeredWindow = openWindow.copy(answer = CheckIn(LocalDate(2026, 11, 9), energy = 4, notes = ""))
-
-    private fun scrollTo(tag: String) {
-        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(tag))
-    }
 
     private fun show(
         state: NotificationCenterUiState,
@@ -106,38 +89,14 @@ class NotificationCenterScreenTest {
     }
 
     @Test
-    fun togglingASwitch_sendsTheNewValueAtOnce() {
-        val events = mutableListOf<NotificationCenterEvent>()
-        show(content(), events = events)
-
-        rule.onNodeWithTag("notifications_switch_weight").performClick()
-        rule.onNodeWithTag("notifications_switch_circumference").performClick()
-
-        assertEquals(
-            listOf<NotificationCenterEvent>(
-                NotificationCenterEvent.SetEnabled(NotificationKind.Weight, false),
-                NotificationCenterEvent.SetEnabled(NotificationKind.Circumference, false),
-            ),
-            events,
-        )
-    }
-
-    @Test
-    fun switchLabels_followTheGlossary() {
+    fun theCenterHasNoSwitches_theyLiveInPreferencias() {
         show(content())
 
-        rule.onNodeWithText("Recordatorio de peso").assertIsDisplayed()
-        rule.onNodeWithText("Recordatorio de circunferencias").assertIsDisplayed()
-    }
-
-    @Test
-    fun offline_disablesTheSwitchesWithTheHint_andKeepsTheListReadable() {
-        show(content(isOffline = true))
-
-        rule.onNodeWithTag("notifications_switch_weight").assertIsNotEnabled()
-        rule.onNodeWithTag("notifications_switch_circumference").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el aviso").assertIsDisplayed()
-        rule.onNodeWithTag("notifications_reminder_weight").assertIsDisplayed()
+        listOf("weight", "circumference", "checkin").forEach {
+            rule.onAllNodesWithTag("notifications_switch_$it").assertCountEquals(0)
+        }
+        rule.onAllNodesWithText("Recordatorio de peso").assertCountEquals(0)
+        rule.onAllNodesWithText("Check-in semanal").assertCountEquals(0)
     }
 
     @Test
@@ -186,30 +145,6 @@ class NotificationCenterScreenTest {
     }
 
     @Test
-    fun checkInSwitch_togglesTheKindAtOnce_andOfflineDisablesIt() {
-        val events = mutableListOf<NotificationCenterEvent>()
-        show(content(), events = events)
-
-        scrollTo("notifications_switch_checkin")
-        rule.onNodeWithText("Check-in semanal").assertIsDisplayed()
-        rule.onNodeWithText("El día que elijas en Preferencias, si aún no lo has respondido.").assertIsDisplayed()
-        rule.onNodeWithTag("notifications_switch_checkin").performClick()
-
-        assertEquals(
-            listOf<NotificationCenterEvent>(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, false)),
-            events,
-        )
-    }
-
-    @Test
-    fun checkInSwitch_isInertOffline() {
-        show(content(isOffline = true))
-
-        scrollTo("notifications_switch_checkin")
-        rule.onNodeWithTag("notifications_switch_checkin").assertIsNotEnabled()
-    }
-
-    @Test
     fun loading_showsSkeletonRows() {
         show(NotificationCenterUiState.Loading)
 
@@ -241,14 +176,12 @@ class NotificationCenterScreenTest {
     }
 
     @Test
-    fun recreation_keepsTheScrolledListAndSwitches() {
+    fun recreation_keepsTheReminderList() {
         val tester = StateRestorationTester(rule)
         tester.setContent { AppTheme { NotificationCenterScreen(content(), {}, {}, onBack = {}) } }
-        rule.onNode(hasScrollAction()).performScrollToIndex(3)
-
         tester.emulateSavedInstanceStateRestore()
 
-        rule.onNodeWithTag("notifications_switch_circumference").assertIsDisplayed()
+        rule.onNodeWithTag("notifications_reminder_circumference").assertIsDisplayed()
         rule.onNodeWithTag("notifications_reminder_weight").assertIsDisplayed()
     }
 }

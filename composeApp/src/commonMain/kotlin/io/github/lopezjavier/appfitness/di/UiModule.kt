@@ -78,6 +78,7 @@ val uiModule =
                 bodyMeasurementRepository = get(),
                 trainingPreferencesRepository = get(),
                 foodPreferencesRepository = get(),
+                notificationSettings = get(),
                 savePreferences = get(),
                 connectivity = get(),
                 clock = get(),
