@@ -41,6 +41,8 @@ internal data class PreferencesDraft(
     val fatPctFriedText: String = FoodPreferencesForm().friedText,
     /** Absent in drafts saved by older versions. */
     val autoUpdateRoutine: Boolean = false,
+    /** ISO weekday of the check-in; absent in drafts saved by older versions (Sunday then). */
+    val checkInWeekday: Int = PreferencesForm.DEFAULT_CHECK_IN_WEEKDAY,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -66,6 +68,7 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         fatPctAirFryerText = foodPreferences.airFryerText,
         fatPctFriedText = foodPreferences.friedText,
         autoUpdateRoutine = autoUpdateRoutine,
+        checkInWeekday = checkInWeekday,
     ),
 )
 
@@ -91,5 +94,6 @@ internal fun decodeDraft(json: String): PreferencesForm? = runCatching {
         ),
         foodPreferences = FoodPreferencesForm(draft.fatPctGriddleText, draft.fatPctAirFryerText, draft.fatPctFriedText),
         autoUpdateRoutine = draft.autoUpdateRoutine,
+        checkInWeekday = draft.checkInWeekday,
     )
 }.getOrNull()

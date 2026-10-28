@@ -11,6 +11,7 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BiometricsDto
 import io.github.lopezjavier.appfitness.data.remote.BiometricsUpdateDto
+import io.github.lopezjavier.appfitness.data.remote.CheckInWeekdayDto
 import io.github.lopezjavier.appfitness.data.remote.DisplayNameUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.OnboardingCompletedDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
@@ -33,6 +34,7 @@ import kotlinx.io.IOException
 import kotlinx.serialization.json.JsonPrimitive
 
 /** Reads and updates the signed-in user's `profiles` row (RLS `profiles_select_own` / `profiles_update_own`). */
+@Suppress("TooManyFunctions") // One function per profile column or operation.
 class SupabaseProfileRepository(private val auth: Auth, private val postgrest: Postgrest) : ProfileRepository {
     override suspend fun getOwnProfile(): Result<ProfileSummary> = ownRow { userId ->
         postgrest.from("profiles")
@@ -69,6 +71,17 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun setTargetWeight(kg: Double?): Result<Unit> = ownRow { userId ->
         postgrest.from("profiles").update(TargetWeightDto(kg)) { filter { eq("id", userId) } }
+    }.map {}
+
+    override suspend fun getCheckInWeekday(): Result<Int> = ownRow { userId ->
+        postgrest.from("profiles")
+            .select(Columns.raw(CheckInWeekdayDto.COLUMNS)) { filter { eq("id", userId) } }
+            .decodeSingle<CheckInWeekdayDto>()
+            .weekday
+    }
+
+    override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = ownRow { userId ->
+        postgrest.from("profiles").update(CheckInWeekdayDto(weekday)) { filter { eq("id", userId) } }
     }.map {}
 
     override fun hasProvidedFullName(): Boolean {

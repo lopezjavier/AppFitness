@@ -50,6 +50,7 @@ class UnconfiguredAuthRepository : AuthRepository {
 }
 
 /** Profile counterpart of [UnconfiguredAuthRepository]: there is never a profile to read. */
+@Suppress("TooManyFunctions") // One failing stub per repository operation.
 class UnconfiguredProfileRepository : ProfileRepository {
     override suspend fun getOwnProfile(): Result<ProfileSummary> = Result.failure(AppException(AppError.Unauthorized))
 
@@ -65,6 +66,10 @@ class UnconfiguredProfileRepository : ProfileRepository {
     override suspend fun getTargetWeight(): Result<Double?> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun setTargetWeight(kg: Double?): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun getCheckInWeekday(): Result<Int> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
     override fun hasProvidedFullName(): Boolean = false
 

@@ -53,7 +53,8 @@ select enum_has_labels('public', 'activity_level',
 select has_table('public', 'profiles', 'public.profiles exists');
 select columns_are('public', 'profiles', array[
   'id', 'display_name', 'avatar_url', 'birth_date', 'sex', 'height_cm', 'activity_level',
-  'onboarding_completed', 'created_at', 'updated_at', 'target_weight_kg'
+  'onboarding_completed', 'created_at', 'updated_at', 'target_weight_kg',
+  'check_in_weekday'
 ], 'profiles has exactly the planned columns');
 select col_type_is('public', 'profiles', 'target_weight_kg', 'numeric(5,2)', 'target_weight_kg is numeric(5,2)');
 select col_type_is('public', 'profiles', 'height_cm', 'numeric(5,1)', 'height_cm is numeric(5,1)');
@@ -85,7 +86,7 @@ select is(
    from pg_attribute a
    where a.attrelid = 'public.profiles'::regclass and a.attnum > 0 and not a.attisdropped
      and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')),
-  array['activity_level', 'avatar_url', 'birth_date', 'display_name',
+  array['activity_level', 'avatar_url', 'birth_date', 'check_in_weekday', 'display_name',
         'height_cm', 'onboarding_completed', 'sex', 'target_weight_kg'],
   'authenticated can only update the user-editable columns'
 );

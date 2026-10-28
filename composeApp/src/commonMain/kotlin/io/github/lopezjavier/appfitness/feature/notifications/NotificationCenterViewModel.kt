@@ -22,7 +22,8 @@ import kotlinx.coroutines.launch
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
- * The notification center (US-57): the pending reminders of the [ReminderCoordinator] and the two switches. A switch
+ * The notification center (US-57): the pending reminders of the [ReminderCoordinator] and the three switches (weight,
+ * circumference, weekly check-in; an answered check-in is listed apart and not counted). A switch
  * applies on toggle (R-42): the row leaves or joins the list at once, the change is saved, and a failure puts the
  * switch back and emits [NotificationCenterEffect.ToggleFailed]. After a save the coordinator recomputes, so the
  * count in the bars follows. Nothing here is editable text, so there is nothing to restore (ADR-40).
@@ -41,28 +42,32 @@ class NotificationCenterViewModel(
     val effects: Flow<NotificationCenterEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<NotificationCenterUiState> =
-        combine(switches, failed, coordinator.reminders, connectivity.isOnline) {
+        combine(switches, failed, coordinator.reminders, coordinator.checkIn, connectivity.isOnline) {
                 stored,
                 loadFailed,
                 reminders,
+                checkIn,
                 online,
             ->
             when {
                 stored != null -> {
                     val weight = stored.isEnabled(NotificationKind.Weight)
                     val circumference = stored.isEnabled(NotificationKind.Circumference)
+                    val checkInEnabled = stored.isEnabled(NotificationKind.WeeklyCheckIn)
                     NotificationCenterUiState.Content(
                         reminders = reminders.filter {
                             when (it.kind) {
                                 ReminderKind.Weight -> weight
                                 ReminderKind.Circumference -> circumference
-                                ReminderKind.CheckIn -> true
+                                ReminderKind.CheckIn -> checkInEnabled
                             }
                         },
                         weightEnabled = weight,
                         circumferenceEnabled = circumference,
                         today = clock.today(),
                         isOffline = !online,
+                        checkInEnabled = checkInEnabled,
+                        checkIn = checkIn?.takeIf { checkInEnabled },
                     )
                 }
 

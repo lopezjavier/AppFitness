@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekRecord
 import kotlinx.datetime.LocalDate
 
 /** Training statistics of the signed-in user over UTC-date windows; a null bound is open. */
@@ -20,4 +21,7 @@ interface TrainingStatsRepository {
         to: LocalDate?,
         muscleGroup: MuscleGroup? = null,
     ): Result<List<ExerciseSetCount>>
+
+    /** Single-session personal records first set between [from] and [to] (inclusive UTC dates). */
+    suspend fun weeklyRecords(from: LocalDate, to: LocalDate): Result<List<WeekRecord>>
 }

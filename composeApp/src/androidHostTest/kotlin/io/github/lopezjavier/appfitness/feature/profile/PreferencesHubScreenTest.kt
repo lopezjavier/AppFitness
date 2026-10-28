@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-56 on the Preferencias hub: seven rows in order, each opening its destination, no state of its own. */
+/** US-56 and US-59 on the Preferencias hub: eight rows in order, each opening its destination, no state of its own. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
 class PreferencesHubScreenTest {
@@ -30,7 +30,7 @@ class PreferencesHubScreenTest {
     private var account = 0
     private var backs = 0
 
-    private val keys = listOf("personal", "energy", "macros", "meals", "cooking", "training", "account")
+    private val keys = listOf("personal", "energy", "macros", "meals", "cooking", "training", "checkin", "account")
 
     private fun show() {
         rule.setContent {
@@ -53,7 +53,7 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun sevenRows_readTheDestinationTitles_inOrder() {
+    fun eightRows_readTheDestinationTitles_inOrder() {
         show()
         val labels = listOf(
             "Datos personales",
@@ -62,6 +62,7 @@ class PreferencesHubScreenTest {
             "Comidas del día",
             "Cocina",
             "Entrenamiento",
+            "Check-in semanal",
             "Cuenta",
         )
         keys.zip(labels).forEach { (key, label) ->
@@ -82,6 +83,7 @@ class PreferencesHubScreenTest {
                 PreferencesSection.Macros,
                 PreferencesSection.Cooking,
                 PreferencesSection.Training,
+                PreferencesSection.CheckIn,
             ),
             sections,
         )

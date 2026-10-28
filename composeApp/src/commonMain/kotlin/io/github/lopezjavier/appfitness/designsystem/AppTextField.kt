@@ -87,6 +87,8 @@ object AppTextFieldDefaults {
  * v2: [trailing] / [leading] are 48 dp slots inside the box (clear button, unit, icon); [imeAction] with
  * [onImeAction] overrides the keyboard action (when null, "Hecho" keeps the behaviour above); [keyboardType],
  * [capitalization] and [autofocus] (focus and keyboard on first composition) configure the input.
+ * v3: [singleLine] false makes it a multi-line box of at least [minLines] lines (notes); use a non-Done [imeAction]
+ * there so Enter inserts a line break.
  */
 @Suppress("LongMethod") // One BasicTextField wiring; splitting would only move the parameters around.
 @Composable
@@ -110,6 +112,8 @@ fun AppTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.Sentences,
     autofocus: Boolean = false,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -185,7 +189,8 @@ fun AppTextField(
                 imeAction = imeAction,
             ),
             keyboardActions = keyboardActions,
-            singleLine = true,
+            singleLine = singleLine,
+            minLines = minLines,
             interactionSource = interactionSource,
             cursorBrush = SolidColor(colors.athleticCyan),
             decorationBox = { innerTextField ->

@@ -54,4 +54,12 @@ class AppDateFormatTest {
     @Test
     fun weekdayDayMonth_isTheListFormWithoutRelativeNames() =
         assertEquals("sáb, 24 oct", AppDateFormat.weekdayDayMonth(DayOfWeek.SATURDAY, 24, Month.OCTOBER))
+
+    @Test
+    fun dayRange_sameMonth_namesTheMonthOnce() =
+        assertEquals("9 al 15 nov", AppDateFormat.dayRange(LocalDate(2026, 11, 9), LocalDate(2026, 11, 15)))
+
+    @Test
+    fun dayRange_acrossMonths_namesBoth() =
+        assertEquals("26 oct al 1 nov", AppDateFormat.dayRange(LocalDate(2026, 10, 26), LocalDate(2026, 11, 1)))
 }

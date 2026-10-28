@@ -9,12 +9,16 @@ import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.app.ReminderCoordinator
+import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.app.SavedPreferences
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
@@ -28,14 +32,18 @@ import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateTdee
+import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
+import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -86,6 +94,7 @@ class PreferencesViewModelTest {
     private fun viewModel(
         savedState: SavedStateHandle = SavedStateHandle(),
         section: PreferencesSection = PreferencesSection.PersonalData,
+        reminders: ReminderCoordinator? = null,
     ) = PreferencesViewModel(
         profileRepository = profile,
         goalsRepository = goals,
@@ -98,12 +107,14 @@ class PreferencesViewModelTest {
         timeZone = TimeZone.UTC,
         savedState = savedState.also { it[KEY_PREFERENCES_SECTION] = section.key },
         healthWriteBack = HealthWriteBack(health, weights, FakeClock(today, now)),
+        reminders = reminders,
     )
 
     private fun TestScope.loaded(
         section: PreferencesSection = PreferencesSection.PersonalData,
+        reminders: ReminderCoordinator? = null,
     ): Pair<PreferencesViewModel, () -> PreferencesUiState.Loaded> {
-        val viewModel = viewModel(section = section)
+        val viewModel = viewModel(section = section, reminders = reminders)
         advanceUntilIdle()
         return viewModel to { assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value) }
     }
@@ -1280,6 +1291,7 @@ class PreferencesViewModelTest {
             PreferencesSection.Macros to PreferencesEvent.MoveMacro(Macronutrient.Protein, 40),
             PreferencesSection.Cooking to PreferencesEvent.SetFatPctFried("9"),
             PreferencesSection.Training to PreferencesEvent.SetWarmUpIncluded(true),
+            PreferencesSection.CheckIn to PreferencesEvent.SetCheckInWeekday(3),
         )
         for (section in PreferencesSection.entries) {
             val (viewModel, state) = loaded(section)
@@ -1363,6 +1375,107 @@ class PreferencesViewModelTest {
         assertNull(saved.foodPreferences)
         assertNull(saved.weight)
         assertEquals(GoalStrategy.Deficit, saved.goals.strategy)
+    }
+
+    @Test
+    fun checkIn_loadsTheSavedWeekdayAndIsCleanUntilEdited() = runTest {
+        profile.checkInWeekday = Result.success(5)
+
+        val (_, state) = loaded(PreferencesSection.CheckIn)
+
+        assertEquals(5, state().form.checkInWeekday)
+        assertFalse(state().isDirty)
+        assertFalse(state().canSave)
+    }
+
+    @Test
+    fun checkIn_saveWritesOnlyTheWeekday_andRefreshesTheCenter() = runTest {
+        val env = ReminderEnv(today)
+        val instant = Instant.parse("2026-10-14T08:00:00Z")
+        env.weight.rows += BodyMeasurement("t", instant, 80.0, MeasurementSource.Manual)
+        env.weight.onboarding =
+            BodyMeasurement("o", Instant.parse("2026-10-01T08:00:00Z"), 80.0, MeasurementSource.Manual)
+        env.circumferences.rows += BodyCircumference("c", CircumferenceSite.Waist, 90.0, instant, instant)
+        val load = LoadReminders(
+            env.weight,
+            env.circumferences,
+            env.settings,
+            profile,
+            env.checkIns,
+            env.clock,
+            env.timeZone,
+            ComputeReminders(),
+        )
+        val coordinator = ReminderCoordinator(load, CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        coordinator.refresh()
+        assertEquals(LocalDate(2026, 10, 11), coordinator.checkIn.value?.day)
+        val (viewModel, state) = loaded(PreferencesSection.CheckIn, coordinator)
+
+        viewModel.onEvent(PreferencesEvent.SetCheckInWeekday(3))
+        assertTrue(state().canSave)
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf(3), profile.checkInWeekdaySaves)
+        assertTrue(profile.preferenceSaves.isEmpty(), "the preferences RPC is not involved")
+        assertTrue(state().isSaved)
+        assertEquals(3, state().saved.checkInWeekday)
+        assertEquals(today, coordinator.checkIn.value?.day, "the center follows the new day")
+    }
+
+    @Test
+    fun otherSections_neverWriteTheWeekday() = runTest {
+        for (section in PreferencesSection.entries.filter { it != PreferencesSection.CheckIn }) {
+            val (viewModel, _) = loaded(section)
+            when (section) {
+                PreferencesSection.PersonalData -> viewModel.onEvent(PreferencesEvent.SetName("Bea"))
+
+                PreferencesSection.EnergyGoal ->
+                    viewModel.onEvent(PreferencesEvent.Energy(EnergyStrategyEvent.StepDown))
+
+                PreferencesSection.Macros -> viewModel.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 35))
+
+                PreferencesSection.Cooking -> viewModel.onEvent(PreferencesEvent.SetFatPctFried("9"))
+
+                else -> viewModel.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+            }
+            viewModel.onEvent(PreferencesEvent.Save)
+            advanceUntilIdle()
+        }
+
+        assertTrue(profile.checkInWeekdaySaves.isEmpty())
+    }
+
+    @Test
+    fun checkIn_failedSaveKeepsTheDraftAndEmitsAnEffect() = runTest {
+        profile.checkInWeekdaySaveResult = Result.failure(AppException(AppError.Network))
+        val (viewModel, state) = loaded(PreferencesSection.CheckIn)
+
+        viewModel.onEvent(PreferencesEvent.SetCheckInWeekday(2))
+        viewModel.effects.test {
+            viewModel.onEvent(PreferencesEvent.Save)
+            advanceUntilIdle()
+            assertEquals(PreferencesEffect.SaveFailed(offline = true), awaitItem())
+        }
+
+        assertFalse(state().isSaved)
+        assertEquals(2, state().form.checkInWeekday)
+        assertTrue(state().isDirty)
+    }
+
+    @Test
+    fun checkIn_discardingLeavesTheSavedDay() = runTest {
+        profile.checkInWeekday = Result.success(7)
+        val handle = SavedStateHandle()
+        val first = viewModel(handle, PreferencesSection.CheckIn)
+        advanceUntilIdle()
+        first.onEvent(PreferencesEvent.SetCheckInWeekday(1))
+
+        first.onEvent(PreferencesEvent.SetCheckInWeekday(7))
+
+        val state = assertIs<PreferencesUiState.Loaded>(first.uiState.value)
+        assertFalse(state.isDirty)
+        assertTrue(profile.checkInWeekdaySaves.isEmpty())
     }
 
     @Test
@@ -1453,6 +1566,7 @@ class PreferencesViewModelTest {
                 PreferencesSection.Macros -> first.onEvent(PreferencesEvent.MoveMacro(Macronutrient.Protein, 40))
                 PreferencesSection.Cooking -> first.onEvent(PreferencesEvent.SetFatPctFried("9"))
                 PreferencesSection.Training -> first.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
+                PreferencesSection.CheckIn -> first.onEvent(PreferencesEvent.SetCheckInWeekday(3))
             }
             val edited = assertIs<PreferencesUiState.Loaded>(first.uiState.value).form
             // The server value of another section changes while the editor is away.

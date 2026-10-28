@@ -36,6 +36,13 @@ object AppDateFormat {
     /** Screen and sheet titles: "24 de octubre". */
     fun title(date: LocalDate): String = "${date.day} de ${MONTHS[date.month.ordinal]}"
 
+    /** A span of days without year: "9 al 15 nov", or "30 oct al 5 nov" across two months. */
+    fun dayRange(from: LocalDate, to: LocalDate): String = if (from.month == to.month) {
+        "${from.day} al ${to.day} ${MONTHS_SHORT[to.month.ordinal]}"
+    } else {
+        "${from.day} ${MONTHS_SHORT[from.month.ordinal]} al ${to.day} ${MONTHS_SHORT[to.month.ordinal]}"
+    }
+
     /** Month headers: "octubre 2026". */
     fun month(date: LocalDate): String = "${MONTHS[date.month.ordinal]} ${date.year}"
 }

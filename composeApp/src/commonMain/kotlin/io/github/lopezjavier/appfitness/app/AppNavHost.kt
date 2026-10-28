@@ -143,6 +143,9 @@ internal typealias WeightSlot =
 internal typealias NotificationCenterSlot =
     @Composable (modifier: Modifier, onOpenReminder: (ReminderKind) -> Unit, onBack: () -> Unit) -> Unit
 
+/** Weekly check-in content: modifier (full-screen insets) and how to close it. */
+internal typealias CheckInSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
+
 /** Weight history content: modifier (full-screen insets) and the back arrow. */
 internal typealias WeightHistorySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
@@ -433,6 +436,11 @@ internal val DefaultNotificationCenterSlot: NotificationCenterSlot = { modifier,
     Box(modifier.fillMaxSize().testTag("notifications_screen"))
 }
 
+/** Empty weekly check-in for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultCheckInSlot: CheckInSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("checkin_screen"))
+}
+
 /** Empty weight history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultWeightHistorySlot: WeightHistorySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("weight_history_screen"))
@@ -579,6 +587,7 @@ internal fun AppNavHost(
     weight: WeightSlot = DefaultWeightSlot,
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
     notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
+    checkIn: CheckInSlot = DefaultCheckInSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -695,12 +704,20 @@ internal fun AppNavHost(
             notificationCenter(
                 Modifier.padding(fullScreenPadding),
                 { kind ->
-                    val target =
-                        if (kind == ReminderKind.Weight) WeightEntryTarget.Weight else WeightEntryTarget.Circumference
-                    navController.navigateToFullScreen(WeightRoute(target))
+                    when (kind) {
+                        ReminderKind.Weight -> navController.navigateToFullScreen(WeightRoute(WeightEntryTarget.Weight))
+
+                        ReminderKind.Circumference ->
+                            navController.navigateToFullScreen(WeightRoute(WeightEntryTarget.Circumference))
+
+                        ReminderKind.CheckIn -> navController.navigateToFullScreen(CheckInRoute)
+                    }
                 },
                 { navController.popFullScreen(entry) },
             )
+        }
+        composable<CheckInRoute> { entry ->
+            checkIn(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightHistoryRoute> { entry ->
             weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

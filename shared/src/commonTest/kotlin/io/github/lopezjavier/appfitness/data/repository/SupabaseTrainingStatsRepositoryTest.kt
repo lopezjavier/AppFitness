@@ -10,9 +10,11 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekRecord
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
@@ -143,6 +145,33 @@ class SupabaseTrainingStatsRepositoryTest {
             payload(),
         )
         assertEquals(listOf(ExerciseSetCount("bench", 1.5, 1)), rows)
+    }
+
+    @Test
+    fun weeklyRecords_callsTheRpcAndMapsKnownTypes() = runTest {
+        val repository = repo()
+        body = """[{"exercise_id":"e1","record_type":"best_1rm","value":102.5,"session_id":"s1",""" +
+            """"session_date":"2026-11-11"},""" +
+            """{"exercise_id":"e2","record_type":"unknown_type","value":1,"session_id":"s2",""" +
+            """"session_date":"2026-11-12"}]"""
+
+        val rows = repository.weeklyRecords(LocalDate(2026, 11, 9), LocalDate(2026, 11, 15)).getOrThrow()
+
+        assertTrue(path().endsWith("/rest/v1/rpc/weekly_records"), path())
+        assertEquals("""{"p_from":"2026-11-09","p_to":"2026-11-15"}""", payload())
+        assertEquals(listOf(WeekRecord("e1", PersonalRecordType.Best1Rm, 102.5, LocalDate(2026, 11, 11))), rows)
+    }
+
+    @Test
+    fun weeklyRecords_emptyIsAnEmptyList_andOfflineIsNetwork() = runTest {
+        val repository = repo()
+
+        assertTrue(repository.weeklyRecords(LocalDate(2026, 11, 9), LocalDate(2026, 11, 15)).getOrThrow().isEmpty())
+        offline = true
+        assertEquals(
+            AppError.Network,
+            repository.weeklyRecords(LocalDate(2026, 11, 9), LocalDate(2026, 11, 15)).appErrorOrNull(),
+        )
     }
 
     @Test

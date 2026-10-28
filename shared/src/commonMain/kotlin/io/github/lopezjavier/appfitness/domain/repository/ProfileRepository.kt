@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 
+@Suppress("TooManyFunctions") // One operation per profile column.
 interface ProfileRepository {
     /** The signed-in user's profile. A failure carries an [io.github.lopezjavier.appfitness.domain.AppException]. */
     suspend fun getOwnProfile(): Result<ProfileSummary>
@@ -30,6 +31,12 @@ interface ProfileRepository {
 
     /** Sets the weight goal (20-400 kg) or clears it with null. */
     suspend fun setTargetWeight(kg: Double?): Result<Unit>
+
+    /** The weekly check-in day, ISO weekday 1 (Monday) to 7 (Sunday); 7 by default. */
+    suspend fun getCheckInWeekday(): Result<Int>
+
+    /** Sets the weekly check-in day (1 Monday .. 7 Sunday). */
+    suspend fun setCheckInWeekday(weekday: Int): Result<Unit>
 
     /** True when the sign-in provider (Google) supplied a non-blank `full_name`. Reads the cached session. */
     fun hasProvidedFullName(): Boolean

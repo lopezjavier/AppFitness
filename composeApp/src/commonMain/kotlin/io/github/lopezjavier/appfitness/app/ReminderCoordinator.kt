@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.app
 
+import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import kotlinx.coroutines.CoroutineScope
@@ -15,18 +16,30 @@ import kotlinx.coroutines.launch
  */
 class ReminderCoordinator(private val load: LoadReminders, private val scope: CoroutineScope) {
     private val state = MutableStateFlow<List<Reminder>>(emptyList())
+    private val checkInState = MutableStateFlow<CheckInDay?>(null)
     private var pending: Job? = null
     private var version = 0
 
-    /** The pending reminders; empty until the first successful refresh. */
+    /** The pending reminders (the count at the entry point); empty until the first successful refresh. */
     val reminders: StateFlow<List<Reminder>> = state.asStateFlow()
 
-    /** Recomputes and returns the outcome; a failure leaves [reminders] untouched. */
+    /**
+     * The open check-in window, answered or not (null when none is due, the kind is silenced or nothing loaded yet).
+     * An answered one is reachable from the center but is not in [reminders].
+     */
+    val checkIn: StateFlow<CheckInDay?> = checkInState.asStateFlow()
+
+    /** Recomputes and returns the outcome; a failure leaves [reminders] and [checkIn] untouched. */
     suspend fun refresh(): Result<Unit> {
         val ticket = ++version
         // A result is applied only if no newer refresh or clear started meanwhile, so a slow stale read cannot win.
         val result = load()
-        result.onSuccess { if (ticket == version) state.value = it }
+        result.onSuccess {
+            if (ticket == version) {
+                state.value = it.reminders
+                checkInState.value = it.checkIn
+            }
+        }
         return result.map { }
     }
 
@@ -41,5 +54,6 @@ class ReminderCoordinator(private val load: LoadReminders, private val scope: Co
         pending?.cancel()
         version++
         state.value = emptyList()
+        checkInState.value = null
     }
 }

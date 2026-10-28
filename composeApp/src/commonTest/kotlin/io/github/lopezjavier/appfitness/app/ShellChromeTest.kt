@@ -38,7 +38,7 @@ class ShellChromeTest {
     }
 
     @Test
-    @Suppress("ComplexCondition", "CyclomaticComplexMethod") // Lists the routes that are objects.
+    @Suppress("ComplexCondition", "CyclomaticComplexMethod", "LongMethod") // Lists the routes that are objects.
     fun fullScreenRoutes_containsTheFullScreenDestinations_andNoTabRoute() {
         assertEquals(
             listOf(
@@ -72,6 +72,7 @@ class ShellChromeTest {
                 WeightHistoryRoute,
                 AboutRoute,
                 NotificationCenterRoute,
+                CheckInRoute,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
@@ -87,7 +88,8 @@ class ShellChromeTest {
                     it is DiaryHistoryRoute ||
                     it is WeightHistoryRoute ||
                     it is AboutRoute ||
-                    it is NotificationCenterRoute
+                    it is NotificationCenterRoute ||
+                    it is CheckInRoute
                 ) {
                     it
                 } else {

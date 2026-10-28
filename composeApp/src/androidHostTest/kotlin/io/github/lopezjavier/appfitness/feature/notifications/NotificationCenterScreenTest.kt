@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -12,7 +13,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.CheckIn
+import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
@@ -42,7 +46,23 @@ class NotificationCenterScreenTest {
         weightEnabled: Boolean = true,
         circumferenceEnabled: Boolean = true,
         isOffline: Boolean = false,
-    ) = NotificationCenterUiState.Content(reminders, weightEnabled, circumferenceEnabled, TODAY, isOffline)
+        checkIn: CheckInDay? = null,
+    ) = NotificationCenterUiState.Content(
+        reminders,
+        weightEnabled,
+        circumferenceEnabled,
+        TODAY,
+        isOffline,
+        checkIn = checkIn,
+    )
+
+    private val checkInReminder = Reminder(ReminderKind.CheckIn, LocalDate(2026, 11, 15), days = 0)
+    private val openWindow = CheckInDay(LocalDate(2026, 11, 15), LocalDate(2026, 11, 9), answer = null)
+    private val answeredWindow = openWindow.copy(answer = CheckIn(LocalDate(2026, 11, 9), energy = 4, notes = ""))
+
+    private fun scrollTo(tag: String) {
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(tag))
+    }
 
     private fun show(
         state: NotificationCenterUiState,
@@ -118,6 +138,75 @@ class NotificationCenterScreenTest {
         rule.onNodeWithTag("notifications_switch_circumference").assertIsNotEnabled()
         rule.onNodeWithText("Sin conexión: no se puede cambiar el aviso").assertIsDisplayed()
         rule.onNodeWithTag("notifications_reminder_weight").assertIsDisplayed()
+    }
+
+    @Test
+    fun checkInReminder_showsItsHeadlineAndWeek_andOpensTheCheckIn() {
+        val opened = mutableListOf<ReminderKind>()
+        show(content(reminders = listOf(checkInReminder), checkIn = openWindow), opened = opened)
+
+        rule.onNodeWithText("Hacer el check-in semanal").assertIsDisplayed()
+        rule.onNodeWithTag(
+            "notifications_reminder_checkin",
+        ).assertTextContains("Semana del 9 al 15 nov", substring = true)
+        rule.onNodeWithTag("notifications_reminder_checkin").performClick()
+
+        assertEquals(listOf(ReminderKind.CheckIn), opened)
+    }
+
+    @Test
+    fun answeredCheckIn_isListedUnderEstaSemana_withItsEnergy_andReopens() {
+        val opened = mutableListOf<ReminderKind>()
+        show(content(reminders = emptyList(), checkIn = answeredWindow), opened = opened)
+
+        rule.onNodeWithTag("notifications_section_this_week").assertIsDisplayed()
+        rule.onNodeWithTag(
+            "notifications_checkin_answered",
+        ).assertTextContains("Respondido · Energía 4/5", substring = true)
+        rule.onAllNodesWithTag("notifications_reminder_checkin").assertCountEquals(0)
+        rule.onNodeWithTag("notifications_checkin_answered").performClick()
+
+        assertEquals(listOf(ReminderKind.CheckIn), opened)
+    }
+
+    @Test
+    fun answeredCheckIn_isNotCountedAmongThePending() {
+        show(content(reminders = emptyList(), checkIn = answeredWindow))
+
+        rule.onNodeWithTag("notifications_empty").assertIsDisplayed()
+        rule.onNodeWithText("Todo al día").assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutAnOpenCheckIn_noThisWeekSectionIsShown() {
+        show(content())
+
+        rule.onAllNodesWithTag("notifications_section_this_week").assertCountEquals(0)
+        rule.onAllNodesWithTag("notifications_checkin_answered").assertCountEquals(0)
+    }
+
+    @Test
+    fun checkInSwitch_togglesTheKindAtOnce_andOfflineDisablesIt() {
+        val events = mutableListOf<NotificationCenterEvent>()
+        show(content(), events = events)
+
+        scrollTo("notifications_switch_checkin")
+        rule.onNodeWithText("Check-in semanal").assertIsDisplayed()
+        rule.onNodeWithText("El día que elijas en Preferencias, si aún no lo has respondido.").assertIsDisplayed()
+        rule.onNodeWithTag("notifications_switch_checkin").performClick()
+
+        assertEquals(
+            listOf<NotificationCenterEvent>(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, false)),
+            events,
+        )
+    }
+
+    @Test
+    fun checkInSwitch_isInertOffline() {
+        show(content(isOffline = true))
+
+        scrollTo("notifications_switch_checkin")
+        rule.onNodeWithTag("notifications_switch_checkin").assertIsNotEnabled()
     }
 
     @Test

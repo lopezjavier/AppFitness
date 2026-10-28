@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekRecord
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
@@ -65,5 +66,15 @@ class FakeTrainingStatsRepository : TrainingStatsRepository {
         exerciseCalls += window to muscleGroup
         val failure = if (muscleGroup == null) exercisesFailure else detailFailure
         return failure?.let { Result.failure(AppException(it)) } ?: Result.success(exercisesFor(window, muscleGroup))
+    }
+
+    var recordsFor: (Window) -> List<WeekRecord> = { emptyList() }
+    var recordsFailure: AppError? = null
+    val recordCalls = mutableListOf<Window>()
+
+    override suspend fun weeklyRecords(from: LocalDate, to: LocalDate): Result<List<WeekRecord>> {
+        val window = Window(from, to)
+        recordCalls += window
+        return recordsFailure?.let { Result.failure(AppException(it)) } ?: Result.success(recordsFor(window))
     }
 }

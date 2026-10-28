@@ -51,6 +51,10 @@ class CompleteOnboardingTest {
 
         override suspend fun setTargetWeight(kg: Double?): Result<Unit> = error("unused")
 
+        override suspend fun getCheckInWeekday(): Result<Int> = error("unused")
+
+        override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = error("unused")
+
         override fun hasProvidedFullName(): Boolean = error("unused")
 
         override suspend fun savePreferences(

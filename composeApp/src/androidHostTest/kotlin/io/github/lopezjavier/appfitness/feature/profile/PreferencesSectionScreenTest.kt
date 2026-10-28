@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -142,6 +143,7 @@ class PreferencesSectionScreenTest {
             PreferencesSection.Cooking -> base.copy(foodPreferences = FoodPreferencesForm(griddleText = "7"))
             PreferencesSection.Training -> base.copy(warmUpIncluded = true)
             PreferencesSection.PersonalData -> base.copy(name = "Eva")
+            PreferencesSection.CheckIn -> base.copy(checkInWeekday = 3)
         },
     )
 
@@ -350,6 +352,41 @@ class PreferencesSectionScreenTest {
         rule.onNodeWithTag("preferences_content").assertExists()
         rule.onNodeWithTag("preferences_error").assertDoesNotExist()
     }
+
+    // -- Check-in semanal (US-59) ------------------------------
+
+    @Test
+    fun checkInEditor_isTitledCheckInSemanal_andShowsTheChosenDayLowercase() {
+        show(PreferencesSection.CheckIn, loaded(PreferencesSection.CheckIn, base.copy(checkInWeekday = 3)))
+
+        rule.onNodeWithTag("preferences_checkin_title").assertTextEquals("Check-in semanal")
+        rule.onNodeWithTag("preferences_checkin_weekday_row").assertTextContains("miércoles", substring = true)
+    }
+
+    @Test
+    fun checkInDay_pickerAppliesOnTap_andClosesWithoutSaving() {
+        show(PreferencesSection.CheckIn)
+
+        rule.onNodeWithTag("preferences_checkin_weekday_row").performClick()
+        for (day in 1..7) rule.onNodeWithTag("preferences_checkin_weekday_option_$day").assertIsDisplayed()
+        rule.onNodeWithTag("preferences_checkin_weekday_option_5").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf<PreferencesEvent>(PreferencesEvent.SetCheckInWeekday(5)), events)
+        rule.onNodeWithTag("preferences_checkin_weekday_option_5").assertDoesNotExist()
+    }
+
+    @Test
+    fun checkInDay_changeEnablesGuardar_andSendsSave() {
+        show(PreferencesSection.CheckIn, dirtyState(PreferencesSection.CheckIn))
+
+        rule.onNodeWithTag("preferences_checkin_save").assertIsEnabled().performClick()
+
+        assertEquals(listOf<PreferencesEvent>(PreferencesEvent.Save), events)
+    }
+
+    @Test
+    fun checkInDay_cleanKeepsGuardarDisabled() = assertCleanSaveDisabled(PreferencesSection.CheckIn)
 
     // -- tablet ------------------------------
 
