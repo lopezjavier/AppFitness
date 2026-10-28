@@ -33,7 +33,7 @@ Checkpoint (user decision, 2026-10-28): one checkpoint for the whole epic instea
 | Task | Flow | Size | Expected agent runs |
 |---|---|---|---|
 | T-135: "Centro de avisos" with weight and circumference reminders (US-57 + US-58) | backend + core + UI | L (merged) | 8 |
-| T-136: Weekly check-in with the weekly summary (US-59) | backend + core + UI | L | 8 |
+| T-136: Weekly check-in with the weekly summary (US-59) | backend + core + UI | L (merged) | 8 |
 | T-137: E10 closure → `v1.x` | PM | S | PM only |
 
 Full checkpoint item list in `tasks/todo.md`.
