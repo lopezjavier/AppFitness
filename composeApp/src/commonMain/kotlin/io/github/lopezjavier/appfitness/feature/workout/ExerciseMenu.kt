@@ -27,8 +27,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_body_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_discomfort
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_discomfort_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
@@ -94,6 +97,8 @@ internal fun ExerciseMenuSheet(
     onPlateCalculator: () -> Unit,
     onBodyWeight: () -> Unit,
     onDismiss: () -> Unit,
+    onDiscomfort: () -> Unit = {},
+    online: Boolean = true,
 ) {
     val prefix = "live_exercise_$position"
     val note = stringResource(Res.string.weight_hc_note)
@@ -124,6 +129,7 @@ internal fun ExerciseMenuSheet(
                 ),
             )
         }
+        add(discomfortAction(prefix, online, onDiscomfort))
         if (exercise.metricType in BODY_WEIGHT_TYPES) {
             add(
                 AppSheetAction(
@@ -144,6 +150,17 @@ internal fun ExerciseMenuSheet(
         testTagPrefix = "${prefix}_menu_sheet",
     )
 }
+
+/** "Registrar molestia": needs the server, so offline it is disabled with its reason as the hint. */
+@Composable
+private fun discomfortAction(prefix: String, online: Boolean, onClick: () -> Unit) = AppSheetAction(
+    Res.drawable.ic_warning,
+    stringResource(Res.string.live_exercise_menu_discomfort),
+    hint = stringResource(Res.string.live_exercise_menu_discomfort_offline).takeIf { !online },
+    onClick = onClick,
+    testTag = "${prefix}_menu_discomfort",
+    enabled = online,
+)
 
 /** Weighted exercises are excluded: they count the added load only, not the body weight. */
 private val BODY_WEIGHT_TYPES = setOf(ExerciseMetricType.Bodyweight, ExerciseMetricType.Assisted)

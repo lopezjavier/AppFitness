@@ -28,6 +28,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
 import io.github.lopezjavier.appfitness.composeapp.resources.live_action_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_log_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_error
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
@@ -81,6 +83,8 @@ fun LiveSessionRoot(
     val currentAddExercise by rememberUpdatedState(onAddExercise)
     val currentConsume by rememberUpdatedState(onConsumeSelection)
     val failed = stringResource(Res.string.live_action_failed)
+    val discomfortLogFailed = stringResource(Res.string.live_discomfort_log_failed)
+    val discomfortResolveFailed = stringResource(Res.string.live_discomfort_resolve_failed)
     val permissionNote = stringResource(Res.string.rest_sound_permission_note)
     // The options sheets show their own "No se pudo guardar" line; the flag survives recreation with the open sheet.
     var optionSaveFailed by rememberSaveable { mutableStateOf(false) }
@@ -108,6 +112,19 @@ fun LiveSessionRoot(
                 }
 
                 LiveSessionEffect.RestAlertPermissionNote -> messages.show(permissionNote)
+
+                // The card already shows the new state, so success needs no message.
+                LiveSessionEffect.DiscomfortLogged, LiveSessionEffect.DiscomfortResolved -> haptics.confirm()
+
+                LiveSessionEffect.DiscomfortLogFailed -> {
+                    haptics.reject()
+                    messages.show(discomfortLogFailed)
+                }
+
+                LiveSessionEffect.DiscomfortResolveFailed -> {
+                    haptics.reject()
+                    messages.show(discomfortResolveFailed)
+                }
             }
         }
     }

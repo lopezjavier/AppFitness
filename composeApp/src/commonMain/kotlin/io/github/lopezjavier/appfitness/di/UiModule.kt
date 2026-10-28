@@ -344,6 +344,7 @@ val uiModule =
                 restAlertScheduler = get(),
                 notificationPermission = get(),
                 restAlertPreferences = get(),
+                discomfortRepository = get(),
             )
         }
         viewModelOf(::HistoryViewModel)

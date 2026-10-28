@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(18);
+select plan(20);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -53,7 +53,19 @@ insert into public.meal_defaults (user_id, meal_slot_id, template_id, weekday)
   where s.code = 'breakfast' and s.user_id in
     ('d1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002');
 
+insert into public.exercise_discomforts (user_id, exercise_id, note)
+  select u.id, (select id from public.exercises where not is_custom order by key limit 1), 'molestia'
+  from auth.users u where u.id in
+    ('d1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002');
+
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
+
+select is(
+  (select count(*)::int from public.exercise_discomforts where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s exercise_discomforts are gone');
+select is(
+  (select count(*)::int from public.exercise_discomforts where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s exercise_discomforts are untouched');
 
 select is(
   (select count(*)::int from public.meal_defaults where user_id = 'd1000000-0000-4000-8000-000000000001'),

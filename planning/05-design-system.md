@@ -139,6 +139,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Muscle on the radar axis | "Isquios" (radar only) | - | Elsewhere "Isquiotibiales" |
 | User-created exercise | "ejercicio propio"; "Añadir ejercicio propio"; sheet "Nuevo ejercicio" | "Crear ejercicio", "Añadir ejercicio" for it | "Añadir ejercicio" is only the routine/workout picker button |
 | App information screen | "Acerca de" (last Perfil row and title) | "Información", "Sobre la app" | Not "Sobre ti" (onboarding step); no value on the row |
+| Discomfort logged on an exercise | "Molestia" ("Registrar molestia", "Molestia registrada", "Ya no me molesta") | "Lesión", "Dolor" | Free-text strong-pain terms trigger the fixed health-professional message; plain "dolor"/"molestia" do not |
 | System licences list | "Licencias de código abierto" | "Licencias", "Open source" | Credits heading "Créditos" |
 
 Message templates: required "Escribe un nombre" · too long "Máximo N caracteres" · range "Entre X y Y <unidad>" · duplicate "Ya existe <una comida / una carpeta / una rutina> con ese nombre" · error "No se pudo <acción>. Inténtalo de nuevo." · offline "Sin conexión: no se puede <acción>" · saved "Cambios guardados".

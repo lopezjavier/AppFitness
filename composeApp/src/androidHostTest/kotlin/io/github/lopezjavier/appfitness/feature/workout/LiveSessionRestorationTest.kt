@@ -87,6 +87,30 @@ class LiveSessionRestorationTest {
     }
 
     @Test
+    fun discomfortSheet_staysOpenWithTheHalfTypedNote() {
+        showAndRestore()
+        rule.onNodeWithTag("live_exercise_0_menu").performClick()
+        rule.onNodeWithTag("live_exercise_0_menu_discomfort").performClick()
+        rule.onNodeWithTag("live_exercise_0_discomfort_note").performTextInput("me duele al bajar")
+
+        recreate()
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_note").assertTextContains("me duele al bajar")
+    }
+
+    @Test
+    fun openDiscomfort_isStillShownAfterRecreation() {
+        state =
+            active().let { it.copy(exercises = it.exercises.map { e -> e.copy(discomfort = LiveDiscomfort(true)) }) }
+        showAndRestore()
+
+        recreate()
+
+        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertExists()
+    }
+
+    @Test
     fun sessionMenu_staysOpen() {
         showAndRestore()
         rule.onNodeWithTag("live_menu_button").performClick()

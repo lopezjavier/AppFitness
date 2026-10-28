@@ -47,6 +47,7 @@ internal fun LiveExerciseCard(
     modifier: Modifier = Modifier,
     options: VolumeOptionsUi = VolumeOptionsUi(),
     deleteEnabled: Boolean = true,
+    online: Boolean = true,
 ) {
     val position = exercise.position
     val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
@@ -56,6 +57,14 @@ internal fun LiveExerciseCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
+            }
+            exercise.discomfort?.let {
+                DiscomfortBlock(
+                    position = position,
+                    discomfort = it,
+                    online = online,
+                    onResolve = { onEvent(LiveSessionEvent.ResolveDiscomfort(position)) },
+                )
             }
             exercise.targetRpeText?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -92,12 +101,13 @@ internal fun LiveExerciseCard(
         exercise,
         options,
         onEvent,
+        online,
         onSheetChange = { sheet = it },
         onSheetClose = { from -> if (sheet == from) sheet = ExerciseSheet.None },
     )
 }
 
-private enum class ExerciseSheet { None, Menu, Rest, BodyWeight }
+private enum class ExerciseSheet { None, Menu, Rest, BodyWeight, Discomfort }
 
 /** The heading is one tap target (min 48 dp) that opens the exercise; the menu button stays a sibling. */
 @Composable
@@ -142,6 +152,7 @@ private fun ExerciseSheets(
     exercise: LiveExercise,
     options: VolumeOptionsUi,
     onEvent: (LiveSessionEvent) -> Unit,
+    online: Boolean,
     onSheetChange: (ExerciseSheet) -> Unit,
     onSheetClose: (ExerciseSheet) -> Unit,
 ) {
@@ -166,6 +177,8 @@ private fun ExerciseSheets(
                 onEvent(LiveSessionEvent.BodyWeightDraftChanged(options.bodyWeightKg?.let(::decimalText).orEmpty()))
                 onSheetChange(ExerciseSheet.BodyWeight)
             },
+            online = online,
+            onDiscomfort = { onSheetChange(ExerciseSheet.Discomfort) },
             // The sheet closes after the tapped action ran: only close it if the action did not open another one.
             onDismiss = { onSheetClose(ExerciseSheet.Menu) },
         )
@@ -175,6 +188,16 @@ private fun ExerciseSheets(
             options = options,
             onEvent = onEvent,
             onClose = { onSheetChange(ExerciseSheet.None) },
+        )
+
+        ExerciseSheet.Discomfort -> DiscomfortSheet(
+            position = position,
+            online = online,
+            onSave = {
+                onEvent(LiveSessionEvent.LogDiscomfort(position, it))
+                onSheetChange(ExerciseSheet.None)
+            },
+            onDismiss = { onSheetChange(ExerciseSheet.None) },
         )
 
         ExerciseSheet.Rest -> ExerciseRestSheet(
