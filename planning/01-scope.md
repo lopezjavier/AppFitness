@@ -69,7 +69,7 @@ The Phase 1 epic files are frozen; these amendments are recorded here and in the
 | E9 points 15-16 (T-059) | The alert sound choice is reopened (E12 US-64) | 75 |
 
 ## 7. Pending before implementing
-- E11: verify `READ_HEALTH_DATA_HISTORY` on the device (the first read covers 90 days).
+- E11: a spike (the first E11 task) checks `READ_HEALTH_DATA_HISTORY` on the user's device; its result decides whether the first read covers 90 days or about 30 (user decision, 2026-10-28).
 - E12: verify screen-off alert behaviour on Android 17.
 - E13: verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` secret.
 - Release version of each epic (`v1.x` for now).
