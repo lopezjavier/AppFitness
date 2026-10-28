@@ -5,6 +5,7 @@ Once a day, on the first app open, bring the watch data (sleep, steps, calories,
 
 ## Scope
 - Includes: automatic sync on the first open of the day for every read type; the existing "Sincronizar" button syncs every read type on demand; reads sleep, steps, active and total calories and resting heart rate; write permissions limited to what the app writes.
+- Also includes (user decision at Checkpoint E11, 2026-10-28): the "Actividad" screen gets the same experience as "Peso" (US-64): today's summary, the "Sincronizar" button, a metric chart with ranges and a day calendar.
 - Out of scope: background sync, writing food or training to Health Connect, water (Phase 3).
 
 ## Decisions
@@ -139,3 +140,54 @@ Feature: Permissions
 
 **Technical notes**
 - `READ_HEALTH_DATA_HISTORY` behaviour is checked on the device by a spike, the first E11 task (T-139, user decision 2026-10-28). If the history cannot be read, the first sync covers about 30 days and this scenario is rewritten with the user's OK (`tasks/plan.md`, E11 Q1).
+
+## US-64 · Browse my watch data like my weight
+**As** a user with a watch
+**I want** "Actividad" to work like "Peso": today's summary, a sync button, a chart per metric and a calendar
+**So that** I can see how my sleep, steps, calories and resting heart rate evolve and look at any past day.
+
+```gherkin
+Feature: Activity screen
+
+  Scenario: Summary of today
+    Given the watch data of today is stored
+    When the user opens "Actividad"
+    Then a summary shows sleep, steps, active calories, total calories and resting heart rate of the day, each with its icon
+
+  Scenario: Sync from the same screen
+    When the user taps "Sincronizar" on "Actividad"
+    Then the watch data is read like on "Peso"
+    And the status line shows the sync outcome
+
+  Scenario: Steps are the default metric
+    When the user opens "Actividad"
+    Then the chart shows steps
+
+  Scenario: Switching the metric
+    When the user selects another metric
+    Then the chart shows that metric with its own illustration or animation
+
+  Scenario: Switching the range
+    When the user selects 1S, 1M, 3M, 6M or 1A
+    Then the chart covers that period
+
+  Scenario: Sleep shows how the night was distributed
+    Given the watch wrote sleep stages
+    When the sleep metric is selected
+    Then the detail shows the distribution of the stages
+    And without stages it shows the total duration only
+
+  Scenario: Another day with the calendar
+    When the user taps the calendar icon and picks a day
+    Then the summary shows the values of that day
+    And a day without data says so
+
+  Scenario: Missing metric
+    Given the watch does not write resting heart rate
+    When the user selects that metric
+    Then it says there is no data and does not fail
+```
+
+**Technical notes**
+- Same experience as "Peso" (summary card, status line and button, chart with range chips, calendar icon top right); ux-reviewer defines the layout, the per-metric illustrations (feet, moon/sleep figure, flame, heart), animations and Spanish copy, and proposes the rule for `05-design-system.md` §8: every screen that shows watch data has the sync status line and button.
+- Sleep stages are shown only if Health Connect provides them (T-140 stores the session duration; the planner checks whether stages need a schema change and a migration).

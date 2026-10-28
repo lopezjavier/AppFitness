@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** T-142 merged (#327). **Checkpoint E11 is open (👤)**: the user tests it; its approval releases T-143 (E11 closure). Fixes first if feedback arrives.
+**Next:** T-144 ("Actividad" like "Peso", US-64), added from Checkpoint E11 feedback (2026-10-28). After it merges, Checkpoint E11 is re-presented; its approval releases T-143 (E11 closure).
 
 ---
 
@@ -145,9 +145,34 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 
 ---
 
-### Checkpoint E11 — Your watch data, synced by itself each day 👤 (12 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
+## T-144: "Actividad" like "Peso": summary, Sincronizar, metric chart and calendar (US-64) · L
+
+**Story:** US-64 · **Flow:** core + UI · **Size:** L (the planner may propose splitting it) · **Scenarios:** all of US-64 · **Origin:** user feedback at Checkpoint E11 (2026-10-28)
+
+**Description:** The user expects "Actividad" to give the same experience as "Peso". (1) **Core:** queries of `daily_activity`, `sleep_sessions` and `resting_heart_rate` by range (1S, 1M, 3M, 6M, 1A) and by day; sleep stages only if the planner finds them already stored or a small migration is justified. (2) **UI:** a summary of the day with an icon per metric, the Health Connect status line with "Sincronizar" (reusing `HealthStatusLine` and the sync of T-141/T-142), a chart with a metric selector (default "Pasos") and range chips, and a calendar icon top right to pick a day. ux-reviewer decides the rendering of each metric (feet for steps, sleep distribution or a sleep figure, calorie and flame imagery, a heart for resting heart rate, animations), the Spanish copy and the testTags, reuses the Peso components (a new component retires ad-hoc copies, per the UX rule) and proposes the §8 rule "every screen with watch data has the status line and button"; the empty message of "Actividad" no longer sends the user to Peso.
+
+**Acceptance criteria:**
+- [ ] Summary of today with the five metrics and their icons.
+- [ ] "Sincronizar" on "Actividad" syncs like on Peso and shows the status line.
+- [ ] Chart defaults to Pasos; the metric and the range (1S, 1M, 3M, 6M, 1A) switch.
+- [ ] Sleep shows the stage distribution when available, otherwise the duration.
+- [ ] The calendar picks another day; a day or metric without data says so.
+- [ ] Tab, metric, range, day and scroll survive leaving the app and process death (ADR-40).
+
+**Host tests:** range and day query tests; ViewModel tests (default metric, switching, calendar, empty states, sync); Robolectric screen and restoration tests.
+
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-142 merged
+**Files likely touched:** to be defined by the planner (`feature/activity/…`, shared repository and queries, strings, `05-design-system.md` §8)
+**Estimated scope:** L
+
+---
+
+### Checkpoint E11 — Your watch data, synced by itself each day 👤 (13 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
 Journey: grant the new permissions once and see last night's sleep, yesterday's steps, calories and resting heart rate, never duplicated; from then on the app brings them on the first open of each day, and the button still brings a fresh weigh-in. Why here: right after T-142, the last implementation task, so it is also the final regression of E11; its approval releases T-143. The user chose one checkpoint over two (E11-A after T-141 and E11-B after T-142).
-- [x] T-140, T-141 and T-142 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
+- [ ] T-140, T-141, T-142 and T-144 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Permissions (US-63): tap "Sincronizar": Health Connect asks to read sleep, steps, active and total calories and resting heart rate (and, in branch A, older history); in Ajustes → Health Connect → AppFitness, write access lists only weight and body fat.
   2. Sleep (US-61): after the sync, last night's sleep appears with its duration; compare it with Zepp.
@@ -160,7 +185,8 @@ Journey: grant the new permissions once and see last night's sleep, yesterday's 
   9. Second open (US-60): close the app and open it again the same day: the status line keeps the same time (no new automatic sync).
   10. Fresh weigh-in (US-60): weigh yourself on the scale, then "Sincronizar": today's weight appears and the weight reminder in "Centro de avisos" disappears.
   11. Offline and permission missing (US-60): on a new day open the app in airplane mode: your data is shown and the status line says the last sync was not possible; reconnect and reopen: it syncs. Revoke the read permissions and open on a new day: the status line asks for them, no dialog opens by itself, nothing new is read.
-  12. Final regression of E11: Peso, its chart and weight history, "Centro de avisos" and the check-in, Diario and Entreno work as before; no value appears twice.
+  12. Actividad like Peso (US-64, T-144): summary of today with icons, "Sincronizar" button, chart defaulting to Pasos with 1S/1M/3M/6M/1A, metric switch, calendar icon to pick a day.
+  13. Final regression of E11: Peso, its chart and weight history, "Centro de avisos" and the check-in, Diario and Entreno work as before; no value appears twice.
   - Leave the app and come back on the screen with the watch data scrolled down: the same tab, screen and scroll are restored.
   - Out of scope: background sync (never, ADR-74); writing food or training to Health Connect; water (Phase 3); the coach reading these values (E13).
 
@@ -182,7 +208,7 @@ Journey: grant the new permissions once and see last night's sleep, yesterday's 
 **Verification:**
 - [ ] `git tag` lists the E11 tag.
 
-**Dependencies:** T-142 and Checkpoint E11 approved
+**Dependencies:** T-144 and Checkpoint E11 approved
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E11.md`
 **Estimated scope:** S
 
