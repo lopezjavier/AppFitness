@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** T-137 (E10 closure, release `v1.1.0`). Checkpoint E10 approved 2026-10-28. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
+**Next:** E10 is closed (`v1.1.0`, T-137 merged in #317). Break down E11 with the `epic-planner` in a fresh session (verify `READ_HEALTH_DATA_HISTORY` first, see Notes for later epics); the user agrees the task list and checkpoints before the breakdown PR merges. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
 
 ---
 
@@ -143,14 +143,14 @@ Journey: the reminders find you when you open the app, take you to log the missi
 **Description:** Closes E10 once Checkpoint E10 is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR) to `1.1.0` (versioning rule, `06` §6), tag, retrospective, archive of the E10 log lines (`06` §6). No 👤 checkpoint of its own.
 
 **Acceptance criteria:**
-- [ ] T-135, T-136 (and any fix tasks) merged with green CI; `deploy-supabase` green after the last migration.
-- [ ] ux-reviewer ran in plan and diff mode on both UI tasks; `check-ux-conventions.sh` passes.
-- [ ] `planning/03-data-model.md` and `04-business-rules.md` describe `notification_settings`, `weekly_check_ins`, `profiles.check_in_weekday`, `weekly_records` and the reminder and check-in rules.
-- [ ] Checkpoint E10 approved; every reported bug fixed.
-- [ ] Version agreed and bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
+- [x] T-135, T-136 (and any fix tasks) merged with green CI; `deploy-supabase` green after the last migration.
+- [x] ux-reviewer ran in plan and diff mode on both UI tasks; `check-ux-conventions.sh` passes.
+- [x] `planning/03-data-model.md` and `04-business-rules.md` describe `notification_settings`, `weekly_check_ins`, `profiles.check_in_weekday`, `weekly_records` and the reminder and check-in rules.
+- [x] Checkpoint E10 approved; every reported bug fixed.
+- [x] Version agreed and bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `git tag` lists the E10 tag.
+- [x] `git tag` lists the E10 tag.
 
 **Dependencies:** T-136 and Checkpoint E10 approved
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E10.md`

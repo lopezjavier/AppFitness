@@ -46,7 +46,7 @@ Full checkpoint item list in `tasks/todo.md`.
   - **Checkpoint E10 👤 Reminders and your weekly check-in (14 items + leave and come back; agreed 2026-10-28):** entry point and count; weight reminder; circumference reminder; tap to log clears it; Health Connect sync clears it; silence a type; next open and states; check-in day; weekly summary; answering; reopen and edit; discard safety and silencing; check-in states; final regression of E10. Why here: after the last implementation task, so it is also the final regression; its approval releases T-137.
 
 ### Phase 3: Closure
-- [ ] T-137: E10 closure → `v1.x` — PM — S (no checkpoint; Checkpoint E10's approval releases it)
+- [x] T-137: E10 closure → `v1.x` — PM — S (no checkpoint; Checkpoint E10's approval releases it)
 
 Internal milestones (not 👤 checkpoints):
 - lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest` green per task; pgTAP green for T-135 and T-136;

@@ -30,6 +30,8 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 - `body_measurements`: measured_at, weight_kg, body_fat_pct, lean_mass_kg, water_kg, bone_kg, bmr_kcal (composition only from Health Connect), source, `external_id` (HC dedup), `hc_record_id` (copy written by the app). The onboarding weight is the user's first row.
 - `body_circumferences` (site, value_cm, measured_at). `health_sync_state` (last sync per user).
 - `notification_settings` (T-135, US-57): `(user_id, kind)` primary key, `enabled`, `updated_at`; owner select/insert/update (no delete), client upserts on `(user_id, kind)`. **A missing row means enabled.** Reminders are derived on the client from the latest weight and circumference rows, never stored.
+- `weekly_check_ins` (T-136, US-59): `(user_id, week_start)` primary key, `week_start` is an ISO Monday (check), `energy` smallint 1-5 (check), `notes` text <= 1000 chars, `created_at`, `updated_at` (trigger). RLS enabled and forced, owner select/insert/update (no delete), `(select auth.uid())`; pgTAP covers cross-user isolation.
+- `profiles.check_in_weekday` (T-136): smallint 1 (Monday)-7 (Sunday), default 7, check 1-7; the only new column the client may update (column grant).
 
 ## 5. Training
 - `exercises`: catalogue rows hold only `key`, `muscle_group`, `secondary_muscles`, `equipment`, `metric_type`, `per_hand` (names/text/images come from the client bundle, ADR-38/39); custom rows (`is_custom`, owner) have a name.
@@ -42,7 +44,7 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 - Weight: `save_body_measurement`.
 - Training session: `start_workout_session`, `pause_/resume_workout_session`, `finish_workout_session`, `discard_workout_session`, `delete_workout_set`, `set_session_rest`, `last_performance`, `save_completed_workout`, `save_workout_as_routine`, `update_routine_from_session`.
 - Routines: `save_routine` (jsonb with per-exercise planned sets, `target_rpe`, supersets share set counts).
-- Records and stats: `exercise_history`, `weekly_muscle_volume`, `exercise_session_records`, `personal_records`, `training_summary`, `weekly_set_counts`, `muscle_group_sets`, `exercise_set_counts` (rules in `04` §4.8, §4.11).
+- Records and stats: `exercise_history`, `weekly_muscle_volume`, `exercise_session_records`, `personal_records`, `training_summary`, `weekly_set_counts`, `muscle_group_sets`, `exercise_set_counts`, `weekly_records(p_from, p_to)` (records set in the range by UTC session date, from `personal_records`, without cumulative `total_reps`; rules in `04` §4.8, §4.11, §6).
 - Food: `create_personal_food`, `update_personal_food`, `personal_food_in_use`, `most_eaten_foods`, `food_diary_summary`, `cooking_impact`.
 - Meals and comidas: `save_meal_structure`, `list_meal_slots_in_use` (legacy `save_meal_slots`, `delete_meal_slot`), `save_meal_template`, `save_meal_as_comida`, `save_meal_defaults`, `apply_meal_defaults`.
 - Error codes: `28000` unauthenticated, `P0002` not found / not owned, `22023` invalid input, `23505` duplicate name, `23514` check violation.

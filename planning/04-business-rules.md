@@ -68,3 +68,11 @@ Only `g` foods; default Crudo. Added fat = `round(raw_g × pct / 100, 1)` g and 
 
 ## 5. Formatting (UI, Spanish)
 Thousands "." (also 4 digits, "1.840") and decimal ","; custom formatter in `commonMain` (CLDR `es-ES` does not group 4 digits). Weight, cm and BMI 1 decimal; WHR 2; kcal and grams none; integer percentages. Dates: "Hoy", "Ayer", "lun, 24 oct".
+
+## 6. Reminders and weekly check-in (E10, ADR-73)
+- **6.1 Reminders:** computed on the client at each open or return to the foreground, never stored, no system notifications, no time window: a condition met while the app was closed is listed on the next open ("Centro de avisos").
+- **6.2 Weight:** listed when the latest weigh-in is 2 or more days old (2 days in a row without one). **Circumferences:** listed when the latest circumference is 14 or more days old. A Health Connect weight stored for today clears the weight reminder.
+- **6.3 Silencing:** each type (weight, circumference, check-in) is silenced in Preferencias > Avisos through `notification_settings`; a missing row means enabled; a silenced type is neither listed nor counted.
+- **6.4 Check-in day:** `profiles.check_in_weekday` (1-7, default Sunday). From that weekday the current week's check-in (week = ISO Monday-Sunday) is listed and counted; unanswered, it stays listed until the next check-in day, when only the current one is listed (never two); not listed before the first check-in day.
+- **6.5 Answer:** energy 1-5 (required) and optional notes (<= 1000 chars), one row per user and week; saving removes the reminder. An answered check-in can be edited (same row, `updated_at` refreshed). Sleep is not asked.
+- **6.6 Summary (deterministic):** this week's training volume against last week's (`weekly_set_counts`), the week's records (`weekly_records`) and the week's weight trend.
