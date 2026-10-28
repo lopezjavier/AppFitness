@@ -138,4 +138,4 @@ Feature: Permissions
 ```
 
 **Technical notes**
-- Verify `READ_HEALTH_DATA_HISTORY` behaviour on the device before the breakdown (`tasks/todo.md`, notes for later epics).
+- `READ_HEALTH_DATA_HISTORY` behaviour is checked on the device by a spike, the first E11 task (T-139, user decision 2026-10-28). If the history cannot be read, the first sync covers about 30 days and this scenario is rewritten with the user's OK (`tasks/plan.md`, E11 Q1).
