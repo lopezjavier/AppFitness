@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** T-139 merged (#320); spike recorded, E11 Q1 = branch A (90 days, history permission). Start **T-140** (watch-data backend) in a fresh session; T-141 needs `deploy-supabase` green after T-140.
+**Next:** T-140 merged (#323), `deploy-supabase` green on `main`. Start **T-141** (read watch data with "Sincronizar", E11 Q1 = branch A: 90 days, history permission) in a fresh session. Planner note from the T-140 review: clamp or drop out-of-range values on the client (one bad row fails the whole `import_health_activity` batch with 23514).
 
 ---
 
@@ -68,17 +68,17 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 **Description:** One migration for the epic (so only one production deploy): (1) `daily_activity` (`user_id`, `day` date in the device time zone, `steps` integer, `active_kcal`, `total_kcal` numeric, nullable each, range checks), `unique (user_id, day)`; a re-sync of a day **replaces** its values. (2) `sleep_sessions` (`user_id`, `started_at`, `ended_at`, `minutes` integer, `stages` jsonb, `external_id` text not null), `unique (user_id, external_id)`, check `ended_at > started_at`. (3) `resting_heart_rate` (`user_id`, `day`, `bpm` smallint with a range check, `external_id`), `unique (user_id, day)`. (4) `health_sync_state.last_auto_sync_date date null`. Owner RLS enabled and forced with `(select auth.uid())`, explicit grants to `authenticated`, `on delete cascade` from `auth.users` (ADR-29; extend `delete_account_cascade.test.sql`). (5) An idempotent import path: one RPC `import_health_activity(p_daily jsonb, p_sleep jsonb, p_resting_hr jsonb)` (or one per type, planner's choice), `security invoker`, `set search_path = ''`, input caps and `22023` on bad input like `import_health_measurements`; daily rows and resting heart rate upsert per day (replace), sleep upserts per `external_id`; returns the counts. (6) An RPC or column update that sets `last_auto_sync_date` only on success (US-60 note: a failed automatic sync never sets it). (7) **Data layer:** domain models (`DailyActivity`, `SleepSession`, `RestingHeartRate`), the repository port(s) and the supabase-kt implementation with DTO mapping; `HealthSyncState` gains `lastAutoSyncDate`. No UI and no Health Connect reads here (T-141).
 
 **Acceptance criteria:**
-- [ ] Importing the same day's steps twice leaves one row with the last values (US-62 "A second sync the same day adds nothing"); importing the same sleep `external_id` twice leaves one session.
-- [ ] A payload without resting heart rate stores none and returns no error (US-61 "A type the watch does not provide").
-- [ ] User A cannot read or write user B's rows in the three tables; deleting the account removes them.
-- [ ] `last_auto_sync_date` is set only by the success path.
-- [ ] `planning/03-data-model.md` describes the three tables and the column; `04-business-rules.md` gets the daily-total rule (one row per user and day, replaced on re-sync; day = device time zone).
+- [x] Importing the same day's steps twice leaves one row with the last values (US-62 "A second sync the same day adds nothing"); importing the same sleep `external_id` twice leaves one session.
+- [x] A payload without resting heart rate stores none and returns no error (US-61 "A type the watch does not provide").
+- [x] User A cannot read or write user B's rows in the three tables; deleting the account removes them.
+- [x] `last_auto_sync_date` is set only by the success path.
+- [x] `planning/03-data-model.md` describes the three tables and the column; `04-business-rules.md` gets the daily-total rule (one row per user and day, replaced on re-sync; day = device time zone).
 
 **Host tests:** repository mapping tests (DTO ↔ model for the three types, nulls, `lastAutoSyncDate`); pgTAP: RLS enabled and forced and cross-user isolation per table, uniqueness, replace-on-resync for `daily_activity` and `resting_heart_rate`, sleep dedup by `external_id`, range checks, RPC input validation (`22023`), cascade on account deletion.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before T-141 starts).
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green on `main`, data intact (before T-141 starts).
 
 **Agent runs:** planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer = 5.
 **Dependencies:** T-139 merged (not its report: the backend does not depend on the window)

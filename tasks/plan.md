@@ -44,7 +44,7 @@ Full checkpoint item lists in `tasks/todo.md`.
   - **👤 Spike report (not a functionality checkpoint):** the user taps "Comprobar" in the temporary diagnostic screen and reports feature status, history permission, record counts 60–90 and 0–30 days ago and the oldest date. The PM records the result and the E11 Q1 branch here (docs PR). Gates T-141 only.
 
 ### Phase 2: Watch data through "Sincronizar" (US-61, US-62, US-63)
-- [ ] T-140: Watch-data backend — M (no checkpoint; internal milestone `deploy-supabase` green before T-141)
+- [x] T-140: Watch-data backend — M (no checkpoint; internal milestone `deploy-supabase` green before T-141)
 - [ ] T-141: Read the watch data with "Sincronizar" — L (no checkpoint after it; its items are tested at Checkpoint E11)
 
 ### Phase 3: Daily automatic sync (US-60)
