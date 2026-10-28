@@ -40,7 +40,7 @@ Checkpoint (user decision, 2026-10-28): one checkpoint for the whole epic instea
 Full checkpoint item lists in `tasks/todo.md`.
 
 ### Phase 1: History spike
-- [ ] T-139: Spike: `READ_HEALTH_DATA_HISTORY` on the device — S
+- [x] T-139: Spike: `READ_HEALTH_DATA_HISTORY` on the device — S
   - **👤 Spike report (not a functionality checkpoint):** the user taps "Comprobar" in the temporary diagnostic screen and reports feature status, history permission, record counts 60–90 and 0–30 days ago and the oldest date. The PM records the result and the E11 Q1 branch here (docs PR). Gates T-141 only.
 
 ### Phase 2: Watch data through "Sincronizar" (US-61, US-62, US-63)
