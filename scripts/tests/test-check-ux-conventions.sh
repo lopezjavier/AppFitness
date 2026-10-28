@@ -66,6 +66,14 @@ done
 run "$here/ux-conventions/g5-allowed" "$empty"
 expect "G5 routines folder-delete dialog is allowed" 0 NOWARN
 
+# ADR-80: dismissOnClickOutside = true is allowed in the designsystem archetypes, never in feature code.
+run "$here/ux-conventions/g11-allowed" "$empty"
+expect "G11 dismissOnClickOutside = true in designsystem/AppSheets.kt is allowed" 0 NOWARN
+run "$here/ux-conventions/g11" "$empty"
+expect "G11 feature code with dismissOnClickOutside = true fails" 1
+printf '%s' "$out" | grep -q 'BadOutsideTap.kt' && printf '%s' "$out" | grep -q 'BadPlatformOutsideTap.kt' \
+  && echo "ok   G11 reports both outside-tap fixtures" || { echo "FAIL G11 outside-tap fixtures not both reported"; failures=$((failures + 1)); }
+
 # T-124b: the exercise screens are migrated, so the real warning list no longer excuses G2/G3/G5 there.
 real_list="$here/../ux-conventions-warnings.txt"
 for pair in "2:ExerciseFormSheet" "3:ExerciseDetailScreen" "3:ExercisePickerScreen" "5:ExerciseDetailScreen"; do

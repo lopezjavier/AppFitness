@@ -38,7 +38,7 @@ object AppActionSheetDefaults {
 /**
  * Actions archetype of the sheet family (R-07): an optional [title], an X "Cerrar" and one [ActionRow] per action.
  * Tapping a row runs its action and then closes the sheet (it animates out first); the X only closes.
- * [onDismiss] is called once the sheet is gone, also for a scrim tap, a drag and back.
+ * [onDismiss] is called once the sheet is gone, also for a tap outside the sheet and back (R-38); a drag does nothing.
  * Rows are tagged `<prefix>_row_<n>` (from 1), the X `<prefix>_close`. [notice] is an optional line (e.g. a failure
  * message) between the header and the rows.
  *
@@ -61,6 +61,7 @@ fun AppActionSheet(
         modifier = modifier,
         sheetState = sheetState,
         testTagPrefix = testTagPrefix,
+        dismissOnClickOutside = true,
     ) {
         AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help = null)
         notice?.invoke()

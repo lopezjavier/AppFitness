@@ -52,7 +52,7 @@ fun AppBarChart(
     description: String,
     modifier: Modifier = Modifier,
     color: Color = AppTheme.colors.athleticCyan,
-    valueLabel: (Int) -> String = { it.toString() },
+    valueLabel: (Int) -> String = { AppNumberFormat.integer(it) },
 ) {
     require(values.size == labels.size) { "values and labels must have the same size" }
     val measurer = rememberTextMeasurer()

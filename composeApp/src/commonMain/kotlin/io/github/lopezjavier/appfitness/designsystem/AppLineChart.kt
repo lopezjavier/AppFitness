@@ -127,7 +127,7 @@ fun AppLineChart(
     labels: List<String>,
     description: String,
     modifier: Modifier = Modifier,
-    valueLabel: (Double) -> String = { it.toString() },
+    valueLabel: (Double) -> String = { AppNumberFormat.decimal(it) },
     color: Color = AppTheme.colors.athleticCyan,
     dots: List<Double?>? = null,
     lineThickness: Dp = AppLineChartDefaults.LineThickness,

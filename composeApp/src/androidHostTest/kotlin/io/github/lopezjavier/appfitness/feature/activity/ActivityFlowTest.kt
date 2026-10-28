@@ -2,9 +2,11 @@ package io.github.lopezjavier.appfitness.feature.activity
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -195,6 +197,19 @@ class ActivityFlowTest {
 
         rule.onNodeWithTag("activity_back_to_today").performClick()
         rule.waitForIdle()
+        rule.onNodeWithTag("activity_steps_card").assertTextEquals("Pasos", "8.500")
+    }
+
+    @Test
+    fun tappingOutsideTheCalendar_closesIt_andKeepsTheSelectedDay() {
+        open()
+
+        rule.onNodeWithTag("activity_calendar_action").performClick()
+        rule.onNodeWithTag("activity_day_picker_sheet").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Close sheet", ignoreCase = true).performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("activity_day_picker_sheet").assertDoesNotExist()
         rule.onNodeWithTag("activity_steps_card").assertTextEquals("Pasos", "8.500")
     }
 

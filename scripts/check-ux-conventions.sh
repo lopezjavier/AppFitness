@@ -128,8 +128,14 @@ scan G6 "ic_help outside HelpButton" '\bic_help\b' '' "${kotlin_feature[@]}"
 scan G7 "SwipeToDismissBox outside SwipeToDeleteRow" '\bSwipeToDismissBox\b' '' "${kotlin_feature[@]}"
 scan G8 "detectDragGestures outside ReorderableColumn" '\bdetectDragGestures\b' '' "${kotlin_feature[@]}"
 
-# G11: R-38 sheets have no drag handle, no outside/swipe dismissal and one state factory.
-scan G11 "sheet drag handle or outside dismissal (R-38)" 'dragHandle = \{|BottomSheetDefaults\.DragHandle|SheetHandle|shouldDismissOnClickOutside = true' '' "${kotlin_all[@]}"
+# G11: R-38 / ADR-80 sheets have no drag handle, outside-tap dismissal only through the picker, info and action
+# archetypes (and the calendar dialog), and one state factory.
+scan G11 "sheet drag handle (R-38)" 'dragHandle = \{|BottomSheetDefaults\.DragHandle|SheetHandle' '' "${kotlin_all[@]}"
+scan G11 "shouldDismissOnClickOutside = true (R-38, ADR-80: use AppBottomSheet(dismissOnClickOutside))" \
+  'shouldDismissOnClickOutside = true' '' "${kotlin_all[@]}"
+scan G11 "dismissOnClickOutside = true outside the picker/info/action archetypes and the calendar (R-38, ADR-80)" \
+  '\bdismissOnClickOutside = true' \
+  '.*/designsystem/(AppSheets|AppActionSheet|AppDatePickerDialog)\.kt' "${kotlin_all[@]}"
 scan G11 "rememberModalBottomSheetState outside AppBottomSheet.kt (use rememberAppSheetState)" 'rememberModalBottomSheetState\(' '.*/designsystem/AppBottomSheet\.kt' "${kotlin_all[@]}"
 
 # G9 / G10: strings.xml.
