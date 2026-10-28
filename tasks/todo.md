@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-137 (E10 breakdown). Numbering continues from here.
 
-**Next:** T-135 (E10 breakdown agreed by the user on 2026-10-28; E10 Q1–Q3 resolved). Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
+**Next:** T-136 (T-135 merged in #308; `deploy-supabase` must be green on `main` before it starts). E10 Q1–Q3 resolved. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
 
 ---
 
@@ -43,19 +43,19 @@ Checkpoints (agreed with the user, 2026-10-28): **one Checkpoint E10** after T-1
 **Sweep:** none expected (no existing reminder or badge pattern); if ux-reviewer finds an ad-hoc count badge, it is retired here (R-39).
 
 **Acceptance criteria:**
-- [ ] Last weight 2 days ago → "No te has pesado en 2 días" listed with its date; last weight yesterday → no weight reminder; last circumference 15 days ago → "No te has medido en 2 semanas".
-- [ ] A weight reminder and a circumference reminder pending → the entry point shows 2; none pending → no count; the content description reads the count.
-- [ ] A condition met while the app was closed or in the background is listed on the next open / return to the foreground, with no background job.
-- [ ] Tapping the weight reminder opens the weight entry; saving a weight returns and the reminder and count are gone; same for the circumference reminder and the circumference entry.
-- [ ] A Health Connect sync ("Sincronizar") that stores today's weight clears the weight reminder.
-- [ ] Turning off "Recordatorio de peso" removes the weight reminder and lowers the count; turning it back on restores it; the setting persists across reinstall/sign-in (server-side).
-- [ ] pgTAP: RLS enabled and forced, user A cannot read or write user B's settings, one row per user and kind.
-- [ ] Empty, loading, error and offline states per R-30/R-31; open screen and scroll survive background and process death (ADR-40).
+- [x] Last weight 2 days ago → "No te has pesado en 2 días" listed with its date; last weight yesterday → no weight reminder; last circumference 15 days ago → "No te has medido en 2 semanas".
+- [x] A weight reminder and a circumference reminder pending → the entry point shows 2; none pending → no count; the content description reads the count.
+- [x] A condition met while the app was closed or in the background is listed on the next open / return to the foreground, with no background job.
+- [x] Tapping the weight reminder opens the weight entry; saving a weight returns and the reminder and count are gone; same for the circumference reminder and the circumference entry.
+- [x] A Health Connect sync ("Sincronizar") that stores today's weight clears the weight reminder.
+- [x] Turning off "Recordatorio de peso" removes the weight reminder and lowers the count; turning it back on restores it; the setting persists across reinstall/sign-in (server-side).
+- [x] pgTAP: RLS enabled and forced, user A cannot read or write user B's settings, one row per user and kind.
+- [x] Empty, loading, error and offline states per R-30/R-31; open screen and scroll survive background and process death (ADR-40).
 
 **Host tests:** `ComputeRemindersTest` (0/1/2/5 days without weight, 13/14/15 days and never measured for circumferences, time-zone day boundary, silenced kinds, Health Connect weight counts); `NotificationSettingsRepository` mapping test; reminder refresh test (recompute on foreground and after a weight save); `NotificationCenterViewModelTest` (list, toggle, offline, error); `NotificationCenterScreen` Robolectric tests (rows with dates, empty state, switches, tap navigates to the weight entry / circumference sheet); entry-point count test (0, 2) and `BadgedIconButton` test; restoration test; pgTAP `notification_settings`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
 - [ ] After the merge: `deploy-supabase` green on `main`, data intact (before T-136 starts; no checkpoint after T-135).
 
 **Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 20 files (size note: one small table; if the planner counts more than ~25 files, the core and UI run as two developer slices, not two tasks).

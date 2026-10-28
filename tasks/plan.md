@@ -39,7 +39,7 @@ Checkpoint (user decision, 2026-10-28): one checkpoint for the whole epic instea
 Full checkpoint item list in `tasks/todo.md`.
 
 ### Phase 1: Reminders (US-57, US-58)
-- [ ] T-135: "Centro de avisos" with weight and circumference reminders — backend + core + UI — L (no checkpoint after it)
+- [x] T-135: "Centro de avisos" with weight and circumference reminders — backend + core + UI — L (no checkpoint after it)
 
 ### Phase 2: Weekly check-in (US-59)
 - [ ] T-136: Weekly check-in with the weekly summary — backend + core + UI — L
