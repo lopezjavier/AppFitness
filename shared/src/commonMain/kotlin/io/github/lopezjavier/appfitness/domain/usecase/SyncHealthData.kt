@@ -85,9 +85,7 @@ class SyncHealthData(
         now: Instant,
         firstWindow: Duration,
     ): Map<WatchMetric, Instant> = granted.associateWith {
-        if (it in
-            unseeded
-        ) {
+        if (it in unseeded) {
             now - firstWindow
         } else {
             now - LATER_WINDOW

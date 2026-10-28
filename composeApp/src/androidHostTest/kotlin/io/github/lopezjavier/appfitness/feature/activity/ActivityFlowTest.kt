@@ -206,6 +206,7 @@ class ActivityFlowTest {
 
         rule.onNodeWithTag("activity_calendar_action").performClick()
         rule.onNodeWithTag("activity_day_picker_sheet").assertIsDisplayed()
+        // The scrim ("Close sheet") exists only when dismissOnClickOutside is on; the X is labelled "Cerrar".
         rule.onNodeWithContentDescription("Close sheet", ignoreCase = true).performClick()
         rule.waitForIdle()
 
