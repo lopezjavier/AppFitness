@@ -390,6 +390,22 @@ class HealthSyncViewModelTest {
     }
 
     @Test
+    fun newViewModel_doesNotReEmitAnEarlierSync() = runTest(dispatcher) {
+        aWeighIn()
+        val first = viewModel()
+        advanceUntilIdle()
+        coordinator.onAppStart()
+        advanceUntilIdle()
+        assertEquals(HealthSyncStatus.Synced(start, SyncAge.Now), first.status())
+
+        val second = viewModel()
+        second.effects.test {
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
     fun partialFailure_showsSyncedWithTheFailedPart() = runTest(dispatcher) {
         aWeighIn()
         source.watchFailure = IllegalStateException("watch")

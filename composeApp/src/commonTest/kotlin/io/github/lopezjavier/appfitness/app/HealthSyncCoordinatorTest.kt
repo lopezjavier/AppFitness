@@ -41,7 +41,7 @@ class HealthSyncCoordinatorTest {
             RawHealthRecords(weights = listOf(HealthRecord("w1", Instant.parse("2026-10-27T08:00:00Z"), 74.0)))
     }
 
-    private fun readsOf(source: FakeHealthDataSource) = source.watchReads + source.watchReads
+    private fun readsOf(source: FakeHealthDataSource) = source.watchReads
 
     @Test
     fun coldStart_syncsAndStoresTheDay() = runTest {

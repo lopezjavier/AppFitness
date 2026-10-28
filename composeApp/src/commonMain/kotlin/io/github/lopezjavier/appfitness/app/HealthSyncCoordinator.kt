@@ -50,12 +50,12 @@ class HealthSyncCoordinator(
 
     private val runningState = MutableStateFlow(false)
     private val lastAutoState = MutableStateFlow(AutoState.Idle)
-    private val resultFlow = MutableSharedFlow<SyncOutcome.Synced>(replay = 1)
+    private val resultFlow = MutableSharedFlow<SyncOutcome.Synced>()
 
     val running: StateFlow<Boolean> = runningState.asStateFlow()
     val lastAuto: StateFlow<AutoState> = lastAutoState.asStateFlow()
 
-    /** Every finished sync that stored data (the last one is replayed to new collectors). */
+    /** Every finished sync that stored data (not replayed: a new collector loads the stored state itself). */
     val results: SharedFlow<SyncOutcome.Synced> = resultFlow.asSharedFlow()
 
     /** The app started or came to the foreground on Main: sync automatically if today's sync is still due. */

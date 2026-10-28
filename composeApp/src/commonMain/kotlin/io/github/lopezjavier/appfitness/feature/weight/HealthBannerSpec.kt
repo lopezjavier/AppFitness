@@ -32,9 +32,7 @@ fun healthBannerSpec(state: HealthSyncUiState): HealthBannerSpec? {
         HealthSyncStatus.NeverSynced, HealthSyncStatus.Syncing -> HealthTone.Neutral to HealthAction.Sync
 
         is HealthSyncStatus.Synced ->
-            if (status.failedPart ==
-                null
-            ) {
+            if (status.failedPart == null) {
                 HealthTone.Synced to HealthAction.Sync
             } else {
                 HealthTone.Attention to HealthAction.Retry

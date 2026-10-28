@@ -12,26 +12,14 @@ import kotlin.time.Instant
 class ShouldAutoSyncTest {
     private val today = LocalDate(2026, 10, 22)
 
-    private fun rule(last: LocalDate?, available: Boolean = true, online: Boolean = true, canRead: Boolean = true) =
-        ShouldAutoSync(today, last, available, online, canRead)
+    @Test
+    fun lastSyncYesterday_isDue() = assertTrue(ShouldAutoSync.isDue(today, LocalDate(2026, 10, 21)))
 
     @Test
-    fun lastSyncYesterday_isDue() = assertTrue(rule(LocalDate(2026, 10, 21)))
+    fun lastSyncToday_isNotDue() = assertFalse(ShouldAutoSync.isDue(today, today))
 
     @Test
-    fun lastSyncToday_isNotDue() = assertFalse(rule(today))
-
-    @Test
-    fun neverSynced_isDue() = assertTrue(rule(null))
-
-    @Test
-    fun offline_isNotDue() = assertFalse(rule(null, online = false))
-
-    @Test
-    fun unavailable_isNotDue() = assertFalse(rule(null, available = false))
-
-    @Test
-    fun noReadPermission_isNotDue() = assertFalse(rule(null, canRead = false))
+    fun neverSynced_isDue() = assertTrue(ShouldAutoSync.isDue(today, null))
 
     @Test
     fun localMidnightInMadrid_changesTheDay() {
@@ -42,7 +30,7 @@ class ShouldAutoSyncTest {
         val after = Instant.parse("2026-10-21T22:00:00Z").toLocalDateTime(madrid).date
 
         assertEquals(last, before)
-        assertFalse(ShouldAutoSync(before, last, available = true, online = true, canRead = true))
-        assertTrue(ShouldAutoSync(after, last, available = true, online = true, canRead = true))
+        assertFalse(ShouldAutoSync.isDue(before, last))
+        assertTrue(ShouldAutoSync.isDue(after, last))
     }
 }
