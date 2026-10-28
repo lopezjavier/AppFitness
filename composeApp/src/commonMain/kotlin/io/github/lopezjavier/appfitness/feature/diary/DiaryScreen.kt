@@ -45,6 +45,7 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
+import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
 import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
 
@@ -89,6 +90,7 @@ private fun PlainDiary(onBack: (() -> Unit)?, content: @Composable () -> Unit) {
     AppScreen(
         title = stringResource(Res.string.nav_diary),
         onBack = onBack,
+        actions = listOfNotNull(if (onBack == null) notificationsBarAction("diary_action_notifications") else null),
         maxContentWidth = WindowWidthClassDefaults.CardColumnMaxWidth,
         testTagPrefix = "diary_bar",
     ) { content() }

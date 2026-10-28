@@ -34,7 +34,8 @@ object NavigationRowDefaults {
  * Generic list row: optional [leading] and [trailing] slots around a [headline] (`bodyLarge`) and an optional
  * [supporting] line (`bodyMedium`, `textSecondary`). At least 48 dp high. With [onClick] the whole row is one
  * `Role.Button` target that reads as a single node; without it the row is plain content. The caller owns the
- * tag (pass it in [modifier]); [supportingTestTag] tags the supporting line.
+ * tag (pass it in [modifier]); [supportingTestTag] tags the supporting line;
+ * [onClickLabel] is what a screen reader announces for the tap.
  */
 @Composable
 fun AppListRow(
@@ -46,9 +47,14 @@ fun AppListRow(
     onClick: (() -> Unit)? = null,
     supportingTestTag: String? = null,
     enabled: Boolean = true,
+    onClickLabel: String? = null,
 ) {
     val clickable =
-        if (onClick != null) Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick) else Modifier
+        if (onClick != null) {
+            Modifier.clickable(enabled = enabled, onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
+        } else {
+            Modifier
+        }
     Row(
         modifier
             .fillMaxWidth()

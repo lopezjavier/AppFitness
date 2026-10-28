@@ -190,9 +190,26 @@ data object MealDefaultsRoute : AppRoute
 @Serializable
 data object DiaryHistoryRoute : AppRoute
 
-/** The weight screen (US-25): current weight, goal, trend and circumferences, opened from Perfil > Estadísticas. */
+/** What the weight screen opens on arrival, set by a reminder of the notification center (US-57). */
 @Serializable
-data object WeightRoute : AppRoute
+enum class WeightEntryTarget {
+    /** Today's weight entry (the pencil, ADR-48). */
+    Weight,
+
+    /** The new-circumferences sheet. */
+    Circumference,
+}
+
+/**
+ * The weight screen (US-25): current weight, goal, trend and circumferences, opened from Perfil > Estadísticas. With
+ * [openEntry] it opens the matching entry once on arrival (a reminder was tapped); null just shows the screen.
+ */
+@Serializable
+data class WeightRoute(val openEntry: WeightEntryTarget? = null) : AppRoute
+
+/** "Centro de avisos": the pending reminders and their switches, opened from the bell of the tab roots (US-57). */
+@Serializable
+data object NotificationCenterRoute : AppRoute
 
 /** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
 @Serializable
@@ -319,8 +336,9 @@ object AppDestinations {
             MealDefaultsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),
-            WeightRoute,
+            WeightRoute(),
             WeightHistoryRoute,
             AboutRoute,
+            NotificationCenterRoute,
         )
 }

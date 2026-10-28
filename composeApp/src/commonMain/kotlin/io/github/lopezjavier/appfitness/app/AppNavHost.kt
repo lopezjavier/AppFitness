@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
 import io.github.lopezjavier.appfitness.feature.templates.PICKED_FOOD_KEY
@@ -130,7 +131,17 @@ internal typealias DiaryHistorySlot =
     @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit, onBack: () -> Unit) -> Unit
 
 /** Weight screen content: modifier (full-screen insets), the opener of the history and the back arrow. */
-internal typealias WeightSlot = @Composable (modifier: Modifier, onOpenHistory: () -> Unit, onBack: () -> Unit) -> Unit
+internal typealias WeightSlot =
+    @Composable (
+        modifier: Modifier,
+        openEntry: WeightEntryTarget?,
+        onOpenHistory: () -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit
+
+/** Notification center content: modifier (full-screen insets), the opener of a reminder's entry and back. */
+internal typealias NotificationCenterSlot =
+    @Composable (modifier: Modifier, onOpenReminder: (ReminderKind) -> Unit, onBack: () -> Unit) -> Unit
 
 /** Weight history content: modifier (full-screen insets) and the back arrow. */
 internal typealias WeightHistorySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
@@ -413,8 +424,13 @@ internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _, _ ->
 }
 
 /** Empty weight screen for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultWeightSlot: WeightSlot = { modifier, _, _ ->
+internal val DefaultWeightSlot: WeightSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("weight_screen"))
+}
+
+/** Empty notification center for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultNotificationCenterSlot: NotificationCenterSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("notifications_screen"))
 }
 
 /** Empty weight history for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -562,6 +578,7 @@ internal fun AppNavHost(
     trainingStats: TrainingStatsSlot = DefaultTrainingStatsSlot,
     weight: WeightSlot = DefaultWeightSlot,
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
+    notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -576,7 +593,7 @@ internal fun AppNavHost(
         { slotId, date -> navController.navigate(SaveTemplateRoute(slotId, date.toString())) }
     }
     val openDiaryHistory = remember(navController) { { navController.navigateToFullScreen(DiaryHistoryRoute) } }
-    val openWeight = remember(navController) { { navController.navigateToFullScreen(WeightRoute) } }
+    val openWeight = remember(navController) { { navController.navigateToFullScreen(WeightRoute()) } }
     val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
     val openMealDefaults = remember(navController) { { navController.navigateToFullScreen(MealDefaultsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
@@ -669,7 +686,19 @@ internal fun AppNavHost(
         composable<WeightRoute> { entry ->
             weight(
                 Modifier.padding(fullScreenPadding),
+                entry.toRoute<WeightRoute>().openEntry,
                 { navController.navigateToFullScreen(WeightHistoryRoute) },
+                { navController.popFullScreen(entry) },
+            )
+        }
+        composable<NotificationCenterRoute> { entry ->
+            notificationCenter(
+                Modifier.padding(fullScreenPadding),
+                { kind ->
+                    val target =
+                        if (kind == ReminderKind.Weight) WeightEntryTarget.Weight else WeightEntryTarget.Circumference
+                    navController.navigateToFullScreen(WeightRoute(target))
+                },
                 { navController.popFullScreen(entry) },
             )
         }

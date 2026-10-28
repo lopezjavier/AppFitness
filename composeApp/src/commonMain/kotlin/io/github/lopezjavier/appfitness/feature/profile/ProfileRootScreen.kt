@@ -51,6 +51,7 @@ import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.analytics.formatKilos
+import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -82,10 +83,10 @@ fun ProfileRootRoute(
 }
 
 /**
- * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the "Preferencias" gear in the bar, the photo and name,
- * and "Estadísticas" with the "Peso", "Fuerza", "Calorías" and "Entrenamiento" rows. A row shows its value once it is
- * known and none when it could not be read. The debug catalog button appears where [ProfileRootActions.onOpenCatalog]
- * is non-null (local flavor). It holds no editable state, so there is nothing to restore.
+ * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell and the "Preferencias" gear in
+ * the bar, the photo and name, and "Estadísticas" with the "Peso", "Fuerza", "Calorías" and "Entrenamiento" rows. A
+ * row shows its value once it is known and none when it could not be read. The debug catalog button appears where
+ * [ProfileRootActions.onOpenCatalog] is non-null (local flavor). It holds no editable state: nothing to restore.
  */
 @Composable
 fun ProfileRootScreen(
@@ -95,8 +96,12 @@ fun ProfileRootScreen(
     actions: ProfileRootActions = ProfileRootActions(),
 ) {
     val gear = stringResource(Res.string.preferences_title)
-    val barActions = remember(gear, actions.onOpenPreferences) {
-        listOf(AppTopBarAction(Res.drawable.ic_settings, gear, actions.onOpenPreferences, "profile_action_0"))
+    val bell = notificationsBarAction("profile_action_notifications")
+    val barActions = remember(gear, actions.onOpenPreferences, bell) {
+        listOfNotNull(
+            bell,
+            AppTopBarAction(Res.drawable.ic_settings, gear, actions.onOpenPreferences, "profile_action_0"),
+        )
     }
     AppScreen(
         title = stringResource(Res.string.profile_title),

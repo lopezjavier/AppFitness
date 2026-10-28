@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.di
 
 import io.github.lopezjavier.appfitness.app.AppViewModel
+import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsViewModel
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.AccountViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
@@ -44,6 +46,9 @@ import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutViewModel
 import io.github.lopezjavier.appfitness.feature.workout.SessionDetailViewModel
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarViewModel
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.LocalDate
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -55,9 +60,12 @@ private const val PICK_MODE_DATE = "1970-01-01"
 /** Koin module of the UI layer (ViewModels). */
 val uiModule =
     module {
+        // App-wide singleton: the shell badge and the notification center read the same reminders.
+        single { ReminderCoordinator(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
         viewModelOf(::AppViewModel)
         viewModelOf(::WelcomeViewModel)
         viewModelOf(::ProfileRootViewModel)
+        viewModelOf(::NotificationCenterViewModel)
         viewModelOf(::AccountViewModel)
         viewModelOf(::AboutViewModel)
         // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.

@@ -36,9 +36,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.notifications_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wip_footer
@@ -70,6 +72,8 @@ internal fun LazyListScope.shellItems() {
     item { SkeletonSection() }
     item { WipSection() }
 }
+
+private const val BADGE_SAMPLE_COUNT = 3
 
 @Composable
 private fun TopBarSection() {
@@ -124,6 +128,13 @@ private fun ActionBarSamples() {
             testTagPrefix = "catalog_topbar_actions_$count",
         )
     }
+    val bell = stringResource(Res.string.notifications_title)
+    AppTopBar(
+        title = title,
+        actions = listOf(AppTopBarAction(Res.drawable.ic_notifications, bell, {}, badgeCount = BADGE_SAMPLE_COUNT)),
+        windowInsets = WindowInsets(0),
+        testTagPrefix = "catalog_topbar_badge",
+    )
     AppTopBar(
         title = title,
         subtitle = stringResource(Res.string.catalog_topbar_sample_subtitle),

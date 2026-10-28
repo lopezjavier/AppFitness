@@ -45,6 +45,8 @@ import io.github.lopezjavier.appfitness.designsystem.LocalPinnedFooter
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.PinnedFooterState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 
 /**
  * App shell: top app bar, tab navigation (tabs only) and the NavHost. On [AppNavigationType.Bar]
@@ -62,6 +64,7 @@ internal fun AppScaffold(
     navController: NavHostController = rememberNavController(),
     navigationType: AppNavigationType = AppNavigationType.Bar,
     isOffline: Boolean = false,
+    pendingReminders: Int = 0,
     messages: AppMessages = rememberShellMessages(),
     profile: ProfileSlot = DefaultProfileSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
@@ -78,6 +81,7 @@ internal fun AppScaffold(
     diaryHistory: DiaryHistorySlot = DefaultDiaryHistorySlot,
     weight: WeightSlot = DefaultWeightSlot,
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
+    notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     editEntry: EditEntrySlot = DefaultEditEntrySlot,
@@ -102,7 +106,12 @@ internal fun AppScaffold(
     val isBar = navigationType == AppNavigationType.Bar
     val onTabSelect: (Int) -> Unit = { navController.navigateToTab(TopLevelTab.entries[it]) }
     val pinnedFooter = remember { PinnedFooterState() }
+    val openNotifications = remember(navController) { { navController.navigateToFullScreen(NotificationCenterRoute) } }
+    val notificationsEntry = remember(pendingReminders, openNotifications) {
+        NotificationsEntry(pendingReminders, openNotifications)
+    }
     CompositionLocalProvider(
+        LocalNotificationsEntry provides notificationsEntry,
         LocalBackInterceptor provides backInterceptor,
         LocalAppMessages provides messages,
         LocalPinnedFooter provides pinnedFooter,
@@ -159,6 +168,7 @@ internal fun AppScaffold(
                         diaryHistory = diaryHistory,
                         weight = weight,
                         weightHistory = weightHistory,
+                        notificationCenter = notificationCenter,
                         foodSearch = foodSearch,
                         addFood = addFood,
                         editEntry = editEntry,
@@ -271,6 +281,7 @@ private fun ShellContent(
     diaryHistory: DiaryHistorySlot,
     weight: WeightSlot,
     weightHistory: WeightHistorySlot,
+    notificationCenter: NotificationCenterSlot,
     foodSearch: FoodSearchSlot,
     addFood: AddFoodSlot,
     editEntry: EditEntrySlot,
@@ -328,6 +339,7 @@ private fun ShellContent(
             diaryHistory = diaryHistory,
             weight = weight,
             weightHistory = weightHistory,
+            notificationCenter = notificationCenter,
             foodSearch = foodSearch,
             addFood = addFood,
             editEntry = editEntry,

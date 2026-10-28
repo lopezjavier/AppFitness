@@ -540,7 +540,7 @@ class DraftRestorationTest {
         val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true)))
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            val vm = remember { AppViewModel(connectivity, auth, profile) }
+            val vm = remember { AppViewModel(connectivity, auth, profile, idleReminderCoordinator()) }
             val state by vm.uiState.collectAsState()
             App(rootRoute = state.rootRoute, welcome = { Box(Modifier.fillMaxSize().testTag("welcome_screen")) })
         }

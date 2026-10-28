@@ -39,6 +39,7 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
 /**
  * Root composable: theme plus the destination chosen by [rootRoute]. [modifier] reaches the root layout;
  * [isOffline] shows the "Sin conexión" banner on every destination;
+ * [pendingReminders] is the count on the bell of the tab roots;
  * [onRetryProfile] and [onOnboardingComplete] are the root actions. [profile], [preferences], [welcome] and
  * [onboarding] are the Perfil root, Preferencias, Welcome and Onboarding destinations (stateful in `AppRoot`, empty or
  * stubbed in tests).
@@ -51,6 +52,7 @@ fun App(
     modifier: Modifier = Modifier,
     features: AppFeatures = AppFeatures(),
     isOffline: Boolean = false,
+    pendingReminders: Int = 0,
     rootRoute: RootRoute = RootRoute.Main,
     onRetryProfile: () -> Unit = {},
     onOnboardingComplete: () -> Unit = {},
@@ -69,6 +71,7 @@ fun App(
     diaryHistory: DiaryHistorySlot = DefaultDiaryHistorySlot,
     weight: WeightSlot = DefaultWeightSlot,
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
+    notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
     foodSearch: FoodSearchSlot = DefaultFoodSearchSlot,
     addFood: AddFoodSlot = DefaultAddFoodSlot,
     editEntry: EditEntrySlot = DefaultEditEntrySlot,
@@ -106,6 +109,7 @@ fun App(
                         features = features,
                         navigationType = widthClass.navigationType,
                         isOffline = isOffline,
+                        pendingReminders = pendingReminders,
                         profile = profile,
                         preferences = preferences,
                         preferencesSection = preferencesSection,
@@ -121,6 +125,7 @@ fun App(
                         diaryHistory = diaryHistory,
                         weight = weight,
                         weightHistory = weightHistory,
+                        notificationCenter = notificationCenter,
                         foodSearch = foodSearch,
                         addFood = addFood,
                         editEntry = editEntry,

@@ -68,9 +68,10 @@ class ShellChromeTest {
                 MealDefaultsRoute,
                 DiaryHistoryRoute,
                 DiaryDayRoute::class,
-                WeightRoute,
+                WeightRoute::class,
                 WeightHistoryRoute,
                 AboutRoute,
+                NotificationCenterRoute,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
@@ -84,9 +85,9 @@ class ShellChromeTest {
                     it is MuscleVolumeRoute ||
                     it is StatsRoute ||
                     it is DiaryHistoryRoute ||
-                    it is WeightRoute ||
                     it is WeightHistoryRoute ||
-                    it is AboutRoute
+                    it is AboutRoute ||
+                    it is NotificationCenterRoute
                 ) {
                     it
                 } else {
@@ -127,7 +128,9 @@ class ShellChromeTest {
 
     @Test
     fun weightRoutes_drawTheirOwnBarThroughAppScreen() {
-        assertEquals(ShellChrome.Screen, WeightRoute.chrome)
+        assertEquals(ShellChrome.Screen, WeightRoute().chrome)
+        assertEquals(ShellChrome.Screen, WeightRoute(WeightEntryTarget.Circumference).chrome)
+        assertEquals(ShellChrome.Screen, NotificationCenterRoute.chrome)
         assertEquals(ShellChrome.Screen, WeightHistoryRoute.chrome)
     }
 

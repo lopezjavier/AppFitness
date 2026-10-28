@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -61,5 +62,19 @@ class AppSwitchRowTest {
 
         rule.onNodeWithTag("row").assertIsOn()
         assertEquals("Activado", config().getOrNull(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun disabledRow_ignoresTaps() {
+        var changes = 0
+        rule.setContent {
+            AppTheme {
+                AppSwitchRow("Etiqueta", "Ayuda", true, { changes++ }, Modifier.testTag("row"), enabled = false)
+            }
+        }
+
+        rule.onNodeWithTag("row").assertIsNotEnabled().performClick()
+
+        assertEquals(0, changes)
     }
 }

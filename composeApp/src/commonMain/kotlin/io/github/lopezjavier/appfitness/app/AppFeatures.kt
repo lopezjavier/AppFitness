@@ -18,6 +18,7 @@ data class AppFeatures(val componentCatalog: Boolean = false, val testLogin: Tes
 }
 
 /** Whether [route] can be reached. Exhaustive on purpose: a new route must declare its availability. */
+@Suppress("CyclomaticComplexMethod") // One branch per route, on purpose.
 fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
     CatalogRoute -> componentCatalog
@@ -31,5 +32,6 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     MealDefaultsRoute -> true
     is SaveTemplateRoute -> true
     is TemplateDetailsRoute -> true
-    DiaryHistoryRoute, is DiaryDayRoute, WeightRoute, WeightHistoryRoute -> true
+    DiaryHistoryRoute, is DiaryDayRoute, is WeightRoute, WeightHistoryRoute -> true
+    NotificationCenterRoute -> true
 }
