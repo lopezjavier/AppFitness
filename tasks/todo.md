@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-151 (E12 breakdown). Numbering continues from here.
 
-**Next:** the user agrees the E12 breakdown (tasks T-146…T-151, Checkpoints E12-A and E12-B) (E12 Q1 and Q2 resolved by the user, 2026-10-28); then T-146.
+**Next:** T-147 (T-146 merged, #340). Carry-overs from the T-146 review (non-blocking, for Checkpoint E12-A or T-148): rest ending while the user is on another tab of the app posts no notification and no in-app alert (pre-existing in-app behaviour); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
 ---
 
@@ -55,13 +55,13 @@ Checkpoints (user decision, 2026-10-28: two): **Checkpoint E12-A** after T-147 a
 - [ ] "Omitir" in the app, "Finalizar entreno" or discarding the workout → nothing fires when the time would have ended; "+30s" moves the alert 30 s later; completing another set reschedules it.
 - [ ] Notifications denied → nothing is posted; the explanation appears once and never again (also after reopening the app); the in-app alert still works in the foreground.
 - [ ] The temporary chooser lists the three candidates, plays each on tap and the next alert uses the chosen one.
-- [ ] `planning/02-architecture.md` (technique, permissions) and `04-business-rules.md` §4.4 (alert outside the app, cancel rules) updated; ADR-75 consequences ticked.
+- [x] `planning/02-architecture.md` (technique, permissions) and `04-business-rules.md` §4.4 (alert outside the app, cancel rules) updated; ADR-75 consequences ticked.
 - [ ] The live session with a running rest survives background and process death (ADR-40); a rest scheduled before process death still alerts.
 
 **Host tests:** `LiveSessionViewModel` tests with a fake `RestAlertScheduler` (schedule on set completion with `endsAt`, "+30s" reschedules, new set restarts, "Omitir"/finish/discard cancel, foreground end cancels and plays the in-app alert, pause keeps it); notification tests in Robolectric (channel, text "Descanso terminado", posted only when not in the foreground; `ShadowAlarmManager`/`ShadowNotificationManager` or the service equivalent per the chosen technique); permission-explanation-once test (denied → shown once, flag persisted, never again); chooser screen test (rows, tap plays and selects); restoration test with a running rest.
 
 **Verification:**
-- [ ] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
 - [ ] Android 17 behaviour verified in the plan (sources recorded); the on-device check is Checkpoint E12-A items 1-2.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 17 files, no backend.
