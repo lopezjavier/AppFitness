@@ -51,7 +51,7 @@ Feature: Notification center
     Then the weight entry opens
 
   Scenario: A reminder type is silenced
-    Given the user turns off "Recordatorio de peso" in "Centro de avisos"
+    Given the user turns off "Recordatorio de peso" in Preferencias → "Avisos" and saves
     When the weight condition is met
     Then no weight reminder is listed
 ```
