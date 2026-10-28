@@ -108,7 +108,7 @@ fun AppDatePickerDialog(
     val picked = state.selectedDateMillis?.let(AppDatePickerDialogDefaults::toDate)
     BasicAlertDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = true),
         modifier = modifier,
     ) {
         Surface(

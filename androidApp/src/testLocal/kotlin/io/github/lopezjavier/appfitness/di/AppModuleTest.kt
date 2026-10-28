@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
@@ -218,6 +219,7 @@ class AppModuleTest {
                 TargetDistance::class,
                 InterpretMetric::class,
                 WeightChartPreferences::class,
+                WatchSeedStore::class,
                 WeightTrend::class,
                 PastWorkoutSource::class,
                 BuildInfo::class,

@@ -161,8 +161,8 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 - **Consequences:** `epics/E13-performance-assistant.md` (navigation), `05-design-system.md` (navigation section) when implemented, `09-open-questions.md` (resolved).
 - **Approval:** 2026-10-28, user (chat).
 
-### ADR-80 · Pickers and read-only sheets close on an outside tap (amends ADR-71)
+### ADR-80 · Pickers, read-only sheets and action menus close on an outside tap (amends ADR-71)
 - **Context:** ADR-71 made every bottom sheet close only with its X, system back or "Cancelar". At Checkpoint E11 (2026-10-28) the user, with the calendar of Actividad open, expected a tap on the dimmed area outside to close it too.
-- **Decision:** Pickers (calendar, day, metric and range pickers) and read-only sheets close on an outside tap, besides X and system back. Sheets with editable input or unsaved changes (R-11) keep ADR-71: only X, system back or "Cancelar". Drag-down stays disabled and no sheet shows a drag handle.
+- **Decision:** Pickers (calendar, day, metric and range pickers), read-only sheets and action menus (`AppActionSheet`, user decision 2026-10-28) close on an outside tap, besides X and system back. Sheets with editable input or unsaved changes (R-11) keep ADR-71: only X, system back or "Cancelar". Drag-down stays disabled and no sheet shows a drag handle.
 - **Consequences:** `05-design-system.md` R-38, the sheet templates in `designsystem/` and the guard G11 in `scripts/check-ux-conventions.sh` (with its fixtures); the fix task sweeps every sheet.
 - **Approval:** 2026-10-28, user (chat).

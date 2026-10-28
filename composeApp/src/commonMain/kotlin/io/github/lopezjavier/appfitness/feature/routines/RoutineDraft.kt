@@ -2,6 +2,7 @@
 
 package io.github.lopezjavier.appfitness.feature.routines
 
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -164,8 +165,8 @@ internal fun DraftSet.toPlannedSet(): PlannedSet? {
 internal fun PlannedSet.toDraft(setId: Long) =
     DraftSet(setId, weightKg?.let(::weightText).orEmpty(), reps.toString(), type)
 
-internal fun weightText(kg: Double): String =
-    if (kg == kg.toLong().toDouble()) kg.toLong().toString() else kg.toString().replace('.', ',')
+/** The weight as editable text ("2,5"): up to two decimals (1,25 kg plates), no thousands dots, no float noise. */
+internal fun weightText(kg: Double): String = AppNumberFormat.decimal(kg, maxDecimals = 2, grouping = false)
 
 internal fun RoutineDraft.movedRow(from: Int, to: Int): RoutineDraft =
     copy(rows = moveExercise(rows, from, to)).renormalized()

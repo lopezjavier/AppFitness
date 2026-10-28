@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import android.view.MotionEvent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
@@ -85,6 +87,24 @@ class AppDatePickerDialogTest {
         show()
 
         rule.onNodeWithTag("picker_dismiss").performClick()
+
+        assertEquals(1, dismissed)
+        assertEquals(null, confirmed)
+    }
+
+    @Test
+    fun tappingOutsideTheDialog_dismissesWithoutReportingADate() {
+        show()
+
+        // A touch beyond the window edge reaches the platform dialog as an outside touch.
+        val dialog = ShadowDialog.getLatestDialog()
+        val down = MotionEvent.obtain(0L, 0L, MotionEvent.ACTION_DOWN, -200f, -200f, 0)
+        val up = MotionEvent.obtain(0L, 10L, MotionEvent.ACTION_UP, -200f, -200f, 0)
+        rule.runOnUiThread {
+            dialog.dispatchTouchEvent(down)
+            dialog.dispatchTouchEvent(up)
+        }
+        rule.waitForIdle()
 
         assertEquals(1, dismissed)
         assertEquals(null, confirmed)

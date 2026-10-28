@@ -160,8 +160,8 @@ object NumberInputDefaults {
             null
         } else {
             template
-                .replace("%1\$s", AppNumberFormat.decimal(min))
-                .replace("%2\$s", AppNumberFormat.decimal(max))
+                .replace("%1\$s", AppNumberFormat.decimal(min, maxDecimals = 2))
+                .replace("%2\$s", AppNumberFormat.decimal(max, maxDecimals = 2))
                 .replace("%3\$s", unit)
                 .trim()
         }

@@ -31,9 +31,23 @@ class AutoSyncHealthTest {
     private val repository = FakeHealthSyncRepository(HealthSyncState(NOW, null, LocalDate(2026, 10, 21)))
     private val connectivity = AutoSyncConnectivity()
     private val clock = FixedTestClock(NOW)
-    private val sync =
-        SyncHealthData(source, repository, SyncHealthMeasurements(source, repository, clock), clock, ZONE)
+    private val seedStore = InMemoryWatchSeedStore()
+    private val sync = SyncHealthData(
+        source,
+        repository,
+        SyncHealthMeasurements(source, repository, clock),
+        seedStore,
+        clock,
+        ZONE,
+    )
     private val auto = AutoSyncHealth(source, repository, sync, connectivity, clock, ZONE)
+
+    @Test
+    fun dueAutoSync_seedsTheGrantedWatchTypes() = runTest {
+        auto()
+
+        assertEquals(WatchMetric.entries.toSet(), seedStore.seeded)
+    }
 
     @Test
     fun dueAndSuccessful_marksToday() = runTest {

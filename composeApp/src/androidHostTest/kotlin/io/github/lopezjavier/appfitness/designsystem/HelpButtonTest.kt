@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -78,8 +77,7 @@ class HelpButtonTest {
     @Test
     fun scrimTap_andSwipeDown_doNotClose() {
         open()
-        rule.onNodeWithContentDescription("Close Sheet", ignoreCase = true).assertDoesNotExist()
-        rule.onNodeWithTag("help_sheet").performTouchInput { swipeDown() }
+        rule.onNodeWithTag("help_sheet_close").performTouchInput { swipeDown(startY = centerY, endY = centerY + 300f) }
         rule.waitForIdle()
         rule.onNodeWithTag("help_sheet").assertIsDisplayed()
     }
@@ -93,7 +91,7 @@ class HelpButtonTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("help_sheet").assertIsDisplayed()
-        rule.onNodeWithTag("help_sheet").performTouchInput { swipeDown() }
+        rule.onNodeWithTag("help_sheet_close").performTouchInput { swipeDown(startY = centerY, endY = centerY + 300f) }
         rule.waitForIdle()
         rule.onNodeWithTag("help_sheet").assertIsDisplayed()
     }

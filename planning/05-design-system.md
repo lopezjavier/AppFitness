@@ -88,14 +88,14 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 ### Selection controls
 - **R-33** Tabs (`AppTabRow`) switch sibling views of one screen; a segmented control (`SegmentedSelector`) picks one of 2-5 short options; chips filter a list or pick among many/long options. A control never changes type with the number of options.
 - **R-34** The same concept uses the same control and labels. Chart ranges use `TimeRangeSelector`: "1S 1M 3M 6M 1A".
-- **R-38** A picker or read-only sheet (calendar, day, metric and range pickers, info sheets) closes with its X, system back or an outside tap (ADR-80). A sheet with editable input or unsaved changes (R-11) closes only with its X, system back or "Cancelar" (ADR-71). Drag-down never closes a sheet and no sheet shows a drag handle.
+- **R-38** A picker, read-only sheet or action menu (calendar, day, metric and range pickers, info sheets, action menus) closes with its X, system back or an outside tap (ADR-80). A sheet with editable input or unsaved changes (R-11) closes only with its X, system back or "Cancelar" (ADR-71). Drag-down never closes a sheet and no sheet shows a drag handle.
 - **R-39** Where an icon clearly represents an action (photo, add, remove, retry, scan) the control is an icon with a `contentDescription`; text buttons are for actions with no clear icon (ADR-71).
 - **R-41** A quality/confidence level is never colour alone: a colour from the design-system scale plus text ("Confianza 7/10"), with the same text as `contentDescription`/`stateDescription` (ADR-72).
 ### Wording
 - **R-35** The glossary (§10) is binding: one label per concept and one concept per label.
 - **R-36** Generic actions use the shared `action_*` strings (Guardar, Cancelar, Cerrar, Eliminar, Quitar, Añadir, Editar, Listo, Descartar, Seguir editando, Reintentar).
 - **R-37** Messages follow fixed templates (§10): errors "No se pudo <acción>. Inténtalo de nuevo."; offline "Sin conexión: no se puede <acción>". Sentences end with a period; titles and buttons do not; use "…" not "..."; titles capitalize the first word only.
-- **R-38 Dates and numbers:** dates via `AppDateFormat` (list "Hoy"/"Ayer"/"lun, 24 oct"; title "24 de octubre"; month "octubre 2026"); numbers via `AppNumberFormat`; macro grams are whole numbers outside nutrition tables.
+- **R-44 Dates and numbers:** dates via `AppDateFormat` (list "Hoy"/"Ayer"/"lun, 24 oct"; title "24 de octubre"; month "octubre 2026"); numbers via `AppNumberFormat`; macro grams are whole numbers outside nutrition tables.
 ### Process
 - **R-39 Sweep.** A task that adds or changes a pattern updates every other instance (found by search) or records each in the E9 table with an owning task; a new designsystem component retires its ad-hoc copies within the same epic.
 - **R-40 Guards.** `scripts/check-ux-conventions.sh` passes (CI).

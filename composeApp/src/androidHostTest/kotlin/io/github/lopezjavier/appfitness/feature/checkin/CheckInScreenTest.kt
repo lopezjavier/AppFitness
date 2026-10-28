@@ -125,7 +125,7 @@ class CheckInScreenTest {
     fun weeklySummary_weightTrendShowsTheSignedDelta() {
         show()
 
-        rule.onNodeWithTag("checkin_summary_weight").assertTextContains("-0,4 kg", substring = true)
+        rule.onNodeWithTag("checkin_summary_weight").assertTextContains("−0,4 kg", substring = true)
         rule.onNodeWithTag("checkin_summary_weight").assertTextContains("vs semana anterior", substring = true)
     }
 

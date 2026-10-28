@@ -275,7 +275,7 @@ private fun dateOf(instant: Instant, timeZone: TimeZone, today: LocalDate): Stri
 private fun setsSummary(sets: List<PlannedSet>): String {
     if (sets.isEmpty()) return ""
     val first = sets.first()
-    val weightOf = { set: PlannedSet -> set.weightKg?.let { AppNumberFormat.decimal(it) } }
+    val weightOf = { set: PlannedSet -> set.weightKg?.let { AppNumberFormat.decimal(it, maxDecimals = 2) } }
     return if (sets.all { it.weightKg == first.weightKg && it.reps == first.reps }) {
         val base = stringResource(Res.string.routine_details_sets_reps, sets.size, first.reps)
         weightOf(first)?.let { base + " · " + stringResource(Res.string.routine_details_weight, it) } ?: base

@@ -61,8 +61,9 @@ object AppSheetsDefaults {
  * line under the button, typically `offlineHint("guardar")` (R-30), tagged `<prefix>_commit_hint`.
  * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
  *
- * Closing (X, back, scrim, swipe) only calls [onDismiss] and never [onCommit]: an edit is never applied silently
- * (R-10, no dialog, R-08). The sheet draws no state of its own; the caller owns the draft.
+ * Closing (X, back or Cancelar; an outside tap and a swipe do nothing, R-38) only calls [onDismiss] and never
+ * [onCommit]: an edit is never applied silently (R-10, no dialog, R-08). The sheet draws no state of its own; the
+ * caller owns the draft.
  *
  * Caller contract (the sheet neither hides itself on commit nor fires a haptic; R-13, R-29):
  * - [SheetCommit.Save] and [SheetCommit.Finish]: set [saving] while the write runs. On success remove the sheet,
@@ -181,6 +182,7 @@ private fun ReadOnlySheet(
         modifier = modifier,
         sheetState = sheetState,
         testTagPrefix = testTagPrefix,
+        dismissOnClickOutside = true,
     ) {
         AppSheetLayout(
             header = { AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help) },

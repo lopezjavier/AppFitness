@@ -68,9 +68,10 @@ object AppBottomSheetDefaults {
 }
 
 /**
- * Modal bottom sheet (top radius 24, no drag handle, 65 % scrim, top-only hairline, R-38). Only back calls
- * [onDismissRequest]: a scrim tap and a drag do nothing. To close it from a button, hide it first so it animates out:
- * `scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }`.
+ * Modal bottom sheet (top radius 24, no drag handle, 65 % scrim, top-only hairline, R-38, ADR-80). Back calls
+ * [onDismissRequest]; so does a tap outside the sheet, but only when [dismissOnClickOutside] is true (pickers, info
+ * sheets and action menus; never a sheet with editable input). A drag never closes it. To close it from a button,
+ * hide it first so it animates out: `scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }`.
  *
  * The root is tagged [testTagPrefix]. Screens use the archetypes
  * ([AppEditSheet], [AppPickerSheet], [AppInfoSheet], [AppActionSheet]) rather than this surface.
@@ -82,6 +83,7 @@ fun AppBottomSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberAppSheetState(),
     testTagPrefix: String? = null,
+    dismissOnClickOutside: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = AppBottomSheetDefaults.colors(AppTheme.colors)
@@ -100,7 +102,10 @@ fun AppBottomSheet(
         scrimColor = colors.scrim,
         dragHandle = null,
         sheetGesturesEnabled = false,
-        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = true, shouldDismissOnClickOutside = false),
+        properties = ModalBottomSheetProperties(
+            shouldDismissOnBackPress = true,
+            shouldDismissOnClickOutside = dismissOnClickOutside,
+        ),
     ) {
         with(AppBottomSheetDefaults) {
             Column(Modifier.fillMaxWidth().topHairline(colors.border)) {

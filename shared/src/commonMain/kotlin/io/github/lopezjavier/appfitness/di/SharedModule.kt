@@ -6,6 +6,7 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.SystemClock
+import io.github.lopezjavier.appfitness.data.local.DataStoreWatchSeedStore
 import io.github.lopezjavier.appfitness.data.local.DataStoreWeightChartPreferences
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepository
@@ -55,6 +56,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStat
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -311,6 +313,7 @@ val sharedModule =
         }
         single<Clock> { SystemClock() }
         single<WeightChartPreferences> { DataStoreWeightChartPreferences(get()) }
+        single<WatchSeedStore> { DataStoreWatchSeedStore(get()) }
         factory { WeightTrend() }
         factory { BuildDiaryDay() }
         factory { GroupMealEntries() }
@@ -344,7 +347,7 @@ val sharedModule =
         // The HealthDataSource port is bound by the platform module.
         factory { HealthWriteBack(get(), get(), get()) }
         factory { SyncHealthMeasurements(get(), get(), get()) }
-        factory { SyncHealthData(get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
+        factory { SyncHealthData(get(), get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { AutoSyncHealth(get(), get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { ComputeReminders() }
         factory { ResolveCheckInDay() }

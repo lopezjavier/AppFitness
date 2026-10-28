@@ -127,44 +127,37 @@ class HealthConnectDataSource(private val context: Context) : HealthDataSource {
     /**
      * Steps and calories are aggregated per local day (Health Connect de-duplicates overlapping records of several
      * apps by its own priority); the app never writes these types, so no origin filter is needed. Sleep and resting
-     * heart rate are read as records, own origin dropped. Each type is read only when its permission is granted.
+     * heart rate are read as records, own origin dropped. Each type is read from its own start and only when its
+     * permission is granted.
      */
-    override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> = safe {
-        val readable = readableWatchMetrics(client.permissionController.getGrantedPermissions())
+    override suspend fun readWatchData(
+        from: Map<WatchMetric, Instant>,
+        to: Instant,
+        zone: TimeZone,
+    ): Result<HealthActivityBatch> = safe {
+        val granted = readableWatchMetrics(client.permissionController.getGrantedPermissions())
+        val starts = from.filterKeys { it in granted }
         HealthActivityBatch(
-            daily = dailyTotals(readable, from, to, zone),
-            sleep = if (WatchMetric.Sleep in readable) readSleep(from, to) else emptyList(),
-            restingHeartRate = if (WatchMetric.RestingHeartRate in
-                readable
-            ) {
-                readResting(from, to, zone)
-            } else {
-                emptyList()
-            },
+            daily = dailyTotals(starts, to, zone),
+            sleep = starts[WatchMetric.Sleep]?.let { readSleep(it, to) } ?: emptyList(),
+            restingHeartRate = starts[WatchMetric.RestingHeartRate]?.let { readResting(it, to, zone) } ?: emptyList(),
         )
     }
 
     private suspend fun dailyTotals(
-        readable: Set<WatchMetric>,
-        from: Instant,
+        starts: Map<WatchMetric, Instant>,
         to: Instant,
         zone: TimeZone,
     ): List<DailyActivity> {
-        val steps = if (WatchMetric.Steps in readable) {
-            aggregateDaily(StepsRecord.COUNT_TOTAL, from, to, zone) { it.toDouble() }
-        } else {
-            emptyMap()
-        }
-        val active = if (WatchMetric.ActiveCalories in readable) {
-            aggregateDaily(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL, from, to, zone) { it.inKilocalories }
-        } else {
-            emptyMap()
-        }
-        val total = if (WatchMetric.TotalCalories in readable) {
-            aggregateDaily(TotalCaloriesBurnedRecord.ENERGY_TOTAL, from, to, zone) { it.inKilocalories }
-        } else {
-            emptyMap()
-        }
+        val steps = starts[WatchMetric.Steps]?.let { start ->
+            aggregateDaily(StepsRecord.COUNT_TOTAL, start, to, zone) { it.toDouble() }
+        } ?: emptyMap()
+        val active = starts[WatchMetric.ActiveCalories]?.let { start ->
+            aggregateDaily(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL, start, to, zone) { it.inKilocalories }
+        } ?: emptyMap()
+        val total = starts[WatchMetric.TotalCalories]?.let { start ->
+            aggregateDaily(TotalCaloriesBurnedRecord.ENERGY_TOTAL, start, to, zone) { it.inKilocalories }
+        } ?: emptyMap()
         return (steps.keys + active.keys + total.keys).sorted().map { day ->
             DailyActivity(day, steps[day]?.toInt(), active[day], total[day])
         }
