@@ -1,6 +1,6 @@
 # Implementation Plan: E11 · Health Connect daily sync → `v1.x`
 
-> **Status:** broken down on 2026-10-28 by the epic-planner and agreed with the user the same day: 5 tasks (T-139…T-143), a 👤 spike report after T-139 and **one Checkpoint E11** after T-142 (user decision: E11-A and E11-B merged). E11 Q2 resolved; E11 Q1 resolved by the spike. T-139…T-142 and T-144 merged; Checkpoint E11 open.
+> **Status:** broken down on 2026-10-28 by the epic-planner and agreed with the user the same day: 5 tasks (T-139…T-143), a 👤 spike report after T-139 and **one Checkpoint E11** after T-142 (user decision: E11-A and E11-B merged). E11 Q2 resolved; E11 Q1 resolved by the spike. T-139…T-142, T-144 and T-145 merged; Checkpoint E11 open.
 
 ## Overview
 Bring the watch data (sleep, steps, active and total calories, resting heart rate) and the scale data into the app automatically on the first open of each local day, while keeping the "Sincronizar" button for fresh weigh-ins (ADR-74, amends ADR-08). The new data is stored per user with owner RLS (`daily_activity`, `sleep_sessions`, `resting_heart_rate`), never duplicated, and shown where ux-reviewer places it; E13's coach consumes it later. The app keeps asking to write only weight and body fat. The data source on the user's phone is Zepp (phone UI in Spanish), and Health Connect holds at least 5 months of steps (user, 2026-10-28).
