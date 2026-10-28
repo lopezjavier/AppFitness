@@ -164,10 +164,65 @@ class LiveSessionDiscomfortViewModelTest {
     }
 
     @Test
-    fun theNewestOpenOneWins() = runTest {
+    fun theSevereMessageStaysWhileAnyOpenRowIsSevere() = runTest {
         discomforts.rows = listOf(row("e1", ageDays = 5, severe = true), row("e1", ageDays = 1, severe = false))
 
         val vm = loaded()
+
+        assertEquals(LiveDiscomfort(severe = true), vm.discomfort(0))
+    }
+
+    @Test
+    fun savingIsFlaggedWhileLoggingAndTheLogCountGrowsOnSuccess() = runTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.LogDiscomfort(0, "x"))
+        val during = assertIs<LiveSessionUiState.Active>(vm.uiState.value)
+        runCurrent()
+        val after = assertIs<LiveSessionUiState.Active>(vm.uiState.value)
+
+        assertTrue(during.discomfortSaving)
+        assertFalse(after.discomfortSaving)
+        assertEquals(during.discomfortLogs + 1, after.discomfortLogs)
+    }
+
+    @Test
+    fun aFailedLogEndsSavingWithoutCountingAStoredLog() = runTest {
+        val vm = loaded()
+        discomforts.failing = true
+
+        send(vm, LiveSessionEvent.LogDiscomfort(0, "x"))
+
+        val state = assertIs<LiveSessionUiState.Active>(vm.uiState.value)
+        assertFalse(state.discomfortSaving)
+        assertEquals(0, state.discomfortLogs)
+    }
+
+    @Test
+    fun resolvingIsFlaggedUntilTheCallEndsAndAFailureClearsIt() = runTest {
+        discomforts.rows = listOf(row("e1", ageDays = 1))
+        val vm = loaded()
+        discomforts.failing = true
+
+        vm.onEvent(LiveSessionEvent.ResolveDiscomfort(0))
+        assertEquals(LiveDiscomfort(severe = false, resolving = true), vm.discomfort(0))
+        runCurrent()
+
+        assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
+    }
+
+    @Test
+    fun aDiscomfortReadThatFailedIsRetriedWhenBackOnline() = runTest {
+        discomforts.rows = listOf(row("e1", ageDays = 1))
+        discomforts.failing = true
+        val vm = loaded()
+        assertNull(vm.discomfort(0))
+        discomforts.failing = false
+
+        connectivity.state.value = false
+        runCurrent()
+        connectivity.state.value = true
+        runCurrent()
 
         assertEquals(LiveDiscomfort(severe = false), vm.discomfort(0))
     }

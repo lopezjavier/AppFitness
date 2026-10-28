@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,10 +52,13 @@ internal fun LiveExerciseCard(
     options: VolumeOptionsUi = VolumeOptionsUi(),
     deleteEnabled: Boolean = true,
     online: Boolean = true,
+    discomfortSaving: Boolean = false,
+    discomfortLogs: Int = 0,
 ) {
     val position = exercise.position
     val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
     var sheet by rememberSaveable { mutableStateOf(ExerciseSheet.None) }
+    OnDiscomfortStored(discomfortLogs) { if (sheet == ExerciseSheet.Discomfort) sheet = ExerciseSheet.None }
     AppCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -59,12 +66,9 @@ internal fun LiveExerciseCard(
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
             exercise.discomfort?.let {
-                DiscomfortBlock(
-                    position = position,
-                    discomfort = it,
-                    online = online,
-                    onResolve = { onEvent(LiveSessionEvent.ResolveDiscomfort(position)) },
-                )
+                DiscomfortBlock(position, it, online, onResolve = {
+                    onEvent(LiveSessionEvent.ResolveDiscomfort(position))
+                })
             }
             exercise.targetRpeText?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -102,9 +106,23 @@ internal fun LiveExerciseCard(
         options,
         onEvent,
         online,
+        discomfortSaving,
         onSheetChange = { sheet = it },
         onSheetClose = { from -> if (sheet == from) sheet = ExerciseSheet.None },
     )
+}
+
+/** Runs [onStore] when [logs] changes (a discomfort was stored); a failed log leaves the sheet open with its draft. */
+@Composable
+private fun OnDiscomfortStored(logs: Int, onStore: () -> Unit) {
+    var seen by remember { mutableIntStateOf(logs) }
+    val current by rememberUpdatedState(onStore)
+    LaunchedEffect(logs) {
+        if (logs != seen) {
+            seen = logs
+            current()
+        }
+    }
 }
 
 private enum class ExerciseSheet { None, Menu, Rest, BodyWeight, Discomfort }
@@ -153,6 +171,7 @@ private fun ExerciseSheets(
     options: VolumeOptionsUi,
     onEvent: (LiveSessionEvent) -> Unit,
     online: Boolean,
+    discomfortSaving: Boolean,
     onSheetChange: (ExerciseSheet) -> Unit,
     onSheetClose: (ExerciseSheet) -> Unit,
 ) {
@@ -193,10 +212,8 @@ private fun ExerciseSheets(
         ExerciseSheet.Discomfort -> DiscomfortSheet(
             position = position,
             online = online,
-            onSave = {
-                onEvent(LiveSessionEvent.LogDiscomfort(position, it))
-                onSheetChange(ExerciseSheet.None)
-            },
+            saving = discomfortSaving,
+            onSave = { onEvent(LiveSessionEvent.LogDiscomfort(position, it)) },
             onDismiss = { onSheetChange(ExerciseSheet.None) },
         )
 

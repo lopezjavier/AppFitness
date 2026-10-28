@@ -131,6 +131,26 @@ class LiveSessionDiscomfortTest {
     }
 
     @Test
+    fun aFailedLog_keepsTheSheetOpenWithTheDraft() {
+        show()
+        discomforts.failing = true
+
+        log("rodilla")
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_note").assertTextContains("rodilla")
+        rule.onNodeWithTag("live_exercise_0_discomfort").assertDoesNotExist()
+    }
+
+    @Test
+    fun aStoredLog_closesTheSheet() {
+        show()
+
+        log("rodilla")
+
+        rule.onNodeWithTag("live_exercise_0_discomfort_sheet_commit").assertDoesNotExist()
+    }
+
+    @Test
     fun loggingWithoutANote_isAllowed() {
         show()
         openSheet()

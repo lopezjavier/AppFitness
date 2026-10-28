@@ -58,7 +58,7 @@ data class LiveExercise(
 )
 
 /** An open discomfort on an exercise; [severe] (stored when logged) adds the fixed health-professional message. */
-data class LiveDiscomfort(val severe: Boolean)
+data class LiveDiscomfort(val severe: Boolean, val resolving: Boolean = false)
 
 /**
  * The rest countdown: [remaining] of [total] (the total grows when time is added past it); [paused] while the session
@@ -153,6 +153,10 @@ sealed interface LiveSessionUiState {
         val pausedTotalSeconds: Long = 0,
         /** The open warm-up calculator or disc loader; null when closed. Survives process death (ADR-40). */
         val calculator: CalculatorUiState? = null,
+        /** A discomfort is being stored: the sheet's "Guardar" shows progress and is blocked. */
+        val discomfortSaving: Boolean = false,
+        /** Counts stored discomforts; the card closes its sheet when it changes (a failure keeps the sheet open). */
+        val discomfortLogs: Int = 0,
     ) : LiveSessionUiState {
         val isPaused: Boolean get() = pausedAt != null
 

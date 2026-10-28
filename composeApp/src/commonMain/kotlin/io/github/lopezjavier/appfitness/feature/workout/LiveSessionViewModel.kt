@@ -207,7 +207,13 @@ class LiveSessionViewModel(
     private val resolveDiscomfort = ResolveDiscomfort(discomfortRepository, clock)
 
     /** The newest unresolved discomfort per exercise id (expiry is applied when rendering). */
-    private var discomforts: Map<String, Discomfort> = emptyMap()
+    private var discomforts: Map<String, List<Discomfort>> = emptyMap()
+    private var discomfortSaving = false
+    private var discomfortLogs = 0
+    private var discomfortResolving: Set<String> = emptySet()
+
+    /** Exercises whose discomfort read failed; retried when the device is back online. */
+    private var discomfortUnread: Set<String> = emptySet()
 
     /** Rest in seconds per exercise position; positions without an entry use the default. */
     private var rests: MutableMap<Int, Int> = mutableMapOf()
@@ -303,7 +309,10 @@ class LiveSessionViewModel(
             connectivity.isOnline.collect { isOnline ->
                 online = isOnline
                 publish()
-                if (isOnline) sync()
+                if (isOnline) {
+                    sync()
+                    retryDiscomfortLoad()
+                }
             }
         }
         load()
@@ -444,24 +453,46 @@ class LiveSessionViewModel(
 
     /** Reads the open discomforts of [exerciseIds]; a failed read changes nothing (it never blocks the session). */
     private suspend fun loadDiscomforts(exerciseIds: Set<String>) {
-        val rows = discomfortRepository.unresolved(exerciseIds).getOrNull() ?: return
-        val now = clock.now()
-        discomforts = discomforts + rows.filter { DiscomfortStatus.isOpen(it, now) }
-            .sortedBy { it.loggedAt }.associateBy { it.exerciseId }
+        val rows = discomfortRepository.unresolved(exerciseIds).getOrNull()
+        if (rows == null) {
+            discomfortUnread = discomfortUnread + exerciseIds
+            return
+        }
+        discomfortUnread = discomfortUnread - exerciseIds
+        val byExercise = rows.groupBy { it.exerciseId }
+        discomforts = discomforts + exerciseIds.associateWith { byExercise[it].orEmpty() }
+    }
+
+    /** Back online: reads again the exercises whose discomfort read failed. */
+    private fun retryDiscomfortLoad() {
+        val ids = discomfortUnread
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            loadDiscomforts(ids)
+            publish()
+        }
     }
 
     /** Online only: stores the discomfort and shows it at once; the newest open one is the one displayed. */
     private fun logExerciseDiscomfort(position: Int, note: String?) {
         val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId ?: return
-        if (!online || terminal != null) return
+        if (!online || terminal != null || discomfortSaving) return
+        discomfortSaving = true
+        publish()
         viewModelScope.launch {
             logDiscomfort(exerciseId, note).fold(
                 onSuccess = {
-                    discomforts = discomforts + (exerciseId to it)
+                    discomforts = discomforts + (exerciseId to (listOf(it) + discomforts[exerciseId].orEmpty()))
+                    discomfortSaving = false
+                    discomfortLogs++
                     publish()
                     effectChannel.trySend(LiveSessionEffect.DiscomfortLogged)
                 },
-                onFailure = { effectChannel.trySend(LiveSessionEffect.DiscomfortLogFailed) },
+                onFailure = {
+                    discomfortSaving = false
+                    publish()
+                    effectChannel.trySend(LiveSessionEffect.DiscomfortLogFailed)
+                },
             )
         }
     }
@@ -469,15 +500,22 @@ class LiveSessionViewModel(
     /** Online only: closes every open discomfort of the exercise ("Ya no me molesta"). */
     private fun resolveExerciseDiscomfort(position: Int) {
         val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId ?: return
-        if (!online || terminal != null) return
+        if (!online || terminal != null || exerciseId in discomfortResolving) return
+        discomfortResolving = discomfortResolving + exerciseId
+        publish()
         viewModelScope.launch {
             resolveDiscomfort(exerciseId).fold(
                 onSuccess = {
                     discomforts = discomforts - exerciseId
+                    discomfortResolving = discomfortResolving - exerciseId
                     publish()
                     effectChannel.trySend(LiveSessionEffect.DiscomfortResolved)
                 },
-                onFailure = { effectChannel.trySend(LiveSessionEffect.DiscomfortResolveFailed) },
+                onFailure = {
+                    discomfortResolving = discomfortResolving - exerciseId
+                    publish()
+                    effectChannel.trySend(LiveSessionEffect.DiscomfortResolveFailed)
+                },
             )
         }
     }
@@ -544,6 +582,7 @@ class LiveSessionViewModel(
                         ensureStopwatchTicker()
                         ghosts = mutableMapOf()
                         discomforts = emptyMap()
+                        discomfortUnread = emptySet()
                         loadDiscomforts(loaded.exercises.map { it.exerciseId }.toSet())
                         coroutineScope {
                             loaded.exercises.map { it.exerciseId }.distinct().map { async { loadGhost(it) } }.awaitAll()
@@ -1507,13 +1546,18 @@ class LiveSessionViewModel(
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
-                    discomfort = discomforts[exercise.exerciseId]
-                        ?.takeIf { DiscomfortStatus.isOpen(it, clock.now()) }
-                        ?.let { LiveDiscomfort(it.severe) },
+                    discomfort = discomforts[exercise.exerciseId].orEmpty()
+                        .filter { DiscomfortStatus.isOpen(it, clock.now()) }
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { open ->
+                            LiveDiscomfort(open.any { it.severe }, exercise.exerciseId in discomfortResolving)
+                        },
                 )
             },
             restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total, it.isPaused) },
             isOnline = online,
+            discomfortSaving = discomfortSaving,
+            discomfortLogs = discomfortLogs,
             finishSheet = finishSheet,
             discardConfirm = discardAsked,
             busy = busy,

@@ -43,7 +43,13 @@ private const val NOTE_LINES = 3
  * offline. The draft survives recreation; closing without saving discards it.
  */
 @Composable
-internal fun DiscomfortSheet(position: Int, online: Boolean, onSave: (String?) -> Unit, onDismiss: () -> Unit) {
+internal fun DiscomfortSheet(
+    position: Int,
+    online: Boolean,
+    saving: Boolean,
+    onSave: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var draft by rememberSaveable { mutableStateOf("") }
     val tag = "live_exercise_${position}_discomfort"
     val tooLong = draft.trim().length > LogDiscomfort.MAX_NOTE
@@ -53,6 +59,7 @@ internal fun DiscomfortSheet(position: Int, online: Boolean, onSave: (String?) -
         onCommit = { onSave(draft.trim().ifEmpty { null }) },
         onDismiss = onDismiss,
         commitEnabled = online && !tooLong,
+        saving = saving,
         commitHint = stringResource(Res.string.live_exercise_menu_discomfort_offline).takeIf { !online },
         testTagPrefix = "${tag}_sheet",
     ) {
@@ -94,7 +101,8 @@ internal fun DiscomfortBlock(
             GhostButton(
                 text = stringResource(Res.string.live_discomfort_resolve),
                 onClick = onResolve,
-                enabled = online,
+                enabled = online && !discomfort.resolving,
+                loading = discomfort.resolving,
                 tone = GhostTone.Neutral,
                 modifier = Modifier.testTag("${tag}_resolve"),
             )

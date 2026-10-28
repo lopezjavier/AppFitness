@@ -15,6 +15,7 @@ import kotlin.time.Instant
 private class RecordingDiscomfortRepository : DiscomfortRepository {
     val logged = mutableListOf<Triple<String, String?, Boolean>>()
     val resolved = mutableListOf<Pair<String, Instant>>()
+    var open: List<Discomfort> = emptyList()
 
     override suspend fun log(exerciseId: String, note: String?, severe: Boolean): Result<Discomfort> {
         logged += Triple(exerciseId, note, severe)
@@ -26,7 +27,7 @@ private class RecordingDiscomfortRepository : DiscomfortRepository {
         return Result.success(Unit)
     }
 
-    override suspend fun unresolved(exerciseIds: Set<String>): Result<List<Discomfort>> = Result.success(emptyList())
+    override suspend fun unresolved(exerciseIds: Set<String>): Result<List<Discomfort>> = Result.success(open)
 }
 
 class LogDiscomfortTest {
@@ -82,5 +83,16 @@ class ResolveDiscomfortTest {
         ResolveDiscomfort(repository, FixedTestClock(now))("e1").getOrThrow()
 
         assertEquals(listOf("e1" to now), repository.resolved)
+    }
+
+    @Test
+    fun aDeviceClockBehindTheServerIsClampedToTheNewestLoggedAt() = runTest {
+        val serverLogged = Instant.parse("2026-11-02T08:00:05Z")
+        val repository = RecordingDiscomfortRepository()
+        repository.open = listOf(Discomfort("d1", "e1", serverLogged, null, false))
+
+        ResolveDiscomfort(repository, FixedTestClock(Instant.parse("2026-11-02T08:00:00Z")))("e1").getOrThrow()
+
+        assertEquals(listOf("e1" to serverLogged), repository.resolved)
     }
 }
