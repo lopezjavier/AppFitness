@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthSyncReposi
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealDefaultsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealTemplateRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseNotificationSettingsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepository
@@ -41,6 +42,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthSyncRe
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealDefaultsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealTemplateRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNotificationSettingsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepository
@@ -62,6 +64,7 @@ import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
@@ -76,6 +79,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
+import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
@@ -85,6 +89,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -149,6 +154,14 @@ val sharedModule =
                 SupabaseCircumferenceRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredCircumferenceRepository()
+            }
+        }
+        single<NotificationSettingsRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseNotificationSettingsRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredNotificationSettingsRepository()
             }
         }
         single<NutritionGoalsRepository> {
@@ -305,5 +318,7 @@ val sharedModule =
         // The HealthDataSource port is bound by the platform module.
         factory { HealthWriteBack(get(), get(), get()) }
         factory { SyncHealthMeasurements(get(), get(), get()) }
+        factory { ComputeReminders() }
+        factory { LoadReminders(get(), get(), get(), get(), TimeZone.currentSystemDefault(), get()) }
         factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
     }
