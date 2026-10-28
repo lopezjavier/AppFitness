@@ -44,6 +44,7 @@ class PreferencesSectionTest {
             calculators = CalculatorSettings(barWeightKg = 15.0),
             autoUpdateRoutine = true,
         ),
+        PreferencesSection.CheckIn to base.copy(checkInWeekday = 3),
     )
 
     @Test

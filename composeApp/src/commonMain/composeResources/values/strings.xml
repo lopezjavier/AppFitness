@@ -946,6 +946,7 @@
     <string name="preferences_meals_title">Comidas del día</string>
     <string name="preferences_meals_subtitle">Nombre y orden de tus comidas del día</string>
     <string name="preferences_training_title">Entrenamiento</string>
+    <string name="preferences_checkin_title">Check-in semanal</string>
     <string name="preferences_warm_up_label">Incluir calentamiento</string>
     <string name="preferences_warm_up_helper">Las series de calentamiento cuentan en volumen, 1RM y récords.</string>
     <string name="switch_row_on">Activado</string>
@@ -1487,4 +1488,58 @@
     <string name="notifications_empty_message">No tienes avisos pendientes.</string>
     <string name="notifications_toggle_error">No se pudo cambiar el aviso. Inténtalo de nuevo.</string>
     <string name="notifications_offline_action">cambiar el aviso</string>
+
+    <!-- T-136 weekly check-in -->
+    <string name="notifications_reminder_checkin">Hacer el check-in semanal</string>
+    <string name="notifications_reminder_open_checkin">Abrir el check-in</string>
+    <string name="notifications_checkin_week">Semana del %1$s</string>
+    <string name="notifications_this_week_section">Esta semana</string>
+    <string name="notifications_checkin_answered_title">Check-in semanal</string>
+    <string name="notifications_checkin_answered_supporting">Respondido · Energía %1$d/5</string>
+    <string name="notifications_switch_checkin">Check-in semanal</string>
+    <string name="notifications_switch_checkin_helper">El día que elijas en Preferencias, si aún no lo has respondido.</string>
+    <string name="preferences_checkin_day_row">Día del check-in</string>
+    <string name="preferences_checkin_day_helper">Tu resumen semanal usa la semana de lunes a domingo que incluye ese día.</string>
+    <string name="checkin_title">Check-in semanal</string>
+    <string name="checkin_summary_header">Resumen de la semana</string>
+    <string name="checkin_summary_caption">Semana de lunes a domingo</string>
+    <string name="checkin_volume_label">Volumen</string>
+    <string name="checkin_volume_value">%1$s kg</string>
+    <string name="checkin_workouts_label">Entrenos</string>
+    <plurals name="checkin_workouts_value">
+        <item quantity="one">%1$d entreno</item>
+        <item quantity="other">%1$d entrenos</item>
+    </plurals>
+    <string name="checkin_sets_label">Series</string>
+    <plurals name="checkin_sets_value">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <string name="checkin_delta_kg">%1$s kg vs semana anterior</string>
+    <plurals name="checkin_delta_workouts">
+        <item quantity="one">%1$s entreno vs semana anterior</item>
+        <item quantity="other">%1$s entrenos vs semana anterior</item>
+    </plurals>
+    <plurals name="checkin_delta_sets">
+        <item quantity="one">%1$s serie vs semana anterior</item>
+        <item quantity="other">%1$s series vs semana anterior</item>
+    </plurals>
+    <string name="checkin_delta_same">Igual que la semana anterior</string>
+    <string name="checkin_weight_label">Peso</string>
+    <string name="checkin_weight_value">%1$s kg</string>
+    <string name="checkin_weight_delta_caption">vs semana anterior</string>
+    <string name="checkin_weight_not_enough">Sin datos suficientes</string>
+    <string name="checkin_records_header">Récords de la semana</string>
+    <string name="checkin_records_empty">Sin récords esta semana</string>
+    <string name="checkin_summary_error">No se pudo cargar el resumen. Inténtalo de nuevo.</string>
+    <string name="checkin_load_error">No se pudo cargar el check-in. Inténtalo de nuevo.</string>
+    <string name="checkin_form_header">¿Cómo te has sentido?</string>
+    <string name="checkin_energy_label">Energía</string>
+    <string name="checkin_energy_group_cd">Energía de la semana</string>
+    <string name="checkin_energy_option_cd">Energía %1$d de 5</string>
+    <string name="checkin_notes_label">Notas</string>
+    <string name="checkin_notes_counter">%1$d/1000</string>
+    <string name="checkin_notes_too_long">Máximo 1000 caracteres</string>
+    <string name="checkin_save_error">No se pudo guardar el check-in. Inténtalo de nuevo.</string>
+    <string name="checkin_save_error_offline">Sin conexión: no se puede guardar el check-in</string>
 </resources>

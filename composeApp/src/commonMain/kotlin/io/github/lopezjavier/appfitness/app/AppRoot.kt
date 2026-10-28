@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsRoot
+import io.github.lopezjavier.appfitness.feature.checkin.CheckInRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.diary.EditEntryRoot
@@ -140,6 +141,7 @@ fun AppRoot(
         notificationCenter = { centerModifier, onOpenReminder, onBack ->
             NotificationCenterRoot(onOpenReminder, onBack, centerModifier)
         },
+        checkIn = { checkInModifier, onClose -> CheckInRoot(onClose, checkInModifier) },
         weightHistory = { historyModifier, onBack ->
             WeightHistoryRoot(onBack, historyModifier, onRemindersChange = refreshReminders)
         },

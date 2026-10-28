@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
@@ -62,6 +63,7 @@ private class PreferencesData(
     val goals: Result<NutritionGoals?>,
     val training: Result<TrainingPreferences>,
     val foodPreferences: Result<FoodPreferences>,
+    val checkInWeekday: Result<Int>,
 )
 
 /**
@@ -84,6 +86,8 @@ class PreferencesViewModel(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val healthWriteBack: HealthWriteBack? = null,
+    /** Recomputed after the check-in day is saved, so the center reflects the new day. */
+    private val reminders: ReminderCoordinator? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PreferencesUiState>(PreferencesUiState.Loading)
     val uiState: StateFlow<PreferencesUiState> = _uiState.asStateFlow()
@@ -156,6 +160,8 @@ class PreferencesViewModel(
             is PreferencesEvent.SetFatPctAirFryer -> edit { it.withFood { copy(airFryerText = event.text) } }
 
             is PreferencesEvent.SetFatPctFried -> edit { it.withFood { copy(friedText = event.text) } }
+
+            is PreferencesEvent.SetCheckInWeekday -> edit { it.copy(checkInWeekday = event.weekday) }
 
             PreferencesEvent.Save -> save()
 
@@ -235,6 +241,7 @@ class PreferencesViewModel(
                 val goals = async { goalsRepository.getOwn() }
                 val training = async { trainingPreferencesRepository.get() }
                 val food = async { foodPreferencesRepository.get() }
+                val checkInWeekday = async { profileRepository.getCheckInWeekday() }
                 val latest = weight.await()
                 PreferencesData(
                     profile.await(),
@@ -244,6 +251,7 @@ class PreferencesViewModel(
                     goals.await(),
                     training.await(),
                     food.await(),
+                    checkInWeekday.await(),
                 )
             }
             _uiState.value = loadedOrNull(data) ?: PreferencesUiState.LoadFailed
@@ -262,6 +270,7 @@ class PreferencesViewModel(
         if (data.goals.isFailure) return null
         val training = data.training.getOrNull() ?: return null
         val food = data.foodPreferences.getOrNull() ?: return null
+        val checkInWeekday = data.checkInWeekday.getOrNull() ?: return null
         val goals = data.goals.getOrNull()
         val today = clock.today()
         val strategy = goals?.strategy ?: GoalStrategy.Maintenance
@@ -280,6 +289,7 @@ class PreferencesViewModel(
             calculators = training.calculators,
             foodPreferences = FoodPreferencesForm.of(food),
             autoUpdateRoutine = training.autoUpdateRoutine,
+            checkInWeekday = checkInWeekday,
         )
         // Only the section's fields come from the draft: the other sections are always the fresh saved values.
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }?.let {
@@ -352,24 +362,30 @@ class PreferencesViewModel(
             val weightChanged = owns(PreferencesSection.PersonalData) && !state.weightFromHealthConnect &&
                 source.weightKg != state.saved.weightKg
             val training = owns(PreferencesSection.Training)
-            val result = savePreferences(
-                displayName = source.name,
-                biometrics = source.toBiometrics(),
-                weightKg = source.weightKg,
-                weightChanged = weightChanged,
-                now = clock.now(),
-                timeZone = timeZone,
-                strategy = source.strategy,
-                adjustment = source.adjustment,
-                split = source.split,
-                warmUpIncluded = source.warmUpIncluded.takeIf { training },
-                previousValuesMode = source.previousValuesMode.takeIf { training },
-                calculators = source.calculators.takeIf { training },
-                foodPreferences = source.toFoodPreferences().takeIf { owns(PreferencesSection.Cooking) },
-                autoUpdateRoutine = source.autoUpdateRoutine.takeIf { training },
-            )
+            val result = if (owns(PreferencesSection.CheckIn)) {
+                // Its only field lives in its own column: the other sections' RPC is not involved.
+                profileRepository.setCheckInWeekday(source.checkInWeekday)
+            } else {
+                savePreferences(
+                    displayName = source.name,
+                    biometrics = source.toBiometrics(),
+                    weightKg = source.weightKg,
+                    weightChanged = weightChanged,
+                    now = clock.now(),
+                    timeZone = timeZone,
+                    strategy = source.strategy,
+                    adjustment = source.adjustment,
+                    split = source.split,
+                    warmUpIncluded = source.warmUpIncluded.takeIf { training },
+                    previousValuesMode = source.previousValuesMode.takeIf { training },
+                    calculators = source.calculators.takeIf { training },
+                    foodPreferences = source.toFoodPreferences().takeIf { owns(PreferencesSection.Cooking) },
+                    autoUpdateRoutine = source.autoUpdateRoutine.takeIf { training },
+                )
+            }
             if (result.isSuccess) {
                 if (weightChanged) writeWeightBack()
+                if (owns(PreferencesSection.CheckIn)) reminders?.requestRefresh()
                 updateLoaded { it.copy(form = source, saved = source, isSaving = false, isSaved = true) }
             } else {
                 updateLoaded { it.copy(isSaving = false) }

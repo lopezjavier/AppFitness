@@ -49,7 +49,7 @@ data object PreferencesRoute : AppRoute
 
 /**
  * One Preferencias editor (US-56): [section] is the `PreferencesSection.key` (`personal`, `energy`, `macros`,
- * `cooking`, `training`). The argument is stored as `section`, the key under which its view model reads it.
+ * `cooking`, `training`, `checkin`). The argument is stored as `section`, the key under which its view model reads it.
  */
 @Serializable
 data class PreferencesSectionRoute(val section: String) : AppRoute
@@ -211,6 +211,10 @@ data class WeightRoute(val openEntry: WeightEntryTarget? = null) : AppRoute
 @Serializable
 data object NotificationCenterRoute : AppRoute
 
+/** "Check-in semanal": the closed week plus energy and notes, opened from the notification center (US-59). */
+@Serializable
+data object CheckInRoute : AppRoute
+
 /** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
 @Serializable
 data object WeightHistoryRoute : AppRoute
@@ -340,5 +344,6 @@ object AppDestinations {
             WeightHistoryRoute,
             AboutRoute,
             NotificationCenterRoute,
+            CheckInRoute,
         )
 }

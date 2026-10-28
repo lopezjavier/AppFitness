@@ -235,7 +235,7 @@ private fun RecordCard(record: PersonalRecord, today: LocalDate) {
 
 /** The record value with its unit: kg (one decimal at most), mm:ss, m or km, or a whole count. */
 @Composable
-private fun PersonalRecord.valueText(): String = when (type) {
+internal fun PersonalRecord.valueText(): String = when (type) {
     PersonalRecordType.HeaviestLift,
     PersonalRecordType.BestSet,
     PersonalRecordType.Best1Rm,

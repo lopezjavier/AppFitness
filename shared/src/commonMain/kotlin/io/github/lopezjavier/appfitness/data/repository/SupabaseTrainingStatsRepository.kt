@@ -8,12 +8,14 @@ import io.github.lopezjavier.appfitness.data.remote.ExerciseSetCountsParams
 import io.github.lopezjavier.appfitness.data.remote.MuscleGroupSetsRowDto
 import io.github.lopezjavier.appfitness.data.remote.StatsWindowParams
 import io.github.lopezjavier.appfitness.data.remote.TrainingSummaryRowDto
+import io.github.lopezjavier.appfitness.data.remote.WeekRecordRowDto
 import io.github.lopezjavier.appfitness.data.remote.WeeklySetCountRowDto
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekRecord
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import kotlinx.datetime.LocalDate
 
@@ -47,5 +49,11 @@ class SupabaseTrainingStatsRepository(private val auth: Auth, private val postgr
         postgrest.rpc("exercise_set_counts", ExerciseSetCountsParams(from, to, muscleGroup))
             .decodeList<ExerciseSetCountRowDto>()
             .map { it.toDomain() }
+    }
+
+    override suspend fun weeklyRecords(from: LocalDate, to: LocalDate): Result<List<WeekRecord>> = auth.ownRow {
+        postgrest.rpc("weekly_records", StatsWindowParams(from, to))
+            .decodeList<WeekRecordRowDto>()
+            .mapNotNull { it.toDomain() }
     }
 }

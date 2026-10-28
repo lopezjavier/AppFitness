@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepositor
 import io.github.lopezjavier.appfitness.data.repository.SupabaseStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingStatsRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
@@ -49,6 +50,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepos
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStatsRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
@@ -71,6 +73,7 @@ import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
+import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -88,10 +91,12 @@ import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
+import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
+import io.github.lopezjavier.appfitness.domain.usecase.ResolveCheckInDay
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
@@ -227,6 +232,14 @@ val sharedModule =
                 UnconfiguredStrengthRepository()
             }
         }
+        single<WeeklyCheckInRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseWeeklyCheckInRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredWeeklyCheckInRepository()
+            }
+        }
         single<TrainingStatsRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
@@ -319,6 +332,8 @@ val sharedModule =
         factory { HealthWriteBack(get(), get(), get()) }
         factory { SyncHealthMeasurements(get(), get(), get()) }
         factory { ComputeReminders() }
-        factory { LoadReminders(get(), get(), get(), get(), TimeZone.currentSystemDefault(), get()) }
+        factory { ResolveCheckInDay() }
+        factory { LoadReminders(get(), get(), get(), get(), get(), get(), TimeZone.currentSystemDefault(), get()) }
+        factory { LoadCheckInSummary(get(), get(), TimeZone.currentSystemDefault()) }
         factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
     }

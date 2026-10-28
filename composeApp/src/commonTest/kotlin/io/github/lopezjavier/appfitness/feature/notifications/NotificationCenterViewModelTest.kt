@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
@@ -145,6 +146,88 @@ class NotificationCenterViewModelTest {
             assertIs<NotificationCenterUiState.Content>(state)
             assertTrue(state.weightEnabled)
             assertEquals(2, state.reminders.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Both measurement reminders cleared and the onboarding day known: only the Sunday 25 Oct check-in is open. */
+    private fun checkInEnv() = ReminderEnv(TODAY).apply {
+        weight.rows += BodyMeasurement("w", TODAY.atStartOfDayIn(TimeZone.UTC), 80.0, MeasurementSource.Manual)
+        weight.onboarding = BodyMeasurement("o", day(20).atStartOfDayIn(TimeZone.UTC), 80.0, MeasurementSource.Manual)
+        circumferences.rows += BodyCircumference(
+            "c",
+            CircumferenceSite.Waist,
+            90.0,
+            TODAY.atStartOfDayIn(TimeZone.UTC),
+            TODAY.atStartOfDayIn(TimeZone.UTC),
+        )
+    }
+
+    @Test
+    fun pendingCheckIn_isListedAsAReminderWithItsWindow() = runTest {
+        val f = fixture(checkInEnv())
+
+        f.viewModel.uiState.test {
+            val content = content()
+            assertEquals(listOf(ReminderKind.CheckIn), content.reminders.map { it.kind })
+            assertTrue(content.checkInEnabled)
+            assertEquals(null, content.checkIn?.answer)
+            assertEquals(LocalDate(2026, 10, 19), content.checkIn?.weekStart)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun answeredCheckIn_isReachableButNotCounted() = runTest {
+        val env = checkInEnv()
+        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            val content = content()
+            assertTrue(content.reminders.isEmpty())
+            assertEquals(4, content.checkIn?.answer?.energy)
+            assertTrue(f.coordinator.reminders.value.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun silencingTheCheckIn_hidesTheReminderAndTheAnsweredRowAndSavesTheSwitch() = runTest {
+        val env = checkInEnv()
+        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            content()
+            f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, false))
+            var last = content()
+            while (last.checkInEnabled) last = content()
+            assertEquals(null, last.checkIn)
+            advanceUntilIdle()
+            assertEquals(false, env.settings.values[NotificationKind.WeeklyCheckIn])
+            assertEquals(null, f.coordinator.checkIn.value)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun failedCheckInToggle_rollsBackAndEmitsAnEffect() = runTest {
+        val env = checkInEnv().apply { settings.failWrites = true }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            content()
+            f.viewModel.effects.test {
+                f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, false))
+                advanceUntilIdle()
+                assertEquals(NotificationCenterEffect.ToggleFailed, awaitItem())
+            }
+            advanceUntilIdle()
+            val state = f.viewModel.uiState.value
+            assertIs<NotificationCenterUiState.Content>(state)
+            assertTrue(state.checkInEnabled)
+            assertEquals(listOf(ReminderKind.CheckIn), state.reminders.map { it.kind })
             cancelAndIgnoreRemainingEvents()
         }
     }

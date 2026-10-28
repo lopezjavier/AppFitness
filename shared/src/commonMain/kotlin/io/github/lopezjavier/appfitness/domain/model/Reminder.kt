@@ -2,7 +2,7 @@ package io.github.lopezjavier.appfitness.domain.model
 
 import kotlinx.datetime.LocalDate
 
-/** Kinds of in-app reminders. [CheckIn] is reserved for the weekly check-in (T-136) and is never produced yet. */
+/** Kinds of in-app reminders. [CheckIn] is the weekly check-in, due on the user's chosen weekday. */
 enum class ReminderKind { Weight, Circumference, CheckIn }
 
 /** Kinds the user can silence; mapped 1:1 to the DB enum `notification_kind`. */

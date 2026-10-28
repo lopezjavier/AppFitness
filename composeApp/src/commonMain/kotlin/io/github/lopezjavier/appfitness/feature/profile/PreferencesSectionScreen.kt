@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
@@ -55,6 +56,7 @@ internal val PreferencesSection.title: StringResource
         PreferencesSection.Macros -> Res.string.preferences_macros_title
         PreferencesSection.Cooking -> Res.string.preferences_cooking_title
         PreferencesSection.Training -> Res.string.preferences_training_title
+        PreferencesSection.CheckIn -> Res.string.preferences_checkin_title
     }
 
 /**
@@ -172,6 +174,11 @@ private fun SectionContent(
             calculators = state.form.calculators,
             platesError = state.platesError,
             onEvent = onEvent,
+        )
+
+        PreferencesSection.CheckIn -> CheckInDaySection(
+            weekday = state.form.checkInWeekday,
+            onSelect = { onEvent(PreferencesEvent.SetCheckInWeekday(it)) },
         )
     }
 }

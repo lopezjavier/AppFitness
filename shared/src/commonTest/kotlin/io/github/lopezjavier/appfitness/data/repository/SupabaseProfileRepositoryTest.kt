@@ -186,6 +186,28 @@ class SupabaseProfileRepositoryTest {
     }
 
     @Test
+    fun getCheckInWeekday_decodesTheColumnOfTheOwnRow() = runTest {
+        val repo = signedInRepository { """[{"check_in_weekday":3}]""" }
+
+        assertEquals(3, repo.getCheckInWeekday().getOrThrow())
+        val url = requests.last().url.toString()
+        assertTrue(url.contains("id=eq.user-1"), url)
+        assertTrue(url.contains("select=check_in_weekday"), url)
+    }
+
+    @Test
+    fun setCheckInWeekday_patchesOnlyTheWeekdayOfTheOwnRow() = runTest {
+        val repo = signedInRepository { "[]" }
+
+        assertTrue(repo.setCheckInWeekday(5).isSuccess)
+
+        val patch = requests.last()
+        assertEquals(HttpMethod.Patch, patch.method)
+        assertTrue(patch.url.toString().contains("id=eq.user-1"), patch.url.toString())
+        assertEquals("""{"check_in_weekday":5}""", (patch.body as TextContent).text)
+    }
+
+    @Test
     fun targetWeight_networkError_isAppErrorNetwork() = runTest {
         var fail = false
         val repo =

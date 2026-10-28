@@ -19,6 +19,9 @@ enum class PreferencesSection(val key: String) {
 
     /** Warm-up, previous values, calculators and the automatic routine update. */
     Training("training"),
+
+    /** The weekly check-in day. */
+    CheckIn("checkin"),
     ;
 
     companion object {
@@ -38,6 +41,7 @@ private fun PreferencesForm.ownedFields(section: PreferencesSection): List<Any> 
     PreferencesSection.Macros -> listOf(split)
     PreferencesSection.Cooking -> listOf(foodPreferences)
     PreferencesSection.Training -> listOf(warmUpIncluded, previousValuesMode, calculators, autoUpdateRoutine)
+    PreferencesSection.CheckIn -> listOf(checkInWeekday)
 }
 
 /** This form with the fields [section] owns taken from [other]; every other field is kept. */
@@ -64,4 +68,6 @@ fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: Preferen
             calculators = other.calculators,
             autoUpdateRoutine = other.autoUpdateRoutine,
         )
+
+        PreferencesSection.CheckIn -> copy(checkInWeekday = other.checkInWeekday)
     }
