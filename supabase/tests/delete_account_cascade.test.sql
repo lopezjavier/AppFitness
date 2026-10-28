@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(12);
+select plan(18);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -21,6 +21,16 @@ insert into public.nutrition_goals (user_id, target_kcal) values
 insert into public.health_sync_state (user_id, last_synced_at) values
   ('d1000000-0000-4000-8000-000000000001', now()),
   ('d2000000-0000-4000-8000-000000000002', now());
+
+insert into public.daily_activity (user_id, day, steps) values
+  ('d1000000-0000-4000-8000-000000000001', date '2026-10-27', 100),
+  ('d2000000-0000-4000-8000-000000000002', date '2026-10-27', 200);
+insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes) values
+  ('d1000000-0000-4000-8000-000000000001', 's', '2026-10-26T22:00:00Z', '2026-10-27T06:00:00Z', 400),
+  ('d2000000-0000-4000-8000-000000000002', 's', '2026-10-26T22:00:00Z', '2026-10-27T06:00:00Z', 400);
+insert into public.resting_heart_rate (user_id, day, bpm) values
+  ('d1000000-0000-4000-8000-000000000001', date '2026-10-27', 55),
+  ('d2000000-0000-4000-8000-000000000002', date '2026-10-27', 56);
 
 insert into public.diary_default_applications (user_id, log_date) values
   ('d1000000-0000-4000-8000-000000000001', date '2026-01-01'),
@@ -82,6 +92,24 @@ select is(
 select is(
   (select count(*)::int from public.health_sync_state where user_id = 'd2000000-0000-4000-8000-000000000002'),
   1, 'another user''s health_sync_state is untouched');
+select is(
+  (select count(*)::int from public.daily_activity where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s daily_activity are gone');
+select is(
+  (select count(*)::int from public.daily_activity where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s daily_activity are untouched');
+select is(
+  (select count(*)::int from public.sleep_sessions where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s sleep_sessions are gone');
+select is(
+  (select count(*)::int from public.sleep_sessions where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s sleep_sessions are untouched');
+select is(
+  (select count(*)::int from public.resting_heart_rate where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s resting_heart_rate are gone');
+select is(
+  (select count(*)::int from public.resting_heart_rate where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s resting_heart_rate are untouched');
 
 select * from finish();
 rollback;
