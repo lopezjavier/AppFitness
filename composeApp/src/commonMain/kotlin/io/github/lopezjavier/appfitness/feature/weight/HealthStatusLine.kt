@@ -25,9 +25,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.health_action_insta
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_permit
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_sync
 import io.github.lopezjavier.appfitness.composeapp.resources.health_action_update
+import io.github.lopezjavier.appfitness.composeapp.resources.health_auto_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.health_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.health_install_needed
 import io.github.lopezjavier.appfitness.composeapp.resources.health_never_synced
+import io.github.lopezjavier.appfitness.composeapp.resources.health_partial_watch
+import io.github.lopezjavier.appfitness.composeapp.resources.health_partial_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.health_permission_needed
 import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_days
 import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_hours
@@ -41,6 +44,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonLineHeight = Spacing.xl
@@ -125,11 +129,10 @@ private fun statusLabel(status: HealthSyncStatus): String = when (status) {
 
     HealthSyncStatus.Syncing -> stringResource(Res.string.health_syncing)
 
-    is HealthSyncStatus.Synced -> when (val age = status.age) {
-        SyncAge.Now -> stringResource(Res.string.health_synced_now)
-        is SyncAge.Minutes -> stringResource(Res.string.health_synced_minutes, age.value)
-        is SyncAge.Hours -> stringResource(Res.string.health_synced_hours, age.value)
-        is SyncAge.Days -> stringResource(Res.string.health_synced_days, age.value)
+    is HealthSyncStatus.Synced -> when (status.failedPart) {
+        SyncPart.Watch -> stringResource(Res.string.health_partial_watch)
+        SyncPart.Weight -> stringResource(Res.string.health_partial_weight)
+        null -> syncedAgeLabel(status.age)
     }
 
     HealthSyncStatus.PermissionNeeded -> stringResource(Res.string.health_permission_needed)
@@ -141,6 +144,16 @@ private fun statusLabel(status: HealthSyncStatus): String = when (status) {
     }
 
     HealthSyncStatus.Failed -> stringResource(Res.string.health_failed)
+
+    HealthSyncStatus.AutoSyncFailed -> stringResource(Res.string.health_auto_failed)
+}
+
+@Composable
+private fun syncedAgeLabel(age: SyncAge): String = when (age) {
+    SyncAge.Now -> stringResource(Res.string.health_synced_now)
+    is SyncAge.Minutes -> stringResource(Res.string.health_synced_minutes, age.value)
+    is SyncAge.Hours -> stringResource(Res.string.health_synced_hours, age.value)
+    is SyncAge.Days -> stringResource(Res.string.health_synced_days, age.value)
 }
 
 @Composable

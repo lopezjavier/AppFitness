@@ -52,6 +52,9 @@ internal class FakeHealthDataSource : HealthDataSource {
     var watchBatch = HealthActivityBatch(emptyList(), emptyList(), emptyList())
     var watchFailure: Throwable? = null
 
+    /** The first N watch reads fail (then [watchFailure] applies), to script the 90 -> 30 day fallback. */
+    var failFirstWatchReads = 0
+
     val watchReads = mutableListOf<Pair<Instant, Instant>>()
     val events = mutableListOf<String>()
     val reads = mutableListOf<Pair<Instant, Instant>>()
@@ -79,8 +82,13 @@ internal class FakeHealthDataSource : HealthDataSource {
     override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> {
         events += "watch"
         watchReads += from to to
-        watchFailure?.let { return Result.failure(it) }
-        return Result.success(watchBatch)
+        val failure = if (failFirstWatchReads > 0) {
+            failFirstWatchReads--
+            IllegalStateException("history")
+        } else {
+            watchFailure
+        }
+        return if (failure != null) Result.failure(failure) else Result.success(watchBatch)
     }
 
     override suspend fun readChanges(token: String): Result<ChangesResult> {
@@ -127,11 +135,12 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
         imports += rows
         savedTokens += changesToken
         syncedAts += syncedAt
-        state = HealthSyncState(syncedAt, changesToken)
+        state = HealthSyncState(syncedAt, changesToken, state?.lastAutoSyncDate)
         return Result.success(rows.count { known.add(it.externalId) })
     }
 
     var activityFailure: Throwable? = null
+    var markFailure: Throwable? = null
     val activityImports = mutableListOf<HealthActivityBatch>()
     val autoSyncedDays = mutableListOf<LocalDate>()
 
@@ -144,7 +153,7 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
     }
 
     override suspend fun markAutoSynced(day: LocalDate): Result<Unit> {
-        activityFailure?.let { return Result.failure(it) }
+        markFailure?.let { return Result.failure(it) }
         autoSyncedDays += day
         state = state?.copy(lastAutoSyncDate = day)
         return Result.success(Unit)

@@ -80,6 +80,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepositor
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
@@ -344,6 +345,7 @@ val sharedModule =
         factory { HealthWriteBack(get(), get(), get()) }
         factory { SyncHealthMeasurements(get(), get(), get()) }
         factory { SyncHealthData(get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
+        factory { AutoSyncHealth(get(), get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { ComputeReminders() }
         factory { ResolveCheckInDay() }
         factory { LoadReminders(get(), get(), get(), get(), get(), get(), TimeZone.currentSystemDefault(), get()) }

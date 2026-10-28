@@ -62,6 +62,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
@@ -200,6 +201,7 @@ class AppModuleTest {
                 HealthWriteBack::class,
                 HealthDataSource::class,
                 SyncHealthData::class,
+                AutoSyncHealth::class,
                 HealthActivityRepository::class,
                 SyncHealthMeasurements::class,
                 HealthSyncRepository::class,

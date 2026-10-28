@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.HealthActivityImportResult
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.SyncOutcome
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
@@ -35,29 +36,37 @@ class SyncHealthData(
         if (!access.hasAnyRead()) return Result.success(SyncOutcome.PermissionNeeded)
 
         val now = clock.now()
-        val from = watchWindowStart(now)
+        val firstSync = repository.getState().getOrNull()?.lastAutoSyncDate == null
         val weight = if (HealthMetric.Weight in access.read) weightSync() else null
-        val watch = if (access.watchRead.isNotEmpty()) importWatch(now, from) else null
+        val watch = if (access.watchRead.isNotEmpty()) importWatch(now, firstSync) else null
 
         val failures = listOfNotNull(weight?.exceptionOrNull(), watch?.exceptionOrNull())
         val ran = listOfNotNull(weight, watch).size
         if (failures.size == ran) return Result.failure(failures.first())
         val imported = (weight?.getOrNull() as? SyncOutcome.Synced)?.imported ?: 0
-        return Result.success(SyncOutcome.Synced(imported, now, watch?.getOrNull()))
+        val failedPart = when {
+            ran < 2 -> null
+            weight?.isFailure == true -> SyncPart.Weight
+            watch?.isFailure == true -> SyncPart.Watch
+            else -> null
+        }
+        return Result.success(SyncOutcome.Synced(imported, now, watch?.getOrNull(), failedPart))
     }
 
-    private suspend fun watchWindowStart(now: Instant): Instant {
-        val firstSync = repository.getState().getOrNull()?.lastAutoSyncDate == null
-        return now - (if (firstSync) FIRST_WINDOW else LATER_WINDOW)
-    }
-
-    private suspend fun importWatch(now: Instant, from: Instant): Result<HealthActivityImportResult> {
-        val batch = source.readWatchData(from, now, zone).getOrElse { return Result.failure(it) }
-        return repository.importActivity(WatchDataSanitizer.sanitize(batch))
+    private suspend fun importWatch(now: Instant, firstSync: Boolean): Result<HealthActivityImportResult> {
+        val read = if (firstSync) {
+            source.readWatchData(now - FIRST_WINDOW, now, zone).recoverCatching {
+                source.readWatchData(now - FALLBACK_WINDOW, now, zone).getOrThrow()
+            }
+        } else {
+            source.readWatchData(now - LATER_WINDOW, now, zone)
+        }
+        return read.fold({ repository.importActivity(WatchDataSanitizer.sanitize(it)) }, { Result.failure(it) })
     }
 
     private companion object {
         val FIRST_WINDOW = 90.days
+        val FALLBACK_WINDOW = 30.days
         val LATER_WINDOW = 7.days
     }
 }

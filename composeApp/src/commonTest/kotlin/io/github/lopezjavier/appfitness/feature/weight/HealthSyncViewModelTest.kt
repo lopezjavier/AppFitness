@@ -5,6 +5,8 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
+import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
+import io.github.lopezjavier.appfitness.app.idleReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.DailyActivity
@@ -15,13 +17,17 @@ import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthRecord
 import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -58,20 +64,37 @@ class HealthSyncViewModelTest {
     private val ticks = Channel<Unit>()
 
     @BeforeTest
-    fun setUp() = Dispatchers.setMain(dispatcher)
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+        coordinatorScope = CoroutineScope(SupervisorJob() + dispatcher)
+    }
 
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
+    private lateinit var coordinatorScope: CoroutineScope
+
+    private val coordinator by lazy {
+        HealthSyncCoordinator(
+            AutoSyncHealth(source, repository, syncHealthData(), connectivity, clock, TimeZone.UTC),
+            syncHealthData(),
+            connectivity,
+            idleReminderCoordinator(),
+            coordinatorScope,
+        )
+    }
+
+    private fun syncHealthData() = SyncHealthData(
+        source,
+        repository,
+        SyncHealthMeasurements(source, repository, clock),
+        clock,
+        TimeZone.UTC,
+    )
+
     private fun viewModel(state: SavedStateHandle = savedState) = HealthSyncViewModel(
         source = source,
-        syncHealthData = SyncHealthData(
-            source,
-            repository,
-            SyncHealthMeasurements(source, repository, clock),
-            clock,
-            TimeZone.UTC,
-        ),
+        coordinator = coordinator,
         repository = repository,
         connectivity = connectivity,
         clock = clock,
@@ -307,6 +330,95 @@ class HealthSyncViewModelTest {
         advanceUntilIdle()
 
         assertEquals(SyncAge.Minutes(1), (model.status() as HealthSyncStatus.Synced).age)
+    }
+
+    // -- Automatic sync (US-60) -------------------------------------------------------------------------------------
+
+    @Test
+    fun onlineAutoSyncFailure_showsAutoSyncFailed() = runTest(dispatcher) {
+        aWeighIn()
+        repository.importFailure = AppException(AppError.Network)
+        repository.activityFailure = AppException(AppError.Network)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        coordinator.onAppStart()
+        advanceUntilIdle()
+
+        assertEquals(HealthSyncStatus.AutoSyncFailed, model.status())
+    }
+
+    @Test
+    fun offlineDueAutoSync_keepsTheLastSyncedStatus() = runTest(dispatcher) {
+        repository.state = HealthSyncState(start - 180.minutes, "token")
+        connectivity.state.value = false
+        val model = viewModel()
+        advanceUntilIdle()
+
+        coordinator.onAppStart()
+        advanceUntilIdle()
+
+        assertEquals(SyncAge.Hours(3), (model.status() as HealthSyncStatus.Synced).age)
+    }
+
+    @Test
+    fun autoSyncWithoutPermission_showsPermissionNeededAndNeverRequestsIt() = runTest(dispatcher) {
+        withoutAccess()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            coordinator.onAppStart()
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+        assertEquals(HealthSyncStatus.PermissionNeeded, model.status())
+    }
+
+    @Test
+    fun autoSyncFinishingWhileOpen_emitsSyncedEffectAndStatus() = runTest(dispatcher) {
+        aWeighIn()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            coordinator.onAppStart()
+            advanceUntilIdle()
+            assertEquals(HealthSyncEffect.Synced(imported = 1), awaitItem())
+        }
+        assertEquals(HealthSyncStatus.Synced(start, SyncAge.Now), model.status())
+    }
+
+    @Test
+    fun partialFailure_showsSyncedWithTheFailedPart() = runTest(dispatcher) {
+        aWeighIn()
+        source.watchFailure = IllegalStateException("watch")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(HealthSyncEvent.Tap)
+        advanceUntilIdle()
+
+        assertEquals(HealthSyncStatus.Synced(start, SyncAge.Now, SyncPart.Watch), model.status())
+    }
+
+    @Test
+    fun tapWhileTheAutoSyncRuns_joinsItWithoutASecondRead() = runTest(dispatcher) {
+        aWeighIn()
+        val gate = CompletableDeferred<Unit>()
+        repository.importGate = gate
+        val model = viewModel()
+        advanceUntilIdle()
+        coordinator.onAppStart()
+        advanceUntilIdle()
+
+        model.onEvent(HealthSyncEvent.Tap)
+        advanceUntilIdle()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, source.rangeReads)
+        assertIs<HealthSyncStatus.Synced>(model.status())
     }
 
     // -- Offline and failures ---------------------------------------------------------------------------------------

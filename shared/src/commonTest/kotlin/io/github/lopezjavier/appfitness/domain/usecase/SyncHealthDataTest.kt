@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
 import io.github.lopezjavier.appfitness.domain.model.SleepSession
 import io.github.lopezjavier.appfitness.domain.model.SyncOutcome
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -158,7 +159,10 @@ class SyncHealthDataTest {
 
         val outcome = sync().getOrThrow()
 
-        assertEquals(SyncOutcome.Synced(0, NOW, HealthActivityImportResult(1, 0, 0)), outcome)
+        assertEquals(
+            SyncOutcome.Synced(0, NOW, HealthActivityImportResult(1, 0, 0), SyncPart.Weight),
+            outcome,
+        )
     }
 
     @Test
@@ -169,7 +173,43 @@ class SyncHealthDataTest {
 
         val outcome = sync().getOrThrow()
 
-        assertEquals(SyncOutcome.Synced(1, NOW), outcome)
+        assertEquals(SyncOutcome.Synced(1, NOW, null, SyncPart.Watch), outcome)
+    }
+
+    @Test
+    fun firstWindowReadThrowing_retriesOnceWith30Days() = runTest {
+        grantAll()
+        source.failFirstWatchReads = 1
+        source.watchBatch = HealthActivityBatch(listOf(steps), emptyList(), emptyList())
+
+        val outcome = sync().getOrThrow()
+
+        assertEquals(listOf(NOW - 90.days to NOW, NOW - 30.days to NOW), source.watchReads)
+        assertEquals(null, (outcome as SyncOutcome.Synced).failedPart)
+        assertEquals(1, repository.activityImports.size)
+    }
+
+    @Test
+    fun bothFirstWindowReadsThrowing_failTheWatchPart() = runTest {
+        grantAll()
+        source.failFirstWatchReads = 2
+        source.records = RawHealthRecords(weights = listOf(HealthRecord("w1", NOW - 1.days, 73.9)))
+
+        val outcome = sync().getOrThrow()
+
+        assertEquals(2, source.watchReads.size)
+        assertEquals(SyncOutcome.Synced(1, NOW, null, SyncPart.Watch), outcome)
+    }
+
+    @Test
+    fun laterWindowReadThrowing_hasNoFallback() = runTest {
+        grantAll()
+        repository.state = HealthSyncState(NOW - 1.days, null, LocalDate(2026, 10, 21))
+        source.failFirstWatchReads = 1
+
+        sync()
+
+        assertEquals(listOf(NOW - 7.days to NOW), source.watchReads)
     }
 
     @Test

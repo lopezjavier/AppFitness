@@ -134,7 +134,10 @@ class ActivityScreenTest {
 
         rule.onNodeWithTag("activity_empty_title").assertTextEquals("Sin datos de actividad")
         rule.onNodeWithTag("activity_empty_message")
-            .assertTextEquals("Pulsa «Sincronizar» en Peso para traer tu sueño, pasos y calorías desde Health Connect.")
+            .assertTextEquals(
+                "Se sincroniza al abrir la app o pulsando «Sincronizar» en Peso para traer tu sueño, " +
+                    "pasos y calorías desde Health Connect.",
+            )
         rule.onNodeWithTag("activity_empty_action").performClick()
 
         assertEquals(1, weightOpens)

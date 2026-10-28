@@ -15,13 +15,17 @@ import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
+import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
+import io.github.lopezjavier.appfitness.app.idleReminderCoordinator
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.SyncPart
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
+import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
@@ -35,6 +39,8 @@ import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,14 +100,29 @@ class HealthSyncRestorationTest {
         }
     }
 
+    private fun syncHealthData() = SyncHealthData(
+        source,
+        syncRepository,
+        SyncHealthMeasurements(source, syncRepository, HealthClock),
+        HealthClock,
+        TimeZone.UTC,
+    )
+
     private fun healthViewModel(state: SavedStateHandle) = HealthSyncViewModel(
         source = source,
-        syncHealthData = SyncHealthData(
-            source,
-            syncRepository,
-            SyncHealthMeasurements(source, syncRepository, HealthClock),
-            HealthClock,
-            TimeZone.UTC,
+        coordinator = HealthSyncCoordinator(
+            AutoSyncHealth(
+                source,
+                syncRepository,
+                syncHealthData(),
+                FakeConnectivityObserver(),
+                HealthClock,
+                TimeZone.UTC,
+            ),
+            syncHealthData(),
+            FakeConnectivityObserver(),
+            idleReminderCoordinator(),
+            CoroutineScope(SupervisorJob()),
         ),
         repository = syncRepository,
         connectivity = FakeConnectivityObserver(),
@@ -223,6 +244,38 @@ class HealthSyncRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("weight_hc_status").assertTextEquals("Permiso necesario")
+    }
+
+    @Test
+    fun autoSyncFailedLine_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme { HealthStatusLine(HealthSyncUiState(HealthSyncStatus.AutoSyncFailed, true), {}, Modifier) }
+        }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("weight_hc_status").assertTextEquals("No se pudo sincronizar hoy")
+        rule.onNodeWithTag("weight_hc_retry_button").assertIsDisplayed()
+    }
+
+    @Test
+    fun partialSyncedLine_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        val status = HealthSyncStatus.Synced(
+            Instant.parse("2026-10-22T10:00:00Z"),
+            SyncAge.Now,
+            SyncPart.Watch,
+        )
+        tester.setContent { AppTheme { HealthStatusLine(HealthSyncUiState(status, true), {}, Modifier) } }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("weight_hc_status").assertTextEquals("Peso sincronizado; sueño y pasos no disponibles")
     }
 
     @Test

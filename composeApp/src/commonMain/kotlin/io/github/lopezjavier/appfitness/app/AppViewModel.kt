@@ -55,6 +55,7 @@ class AppViewModel(
     authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
     private val reminders: ReminderCoordinator,
+    private val healthSync: HealthSyncCoordinator,
 ) : ViewModel() {
     private var lastRoute: RootRoute = RootRoute.Loading
 
@@ -101,14 +102,21 @@ class AppViewModel(
         val previous = lastRoute
         lastRoute = route
         when {
-            route == RootRoute.Main && previous != RootRoute.Main -> reminders.requestRefresh()
+            route == RootRoute.Main && previous != RootRoute.Main -> {
+                reminders.requestRefresh()
+                healthSync.onAppStart()
+            }
+
             route == RootRoute.Welcome -> reminders.clear()
         }
     }
 
     fun onEvent(event: AppEvent) {
         when (event) {
-            AppEvent.RefreshReminders -> if (lastRoute == RootRoute.Main) reminders.requestRefresh()
+            AppEvent.RefreshReminders -> if (lastRoute == RootRoute.Main) {
+                reminders.requestRefresh()
+                healthSync.onAppStart()
+            }
 
             AppEvent.RetryProfile -> retryTick.update { it + 1 }
 

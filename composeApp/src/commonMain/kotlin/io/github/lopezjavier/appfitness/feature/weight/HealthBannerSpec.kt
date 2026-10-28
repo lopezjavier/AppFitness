@@ -28,11 +28,23 @@ fun healthBannerSpec(state: HealthSyncUiState): HealthBannerSpec? {
     val status = state.status
     val (tone, action) = when (status) {
         HealthSyncStatus.Loading -> return null
+
         HealthSyncStatus.NeverSynced, HealthSyncStatus.Syncing -> HealthTone.Neutral to HealthAction.Sync
-        is HealthSyncStatus.Synced -> HealthTone.Synced to HealthAction.Sync
+
+        is HealthSyncStatus.Synced ->
+            if (status.failedPart ==
+                null
+            ) {
+                HealthTone.Synced to HealthAction.Sync
+            } else {
+                HealthTone.Attention to HealthAction.Retry
+            }
+
         HealthSyncStatus.PermissionNeeded -> HealthTone.Attention to HealthAction.Permit
+
         is HealthSyncStatus.Unavailable -> HealthTone.Attention to unavailableAction(status)
-        HealthSyncStatus.Failed -> HealthTone.Failed to HealthAction.Retry
+
+        HealthSyncStatus.Failed, HealthSyncStatus.AutoSyncFailed -> HealthTone.Failed to HealthAction.Retry
     }
     val syncing = status == HealthSyncStatus.Syncing
     return HealthBannerSpec(status, tone, action, actionEnabled = state.isOnline && !syncing, actionLoading = syncing)
