@@ -14,6 +14,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeNotificationSettingsRepository
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
@@ -62,6 +63,7 @@ class PreferencesCookingTest {
             weights,
             FakeTrainingPreferencesRepository(),
             FakeFoodPreferencesRepository(),
+            FakeNotificationSettingsRepository(),
             SavePreferences(profile),
             FakeConnectivityObserver(),
             FakeClock(),

@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.feature.notifications
 
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
-import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
@@ -62,14 +61,12 @@ class NotificationCenterViewModelTest {
         val env: ReminderEnv,
         val coordinator: ReminderCoordinator,
         val viewModel: NotificationCenterViewModel,
-        val connectivity: FakeConnectivityObserver,
     )
 
     private fun TestScope.fixture(env: ReminderEnv = env()): Fixture {
-        val connectivity = FakeConnectivityObserver(initial = true)
         val coordinator = ReminderCoordinator(env.load, backgroundScope)
-        val viewModel = NotificationCenterViewModel(coordinator, env.settings, connectivity, env.clock)
-        return Fixture(env, coordinator, viewModel, connectivity)
+        val viewModel = NotificationCenterViewModel(coordinator, env.settings, env.clock)
+        return Fixture(env, coordinator, viewModel)
     }
 
     private suspend fun ReceiveTurbine<NotificationCenterUiState>.content(): NotificationCenterUiState.Content {
@@ -88,64 +85,47 @@ class NotificationCenterViewModelTest {
                 setOf(ReminderKind.Weight, ReminderKind.Circumference),
                 content.reminders.map { it.kind }.toSet(),
             )
-            assertTrue(content.weightEnabled && content.circumferenceEnabled)
             assertEquals(TODAY, content.today)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun silencingWeight_removesItsReminderAndLowersTheCount() = runTest {
+    fun aSilencedKind_isNotListed() = runTest {
+        val env = env().apply { settings.values[NotificationKind.Weight] = false }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            assertEquals(listOf(ReminderKind.Circumference), content().reminders.map { it.kind })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun refreshAfterSilencingInPreferencias_dropsTheReminder() = runTest {
         val f = fixture()
 
         f.viewModel.uiState.test {
-            content()
-            f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.Weight, false))
+            assertEquals(2, content().reminders.size)
+            f.env.settings.values[NotificationKind.Weight] = false
+            f.viewModel.onEvent(NotificationCenterEvent.Refresh)
             var last = content()
-            while (last.weightEnabled || last.reminders.size != 1) last = content()
+            while (last.reminders.size != 1) last = content()
             assertEquals(ReminderKind.Circumference, last.reminders.single().kind)
-            advanceUntilIdle()
-            assertEquals(1, f.coordinator.reminders.value.size)
-            assertEquals(false, f.env.settings.values[NotificationKind.Weight])
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun silencingThenEnablingAgain_restoresTheReminder() = runTest {
-        val f = fixture()
+    fun silencedCheckIn_hidesTheReminderAndTheAnsweredRow() = runTest {
+        val env = checkInEnv().apply { settings.values[NotificationKind.WeeklyCheckIn] = false }
+        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")
+        val f = fixture(env)
 
         f.viewModel.uiState.test {
-            content()
-            f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.Weight, false))
-            advanceUntilIdle()
-            f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.Weight, true))
-            advanceUntilIdle()
-            var last = content()
-            while (last.reminders.size != 2) last = content()
-            assertTrue(last.weightEnabled)
-            assertEquals(2, f.coordinator.reminders.value.size)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun failedToggle_rollsTheSwitchBackAndEmitsAnEffect() = runTest {
-        val f = fixture()
-        f.env.settings.failWrites = true
-
-        f.viewModel.uiState.test {
-            content()
-            f.viewModel.effects.test {
-                f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.Weight, false))
-                advanceUntilIdle()
-                assertEquals(NotificationCenterEffect.ToggleFailed, awaitItem())
-            }
-            advanceUntilIdle()
-            val state = f.viewModel.uiState.value
-            assertIs<NotificationCenterUiState.Content>(state)
-            assertTrue(state.weightEnabled)
-            assertEquals(2, state.reminders.size)
+            val content = content()
+            assertTrue(content.reminders.isEmpty())
+            assertEquals(null, content.checkIn)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -170,7 +150,6 @@ class NotificationCenterViewModelTest {
         f.viewModel.uiState.test {
             val content = content()
             assertEquals(listOf(ReminderKind.CheckIn), content.reminders.map { it.kind })
-            assertTrue(content.checkInEnabled)
             assertEquals(null, content.checkIn?.answer)
             assertEquals(LocalDate(2026, 10, 19), content.checkIn?.weekStart)
             cancelAndIgnoreRemainingEvents()
@@ -188,59 +167,6 @@ class NotificationCenterViewModelTest {
             assertTrue(content.reminders.isEmpty())
             assertEquals(4, content.checkIn?.answer?.energy)
             assertTrue(f.coordinator.reminders.value.isEmpty())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun silencingTheCheckIn_hidesTheReminderAndTheAnsweredRowAndSavesTheSwitch() = runTest {
-        val env = checkInEnv()
-        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")
-        val f = fixture(env)
-
-        f.viewModel.uiState.test {
-            content()
-            f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, false))
-            var last = content()
-            while (last.checkInEnabled) last = content()
-            assertEquals(null, last.checkIn)
-            advanceUntilIdle()
-            assertEquals(false, env.settings.values[NotificationKind.WeeklyCheckIn])
-            assertEquals(null, f.coordinator.checkIn.value)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun failedCheckInToggle_rollsBackAndEmitsAnEffect() = runTest {
-        val env = checkInEnv().apply { settings.failWrites = true }
-        val f = fixture(env)
-
-        f.viewModel.uiState.test {
-            content()
-            f.viewModel.effects.test {
-                f.viewModel.onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, false))
-                advanceUntilIdle()
-                assertEquals(NotificationCenterEffect.ToggleFailed, awaitItem())
-            }
-            advanceUntilIdle()
-            val state = f.viewModel.uiState.value
-            assertIs<NotificationCenterUiState.Content>(state)
-            assertTrue(state.checkInEnabled)
-            assertEquals(listOf(ReminderKind.CheckIn), state.reminders.map { it.kind })
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun offline_isReportedSoTheSwitchesCanBeDisabled() = runTest {
-        val f = fixture()
-        f.connectivity.state.value = false
-
-        f.viewModel.uiState.test {
-            var last = content()
-            while (!last.isOffline) last = content()
-            assertEquals(2, last.reminders.size)
             cancelAndIgnoreRemainingEvents()
         }
     }

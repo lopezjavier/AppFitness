@@ -11,11 +11,14 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
@@ -28,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
+import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -143,7 +147,7 @@ class PreferencesSectionScreenTest {
             PreferencesSection.Cooking -> base.copy(foodPreferences = FoodPreferencesForm(griddleText = "7"))
             PreferencesSection.Training -> base.copy(warmUpIncluded = true)
             PreferencesSection.PersonalData -> base.copy(name = "Eva")
-            PreferencesSection.CheckIn -> base.copy(checkInWeekday = 3)
+            PreferencesSection.Reminders -> base.copy(weightReminder = false)
         },
     )
 
@@ -353,19 +357,49 @@ class PreferencesSectionScreenTest {
         rule.onNodeWithTag("preferences_error").assertDoesNotExist()
     }
 
-    // -- Check-in semanal (US-59) ------------------------------
+    // -- Avisos (US-57, US-59) ------------------------------
 
     @Test
-    fun checkInEditor_isTitledCheckInSemanal_andShowsTheChosenDayLowercase() {
-        show(PreferencesSection.CheckIn, loaded(PreferencesSection.CheckIn, base.copy(checkInWeekday = 3)))
+    fun remindersEditor_isTitledAvisos_andShowsTheChosenDayLowercase() {
+        show(PreferencesSection.Reminders, loaded(PreferencesSection.Reminders, base.copy(checkInWeekday = 3)))
 
-        rule.onNodeWithTag("preferences_checkin_title").assertTextEquals("Check-in semanal")
+        rule.onNodeWithTag("preferences_avisos_title").assertTextEquals("Avisos")
         rule.onNodeWithTag("preferences_checkin_weekday_row").assertTextContains("miércoles", substring = true)
     }
 
     @Test
+    fun reminders_switchesRenderTheFormValues() {
+        val form = base.copy(weightReminder = true, circumferenceReminder = false, checkInReminder = true)
+        show(PreferencesSection.Reminders, loaded(PreferencesSection.Reminders, form))
+
+        rule.onNodeWithTag("preferences_reminders_switch_weight").assertIsOn()
+        rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOff()
+        rule.onNodeWithTag("preferences_reminders_switch_checkin").assertIsOn()
+        rule.onNodeWithText("Recordatorio de peso").assertIsDisplayed()
+        rule.onNodeWithText("Se avisa el día elegido abajo, si aún no lo has respondido.").assertIsDisplayed()
+    }
+
+    @Test
+    fun reminders_togglingASwitch_sendsSetReminderEnabled_withoutSaving() {
+        show(PreferencesSection.Reminders)
+
+        rule.onNodeWithTag("preferences_reminders_switch_weight").performClick()
+        rule.onNodeWithTag("preferences_reminders_switch_circumference").performClick()
+        rule.onNodeWithTag("preferences_reminders_switch_checkin").performClick()
+
+        assertEquals(
+            listOf<PreferencesEvent>(
+                PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, false),
+                PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, false),
+                PreferencesEvent.SetReminderEnabled(NotificationKind.WeeklyCheckIn, false),
+            ),
+            events,
+        )
+    }
+
+    @Test
     fun checkInDay_pickerAppliesOnTap_andClosesWithoutSaving() {
-        show(PreferencesSection.CheckIn)
+        show(PreferencesSection.Reminders)
 
         rule.onNodeWithTag("preferences_checkin_weekday_row").performClick()
         for (day in 1..7) rule.onNodeWithTag("preferences_checkin_weekday_option_$day").assertIsDisplayed()
@@ -377,16 +411,26 @@ class PreferencesSectionScreenTest {
     }
 
     @Test
-    fun checkInDay_changeEnablesGuardar_andSendsSave() {
-        show(PreferencesSection.CheckIn, dirtyState(PreferencesSection.CheckIn))
+    fun reminders_changeEnablesGuardar_andSendsSave() {
+        show(PreferencesSection.Reminders, dirtyState(PreferencesSection.Reminders))
 
-        rule.onNodeWithTag("preferences_checkin_save").assertIsEnabled().performClick()
+        rule.onNodeWithTag("preferences_avisos_save").assertIsEnabled().performClick()
 
         assertEquals(listOf<PreferencesEvent>(PreferencesEvent.Save), events)
     }
 
     @Test
-    fun checkInDay_cleanKeepsGuardarDisabled() = assertCleanSaveDisabled(PreferencesSection.CheckIn)
+    fun reminders_cleanKeepsGuardarDisabled() = assertCleanSaveDisabled(PreferencesSection.Reminders)
+
+    @Test
+    fun reminders_offlineDisablesGuardar_withTheHint() {
+        val dirty = base.copy(weightReminder = false)
+        show(PreferencesSection.Reminders, loaded(PreferencesSection.Reminders, dirty, isOnline = false))
+
+        rule.onNodeWithTag("preferences_avisos_save").assertIsNotEnabled().performClick()
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
+        assertTrue(events.isEmpty())
+    }
 
     // -- tablet ------------------------------
 

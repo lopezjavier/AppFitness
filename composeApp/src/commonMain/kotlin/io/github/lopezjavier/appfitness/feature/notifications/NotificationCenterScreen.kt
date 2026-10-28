@@ -26,40 +26,28 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_check
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_circumference_reminder
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_title
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_offline_action
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_pending_section
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_circumference
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_settings_section
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_switch_checkin
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_switch_checkin_helper
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_switch_circumference
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_switch_circumference_helper
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_switch_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_switch_weight_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_this_week_section
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weight_reminder
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
-import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
-import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.CheckInDay
-import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import kotlinx.datetime.DateTimeUnit
@@ -73,8 +61,8 @@ private const val DAYS_TO_SUNDAY = 6
 
 /**
  * "Centro de avisos" (US-57) on [AppScreen]: "Pendientes" lists the derived reminders (one tap opens where to log
- * it through [onOpenReminder]) or "Todo al día", and "Avisos" holds one switch per reminder kind that applies on
- * toggle (R-42). Offline the switches are inert with the standard hint while the list stays readable.
+ * it through [onOpenReminder]) or "Todo al día", plus the answered check-in. It has no settings: the switches live
+ * in Preferencias, "Avisos".
  */
 @Composable
 fun NotificationCenterScreen(
@@ -105,18 +93,14 @@ fun NotificationCenterScreen(
                     )
                 }
 
-                is NotificationCenterUiState.Content -> CenterContent(state, onEvent, onOpenReminder)
+                is NotificationCenterUiState.Content -> CenterContent(state, onOpenReminder)
             }
         }
     }
 }
 
 @Composable
-private fun CenterContent(
-    state: NotificationCenterUiState.Content,
-    onEvent: (NotificationCenterEvent) -> Unit,
-    onOpenReminder: (ReminderKind) -> Unit,
-) {
+private fun CenterContent(state: NotificationCenterUiState.Content, onOpenReminder: (ReminderKind) -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Spacing.screenMargin),
@@ -148,13 +132,6 @@ private fun CenterContent(
             }
             item(key = "checkin_answered") { AnsweredCheckInRow(answered, onOpenReminder, appAnimateItem()) }
         }
-        item(key = "settings_header") {
-            ListSectionHeader(
-                stringResource(Res.string.notifications_settings_section),
-                Modifier.padding(top = Spacing.lg),
-            )
-        }
-        item(key = "settings") { SwitchCard(state, onEvent) }
     }
 }
 
@@ -229,45 +206,6 @@ private fun RowIcon(icon: DrawableResource) {
 /** "9 al 15 nov": the Monday-Sunday week of the check-in. */
 private fun CheckInDay.weekRange(): String =
     AppDateFormat.dayRange(weekStart, weekStart.plus(DAYS_TO_SUNDAY, DateTimeUnit.DAY))
-
-@Composable
-private fun SwitchCard(state: NotificationCenterUiState.Content, onEvent: (NotificationCenterEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        AppCard(Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                AppSwitchRow(
-                    label = stringResource(Res.string.notifications_switch_weight),
-                    helper = stringResource(Res.string.notifications_switch_weight_helper),
-                    checked = state.weightEnabled,
-                    onCheckedChange = { onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.Weight, it)) },
-                    modifier = Modifier.testTag("notifications_switch_weight"),
-                    enabled = !state.isOffline,
-                )
-                AppSwitchRow(
-                    label = stringResource(Res.string.notifications_switch_circumference),
-                    helper = stringResource(Res.string.notifications_switch_circumference_helper),
-                    checked = state.circumferenceEnabled,
-                    onCheckedChange = {
-                        onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.Circumference, it))
-                    },
-                    modifier = Modifier.testTag("notifications_switch_circumference"),
-                    enabled = !state.isOffline,
-                )
-                AppSwitchRow(
-                    label = stringResource(Res.string.notifications_switch_checkin),
-                    helper = stringResource(Res.string.notifications_switch_checkin_helper),
-                    checked = state.checkInEnabled,
-                    onCheckedChange = {
-                        onEvent(NotificationCenterEvent.SetEnabled(NotificationKind.WeeklyCheckIn, it))
-                    },
-                    modifier = Modifier.testTag("notifications_switch_checkin"),
-                    enabled = !state.isOffline,
-                )
-            }
-        }
-        if (state.isOffline) OfflineHint(stringResource(Res.string.notifications_offline_action))
-    }
-}
 
 @Composable
 private fun Skeleton() {

@@ -20,8 +20,8 @@ enum class PreferencesSection(val key: String) {
     /** Warm-up, previous values, calculators and the automatic routine update. */
     Training("training"),
 
-    /** The weekly check-in day. */
-    CheckIn("checkin"),
+    /** "Avisos": the three reminder switches (weight, circumferences, weekly check-in) and the check-in day. */
+    Reminders("avisos"),
     ;
 
     companion object {
@@ -37,11 +37,17 @@ fun PreferencesForm.sectionEquals(section: PreferencesSection, other: Preference
 /** The values of the fields [section] owns, in a fixed order. */
 private fun PreferencesForm.ownedFields(section: PreferencesSection): List<Any> = when (section) {
     PreferencesSection.PersonalData -> listOf(name, sex, birthDate, heightCm, weightKg, activity)
+
     PreferencesSection.EnergyGoal -> listOf(strategy, adjustment)
+
     PreferencesSection.Macros -> listOf(split)
+
     PreferencesSection.Cooking -> listOf(foodPreferences)
+
     PreferencesSection.Training -> listOf(warmUpIncluded, previousValuesMode, calculators, autoUpdateRoutine)
-    PreferencesSection.CheckIn -> listOf(checkInWeekday)
+
+    PreferencesSection.Reminders ->
+        listOf(weightReminder, circumferenceReminder, checkInReminder, checkInWeekday)
 }
 
 /** This form with the fields [section] owns taken from [other]; every other field is kept. */
@@ -69,5 +75,10 @@ fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: Preferen
             autoUpdateRoutine = other.autoUpdateRoutine,
         )
 
-        PreferencesSection.CheckIn -> copy(checkInWeekday = other.checkInWeekday)
+        PreferencesSection.Reminders -> copy(
+            weightReminder = other.weightReminder,
+            circumferenceReminder = other.circumferenceReminder,
+            checkInReminder = other.checkInReminder,
+            checkInWeekday = other.checkInWeekday,
+        )
     }

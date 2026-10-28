@@ -54,6 +54,15 @@ Feature: Notification center
     Given the user turns off "Recordatorio de peso" in Preferencias → "Avisos" and saves
     When the weight condition is met
     Then no weight reminder is listed
+
+  Scenario: Centro de avisos has no switches
+    When the user opens "Centro de avisos"
+    Then it lists reminders only and shows no switch
+
+  Scenario: Unsaved switch changes are discarded on back
+    Given the user toggles "Recordatorio de peso" in Preferencias → "Avisos"
+    When the user goes back and confirms discarding (R-14)
+    Then the switch keeps its saved value
 ```
 
 **Technical notes**
@@ -112,7 +121,7 @@ Feature: Weekly check-in
     Then the weekly check-in is listed in "Centro de avisos"
 
   Scenario: Changing the check-in day
-    When the user sets "Día del check-in" to Friday in Preferencias
+    When the user sets "Día del check-in" to Friday in Preferencias → "Avisos" and saves
     Then the check-in is listed from Friday
 
   Scenario: Answering the check-in

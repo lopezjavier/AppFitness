@@ -25,12 +25,19 @@ internal class FakeNotificationSettingsRepository(vararg initial: Pair<Notificat
     var failReads = false
     var failWrites = false
 
+    /** Only these kinds fail to write (a partial failure). */
+    val failingKinds = mutableSetOf<NotificationKind>()
+
+    /** Every successful write, in order. */
+    val writes = mutableListOf<Pair<NotificationKind, Boolean>>()
+
     override suspend fun getAll(): Result<Map<NotificationKind, Boolean>> =
         if (failReads) Result.failure(AppException(AppError.Network)) else Result.success(values.toMap())
 
     override suspend fun setEnabled(kind: NotificationKind, enabled: Boolean): Result<Unit> {
-        if (failWrites) return Result.failure(AppException(AppError.Network))
+        if (failWrites || kind in failingKinds) return Result.failure(AppException(AppError.Network))
         values[kind] = enabled
+        writes += kind to enabled
         return Result.success(Unit)
     }
 }

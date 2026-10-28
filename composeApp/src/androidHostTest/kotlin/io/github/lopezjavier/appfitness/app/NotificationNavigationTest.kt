@@ -56,10 +56,7 @@ class NotificationNavigationTest {
             Reminder(ReminderKind.Circumference, LocalDate(2026, 10, 14), 14),
             Reminder(ReminderKind.CheckIn, LocalDate(2026, 10, 25), 0),
         ),
-        weightEnabled = true,
-        circumferenceEnabled = true,
         today = today,
-        isOffline = false,
         checkIn = CheckInDay(LocalDate(2026, 10, 25), LocalDate(2026, 10, 19), answer = null),
     )
     private val centerSlot: NotificationCenterSlot = { modifier, onOpenReminder, onBack ->

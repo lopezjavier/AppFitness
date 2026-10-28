@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -20,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -64,6 +66,7 @@ private class PreferencesData(
     val training: Result<TrainingPreferences>,
     val foodPreferences: Result<FoodPreferences>,
     val checkInWeekday: Result<Int>,
+    val reminderSwitches: Result<Map<NotificationKind, Boolean>>,
 )
 
 /**
@@ -71,7 +74,9 @@ private class PreferencesData(
  * fields are edited, compared, drafted and saved. Nothing is written until [PreferencesEvent.Save], which stores the
  * section atomically (one RPC): the other sections' values are re-sent from what was read, and the optional training,
  * calculator, cooking and auto-update parameters only by the section that owns them. The weight is sent only by
- * "Datos personales" and only when it changed. "Today" for the weight row is the local day in [timeZone].
+ * "Datos personales" and only when it changed. "Avisos" is not part of that RPC: it writes one
+ * `notification_settings` row per changed switch and then the check-in day, without a transaction (a partial failure
+ * keeps the written parts as saved). "Today" for the weight row is the local day in [timeZone].
  */
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one small handler per event.
 class PreferencesViewModel(
@@ -80,13 +85,14 @@ class PreferencesViewModel(
     private val bodyMeasurementRepository: BodyMeasurementRepository,
     private val trainingPreferencesRepository: TrainingPreferencesRepository,
     private val foodPreferencesRepository: FoodPreferencesRepository,
+    private val notificationSettings: NotificationSettingsRepository,
     private val savePreferences: SavePreferences,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val healthWriteBack: HealthWriteBack? = null,
-    /** Recomputed after the check-in day is saved, so the center reflects the new day. */
+    /** Recomputed after "Avisos" is saved, so the center reflects the new switches and day. */
     private val reminders: ReminderCoordinator? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PreferencesUiState>(PreferencesUiState.Loading)
@@ -162,6 +168,14 @@ class PreferencesViewModel(
             is PreferencesEvent.SetFatPctFried -> edit { it.withFood { copy(friedText = event.text) } }
 
             is PreferencesEvent.SetCheckInWeekday -> edit { it.copy(checkInWeekday = event.weekday) }
+
+            is PreferencesEvent.SetReminderEnabled -> edit {
+                when (event.kind) {
+                    NotificationKind.Weight -> it.copy(weightReminder = event.enabled)
+                    NotificationKind.Circumference -> it.copy(circumferenceReminder = event.enabled)
+                    NotificationKind.WeeklyCheckIn -> it.copy(checkInReminder = event.enabled)
+                }
+            }
 
             PreferencesEvent.Save -> save()
 
@@ -242,6 +256,7 @@ class PreferencesViewModel(
                 val training = async { trainingPreferencesRepository.get() }
                 val food = async { foodPreferencesRepository.get() }
                 val checkInWeekday = async { profileRepository.getCheckInWeekday() }
+                val switches = async { notificationSettings.getAll() }
                 val latest = weight.await()
                 PreferencesData(
                     profile.await(),
@@ -252,6 +267,7 @@ class PreferencesViewModel(
                     training.await(),
                     food.await(),
                     checkInWeekday.await(),
+                    switches.await(),
                 )
             }
             _uiState.value = loadedOrNull(data) ?: PreferencesUiState.LoadFailed
@@ -271,6 +287,7 @@ class PreferencesViewModel(
         val training = data.training.getOrNull() ?: return null
         val food = data.foodPreferences.getOrNull() ?: return null
         val checkInWeekday = data.checkInWeekday.getOrNull() ?: return null
+        val switches = data.reminderSwitches.getOrNull() ?: return null
         val goals = data.goals.getOrNull()
         val today = clock.today()
         val strategy = goals?.strategy ?: GoalStrategy.Maintenance
@@ -290,9 +307,12 @@ class PreferencesViewModel(
             foodPreferences = FoodPreferencesForm.of(food),
             autoUpdateRoutine = training.autoUpdateRoutine,
             checkInWeekday = checkInWeekday,
+            weightReminder = switches[NotificationKind.Weight] ?: true,
+            circumferenceReminder = switches[NotificationKind.Circumference] ?: true,
+            checkInReminder = switches[NotificationKind.WeeklyCheckIn] ?: true,
         )
         // Only the section's fields come from the draft: the other sections are always the fresh saved values.
-        val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it) }?.let {
+        val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it, form) }?.let {
             // A Health Connect weight is never edited here, whatever an older draft holds.
             val restored = if (fromHealthConnect) it.copy(weightKg = form.weightKg) else it
             form.withSectionFrom(section, restored)
@@ -362,10 +382,11 @@ class PreferencesViewModel(
             val weightChanged = owns(PreferencesSection.PersonalData) && !state.weightFromHealthConnect &&
                 source.weightKg != state.saved.weightKg
             val training = owns(PreferencesSection.Training)
-            val result = if (owns(PreferencesSection.CheckIn)) {
-                // Its only field lives in its own column: the other sections' RPC is not involved.
-                profileRepository.setCheckInWeekday(source.checkInWeekday)
-            } else {
+            if (owns(PreferencesSection.Reminders)) {
+                saveReminders(state, source)
+                return@launch
+            }
+            val result = run {
                 savePreferences(
                     displayName = source.name,
                     biometrics = source.toBiometrics(),
@@ -385,12 +406,50 @@ class PreferencesViewModel(
             }
             if (result.isSuccess) {
                 if (weightChanged) writeWeightBack()
-                if (owns(PreferencesSection.CheckIn)) reminders?.requestRefresh()
                 updateLoaded { it.copy(form = source, saved = source, isSaving = false, isSaved = true) }
             } else {
                 updateLoaded { it.copy(isSaving = false) }
                 effectChannel.send(PreferencesEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network))
             }
+        }
+    }
+
+    /**
+     * "Avisos" lives in other tables than the preferences RPC: one write per changed switch, then the check-in day.
+     * There is no transaction (accepted for three rows): a failure keeps the parts already written as saved and the
+     * rest as the draft, and stops.
+     */
+    private suspend fun saveReminders(state: PreferencesUiState.Loaded, source: PreferencesForm) {
+        var written = state.saved
+        var failure: Result<Unit>? = null
+        val switches = listOf(
+            Triple(NotificationKind.Weight, source.weightReminder, state.saved.weightReminder),
+            Triple(NotificationKind.Circumference, source.circumferenceReminder, state.saved.circumferenceReminder),
+            Triple(NotificationKind.WeeklyCheckIn, source.checkInReminder, state.saved.checkInReminder),
+        )
+        for ((kind, wanted, current) in switches) {
+            if (failure != null || wanted == current) continue
+            val result = notificationSettings.setEnabled(kind, wanted)
+            if (result.isSuccess) {
+                written = when (kind) {
+                    NotificationKind.Weight -> written.copy(weightReminder = wanted)
+                    NotificationKind.Circumference -> written.copy(circumferenceReminder = wanted)
+                    NotificationKind.WeeklyCheckIn -> written.copy(checkInReminder = wanted)
+                }
+            } else {
+                failure = result
+            }
+        }
+        if (failure == null && source.checkInWeekday != state.saved.checkInWeekday) {
+            val result = profileRepository.setCheckInWeekday(source.checkInWeekday)
+            if (result.isSuccess) written = written.copy(checkInWeekday = source.checkInWeekday) else failure = result
+        }
+        if (written != state.saved) reminders?.requestRefresh()
+        if (failure == null) {
+            updateLoaded { it.copy(form = source, saved = source, isSaving = false, isSaved = true) }
+        } else {
+            updateLoaded { it.copy(saved = written, isSaving = false) }
+            effectChannel.send(PreferencesEffect.SaveFailed(offline = failure.appErrorOrNull() == AppError.Network))
         }
     }
 

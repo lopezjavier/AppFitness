@@ -4,6 +4,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -19,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -78,6 +80,7 @@ class PreferencesRestorationTest {
                             weights,
                             FakeTrainingPreferencesRepository(),
                             FakeFoodPreferencesRepository(),
+                            FakeNotificationSettingsRepository(),
                             SavePreferences(profile),
                             FakeConnectivityObserver(),
                             FakeClock(),
@@ -189,6 +192,21 @@ class PreferencesRestorationTest {
         rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_personal_save").assertIsEnabled()
+    }
+
+    @Test
+    fun reminders_keepToggledSwitches_andTheOpenWeekdayPicker_afterRecreation() {
+        val tester = StateRestorationTester(rule)
+        show(tester, "avisos")
+        send(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, false))
+        rule.onNodeWithTag("preferences_checkin_weekday_row").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        recreate(tester)
+
+        rule.onNodeWithTag("preferences_checkin_weekday_option_3").assertIsDisplayed()
+        rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOff()
+        rule.onNodeWithTag("preferences_avisos_save").assertIsEnabled()
     }
 
     @Test
