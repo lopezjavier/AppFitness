@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The Perfil "Actividad" row opens the screen; its empty-state action leads to Peso. */
+/** The Perfil "Actividad" row opens the screen and back returns to Perfil. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class ActivityNavigationTest {
@@ -32,10 +32,8 @@ class ActivityNavigationTest {
             Box(Modifier.size(48.dp).testTag("profile_open_activity").clickable(onClick = onOpenActivity))
         }
     }
-    private val activitySlot: ActivitySlot = { modifier, onOpenWeight, onBack ->
-        AppScreen("Actividad", modifier.testTag("activity_screen"), onBack = onBack, testTagPrefix = "activity") {
-            Box(Modifier.size(48.dp).testTag("activity_open_weight").clickable(onClick = onOpenWeight))
-        }
+    private val activitySlot: ActivitySlot = { modifier, onBack ->
+        AppScreen("Actividad", modifier.testTag("activity_screen"), onBack = onBack, testTagPrefix = "activity") {}
     }
     private val weightSlot: WeightSlot = { modifier, _, _, _ -> Box(modifier.fillMaxSize().testTag("weight_screen")) }
 
@@ -67,16 +65,5 @@ class ActivityNavigationTest {
         rule.onNodeWithTag("activity_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("profile_screen").assertExists()
-    }
-
-    @Test
-    fun emptyStateAction_opensPeso() {
-        showShell()
-        rule.onNodeWithTag("nav_tab_profile").performClick()
-        rule.onNodeWithTag("profile_open_activity").performClick()
-        rule.onNodeWithTag("activity_open_weight").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("weight_screen").assertExists()
     }
 }

@@ -28,7 +28,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.activity.ActivityUiState
-import io.github.lopezjavier.appfitness.feature.activity.DayValue
+import io.github.lopezjavier.appfitness.feature.activity.activityContent
 import io.github.lopezjavier.appfitness.feature.analytics.stats.MuscleRadar
 import io.github.lopezjavier.appfitness.feature.analytics.stats.SectionState
 import io.github.lopezjavier.appfitness.feature.analytics.stats.StatsExercise
@@ -38,6 +38,8 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryGoalsState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryUiState
 import io.github.lopezjavier.appfitness.feature.diary.MealSectionUi
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
+import io.github.lopezjavier.appfitness.feature.weight.HealthSyncStatus
+import io.github.lopezjavier.appfitness.feature.weight.HealthSyncUiState
 import io.github.lopezjavier.appfitness.feature.weight.WeightViewModel
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.LiveExercise
@@ -124,17 +126,7 @@ internal fun qualityLiveState(): LiveSessionUiState.Active {
     return state
 }
 
-internal fun qualityActivityState(): ActivityUiState.Content {
-    val today = LocalDate(2026, 10, 22)
-    return ActivityUiState.Content(
-        sleep = DayValue(435, today),
-        steps = DayValue(8500, today),
-        activeKcal = DayValue(620, today),
-        totalKcal = DayValue(2300, today),
-        restingHeartRate = DayValue(52, today),
-        today = today,
-    )
-}
+internal fun qualityActivityState(): ActivityUiState.Content = activityContent()
 
 internal fun qualityStatsState(): TrainingStatsUiState {
     val groups = MuscleGroup.entries.map { MuscleGroupSets(it, if (it == MuscleGroup.Chest) 3.0 else 0.0) }
@@ -150,3 +142,5 @@ internal fun qualityStatsState(): TrainingStatsUiState {
     )
     return state
 }
+
+internal fun qualityHealthSync(): HealthSyncUiState = HealthSyncUiState(HealthSyncStatus.NeverSynced)

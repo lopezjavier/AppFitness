@@ -1,4 +1,4 @@
-package io.github.lopezjavier.appfitness.feature.diary
+package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,12 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.date_today
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_title
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_today_cd
-import io.github.lopezjavier.appfitness.designsystem.AppButtonChip
-import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
-import io.github.lopezjavier.appfitness.designsystem.MonthCalendarGrid
-import io.github.lopezjavier.appfitness.designsystem.Spacing
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -31,11 +25,15 @@ import org.jetbrains.compose.resources.stringResource
  * "Calendario" picker sheet (R-12, no footer): a month calendar to jump to a day (never after [today]) with the
  * [markedDays] of the shown month dotted. A day applies on tap and closes; the "Hoy" chip (shown when `!isToday`)
  * goes back to today and closes. [onMonthChange] reports every shown month (the first one included) so the caller can
- * load its marks. The shown month survives recreation (ADR-40) and starts at the month of [selected].
+ * load its marks. The shown month survives recreation (ADR-40) and starts at the month of [selected]. Tags:
+ * `<tagPrefix>_sheet` (+ `_close`) and `<tagPrefix>_today`.
  */
 @Composable
-@Suppress("LongParameterList") // The shown day, the marks, three actions and the dismissal.
-internal fun DiaryDayPickerSheet(
+@Suppress("LongParameterList") // The shown day, the marks, three actions, the texts and the dismissal.
+fun DayPickerSheet(
+    title: String,
+    todayContentDescription: String,
+    tagPrefix: String,
     selected: LocalDate,
     today: LocalDate,
     isToday: Boolean,
@@ -52,10 +50,10 @@ internal fun DiaryDayPickerSheet(
     val currentOnMonthChange by rememberUpdatedState(onMonthChange)
     LaunchedEffect(month) { currentOnMonthChange(month) }
     AppPickerSheet(
-        title = stringResource(Res.string.diary_day_picker_title),
+        title = title,
         onDismiss = onDismiss,
         modifier = modifier,
-        testTagPrefix = "diary_day_picker_sheet",
+        testTagPrefix = "${tagPrefix}_sheet",
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             if (!isToday) {
@@ -65,8 +63,8 @@ internal fun DiaryDayPickerSheet(
                         onGoToToday()
                         onDismiss()
                     },
-                    contentDescription = stringResource(Res.string.diary_day_picker_today_cd),
-                    modifier = Modifier.testTag("diary_day_picker_today"),
+                    contentDescription = todayContentDescription,
+                    modifier = Modifier.testTag("${tagPrefix}_today"),
                 )
             }
             MonthCalendarGrid(

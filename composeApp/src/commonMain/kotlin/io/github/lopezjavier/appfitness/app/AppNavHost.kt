@@ -53,7 +53,7 @@ internal typealias ProfileSlot =
     ) -> Unit
 
 /** Content of "Actividad": its modifier (full-screen insets), the Peso opener (empty state) and how to leave. */
-internal typealias ActivitySlot = @Composable (modifier: Modifier, onOpenWeight: () -> Unit, onBack: () -> Unit) -> Unit
+internal typealias ActivitySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
@@ -542,7 +542,7 @@ internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
 }
 
 /** Empty "Actividad" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultActivitySlot: ActivitySlot = { modifier, _, _ ->
+internal val DefaultActivitySlot: ActivitySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("activity_screen"))
 }
 
@@ -702,7 +702,7 @@ internal fun AppNavHost(
             }
         }
         composable<ActivityRoute> { entry ->
-            activity(Modifier.padding(fullScreenPadding), openWeight) { navController.popFullScreen(entry) }
+            activity(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<AboutRoute> { entry ->
             about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

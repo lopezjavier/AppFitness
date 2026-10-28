@@ -398,7 +398,7 @@ val uiModule =
         }
         viewModel { PastWorkoutChooserViewModel(routineRepository = get(), savedState = get()) }
         viewModelOf(::StrengthViewModel)
-        viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get()) }
+        viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
         viewModelOf(::MuscleVolumeViewModel)
         viewModel {
             TrainingStatsViewModel(

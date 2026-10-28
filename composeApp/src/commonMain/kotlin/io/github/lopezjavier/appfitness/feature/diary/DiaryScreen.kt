@@ -30,6 +30,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_today_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_defaults_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
@@ -37,6 +39,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DayPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -100,7 +103,10 @@ private fun PlainDiary(onBack: (() -> Unit)?, content: @Composable () -> Unit) {
 private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, onBack: (() -> Unit)?) {
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     if (pickerOpen) {
-        DiaryDayPickerSheet(
+        DayPickerSheet(
+            title = stringResource(Res.string.diary_day_picker_title),
+            todayContentDescription = stringResource(Res.string.diary_day_picker_today_cd),
+            tagPrefix = "diary_day_picker",
             selected = content.date,
             today = content.today,
             isToday = content.isToday,

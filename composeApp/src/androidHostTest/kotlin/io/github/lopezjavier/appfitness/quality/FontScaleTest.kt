@@ -93,7 +93,9 @@ class FontScaleTest {
     @Test
     fun activity_atLargeFont_stacksTheCardsInOneColumn() {
         rule.setContent {
-            WithFontScale { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, {}, {}) }
+            WithFontScale {
+                ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, qualityHealthSync(), {}, {})
+            }
         }
         rule.waitForIdle()
 

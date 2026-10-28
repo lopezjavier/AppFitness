@@ -3,8 +3,9 @@ package io.github.lopezjavier.appfitness.app
 import io.github.lopezjavier.appfitness.domain.model.ChangesResult
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthActivityBatch
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityDay
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityHistory
 import io.github.lopezjavier.appfitness.domain.model.HealthActivityImportResult
-import io.github.lopezjavier.appfitness.domain.model.HealthActivitySummary
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthReading
@@ -15,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ActivityDayValues
 import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
@@ -133,14 +135,28 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
     }
 }
 
-/** Scriptable [HealthActivityRepository]: answers [summary], or [failure] when set. */
-internal class FakeHealthActivityRepository(
-    var summary: HealthActivitySummary = HealthActivitySummary(null, emptyList(), null),
-) : HealthActivityRepository {
+/** Scriptable [HealthActivityRepository]: answers [history], or [failure] when set. */
+internal class FakeHealthActivityRepository : HealthActivityRepository {
     var failure: Throwable? = null
 
-    override suspend fun latestSummary(): Result<HealthActivitySummary> =
-        failure?.let { Result.failure(it) } ?: Result.success(summary)
+    /** Answered by [history]; [day] is derived from it. [dayFailure] fails only [day]. */
+    var history: HealthActivityHistory = HealthActivityHistory(emptyList(), emptyList(), emptyList())
+    var dayFailure: Throwable? = null
+    var zone: TimeZone = TimeZone.UTC
+    var historyCalls = 0
+        private set
+    val dayCalls = mutableListOf<LocalDate>()
+
+    override suspend fun history(from: LocalDate, toExclusive: LocalDate): Result<HealthActivityHistory> {
+        historyCalls++
+        return failure?.let { Result.failure(it) } ?: Result.success(history)
+    }
+
+    override suspend fun day(day: LocalDate): Result<HealthActivityDay> {
+        dayCalls += day
+        return (dayFailure ?: failure)?.let { Result.failure(it) }
+            ?: Result.success(ActivityDayValues.of(history, day, zone))
+    }
 }
 
 /** A coordinator over fake Health Connect data, for tests that only need the constructor argument. */
