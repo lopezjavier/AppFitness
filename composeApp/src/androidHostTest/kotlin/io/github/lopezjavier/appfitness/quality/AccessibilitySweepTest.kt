@@ -71,7 +71,12 @@ class AccessibilitySweepTest {
     fun about_everyTappableNodeIsNamedAndBigEnough() {
         rule.setContent {
             AppTheme {
-                AboutScreen(AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")), onBack = {}, onOpenLicenses = {})
+                AboutScreen(
+                    AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")),
+                    onBack = {},
+                    onOpenLicenses = {},
+                    onOpenHealthDiagnostics = {},
+                )
             }
         }
         assertEveryClickableIsNamedAndBigEnough("About")

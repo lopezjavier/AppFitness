@@ -32,7 +32,12 @@ class FontScaleTest {
     fun about_atLargeFont_showsNameVersionCreditsAndLicences() {
         rule.setContent {
             WithFontScale {
-                AboutScreen(AboutUiState(BuildInfo("AppFitness", "1.0", 7, "local")), onBack = {}, onOpenLicenses = {})
+                AboutScreen(
+                    AboutUiState(BuildInfo("AppFitness", "1.0", 7, "local")),
+                    onBack = {},
+                    onOpenLicenses = {},
+                    onOpenHealthDiagnostics = {},
+                )
             }
         }
         rule.waitForIdle()

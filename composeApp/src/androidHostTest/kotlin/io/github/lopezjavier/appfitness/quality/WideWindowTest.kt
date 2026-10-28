@@ -98,7 +98,12 @@ class WideWindowTest {
     fun about_staysACenteredCappedSettingsColumn() {
         rule.setContent {
             AppTheme {
-                AboutScreen(AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")), onBack = {}, onOpenLicenses = {})
+                AboutScreen(
+                    AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")),
+                    onBack = {},
+                    onOpenLicenses = {},
+                    onOpenHealthDiagnostics = {},
+                )
             }
         }
         rule.waitForIdle()

@@ -31,6 +31,22 @@ actual fun rememberHealthConnectLauncher(onResult: (weightReadGranted: Boolean) 
     }
 }
 
+@Composable
+actual fun rememberHealthHistoryLauncher(onResult: () -> Unit): HealthConnectLauncher {
+    val context = LocalContext.current
+    val latestOnResult = rememberUpdatedState(onResult)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        PermissionController.createRequestPermissionResultContract(),
+    ) { latestOnResult.value() }
+    return remember(context, permissionLauncher) {
+        object : HealthConnectLauncher {
+            override fun requestPermissions() = permissionLauncher.launch(healthHistoryPermissions())
+
+            override fun openInstall() = openPlayStore(context)
+        }
+    }
+}
+
 /** Opens the Play Store app on Health Connect, or the web listing when no store app handles `market://`. */
 private fun openPlayStore(context: Context) {
     val market = Uri.parse("market://details?id=$HEALTH_CONNECT_PACKAGE")

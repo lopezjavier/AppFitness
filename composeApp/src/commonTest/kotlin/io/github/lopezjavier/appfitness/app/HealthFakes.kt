@@ -6,8 +6,12 @@ import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthReading
 import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
+import io.github.lopezjavier.appfitness.domain.model.HistoryProbeResult
+import io.github.lopezjavier.appfitness.domain.model.HistoryWindows
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import io.github.lopezjavier.appfitness.domain.model.WindowStats
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.HealthHistoryProbe
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlin.time.Instant
@@ -60,6 +64,28 @@ internal class FakeHealthDataSource : HealthDataSource {
         deleteFailure?.let { return Result.failure(it) }
         deletedCopies += rowId
         return Result.success(Unit)
+    }
+}
+
+/** Scriptable [HealthHistoryProbe]: returns [result] (or [failure]) and counts the calls. */
+internal class FakeHealthHistoryProbe : HealthHistoryProbe {
+    var result = HistoryProbeResult(
+        featureAvailable = true,
+        historyGranted = true,
+        steps = HistoryWindows(WindowStats(10, Instant.parse("2026-09-01T00:00:00Z")), WindowStats(5, null)),
+        weight = HistoryWindows(WindowStats.EMPTY, WindowStats.EMPTY),
+    )
+    var failure: Throwable? = null
+
+    /** When set, a probe waits for it: lets a test observe the running state. */
+    var gate: CompletableDeferred<Unit>? = null
+    var calls = 0
+
+    override suspend fun probe(): Result<HistoryProbeResult> {
+        calls++
+        gate?.await()
+        failure?.let { return Result.failure(it) }
+        return Result.success(result)
     }
 }
 

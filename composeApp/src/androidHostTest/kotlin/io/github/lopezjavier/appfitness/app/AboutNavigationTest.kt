@@ -31,8 +31,18 @@ class AboutNavigationTest {
             Box(Modifier.size(48.dp).testTag("profile_about_row").clickable(onClick = onOpenAbout))
         }
     }
-    private val aboutSlot: AboutSlot = { modifier, onBack ->
-        AppScreen("Acerca de", modifier.testTag("about_screen"), onBack = onBack, testTagPrefix = "about") {}
+    private val aboutSlot: AboutSlot = { modifier, onBack, onOpenDiagnostics ->
+        AppScreen("Acerca de", modifier.testTag("about_screen"), onBack = onBack, testTagPrefix = "about") {
+            Box(Modifier.size(48.dp).testTag("about_health_diagnostics_row").clickable(onClick = onOpenDiagnostics))
+        }
+    }
+    private val diagnosticsSlot: HealthDiagnosticsSlot = { modifier, onBack ->
+        AppScreen(
+            "Diagnóstico",
+            modifier.testTag("health_diagnostics_screen"),
+            onBack = onBack,
+            testTagPrefix = "health_diagnostics",
+        ) {}
     }
 
     @Test
@@ -50,5 +60,30 @@ class AboutNavigationTest {
         rule.onNodeWithTag("about_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("profile_screen").assertExists()
+    }
+
+    @Test
+    fun diagnosticsRow_opensTheDiagnostic_andBackReturnsToAcercaDe() {
+        rule.setContent {
+            AppTheme {
+                AppScaffold(
+                    navController = rememberNavController(),
+                    profile = profileSlot,
+                    about = aboutSlot,
+                    healthDiagnostics = diagnosticsSlot,
+                )
+            }
+        }
+        rule.onNodeWithTag("nav_tab_profile").performClick()
+        rule.onNodeWithTag("profile_about_row").performClick()
+        rule.onNodeWithTag("about_health_diagnostics_row").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("health_diagnostics_screen").assertExists()
+        rule.onNodeWithTag("nav_bar").assertDoesNotExist()
+
+        rule.onNodeWithTag("health_diagnostics_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("about_screen").assertExists()
     }
 }

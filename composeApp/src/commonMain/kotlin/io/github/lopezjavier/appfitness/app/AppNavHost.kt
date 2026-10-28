@@ -51,8 +51,15 @@ internal typealias ProfileSlot =
         onOpenAbout: () -> Unit,
     ) -> Unit
 
-/** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
-internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+/** Content of "Acerca de": its modifier (full-screen insets), how to leave and the opener of the diagnostic (T-139). */
+internal typealias AboutSlot = @Composable (
+    modifier: Modifier,
+    onBack: () -> Unit,
+    onOpenDiagnostics: () -> Unit,
+) -> Unit
+
+/** Content of the temporary Health Connect diagnostic (T-139): its modifier (full-screen insets) and how to leave. */
+internal typealias HealthDiagnosticsSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
  * Content of the Preferencias hub: its modifier (full-screen insets), how to leave, and the openers of a section
@@ -538,8 +545,13 @@ internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
 }
 
 /** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
+internal val DefaultAboutSlot: AboutSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("about_screen"))
+}
+
+/** Empty diagnostic for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultHealthDiagnosticsSlot: HealthDiagnosticsSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("health_diagnostics_screen"))
 }
 
 /**
@@ -560,6 +572,7 @@ internal fun AppNavHost(
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     account: AccountSlot = DefaultAccountSlot,
     about: AboutSlot = DefaultAboutSlot,
+    healthDiagnostics: HealthDiagnosticsSlot = DefaultHealthDiagnosticsSlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
@@ -690,7 +703,14 @@ internal fun AppNavHost(
             }
         }
         composable<AboutRoute> { entry ->
-            about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+            about(
+                Modifier.padding(fullScreenPadding),
+                { navController.popFullScreen(entry) },
+                { navController.navigateToFullScreen(HealthDiagnosticsRoute) },
+            )
+        }
+        composable<HealthDiagnosticsRoute> { entry ->
+            healthDiagnostics(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightRoute> { entry ->
             weight(

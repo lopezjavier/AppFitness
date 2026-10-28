@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
+import io.github.lopezjavier.appfitness.feature.about.HealthDiagnosticsViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
@@ -171,6 +172,7 @@ val uiModule =
                 savedState = get(),
             )
         }
+        viewModel { HealthDiagnosticsViewModel(source = get(), probe = get(), savedState = get()) }
         viewModel {
             CircumferencesViewModel(
                 repository = get(),
