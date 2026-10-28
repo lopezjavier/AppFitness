@@ -95,7 +95,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 | 76 | Evidence-based coach: deterministic calculations, the model explains, proposals need acceptance, derived values confirmed, coach sets outcomes, RIR derived from RPE | Supersedes the assistant part of 09 |
 | 77 | Claude through a `coach` Edge Function (Opus 5.5 plan, Sonnet 5.5 report and chat); paid AI capped at 2 € per user and 5 € in total per month; NFR-02 changed | |
 | 78 | `activity_level` kept as the starting factor; `target_weight_kg` retired as a user input; intention, place, equipment, days and session length in `training_preferences`; `exercises.movement_pattern` | |
-| 79 | 4 tabs Diario/Entreno/Asistente/Perfil: the coach gets its own tab between Entreno and Perfil, added with the first E13 UI task | Amends 37 |
+| 79 | 4 tabs Diario/Entreno/Trainer/Perfil: the coach gets its own tab between Entreno and Perfil, added with the first E13 UI task | Amends 37 |
 
 ## Phase 2 ADRs (full text)
 
@@ -157,6 +157,6 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 
 ### ADR-79 · The coach gets its own tab (E13; amends ADR-37)
 - **Context:** ADR-37 fixed 3 tabs (Diario, Entreno, Perfil). The coach (E13) has a plan, a weekly report, a history and a chat, and needs a stable home.
-- **Decision:** A fourth tab "Asistente" between "Entreno" and "Perfil" (order: Diario, Entreno, Asistente, Perfil). It appears with the first E13 UI task; before that the bar keeps 3 tabs. Active-tab styling stays as ADR-22. The label and icon are checked by ux-reviewer in that task's plan pass.
+- **Decision:** A fourth tab "Trainer" between "Entreno" and "Perfil" (order: Diario, Entreno, Trainer, Perfil). It appears with the first E13 UI task; before that the bar keeps 3 tabs. Active-tab styling stays as ADR-22. The label and icon are checked by ux-reviewer in that task's plan pass.
 - **Consequences:** `epics/E13-performance-assistant.md` (navigation), `05-design-system.md` (navigation section) when implemented, `09-open-questions.md` (resolved).
 - **Approval:** 2026-10-28, user (chat).
