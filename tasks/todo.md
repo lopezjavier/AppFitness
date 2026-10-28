@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-145 (E11 checkpoint fix). Numbering continues from here.
+Last task ID used: T-151 (E12 breakdown). Numbering continues from here.
 
-**Next:** E12 breakdown by the epic-planner in a fresh session (E11 closed, `v1.2.0`, retrospective held 2026-10-28; nothing to add). The user agrees the task list and checkpoints before the breakdown PR merges.
+**Next:** the user agrees the E12 breakdown (tasks T-146…T-151, Checkpoints E12-A and E12-B) (E12 Q1 and Q2 resolved by the user, 2026-10-28); then T-146.
 
 ---
 
@@ -18,11 +18,222 @@ E10 (agreed with the user, 2026-10-28): one **Checkpoint E10** after T-136 (whol
 
 E11 (agreed with the user, 2026-10-28): a 👤 spike report after T-139 (device result, not a functionality checkpoint; gates T-141) and **one Checkpoint E11** after T-142 (watch data + daily automatic sync, also the final regression; its approval releases T-143). Details under the E11 section.
 
+E12 (user decision, 2026-10-28: two checkpoints): **Checkpoint E12-A** after T-147 (rest alert with the screen off, choosing the sound, discomfort log; 7 items), **Checkpoint E12-B** after T-150 (chosen sound, notes, Mi entrenamiento, movement pattern, final regression; 7 items; its approval releases T-151). Details under the E12 section.
+
 ## Notes for later epics
 
 - **E11:** the `READ_HEALTH_DATA_HISTORY` pre-check is replaced by the spike T-139 (user decision, 2026-10-28; see the E11 section).
-- **E12:** verify screen-off alert behaviour on Android 17; 👤 the user picks the new alert sound (E9 point 16 candidates).
+- **E12:** consumed by the E12 breakdown: Android 17 verification → T-146 (plan step and Checkpoint E12-A item 1); sound pick → Checkpoint E12-A item 5, wired in T-148.
 - **E13:** before the breakdown verify the sources marked *verify* in `planning/07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, monthly spending limit and `ANTHROPIC_API_KEY` Supabase secret.
+
+---
+
+# E12 · Training data and preferences → `v1.x` (proposed `v1.3.0`)
+
+Stories: `planning/epics/E12-training-data-and-preferences.md` (US-64, US-65, US-66, US-67 and the movement-pattern data task). Plan: [tasks/plan.md](plan.md). Decisions: ADR-75 (rest alert with the screen off; amends E3 US-13; reopens E9 points 15-16), ADR-76 (discomfort rule, fixed strong-pain message, RIR derived: no field), ADR-78 (preferences, intention, `movement_pattern`), ADR-39 (generated catalogue migration), ADR-29 (cascade), ADR-40 (restoration), ADR-80/R-38 (sheet dismissal). Rules: `04-business-rules.md` §4.4 (rest timer), `05-design-system.md` §8–§10, `07-coach-design.md` §7 (discomfort and strong-pain wording).
+Carried over from "Notes for later epics": verify the screen-off alert on Android 17 (T-146 plan step, Checkpoint E12-A item 1); 👤 the user picks the new alert sound among the E9 point 16 candidates (Checkpoint E12-A item 5, wired in T-148). Both are inside the epic scope (ADR-75).
+**Sound ordering (planner decision, recorded):** the user picks the sound at Checkpoint E12-A from T-146's temporary chooser, which T-147 leaves untouched. The pick is recorded with the checkpoint approval; it is a choice, not a bug, so it needs no fix task before approval. T-148, the first task after the checkpoint and also a live-session task, wires the chosen sound, removes the chooser and the other candidates, and Checkpoint E12-B re-tests it. No extra S task.
+Sizing: 6 tasks, one per story. US-64 (T-146, L: platform scheduling, notification, permission, three sound candidates). US-67 (T-147, L) comes before US-66 because it builds the strong-pain term matcher and fixed message that US-66 reuses. US-66 (T-148, L; backend + core + UI in one PR, the planner may run backend first as a developer slice; it also carries the sound wiring). US-65 (T-149, M). The movement-pattern data task (T-150, M: the reviewed mapping of every catalogue row plus an optional form field) stays alone: merging it with T-149 would exceed ~15 files across two unrelated forms and two migrations. Closure T-151 stays S (it waits for Checkpoint E12-B).
+Flow: UI tasks run planner → ux-reviewer (plan) → developers → pr-creator → pr-reviewer ∥ ux-reviewer (diff) (`06` §2.1). UI scenarios are covered by host (Robolectric) tests; the user verifies by hand with `python scripts/deliver-apk.py`.
+Questions (`tasks/plan.md`): E12 Q1 resolved by the user, 2026-10-28 (12 strong-pain terms, plain "dolor"/"molestia" excluded; message "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario."; T-147, T-148). E12 Q2 resolved, 2026-10-28 (session length 15-180 min in 5-min steps, shown with the existing duration formatter; T-149). No task is blocked.
+Checkpoints (user decision, 2026-10-28: two): **Checkpoint E12-A** after T-147 and **Checkpoint E12-B** after T-150 (also the final regression; releases T-151). T-146, T-148 and T-149 merge with no checkpoint after them.
+
+---
+
+## T-146: Rest-end alert with the screen off and the sound candidates (US-64) · L
+
+**Story:** US-64 · **Flow:** platform + core + UI · **Size:** L · **Scenarios:** Screen off when the rest ends; App in the background; App in the foreground; Skipping cancels the alert; Finishing the session cancels the alert; Notifications denied
+
+**Description:** (1) **Technique (plan step, carried-over note):** the planner verifies on Android 17 (`targetSdk` 37) and picks how the alert fires on time with the screen off or the process killed: an exact alarm (`setExactAndAllowWhileIdle`/`setAlarmClock` with `SCHEDULE_EXACT_ALARM` or `USE_EXACT_ALARM`; the APK is sideloaded) posting the notification from a receiver, a foreground service during the rest (`shortService` is capped at 3 min, so `specialUse` or another type if rests can be longer), or a scheduled notification if its delay under Doze is acceptable (a few seconds at most). The choice, its Android 17 sources and any permission the user must grant go in the PR body and `planning/02-architecture.md`; a permission the user must enable in Ajustes is raised to the PM as a product question before implementation. Timing stays based on `endsAt` (§4.4). (2) **Core:** a `RestAlertScheduler` port (`schedule(endsAt)`, `cancel()`) in `shared/…/domain/port/`; `LiveSessionViewModel` schedules when a rest starts, reschedules on "+30s" and when a new set restarts the rest, and cancels on "Omitir", "Finalizar entreno", discarding the workout and the rest reaching 0 with the app in the foreground (the in-app alert fires, nothing is posted). Foreground = process lifecycle `STARTED` (the same signal as T-135/T-142). Pausing the workout does not stop the rest (§4.10), so the alert stays scheduled. (3) **Platform:** a notification channel for the rest alert (high importance, vibration = `RestAlertPattern`, sound = the current candidate; channel sounds cannot change after creation, so the planner picks how the temporary chooser applies to the notification, e.g. a silent channel plus the app's own playback, or one channel per candidate, and T-147 settles one final channel); the notification "Descanso terminado" (auto-cancel; tapping it opens the live session, assumption A1); `POST_NOTIFICATIONS` requested at the first rest of a session on Android 13+ (assumption A2). (4) **Notifications denied:** nothing is posted; the app explains **once** (persisted flag, e.g. DataStore) that rest alerts need the notification permission; ux-reviewer picks the surface (`AppMessages` message or an `InlineNote` on the live session, R-28/R-37) and the Spanish copy; it never repeats after being shown. (5) **Sound candidates (E9 point 16):** the system notification sound, a soft chime and a double beep, each about 1 s, silent when the phone is muted; synthesised or licence-free assets only (public repo). A **temporary chooser** reachable from Perfil → "Acerca de" (one `AppListRow` "Sonido de fin de descanso" opening an `AppScreen` with one `AppListRow` per candidate: tap plays it and makes it the current one, stored locally), like T-139's diagnostic screen; the in-app alert and the notification use the current candidate. The chooser stays through T-147 (the user picks at Checkpoint E12-A) and is removed by T-148 (sweep item there); its copy is not reviewed beyond R-36/R-37.
+
+**UI templates and patterns:** live session unchanged except the one-time explanation; the chooser is `AppScreen` + `AppListRow`s (temporary). No new designsystem component.
+
+**Acceptance criteria:**
+- [ ] Rest of 90 s running, phone locked: at `endsAt` the phone vibrates with the rest pattern, plays the current sound and shows "Descanso terminado" (verified by hand at Checkpoint E12-A; host test: posted at `endsAt` when not in the foreground).
+- [ ] App in the background at `endsAt` → the same alert.
+- [ ] App in the foreground at `endsAt` → only the in-app alert (vibration + sound); no notification is posted and the scheduled one is cancelled.
+- [ ] "Omitir" in the app, "Finalizar entreno" or discarding the workout → nothing fires when the time would have ended; "+30s" moves the alert 30 s later; completing another set reschedules it.
+- [ ] Notifications denied → nothing is posted; the explanation appears once and never again (also after reopening the app); the in-app alert still works in the foreground.
+- [ ] The temporary chooser lists the three candidates, plays each on tap and the next alert uses the chosen one.
+- [ ] `planning/02-architecture.md` (technique, permissions) and `04-business-rules.md` §4.4 (alert outside the app, cancel rules) updated; ADR-75 consequences ticked.
+- [ ] The live session with a running rest survives background and process death (ADR-40); a rest scheduled before process death still alerts.
+
+**Host tests:** `LiveSessionViewModel` tests with a fake `RestAlertScheduler` (schedule on set completion with `endsAt`, "+30s" reschedules, new set restarts, "Omitir"/finish/discard cancel, foreground end cancels and plays the in-app alert, pause keeps it); notification tests in Robolectric (channel, text "Descanso terminado", posted only when not in the foreground; `ShadowAlarmManager`/`ShadowNotificationManager` or the service equivalent per the chosen technique); permission-explanation-once test (denied → shown once, flag persisted, never again); chooser screen test (rows, tap plays and selects); restoration test with a running rest.
+
+**Verification:**
+- [ ] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [ ] Android 17 behaviour verified in the plan (sources recorded); the on-device check is Checkpoint E12-A items 1-2.
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 17 files, no backend.
+**Dependencies:** E11 closed (`v1.2.0`); breakdown agreed by the user
+**Files likely touched:** `androidApp/src/main/AndroidManifest.xml`, `androidApp/…/di/AppModule.kt` (+ channel creation in the Application), `shared/…/domain/port/RestAlertScheduler.kt`, `composeApp/…/platform/{AndroidRestAlertScheduler,AndroidAlertSound,RestAlertPattern}.kt` (+ receiver or service), `composeApp/src/commonMain/composeResources/files/` or `androidApp/src/main/res/raw/` (sound candidates), `feature/workout/{LiveSessionViewModel,LiveSessionScreen,LiveSessionUiState}.kt`, new temporary `feature/profile/RestSoundChooserScreen.kt`, the "Acerca de" screen, `app/{AppRoutes,AppNavHost}.kt`, strings, `planning/02-architecture.md`, `planning/04-business-rules.md`, tests
+**Estimated scope:** L
+
+---
+
+## T-147: Discomfort log per exercise and the strong-pain message (US-67) · L
+
+**Story:** US-67 · **Flow:** backend + core + UI · **Size:** L · **Scenarios:** Logging discomfort; Strong pain wording shows the fixed message; Resolving; Open discomforts expire
+
+**Description:** (1) **Backend:** one migration: `exercise_discomforts` (`id`, `user_id` default `auth.uid()` cascade, `exercise_id` references `exercises` on delete cascade, `logged_at` timestamptz default now, `note` text nullable 1-200 chars, `severe` boolean not null default false, `resolved_at` timestamptz nullable, check `resolved_at >= logged_at`), index on `(user_id, exercise_id, logged_at desc)`; owner RLS enabled and forced with `(select auth.uid())`, select/insert/update grants to `authenticated` (no delete: history for E13), extend `delete_account_cascade.test.sql`; pgTAP. (2) **Domain:** `StrongPainTerms` (the fixed, versioned term list in `shared/…/domain/rules/`; matching case- and accent-insensitive on normalised text, whole words or phrases; no model interprets the text, `07` §7). **Term list (E12 Q1, resolved by the user 2026-10-28):** "dolor fuerte", "dolor agudo", "dolor intenso", "pinchazo", "chasquido", "hormigueo", "entumecimiento", "hinchazón", "lesión", "me he lesionado", "desgarro", "no puedo mover". Plain "dolor" and "molestia" are deliberately **not** terms. **Fixed message:** "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario.", `DiscomfortStatus` (open while not resolved and `now < logged_at + 7 days`; boundary tested), `LogDiscomfort` (sets `severe` from the term match; severe is not chosen by hand, assumption A3) and `ResolveDiscomfort` (sets `resolved_at` = now); `DiscomfortRepository` port + supabase-kt implementation with DTO mapping; a query of the open discomforts for the exercises of the live session. (3) **UI — templates and patterns:** in the live session, "Registrar molestia" is an action of the exercise's ⋮ `AppActionSheet` (R-02; ux-reviewer confirms the placement) opening an Edit sheet (`AppEditSheet`: optional multi-line `AppTextField` "Nota", "Máximo 200 caracteres", pinned "Guardar", R-09/R-10; closes only with X/back/Cancelar, R-38); after saving, the exercise shows "Molestia registrada" (e.g. an `InlineNote` under the exercise header; ux-reviewer picks) with the action "Ya no me molesta" (resolves, Confirm haptic, the label leaves); a severe log shows the fixed message (exact text above; `InlineNote` or `AppInfoSheet`, ux-reviewer picks) and no other suggestion; the open discomfort shows in later sessions until it expires or is resolved; offline: "Guardar" and "Ya no me molesta" disabled with the standard hint (R-30). Where else "Molestia registrada" appears (exercise detail) is not required (assumption A4). Spanish copy beyond the Gherkin literals by ux-reviewer per §10 (glossary entry "Molestia"). T-146's temporary sound chooser and its candidates stay untouched: the user picks the sound from them at Checkpoint E12-A, and T-148 wires the choice.
+
+**Acceptance criteria:**
+- [ ] "Registrar molestia" on "Press banca" + "Guardar" → stored for "Press banca" with today's date; "Press banca" shows "Molestia registrada" in this and later sessions.
+- [ ] Note "dolor fuerte" (or "Dolor FUERTE", "HINCHAZON", "lesion" variants per the normalisation) → "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario." is shown and the row is stored with `severe = true`; a note with only "dolor" or "molestia" (or no listed term) is not severe and shows no message.
+- [ ] "Ya no me molesta" → `resolved_at` = now and "Molestia registrada" disappears.
+- [ ] A discomfort logged 8 days ago (unresolved) no longer shows "Molestia registrada"; one logged 6 days ago does.
+- [ ] pgTAP: RLS enabled and forced, user A cannot read or write user B's discomforts, note length check, `resolved_at` check, cascade on account deletion.
+- [ ] `planning/03-data-model.md` (table) and `04-business-rules.md` (new §4.12 discomfort: open window, severe rule, term list location) updated.
+- [ ] The discomfort sheet draft and the live session survive background and process death (ADR-40).
+
+**Host tests:** `StrongPainTermsTest` (every one of the 12 terms, case, accents, phrase vs substring, plain "dolor"/"molestia" do not match, empty/null note); `DiscomfortStatusTest` (6/7/8 days, resolved, boundary); repository mapping test; live-session ViewModel tests (log, severe message, resolve, open discomfort loaded for a new session, offline); Robolectric tests of the action, the Edit sheet (length validation, Guardar), "Molestia registrada", "Ya no me molesta" and the fixed message; restoration test of the sheet draft; pgTAP `exercise_discomforts`.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before Checkpoint E12-A is presented).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 16 files.
+**Dependencies:** T-146 merged (no checkpoint in between); E12 Q1 resolved (2026-10-28, terms and message above)
+**Files likely touched:** `supabase/migrations/<ts>_exercise_discomforts.sql`, `supabase/tests/exercise_discomforts.test.sql`, `supabase/tests/delete_account_cascade.test.sql`, `shared/…/domain/model/Discomfort.kt`, `shared/…/domain/rules/StrongPainTerms.kt`, `shared/…/domain/usecase/{DiscomfortStatus,LogDiscomfort,ResolveDiscomfort}.kt`, `shared/…/domain/repository/DiscomfortRepository.kt`, `shared/…/data/{remote/DiscomfortDto,repository/SupabaseDiscomfortRepository}.kt`, `shared/…/di/`, `feature/workout/{LiveSessionViewModel,LiveSessionScreen,LiveSessionUiState}.kt` (+ a `DiscomfortSheet.kt`), strings, `planning/03-data-model.md`, `planning/04-business-rules.md`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E12-A — Rest alert with the screen off, its sound, and the discomfort log 👤 (7 items + leave and come back) *(agreed with the user, 2026-10-28: two checkpoints)*
+Journey: during a workout, lock the phone or switch apps while resting and still be told when the rest ends; choose the sound you want; flag an exercise that bothers you and clear it when it no longer does. Why here: right after T-147, before T-148 builds on the live session and wires the chosen sound.
+- [ ] T-146 and T-147 merged, CI green, `deploy-supabase` applied T-147's migration (data intact), every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Screen off and background (US-64): start a workout, complete a set with a 90 s rest (or shorter) and lock the phone: when the rest ends the phone vibrates, plays the sound and shows "Descanso terminado" on the lock screen; repeat switching to another app: the same alert arrives on time; tap it: the live session opens.
+  2. Foreground: stay in the app until the rest ends: only the in-app alert (vibration and sound), no notification in the shade.
+  3. Cancel and move: during a rest in the background come back, tap "Omitir" and leave again: no alert; start another rest, tap "+30s" and lock: the alert comes 30 s later; with a rest running, finish the workout (or discard it): no alert arrives afterwards.
+  4. Notifications denied: in Ajustes deny AppFitness notifications, start a rest: the app explains once that alerts need the permission; no notification with the screen off; the explanation does not come back on the next rest or after reopening the app; allow them again.
+  5. Choose the sound (E9 point 16): Perfil → "Acerca de" → "Sonido de fin de descanso": listen to the three candidates (system notification sound, soft chime, double beep), pick one and tell the PM which (recorded with the approval; T-148 wires it); check it is silent with the phone muted.
+  6. Log discomfort (US-67): in the live session tap "Registrar molestia" on "Press banca" and save: "Press banca" shows "Molestia registrada"; start another workout with it: it still shows.
+  7. Strong pain and resolve (US-67): log discomfort with the note "dolor fuerte": the fixed message asks you to consult a health professional; then tap "Ya no me molesta": "Molestia registrada" disappears.
+  - Leave the app and come back during a rest in the live session, with the discomfort sheet half typed: the same tab, screen, countdown and draft are restored.
+  - Out of scope: the wiring of the chosen sound (T-148, re-tested at Checkpoint E12-B); the 7-day expiry over real days (host tests); the coach blocking load increases (E13, US-70); reminders as system notifications (never, ADR-73).
+
+---
+
+## T-148: Notes per set and per routine exercise, and the chosen rest sound (US-66) · L
+
+**Story:** US-66 (+ US-67 technical note: the term list applies to notes; + the sound choice of Checkpoint E12-A, US-64) · **Flow:** backend + core + UI · **Size:** L (the planner may run backend + core and UI as two developer slices of the same PR) · **Scenarios:** Note on a set; Note on an exercise in the routine
+
+**Description:** (1) **Backend:** one migration: `workout_sets.notes` and `routine_exercises.notes` (text nullable, check 1-200 chars; blank stored as null); `save_routine` accepts and returns the per-exercise note; the paths that write sets (live set save, `save_completed_workout`, the "Editar entreno" save) carry the set note; `save_workout_as_routine` and `update_routine_from_session` leave routine notes untouched unless the planner finds a copy path needed; the reads used by the workout detail and the live session return the notes; pgTAP (length checks, RPC round trips, RLS unchanged). (2) **Domain:** `WorkoutSet.notes`, `RoutineExercise.notes`, DTO mapping; a note matching `StrongPainTerms` (T-147; the 12 terms of E12 Q1, plain "dolor"/"molestia" excluded) shows the same fixed message "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario." when saved (US-67 note); it does not create a discomfort (assumption A5). (3) **UI — templates and patterns:** **set note** in the live session: an action of the set (where the set's existing actions live, e.g. its set-type/RPE sheet or a row action; ux-reviewer picks per R-19/R-02) opens an Edit sheet (`AppEditSheet`, one multi-line `AppTextField` "Nota", "Máximo 200 caracteres", pinned "Guardar", R-38 editable-sheet dismissal), shown under the set as an `InlineNote`; the same note is editable in "Editar entreno" (assumption A6) and shown read-only in the workout detail (`SessionDetailScreen`/`PastWorkoutScreen`) under its set. **Routine exercise note** in the routine builder: an action of the exercise (its ⋮ or row action, ux-reviewer picks) opening the same Edit sheet, shown as an `InlineNote` under the exercise, saved with the routine's "Guardar" (R-11; "Listo" in the sheet if it applies to the builder draft, R-12); shown read-only in the live session under that exercise's header. Removing a note = clearing the field and saving. Spanish copy by ux-reviewer per §10. **Sweep:** the Edit sheet for a note is one shared composable used by sets, routine exercises and T-147's discomfort note if they converge (ux-reviewer decides; no ad-hoc copies, R-39). (4) **Sweep from Checkpoint E12-A (sound choice):** the sound the user chose becomes the only rest-alert sound (in-app and the final notification channel, with a new channel ID if T-146's channel had another sound); delete the other candidates, the temporary chooser screen and its "Acerca de" row; `04` §4.4 names the sound; the resolution of E9 point 16 is recorded there and in the PR body (the frozen `planning/phase1/` audit is not edited).
+
+**Acceptance criteria:**
+- [ ] Writing "pausa larga" on a set and finishing the workout → the note is stored with the set and shown under that set in the workout detail; editable in "Editar entreno".
+- [ ] Routine with "bajar el peso si duele" on "Press banca" → starting the routine shows the note under "Press banca" in the live session.
+- [ ] A note longer than 200 characters shows "Máximo 200 caracteres" and "Guardar" stays disabled; a cleared note is removed.
+- [ ] A note containing a strong-pain term shows the fixed message (T-147 matcher).
+- [ ] The sound chosen at Checkpoint E12-A plays in the foreground and with the screen off; the chooser, its "Acerca de" row and the other candidates are gone.
+- [ ] pgTAP: note length checks, `save_routine` round trip of notes, set-note write paths, RLS unchanged.
+- [ ] `planning/03-data-model.md` (columns, RPC contracts) updated.
+- [ ] The note sheet draft, the routine builder draft and the live session survive background and process death (ADR-40).
+
+**Host tests:** repository/DTO mapping tests for both notes; `save_routine` payload test; live-session ViewModel tests (add, edit, clear a set note; routine note loaded; strong-pain message); routine builder ViewModel tests (note in the draft, saved with the routine, discard dialog when dirty); Robolectric tests (set note sheet and `InlineNote`, routine note in the live session, workout detail shows the note, length validation); alert-sound test for the final channel and sound; restoration tests; pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before T-149 starts).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 22 files (if the planner counts more than ~25, backend + core and UI run as developer slices of the same PR).
+**Dependencies:** Checkpoint E12-A approved with the sound chosen; T-147's matcher and fixed message (E12 Q1 resolved 2026-10-28)
+**Files likely touched:** `supabase/migrations/<ts>_training_notes.sql`, `supabase/tests/training_notes.test.sql`, `shared/…/domain/model/{Workout,Routine}.kt`, `shared/…/data/remote/*Dto.kt`, `shared/…/data/repository/{SupabaseWorkoutRepository,SupabaseRoutineRepository}.kt`, `feature/workout/{LiveSessionViewModel,LiveSessionScreen,EditWorkoutScreen,SessionDetailScreen,PastWorkoutScreen}.kt`, `feature/routines/{RoutineBuilderScreen,RoutineBuilderViewModel}.kt`, a shared note sheet composable, `composeApp/…/platform/AndroidAlertSound.kt` and the notification channel, removal of the temporary chooser and its "Acerca de" row, strings, `planning/03-data-model.md`, `planning/04-business-rules.md` §4.4, tests
+**Estimated scope:** L
+
+---
+
+## T-149: "Mi entrenamiento": training intention and static preferences (US-65) · M
+
+**Story:** US-65 · **Flow:** backend + core + UI · **Size:** M · **Scenarios:** Intentions are a fixed list; Choosing the intention; Place defines the default equipment; Days and session length are optional
+
+**Description:** (1) **Backend:** one migration: enums `training_intention` (`strength`, `muscle`, `fat_loss`, `recomposition`, `maintenance`) and `training_place` (`home`, `gym`, `other`); `training_preferences` gains `intention` (nullable until chosen), `place` (nullable until chosen), `equipment equipment[]` (not null default `'{}'`), `days_per_week` smallint nullable check 1-7, `session_minutes` smallint nullable, check 15-180 and a multiple of 5 (E12 Q2, resolved by the user 2026-10-28); the save path the Preferencias sections already use for `training_preferences` carries the new fields, and a section saves only its own fields (as the hub's other sections); pgTAP (enum values, checks, RLS unchanged, saving this section leaves the other `training_preferences` fields intact). (2) **Domain:** `TrainingIntention`, `TrainingPlace`, `TrainingPreferences` gains the five fields; a pure `DefaultEquipment.forPlace` (home = dumbbell, band, bodyweight; gym = every `equipment` value; other = bodyweight; epic design decision); DTO mapping. The intention does not touch the nutrition goal (epic note; E13). (3) **UI — templates and patterns:** a new Preferencias hub `NavigationRow` "Mi entrenamiento" (Gherkin literal; value = the chosen intention label, or none) next to the existing "Entrenamiento" section, which keeps the app settings (warm-up, calculators; assumption A7); it opens an `AppEditorScreen` "Mi entrenamiento" (R-01/R-04): intention among "Ganar fuerza", "Ganar musculatura", "Perder grasa", "Recomposición", "Mantenimiento" (the labels are long, so not a `SegmentedSelector` per R-33: a `NavigationRow`-style field opening an `AppPickerSheet` that applies on tap, or `AppToggleChip`s; ux-reviewer picks); place "Casa" / "Gimnasio" / "Otro" as a `SegmentedSelector` (3 short options; labels beyond "Casa" by ux-reviewer); equipment as multi-select `AppToggleChip`s with the catalogue's existing Spanish equipment labels ("Mancuernas", "Banda", "Peso corporal", …); choosing a place replaces the draft's equipment with that place's defaults, which the user can then change (assumption A8); days per week (optional, 1-7) and session length (optional, 15-180 min in 5-min steps, e.g. an `AppPickerSheet` or stepper, ux-reviewer picks) with a way to leave them empty. **Session-length text:** the picker options and the shown value reuse the app's existing duration formatter `durationText(seconds: Long)` in `feature/analytics/stats/TrainingStatsFormat.kt` (strings `stats_duration_m` "%1$d min", `stats_duration_hm` "%1$d h %2$d min"), which yields "15 min", "45 min", "1 h 0 min", "1 h 5 min", "1 h 30 min", "3 h 0 min"; no ad-hoc copy (R-39): since a third feature now uses it (statistics, Actividad, Preferencias), move it into `designsystem/` (next to `AppNumberFormat`/`AppDateFormat`, R-44) and repoint the existing callers, with no change to its output; pinned "Guardar" (R-09/R-10), Confirm haptic and close (R-13), "¿Descartar los cambios?" when dirty (R-14), offline hint (R-30); loading skeleton and `ErrorState` "Reintentar". Glossary (§10) gains the intention and place labels. **Sweep:** if the hub or the "Entrenamiento" section renders equipment labels ad hoc, reuse one equipment-label source.
+
+**Acceptance criteria:**
+- [ ] "Mi entrenamiento" offers exactly "Ganar fuerza", "Ganar musculatura", "Perder grasa", "Recomposición" and "Mantenimiento".
+- [ ] Choosing "Ganar fuerza" + "Guardar" → stored as `strength`; the hub row and the screen show "Ganar fuerza" after reopening the app.
+- [ ] Choosing "Casa" → equipment "Mancuernas", "Banda", "Peso corporal" selected; the user can add or remove equipment before saving; "Gimnasio" selects every value; "Otro" selects "Peso corporal".
+- [ ] Saving without days or session length stores them as null; the session length offers only 15-180 min in 5-min steps, each shown by the shared duration formatter ("45 min", "1 h 0 min", "1 h 30 min"), and the saved value is shown the same way; the database rejects other values (check).
+- [ ] Saving "Mi entrenamiento" does not change warm-up, calculator or previous-values settings, nor the nutrition goal.
+- [ ] pgTAP: enums, `days_per_week` and `session_minutes` checks, owner RLS, other fields untouched.
+- [ ] `planning/03-data-model.md` and `04-business-rules.md` (default equipment per place; intention is static) updated.
+- [ ] The editor draft and scroll survive background and process death (ADR-40).
+
+**Host tests:** `DefaultEquipmentTest` (three places); duration-formatter test after the move (15, 45, 60, 65, 90, 180 min, and the existing statistics/Actividad cases unchanged); repository/DTO mapping tests (nulls, enum mapping, equipment array); Preferencias ViewModel tests for the section (load, choose intention, place resets equipment, optional fields, validation, save only own fields, offline, error); Robolectric tests (hub row value, editor controls, picker applies on tap, discard dialog); restoration test; pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before T-150 starts).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 14 files.
+**Dependencies:** T-148 merged and `deploy-supabase` green (no checkpoint in between); E12 Q2 resolved (2026-10-28: 15-180 min, 5-min steps)
+**Files likely touched:** `supabase/migrations/<ts>_training_intention_preferences.sql`, `supabase/tests/training_preferences.test.sql`, `shared/…/domain/model/TrainingPreferences.kt`, `shared/…/domain/usecase/DefaultEquipment.kt`, `shared/…/data/remote/TrainingPreferencesDto.kt`, `shared/…/data/repository/SupabaseTrainingPreferencesRepository.kt`, `feature/profile/{PreferencesHubScreen,PreferencesSection,PreferencesSectionScreen,PreferencesViewModel,PreferencesDraft,PreferencesUiState}.kt` (+ a `MyTrainingSection.kt`), `feature/analytics/stats/TrainingStatsFormat.kt` → `designsystem/` (duration formatter move) and its callers (`TrainingStatsSections.kt`, `feature/activity/ActivityMetricUi.kt`), strings, `planning/03-data-model.md`, `planning/04-business-rules.md`, `planning/05-design-system.md` §6.2/§10, tests
+**Estimated scope:** M
+
+---
+
+## T-150: Movement pattern in the exercise catalogue and the custom exercise form (data task) · M
+
+**Story:** E12 data task "Movement pattern in the catalogue" (ADR-78, ADR-39) · **Flow:** backend + data + small UI · **Size:** M (stays alone: the reviewed mapping covers every catalogue row; merging with T-149 would put two unrelated forms and two migrations in one PR)
+
+**Description:** (1) **Mapping:** the planner checks whether the RepDB bundle (`library.json`, generated by `scripts/import-repdb.py`) has a field equivalent to the movement pattern; where it does, `scripts/generate-exercise-catalog.py` derives it; otherwise a reviewed mapping keyed by catalogue `key` (e.g. `scripts/exercise-movement-patterns.csv`, versioned, no third-party text) gives each catalogue row one of `squat`, `hinge`, `lunge`, `horizontal_push`, `vertical_push`, `horizontal_pull`, `vertical_pull`, `carry`, `core`, `isolation`, `cardio`, `other`; the generator emits the column for future regenerations. 👤 Prerequisite only if the generator must be re-run against the bundle: the user's local RepDB bundle (as in E4). (2) **Backend:** one migration: enum `movement_pattern`, `exercises.movement_pattern` nullable, an update that fills every catalogue row (`is_custom = false`) from the mapping; the custom exercise create/edit path accepts it (optional); pgTAP: every catalogue row has a pattern, custom rows may be null, owner rules on custom rows unchanged. (3) **Domain/data:** `MovementPattern` enum and `Exercise.movementPattern` with DTO mapping. (4) **UI — templates and patterns:** the custom exercise form ("Nuevo ejercicio" sheet and the custom exercise edit) gains an optional "Patrón de movimiento" field opening an `AppPickerSheet` (single choice applied on tap, R-12; an option to leave it empty; closes on an outside tap, R-38) with Spanish labels by ux-reviewer (§10 glossary entries); not shown for catalogue exercises (assumption A9). Used by the coach in E13; no other screen shows it.
+
+**Acceptance criteria:**
+- [ ] After the migration every catalogue exercise has a non-null `movement_pattern`; spot checks: a back squat is `squat`, a bench press `horizontal_push`, a pull-up `vertical_pull`, a biceps curl `isolation` (pgTAP by key).
+- [ ] Creating a custom exercise without a pattern saves it with none; with "Patrón de movimiento" chosen, it is stored and shown again when editing.
+- [ ] The mapping covers every catalogue key (a test or script check fails on a missing key).
+- [ ] `planning/03-data-model.md` (enum, column) updated.
+- [ ] The custom exercise form draft survives background and process death (ADR-40).
+
+**Host tests:** DTO mapping test (pattern present/null); custom-exercise ViewModel tests (optional pattern, save, edit); Robolectric tests of the field and the picker sheet; a mapping-coverage check (script or test); pgTAP.
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before Checkpoint E12-B is presented).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 11 files (the mapping file is long but mechanical).
+**Dependencies:** T-149 merged and `deploy-supabase` green
+**Files likely touched:** `scripts/generate-exercise-catalog.py`, `scripts/exercise-movement-patterns.csv` (or derived from the bundle), `supabase/migrations/<ts>_movement_pattern.sql`, `supabase/tests/exercises_movement_pattern.test.sql`, `shared/…/domain/model/Exercise.kt`, `shared/…/data/remote/ExerciseDto.kt`, `shared/…/data/repository/SupabaseExerciseRepository.kt`, `feature/exercises/` custom exercise form + ViewModel, strings, `planning/03-data-model.md`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+### Checkpoint E12-B — Notes, your training situation, and the final E12 regression 👤 (7 items + leave and come back) *(agreed with the user, 2026-10-28: two checkpoints)*
+Journey: the rest alert now plays the sound you chose; write what happened on a set and read the note you left on a routine exercise; tell the app your goal, where and with what you train, and how many days and minutes you have; give a movement pattern to your own exercises; then one pass over the whole epic. Why here: right after T-150, the last implementation task, so it is also the final regression of E12; its approval releases T-151.
+- [ ] T-148, T-149 and T-150 merged, CI green, `deploy-supabase` applied their three migrations (data intact), every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Chosen sound (T-148, from Checkpoint E12-A): a rest ending in the foreground and one with the screen off both play the sound you chose; "Sonido de fin de descanso" is gone from "Acerca de".
+  2. Notes (US-66): write "pausa larga" on a set, finish the workout: the note shows under that set in the workout detail; edit it in "Editar entreno"; in a routine add "bajar el peso si duele" to "Press banca" and save; start the routine: the note shows under "Press banca".
+  3. Note limits: a note over 200 characters is refused with "Máximo 200 caracteres"; a note with a strong-pain term shows the fixed message; airplane mode disables "Guardar" with the standard hint.
+  4. Intention (US-65): Preferencias → "Mi entrenamiento" offers "Ganar fuerza", "Ganar musculatura", "Perder grasa", "Recomposición" and "Mantenimiento"; choose "Ganar fuerza", "Guardar": the hub row shows it, also after reopening the app; "Entrenamiento" (warm-up, calculators) is unchanged.
+  5. Place, equipment, days and length (US-65): choose "Casa": "Mancuernas", "Banda" and "Peso corporal" get selected; add or remove one; try "Gimnasio" (everything) and "Otro" (peso corporal); save with no days and no session length: it saves; set 4 days and a session length: the options run from "15 min" to "3 h 0 min" in 5-min steps, shown like the statistics durations ("45 min", "1 h 30 min"), and the saved value reads the same way.
+  6. Movement pattern (data task): create an "ejercicio propio" with "Patrón de movimiento" and one without: both save; editing shows the chosen pattern.
+  7. Final regression of E12: a full workout with the rest alert (screen off), a set note and a discomfort ("Molestia registrada", "Ya no me molesta"); Diario, Peso, Actividad and "Centro de avisos" work as before.
+  - Leave the app and come back with "Mi entrenamiento" half edited, and once with a set-note sheet half typed: the same tab, screen and draft are restored.
+  - Out of scope: the coach using the intention, preferences, discomfort or movement patterns (E13); removing the target weight (E13, ADR-78); an RIR field (never, ADR-76); water and voice (Phase 3).
+
+---
+
+## T-151: E12 closure → `v1.x` · S
+
+**Story:** E12 Definition of Done · **Flow:** PM · **Size:** S (cannot merge: it waits for Checkpoint E12-B's approval)
+
+**Description:** Closes E12 once Checkpoint E12-B is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR) per the versioning rule (`06` §6; minor per epic, proposed `1.3.0`), tag, retrospective, archive of the E12 log lines. No 👤 checkpoint of its own.
+
+**Acceptance criteria:**
+- [ ] T-146…T-150 (and any fix tasks) merged with green CI; `deploy-supabase` green after each of the four migrations.
+- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [ ] `planning/02-architecture.md` (rest-alert technique), `03-data-model.md` and `04-business-rules.md` describe the alert, `exercise_discomforts`, the notes, the new `training_preferences` fields and `movement_pattern`.
+- [ ] Checkpoints E12-A and E12-B approved; every reported bug fixed.
+- [ ] Version bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
+
+**Verification:**
+- [ ] `git tag` lists the E12 tag.
+
+**Dependencies:** T-150 and Checkpoint E12-B approved
+**Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E12.md`
+**Estimated scope:** S
 
 ---
 
