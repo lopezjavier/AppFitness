@@ -80,6 +80,26 @@ class AboutScreenTest {
     }
 
     @Test
+    fun restSoundRow_opensTheTemporaryChooserEntry() {
+        var opens = 0
+        rule.setContent {
+            AppTheme {
+                AboutScreen(
+                    AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")),
+                    onBack = {},
+                    onOpenLicenses = {},
+                    onOpenRestSound = { opens++ },
+                )
+            }
+        }
+
+        rule.onNodeWithTag("about_rest_sound_row").performScrollTo().assertTextContains("Sonido de fin de descanso")
+        rule.onNodeWithTag("about_rest_sound_row").performClick()
+
+        assertEquals(1, opens)
+    }
+
+    @Test
     fun screen_recomposesAfterRecreation() {
         val tester = StateRestorationTester(rule)
         tester.setContent {

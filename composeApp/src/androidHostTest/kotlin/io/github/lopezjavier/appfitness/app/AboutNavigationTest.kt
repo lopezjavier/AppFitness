@@ -31,7 +31,7 @@ class AboutNavigationTest {
             Box(Modifier.size(48.dp).testTag("profile_about_row").clickable(onClick = onOpenAbout))
         }
     }
-    private val aboutSlot: AboutSlot = { modifier, onBack ->
+    private val aboutSlot: AboutSlot = { modifier, onBack, _ ->
         AppScreen("Acerca de", modifier.testTag("about_screen"), onBack = onBack, testTagPrefix = "about") {}
     }
 

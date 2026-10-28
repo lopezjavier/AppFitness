@@ -12,15 +12,21 @@ import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.platform.AndroidAlertSound
 import io.github.lopezjavier.appfitness.platform.AndroidConnectivityObserver
 import io.github.lopezjavier.appfitness.platform.AndroidHaptics
+import io.github.lopezjavier.appfitness.platform.AndroidNotificationPermission
 import io.github.lopezjavier.appfitness.platform.AndroidPhotoCapture
+import io.github.lopezjavier.appfitness.platform.AndroidRestAlertScheduler
 import io.github.lopezjavier.appfitness.platform.CurrentActivityHolder
 import io.github.lopezjavier.appfitness.platform.GoogleAuthCredentialProvider
 import io.github.lopezjavier.appfitness.platform.HealthConnectDataSource
 import io.github.lopezjavier.appfitness.platform.MlKitBarcodeScanner
+import io.github.lopezjavier.appfitness.platform.RestAlertHandler
+import io.github.lopezjavier.appfitness.platform.RestAlertNotifier
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -45,7 +51,12 @@ val appModule =
         }
         single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
         single<Haptics> { AndroidHaptics(androidContext()) }
-        single<AlertSound> { AndroidAlertSound(androidContext()) }
+        single<AlertSound> { AndroidAlertSound(androidContext(), get()) }
+        single<RestAlertScheduler> { AndroidRestAlertScheduler(androidContext()) }
+        single { AndroidNotificationPermission(androidContext()) }
+        single<NotificationPermission> { get<AndroidNotificationPermission>() }
+        single { RestAlertNotifier(androidContext()) }
+        single { RestAlertHandler(get(), get(), isForeground = { get<CurrentActivityHolder>().get() != null }) }
         single<DataStore<Preferences>> {
             PreferenceDataStoreFactory.create {
                 androidContext().filesDir.resolve("datastore/appfitness.preferences_pb")

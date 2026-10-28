@@ -71,6 +71,10 @@ class LiveSessionViewModelTest {
     private val alertSound = FakeAlertSound()
     private val routines = FakeRoutineRepository(listOf(routineWithRests(0, 0)))
 
+    private val scheduler = FakeRestAlertScheduler()
+    private val notifications = FakeNotificationPermission()
+    private val restAlertPreferences = FakeRestAlertPreferences()
+
     private var created: LiveSessionViewModel? = null
 
     private val trainingPreferences = FakeTrainingPreferencesRepository()
@@ -90,6 +94,9 @@ class LiveSessionViewModelTest {
         SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
         TimeZone.UTC,
         savedState,
+        scheduler,
+        notifications,
+        restAlertPreferences,
     ).also { created = it }
 
     /** Stops a rest ticker left running, which would never let the virtual scheduler go idle (frozen clock). */
@@ -1135,6 +1142,225 @@ class LiveSessionViewModelTest {
         assertNull(vm.active().restTimer)
         assertEquals(0, haptics.alerts)
         assertEquals(0, alertSound.plays)
+    }
+
+    // --- Rest alert outside the app (US-64) ---
+
+    private val restEnd get() = clock.current
+
+    @Test
+    fun checkingASet_schedulesTheAlertAtTheRestEnd() = runSessionTest {
+        val vm = timerVm(90, 120)
+
+        check(vm, 0, 1)
+
+        assertEquals(restEnd + 90.seconds, scheduler.scheduled)
+    }
+
+    @Test
+    fun zeroRest_schedulesNothing() = runSessionTest {
+        val vm = timerVm(0, 120)
+
+        check(vm, 0, 1)
+
+        assertEquals(0, scheduler.scheduleCalls)
+    }
+
+    @Test
+    fun add30_movesTheAlertThirtySecondsLater() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+        clock.advance(40.seconds)
+
+        vm.onEvent(LiveSessionEvent.RestAdd30)
+
+        assertEquals(restEnd + 50.seconds, scheduler.scheduled)
+    }
+
+    @Test
+    fun checkingAnotherSet_movesTheAlertToTheNewRestEnd() = runSessionTest {
+        val vm = timerVm(60, 90)
+        check(vm, 0, 1)
+        clock.advance(20.seconds)
+        type(vm, 0, 2, "60", "12")
+
+        check(vm, 0, 2)
+
+        assertEquals(restEnd + 60.seconds, scheduler.scheduled)
+    }
+
+    @Test
+    fun skip_cancelsTheAlert() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.RestSkip)
+
+        assertNull(scheduler.scheduled)
+    }
+
+    @Test
+    fun finishingTheSession_cancelsTheAlert() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.RequestFinish)
+        vm.onEvent(LiveSessionEvent.ConfirmFinish)
+        runCurrent()
+
+        assertNull(scheduler.scheduled)
+    }
+
+    @Test
+    fun discardingTheSession_cancelsTheAlert() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.RequestDiscard)
+        vm.onEvent(LiveSessionEvent.ConfirmDiscard)
+        runCurrent()
+
+        assertNull(scheduler.scheduled)
+    }
+
+    @Test
+    fun restEndingInTheForeground_cancelsTheAlertAndAlertsInApp() = runSessionTest {
+        val vm = timerVm(30, 120)
+        check(vm, 0, 1)
+
+        clock.advance(30.seconds)
+        advanceTimeBy(1_001)
+
+        assertNull(scheduler.scheduled)
+        assertEquals(1, alertSound.plays)
+    }
+
+    @Test
+    fun restEndingInTheBackground_keepsTheAlertAndStaysSilentInApp() = runSessionTest {
+        val vm = timerVm(30, 120)
+        check(vm, 0, 1)
+        vm.onEvent(LiveSessionEvent.Pause)
+
+        clock.advance(31.seconds)
+        advanceTimeBy(1_001)
+
+        assertNotNull(scheduler.scheduled)
+        assertEquals(0, alertSound.plays)
+    }
+
+    @Test
+    fun pausingTheSession_keepsTheAlertScheduled() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+
+        vm.onEvent(LiveSessionEvent.PauseSession)
+        runCurrent()
+
+        assertNotNull(scheduler.scheduled)
+    }
+
+    @Test
+    fun resumingTheSession_schedulesTheAlertForTheRemainingTime() = runSessionTest {
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+        clock.advance(10.seconds)
+        vm.onEvent(LiveSessionEvent.PauseSession)
+        runCurrent()
+        clock.advance(300.seconds)
+
+        vm.onEvent(LiveSessionEvent.ResumeSession)
+        runCurrent()
+
+        assertEquals(restEnd + 50.seconds, scheduler.scheduled)
+    }
+
+    @Test
+    fun theFirstRest_requestsNotificationsOnlyWhenNotGranted() = runSessionTest {
+        notifications.granted = true
+        val vm = timerVm(60, 120)
+
+        check(vm, 0, 1)
+
+        assertEquals(0, notifications.requests)
+    }
+
+    @Test
+    fun denied_emitsTheExplanationOnce_andTheRestStillRuns() = runSessionTest {
+        notifications.granted = false
+        val vm = timerVm(60, 120)
+
+        vm.effects.test {
+            check(vm, 0, 1)
+            runCurrent()
+            assertEquals(LiveSessionEffect.RestAlertPermissionNote, awaitItem())
+            expectNoEvents()
+        }
+
+        assertEquals(1, restAlertPreferences.explanationMarks)
+        assertEquals(60.seconds, vm.active().restTimer?.remaining)
+        assertNotNull(scheduler.scheduled)
+    }
+
+    @Test
+    fun permissionIsRequestedOncePerSession_notAtEveryRest() = runSessionTest {
+        notifications.granted = false
+        val vm = timerVm(60, 120)
+        check(vm, 0, 1)
+        type(vm, 0, 2, "60", "12")
+
+        check(vm, 0, 2)
+
+        assertEquals(1, notifications.requests)
+    }
+
+    @Test
+    fun aRecreatedViewModel_doesNotAskAgain() = runSessionTest {
+        notifications.granted = false
+        val saved = SavedStateHandle()
+        replaceRoutine(60, 120)
+        val first = newViewModel(saved)
+        runCurrent()
+        type(first, 0, 1, "60", "12")
+        check(first, 0, 1)
+        first.onEvent(LiveSessionEvent.RestSkip)
+        val second = newViewModel(saved)
+        runCurrent()
+        type(second, 0, 2, "60", "12")
+
+        check(second, 0, 2)
+
+        assertEquals(1, notifications.requests)
+    }
+
+    @Test
+    fun explanationAlreadyShownBefore_isNotEmittedAgain() = runSessionTest {
+        notifications.granted = false
+        restAlertPreferences.explained = true
+        val vm = timerVm(60, 120)
+
+        vm.effects.test {
+            check(vm, 0, 1)
+            runCurrent()
+            expectNoEvents()
+        }
+
+        assertEquals(0, restAlertPreferences.explanationMarks)
+    }
+
+    @Test
+    fun grantedAtTheDialog_showsNoExplanation() = runSessionTest {
+        notifications.granted = false
+        notifications.grantOnRequest = true
+        val vm = timerVm(60, 120)
+
+        vm.effects.test {
+            check(vm, 0, 1)
+            runCurrent()
+            expectNoEvents()
+        }
+
+        assertEquals(1, notifications.requests)
+        assertEquals(0, restAlertPreferences.explanationMarks)
     }
 
     @Test

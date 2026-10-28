@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.RestSound
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -17,9 +18,14 @@ import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.Haptics
+import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
+import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
+import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Instant
@@ -33,12 +39,68 @@ internal class FakeHaptics : Haptics {
     }
 }
 
-/** Counts the plays. */
+/** Counts the plays and records the previews. */
 internal class FakeAlertSound : AlertSound {
     var plays = 0
+    val previews = mutableListOf<RestSound>()
 
     override fun play() {
         plays++
+    }
+
+    override fun preview(sound: RestSound) {
+        previews += sound
+    }
+}
+
+/** Records the scheduled end-of-rest alert: [scheduled] is the pending alarm (null when none). */
+internal class FakeRestAlertScheduler : RestAlertScheduler {
+    var scheduled: Instant? = null
+    var scheduleCalls = 0
+    var cancelCalls = 0
+
+    override fun schedule(endsAt: Instant) {
+        scheduleCalls++
+        scheduled = endsAt
+    }
+
+    override fun cancel() {
+        cancelCalls++
+        scheduled = null
+    }
+}
+
+/** Notification permission that starts [granted]; a request answers [grantOnRequest] and counts. */
+internal class FakeNotificationPermission(var granted: Boolean = true, var grantOnRequest: Boolean = false) :
+    NotificationPermission {
+    var requests = 0
+
+    override fun isGranted(): Boolean = granted
+
+    override suspend fun request(): Boolean {
+        requests++
+        if (grantOnRequest) granted = true
+        return granted
+    }
+}
+
+/** In-memory [RestAlertPreferences]. */
+internal class FakeRestAlertPreferences(var explained: Boolean = false) : RestAlertPreferences {
+    private val state = MutableStateFlow(RestSound.Default)
+    var explanationMarks = 0
+
+    val current: RestSound get() = state.value
+    override val sound: Flow<RestSound> = state
+
+    override suspend fun setSound(sound: RestSound) {
+        state.value = sound
+    }
+
+    override suspend fun explanationShown(): Boolean = explained
+
+    override suspend fun markExplanationShown() {
+        explanationMarks++
+        explained = true
     }
 }
 

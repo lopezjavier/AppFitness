@@ -15,7 +15,10 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
+import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -127,6 +130,8 @@ class AppModuleTest {
         appModule.verify(
             extraTypes = listOf(
                 Context::class,
+                RestAlertPreferences::class,
+                Function0::class,
                 String::class,
                 Boolean::class,
                 TestLoginCredentials::class,
@@ -154,6 +159,9 @@ class AppModuleTest {
                 PhotoCapture::class,
                 FoodPhotoRepository::class,
                 AlertSound::class,
+                RestAlertScheduler::class,
+                NotificationPermission::class,
+                RestAlertPreferences::class,
                 AuthRepository::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,

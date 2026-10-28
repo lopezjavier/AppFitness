@@ -6,6 +6,7 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.SystemClock
+import io.github.lopezjavier.appfitness.data.local.DataStoreRestAlertPreferences
 import io.github.lopezjavier.appfitness.data.local.DataStoreWatchSeedStore
 import io.github.lopezjavier.appfitness.data.local.DataStoreWeightChartPreferences
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
@@ -56,6 +57,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStat
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
@@ -313,6 +315,7 @@ val sharedModule =
         }
         single<Clock> { SystemClock() }
         single<WeightChartPreferences> { DataStoreWeightChartPreferences(get()) }
+        single<RestAlertPreferences> { DataStoreRestAlertPreferences(get()) }
         single<WatchSeedStore> { DataStoreWatchSeedStore(get()) }
         factory { WeightTrend() }
         factory { BuildDiaryDay() }
