@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-151 (E12 breakdown). Numbering continues from here.
 
-**Next:** T-147 (T-146 merged, #340). Carry-overs from the T-146 review (non-blocking, for Checkpoint E12-A or T-148): rest ending while the user is on another tab of the app posts no notification and no in-app alert (pre-existing in-app behaviour); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
+**Next:** 👤 Checkpoint E12-A (T-146 #340 and T-147 #342 merged, `deploy-supabase` green); after its approval, T-148. T-147 review carry-overs (non-blocking): `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; plural strong-pain terms ("pinchazos", "lesiones") do not match the literal list; no retry of unread discomforts on resume. Carry-overs from the T-146 review (non-blocking, for Checkpoint E12-A or T-148): rest ending while the user is on another tab of the app posts no notification and no in-app alert (pre-existing in-app behaviour); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
 ---
 
@@ -78,19 +78,19 @@ Checkpoints (user decision, 2026-10-28: two): **Checkpoint E12-A** after T-147 a
 **Description:** (1) **Backend:** one migration: `exercise_discomforts` (`id`, `user_id` default `auth.uid()` cascade, `exercise_id` references `exercises` on delete cascade, `logged_at` timestamptz default now, `note` text nullable 1-200 chars, `severe` boolean not null default false, `resolved_at` timestamptz nullable, check `resolved_at >= logged_at`), index on `(user_id, exercise_id, logged_at desc)`; owner RLS enabled and forced with `(select auth.uid())`, select/insert/update grants to `authenticated` (no delete: history for E13), extend `delete_account_cascade.test.sql`; pgTAP. (2) **Domain:** `StrongPainTerms` (the fixed, versioned term list in `shared/…/domain/rules/`; matching case- and accent-insensitive on normalised text, whole words or phrases; no model interprets the text, `07` §7). **Term list (E12 Q1, resolved by the user 2026-10-28):** "dolor fuerte", "dolor agudo", "dolor intenso", "pinchazo", "chasquido", "hormigueo", "entumecimiento", "hinchazón", "lesión", "me he lesionado", "desgarro", "no puedo mover". Plain "dolor" and "molestia" are deliberately **not** terms. **Fixed message:** "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario.", `DiscomfortStatus` (open while not resolved and `now < logged_at + 7 days`; boundary tested), `LogDiscomfort` (sets `severe` from the term match; severe is not chosen by hand, assumption A3) and `ResolveDiscomfort` (sets `resolved_at` = now); `DiscomfortRepository` port + supabase-kt implementation with DTO mapping; a query of the open discomforts for the exercises of the live session. (3) **UI — templates and patterns:** in the live session, "Registrar molestia" is an action of the exercise's ⋮ `AppActionSheet` (R-02; ux-reviewer confirms the placement) opening an Edit sheet (`AppEditSheet`: optional multi-line `AppTextField` "Nota", "Máximo 200 caracteres", pinned "Guardar", R-09/R-10; closes only with X/back/Cancelar, R-38); after saving, the exercise shows "Molestia registrada" (e.g. an `InlineNote` under the exercise header; ux-reviewer picks) with the action "Ya no me molesta" (resolves, Confirm haptic, the label leaves); a severe log shows the fixed message (exact text above; `InlineNote` or `AppInfoSheet`, ux-reviewer picks) and no other suggestion; the open discomfort shows in later sessions until it expires or is resolved; offline: "Guardar" and "Ya no me molesta" disabled with the standard hint (R-30). Where else "Molestia registrada" appears (exercise detail) is not required (assumption A4). Spanish copy beyond the Gherkin literals by ux-reviewer per §10 (glossary entry "Molestia"). T-146's temporary sound chooser and its candidates stay untouched: the user picks the sound from them at Checkpoint E12-A, and T-148 wires the choice.
 
 **Acceptance criteria:**
-- [ ] "Registrar molestia" on "Press banca" + "Guardar" → stored for "Press banca" with today's date; "Press banca" shows "Molestia registrada" in this and later sessions.
-- [ ] Note "dolor fuerte" (or "Dolor FUERTE", "HINCHAZON", "lesion" variants per the normalisation) → "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario." is shown and the row is stored with `severe = true`; a note with only "dolor" or "molestia" (or no listed term) is not severe and shows no message.
-- [ ] "Ya no me molesta" → `resolved_at` = now and "Molestia registrada" disappears.
-- [ ] A discomfort logged 8 days ago (unresolved) no longer shows "Molestia registrada"; one logged 6 days ago does.
-- [ ] pgTAP: RLS enabled and forced, user A cannot read or write user B's discomforts, note length check, `resolved_at` check, cascade on account deletion.
-- [ ] `planning/03-data-model.md` (table) and `04-business-rules.md` (new §4.12 discomfort: open window, severe rule, term list location) updated.
-- [ ] The discomfort sheet draft and the live session survive background and process death (ADR-40).
+- [x] "Registrar molestia" on "Press banca" + "Guardar" → stored for "Press banca" with today's date; "Press banca" shows "Molestia registrada" in this and later sessions.
+- [x] Note "dolor fuerte" (or "Dolor FUERTE", "HINCHAZON", "lesion" variants per the normalisation) → "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario." is shown and the row is stored with `severe = true`; a note with only "dolor" or "molestia" (or no listed term) is not severe and shows no message.
+- [x] "Ya no me molesta" → `resolved_at` = now and "Molestia registrada" disappears.
+- [x] A discomfort logged 8 days ago (unresolved) no longer shows "Molestia registrada"; one logged 6 days ago does.
+- [x] pgTAP: RLS enabled and forced, user A cannot read or write user B's discomforts, note length check, `resolved_at` check, cascade on account deletion.
+- [x] `planning/03-data-model.md` (table) and `04-business-rules.md` (new §4.12 discomfort: open window, severe rule, term list location) updated.
+- [x] The discomfort sheet draft and the live session survive background and process death (ADR-40).
 
 **Host tests:** `StrongPainTermsTest` (every one of the 12 terms, case, accents, phrase vs substring, plain "dolor"/"molestia" do not match, empty/null note); `DiscomfortStatusTest` (6/7/8 days, resolved, boundary); repository mapping test; live-session ViewModel tests (log, severe message, resolve, open discomfort loaded for a new session, offline); Robolectric tests of the action, the Edit sheet (length validation, Guardar), "Molestia registrada", "Ya no me molesta" and the fixed message; restoration test of the sheet draft; pgTAP `exercise_discomforts`.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
-- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before Checkpoint E12-A is presented).
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; lint + `testLocalDebugUnitTest` green.
+- [x] After the merge: `deploy-supabase` green on `main`, data intact (before Checkpoint E12-A is presented).
 
 **Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 16 files.
 **Dependencies:** T-146 merged (no checkpoint in between); E12 Q1 resolved (2026-10-28, terms and message above)
@@ -101,7 +101,7 @@ Checkpoints (user decision, 2026-10-28: two): **Checkpoint E12-A** after T-147 a
 
 ### Checkpoint E12-A — Rest alert with the screen off, its sound, and the discomfort log 👤 (7 items + leave and come back) *(agreed with the user, 2026-10-28: two checkpoints)*
 Journey: during a workout, lock the phone or switch apps while resting and still be told when the rest ends; choose the sound you want; flag an exercise that bothers you and clear it when it no longer does. Why here: right after T-147, before T-148 builds on the live session and wires the chosen sound.
-- [ ] T-146 and T-147 merged, CI green, `deploy-supabase` applied T-147's migration (data intact), every reported bug fixed.
+- [x] T-146 and T-147 merged, CI green, `deploy-supabase` applied T-147's migration (data intact), every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Screen off and background (US-64): start a workout, complete a set with a 90 s rest (or shorter) and lock the phone: when the rest ends the phone vibrates, plays the sound and shows "Descanso terminado" on the lock screen; repeat switching to another app: the same alert arrives on time; tap it: the live session opens.
   2. Foreground: stay in the app until the rest ends: only the in-app alert (vibration and sound), no notification in the shade.
