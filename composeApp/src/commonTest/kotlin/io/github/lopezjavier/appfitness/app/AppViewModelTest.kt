@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AuthState
+import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,6 +15,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -37,7 +42,69 @@ class AppViewModelTest {
         connectivity: FakeConnectivityObserver = FakeConnectivityObserver(initial = true),
         auth: FakeAuthRepository = FakeAuthRepository(),
         profile: FakeProfileRepository = FakeProfileRepository(onboarded),
-    ) = AppViewModel(connectivity, auth, profile)
+        reminders: ReminderCoordinator = idleReminderCoordinator(),
+    ) = AppViewModel(connectivity, auth, profile, reminders)
+
+    private fun reminderEnv() = ReminderEnv(LocalDate(2026, 10, 28)).apply {
+        weight.rows += BodyMeasurement(
+            "w",
+            LocalDate(2026, 10, 24).atStartOfDayIn(TimeZone.UTC),
+            80.0,
+            MeasurementSource.Manual,
+        )
+    }
+
+    @Test
+    fun enteringMain_computesRemindersAndExposesTheCount() = runTest {
+        val env = reminderEnv()
+        val coordinator = ReminderCoordinator(env.load, backgroundScope)
+        val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), reminders = coordinator)
+
+        viewModel.uiState.test {
+            var last = awaitItem()
+            while (last.pendingReminders != 1) last = awaitItem()
+            assertEquals(RootRoute.Main, last.rootRoute)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun refreshEvent_afterAWrite_lowersTheCount() = runTest {
+        val env = reminderEnv()
+        val coordinator = ReminderCoordinator(env.load, backgroundScope)
+        val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), reminders = coordinator)
+
+        viewModel.uiState.test {
+            var last = awaitItem()
+            while (last.pendingReminders != 1) last = awaitItem()
+            env.weight.rows += BodyMeasurement(
+                "today",
+                LocalDate(2026, 10, 28).atStartOfDayIn(TimeZone.UTC),
+                80.0,
+                MeasurementSource.Manual,
+            )
+            viewModel.onEvent(AppEvent.RefreshReminders)
+            assertEquals(0, awaitItem().pendingReminders)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun signedOut_clearsTheReminders() = runTest {
+        val env = reminderEnv()
+        val coordinator = ReminderCoordinator(env.load, backgroundScope)
+        val auth = FakeAuthRepository(AuthState.SignedIn("u1"))
+        val viewModel = viewModel(auth = auth, reminders = coordinator)
+
+        viewModel.uiState.test {
+            var last = awaitItem()
+            while (last.pendingReminders != 1) last = awaitItem()
+            auth.state.value = AuthState.SignedOut
+            while (last.pendingReminders != 0) last = awaitItem()
+            assertEquals(0, coordinator.reminders.value.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 
     @Test
     fun onlineOfflineOnline_togglesIsOffline() = runTest {

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
@@ -23,10 +24,18 @@ import kotlinx.coroutines.flow.update
  * App-wide shell state. [isOffline] drives the "Sin conexión" banner and [rootRoute] what the root shows. The
  * default is the loading state, so Welcome never flashes at cold start.
  */
-data class AppUiState(val isOffline: Boolean = false, val rootRoute: RootRoute = RootRoute.Loading)
+data class AppUiState(
+    val isOffline: Boolean = false,
+    val rootRoute: RootRoute = RootRoute.Loading,
+    /** Number of pending reminders (badge of the notification center entry); 0 until the first refresh. */
+    val pendingReminders: Int = 0,
+)
 
 /** Events of the root. */
 sealed interface AppEvent {
+    /** The app came to the foreground (or a write changed the data): recompute the reminders. */
+    data object RefreshReminders : AppEvent
+
     /** Reads the profile again after a failure. */
     data object RetryProfile : AppEvent
 
@@ -45,7 +54,10 @@ class AppViewModel(
     connectivity: ConnectivityObserver,
     authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val reminders: ReminderCoordinator,
 ) : ViewModel() {
+    private var lastRoute: RootRoute = RootRoute.Loading
+
     private val retryTick = MutableStateFlow(0)
     private val onboardingDone = MutableStateFlow(false)
 
@@ -73,17 +85,31 @@ class AppViewModel(
                     session
                 }
             }
+            .onEach { onRouteResolved(resolveRootRoute(it.auth, it.profile)) }
 
     val uiState: StateFlow<AppUiState> =
-        combine(connectivity.isOnline, session) { online, session ->
+        combine(connectivity.isOnline, session, reminders.reminders) { online, session, pending ->
             AppUiState(
                 isOffline = !online,
                 rootRoute = resolveRootRoute(session.auth, session.profile),
+                pendingReminders = pending.size,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AppUiState())
 
+    /** Reminders are computed when the user enters Main and forgotten when the session ends. */
+    private fun onRouteResolved(route: RootRoute) {
+        val previous = lastRoute
+        lastRoute = route
+        when {
+            route == RootRoute.Main && previous != RootRoute.Main -> reminders.requestRefresh()
+            route == RootRoute.Welcome -> reminders.clear()
+        }
+    }
+
     fun onEvent(event: AppEvent) {
         when (event) {
+            AppEvent.RefreshReminders -> if (lastRoute == RootRoute.Main) reminders.requestRefresh()
+
             AppEvent.RetryProfile -> retryTick.update { it + 1 }
 
             AppEvent.OnboardingCompleted -> {

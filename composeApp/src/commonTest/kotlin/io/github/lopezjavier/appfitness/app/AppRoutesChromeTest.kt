@@ -19,7 +19,7 @@ class AppRoutesChromeTest {
 
     @Test
     fun theWeightRoutes_haveScreenChrome() {
-        listOf(WeightRoute, WeightHistoryRoute).forEach {
+        listOf(WeightRoute(), WeightHistoryRoute, NotificationCenterRoute).forEach {
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }

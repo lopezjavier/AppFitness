@@ -18,10 +18,11 @@ import org.koin.compose.viewmodel.koinViewModel
 fun WeightHistoryRoot(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onRemindersChange: () -> Unit = {},
     viewModel: WeightViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    CollectWeightEffects(viewModel)
+    CollectWeightEffects(viewModel, onRemindersChange)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(WeightEvent.Refresh) }
     WeightHistoryScreen(state, viewModel::onEvent, onBack, modifier)
 }

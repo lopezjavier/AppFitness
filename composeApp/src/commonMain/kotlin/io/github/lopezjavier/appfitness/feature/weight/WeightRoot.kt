@@ -5,11 +5,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.app.WeightEntryTarget
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
@@ -34,6 +37,8 @@ fun WeightRoot(
     onOpenHistory: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    openEntry: WeightEntryTarget? = null,
+    onRemindersChange: () -> Unit = {},
     viewModel: WeightViewModel = koinViewModel(),
     circumferencesViewModel: CircumferencesViewModel = koinViewModel(),
     healthSyncViewModel: HealthSyncViewModel = koinViewModel(),
@@ -48,10 +53,10 @@ fun WeightRoot(
     val trend by trendViewModel.uiState.collectAsStateWithLifecycle()
     val goal by goalViewModel.uiState.collectAsStateWithLifecycle()
     val launcher = launcherFor { granted -> healthSyncViewModel.onEvent(HealthSyncEvent.PermissionResult(granted)) }
-    CollectWeightEffects(viewModel)
-    CollectCircumferenceEffects(circumferencesViewModel.effects)
+    CollectWeightEffects(viewModel, onRemindersChange)
+    CollectCircumferenceEffects(circumferencesViewModel.effects, onRemindersChange)
     CollectGoalEffects(goalViewModel.effects)
-    CollectHealthEffects(healthSyncViewModel, viewModel, trendViewModel, launcher)
+    CollectHealthEffects(healthSyncViewModel, viewModel, trendViewModel, launcher, onRemindersChange)
     // A saved, edited or deleted weight changes the latest reading or the month's days: the trend reloads.
     val measurements = (state as? WeightUiState.Content)?.content?.let { it.current to it.days }
     LaunchedEffect(measurements) {
@@ -66,6 +71,13 @@ fun WeightRoot(
     LaunchedEffect(goalTarget) {
         if (firstTarget) firstTarget = false else trendViewModel.onEvent(WeightTrendEvent.Refresh)
     }
+    OpenRequestedEntry(
+        target = openEntry,
+        weightReady = state is WeightUiState.Content,
+        circumferencesReady = circumferences is CircumferencesUiState.Content,
+        onWeightEvent = viewModel::onEvent,
+        onCircumferenceEvent = circumferencesViewModel::onEvent,
+    )
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.onEvent(WeightEvent.Refresh)
         trendViewModel.onEvent(WeightTrendEvent.Refresh)
@@ -91,11 +103,44 @@ fun WeightRoot(
 }
 
 /**
+ * Opens the entry a tapped reminder asked for ([target], US-57) once its data is loaded. The flag is saved, so a
+ * rotation or process restoration does not open it again (ADR-40).
+ */
+@Composable
+internal fun OpenRequestedEntry(
+    target: WeightEntryTarget?,
+    weightReady: Boolean,
+    circumferencesReady: Boolean,
+    onWeightEvent: (WeightEvent) -> Unit,
+    onCircumferenceEvent: (CircumferencesEvent) -> Unit,
+) {
+    var consumed by rememberSaveable { mutableStateOf(false) }
+    val latestWeightEvent by rememberUpdatedState(onWeightEvent)
+    val latestCircumferenceEvent by rememberUpdatedState(onCircumferenceEvent)
+    val ready = when (target) {
+        WeightEntryTarget.Weight -> weightReady
+        WeightEntryTarget.Circumference -> circumferencesReady
+        null -> false
+    }
+    LaunchedEffect(target, ready, consumed) {
+        if (ready && !consumed) {
+            consumed = true
+            when (target) {
+                WeightEntryTarget.Weight -> latestWeightEvent(WeightEvent.LogToday)
+                WeightEntryTarget.Circumference -> latestCircumferenceEvent(CircumferencesEvent.OpenAdd)
+                null -> Unit
+            }
+        }
+    }
+}
+
+/**
  * Weight saves and deletes confirm with a haptic only, the change is visible (R-13); failures reject and show a
  * message. Shared by the Peso and the history routes, each with its own [viewModel].
  */
 @Composable
-internal fun CollectWeightEffects(viewModel: WeightViewModel) {
+internal fun CollectWeightEffects(viewModel: WeightViewModel, onRemindersChange: () -> Unit = {}) {
+    val latestOnChanged by rememberUpdatedState(onRemindersChange)
     val failed = stringResource(Res.string.weight_delete_error)
     val offline = stringResource(Res.string.weight_delete_error_offline)
     val saveFailed = stringResource(Res.string.weight_save_error)
@@ -110,7 +155,10 @@ internal fun CollectWeightEffects(viewModel: WeightViewModel) {
                     appMessages.show(if (effect.offline) offline else failed)
                 }
 
-                WeightEffect.Saved, WeightEffect.Deleted -> haptics.confirm()
+                WeightEffect.Saved, WeightEffect.Deleted -> {
+                    haptics.confirm()
+                    latestOnChanged()
+                }
 
                 is WeightEffect.SaveFailed -> {
                     haptics.reject()
@@ -127,7 +175,9 @@ private fun CollectHealthEffects(
     viewModel: WeightViewModel,
     trendViewModel: WeightTrendViewModel,
     launcher: HealthConnectLauncher,
+    onRemindersChange: () -> Unit,
 ) {
+    val latestOnChanged by rememberUpdatedState(onRemindersChange)
     LaunchedEffect(healthSyncViewModel) {
         healthSyncViewModel.effects.collect { effect ->
             when (effect) {
@@ -138,6 +188,7 @@ private fun CollectHealthEffects(
                 is HealthSyncEffect.Synced -> {
                     viewModel.onEvent(WeightEvent.Refresh)
                     trendViewModel.onEvent(WeightTrendEvent.Refresh)
+                    latestOnChanged()
                 }
             }
         }
@@ -146,7 +197,8 @@ private fun CollectHealthEffects(
 
 // Saves and deletes confirm with a haptic only, the change is visible (R-13); failures reject and show a message.
 @Composable
-private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>) {
+private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>, onRemindersChange: () -> Unit) {
+    val latestOnChanged by rememberUpdatedState(onRemindersChange)
     val deleteFailed = stringResource(Res.string.delete_failed)
     val deleteOffline = stringResource(Res.string.delete_offline)
     val saveFailed = stringResource(Res.string.weight_save_error)
@@ -161,7 +213,10 @@ private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>) {
                     appMessages.show(if (effect.offline) deleteOffline else deleteFailed)
                 }
 
-                CircumferencesEffect.Saved, CircumferencesEffect.Deleted -> haptics.confirm()
+                CircumferencesEffect.Saved, CircumferencesEffect.Deleted -> {
+                    haptics.confirm()
+                    latestOnChanged()
+                }
 
                 is CircumferencesEffect.SaveFailed -> {
                     haptics.reject()

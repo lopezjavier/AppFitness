@@ -3,6 +3,8 @@ package io.github.lopezjavier.appfitness.app
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.about.AboutRoot
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
@@ -20,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.food.EditFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterRoot
 import io.github.lopezjavier.appfitness.feature.profile.AccountRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
@@ -50,10 +53,14 @@ fun AppRoot(
     viewModel: AppViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val refreshReminders: () -> Unit = { viewModel.onEvent(AppEvent.RefreshReminders) }
+    // Coming back to the app recomputes the reminders (a day may have passed); ignored until Main is shown.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { refreshReminders() }
     App(
         modifier = modifier,
         features = features,
         isOffline = state.isOffline,
+        pendingReminders = state.pendingReminders,
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
         profile = {
@@ -121,8 +128,21 @@ fun AppRoot(
                 onBack,
             )
         },
-        weight = { weightModifier, onOpenHistory, onBack -> WeightRoot(onOpenHistory, onBack, weightModifier) },
-        weightHistory = { historyModifier, onBack -> WeightHistoryRoot(onBack, historyModifier) },
+        weight = { weightModifier, openEntry, onOpenHistory, onBack ->
+            WeightRoot(
+                onOpenHistory,
+                onBack,
+                weightModifier,
+                openEntry = openEntry,
+                onRemindersChange = refreshReminders,
+            )
+        },
+        notificationCenter = { centerModifier, onOpenReminder, onBack ->
+            NotificationCenterRoot(onOpenReminder, onBack, centerModifier)
+        },
+        weightHistory = { historyModifier, onBack ->
+            WeightHistoryRoot(onBack, historyModifier, onRemindersChange = refreshReminders)
+        },
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },

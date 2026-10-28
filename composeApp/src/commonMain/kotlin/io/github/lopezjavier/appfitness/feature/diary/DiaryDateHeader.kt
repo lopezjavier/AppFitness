@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
@@ -79,5 +80,7 @@ internal fun DiaryDateHeader(
             testTag = "diary_day_picker_open",
             onClick = onOpenDayPicker,
         )
+        // Only the tab root (no back arrow) offers the notification center; a past day does not.
+        if (onBack == null) NotificationsBell("diary_action_notifications")
     }
 }

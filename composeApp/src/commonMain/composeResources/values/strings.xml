@@ -1465,4 +1465,26 @@
         <item>Open Food Facts|Datos de alimentos de Open Food Facts (openfoodfacts.org), con licencia ODbL</item>
         <item>Google Gemini|Estimaciones de comidas a partir de fotos con Google Gemini</item>
     </string-array>
+
+    <!-- T-135 notification center -->
+    <string name="notifications_title">Centro de avisos</string>
+    <plurals name="notifications_bell_cd">
+        <item quantity="one">Centro de avisos, %1$d pendiente</item>
+        <item quantity="other">Centro de avisos, %1$d pendientes</item>
+    </plurals>
+    <string name="notifications_badge_overflow">9+</string>
+    <string name="notifications_pending_section">Pendientes</string>
+    <string name="notifications_settings_section">Avisos</string>
+    <string name="notifications_weight_reminder">No te has pesado en %1$d días</string>
+    <string name="notifications_circumference_reminder">No te has medido en %1$d semanas</string>
+    <string name="notifications_reminder_open_weight">Registrar peso</string>
+    <string name="notifications_reminder_open_circumference">Registrar circunferencias</string>
+    <string name="notifications_switch_weight">Recordatorio de peso</string>
+    <string name="notifications_switch_weight_helper">Si pasan 2 días sin pesarte.</string>
+    <string name="notifications_switch_circumference">Recordatorio de circunferencias</string>
+    <string name="notifications_switch_circumference_helper">Si pasan 2 semanas sin medirte.</string>
+    <string name="notifications_empty_title">Todo al día</string>
+    <string name="notifications_empty_message">No tienes avisos pendientes.</string>
+    <string name="notifications_toggle_error">No se pudo cambiar el aviso. Inténtalo de nuevo.</string>
+    <string name="notifications_offline_action">cambiar el aviso</string>
 </resources>

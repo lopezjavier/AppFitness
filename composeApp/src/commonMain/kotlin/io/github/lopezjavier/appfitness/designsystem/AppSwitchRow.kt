@@ -23,7 +23,8 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * A label with a one-line [helper] and a switch: the whole row (at least 48 dp tall) toggles, so there is a single
  * focus target. The switch is drawn inside but hidden from semantics; the row exposes `Role.Switch` and "Activado" /
- * "Desactivado". The caller's [modifier] (tag included) lands on the toggleable row.
+ * "Desactivado". The caller's [modifier] (tag included) lands on the toggleable row. A disabled ([enabled] false) row
+ * is inert and dimmed (for example offline, with an `offlineHint`).
  */
 @Composable
 fun AppSwitchRow(
@@ -32,13 +33,14 @@ fun AppSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val stateText = stringResource(if (checked) Res.string.switch_row_on else Res.string.switch_row_off)
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = Spacing.minTouchTarget)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .semantics(mergeDescendants = true) { stateDescription = stateText },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -51,6 +53,7 @@ fun AppSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             contentDescription = label,
+            enabled = enabled,
             modifier = Modifier.clearAndSetSemantics {},
         )
     }
@@ -62,7 +65,7 @@ private fun AppSwitchRowPreview() {
     AppTheme {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             AppSwitchRow("Incluir calentamiento", "Cuentan en volumen y récords.", checked = true, onCheckedChange = {})
-            AppSwitchRow("Actualizar automáticamente", "Se guarda sin preguntar.", checked = false, onCheckedChange = {
+            AppSwitchRow("Actualizar automáticamente", "Se aplica al cambiarlo.", checked = false, onCheckedChange = {
             })
         }
     }

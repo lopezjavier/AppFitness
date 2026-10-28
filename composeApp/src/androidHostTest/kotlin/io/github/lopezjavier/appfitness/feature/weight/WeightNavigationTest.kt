@@ -41,7 +41,7 @@ class WeightNavigationTest {
         rule.waitForIdle()
     }
 
-    private val weightSlot: WeightSlot = { modifier, onOpenHistory, onBack ->
+    private val weightSlot: WeightSlot = { modifier, _, onOpenHistory, onBack ->
         WeightScreen(
             state = WeightUiState.Loading,
             onEvent = {},

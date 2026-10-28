@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
+import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
@@ -49,6 +50,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -67,6 +69,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.ValidateTemplateName
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -189,6 +192,9 @@ class AppModuleTest {
                 HealthSyncRepository::class,
                 ValidateBodyMeasurement::class,
                 CircumferenceRepository::class,
+                NotificationSettingsRepository::class,
+                LoadReminders::class,
+                CoroutineScope::class,
                 ValidateCircumference::class,
                 WaistHipRatio::class,
                 Bmi::class,

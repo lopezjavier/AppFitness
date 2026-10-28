@@ -10,7 +10,7 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 - No default privileges for `anon`; every new object needs an explicit grant to `authenticated`/`service_role`.
 
 ## 1. Enums
-`sex`, `activity_level` (sedentary..very_high), `goal_strategy` (deficit/maintenance/surplus), `meal_type` (default meal codes), `food_source` (off/user), `food_base_unit` (g/ml), `food_cooking_method` (raw/griddle/air_fryer/fried), `measurement_source` (manual/health_connect), `circumference_site`, `muscle_group`, `equipment`, `session_status` (in_progress/completed/discarded), `exercise_metric_type` (weight_reps, reps_only, duration, weight_duration, distance_duration, bodyweight, assisted, weighted, steps_duration, floors_duration), `set_type` (working/warm_up/failure/drop).
+`sex`, `activity_level` (sedentary..very_high), `goal_strategy` (deficit/maintenance/surplus), `meal_type` (default meal codes), `food_source` (off/user), `food_base_unit` (g/ml), `food_cooking_method` (raw/griddle/air_fryer/fried), `measurement_source` (manual/health_connect), `circumference_site`, `muscle_group`, `equipment`, `session_status` (in_progress/completed/discarded), `exercise_metric_type` (weight_reps, reps_only, duration, weight_duration, distance_duration, bodyweight, assisted, weighted, steps_duration, floors_duration), `set_type` (working/warm_up/failure/drop), `notification_kind` (weight/circumference/weekly_check_in).
 
 ## 2. Profile and goals
 - `profiles` (id = auth user): display_name, avatar_url (Google, `https://` only), birth_date, sex, height_cm, activity_level, target_weight_kg, onboarding_completed. Created by the `on_auth_user_created` trigger (sanitized metadata); `on_auth_user_metadata_updated` refreshes the avatar only. Client has SELECT and column-level UPDATE; no delete. Current weight is the latest `body_measurements` row.
@@ -29,6 +29,7 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 ## 4. Weight
 - `body_measurements`: measured_at, weight_kg, body_fat_pct, lean_mass_kg, water_kg, bone_kg, bmr_kcal (composition only from Health Connect), source, `external_id` (HC dedup), `hc_record_id` (copy written by the app). The onboarding weight is the user's first row.
 - `body_circumferences` (site, value_cm, measured_at). `health_sync_state` (last sync per user).
+- `notification_settings` (T-135, US-57): `(user_id, kind)` primary key, `enabled`, `updated_at`; owner select/insert/update (no delete), client upserts on `(user_id, kind)`. **A missing row means enabled.** Reminders are derived on the client from the latest weight and circumference rows, never stored.
 
 ## 5. Training
 - `exercises`: catalogue rows hold only `key`, `muscle_group`, `secondary_muscles`, `equipment`, `metric_type`, `per_hand` (names/text/images come from the client bundle, ADR-38/39); custom rows (`is_custom`, owner) have a name.

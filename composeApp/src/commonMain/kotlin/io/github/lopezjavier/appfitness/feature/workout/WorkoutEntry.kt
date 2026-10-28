@@ -44,6 +44,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesRoot
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -181,6 +182,7 @@ private fun EntryHeader(title: String, onOpenHistory: () -> Unit) {
             testTag = "workout_entry_history",
             onClick = onOpenHistory,
         )
+        NotificationsBell("workout_action_notifications")
     }
 }
 
