@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** T-140 merged (#323), `deploy-supabase` green on `main`. Start **T-141** (read watch data with "Sincronizar", E11 Q1 = branch A: 90 days, history permission) in a fresh session. Planner note from the T-140 review: clamp or drop out-of-range values on the client (one bad row fails the whole `import_health_activity` batch with 23514).
+**Next:** T-141 merged (#325). Start **T-142** (daily automatic sync on the first open, US-60) in a fresh session. Notes from the T-141 review: without the history permission the 90-day watch read may throw and fail the whole watch import (consider a 30-day fallback); a watch failure is swallowed when weight succeeds (`Synced` with `watch=null`), T-142 should surface it in the status line; the Zepp overlap is verified by hand at Checkpoint E11.
 
 ---
 
@@ -98,19 +98,19 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 **Description:** (1) **Platform:** `HealthConnectDataSource` reads `SleepSessionRecord` (with stages), `StepsRecord`, `ActiveCaloriesBurnedRecord`, `TotalCaloriesBurnedRecord` and `RestingHeartRateRecord`, each only when its read permission is granted (partial permission: a missing type is skipped, never an error); steps and calories as daily totals per local day (aggregation by day so overlapping records are not double-counted; planner confirms the API); own-origin records skipped as today (US-62). The Changes token covers the new types; touched days are re-read whole so a day total is replaced, never added to. (2) **Permissions (US-63):** the requested set = reads of the existing six types plus the five new ones (+ history per branch); writes stay `WRITE_WEIGHT` and `WRITE_BODY_FAT` only, and the manifest's unused `WRITE_LEAN_BODY_MASS`, `WRITE_BODY_WATER_MASS`, `WRITE_BONE_MASS`, `WRITE_BASAL_METABOLIC_RATE` declarations are removed; the rationale activity text covers the new types. A user who granted only the E5 types is asked again for the new ones from "Sincronizar". (3) **Core:** the sync use case (extend `SyncHealthMeasurements` or a `SyncHealthData` that composes it) imports every granted type in one "Sincronizar" and returns a per-type outcome; the weight path and its reminder refresh (T-135) are unchanged. Sleep belongs to the local day it ends on; several resting-heart-rate readings in a day keep the latest (assumptions A1–A2 in the plan). (4) **UI — templates and patterns:** where the values are shown is chosen by ux-reviewer in the plan pass (epic note; candidates: an "Actividad" `SectionHeader` on Peso under the Health Connect `MetricCard`, or a Perfil → "Estadísticas" destination). Expected patterns: `MetricCard`s (sueño de anoche with duration, pasos de ayer, calorías activas/totales, frecuencia cardiaca en reposo) with `AppNumberFormat`/`AppDateFormat`; a type with no data shows no card and no error; loading skeleton, `ErrorState` "Reintentar", offline per R-30. The existing "Sincronizar" button and status line on Peso stay where they are. Spanish copy by ux-reviewer per the glossary (§10). (5) **Sweep:** remove T-139's temporary diagnostic screen and its "Acerca de" row.
 
 **Acceptance criteria:**
-- [ ] Granting every read permission and tapping "Sincronizar" stores last night's sleep with its duration, yesterday's steps (e.g. 8500 shows as 8500) and calories, and the resting heart rate when the watch writes it; the values are visible where ux-reviewer placed them.
-- [ ] No resting heart rate in Health Connect → none stored, nothing shown for it, no error.
-- [ ] Steps granted and sleep denied → steps stored, sleep not read, no error.
-- [ ] Tapping "Sincronizar" twice → yesterday's steps appear once with the same total; a weight written by AppFitness is not imported.
-- [ ] The app requests write access only for weight and body fat (manifest and requested set); the four unused write declarations are gone.
-- [ ] Branch A: the history permission is asked before older data is read and the first sync brings 90 days; Branch B: the first sync brings 30 days and no history permission is declared.
-- [ ] The diagnostic screen of T-139 is gone.
-- [ ] Empty, loading, error and offline states; the screen showing the values and its scroll survive background and process death (ADR-40).
+- [x] Granting every read permission and tapping "Sincronizar" stores last night's sleep with its duration, yesterday's steps (e.g. 8500 shows as 8500) and calories, and the resting heart rate when the watch writes it; the values are visible where ux-reviewer placed them.
+- [x] No resting heart rate in Health Connect → none stored, nothing shown for it, no error.
+- [x] Steps granted and sleep denied → steps stored, sleep not read, no error.
+- [x] Tapping "Sincronizar" twice → yesterday's steps appear once with the same total; a weight written by AppFitness is not imported.
+- [x] The app requests write access only for weight and body fat (manifest and requested set); the four unused write declarations are gone.
+- [x] Branch A: the history permission is asked before older data is read and the first sync brings 90 days; Branch B: the first sync brings 30 days and no history permission is declared.
+- [x] The diagnostic screen of T-139 is gone.
+- [x] Empty, loading, error and offline states; the screen showing the values and its scroll survive background and process death (ADR-40).
 
 **Host tests:** sync use-case tests with a fake data source (all types, partial permission, missing type, second sync idempotent, own-origin skipped, touched day re-read and replaced, first window 90/30 by branch, local-day assignment of sleep and daily totals across midnight); requested-permission-set test (reads, writes only weight and fat, history per branch); `HealthSyncViewModel` tests (per-type outcome, permission re-request for new types); Robolectric tests of the values surface (cards, no card for a missing type, states) and restoration.
 
 **Verification:**
-- [ ] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
+- [x] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 20 files (no backend: T-140). No checkpoint after it: its items are tested at Checkpoint E11 after T-142.
 **Dependencies:** T-140 merged and `deploy-supabase` green; T-139 spike report recorded (E11 Q1 resolved)
