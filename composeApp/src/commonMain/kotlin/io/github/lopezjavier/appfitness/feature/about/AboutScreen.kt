@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.about_credits_section
+import io.github.lopezjavier.appfitness.composeapp.resources.about_health_diagnostics_row
 import io.github.lopezjavier.appfitness.composeapp.resources.about_licenses_row
 import io.github.lopezjavier.appfitness.composeapp.resources.about_title
 import io.github.lopezjavier.appfitness.composeapp.resources.about_version_flavor_format
@@ -37,12 +38,18 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful "Acerca de": connects [AboutViewModel] and the system licences screen to the stateless [AboutScreen]. */
 @Composable
-fun AboutRoot(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: AboutViewModel = koinViewModel()) {
+fun AboutRoot(
+    onBack: () -> Unit,
+    onOpenHealthDiagnostics: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: AboutViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     AboutScreen(
         state = state,
         onBack = onBack,
         onOpenLicenses = rememberOpenSourceLicensesLauncher()::open,
+        onOpenHealthDiagnostics = onOpenHealthDiagnostics,
         modifier = modifier,
     )
 }
@@ -52,7 +59,13 @@ fun AboutRoot(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: Abou
  * "Licencias de código abierto" row. It is static and holds no editable state, so there is nothing to restore.
  */
 @Composable
-fun AboutScreen(state: AboutUiState, onBack: () -> Unit, onOpenLicenses: () -> Unit, modifier: Modifier = Modifier) {
+fun AboutScreen(
+    state: AboutUiState,
+    onBack: () -> Unit,
+    onOpenLicenses: () -> Unit,
+    onOpenHealthDiagnostics: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val credits = stringArrayResource(Res.array.credits)
     val parsed = remember(credits) { credits.map(Credit::parse) }
     AppScreen(
@@ -80,6 +93,11 @@ fun AboutScreen(state: AboutUiState, onBack: () -> Unit, onOpenLicenses: () -> U
                     label = stringResource(Res.string.about_licenses_row),
                     onClick = onOpenLicenses,
                     modifier = Modifier.testTag("about_licenses_row"),
+                )
+                NavigationRow(
+                    label = stringResource(Res.string.about_health_diagnostics_row),
+                    onClick = onOpenHealthDiagnostics,
+                    modifier = Modifier.testTag("about_health_diagnostics_row"),
                 )
             }
         }

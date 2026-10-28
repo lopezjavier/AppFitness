@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.HealthHistoryProbe
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -121,7 +122,13 @@ class AppModuleTest {
     @Test
     fun koinGraph_isConsistent() {
         appModule.verify(
-            extraTypes = listOf(Context::class, String::class, Boolean::class, TestLoginCredentials::class),
+            extraTypes = listOf(
+                Context::class,
+                String::class,
+                Boolean::class,
+                TestLoginCredentials::class,
+                Clock::class,
+            ),
         )
         sharedModule.verify(
             extraTypes =
@@ -190,6 +197,7 @@ class AppModuleTest {
                 SaveBodyMeasurement::class,
                 HealthWriteBack::class,
                 HealthDataSource::class,
+                HealthHistoryProbe::class,
                 SyncHealthMeasurements::class,
                 HealthSyncRepository::class,
                 ValidateBodyMeasurement::class,

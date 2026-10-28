@@ -26,13 +26,20 @@ class AboutScreenTest {
 
     private var licenseOpens = 0
     private var backs = 0
+    private var diagnosticOpens = 0
 
     private fun show(info: BuildInfo = BuildInfo("AppFitness", "1.0", 7, "prod")) {
+        diagnosticOpens = 0
         licenseOpens = 0
         backs = 0
         rule.setContent {
             AppTheme {
-                AboutScreen(AboutUiState(info), onBack = { backs++ }, onOpenLicenses = { licenseOpens++ })
+                AboutScreen(
+                    AboutUiState(info),
+                    onBack = { backs++ },
+                    onOpenLicenses = { licenseOpens++ },
+                    onOpenHealthDiagnostics = { diagnosticOpens++ },
+                )
             }
         }
         rule.waitForIdle()
@@ -76,6 +83,17 @@ class AboutScreenTest {
     }
 
     @Test
+    fun healthDiagnosticsRow_isLabelledAndOpensTheDiagnostic() {
+        show()
+
+        rule.onNodeWithTag("about_health_diagnostics_row").performScrollTo()
+            .assertTextContains("Diagnóstico de Health Connect")
+            .performClick()
+
+        assertEquals(1, diagnosticOpens)
+    }
+
+    @Test
     fun screen_recomposesAfterRecreation() {
         val tester = StateRestorationTester(rule)
         tester.setContent {
@@ -84,6 +102,7 @@ class AboutScreenTest {
                     AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")),
                     onBack = {},
                     onOpenLicenses = {},
+                    onOpenHealthDiagnostics = {},
                 )
             }
         }

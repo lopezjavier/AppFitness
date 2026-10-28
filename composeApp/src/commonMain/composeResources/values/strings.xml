@@ -1460,6 +1460,19 @@
     <string name="about_version_format">Versión %1$s (%2$d)</string>
     <string name="about_version_flavor_format">%1$s · %2$s</string>
     <string name="about_licenses_row">Licencias de código abierto</string>
+    <string name="about_health_diagnostics_row">Diagnóstico de Health Connect</string>
+    <string name="health_diagnostics_title">Diagnóstico de Health Connect</string>
+    <string name="health_diagnostics_check">Comprobar</string>
+    <string name="health_diagnostics_feature">Historial de más de 30 días</string>
+    <string name="health_diagnostics_history">Permiso de historial concedido</string>
+    <string name="health_diagnostics_old">Registros de hace 60 a 90 días</string>
+    <string name="health_diagnostics_recent">Registros de los últimos 30 días</string>
+    <string name="health_diagnostics_oldest">Registro más antiguo</string>
+    <string name="health_diagnostics_yes">Sí</string>
+    <string name="health_diagnostics_no">No</string>
+    <string name="health_diagnostics_feature_unavailable">No disponible</string>
+    <string name="health_diagnostics_counts_format">Pasos: %1$s · Peso: %2$s</string>
+    <string name="health_diagnostics_error">No se pudo comprobar Health Connect. Inténtalo de nuevo.</string>
     <!-- Each entry is "Title|Text" (see Credit.parse); order is fixed. -->
     <string-array name="credits">
         <item>RepDB|Datos de ejercicios por RepDB (repdb.co)</item>

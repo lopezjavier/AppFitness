@@ -71,6 +71,7 @@ class ShellChromeTest {
                 WeightRoute::class,
                 WeightHistoryRoute,
                 AboutRoute,
+                HealthDiagnosticsRoute,
                 NotificationCenterRoute,
                 CheckInRoute,
             ),
@@ -88,6 +89,7 @@ class ShellChromeTest {
                     it is DiaryHistoryRoute ||
                     it is WeightHistoryRoute ||
                     it is AboutRoute ||
+                    it is HealthDiagnosticsRoute ||
                     it is NotificationCenterRoute ||
                     it is CheckInRoute
                 ) {

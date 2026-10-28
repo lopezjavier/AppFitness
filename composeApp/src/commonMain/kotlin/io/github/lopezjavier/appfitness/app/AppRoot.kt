@@ -7,6 +7,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.about.AboutRoot
+import io.github.lopezjavier.appfitness.feature.about.HealthDiagnosticsRoot
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
@@ -108,7 +109,10 @@ fun AppRoot(
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
         account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
-        about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
+        about = { aboutModifier, onBack, onOpenHealthDiagnostics ->
+            AboutRoot(onBack, onOpenHealthDiagnostics, aboutModifier)
+        },
+        healthDiagnostics = { diagnosticsModifier, onBack -> HealthDiagnosticsRoot(onBack, diagnosticsModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)
         },
