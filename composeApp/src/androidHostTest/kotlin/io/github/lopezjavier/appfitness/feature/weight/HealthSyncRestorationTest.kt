@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
+import io.github.lopezjavier.appfitness.app.InMemoryWatchSeedStore
 import io.github.lopezjavier.appfitness.app.idleReminderCoordinator
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
@@ -104,6 +105,7 @@ class HealthSyncRestorationTest {
         source,
         syncRepository,
         SyncHealthMeasurements(source, syncRepository, HealthClock),
+        InMemoryWatchSeedStore(),
         HealthClock,
         TimeZone.UTC,
     )

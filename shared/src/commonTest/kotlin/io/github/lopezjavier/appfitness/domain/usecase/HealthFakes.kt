@@ -14,8 +14,10 @@ import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import kotlinx.datetime.LocalDate
@@ -55,7 +57,11 @@ internal class FakeHealthDataSource : HealthDataSource {
     /** The first N watch reads fail (then [watchFailure] applies), to script the 90 -> 30 day fallback. */
     var failFirstWatchReads = 0
 
+    /** Earliest start and end of every watch read. */
     val watchReads = mutableListOf<Pair<Instant, Instant>>()
+
+    /** The per-metric start of every watch read. */
+    val watchPlans = mutableListOf<Map<WatchMetric, Instant>>()
     val events = mutableListOf<String>()
     val reads = mutableListOf<Pair<Instant, Instant>>()
     val changeReads = mutableListOf<String>()
@@ -79,9 +85,14 @@ internal class FakeHealthDataSource : HealthDataSource {
         return Result.success(records)
     }
 
-    override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> {
+    override suspend fun readWatchData(
+        from: Map<WatchMetric, Instant>,
+        to: Instant,
+        zone: TimeZone,
+    ): Result<HealthActivityBatch> {
         events += "watch"
-        watchReads += from to to
+        watchPlans += from
+        watchReads += (from.values.minOrNull() ?: to) to to
         val failure = if (failFirstWatchReads > 0) {
             failFirstWatchReads--
             IllegalStateException("history")
@@ -112,6 +123,17 @@ internal class FakeHealthDataSource : HealthDataSource {
         deleteFailure?.let { return Result.failure(it) }
         deletedCopies += rowId
         return Result.success(Unit)
+    }
+}
+
+internal class InMemoryWatchSeedStore(initial: Set<WatchMetric> = emptySet()) : WatchSeedStore {
+    var seeded = initial
+        private set
+
+    override suspend fun seeded(): Set<WatchMetric> = seeded
+
+    override suspend fun markSeeded(types: Set<WatchMetric>) {
+        seeded = seeded + types
     }
 }
 

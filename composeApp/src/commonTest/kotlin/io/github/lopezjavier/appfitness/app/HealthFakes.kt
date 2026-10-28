@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
 import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.usecase.ActivityDayValues
@@ -62,7 +63,11 @@ internal class FakeHealthDataSource : HealthDataSource {
     var rangeReads = 0
     var watchReads = 0
 
-    override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> {
+    override suspend fun readWatchData(
+        from: Map<WatchMetric, Instant>,
+        to: Instant,
+        zone: TimeZone,
+    ): Result<HealthActivityBatch> {
         watchReads++
         watchFailure?.let { return Result.failure(it) }
         return Result.success(watchBatch)
@@ -135,6 +140,17 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
     }
 }
 
+/** In-memory [WatchSeedStore]. */
+internal class InMemoryWatchSeedStore(initial: Set<WatchMetric> = emptySet()) : WatchSeedStore {
+    private var seeded = initial
+
+    override suspend fun seeded(): Set<WatchMetric> = seeded
+
+    override suspend fun markSeeded(types: Set<WatchMetric>) {
+        seeded = seeded + types
+    }
+}
+
 /** Scriptable [HealthActivityRepository]: answers [history], or [failure] when set. */
 internal class FakeHealthActivityRepository : HealthActivityRepository {
     var failure: Throwable? = null
@@ -172,8 +188,14 @@ internal fun healthSyncCoordinator(
     clock: Clock = ReminderClock(LocalDate(2026, 10, 28)),
     reminders: ReminderCoordinator = idleReminderCoordinator(),
 ): HealthSyncCoordinator {
-    val sync =
-        SyncHealthData(source, repository, SyncHealthMeasurements(source, repository, clock), clock, TimeZone.UTC)
+    val sync = SyncHealthData(
+        source,
+        repository,
+        SyncHealthMeasurements(source, repository, clock),
+        InMemoryWatchSeedStore(),
+        clock,
+        TimeZone.UTC,
+    )
     val auto = AutoSyncHealth(source, repository, sync, connectivity, clock, TimeZone.UTC)
     return HealthSyncCoordinator(auto, sync, connectivity, reminders, scope)
 }

@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
+import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -218,6 +219,7 @@ class AppModuleTest {
                 TargetDistance::class,
                 InterpretMetric::class,
                 WeightChartPreferences::class,
+                WatchSeedStore::class,
                 WeightTrend::class,
                 PastWorkoutSource::class,
                 BuildInfo::class,

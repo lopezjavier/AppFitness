@@ -33,8 +33,15 @@ class SyncHealthDataTest {
     private val source = FakeHealthDataSource()
     private val repository = FakeHealthSyncRepository()
     private val clock = FixedTestClock(NOW)
-    private val sync =
-        SyncHealthData(source, repository, SyncHealthMeasurements(source, repository, clock), clock, ZONE)
+    private val seedStore = InMemoryWatchSeedStore()
+    private val sync = SyncHealthData(
+        source,
+        repository,
+        SyncHealthMeasurements(source, repository, clock),
+        seedStore,
+        clock,
+        ZONE,
+    )
 
     private val steps = DailyActivity(LocalDate(2026, 10, 21), 8500, null, null)
     private val sleep = SleepSession(
@@ -133,7 +140,7 @@ class SyncHealthDataTest {
     }
 
     @Test
-    fun firstSync_reads90Days_whenNoAutoSyncDayIsStored() = runTest {
+    fun firstSync_reads90Days_whenNothingIsSeeded() = runTest {
         grantAll()
 
         sync().getOrThrow()
@@ -142,14 +149,106 @@ class SyncHealthDataTest {
     }
 
     @Test
-    fun laterSync_reads7Days_whenAnAutoSyncDayIsStored() = runTest {
+    fun laterSync_reads7Days_whenEveryGrantedTypeIsSeeded() = runTest {
         grantAll()
-        repository.state = HealthSyncState(NOW - 1.days, null, LocalDate(2026, 10, 21))
+        val seeded = InMemoryWatchSeedStore(ALL_WATCH)
 
-        sync().getOrThrow()
+        newSync(seeded)().getOrThrow()
 
         assertEquals(listOf(NOW - 7.days to NOW), source.watchReads)
     }
+
+    @Test
+    fun typeGrantedAfterTheAutoSyncDayWasStored_reads90DaysWhileSeededTypesRead7() = runTest {
+        // Weight and steps were granted first and an automatic sync stored the day; sleep was granted later.
+        source.access = HealthAccess(
+            ALL_READ,
+            canWrite = true,
+            watchRead = setOf(WatchMetric.Steps, WatchMetric.Sleep),
+        )
+        repository.state = HealthSyncState(NOW - 1.days, null, LocalDate(2026, 10, 21))
+        val seeded = InMemoryWatchSeedStore(setOf(WatchMetric.Steps))
+
+        newSync(seeded)().getOrThrow()
+
+        assertEquals(
+            mapOf(WatchMetric.Steps to NOW - 7.days, WatchMetric.Sleep to NOW - 90.days),
+            source.watchPlans.single(),
+        )
+    }
+
+    @Test
+    fun weightOnlyAutoSyncDay_thenSleepGranted_readsSleep90Days() = runTest {
+        source.access = HealthAccess(setOf(HealthMetric.Weight), canWrite = true)
+        repository.state = HealthSyncState(NOW - 1.days, null, LocalDate(2026, 10, 21))
+        sync().getOrThrow()
+        source.access = HealthAccess(ALL_READ, canWrite = true, watchRead = setOf(WatchMetric.Sleep))
+
+        sync().getOrThrow()
+
+        assertEquals(mapOf(WatchMetric.Sleep to NOW - 90.days), source.watchPlans.single())
+    }
+
+    @Test
+    fun successfulImport_seedsExactlyTheGrantedTypes() = runTest {
+        source.access = HealthAccess(ALL_READ, canWrite = true, watchRead = setOf(WatchMetric.Steps))
+
+        sync().getOrThrow()
+
+        assertEquals(setOf(WatchMetric.Steps), seedStore.seeded)
+    }
+
+    @Test
+    fun failedImport_doesNotSeed_soTheNextSyncReads90DaysAgain() = runTest {
+        grantAll()
+        repository.activityFailure = AppException(AppError.Network)
+
+        sync()
+        repository.activityFailure = null
+        sync().getOrThrow()
+
+        assertEquals(listOf(NOW - 90.days to NOW, NOW - 90.days to NOW), source.watchReads)
+        assertEquals(ALL_WATCH, seedStore.seeded)
+    }
+
+    @Test
+    fun failedRead_doesNotSeed() = runTest {
+        grantAll()
+        source.watchFailure = IllegalStateException("hc")
+
+        sync()
+
+        assertTrue(seedStore.seeded.isEmpty())
+    }
+
+    @Test
+    fun fallbackTo30Days_doesNotSeed_soTheNextSyncTries90DaysAgain() = runTest {
+        grantAll()
+        source.failFirstWatchReads = 1
+
+        sync().getOrThrow()
+
+        assertTrue(seedStore.seeded.isEmpty())
+    }
+
+    @Test
+    fun secondSync_afterSeeding_reads7Days() = runTest {
+        grantAll()
+
+        sync().getOrThrow()
+        sync().getOrThrow()
+
+        assertEquals(listOf(NOW - 90.days to NOW, NOW - 7.days to NOW), source.watchReads)
+    }
+
+    private fun newSync(store: InMemoryWatchSeedStore) = SyncHealthData(
+        source,
+        repository,
+        SyncHealthMeasurements(source, repository, clock),
+        store,
+        clock,
+        ZONE,
+    )
 
     @Test
     fun weightFailure_doesNotBlockTheWatchImport() = runTest {
@@ -204,10 +303,9 @@ class SyncHealthDataTest {
     @Test
     fun laterWindowReadThrowing_hasNoFallback() = runTest {
         grantAll()
-        repository.state = HealthSyncState(NOW - 1.days, null, LocalDate(2026, 10, 21))
         source.failFirstWatchReads = 1
 
-        sync()
+        newSync(InMemoryWatchSeedStore(ALL_WATCH))()
 
         assertEquals(listOf(NOW - 7.days to NOW), source.watchReads)
     }

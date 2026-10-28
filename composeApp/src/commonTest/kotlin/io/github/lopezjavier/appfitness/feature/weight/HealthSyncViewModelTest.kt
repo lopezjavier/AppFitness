@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
 import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
+import io.github.lopezjavier.appfitness.app.InMemoryWatchSeedStore
 import io.github.lopezjavier.appfitness.app.idleReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -88,6 +89,7 @@ class HealthSyncViewModelTest {
         source,
         repository,
         SyncHealthMeasurements(source, repository, clock),
+        InMemoryWatchSeedStore(),
         clock,
         TimeZone.UTC,
     )
