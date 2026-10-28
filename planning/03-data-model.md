@@ -28,7 +28,12 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 
 ## 4. Weight
 - `body_measurements`: measured_at, weight_kg, body_fat_pct, lean_mass_kg, water_kg, bone_kg, bmr_kcal (composition only from Health Connect), source, `external_id` (HC dedup), `hc_record_id` (copy written by the app). The onboarding weight is the user's first row.
-- `body_circumferences` (site, value_cm, measured_at). `health_sync_state` (last sync per user).
+- `body_circumferences` (site, value_cm, measured_at). `health_sync_state` (last sync per user; `last_auto_sync_date` date, nullable, written only by `mark_health_auto_sync`).
+- Watch data (T-140, [E11](epics/E11-health-connect-daily-sync.md)), all owner-only (RLS enabled and forced, select/insert/update/delete own with `(select auth.uid())`, `on delete cascade` from `auth.users`):
+  - `daily_activity`: unique `(user_id, day)`, `steps` 0-1000000, `active_kcal` and `total_kcal` numeric(8,2) 0-100000, all value columns nullable.
+  - `sleep_sessions`: unique `(user_id, external_id)`, `started_at`, `ended_at` (> started_at), `minutes` 1-1440, `stages` jsonb array (`[{stage, started_at, ended_at}]`).
+  - `resting_heart_rate`: unique `(user_id, day)`, `bpm` 20-250, `external_id` (informational).
+  - RPC `import_health_activity(p_daily, p_sleep, p_resting_hr) -> {daily, sleep, resting_hr}` (rows written; max 400 per array, `22023` otherwise; upserts, last duplicate wins; does not touch `health_sync_state`). RPC `mark_health_auto_sync(p_day)` upserts the state row and sets only `last_auto_sync_date`. Both `security invoker`, `authenticated` only.
 - `notification_settings` (T-135, US-57): `(user_id, kind)` primary key, `enabled`, `updated_at`; owner select/insert/update (no delete), client upserts on `(user_id, kind)`. **A missing row means enabled.** Reminders are derived on the client from the latest weight and circumference rows, never stored.
 - `weekly_check_ins` (T-136, US-59): `(user_id, week_start)` primary key, `week_start` is an ISO Monday (check), `energy` smallint 1-5 (check), `notes` text <= 1000 chars, `created_at`, `updated_at` (trigger). RLS enabled and forced, owner select/insert/update (no delete), `(select auth.uid())`; pgTAP covers cross-user isolation.
 - `profiles.check_in_weekday` (T-136): smallint 1 (Monday)-7 (Sunday), default 7, check 1-7; the only new column the client may update (column grant).
@@ -63,4 +68,4 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 OFF client: custom `User-Agent`, 8 s timeout, normalization (base unit from `nutrition_data_per`).
 
 ## 8. Relationships
-`auth.users` 1-1 profiles, nutrition_goals, health_sync_state, food_preferences, training_preferences; 1-n meal_slots, food_log_entries (n-1 foods, n-1 meal_slots), favorite_foods, meal_templates (1-n items n-1 foods), meal_defaults, diary_default_applications, body_measurements, body_circumferences, routine_folders 1-n routines 1-n routine_exercises (n-1 exercises) 1-n routine_exercise_sets, workout_sessions 1-n workout_sets (n-1 exercises); foods 1-n food_portions.
+`auth.users` 1-1 profiles, nutrition_goals, health_sync_state, food_preferences, training_preferences; 1-n meal_slots, food_log_entries (n-1 foods, n-1 meal_slots), favorite_foods, meal_templates (1-n items n-1 foods), meal_defaults, diary_default_applications, body_measurements, body_circumferences, daily_activity, sleep_sessions, resting_heart_rate, routine_folders 1-n routines 1-n routine_exercises (n-1 exercises) 1-n routine_exercise_sets, workout_sessions 1-n workout_sets (n-1 exercises); foods 1-n food_portions.

@@ -3,11 +3,12 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(38);
+select plan(45);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
-  ('22222222-2222-4222-8222-222222222222', 'bea@example.com');
+  ('22222222-2222-4222-8222-222222222222', 'bea@example.com'),
+  ('33333333-3333-4333-8333-333333333333', 'cai@example.com');
 
 insert into public.health_sync_state (user_id, last_synced_at, changes_token) values
   ('22222222-2222-4222-8222-222222222222', '2026-10-01T00:00:00Z', 'b-token');
@@ -19,7 +20,7 @@ insert into public.body_measurements (id, user_id, weight_kg, source, external_i
 -- ---------------------------------------------------------------------------
 select has_table('public', 'health_sync_state', 'public.health_sync_state exists');
 select columns_are('public', 'health_sync_state', array[
-  'user_id', 'last_synced_at', 'changes_token', 'dismissed_external_ids', 'updated_at'
+  'user_id', 'last_synced_at', 'changes_token', 'dismissed_external_ids', 'updated_at', 'last_auto_sync_date'
 ], 'health_sync_state has exactly the planned columns');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.health_sync_state'::regclass),
@@ -156,8 +157,34 @@ select results_eq(
   $$values (0)$$,
   'A updating B''s state affects 0 rows');
 
+-- mark_health_auto_sync (T-140, US-60): the only writer of last_auto_sync_date.
+select is((select last_auto_sync_date from public.health_sync_state), null::date,
+  'the auto-sync date is empty before any mark');
+select public.mark_health_auto_sync('2026-10-27');
+select is((select last_auto_sync_date from public.health_sync_state), date '2026-10-27',
+  'mark_health_auto_sync stores the date');
+select public.mark_health_auto_sync('2026-10-28');
+select results_eq(
+  $$select last_auto_sync_date, last_synced_at, changes_token from public.health_sync_state$$,
+  $$values (date '2026-10-28', now(), 'tok4')$$,
+  'a later mark updates only the date, not last_synced_at or the changes token');
+select public.import_health_activity('[]', '[]', '[]');
+select is((select last_auto_sync_date from public.health_sync_state), date '2026-10-28',
+  'import_health_activity does not change the auto-sync date');
+select throws_ok($$select public.mark_health_auto_sync(null)$$, '22023', null, 'a null day is rejected');
+
+select set_config('request.jwt.claims',
+  '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}', true);
+select public.mark_health_auto_sync('2026-10-27');
+select results_eq(
+  $$select last_auto_sync_date, last_synced_at is not null, changes_token from public.health_sync_state$$,
+  $$values (date '2026-10-27', true, null::text)$$,
+  'mark creates the state row when missing');
+
 -- Unauthenticated
 select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+select throws_ok(
+  $$select public.mark_health_auto_sync('2026-10-27')$$, '28000', null, 'mark without a user raises 28000');
 select throws_ok(
   $$select public.import_health_measurements('[]'::jsonb, now(), 't')$$,
   '28000', null, 'import without a user raises 28000');

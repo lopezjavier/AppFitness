@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.model
 
+import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 /** The body metrics the app reads from Health Connect. */
@@ -40,8 +41,15 @@ data class HealthReading(
     val bmrKcal: Int? = null,
 )
 
-/** The user's stored sync position: when the last sync ran and the Health Connect changes token to continue from. */
-data class HealthSyncState(val lastSyncedAt: Instant, val changesToken: String?)
+/**
+ * The user's stored sync position: when the last sync ran, the Health Connect changes token to continue from and the
+ * day of the last successful automatic sync.
+ */
+data class HealthSyncState(
+    val lastSyncedAt: Instant,
+    val changesToken: String?,
+    val lastAutoSyncDate: LocalDate? = null,
+)
 
 /** Answer of `readChanges`: the time range the changed records touch (null when none), or an expired token. */
 sealed interface ChangesResult {
