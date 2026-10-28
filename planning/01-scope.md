@@ -44,7 +44,7 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | AI provider | Claude: Opus 5.5 for the block plan, Sonnet 5.5 for report and chat; Gemini stays only for food photos | 77 |
 | AI cost | Monthly budget: 2 € per user, 5 € in total; estimate ≈ $1-3 per user and month (`07-coach-design.md` §11) | 77 |
 | Prior consent | Not required while the app is personal; written condition before distributing it | 76 |
-| Coach navigation | New tab "Asistente" between Entreno and Perfil | 79 |
+| Coach navigation | New tab "Trainer" between Entreno and Perfil | 79 |
 | Water and voice | Phase 3 | — |
 
 ## 5. Out of Phase 2 scope

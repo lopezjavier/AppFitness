@@ -18,7 +18,7 @@ E10 (reminders, weekly check-in), E11 (watch data), E12 (intention, preferences,
 - 👤 The user creates the Anthropic account, sets its monthly spending limit and enters `ANTHROPIC_API_KEY` as a Supabase secret (never in the repo or the chat).
 
 ## Navigation
-The coach has its own tab "Asistente" between "Entreno" and "Perfil" (ADR-79), added with the first E13 UI task.
+The coach has its own tab "Trainer" between "Entreno" and "Perfil" (ADR-79), added with the first E13 UI task.
 
 ## Architecture
 - One Edge Function `coach` (JWT, RLS through the user's token; the API key only server-side). It receives a compact summary built in SQL (last 8 weeks at most), never raw tables.
