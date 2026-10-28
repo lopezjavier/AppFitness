@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** T-141 merged (#325). Start **T-142** (daily automatic sync on the first open, US-60) in a fresh session. Notes from the T-141 review: without the history permission the 90-day watch read may throw and fail the whole watch import (consider a 30-day fallback); a watch failure is swallowed when weight succeeds (`Synced` with `watch=null`), T-142 should surface it in the status line; the Zepp overlap is verified by hand at Checkpoint E11.
+**Next:** T-142 merged (#327). **Checkpoint E11 is open (👤)**: the user tests it; its approval releases T-143 (E11 closure). Fixes first if feedback arrives.
 
 ---
 
@@ -126,17 +126,17 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 **Description:** (1) **Core:** a pure `ShouldAutoSync` rule (today's local date vs `last_auto_sync_date`, Health Connect available, online) and an app-level trigger (next to T-135's reminder refresh in `AppViewModel` or a shared holder) that runs the T-141 sync for every granted type on the first open of each local day, where a cold start and a return from the background (process `ON_START`) on a new local day both count as "the first open" (E11 Q2, resolved by the user 2026-10-28), never in the background (ADR-74). Success sets `last_auto_sync_date` (T-140); failure or offline leaves it, so the next open retries. The automatic sync **never** launches the permission dialog: with no read permission it reads nothing and the status line asks for permissions. One sync at a time: a tap on "Sincronizar" while the automatic sync runs is ignored or joins it (planner's choice, tested). After a sync that stores a weight, the reminder state refreshes (T-135 hook). (2) **UI — templates and patterns:** the existing Health Connect status line on Peso (`MetricCard` supporting text, T-123) gains the automatic outcomes: synced with its time ("the status line shows the time of the sync"), "the last sync was not possible" when offline or failed, and the permission request; copy by ux-reviewer per R-37 and the glossary (§10). No new screen and no new component. The "Sincronizar" button keeps reading on demand.
 
 **Acceptance criteria:**
-- [ ] Last automatic sync yesterday → opening the app, or bringing it back from the background on the new day, reads every granted type and the status line shows the sync time.
-- [ ] Already synced automatically today → opening again reads nothing.
-- [ ] After today's automatic sync, a fresh weigh-in + "Sincronizar" → Health Connect is read and today's weight is shown (and the weight reminder clears).
-- [ ] Offline on open → stored data shown, the status line says the last sync was not possible, `last_auto_sync_date` unchanged; the next open online syncs.
-- [ ] No read permission → the status line asks for the permissions, no dialog opens by itself, nothing is read.
-- [ ] Status line and screen survive background and process death (ADR-40).
+- [x] Last automatic sync yesterday → opening the app, or bringing it back from the background on the new day, reads every granted type and the status line shows the sync time.
+- [x] Already synced automatically today → opening again reads nothing.
+- [x] After today's automatic sync, a fresh weigh-in + "Sincronizar" → Health Connect is read and today's weight is shown (and the weight reminder clears).
+- [x] Offline on open → stored data shown, the status line says the last sync was not possible, `last_auto_sync_date` unchanged; the next open online syncs.
+- [x] No read permission → the status line asks for the permissions, no dialog opens by itself, nothing is read.
+- [x] Status line and screen survive background and process death (ADR-40).
 
 **Host tests:** `ShouldAutoSyncTest` (yesterday / today / never, local-midnight boundary, offline, unavailable); trigger tests (cold start and `ON_START` on a new day both trigger, runs once per day, failure does not set the date and retries on the next open, no permission → no read and no dialog, button during an automatic sync, reminder refresh after a weight); `HealthSyncViewModel` status-line tests for the automatic outcomes; Robolectric status-line test and restoration.
 
 **Verification:**
-- [ ] lint + `testLocalDebugUnitTest` green.
+- [x] lint + `testLocalDebugUnitTest` green.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 12 files.
 **Dependencies:** T-141 merged (no checkpoint in between; E11 Q2 resolved)
@@ -147,7 +147,7 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 
 ### Checkpoint E11 — Your watch data, synced by itself each day 👤 (12 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
 Journey: grant the new permissions once and see last night's sleep, yesterday's steps, calories and resting heart rate, never duplicated; from then on the app brings them on the first open of each day, and the button still brings a fresh weigh-in. Why here: right after T-142, the last implementation task, so it is also the final regression of E11; its approval releases T-143. The user chose one checkpoint over two (E11-A after T-141 and E11-B after T-142).
-- [ ] T-140, T-141 and T-142 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
+- [x] T-140, T-141 and T-142 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Permissions (US-63): tap "Sincronizar": Health Connect asks to read sleep, steps, active and total calories and resting heart rate (and, in branch A, older history); in Ajustes → Health Connect → AppFitness, write access lists only weight and body fat.
   2. Sleep (US-61): after the sync, last night's sleep appears with its duration; compare it with Zepp.
