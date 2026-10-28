@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-145 (E11 checkpoint fix). Numbering continues from here.
 
-**Next:** Checkpoint E11 👤 (re-present it; T-145 merged). Its approval releases T-143 (E11 closure).
+**Next:** T-143 (E11 closure). Checkpoint E11 approved by the user, 2026-10-28.
 
 ---
 
@@ -196,7 +196,7 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 ### Checkpoint E11 — Your watch data, synced by itself each day 👤 (13 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
 Journey: grant the new permissions once and see last night's sleep, yesterday's steps, calories and resting heart rate, never duplicated; from then on the app brings them on the first open of each day, and the button still brings a fresh weigh-in. Why here: right after T-142, the last implementation task, so it is also the final regression of E11; its approval releases T-143. The user chose one checkpoint over two (E11-A after T-141 and E11-B after T-142).
 - [x] T-140, T-141, T-142, T-144 and T-145 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
-- [ ] 👤 Install the APK and try:
+- [x] 👤 Install the APK and try *(approved by the user, 2026-10-28)*:
   1. Permissions (US-63): tap "Sincronizar": Health Connect asks to read sleep, steps, active and total calories and resting heart rate (and, in branch A, older history); in Ajustes → Health Connect → AppFitness, write access lists only weight and body fat.
   2. Sleep (US-61): after the sync, last night's sleep appears with its duration; compare it with Zepp.
   3. Steps and calories (US-61): yesterday's steps and calories match Zepp's figures for yesterday.
