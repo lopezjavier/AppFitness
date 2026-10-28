@@ -109,8 +109,8 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 | T-151: E12 closure → `v1.x` | PM | S | PM only |
 
 ### Phase 1: Rest alert and discomfort in the live session (US-64, US-67)
-- [ ] T-146: Rest-end alert with the screen off and the sound candidates — L (no checkpoint after it)
-- [ ] T-147: Discomfort log and the strong-pain message — L
+- [x] T-146: Rest-end alert with the screen off and the sound candidates — L (no checkpoint after it)
+- [x] T-147: Discomfort log and the strong-pain message — L
   - **Checkpoint E12-A 👤 (7 items):** screen off and background; foreground; skip, +30s, finish/discard; notifications denied; choose the sound; log discomfort; strong pain and resolve.
 
 ### Phase 2: Notes and static inputs for the coach (US-66, US-65, data task)
