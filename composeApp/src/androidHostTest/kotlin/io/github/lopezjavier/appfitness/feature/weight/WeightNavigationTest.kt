@@ -30,7 +30,7 @@ class WeightNavigationTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val profileSlot: ProfileSlot = { modifier, _, _, _, _, onOpenWeight, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, _, _, _, _, onOpenWeight, _, _, _ ->
         Box(modifier.fillMaxSize().testTag("profile_screen")) {
             Box(Modifier.size(48.dp).testTag("profile_weight_row").clickable(onClick = onOpenWeight))
         }

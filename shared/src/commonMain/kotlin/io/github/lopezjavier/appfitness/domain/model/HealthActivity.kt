@@ -30,3 +30,10 @@ data class HealthActivityBatch(
 
 /** Rows written (inserted or replaced) per type after de-duplication. */
 data class HealthActivityImportResult(val daily: Int, val sleep: Int, val restingHeartRate: Int)
+
+/** What the activity screen shows: the latest sleep, the last seven days (newest first) and the latest resting rate. */
+data class HealthActivitySummary(
+    val lastSleep: SleepSession?,
+    val recentDays: List<DailyActivity>,
+    val restingHeartRate: RestingHeartRate?,
+)

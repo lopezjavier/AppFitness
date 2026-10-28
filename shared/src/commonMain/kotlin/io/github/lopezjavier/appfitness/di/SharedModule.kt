@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryReposit
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPhotoRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthActivityRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealDefaultsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseMealSlotRepository
@@ -39,6 +40,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRep
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthActivityRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredHealthSyncRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealDefaultsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealSlotRepository
@@ -62,6 +64,7 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -103,6 +106,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -151,6 +155,14 @@ val sharedModule =
                 SupabaseHealthSyncRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredHealthSyncRepository()
+            }
+        }
+        single<HealthActivityRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseHealthActivityRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredHealthActivityRepository()
             }
         }
         single<CircumferenceRepository> {
@@ -331,6 +343,7 @@ val sharedModule =
         // The HealthDataSource port is bound by the platform module.
         factory { HealthWriteBack(get(), get(), get()) }
         factory { SyncHealthMeasurements(get(), get(), get()) }
+        factory { SyncHealthData(get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { ComputeReminders() }
         factory { ResolveCheckInDay() }
         factory { LoadReminders(get(), get(), get(), get(), get(), get(), TimeZone.currentSystemDefault(), get()) }

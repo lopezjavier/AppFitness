@@ -22,12 +22,12 @@ data class AppFeatures(val componentCatalog: Boolean = false, val testLogin: Tes
 fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
     CatalogRoute -> componentCatalog
-    PreferencesRoute, is PreferencesSectionRoute, AccountRoute, AboutRoute, HealthDiagnosticsRoute -> true
+    PreferencesRoute, is PreferencesSectionRoute, AccountRoute, AboutRoute -> true
     is ExercisePickerRoute, is ExerciseDetailRoute, is RoutineBuilderRoute, LiveSessionRoute -> true
     is RoutineDetailsRoute -> true
     HistoryRoute, is SessionDetailRoute -> true
     is EditWorkoutRoute, is PastWorkoutRoute -> true
-    StrengthRoute, MuscleVolumeRoute, StatsRoute, is ExerciseProgressRoute -> true
+    StrengthRoute, MuscleVolumeRoute, StatsRoute, ActivityRoute, is ExerciseProgressRoute -> true
     is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, MealSlotsRoute, is EditEntryRoute -> true
     MealDefaultsRoute -> true
     is SaveTemplateRoute -> true

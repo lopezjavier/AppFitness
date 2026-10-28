@@ -129,6 +129,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Month grid | "Calendario" | - | Opened by the calendar icon |
 | Diary statistics | "Calorías" | "Historial" | Entry and screen title equal |
 | Training statistics | "Entrenamiento" (Perfil row and title) | "Estadísticas" | Perfil group heading is "Estadísticas"; the Preferencias section "Entrenamiento" is a different destination (allowed by R-04) |
+| Wearable activity data (sleep, steps, kcal, HR) | "Actividad" (Perfil row and title) | "Salud", "Reloj" | Cards "Sueño", "Pasos", "Calorías activas", "Calorías totales", "Frecuencia cardiaca en reposo"; the Perfil row "Calorías" stays the diary intake, so "Calorías activas/totales" always carry the qualifier |
 | Body fat | "Grasa corporal" (chip "Grasa") | "Grasa (%)" | Field "Grasa corporal (%)" |
 | Basal metabolism | "Metabolismo basal" (chip "TMB") | "Tasa metabólica basal" | |
 | Bone | "Masa ósea" (chip "Hueso" acceptable) | - | |

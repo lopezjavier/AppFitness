@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 internal val ALL_READ = HealthMetric.entries.toSet()
@@ -48,7 +49,10 @@ internal class FakeHealthDataSource : HealthDataSource {
     var readFailure: Throwable? = null
     var writeFailure: Throwable? = null
     var deleteFailure: Throwable? = null
+    var watchBatch = HealthActivityBatch(emptyList(), emptyList(), emptyList())
+    var watchFailure: Throwable? = null
 
+    val watchReads = mutableListOf<Pair<Instant, Instant>>()
     val events = mutableListOf<String>()
     val reads = mutableListOf<Pair<Instant, Instant>>()
     val changeReads = mutableListOf<String>()
@@ -70,6 +74,13 @@ internal class FakeHealthDataSource : HealthDataSource {
         reads += from to to
         readFailure?.let { return Result.failure(it) }
         return Result.success(records)
+    }
+
+    override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> {
+        events += "watch"
+        watchReads += from to to
+        watchFailure?.let { return Result.failure(it) }
+        return Result.success(watchBatch)
     }
 
     override suspend fun readChanges(token: String): Result<ChangesResult> {

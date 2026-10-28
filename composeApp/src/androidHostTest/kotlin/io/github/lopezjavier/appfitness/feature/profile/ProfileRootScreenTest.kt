@@ -38,6 +38,7 @@ class ProfileRootScreenTest {
     private var weightOpens = 0
     private var trainingStatsOpens = 0
     private var aboutOpens = 0
+    private var activityOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -56,6 +57,7 @@ class ProfileRootScreenTest {
         weightOpens = 0
         trainingStatsOpens = 0
         aboutOpens = 0
+        activityOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
@@ -69,6 +71,7 @@ class ProfileRootScreenTest {
                         onOpenDiaryHistory = { diaryHistoryOpens++ },
                         onOpenTrainingStats = { trainingStatsOpens++ },
                         onOpenAbout = { aboutOpens++ },
+                        onOpenActivity = { activityOpens++ },
                     ),
                 )
             }
@@ -133,6 +136,7 @@ class ProfileRootScreenTest {
         rule.onNodeWithTag("profile_strength_row").assertTextEquals("Fuerza", "Récord 1RM 113,5 kg")
         rule.onNodeWithTag("profile_diary_history_row").assertTextEquals("Calorías", "media 1.950 kcal")
         rule.onNodeWithTag("profile_training_stats_row").assertTextEquals("Entrenamiento")
+        rule.onNodeWithTag("profile_activity_row").assertTextEquals("Actividad")
     }
 
     @Test
@@ -146,10 +150,13 @@ class ProfileRootScreenTest {
     @Test
     fun everyRow_meetsTheTouchTarget_andOpensItsDestination() {
         show()
-        listOf("weight", "strength", "diary_history", "training_stats").forEach {
+        listOf("weight", "strength", "diary_history", "training_stats", "activity").forEach {
             rule.onNodeWithTag("profile_${it}_row").assertHeightIsAtLeast(48.dp).performClick()
         }
-        assertEquals(listOf(1, 1, 1, 1), listOf(weightOpens, strengthOpens, diaryHistoryOpens, trainingStatsOpens))
+        assertEquals(
+            listOf(1, 1, 1, 1, 1),
+            listOf(weightOpens, strengthOpens, diaryHistoryOpens, trainingStatsOpens, activityOpens),
+        )
     }
 
     @Test

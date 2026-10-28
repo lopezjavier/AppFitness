@@ -6,22 +6,22 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Health Connect (T-079): read the six body metrics, write back weight and body fat. -->
+    <!-- Health Connect: read the six body metrics, write back weight and body fat only (US-63). -->
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.WRITE_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
     <uses-permission android:name="android.permission.health.WRITE_BODY_FAT" />
     <uses-permission android:name="android.permission.health.READ_LEAN_BODY_MASS" />
-    <uses-permission android:name="android.permission.health.WRITE_LEAN_BODY_MASS" />
     <uses-permission android:name="android.permission.health.READ_BODY_WATER_MASS" />
-    <uses-permission android:name="android.permission.health.WRITE_BODY_WATER_MASS" />
     <uses-permission android:name="android.permission.health.READ_BONE_MASS" />
-    <uses-permission android:name="android.permission.health.WRITE_BONE_MASS" />
     <uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />
-    <uses-permission android:name="android.permission.health.WRITE_BASAL_METABOLIC_RATE" />
 
-    <!-- T-139 spike (temporary): steps and history reads for the Health Connect diagnostics screen. -->
+    <!-- T-141: watch data reads (sleep, steps, calories, resting heart rate) and the history read. -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
 
     <queries>

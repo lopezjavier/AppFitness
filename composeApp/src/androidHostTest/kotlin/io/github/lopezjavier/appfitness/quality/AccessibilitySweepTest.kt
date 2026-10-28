@@ -16,11 +16,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BuildInfo
 import io.github.lopezjavier.appfitness.feature.about.AboutScreen
 import io.github.lopezjavier.appfitness.feature.about.AboutUiState
+import io.github.lopezjavier.appfitness.feature.activity.ActivityScreen
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesUiState
 import io.github.lopezjavier.appfitness.feature.weight.WeightScreen
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -75,7 +77,6 @@ class AccessibilitySweepTest {
                     AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")),
                     onBack = {},
                     onOpenLicenses = {},
-                    onOpenHealthDiagnostics = {},
                 )
             }
         }
@@ -111,6 +112,14 @@ class AccessibilitySweepTest {
     fun trainingStats_everyTappableNodeIsNamedAndBigEnough() {
         rule.setContent { AppTheme { TrainingStatsScreen(qualityStatsState(), {}, {}, {}) } }
         assertEveryClickableIsNamedAndBigEnough("Training stats")
+    }
+
+    @Test
+    fun activity_everyTappableNodeIsNamedAndBigEnough() {
+        rule.setContent {
+            AppTheme { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, {}, {}) }
+        }
+        assertEveryClickableIsNamedAndBigEnough("Activity")
     }
 
     @Test

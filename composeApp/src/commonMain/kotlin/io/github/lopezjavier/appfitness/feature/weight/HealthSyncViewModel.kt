@@ -4,13 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
-import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.SyncOutcome
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
-import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +24,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 private const val KEY_DENIED = "health_permission_denied"
+private const val KEY_ASKED_ALL = "health_all_reads_asked"
 
 /** Where the Health Connect sync stands, as the banner on the weight screen shows it (US-26). */
 sealed interface HealthSyncStatus {
@@ -74,7 +74,7 @@ sealed interface HealthSyncEffect {
 @Suppress("LongParameterList") // One dependency per port; the ticker is injectable for tests.
 class HealthSyncViewModel(
     private val source: HealthDataSource,
-    private val syncHealthMeasurements: SyncHealthMeasurements,
+    private val syncHealthData: SyncHealthData,
     private val repository: HealthSyncRepository,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
@@ -122,7 +122,7 @@ class HealthSyncViewModel(
             status.value = HealthSyncStatus.Unavailable(availability)
             return
         }
-        val canRead = HealthMetric.Weight in source.access().read
+        val canRead = source.access().hasAnyRead()
         if (canRead) savedState[KEY_DENIED] = false
         val stored = repository.getState().getOrElse {
             status.value = HealthSyncStatus.Failed
@@ -138,15 +138,25 @@ class HealthSyncViewModel(
 
     private suspend fun tap() {
         if (!online.value || status.value == HealthSyncStatus.Syncing) return
-        when {
-            source.availability() != HealthAvailability.Available -> effectChannel.send(HealthSyncEffect.OpenInstall)
-            HealthMetric.Weight !in source.access().read -> effectChannel.send(HealthSyncEffect.RequestPermissions)
-            else -> sync()
+        if (source.availability() != HealthAvailability.Available) {
+            effectChannel.send(HealthSyncEffect.OpenInstall)
+            return
+        }
+        val access = source.access()
+        // A user who only granted part of the set (for instance the body types from before the watch data) is asked
+        // for the full set once; a partial grant after that is respected and syncs what it covers.
+        val askAgain = !access.hasAllReads() && savedState.get<Boolean>(KEY_ASKED_ALL) != true
+        if (!access.hasAnyRead() || askAgain) {
+            savedState[KEY_ASKED_ALL] = true
+            effectChannel.send(HealthSyncEffect.RequestPermissions)
+        } else {
+            sync()
         }
     }
 
+    // The dialog may grant only some types: what matters is whether anything can be read now, not the launcher flag.
     private suspend fun onPermissionResult(granted: Boolean) {
-        if (granted) {
+        if (granted || source.access().hasAnyRead()) {
             sync()
         } else {
             savedState[KEY_DENIED] = true
@@ -156,7 +166,7 @@ class HealthSyncViewModel(
 
     private suspend fun sync() {
         status.value = HealthSyncStatus.Syncing
-        val result = syncHealthMeasurements()
+        val result = syncHealthData()
         status.value = when (val outcome = result.getOrNull()) {
             is SyncOutcome.Synced -> {
                 savedState[KEY_DENIED] = false

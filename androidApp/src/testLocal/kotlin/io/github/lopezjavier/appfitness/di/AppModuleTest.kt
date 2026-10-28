@@ -15,7 +15,6 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
-import io.github.lopezjavier.appfitness.domain.port.HealthHistoryProbe
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -25,6 +24,7 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
@@ -62,6 +62,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -176,6 +177,7 @@ class AppModuleTest {
                 GetAccountProtection::class,
                 SavePreferences::class,
                 Clock::class,
+                TimeZone::class,
                 SavedStateHandle::class,
                 ExerciseRepository::class,
                 RoutineRepository::class,
@@ -197,7 +199,8 @@ class AppModuleTest {
                 SaveBodyMeasurement::class,
                 HealthWriteBack::class,
                 HealthDataSource::class,
-                HealthHistoryProbe::class,
+                SyncHealthData::class,
+                HealthActivityRepository::class,
                 SyncHealthMeasurements::class,
                 HealthSyncRepository::class,
                 ValidateBodyMeasurement::class,

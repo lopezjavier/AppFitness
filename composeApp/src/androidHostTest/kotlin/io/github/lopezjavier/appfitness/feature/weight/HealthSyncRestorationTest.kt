@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -95,7 +96,13 @@ class HealthSyncRestorationTest {
 
     private fun healthViewModel(state: SavedStateHandle) = HealthSyncViewModel(
         source = source,
-        syncHealthMeasurements = SyncHealthMeasurements(source, syncRepository, HealthClock),
+        syncHealthData = SyncHealthData(
+            source,
+            syncRepository,
+            SyncHealthMeasurements(source, syncRepository, HealthClock),
+            HealthClock,
+            TimeZone.UTC,
+        ),
         repository = syncRepository,
         connectivity = FakeConnectivityObserver(),
         clock = HealthClock,

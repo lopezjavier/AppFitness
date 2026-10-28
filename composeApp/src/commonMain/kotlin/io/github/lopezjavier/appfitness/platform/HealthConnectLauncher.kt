@@ -24,10 +24,3 @@ interface HealthConnectLauncher {
  */
 @Composable
 expect fun rememberHealthConnectLauncher(onResult: (weightReadGranted: Boolean) -> Unit): HealthConnectLauncher
-
-/**
- * Like [rememberHealthConnectLauncher] but asks for the T-139 diagnostic set (steps, weight, history read). [onResult]
- * fires when the system screen closes, whatever was granted. Temporary: removed with the diagnostic (T-141).
- */
-@Composable
-expect fun rememberHealthHistoryLauncher(onResult: () -> Unit): HealthConnectLauncher

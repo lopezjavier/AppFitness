@@ -2,8 +2,10 @@ package io.github.lopezjavier.appfitness.domain.port
 
 import io.github.lopezjavier.appfitness.domain.model.ChangesResult
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityBatch
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /**
@@ -21,6 +23,13 @@ interface HealthDataSource {
 
     /** Records of the six types with `from <= time <= to`; only the metrics with read access are read. */
     suspend fun readRange(from: Instant, to: Instant): Result<RawHealthRecords>
+
+    /**
+     * The watch data of `from..to`, already shaped: daily totals per local day of [zone], sleep sessions with stages
+     * and minutes, one resting heart rate per day. Own-origin records are left out; a type without read access (or
+     * without data) gives an empty list.
+     */
+    suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch>
 
     /** What changed since [token]; deletions are ignored. */
     suspend fun readChanges(token: String): Result<ChangesResult>

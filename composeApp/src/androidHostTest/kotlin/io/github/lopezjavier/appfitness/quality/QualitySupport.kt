@@ -27,6 +27,8 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
+import io.github.lopezjavier.appfitness.feature.activity.ActivityUiState
+import io.github.lopezjavier.appfitness.feature.activity.DayValue
 import io.github.lopezjavier.appfitness.feature.analytics.stats.MuscleRadar
 import io.github.lopezjavier.appfitness.feature.analytics.stats.SectionState
 import io.github.lopezjavier.appfitness.feature.analytics.stats.StatsExercise
@@ -120,6 +122,18 @@ internal fun qualityLiveState(): LiveSessionUiState.Active {
     )
     val state = LiveSessionUiState.Active("Torso", SESSION_START, listOf(exercise))
     return state
+}
+
+internal fun qualityActivityState(): ActivityUiState.Content {
+    val today = LocalDate(2026, 10, 22)
+    return ActivityUiState.Content(
+        sleep = DayValue(435, today),
+        steps = DayValue(8500, today),
+        activeKcal = DayValue(620, today),
+        totalKcal = DayValue(2300, today),
+        restingHeartRate = DayValue(52, today),
+        today = today,
+    )
 }
 
 internal fun qualityStatsState(): TrainingStatsUiState {

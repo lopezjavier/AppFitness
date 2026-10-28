@@ -136,6 +136,7 @@ Example: 200 g of chicken at 110 kcal and 3 g fat per 100 g = 220 kcal and 6 g f
 - **Edit and delete (user decision 2026-10-21, E5 Q2):** the app stores the id of the record it wrote. Editing that manual measurement updates the Health Connect copy, and deleting it deletes the copy. A measurement saved without the permission has no copy and is not written later. A failed Health Connect call never blocks the app's change.
 - **Imported readings** deleted in the app are removed from the app only (an app can only delete its own Health Connect records) and are not re-imported. Records written by this app are skipped on import.
 - Sync is manual (the "Sincronizar" button); there is no background sync.
+- Sleep, steps, calories and resting heart rate are read by the same button since E11: see `planning/04-business-rules.md` 3.10-3.11.
 
 ### 3.8 Metric interpretation (informative)
 Every interpreted metric shows a value, a status and a short explanation. Ranges are for adults and are **informative only**; the screen carries the disclaimer "Este producto no es un dispositivo médico; los resultados no sirven para diagnóstico".
