@@ -88,7 +88,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 ### Selection controls
 - **R-33** Tabs (`AppTabRow`) switch sibling views of one screen; a segmented control (`SegmentedSelector`) picks one of 2-5 short options; chips filter a list or pick among many/long options. A control never changes type with the number of options.
 - **R-34** The same concept uses the same control and labels. Chart ranges use `TimeRangeSelector`: "1S 1M 3M 6M 1A".
-- **R-38** A bottom sheet closes only with its X, system back or, where present, "Cancelar" (ADR-71); drag-down and outside taps do not close it, and no sheet shows a drag handle.
+- **R-38** A picker or read-only sheet (calendar, day, metric and range pickers, info sheets) closes with its X, system back or an outside tap (ADR-80). A sheet with editable input or unsaved changes (R-11) closes only with its X, system back or "Cancelar" (ADR-71). Drag-down never closes a sheet and no sheet shows a drag handle.
 - **R-39** Where an icon clearly represents an action (photo, add, remove, retry, scan) the control is an icon with a `contentDescription`; text buttons are for actions with no clear icon (ADR-71).
 - **R-41** A quality/confidence level is never colour alone: a colour from the design-system scale plus text ("Confianza 7/10"), with the same text as `contentDescription`/`stateDescription` (ADR-72).
 ### Wording
