@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-137 (E10 breakdown). Numbering continues from here.
+Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
 
-**Next:** present Checkpoint E10 (T-135 merged in #308, T-136 in #310; `deploy-supabase` green on `main` after both migrations). T-137 (closure) waits for its approval. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
+**Next:** T-138 (fix from Checkpoint E10 feedback), then re-present Checkpoint E10 (T-135 merged in #308, T-136 in #310). T-137 (closure) waits for its approval. Phase 2 scope: `planning/01-scope.md`; epics E10 → E11 → E12 → E13.
 
 ---
 
@@ -99,6 +99,16 @@ Checkpoints (agreed with the user, 2026-10-28): **one Checkpoint E10** after T-1
 **Dependencies:** T-135 merged and `deploy-supabase` green
 **Files likely touched:** `supabase/migrations/<ts>_weekly_check_ins.sql`, `supabase/tests/weekly_check_ins_test.sql`, `shared/…/domain/model/{WeeklyCheckIn,WeeklySummary}.kt`, `shared/…/domain/usecase/{CheckInWindow,WeeklySummary,ComputeReminders}.kt`, `shared/…/domain/port/WeeklyCheckInRepository.kt`, `shared/…/data/repository/{SupabaseWeeklyCheckInRepository,…Profile…}.kt`, `shared/…/di/`, new `composeApp/…/feature/checkin/{CheckInScreen,CheckInViewModel,CheckInUiState}.kt`, `feature/notifications/NotificationCenterScreen.kt`, `feature/profile/{PreferencesSectionScreen,PreferencesViewModel,…}.kt`, `app/{AppRoutes,AppNavHost}.kt`, strings, `planning/03-data-model.md`, `planning/04-business-rules.md` (check-in window and summary rules), tests
 **Estimated scope:** L
+
+---
+
+## T-138: Move the reminder settings from "Centro de avisos" to Preferencias · S
+
+**Origin:** Checkpoint E10 feedback (user, 2026-10-28): "move avisos preferences from avisos center to users preferences". Convention written to `05` §8 "Decided".
+**Description:** The three switches ("Recordatorio de peso", "Recordatorio de medidas", "Check-in semanal") leave the center's settings card; the center only lists reminders and the answered check-in. Preferencias gets one hub section "Avisos" (replaces T-136's "Check-in semanal" section) holding the three switches and "Día del check-in", with one "Guardar" (explicit-save rule, offline hint R-30). Sweep every screen with a setting inside a feature screen (R-39). Same data (`notification_settings`, `profiles.check_in_weekday`), no migration; update US-57 Gherkin wording, `05` §6.2 and the host tests (center, Preferencias, restoration).
+**Decision taken (PM, recorded):** one "Avisos" section instead of switches spread over sections; the center keeps no settings link.
+**Verification:** [ ] lint + `testLocalDebugUnitTest` green; [ ] re-test at Checkpoint E10: silence/restore each type from Preferencias, center has no switches.
+**Dependencies:** Checkpoint E10 open · **Estimated scope:** S
 
 ---
 
