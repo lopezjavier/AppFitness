@@ -79,6 +79,6 @@ Models are the `model:` line of each agent file and are the user's decision. Eac
 ## 6. Epic closure and delivery
 1. All the epic's tasks are in `main` with green CI; the PM logs `[PM] [E#] [COMPLETED]` and waits for feedback.
 2. The user verifies the delivered APK (`! python scripts/deliver-apk.py`, devices connected) and every reported bug is fixed.
-3. Changes requested -> corrective tasks in the epic. Approved -> bump `versionName`/`versionCode` in `androidApp/build.gradle.kts` (PR), then `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`.
+3. Changes requested -> corrective tasks in the epic. Approved -> bump `versionName`/`versionCode` in `androidApp/build.gradle.kts` (PR). The PM owns the version without asking the user: each epic raises the minor and each phase raises the major. Then `git tag -a vX.Y.0 -m "Epic E#"` + `git push --tags`.
 4. Retrospective with the user; durable lessons become rules in `CLAUDE.md`, `.claude/` or the agent files.
 5. Archive the epic's log lines; the next epic is broken down by `epic-planner` in a fresh session, and the user agrees the task list and checkpoints before the breakdown PR merges and before the first task.
